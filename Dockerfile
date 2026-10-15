@@ -49,14 +49,11 @@ ENV APP_ENV=production \
     APP_DEBUG=false \
     APACHE_DOCUMENT_ROOT=/var/www/html/public
 
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        curl \
-        libicu-dev \
-        libonig-dev \
-        libsqlite3-dev \
-        libzip-dev \
-    && docker-php-ext-install -j"$(nproc)" \
+    && apt-get install -y --no-install-recommends curl \
+    && install-php-extensions \
         bcmath \
         intl \
         mbstring \
