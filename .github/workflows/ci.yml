@@ -48,6 +48,9 @@ jobs:
           php artisan key:generate --force --no-interaction
           php artisan migrate --force --no-interaction
 
+      - name: Build frontend assets
+        run: npm run build
+
       - name: Run application checks and tests
         run: |
           # Generated Wayfinder files are intentionally excluded from the
@@ -58,9 +61,6 @@ jobs:
           ./vendor/bin/pint --test
           ./vendor/bin/phpstan analyse --debug --memory-limit=512M --no-progress
           php artisan test
-
-      - name: Build production assets
-        run: npm run build
 
   docker:
     name: Build Docker image
