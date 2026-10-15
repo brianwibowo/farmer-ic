@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'farmer/Index')->name('home');
+Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
