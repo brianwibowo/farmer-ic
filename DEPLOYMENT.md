@@ -1,7 +1,7 @@
 # Docker and VPS deployment
 
 The production image builds the Vue assets and PHP dependencies in separate
-stages, then runs Laravel from Apache with PHP 8.3. Caddy terminates HTTPS for
+stages, then runs Laravel from Apache with PHP 8.5. Caddy terminates HTTPS for
 `farmer-ic.duckdns.org` and proxies requests to the app container. SQLite and
 uploaded files live in named volumes; the application key is supplied through
 the deployment secret so a new image can be rolled out without losing state.

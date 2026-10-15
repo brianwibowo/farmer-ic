@@ -43,7 +43,7 @@ RUN npm run build
 # Apache provides a single, self-contained web process for the Laravel app.
 # This keeps local and VPS deployments identical while retaining a small,
 # repeatable build pipeline.
-FROM php:8.3-apache-bookworm AS runtime
+FROM php:8.5-apache-bookworm AS runtime
 
 ENV APP_ENV=production \
     APP_DEBUG=false \
