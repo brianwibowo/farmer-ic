@@ -62,6 +62,14 @@ frontend assets.
 - Keep components small and readable.
 - Use the existing Tailwind, Vue, Inertia, and UI primitives. Do not install a
   new npm package without asking.
+- Use the existing semantic theme utilities for all UI colors, such as
+  `text-primary`, `text-foreground`, `text-muted-foreground`, `bg-card`,
+  `bg-muted`, `border-border`, `text-success`, `text-warning`, and
+  `text-error`. Do not hardcode hex, RGB, or RGBA colors in page or component
+  classes. If a needed color, shadow, and related does not exist, then a hardcoding of style is allowed/necessary.
+- Check every new screen in both light and dark themes. Avoid fixed widths;
+  support small, medium, and large phone viewports, including standard,
+  Pro/Plus, and Pro Max iPhone sizes.
 - Do not edit `.env` or commit changes.
 
 ## WIREFRAME-TO-VUE WORKFLOW
