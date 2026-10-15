@@ -1,5 +1,8 @@
 services:
     app:
+        build:
+            context: .
+            dockerfile: Dockerfile
         image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
         ports:
             - '127.0.0.1:${APP_PORT:-8080}:80'
@@ -21,6 +24,7 @@ services:
         restart: unless-stopped
 
     caddy:
+        profiles: [proxy]
         image: caddy:2-alpine
         depends_on:
             - app

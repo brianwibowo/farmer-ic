@@ -1,10 +1,11 @@
 # Docker and VPS deployment
 
 The production image builds the Vue assets and PHP dependencies in separate
-stages, then runs Laravel from Apache with PHP 8.5. Caddy terminates HTTPS for
-`farmer-ic.duckdns.org` and proxies requests to the app container. SQLite and
-uploaded files live in named volumes; the application key is supplied through
-the deployment secret so a new image can be rolled out without losing state.
+stages, then runs Laravel from Apache with PHP 8.5. The app binds to
+`127.0.0.1:8080`; an existing Nginx/Apache service can terminate HTTPS for
+`farmer-ic.duckdns.org`. The included Caddy service is available through the
+`proxy` profile when ports 80/443 are free. SQLite and uploaded files live in
+named volumes; the application key is supplied through the deployment secret.
 
 ## Run with Docker locally
 
@@ -20,10 +21,9 @@ recreation, add an `APP_KEY` value to `.env.docker`.
 
 ## GitHub configuration
 
-The `CI` workflow runs PHP, TypeScript, lint, tests, the Vite build, and a
-Docker image build for every pull request and push to `main`. The `Deploy`
-workflow runs only after a successful `CI` run on `main`, publishes an image to
-GHCR, then updates the VPS with the tested commit.
+The `CI` workflow runs PHP, TypeScript, lint, tests, and the Vite build. The
+`Deploy` workflow runs only after a successful `CI` run on `main`, fetches the
+tested commit on the VPS, builds the Docker image there, and restarts the app.
 
 Create these **GitHub Actions secrets** before enabling deployment:
 
@@ -34,8 +34,6 @@ Create these **GitHub Actions secrets** before enabling deployment:
 | `VPS_USER`        | SSH user                                                       |
 | `VPS_PASSWORD`    | SSH password, if password authentication is enabled            |
 | `VPS_DEPLOY_PATH` | Absolute directory for Compose files, such as `/srv/farmer-ic` |
-| `GHCR_USERNAME`   | GitHub username used by the VPS to pull the private image      |
-| `GHCR_TOKEN`      | Fine-grained token with package read permission                |
 | `APP_KEY`         | Laravel key generated with `php artisan key:generate --show`   |
 
 The SSH password and application key are read only from GitHub Secrets. Do not
@@ -52,15 +50,20 @@ sudo chown -R "$USER":"$USER" /srv/farmer-ic
 sudo usermod -aG docker "$USER"
 ```
 
-Log in again so the group change takes effect. Open HTTP and HTTPS in the VPS
-firewall so Caddy can obtain and renew the certificate:
+Log in again so the group change takes effect. The default deploy starts only
+the app and binds it to `127.0.0.1:8080`. If Nginx or Apache already owns ports
+80/443, proxy the domain to that port. Check the current owner with:
 
 ```sh
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
+sudo ss -ltnp | grep -E ':(80|443)\\b'
 ```
 
-The first successful `Deploy` workflow copies `compose.production.yaml` and
-`Caddyfile`, creates `.env.production`, logs in to GHCR, and starts the app.
-Caddy then serves `https://farmer-ic.duckdns.org` with an automatically managed
-TLS certificate. The app itself remains bound to `127.0.0.1:8080`.
+The first successful `Deploy` workflow clones the repository, checks out the
+tested commit, builds on the VPS, and starts the app. To use the included Caddy
+instead of an existing web server, first free ports 80/443, open them in the
+firewall, then run:
+
+```sh
+cd /home/clouduser/farmer-ic
+docker compose --env-file .env.production --profile proxy -f compose.production.yaml up -d caddy
+```

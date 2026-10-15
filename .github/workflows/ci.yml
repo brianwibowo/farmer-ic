@@ -61,20 +61,3 @@ jobs:
           ./vendor/bin/pint --test
           ./vendor/bin/phpstan analyse --debug --memory-limit=512M --no-progress
           php artisan test
-
-  docker:
-    name: Build Docker image
-    runs-on: ubuntu-latest
-    needs: quality
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Build image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile
-          push: false
-          tags: farmer-ic:ci
