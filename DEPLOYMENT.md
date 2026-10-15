@@ -35,7 +35,7 @@ Create these **GitHub Actions secrets** before enabling deployment:
 | `VPS_PORT`        | SSH port (for example `12323`)                                 |
 | `VPS_USER`        | SSH user                                                       |
 | `VPS_PASSWORD`    | SSH password, if password authentication is enabled            |
-| `VPS_DEPLOY_PATH` | Absolute directory for Compose files, such as `/srv/farmer-ic` |
+| `VPS_DEPLOY_PATH` | Absolute directory for Compose files, such as `/home/clouduser/farmer-ic` |
 | `APP_KEY`         | Laravel key generated with `php artisan key:generate --show`   |
 
 The SSH password and application key are read only from GitHub Secrets. Do not

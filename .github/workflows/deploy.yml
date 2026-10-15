@@ -29,13 +29,12 @@ jobs:
                   COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
                   APP_KEY: ${{ secrets.APP_KEY }}
               with:
-                  host: ${{ secrets.VPS_HOST || secrets.HOST }}
-                  port: ${{ secrets.VPS_PORT || '22' }}
-                  username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || secrets.SSH_USER }}
+                  host: ${{ secrets.VPS_HOST || '43.231.129.222' }}
+                  port: ${{ secrets.VPS_PORT || '12323' }}
+                  username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || 'clouduser' }}
                   password: ${{ secrets.VPS_PASSWORD }}
                   key: ${{ secrets.VPS_KEY || secrets.SSH_PRIVATE_KEY }}
                   envs: VPS_DEPLOY_PATH,REPOSITORY,COMMIT_SHA,APP_KEY
-                  script_stop: true
                   script: |
                       set -eu
 
