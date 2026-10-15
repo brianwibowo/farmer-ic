@@ -4,9 +4,9 @@ import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 </script>
 
 <template>
-    <Head title="Farmer" />
+    <Head title="Beranda" />
 
-    <FarmerMobileShell active-key="ai">
-        <!-- Reserved for farmer dashboard and AI content. -->
+    <FarmerMobileShell active-key="home">
+        <!-- Reserved for the Beranda dashboard. -->
     </FarmerMobileShell>
 </template>
