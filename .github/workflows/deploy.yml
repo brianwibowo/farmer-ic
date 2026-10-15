@@ -59,14 +59,14 @@ jobs:
       - name: Create deployment directory
         uses: appleboy/ssh-action@v1.2.2
         env:
-          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/srv/farmer-ic' }}
         with:
-          host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets.VPS_HOST || secrets.HOST }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || secrets.SSH_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_KEY || secrets.SSH_PRIVATE_KEY }}
           envs: VPS_DEPLOY_PATH
-          script_stop: true
           script: |
             set -eu
             mkdir -p "$VPS_DEPLOY_PATH"
@@ -74,39 +74,41 @@ jobs:
       - name: Copy production Compose file
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets.VPS_HOST || secrets.HOST }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || secrets.SSH_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_KEY || secrets.SSH_PRIVATE_KEY }}
           source: compose.production.yaml
-          target: ${{ secrets.VPS_DEPLOY_PATH }}
+          target: ${{ secrets.VPS_DEPLOY_PATH || '/srv/farmer-ic' }}
 
       - name: Copy HTTPS reverse proxy configuration
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets.VPS_HOST || secrets.HOST }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || secrets.SSH_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_KEY || secrets.SSH_PRIVATE_KEY }}
           source: Caddyfile
-          target: ${{ secrets.VPS_DEPLOY_PATH }}
+          target: ${{ secrets.VPS_DEPLOY_PATH || '/srv/farmer-ic' }}
 
       - name: Pull and restart the application
         uses: appleboy/ssh-action@v1.2.2
         env:
-          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/srv/farmer-ic' }}
           APP_IMAGE: ${{ steps.image.outputs.name }}
           APP_TAG: ${{ github.event.workflow_run.head_sha }}
-          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME || github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
           APP_KEY: ${{ secrets.APP_KEY }}
         with:
-          host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets.VPS_HOST || secrets.HOST }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || secrets.SSH_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_KEY || secrets.SSH_PRIVATE_KEY }}
           envs: VPS_DEPLOY_PATH,APP_IMAGE,APP_TAG,GHCR_USERNAME,GHCR_TOKEN,APP_KEY
-          script_stop: true
           script: |
             set -eu
             cd "$VPS_DEPLOY_PATH"
