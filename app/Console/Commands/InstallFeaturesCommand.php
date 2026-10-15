@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use InvalidArgumentException;
 use Laravel\Chisel\Chisel;
 use Laravel\Chisel\Question;
 use Laravel\Chisel\Script;
@@ -40,9 +41,28 @@ class InstallFeaturesCommand extends Command
         /** @var Script $script */
         $script = require base_path('chisel.php');
 
-        $providedAnswers = $this->option('answers') === null
-            ? []
-            : json_decode((string) $this->option('answers'), true, 512, JSON_THROW_ON_ERROR);
+        $providedAnswers = [];
+
+        $rawAnswers = $this->option('answers');
+
+        if ($rawAnswers !== null) {
+            if (! is_string($rawAnswers)) {
+                throw new InvalidArgumentException('The --answers option must be a JSON string.');
+            }
+
+            $decodedAnswers = json_decode(
+                $rawAnswers,
+                true,
+                512,
+                JSON_THROW_ON_ERROR,
+            );
+
+            if (! is_array($decodedAnswers)) {
+                throw new InvalidArgumentException('The --answers option must contain a JSON object.');
+            }
+
+            $providedAnswers = $decodedAnswers;
+        }
 
         $answers = $script
             ->collectAnswers()

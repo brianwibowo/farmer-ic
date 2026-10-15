@@ -1,0 +1,42 @@
+services:
+    app:
+        image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
+        ports:
+            - '127.0.0.1:${APP_PORT:-8080}:80'
+        env_file:
+            - path: .env.production
+              required: false
+        environment:
+            APP_ENV: production
+            APP_DEBUG: 'false'
+            APP_URL: ${APP_URL:-https://farmer-ic.duckdns.org}
+            DB_CONNECTION: sqlite
+            DB_DATABASE: /var/lib/farmer-ic/database.sqlite
+            SESSION_DRIVER: file
+            CACHE_STORE: file
+            QUEUE_CONNECTION: sync
+        volumes:
+            - app_storage:/var/www/html/storage
+            - app_database:/var/lib/farmer-ic
+        restart: unless-stopped
+
+    caddy:
+        image: caddy:2-alpine
+        depends_on:
+            - app
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile:ro
+            - caddy_data:/data
+            - caddy_config:/config
+        restart: unless-stopped
+
+volumes:
+    app_storage:
+    app_database:
+
+    caddy_data:
+
+    caddy_config:

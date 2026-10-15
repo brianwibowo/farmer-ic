@@ -29,6 +29,12 @@ export default defineConfig({
         }),
         wayfinder({
             formVariants: true,
+            // Docker generates Wayfinder output in its PHP build stage. The
+            // command can be overridden there while local and CI builds keep
+            // using the normal Artisan generator.
+            command:
+                process.env.WAYFINDER_COMMAND ??
+                'php artisan wayfinder:generate',
         }),
     ]),
     server: {

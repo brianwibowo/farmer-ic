@@ -1,0 +1,130 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy to VPS
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Normalize image name
+        id: image
+        run: echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=${{ github.event.workflow_run.head_sha }}
+            type=raw,value=latest
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+
+      - name: Create deployment directory
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          envs: VPS_DEPLOY_PATH
+          script_stop: true
+          script: |
+            set -eu
+            mkdir -p "$VPS_DEPLOY_PATH"
+
+      - name: Copy production Compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: compose.production.yaml
+          target: ${{ secrets.VPS_DEPLOY_PATH }}
+
+      - name: Copy HTTPS reverse proxy configuration
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: Caddyfile
+          target: ${{ secrets.VPS_DEPLOY_PATH }}
+
+      - name: Pull and restart the application
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+          APP_IMAGE: ${{ steps.image.outputs.name }}
+          APP_TAG: ${{ github.event.workflow_run.head_sha }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          envs: VPS_DEPLOY_PATH,APP_IMAGE,APP_TAG,GHCR_USERNAME,GHCR_TOKEN,APP_KEY
+          script_stop: true
+          script: |
+            set -eu
+            cd "$VPS_DEPLOY_PATH"
+
+            # Keep the application key on the VPS; it must survive container
+            # replacements. The file is created with owner-only permissions.
+            touch .env.production
+            chmod 600 .env.production
+            if [ -z "${APP_KEY:-}" ] && ! grep -q '^APP_KEY=.' .env.production; then
+              echo 'APP_KEY secret is required for the first deployment' >&2
+              exit 1
+            fi
+            if ! grep -q '^APP_KEY=.' .env.production; then
+              printf 'APP_KEY=%s\n' "$APP_KEY" >> .env.production
+            fi
+
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+            export APP_IMAGE APP_TAG
+            docker compose --env-file .env.production -f compose.production.yaml pull
+            docker compose --env-file .env.production -f compose.production.yaml up -d --remove-orphans
+            docker image prune --force
