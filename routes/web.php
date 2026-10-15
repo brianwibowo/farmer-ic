@@ -5,7 +5,7 @@ use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'farmer/Index')->name('home');
+Route::inertia('/', 'farmer/Dashboard')->name('home');
 Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
 
 Route::prefix('{current_team}')
@@ -18,5 +18,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
+
 
 require __DIR__.'/settings.php';

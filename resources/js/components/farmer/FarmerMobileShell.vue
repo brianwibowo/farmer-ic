@@ -10,7 +10,7 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), {
-    activeKey: 'ai',
+    activeKey: 'home',
 });
 
 const emit = defineEmits<{
@@ -19,6 +19,13 @@ const emit = defineEmits<{
 
 const selectedKey = ref<FarmerNavKey>(props.activeKey);
 
+const routeMap: Record<FarmerNavKey, string> = {
+    home: '/',            // Beranda / Dashboard utama
+    garden: '/kebun',      // Halaman Kebun
+    ai: '/ai',            // Halaman AI
+    finance: '/keuangan',  // Halaman Keuangan
+    activity: '/aktivitas',// Halaman Aktivitas
+};
 watch(
     () => props.activeKey,
     (key) => {
@@ -29,8 +36,10 @@ watch(
 function select(key: FarmerNavKey): void {
     selectedKey.value = key;
 
-    if (key === 'garden' && window.location.pathname !== '/kebun') {
-        void router.visit('/kebun');
+    // [PERBAIKAN 3] Jalankan router.visit untuk semua tombol secara dinamis
+    const targetUrl = routeMap[key];
+    if (targetUrl && window.location.pathname !== targetUrl) {
+        void router.visit(targetUrl);
     }
 
     emit('select', key);
