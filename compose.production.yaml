@@ -20,6 +20,11 @@ services:
             SESSION_DRIVER: file
             CACHE_STORE: file
             QUEUE_CONNECTION: sync
+        networks:
+            default: {}
+            proxy:
+                aliases:
+                    - farmer-ic-app
         volumes:
             - app_storage:/var/www/html/storage
             - app_database:/var/lib/farmer-ic
@@ -46,3 +51,8 @@ volumes:
     caddy_data:
 
     caddy_config:
+
+networks:
+    proxy:
+        external: true
+        name: ${PROXY_NETWORK:-outline_default}
