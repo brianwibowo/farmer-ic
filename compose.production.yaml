@@ -1,3 +1,5 @@
+name: farmer-ic
+
 services:
     app:
         build:
