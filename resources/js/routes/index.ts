@@ -133,8 +133,7 @@ logout.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     
     logout.form = logoutForm
 /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @see routes/web.php:16
  * @route '/'
  */
 export const home = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -148,8 +147,7 @@ home.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @see routes/web.php:16
  * @route '/'
  */
 home.url = (options?: RouteQueryOptions) => {
@@ -157,8 +155,7 @@ home.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @see routes/web.php:16
  * @route '/'
  */
 home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -166,8 +163,7 @@ home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     method: 'get',
 })
 /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @see routes/web.php:16
  * @route '/'
  */
 home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -176,8 +172,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
     /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @see routes/web.php:16
  * @route '/'
  */
     const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -186,8 +181,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     })
 
             /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @see routes/web.php:16
  * @route '/'
  */
         homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -195,8 +189,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
             method: 'get',
         })
             /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @see routes/web.php:16
  * @route '/'
  */
         homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -366,6 +359,233 @@ kebun.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
         })
     
     kebun.form = kebunForm
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+export const aktivitas = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: aktivitas.url(options),
+    method: 'get',
+})
+
+aktivitas.definition = {
+    methods: ["get","head"],
+    url: '/aktivitas',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+aktivitas.url = (options?: RouteQueryOptions) => {
+    return aktivitas.definition.url + queryParams(options)
+}
+
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+aktivitas.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: aktivitas.url(options),
+    method: 'get',
+})
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+aktivitas.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: aktivitas.url(options),
+    method: 'head',
+})
+
+    /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+    const aktivitasForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+        action: aktivitas.url(options),
+        method: 'get',
+    })
+
+            /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+        aktivitasForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: aktivitas.url(options),
+            method: 'get',
+        })
+            /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+        aktivitasForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: aktivitas.url({
+                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+                            _method: 'HEAD',
+                            ...(options?.query ?? options?.mergeQuery ?? {}),
+                        }
+                    }),
+            method: 'get',
+        })
+    
+    aktivitas.form = aktivitasForm
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+export const rincianAktivitas = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: rincianAktivitas.url(options),
+    method: 'get',
+})
+
+rincianAktivitas.definition = {
+    methods: ["get","head"],
+    url: '/rincian-aktivitas',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+rincianAktivitas.url = (options?: RouteQueryOptions) => {
+    return rincianAktivitas.definition.url + queryParams(options)
+}
+
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+rincianAktivitas.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: rincianAktivitas.url(options),
+    method: 'get',
+})
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+rincianAktivitas.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: rincianAktivitas.url(options),
+    method: 'head',
+})
+
+    /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+    const rincianAktivitasForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+        action: rincianAktivitas.url(options),
+        method: 'get',
+    })
+
+            /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+        rincianAktivitasForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: rincianAktivitas.url(options),
+            method: 'get',
+        })
+            /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+        rincianAktivitasForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: rincianAktivitas.url({
+                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+                            _method: 'HEAD',
+                            ...(options?.query ?? options?.mergeQuery ?? {}),
+                        }
+                    }),
+            method: 'get',
+        })
+    
+    rincianAktivitas.form = rincianAktivitasForm
+/**
+ * @see routes/web.php:49
+ * @route '/bypass'
+ */
+export const bypass = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: bypass.url(options),
+    method: 'get',
+})
+
+bypass.definition = {
+    methods: ["get","head"],
+    url: '/bypass',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+ * @see routes/web.php:49
+ * @route '/bypass'
+ */
+bypass.url = (options?: RouteQueryOptions) => {
+    return bypass.definition.url + queryParams(options)
+}
+
+/**
+ * @see routes/web.php:49
+ * @route '/bypass'
+ */
+bypass.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: bypass.url(options),
+    method: 'get',
+})
+/**
+ * @see routes/web.php:49
+ * @route '/bypass'
+ */
+bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: bypass.url(options),
+    method: 'head',
+})
+
+    /**
+ * @see routes/web.php:49
+ * @route '/bypass'
+ */
+    const bypassForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+        action: bypass.url(options),
+        method: 'get',
+    })
+
+            /**
+ * @see routes/web.php:49
+ * @route '/bypass'
+ */
+        bypassForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: bypass.url(options),
+            method: 'get',
+        })
+            /**
+ * @see routes/web.php:49
+ * @route '/bypass'
+ */
+        bypassForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: bypass.url({
+                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+                            _method: 'HEAD',
+                            ...(options?.query ?? options?.mergeQuery ?? {}),
+                        }
+                    }),
+            method: 'get',
+        })
+    
+    bypass.form = bypassForm
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
  * @see app/Http/Controllers/DashboardController.php:12

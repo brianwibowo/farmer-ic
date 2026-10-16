@@ -2,84 +2,6 @@ import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFo
 /**
 * @see \Inertia\Controller::__invoke
  * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
- * @route '/'
- */
-const Controller980bb49ee7ae63891f1d891d2fbcf1c9 = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: Controller980bb49ee7ae63891f1d891d2fbcf1c9.url(options),
-    method: 'get',
-})
-
-Controller980bb49ee7ae63891f1d891d2fbcf1c9.definition = {
-    methods: ["get","head"],
-    url: '/',
-} satisfies RouteDefinition<["get","head"]>
-
-/**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
- * @route '/'
- */
-Controller980bb49ee7ae63891f1d891d2fbcf1c9.url = (options?: RouteQueryOptions) => {
-    return Controller980bb49ee7ae63891f1d891d2fbcf1c9.definition.url + queryParams(options)
-}
-
-/**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
- * @route '/'
- */
-Controller980bb49ee7ae63891f1d891d2fbcf1c9.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: Controller980bb49ee7ae63891f1d891d2fbcf1c9.url(options),
-    method: 'get',
-})
-/**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
- * @route '/'
- */
-Controller980bb49ee7ae63891f1d891d2fbcf1c9.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: Controller980bb49ee7ae63891f1d891d2fbcf1c9.url(options),
-    method: 'head',
-})
-
-    /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
- * @route '/'
- */
-    const Controller980bb49ee7ae63891f1d891d2fbcf1c9Form = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-        action: Controller980bb49ee7ae63891f1d891d2fbcf1c9.url(options),
-        method: 'get',
-    })
-
-            /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
- * @route '/'
- */
-        Controller980bb49ee7ae63891f1d891d2fbcf1c9Form.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-            action: Controller980bb49ee7ae63891f1d891d2fbcf1c9.url(options),
-            method: 'get',
-        })
-            /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
- * @route '/'
- */
-        Controller980bb49ee7ae63891f1d891d2fbcf1c9Form.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-            action: Controller980bb49ee7ae63891f1d891d2fbcf1c9.url({
-                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-                            _method: 'HEAD',
-                            ...(options?.query ?? options?.mergeQuery ?? {}),
-                        }
-                    }),
-            method: 'get',
-        })
-    
-    Controller980bb49ee7ae63891f1d891d2fbcf1c9.form = Controller980bb49ee7ae63891f1d891d2fbcf1c9Form
-    /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
  * @route '/finance'
  */
 const Controllerb048a0b5d791fb5ca2f61779e8b831e6 = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -314,6 +236,162 @@ Controller8cb2b5d6234ebdf32eb72cb0c79c5b71.head = (options?: RouteQueryOptions):
     /**
 * @see \Inertia\Controller::__invoke
  * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+const Controller58c971c77e0968848b2dcf0013ef50ef = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: Controller58c971c77e0968848b2dcf0013ef50ef.url(options),
+    method: 'get',
+})
+
+Controller58c971c77e0968848b2dcf0013ef50ef.definition = {
+    methods: ["get","head"],
+    url: '/aktivitas',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+Controller58c971c77e0968848b2dcf0013ef50ef.url = (options?: RouteQueryOptions) => {
+    return Controller58c971c77e0968848b2dcf0013ef50ef.definition.url + queryParams(options)
+}
+
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+Controller58c971c77e0968848b2dcf0013ef50ef.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: Controller58c971c77e0968848b2dcf0013ef50ef.url(options),
+    method: 'get',
+})
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+Controller58c971c77e0968848b2dcf0013ef50ef.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: Controller58c971c77e0968848b2dcf0013ef50ef.url(options),
+    method: 'head',
+})
+
+    /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+    const Controller58c971c77e0968848b2dcf0013ef50efForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+        action: Controller58c971c77e0968848b2dcf0013ef50ef.url(options),
+        method: 'get',
+    })
+
+            /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+        Controller58c971c77e0968848b2dcf0013ef50efForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: Controller58c971c77e0968848b2dcf0013ef50ef.url(options),
+            method: 'get',
+        })
+            /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/aktivitas'
+ */
+        Controller58c971c77e0968848b2dcf0013ef50efForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: Controller58c971c77e0968848b2dcf0013ef50ef.url({
+                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+                            _method: 'HEAD',
+                            ...(options?.query ?? options?.mergeQuery ?? {}),
+                        }
+                    }),
+            method: 'get',
+        })
+    
+    Controller58c971c77e0968848b2dcf0013ef50ef.form = Controller58c971c77e0968848b2dcf0013ef50efForm
+    /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+const Controller00edbf1602507f5a0bcc065f9a50d23d = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: Controller00edbf1602507f5a0bcc065f9a50d23d.url(options),
+    method: 'get',
+})
+
+Controller00edbf1602507f5a0bcc065f9a50d23d.definition = {
+    methods: ["get","head"],
+    url: '/rincian-aktivitas',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+Controller00edbf1602507f5a0bcc065f9a50d23d.url = (options?: RouteQueryOptions) => {
+    return Controller00edbf1602507f5a0bcc065f9a50d23d.definition.url + queryParams(options)
+}
+
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+Controller00edbf1602507f5a0bcc065f9a50d23d.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: Controller00edbf1602507f5a0bcc065f9a50d23d.url(options),
+    method: 'get',
+})
+/**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+Controller00edbf1602507f5a0bcc065f9a50d23d.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: Controller00edbf1602507f5a0bcc065f9a50d23d.url(options),
+    method: 'head',
+})
+
+    /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+    const Controller00edbf1602507f5a0bcc065f9a50d23dForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+        action: Controller00edbf1602507f5a0bcc065f9a50d23d.url(options),
+        method: 'get',
+    })
+
+            /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+        Controller00edbf1602507f5a0bcc065f9a50d23dForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: Controller00edbf1602507f5a0bcc065f9a50d23d.url(options),
+            method: 'get',
+        })
+            /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+ * @route '/rincian-aktivitas'
+ */
+        Controller00edbf1602507f5a0bcc065f9a50d23dForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: Controller00edbf1602507f5a0bcc065f9a50d23d.url({
+                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+                            _method: 'HEAD',
+                            ...(options?.query ?? options?.mergeQuery ?? {}),
+                        }
+                    }),
+            method: 'get',
+        })
+    
+    Controller00edbf1602507f5a0bcc065f9a50d23d.form = Controller00edbf1602507f5a0bcc065f9a50d23dForm
+    /**
+* @see \Inertia\Controller::__invoke
+ * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
  * @route '/settings/appearance'
  */
 const Controllere19ee86e9cf603ce1a59a1ec5d21dec5 = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -397,10 +475,11 @@ Controllere19ee86e9cf603ce1a59a1ec5d21dec5.head = (options?: RouteQueryOptions):
 * generated `routes/` directory.
 */
 const Controller = {
-    '/': Controller980bb49ee7ae63891f1d891d2fbcf1c9,
     '/finance': Controllerb048a0b5d791fb5ca2f61779e8b831e6,
     '/kebun/detail': Controller2e02fe2508d8fb39a7f2fb8f4f79b56b,
     '/kebun': Controller8cb2b5d6234ebdf32eb72cb0c79c5b71,
+    '/aktivitas': Controller58c971c77e0968848b2dcf0013ef50ef,
+    '/rincian-aktivitas': Controller00edbf1602507f5a0bcc065f9a50d23d,
     '/settings/appearance': Controllere19ee86e9cf603ce1a59a1ec5d21dec5,
 }
 

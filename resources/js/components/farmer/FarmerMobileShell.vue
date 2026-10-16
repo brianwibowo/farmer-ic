@@ -22,7 +22,7 @@ const emit = defineEmits<{
 const selectedKey = ref<FarmerNavKey>(props.activeKey);
 
 const upcomingPages: Partial<Record<FarmerNavKey, string>> = {
-    ai: 'AI',
+
 };
 watch(
     () => props.activeKey,
@@ -32,6 +32,14 @@ watch(
 );
 
 function select(key: FarmerNavKey): void {
+    if (key === 'ai') {
+        router.visit('/bypass');
+        return;
+    }
+    if (key === 'home' && window.location.pathname !== '/') {
+        router.visit('/');
+        return;
+    }
     if (key === 'finance' && window.location.pathname !== '/finance') {
         router.visit('/finance');
         return;
