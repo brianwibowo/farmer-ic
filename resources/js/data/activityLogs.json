@@ -57,7 +57,7 @@
                 "id": "photo-pupuk-1",
                 "label": "Foto sak pupuk",
                 "caption": "Sak pupuk NPK Phonska dan Urea siap tabur di tepi blok",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/pupuk-sak.jpg"
             },
             {
                 "id": "photo-pupuk-2",
@@ -90,7 +90,7 @@
                 "id": "photo-air-1",
                 "label": "Foto mesin",
                 "caption": "Mesin pompa diesel beroperasi mengalirkan air dari sumur bor",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/pengairan-mesin.jpg"
             },
             {
                 "id": "photo-air-2",
@@ -123,7 +123,7 @@
                 "id": "photo-tumbuh-1",
                 "label": "Foto tanaman (full)",
                 "caption": "Hamparan kanopi kedelai fase R5 tampak rapat dan hijau",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/tumbuh-tanaman-full.webp"
             },
             {
                 "id": "photo-tumbuh-2",
@@ -165,7 +165,7 @@
                 "id": "photo-pestisida-1",
                 "label": "Foto bahan pestisida",
                 "caption": "Botol insektisida Prevathon 50 SC dan gelas takar dosis",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/pestisida-bahan.jpg"
             },
             {
                 "id": "photo-pestisida-2",
@@ -198,7 +198,7 @@
                 "id": "photo-insiden-1",
                 "label": "Foto close up",
                 "caption": "Kerusakan pucuk daun jagung akibat larva Spodoptera frugiperda",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/insiden-closeup.jpg"
             },
             {
                 "id": "photo-insiden-2",
@@ -235,7 +235,7 @@
                 "id": "photo-panen-1",
                 "label": "Foto hasil panen",
                 "caption": "Karung jagung pipil kering siap timbang dan uji kadar air",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/panen-hasil.jpg"
             },
             {
                 "id": "photo-panen-2",
