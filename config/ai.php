@@ -22,7 +22,7 @@ return [
             'trim',
             explode(',', (string) env('AI_VISION_FALLBACK_MODELS', 'google/gemini-3.7-flash,inclusionai/ling-3.0-flash-vl')),
         ))),
-        'max_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 2048),
+        'max_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 1024),
         'temperature' => (float) env('AI_TEMPERATURE', 0.2),
     ],
 

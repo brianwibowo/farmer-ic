@@ -52,7 +52,10 @@ class OpenRouterGateway implements LlmGateway
 
         try {
             while (! $stream->eof()) {
-                $buffer .= $stream->read(8192);
+                // Read small chunks so downstream SSE clients receive deltas as
+                // soon as the provider emits them instead of waiting for a
+                // large buffer to fill.
+                $buffer .= $stream->read(1024);
                 [$lines, $buffer] = $this->splitLines($buffer);
 
                 foreach ($lines as $line) {
