@@ -112,14 +112,27 @@ export type ActivityLog = {
 export const activityTypeOptions: Array<{
     value: ActivityType;
     label: string;
+    shortLabel: string;
 }> = [
-    { value: 'penanaman-benih', label: 'Penanaman Benih' },
-    { value: 'pemupukan', label: 'Pemupukan' },
-    { value: 'pengairan', label: 'Pengairan' },
-    { value: 'pengecekan-pertumbuhan', label: 'Pengecekan Fase Pertumbuhan' },
-    { value: 'pestisida', label: 'Pestisida' },
-    { value: 'pelaporan-insiden', label: 'Pelaporan Insiden' },
-    { value: 'panen', label: 'Panen' },
+    {
+        value: 'penanaman-benih',
+        label: 'Penanaman Benih',
+        shortLabel: 'Penanaman',
+    },
+    { value: 'pemupukan', label: 'Pemupukan', shortLabel: 'Pemupukan' },
+    { value: 'pengairan', label: 'Pengairan', shortLabel: 'Pengairan' },
+    {
+        value: 'pengecekan-pertumbuhan',
+        label: 'Pengecekan Fase Pertumbuhan',
+        shortLabel: 'Pertumbuhan',
+    },
+    { value: 'pestisida', label: 'Pestisida', shortLabel: 'Pestisida' },
+    {
+        value: 'pelaporan-insiden',
+        label: 'Pelaporan Insiden',
+        shortLabel: 'Insiden',
+    },
+    { value: 'panen', label: 'Panen', shortLabel: 'Panen' },
 ];
 
 export const activityLogSeedData: ActivityLog[] =

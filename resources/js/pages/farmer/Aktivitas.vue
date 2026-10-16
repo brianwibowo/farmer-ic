@@ -7,7 +7,7 @@ import {
     Search,
     SquareActivity,
 } from '@lucide/vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
@@ -20,9 +20,39 @@ import { listActivityLogs } from '@/services/activityLogService';
 const activities = ref<ActivityLog[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
+const isFilterOpen = ref(false);
+const filterDropdownRef = ref<HTMLElement | null>(null);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const resetMessage = ref('');
+
+const selectedTypeLabel = computed(() => {
+    if (selectedType.value === '' || selectedType.value === 'all') {
+        return 'Aktivitas';
+    }
+
+    return (
+        activityTypeOptions.find((opt) => opt.value === selectedType.value)
+            ?.shortLabel ?? 'Aktivitas'
+    );
+});
+
+function selectTypeOption(value: 'all' | ActivityType): void {
+    selectedType.value = value;
+    isFilterOpen.value = false;
+}
+
+function handleDocumentClick(event: MouseEvent): void {
+    if (!isFilterOpen.value) return;
+    const target = event.target as Node | null;
+    if (
+        filterDropdownRef.value &&
+        target &&
+        !filterDropdownRef.value.contains(target)
+    ) {
+        isFilterOpen.value = false;
+    }
+}
 
 const filteredActivities = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
@@ -70,11 +100,19 @@ async function resetDemoData(): Promise<void> {
     clearDemoStorage();
     searchQuery.value = '';
     selectedType.value = '';
+    isFilterOpen.value = false;
     resetMessage.value = 'Data demo aktivitas telah direset.';
     await loadActivities();
 }
 
-onMounted(() => void loadActivities());
+onMounted(() => {
+    document.addEventListener('pointerdown', handleDocumentClick);
+    void loadActivities();
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('pointerdown', handleDocumentClick);
+});
 </script>
 
 <template>
@@ -112,29 +150,77 @@ onMounted(() => void loadActivities());
                     />
                 </label>
 
-                <label class="relative w-[116px] shrink-0">
-                    <span class="sr-only">Filter jenis aktivitas</span>
-                    <select
-                        v-model="selectedType"
-                        class="h-[38px] w-full appearance-none truncate rounded-lg border border-primary bg-card px-3 pr-7 text-[14px] text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                <div
+                    ref="filterDropdownRef"
+                    class="relative w-[132px] shrink-0"
+                >
+                    <button
+                        type="button"
+                        aria-label="Filter jenis aktivitas"
+                        :aria-expanded="isFilterOpen"
+                        aria-haspopup="listbox"
+                        class="flex h-[38px] w-full items-center justify-between gap-1 rounded-lg border border-primary bg-card px-3 text-[14px] text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                        @click="isFilterOpen = !isFilterOpen"
                     >
-                        <option value="" disabled hidden>Aktivitas</option>
-                        <option value="all">Semua</option>
-                        <option
+                        <span class="truncate">{{ selectedTypeLabel }}</span>
+                        <ChevronDown
+                            :size="16"
+                            :stroke-width="1.8"
+                            :class="[
+                                'shrink-0 text-primary transition-transform duration-150',
+                                isFilterOpen ? 'rotate-180' : '',
+                            ]"
+                            aria-hidden="true"
+                        />
+                    </button>
+
+                    <ul
+                        v-if="isFilterOpen"
+                        role="listbox"
+                        aria-label="Pilihan jenis aktivitas"
+                        class="absolute inset-x-0 top-[calc(100%+6px)] z-20 w-full rounded-xl border border-border bg-card p-1 shadow-md"
+                    >
+                        <li>
+                            <button
+                                type="button"
+                                role="option"
+                                :aria-selected="
+                                    selectedType === '' ||
+                                    selectedType === 'all'
+                                "
+                                :class="[
+                                    'flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] leading-4 transition-colors',
+                                    selectedType === '' ||
+                                    selectedType === 'all'
+                                        ? 'bg-muted font-semibold text-secondary'
+                                        : 'text-foreground hover:bg-muted/70',
+                                ]"
+                                @click="selectTypeOption('all')"
+                            >
+                                Semua
+                            </button>
+                        </li>
+                        <li
                             v-for="option in activityTypeOptions"
                             :key="option.value"
-                            :value="option.value"
                         >
-                            {{ option.label }}
-                        </option>
-                    </select>
-                    <ChevronDown
-                        :size="16"
-                        :stroke-width="1.8"
-                        class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary"
-                        aria-hidden="true"
-                    />
-                </label>
+                            <button
+                                type="button"
+                                role="option"
+                                :aria-selected="selectedType === option.value"
+                                :class="[
+                                    'flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] leading-4 transition-colors',
+                                    selectedType === option.value
+                                        ? 'bg-muted font-semibold text-secondary'
+                                        : 'text-foreground hover:bg-muted/70',
+                                ]"
+                                @click="selectTypeOption(option.value)"
+                            >
+                                {{ option.shortLabel }}
+                            </button>
+                        </li>
+                    </ul>
+                </div>
             </div>
 
             <div
