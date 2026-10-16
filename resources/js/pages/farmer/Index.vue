@@ -342,17 +342,25 @@ onUnmounted(() => {
                 <Sparkles :size="34" stroke-width="1.4" />
             </div>
             <h1 class="mt-5 text-xl font-semibold tracking-tight">
-                Masuk untuk memakai Asisten Kebun
+                Asisten Kebun Petani
             </h1>
             <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Percakapan dan gambar hanya tersedia di dalam team yang aktif.
+                Tanyakan kondisi tanaman, diagnosis visual dari foto, atau konsultasi perawatan.
             </p>
-            <a
-                href="/login"
-                class="mt-6 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-                Masuk
-            </a>
+            <div class="mt-6 flex w-full max-w-[260px] flex-col gap-3">
+                <a
+                    href="/bypass"
+                    class="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                    Masuk Langsung (Bypass)
+                </a>
+                <a
+                    href="/login"
+                    class="text-xs font-medium text-muted-foreground transition hover:text-foreground hover:underline"
+                >
+                    Masuk dengan akun lain
+                </a>
+            </div>
         </div>
         <section
             v-else
