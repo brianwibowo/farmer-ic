@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'farmer/Index')->name('home');
 Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
+Route::inertia('/aktivitas', 'farmer/Aktivitas')->name('aktivitas');
+Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->name('rincian-aktivitas');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])

@@ -31,6 +31,11 @@ function select(key: FarmerNavKey): void {
 
     if (key === 'garden' && window.location.pathname !== '/kebun') {
         void router.visit('/kebun');
+    } else if (
+        key === 'activity' &&
+        window.location.pathname !== '/aktivitas'
+    ) {
+        void router.visit('/aktivitas');
     }
 
     emit('select', key);
