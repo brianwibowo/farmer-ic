@@ -95,6 +95,12 @@ class Team extends Model
         return $this->hasMany(TeamInvitation::class);
     }
 
+    /** @return HasMany<AiKnowledgeDocument, $this> */
+    public function aiKnowledgeDocuments(): HasMany
+    {
+        return $this->hasMany(AiKnowledgeDocument::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

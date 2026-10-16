@@ -9,6 +9,11 @@ running in the Outline Compose project can reach the app at
 `http://farmer-ic-app:80`. SQLite and uploaded files live in named volumes;
 the application key is supplied through the deployment secret.
 
+The AI message endpoint uses Server-Sent Events. The included Caddy config
+routes those responses with buffering disabled so generated text can reach the
+browser incrementally. If another reverse proxy is used, configure its
+equivalent streaming/flush behavior for `/{team}/ai/messages`.
+
 ## Run with Docker locally
 
 ```sh
@@ -20,6 +25,21 @@ The app is available at <http://localhost:8080>. Stop it with
 `docker compose down`; add `-v` only when you intentionally want to remove the
 SQLite and storage volumes. For a stable local session across container
 recreation, add an `APP_KEY` value to `.env.docker`.
+
+Add the OpenRouter key to `.env.docker` before starting the container. The
+file is ignored by Git and is read by Compose at runtime:
+
+```dotenv
+OPENROUTER_API_KEY=your-server-side-key
+AI_PRIMARY_MODEL=google/gemini-3.8-flash
+AI_TEXT_FALLBACK_MODELS=google/gemini-3.7-flash,openai/gpt-6-luna
+AI_VISION_FALLBACK_MODELS=google/gemini-3.7-flash,inclusionai/ling-3.0-flash-vl
+AI_STT_MODEL=qwen/qwen3.8-omni-flash
+AI_STT_FALLBACK_MODELS=google/gemini-3.8-flash
+AI_TTS_MODEL=
+AI_TTS_VOICE=
+AI_VOICE_ENABLED=true
+```
 
 ## GitHub configuration
 
@@ -40,6 +60,37 @@ Create these **GitHub Actions secrets** before enabling deployment:
 
 The SSH password and application key are read only from GitHub Secrets. Do not
 put them in this repository, workflow files, or a committed `.env` file.
+
+For AI features, provide `OPENROUTER_API_KEY` through the runtime environment
+file on the server. Keep it server-only; it is never a `VITE_` variable.
+
+The deploy workflow preserves `.env.production` between releases. Create it
+once on the VPS with mode `600` and keep the runtime configuration there:
+
+```sh
+cd /srv/farmer-ic
+touch .env.production
+chmod 600 .env.production
+nano .env.production
+```
+
+At minimum it should contain `APP_URL`, `APP_KEY`,
+`OPENROUTER_API_KEY`, and the model settings from the local example above.
+The workflow supplies `APP_KEY` from GitHub Secrets only when the file does
+not already contain one. It does not copy the OpenRouter key from GitHub.
+
+To deploy manually after updating `.env.production`:
+
+```sh
+docker compose --env-file .env.production -f compose.production.yaml build --pull app
+docker compose --env-file .env.production -f compose.production.yaml up -d --no-build --remove-orphans app
+docker compose --env-file .env.production -f compose.production.yaml logs --tail=100 app
+```
+
+The container entrypoint runs migrations, caches config/routes/views, and
+creates the private storage link during startup. Verify the application health
+endpoint at `/up` and then open `https://your-domain/{team-slug}/ai` after
+logging in.
 
 ## VPS bootstrap
 

@@ -75,7 +75,11 @@ export default defineConfig({
         ignorePatterns: [
             '.github/**',
             'composer.json',
+            'DEPLOYMENT.md',
             'resources/js/components/ui/*',
+            'resources/js/actions/**',
+            'resources/js/routes/**',
+            'resources/js/wayfinder/**',
             'resources/views/mail/*',
         ],
         sortTailwindcss: {
