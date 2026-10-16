@@ -35,11 +35,16 @@ Route::get('/', function () {
 
     $team = Auth::user()?->currentTeam;
 
-    return Inertia::render('farmer/Index', [
+    return Inertia::render('farmer/Dashboard', [
         'currentTeam' => $team,
     ]);
 })->name('home');
 
+Route::inertia('finance', 'farmer/Finance')->name('finance');
+Route::inertia('kebun/detail', 'farmer/KebunDetail')->name('kebun.detail');
+Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
+Route::inertia('/aktivitas', 'farmer/Aktivitas')->name('aktivitas');
+Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->name('rincian-aktivitas');
 Route::get('/bypass', function () {
     /** @var User $user */
     $user = User::firstOrCreate(

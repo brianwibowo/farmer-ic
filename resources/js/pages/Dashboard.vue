@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
-import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
-import { dashboard } from '@/routes';
-import type { DashboardInvitation, Team } from '@/types';
+import { Head } from "@inertiajs/vue3";
+import PendingInvitationsModal from "@/components/PendingInvitationsModal.vue";
+import PlaceholderPattern from "@/components/PlaceholderPattern.vue";
+import { dashboard } from "@/routes";
+import type { DashboardInvitation, Team } from "@/types";
 
 defineProps<{
     pendingInvitations?: DashboardInvitation[];
@@ -13,10 +13,10 @@ defineOptions({
     layout: (props: { currentTeam?: Team | null }) => ({
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: "Dashboard",
                 href: props.currentTeam
                     ? dashboard(props.currentTeam.slug)
-                    : '/',
+                    : "/",
             },
         ],
     }),

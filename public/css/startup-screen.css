@@ -1,0 +1,126 @@
+.startup-screen {
+    --startup-background: var(--card, #fff);
+    --startup-primary: var(--primary, #68bb6c);
+    --startup-title: var(--secondary, #1c5e21);
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    min-height: 100vh;
+    min-height: 100dvh;
+    place-items: center;
+    overflow: auto;
+    background: var(--startup-background);
+    color: var(--startup-title);
+    font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    color-scheme: light;
+    opacity: 1;
+    transition: opacity 200ms ease;
+}
+
+/* Fallbacks also match the theme before the main app stylesheet loads. */
+.dark .startup-screen {
+    --startup-background: var(--card, #121c14);
+    --startup-title: var(--primary, #68bb6c);
+    color-scheme: dark;
+}
+
+body:has(.startup-screen) {
+    overflow: hidden;
+}
+
+.startup-screen.is-leaving {
+    opacity: 0;
+}
+
+.startup-screen__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+}
+
+.startup-screen__logo {
+    display: block;
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+}
+
+.startup-screen__name {
+    margin: 12px 0 0;
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 29px;
+}
+
+.startup-screen__dots {
+    display: flex;
+    gap: 11px;
+    margin-top: 36px;
+}
+
+.startup-screen__dots span {
+    box-sizing: border-box;
+    display: block;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--startup-primary);
+    border-radius: 50%;
+    background: transparent;
+    animation: startup-dot 1600ms ease-in-out infinite;
+    animation-delay: calc(var(--dot-index) * 400ms);
+}
+
+@keyframes startup-dot {
+    0%,
+    20% {
+        transform: translateY(-15px);
+        background: var(--startup-primary);
+    }
+    25%,
+    100% {
+        transform: translateY(0);
+        background: transparent;
+    }
+}
+
+.startup-screen__error {
+    position: absolute;
+    right: 24px;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    left: 24px;
+    font-size: 14px;
+    text-align: center;
+}
+
+.startup-screen__error p {
+    margin: 0 0 12px;
+}
+
+.startup-screen__error button {
+    border: 1px solid var(--startup-title);
+    border-radius: 8px;
+    background: var(--startup-background);
+    padding: 8px 16px;
+    color: var(--startup-title);
+    font: inherit;
+    cursor: pointer;
+}
+
+.startup-screen__error button:focus-visible {
+    outline: 2px solid var(--startup-primary);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .startup-screen {
+        transition: none;
+    }
+    .startup-screen__dots span {
+        animation: none;
+    }
+    .startup-screen__dots span:first-child {
+        background: var(--startup-primary);
+    }
+}

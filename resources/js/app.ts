@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { dismissStartupScreen, showStartupError } from '@/lib/startupScreen';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -35,7 +36,12 @@ void createInertiaApp({
     progress: {
         color: '#4B5563',
     },
-});
+})
+    .then(dismissStartupScreen)
+    .catch((error: unknown) => {
+        showStartupError();
+        console.error('Farm IC could not start:', error);
+    });
 
 // This will set light / dark mode on page load...
 initializeTheme();
