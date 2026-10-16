@@ -137,3 +137,53 @@ export const activityTypeOptions: Array<{
 
 export const activityLogSeedData: ActivityLog[] =
     rawActivityLogs as ActivityLog[];
+
+const INDONESIAN_MONTHS: Record<string, string> = {
+    januari: '01',
+    februari: '02',
+    maret: '03',
+    april: '04',
+    mei: '05',
+    juni: '06',
+    juli: '07',
+    agustus: '08',
+    september: '09',
+    oktober: '10',
+    november: '11',
+    desember: '12',
+};
+
+const SHORT_MONTH_LABELS: Record<string, string> = {
+    '01': 'Jan',
+    '02': 'Feb',
+    '03': 'Mar',
+    '04': 'Apr',
+    '05': 'Mei',
+    '06': 'Jun',
+    '07': 'Jul',
+    '08': 'Agu',
+    '09': 'Sep',
+    '10': 'Okt',
+    '11': 'Nov',
+    '12': 'Des',
+};
+
+export function parseIndonesianDateToIso(timestamp: string): string | null {
+    const clean = timestamp.split('-')[0]?.trim() ?? '';
+    const parts = clean.split(/\s+/);
+    if (parts.length < 3) return null;
+
+    const day = parts[0].padStart(2, '0');
+    const month = INDONESIAN_MONTHS[parts[1].toLocaleLowerCase()];
+    const year = parts[2];
+
+    if (!month || !/^\d{4}$/.test(year)) return null;
+    return `${year}-${month}-${day}`;
+}
+
+export function formatIsoToShortDate(isoDate: string): string {
+    const [year, month, day] = isoDate.split('-');
+    if (!year || !month || !day) return isoDate;
+    const shortMonth = SHORT_MONTH_LABELS[month] ?? month;
+    return `${Number(day)} ${shortMonth}`;
+}

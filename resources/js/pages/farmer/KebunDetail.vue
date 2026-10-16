@@ -37,6 +37,10 @@ const formatRupiah = (value: number): string =>
 function goBack(): void {
     void router.visit('/kebun');
 }
+
+function openKebunActivities(): void {
+    void router.visit('/kebun/aktivitas');
+}
 </script>
 
 <template>
@@ -226,6 +230,7 @@ function goBack(): void {
             <button
                 type="button"
                 class="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#68bb6c] px-4 text-base font-semibold text-[#070807] transition-colors hover:bg-[#4a943e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c5e21]"
+                @click="openKebunActivities"
             >
                 Aktivitas Kebun
             </button>

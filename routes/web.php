@@ -42,6 +42,7 @@ Route::get('/', function () {
 
 Route::inertia('finance', 'farmer/Finance')->name('finance');
 Route::inertia('kebun/detail', 'farmer/KebunDetail')->name('kebun.detail');
+Route::inertia('kebun/aktivitas', 'farmer/KebunAktivitas')->name('kebun.aktivitas');
 Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
 Route::inertia('/aktivitas', 'farmer/Aktivitas')->name('aktivitas');
 Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->name('rincian-aktivitas');
