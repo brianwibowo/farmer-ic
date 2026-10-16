@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router } from "@inertiajs/vue3";
 import {
     Activity,
     ArrowLeft,
@@ -15,71 +15,71 @@ import {
     TrendingUp,
     Wheat,
     X,
-} from '@lucide/vue';
-import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
-import { computed, ref } from 'vue';
+} from "@lucide/vue";
+import FarmerMobileShell from "@/components/farmer/FarmerMobileShell.vue";
+import { computed, ref } from "vue";
 
 const detail = {
-    name: 'Detail Kebon A',
+    name: "Detail Kebon A",
     location:
-        'Jl. Raya Dieng KM 12, Desa Surengede, Kec. Kejajar, Kab. Wonosobo, Jawa Tengah',
-    crop: 'Jagung',
-    cropType: 'Jagung Hibrida',
-    seed: 'Jagung hibrida BISI-18',
-    totalArea: '1.000 ha',
-    plantedArea: '300 ha',
-    weight: '42 ton',
-    plantedAt: '11 Januari 2026',
-    harvestAt: '11 Maret 2026',
+        "Jl. Raya Dieng KM 12, Desa Surengede, Kec. Kejajar, Kab. Wonosobo, Jawa Tengah",
+    crop: "Jagung",
+    cropType: "Jagung Hibrida",
+    seed: "Jagung hibrida BISI-18",
+    totalArea: "1.000 ha",
+    plantedArea: "300 ha",
+    weight: "42 ton",
+    plantedAt: "11 Januari 2026",
+    harvestAt: "11 Maret 2026",
     revenue: 50_000_000,
     expenses: 18_500_000,
     growth: 78,
     growthCategory: 3,
-    growthCategoryLabel: 'Vegetatif aktif',
+    growthCategoryLabel: "Vegetatif aktif",
     aiConfidence: 92,
-    harvestStatus: 'Tumbuh baik',
+    harvestStatus: "Tumbuh baik",
     weather: {
-        condition: 'Cerah berawan',
-        temperature: '26°C',
-        humidity: '78%',
+        condition: "Cerah berawan",
+        temperature: "26°C",
+        humidity: "78%",
     },
 };
 
 const growthStages = [
     {
         number: 1,
-        label: 'Kecambah',
-        range: '0–9 HST',
+        label: "Kecambah",
+        range: "0–9 HST",
         percent: 20,
-        image: '/images/farmer/jagung-berkecambah.jpg',
+        image: "/images/farmer/jagung-berkecambah.jpg",
     },
     {
         number: 2,
-        label: 'Bibit awal',
-        range: '10–29 HST',
+        label: "Bibit awal",
+        range: "10–29 HST",
         percent: 40,
-        image: '/images/farmer/jagung-tumbuh-fase-2.jpg',
+        image: "/images/farmer/jagung-tumbuh-fase-2.jpg",
     },
     {
         number: 3,
-        label: 'Vegetatif aktif',
-        range: '30–59 HST',
+        label: "Vegetatif aktif",
+        range: "30–59 HST",
         percent: 60,
-        image: '/images/farmer/corn-field.jpeg',
+        image: "/images/farmer/corn-field.jpeg",
     },
     {
         number: 4,
-        label: 'Pembungaan',
-        range: '60–79 HST',
+        label: "Pembungaan",
+        range: "60–79 HST",
         percent: 80,
-        image: '/images/farmer/jagung-tunas.jpeg',
+        image: "/images/farmer/jagung-tunas.jpeg",
     },
     {
         number: 5,
-        label: 'Pengisian & panen',
-        range: '80–99 HST',
+        label: "Pengisian & panen",
+        range: "80–99 HST",
         percent: 100,
-        image: '/images/farmer/jagung-panen.jpg',
+        image: "/images/farmer/jagung-panen.jpg",
     },
 ] as const;
 
@@ -123,14 +123,14 @@ function openGrowthStageImage(): void {
 }
 
 const formatRupiah = (value: number): string =>
-    new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
+    new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
         maximumFractionDigits: 0,
     }).format(value);
 
 function goBack(): void {
-    void router.visit('/kebun');
+    void router.visit("/kebun");
 }
 </script>
 
@@ -539,9 +539,12 @@ function goBack(): void {
                                 Next step
                             </h3>
                             <p class="mt-1.5 text-sm leading-5 text-[#070807]">
-                                Jadwalkan penyiraman rutin, cek kondisi daun
-                                setiap 2–3 hari, dan tambahkan nutrisi sesuai
-                                rekomendasi petugas lapangan.
+                                Jadwalkan penyiraman rutin,
+                                <strong
+                                    >cek kondisi daun setiap 2–3 hari, dan
+                                    tambahkan nutrisi
+                                </strong>
+                                sesuai rekomendasi petugas lapangan.
                             </p>
                         </div>
                     </div>
@@ -561,7 +564,10 @@ function goBack(): void {
                                 Negatif: risiko perkembangan
                             </h3>
                             <p class="mt-1.5 text-sm leading-5 text-[#070807]">
-                                Waspadai genangan air dan perubahan warna daun.
+                                <strong
+                                    >Waspadai genangan air dan perubahan warna
+                                    daun.</strong
+                                >
                                 Kondisi tersebut dapat memperlambat pertumbuhan
                                 dan menurunkan hasil panen.
                             </p>
