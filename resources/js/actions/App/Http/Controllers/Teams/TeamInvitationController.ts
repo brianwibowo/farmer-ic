@@ -1,9 +1,9 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults, validateParameters } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::accept
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:61
- * @route '/invitations/{invitation}/accept'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:61
+* @route '/invitations/{invitation}/accept'
+*/
 export const accept = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: accept.url(args, options),
     method: 'post',
@@ -16,31 +16,31 @@ accept.definition = {
 
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::accept
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:61
- * @route '/invitations/{invitation}/accept'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:61
+* @route '/invitations/{invitation}/accept'
+*/
 accept.url = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { invitation: args }
     }
 
-            if (typeof args === 'object' && !Array.isArray(args) && 'code' in args) {
-            args = { invitation: args.code }
-        }
-    
+    if (typeof args === 'object' && !Array.isArray(args) && 'code' in args) {
+        args = { invitation: args.code }
+    }
+
     if (Array.isArray(args)) {
         args = {
-                    invitation: args[0],
-                }
+            invitation: args[0],
+        }
     }
 
     args = applyUrlDefaults(args)
 
     const parsedArgs = {
-                        invitation: typeof args.invitation === 'object'
-                ? args.invitation.code
-                : args.invitation,
-                }
+        invitation: typeof args.invitation === 'object'
+        ? args.invitation.code
+        : args.invitation,
+    }
 
     return accept.definition.url
             .replace('{invitation}', parsedArgs.invitation.toString())
@@ -49,40 +49,41 @@ accept.url = (args: { invitation: string | { code: string } } | [invitation: str
 
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::accept
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:61
- * @route '/invitations/{invitation}/accept'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:61
+* @route '/invitations/{invitation}/accept'
+*/
 accept.post = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: accept.url(args, options),
     method: 'post',
 })
 
-    /**
+/**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::accept
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:61
- * @route '/invitations/{invitation}/accept'
- */
-    const acceptForm = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-        action: accept.url(args, options),
-        method: 'post',
-    })
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:61
+* @route '/invitations/{invitation}/accept'
+*/
+const acceptForm = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: accept.url(args, options),
+    method: 'post',
+})
 
-            /**
+/**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::accept
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:61
- * @route '/invitations/{invitation}/accept'
- */
-        acceptForm.post = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-            action: accept.url(args, options),
-            method: 'post',
-        })
-    
-    accept.form = acceptForm
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:61
+* @route '/invitations/{invitation}/accept'
+*/
+acceptForm.post = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: accept.url(args, options),
+    method: 'post',
+})
+
+accept.form = acceptForm
+
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::decline
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:86
- * @route '/invitations/{invitation}'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:86
+* @route '/invitations/{invitation}'
+*/
 export const decline = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
     url: decline.url(args, options),
     method: 'delete',
@@ -95,31 +96,31 @@ decline.definition = {
 
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::decline
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:86
- * @route '/invitations/{invitation}'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:86
+* @route '/invitations/{invitation}'
+*/
 decline.url = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { invitation: args }
     }
 
-            if (typeof args === 'object' && !Array.isArray(args) && 'code' in args) {
-            args = { invitation: args.code }
-        }
-    
+    if (typeof args === 'object' && !Array.isArray(args) && 'code' in args) {
+        args = { invitation: args.code }
+    }
+
     if (Array.isArray(args)) {
         args = {
-                    invitation: args[0],
-                }
+            invitation: args[0],
+        }
     }
 
     args = applyUrlDefaults(args)
 
     const parsedArgs = {
-                        invitation: typeof args.invitation === 'object'
-                ? args.invitation.code
-                : args.invitation,
-                }
+        invitation: typeof args.invitation === 'object'
+        ? args.invitation.code
+        : args.invitation,
+    }
 
     return decline.definition.url
             .replace('{invitation}', parsedArgs.invitation.toString())
@@ -128,51 +129,52 @@ decline.url = (args: { invitation: string | { code: string } } | [invitation: st
 
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::decline
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:86
- * @route '/invitations/{invitation}'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:86
+* @route '/invitations/{invitation}'
+*/
 decline.delete = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
     url: decline.url(args, options),
     method: 'delete',
 })
 
-    /**
+/**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::decline
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:86
- * @route '/invitations/{invitation}'
- */
-    const declineForm = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-        action: decline.url(args, {
-                    [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-                        _method: 'DELETE',
-                        ...(options?.query ?? options?.mergeQuery ?? {}),
-                    }
-                }),
-        method: 'post',
-    })
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:86
+* @route '/invitations/{invitation}'
+*/
+const declineForm = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: decline.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
 
-            /**
+/**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::decline
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:86
- * @route '/invitations/{invitation}'
- */
-        declineForm.delete = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-            action: decline.url(args, {
-                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-                            _method: 'DELETE',
-                            ...(options?.query ?? options?.mergeQuery ?? {}),
-                        }
-                    }),
-            method: 'post',
-        })
-    
-    decline.form = declineForm
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:86
+* @route '/invitations/{invitation}'
+*/
+declineForm.delete = (args: { invitation: string | { code: string } } | [invitation: string | { code: string } ] | string | { code: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: decline.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+decline.form = declineForm
+
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::store
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:23
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:23
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations'
+*/
 export const store = (args?: { team?: string | { slug: string } } | [team: string | { slug: string } ] | string | { slug: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: store.url(args, options),
     method: 'post',
@@ -185,36 +187,36 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::store
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:23
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:23
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations'
+*/
 store.url = (args?: { team?: string | { slug: string } } | [team: string | { slug: string } ] | string | { slug: string }, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { team: args }
     }
 
-            if (typeof args === 'object' && !Array.isArray(args) && 'slug' in args) {
-            args = { team: args.slug }
-        }
-    
+    if (typeof args === 'object' && !Array.isArray(args) && 'slug' in args) {
+        args = { team: args.slug }
+    }
+
     if (Array.isArray(args)) {
         args = {
-                    team: args[0],
-                }
+            team: args[0],
+        }
     }
 
     args = applyUrlDefaults(args)
 
     validateParameters(args, [
-            "team",
-        ])
+        "team",
+    ])
 
     const parsedArgs = {
-                        team: (typeof args?.team === 'object'
-                ? args.team.slug
-                : args?.team) ?? '$currentTeam',
-                }
+        team: (typeof args?.team === 'object'
+        ? args.team.slug
+        : args?.team) ?? '$currentTeam',
+    }
 
     return store.definition.url
             .replace('{team?}', parsedArgs.team?.toString() ?? '')
@@ -223,44 +225,45 @@ store.url = (args?: { team?: string | { slug: string } } | [team: string | { slu
 
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::store
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:23
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:23
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations'
+*/
 store.post = (args?: { team?: string | { slug: string } } | [team: string | { slug: string } ] | string | { slug: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: store.url(args, options),
     method: 'post',
 })
 
-    /**
+/**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::store
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:23
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations'
- */
-    const storeForm = (args?: { team?: string | { slug: string } } | [team: string | { slug: string } ] | string | { slug: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-        action: store.url(args, options),
-        method: 'post',
-    })
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:23
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations'
+*/
+const storeForm = (args?: { team?: string | { slug: string } } | [team: string | { slug: string } ] | string | { slug: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: store.url(args, options),
+    method: 'post',
+})
 
-            /**
+/**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::store
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:23
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations'
- */
-        storeForm.post = (args?: { team?: string | { slug: string } } | [team: string | { slug: string } ] | string | { slug: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-            action: store.url(args, options),
-            method: 'post',
-        })
-    
-    store.form = storeForm
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:23
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations'
+*/
+storeForm.post = (args?: { team?: string | { slug: string } } | [team: string | { slug: string } ] | string | { slug: string }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: store.url(args, options),
+    method: 'post',
+})
+
+store.form = storeForm
+
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::destroy
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:45
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations/{invitation}'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:45
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations/{invitation}'
+*/
 export const destroy = (args: { team?: string | { slug: string }, invitation: string | { code: string } } | [team: string | { slug: string }, invitation: string | { code: string } ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
     url: destroy.url(args, options),
     method: 'delete',
@@ -273,32 +276,32 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::destroy
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:45
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations/{invitation}'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:45
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations/{invitation}'
+*/
 destroy.url = (args: { team?: string | { slug: string }, invitation: string | { code: string } } | [team: string | { slug: string }, invitation: string | { code: string } ], options?: RouteQueryOptions) => {
     if (Array.isArray(args)) {
         args = {
-                    team: args[0],
-                    invitation: args[1],
-                }
+            team: args[0],
+            invitation: args[1],
+        }
     }
 
     args = applyUrlDefaults(args)
 
     validateParameters(args, [
-            "team",
-        ])
+        "team",
+    ])
 
     const parsedArgs = {
-                        team: (typeof args.team === 'object'
-                ? args.team.slug
-                : args.team) ?? '$currentTeam',
-                                invitation: typeof args.invitation === 'object'
-                ? args.invitation.code
-                : args.invitation,
-                }
+        team: (typeof args.team === 'object'
+        ? args.team.slug
+        : args.team) ?? '$currentTeam',
+        invitation: typeof args.invitation === 'object'
+        ? args.invitation.code
+        : args.invitation,
+    }
 
     return destroy.definition.url
             .replace('{team?}', parsedArgs.team?.toString() ?? '')
@@ -308,48 +311,49 @@ destroy.url = (args: { team?: string | { slug: string }, invitation: string | { 
 
 /**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::destroy
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:45
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations/{invitation}'
- */
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:45
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations/{invitation}'
+*/
 destroy.delete = (args: { team?: string | { slug: string }, invitation: string | { code: string } } | [team: string | { slug: string }, invitation: string | { code: string } ], options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
     url: destroy.url(args, options),
     method: 'delete',
 })
 
-    /**
+/**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::destroy
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:45
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations/{invitation}'
- */
-    const destroyForm = (args: { team?: string | { slug: string }, invitation: string | { code: string } } | [team: string | { slug: string }, invitation: string | { code: string } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-        action: destroy.url(args, {
-                    [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-                        _method: 'DELETE',
-                        ...(options?.query ?? options?.mergeQuery ?? {}),
-                    }
-                }),
-        method: 'post',
-    })
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:45
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations/{invitation}'
+*/
+const destroyForm = (args: { team?: string | { slug: string }, invitation: string | { code: string } } | [team: string | { slug: string }, invitation: string | { code: string } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroy.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
 
-            /**
+/**
 * @see \App\Http\Controllers\Teams\TeamInvitationController::destroy
- * @see app/Http/Controllers/Teams/TeamInvitationController.php:45
- * @param team - Default: '$currentTeam'
- * @route '/settings/teams/{team?}/invitations/{invitation}'
- */
-        destroyForm.delete = (args: { team?: string | { slug: string }, invitation: string | { code: string } } | [team: string | { slug: string }, invitation: string | { code: string } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
-            action: destroy.url(args, {
-                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-                            _method: 'DELETE',
-                            ...(options?.query ?? options?.mergeQuery ?? {}),
-                        }
-                    }),
-            method: 'post',
-        })
-    
-    destroy.form = destroyForm
+* @see app/Http/Controllers/Teams/TeamInvitationController.php:45
+* @param team - Default: '$currentTeam'
+* @route '/settings/teams/{team?}/invitations/{invitation}'
+*/
+destroyForm.delete = (args: { team?: string | { slug: string }, invitation: string | { code: string } } | [team: string | { slug: string }, invitation: string | { code: string } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    action: destroy.url(args, {
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'DELETE',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'post',
+})
+
+destroy.form = destroyForm
+
 const TeamInvitationController = { accept, decline, store, destroy }
 
 export default TeamInvitationController
