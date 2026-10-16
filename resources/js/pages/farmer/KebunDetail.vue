@@ -261,7 +261,7 @@ function goBack(): void {
                 >
                     <div class="flex items-center gap-2 text-[#1c5e21]">
                         <Scale :size="18" aria-hidden="true" />
-                        <h2 class="text-sm font-medium">Berat kebun</h2>
+                        <h2 class="text-sm font-medium">Total Panen</h2>
                     </div>
                     <p class="mt-3 text-lg font-semibold text-[#070807]">
                         {{ detail.weight }}
