@@ -5,7 +5,7 @@ import conversationMessages from './conversation-messages'
 import voice from './voice'
 import knowledge from './knowledge'
 /**
-* @see routes/web.php:19
+* @see routes/web.php:70
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai'
 */
@@ -20,7 +20,7 @@ page.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:19
+* @see routes/web.php:70
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai'
 */
@@ -51,7 +51,7 @@ page.url = (args?: { current_team?: string | number } | [current_team: string | 
 }
 
 /**
-* @see routes/web.php:19
+* @see routes/web.php:70
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai'
 */
@@ -61,7 +61,7 @@ page.get = (args?: { current_team?: string | number } | [current_team: string | 
 })
 
 /**
-* @see routes/web.php:19
+* @see routes/web.php:70
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai'
 */
@@ -71,7 +71,7 @@ page.head = (args?: { current_team?: string | number } | [current_team: string |
 })
 
 /**
-* @see routes/web.php:19
+* @see routes/web.php:70
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai'
 */
@@ -81,7 +81,7 @@ const pageForm = (args?: { current_team?: string | number } | [current_team: str
 })
 
 /**
-* @see routes/web.php:19
+* @see routes/web.php:70
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai'
 */
@@ -91,7 +91,7 @@ pageForm.get = (args?: { current_team?: string | number } | [current_team: strin
 })
 
 /**
-* @see routes/web.php:19
+* @see routes/web.php:70
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai'
 */

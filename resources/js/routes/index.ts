@@ -137,8 +137,7 @@ logoutForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 logout.form = logoutForm
 
 /**
-* @see \Inertia\Controller::__invoke
-* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see routes/web.php:16
 * @route '/'
 */
 export const home = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -152,8 +151,7 @@ home.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see \Inertia\Controller::__invoke
-* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see routes/web.php:16
 * @route '/'
 */
 home.url = (options?: RouteQueryOptions) => {
@@ -161,8 +159,7 @@ home.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see \Inertia\Controller::__invoke
-* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see routes/web.php:16
 * @route '/'
 */
 home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -171,8 +168,7 @@ home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see \Inertia\Controller::__invoke
-* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see routes/web.php:16
 * @route '/'
 */
 home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -181,8 +177,7 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
-* @see \Inertia\Controller::__invoke
-* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see routes/web.php:16
 * @route '/'
 */
 const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -191,8 +186,7 @@ const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 /**
-* @see \Inertia\Controller::__invoke
-* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see routes/web.php:16
 * @route '/'
 */
 homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -201,8 +195,7 @@ homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 /**
-* @see \Inertia\Controller::__invoke
-* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see routes/web.php:16
 * @route '/'
 */
 homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -216,6 +209,80 @@ homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 home.form = homeForm
+
+/**
+* @see routes/web.php:43
+* @route '/bypass'
+*/
+export const bypass = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: bypass.url(options),
+    method: 'get',
+})
+
+bypass.definition = {
+    methods: ["get","head"],
+    url: '/bypass',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see routes/web.php:43
+* @route '/bypass'
+*/
+bypass.url = (options?: RouteQueryOptions) => {
+    return bypass.definition.url + queryParams(options)
+}
+
+/**
+* @see routes/web.php:43
+* @route '/bypass'
+*/
+bypass.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: bypass.url(options),
+    method: 'get',
+})
+
+/**
+* @see routes/web.php:43
+* @route '/bypass'
+*/
+bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: bypass.url(options),
+    method: 'head',
+})
+
+/**
+* @see routes/web.php:43
+* @route '/bypass'
+*/
+const bypassForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: bypass.url(options),
+    method: 'get',
+})
+
+/**
+* @see routes/web.php:43
+* @route '/bypass'
+*/
+bypassForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: bypass.url(options),
+    method: 'get',
+})
+
+/**
+* @see routes/web.php:43
+* @route '/bypass'
+*/
+bypassForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: bypass.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+bypass.form = bypassForm
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
