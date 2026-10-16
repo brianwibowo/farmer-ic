@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { Activity, ChevronDown, LandPlot, MapPin, Search, Sprout } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
@@ -39,10 +39,6 @@ function healthClass(status: Kebun['healthStatus']): string {
     if (status === 'Sehat') return 'text-success';
     if (status === 'Kritis') return 'text-error';
     return 'text-warning';
-}
-
-function openDetail(): void {
-    void router.visit('/kebun/detail');
 }
 
 async function loadKebun(): Promise<void> {
@@ -118,10 +114,9 @@ onMounted(() => void loadKebun());
 
             <ul v-else class="mt-6 space-y-10">
                 <li v-for="item in filteredKebun" :key="item.id">
-                    <button
-                        type="button"
+                    <Link
+                        :href="`/kebun/detail?id=${encodeURIComponent(item.id)}`"
                         class="flex w-full gap-5 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-                        @click="openDetail"
                     >
                     <img :src="item.image" :alt="`Foto ${item.name}`" class="h-[74px] w-[78px] shrink-0 rounded-xs object-cover" />
                     <div class="min-w-0 flex-1 pt-0.5">
@@ -133,7 +128,7 @@ onMounted(() => void loadKebun());
                             <span :class="['flex min-w-0 items-center gap-1.5 truncate', healthClass(item.healthStatus)]"><Activity :size="18" :stroke-width="1.8" class="shrink-0" aria-hidden="true" /><span class="truncate">{{ item.healthStatus }}</span></span>
                         </div>
                     </div>
-                    </button>
+                    </Link>
                 </li>
             </ul>
         </div>
