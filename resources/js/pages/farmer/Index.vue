@@ -101,6 +101,14 @@ function renderMarkdown(value: string): string {
 function inlineMarkdown(value: string): string {
     return value
         .replace(
+            /!\[([^\]]*)\]\((https:\/\/[^)\s]+|\/[^)\s]+)\)/g,
+            '<figure class="my-2 overflow-hidden rounded-xl border border-border bg-muted"><img src="$2" alt="$1" loading="lazy" decoding="async" class="max-h-64 w-full object-cover" /><figcaption class="px-2.5 py-1.5 text-[11px] text-muted-foreground">$1</figcaption></figure>',
+        )
+        .replace(
+            /\[([^\]]+)\]\((https:\/\/[^)\s]+|\/[^)\s]+)\)/g,
+            '<a href="$2" target="_blank" rel="noreferrer" class="font-medium text-secondary underline underline-offset-2">$1</a>',
+        )
+        .replace(
             /`([^`]+)`/g,
             '<code class="rounded bg-black/10 px-1 py-0.5 text-[0.9em]">$1</code>',
         )
@@ -902,5 +910,14 @@ onUnmounted(() => {
 .ai-message-content :deep(code) {
     font-family:
         ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.ai-message-content :deep(a:hover) {
+    text-decoration-thickness: 2px;
+}
+.ai-message-content :deep(figure) {
+    max-width: 100%;
+}
+.ai-message-content :deep(figure img) {
+    display: block;
 }
 </style>
