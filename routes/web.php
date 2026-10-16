@@ -40,7 +40,6 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
-
 Route::inertia('finance', 'farmer/Finance')->name('finance');
 Route::inertia('kebun/detail', 'farmer/KebunDetail')->name('kebun.detail');
 Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
