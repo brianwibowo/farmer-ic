@@ -132,14 +132,15 @@ const formatRupiah = (value: number): string =>
             <template v-if="activeTab === 'chart'">
                 <section aria-labelledby="total-revenue-label">
                     <p id="total-revenue-label" class="text-sm text-[#070807]">
-                        Pendapatan kotor {{ selectedData.label }}
+                        Pendapatan bersih {{ selectedData.label }}
                     </p>
                     <p class="mt-1 text-3xl font-semibold tracking-tight">
-                        {{ formatRupiah(selectedData.totalRevenue) }}
+                        {{ formatRupiah(selectedData.netTotal) }}
                     </p>
                     <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                         <span class="text-[#1c5e21]">
-                            Pendapatan {{ formatRupiah(selectedData.netTotal) }}
+                            Pendapatan kotor
+                            {{ formatRupiah(selectedData.totalRevenue) }}
                         </span>
                         <!-- <p class="mt-1 text-xs text-[#93a99f]">
                             {{ selectedData.label }} · Revenue kuartal
