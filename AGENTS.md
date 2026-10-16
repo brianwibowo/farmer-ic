@@ -67,9 +67,8 @@ frontend assets.
   `bg-muted`, `border-border`, `text-success`, `text-warning`, and
   `text-error`. Do not hardcode hex, RGB, or RGBA colors in page or component
   classes. If a needed color, shadow, and related does not exist, then a hardcoding of style is allowed/necessary.
-- Check every new screen in both light and dark themes. Avoid fixed widths;
-  support small, medium, and large phone viewports, including standard,
-  Pro/Plus, and Pro Max iPhone sizes.
+- Ensure light mode is default mode, ignoring system dark mode
+- Check every new screen in both light and dark themes. Avoid fixed widths; support small, medium, and large phone viewports, including standard, Pro/Plus, and Pro Max iPhone sizes.
 - Do not edit `.env` or commit changes.
 
 ## WIREFRAME-TO-VUE WORKFLOW
