@@ -11,7 +11,7 @@ import {
     type FinanceQuarter,
     type FinanceTransaction,
     type RevenuePoint,
-} from "@/mocks/farmerFinance";
+} from "@/data/farmerFinance";
 
 type FinanceTab = "chart" | "transactions";
 
@@ -132,24 +132,26 @@ const formatRupiah = (value: number): string =>
             <template v-if="activeTab === 'chart'">
                 <section aria-labelledby="total-revenue-label">
                     <p id="total-revenue-label" class="text-sm text-[#070807]">
-                        Pendapatan bersih {{ selectedPoint.label }}
+                        Pendapatan kotor {{ selectedData.label }}
                     </p>
                     <p class="mt-1 text-3xl font-semibold tracking-tight">
-                        {{ formatRupiah(selectedPoint.net) }}
+                        {{ formatRupiah(selectedData.totalRevenue) }}
                     </p>
                     <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                         <span class="text-[#1c5e21]">
-                            Pendapatan {{ formatRupiah(selectedPoint.revenue) }}
+                            Pendapatan {{ formatRupiah(selectedData.netTotal) }}
                         </span>
+                        <!-- <p class="mt-1 text-xs text-[#93a99f]">
+                            {{ selectedData.label }} · Revenue kuartal
+                            <span class="font-bold text-primary">{{
+                                formatRupiah(selectedData.totalRevenue)
+                            }}</span>
+                        </p> -->
                         <span class="text-[#bc0202]">
                             Pengeluaran
-                            {{ formatRupiah(selectedPoint.expense) }}
+                            {{ formatRupiah(selectedData.totalExpense) }}
                         </span>
                     </div>
-                    <!-- <p class="mt-1 text-xs text-[#93a99f]">
-                        {{ selectedData.label }} · Bersih kuartal
-                        {{ formatRupiah(selectedData.netTotal) }}
-                    </p> -->
                 </section>
 
                 <section
@@ -159,7 +161,7 @@ const formatRupiah = (value: number): string =>
                     <div class="mb-4 flex items-center justify-between gap-4">
                         <div>
                             <h2 id="revenue-chart-title" class="font-semibold">
-                                Revenue {{ selectedQuarter }}
+                                Pendapatan bersih {{ selectedPoint.label }}
                             </h2>
                             <p class="mt-1 text-xs text-[#93a99f]">
                                 {{ selectedData.label }}
@@ -169,7 +171,7 @@ const formatRupiah = (value: number): string =>
                         <span
                             class="px-2.5 py-1 text-md font-semibold text-[#1c5e21]"
                         >
-                            {{ formatRupiah(selectedData.netTotal) }}
+                            {{ formatRupiah(selectedPoint.net) }}
                         </span>
                     </div>
                     <RevenueChart

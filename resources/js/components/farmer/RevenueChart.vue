@@ -12,10 +12,10 @@ import {
     type ChartData,
     type ChartOptions,
     type TooltipItem,
-} from 'chart.js';
-import { computed } from 'vue';
-import { Line } from 'vue-chartjs';
-import type { RevenuePoint } from '@/mocks/farmerFinance';
+} from "chart.js";
+import { computed } from "vue";
+import { Line } from "vue-chartjs";
+import type { RevenuePoint } from "@/data/farmerFinance";
 
 ChartJS.register(
     CategoryScale,
@@ -36,9 +36,9 @@ const emit = defineEmits<{
 }>();
 
 const formatRupiah = (value: number): string =>
-    new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
+    new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
         maximumFractionDigits: 0,
     }).format(value);
 
@@ -47,49 +47,49 @@ const selectPoint = (elements: ActiveElement[]): void => {
     const point = index === undefined ? undefined : props.points[index];
 
     if (point) {
-        emit('pointSelected', point);
+        emit("pointSelected", point);
     }
 };
 
-const chartData = computed<ChartData<'line'>>(() => ({
+const chartData = computed<ChartData<"line">>(() => ({
     labels: props.points.map((point) => point.label),
     datasets: [
         {
-            label: 'Pendapatan',
+            label: "Pendapatan",
             data: props.points.map((point) => point.revenue),
-            borderColor: '#1c5e21',
-            backgroundColor: 'rgba(104, 187, 108, 0.18)',
-            pointBackgroundColor: '#68bb6c',
-            pointBorderColor: '#ffffff',
+            borderColor: "#1c5e21",
+            backgroundColor: "rgba(104, 187, 108, 0.18)",
+            pointBackgroundColor: "#68bb6c",
+            pointBorderColor: "#ffffff",
             pointBorderWidth: 2,
             pointRadius: 5,
             pointHoverRadius: 8,
-            pointHoverBackgroundColor: '#1c5e21',
+            pointHoverBackgroundColor: "#1c5e21",
             fill: true,
             tension: 0.35,
         },
         {
-            label: 'Pengeluaran',
+            label: "Pengeluaran",
             data: props.points.map((point) => point.expense),
-            borderColor: '#bc0202',
-            backgroundColor: 'rgba(188, 2, 2, 0.08)',
-            pointBackgroundColor: '#bc0202',
-            pointBorderColor: '#ffffff',
+            borderColor: "#bc0202",
+            backgroundColor: "rgba(188, 2, 2, 0.08)",
+            pointBackgroundColor: "#bc0202",
+            pointBorderColor: "#ffffff",
             pointBorderWidth: 2,
             pointRadius: 5,
             pointHoverRadius: 8,
-            pointHoverBackgroundColor: '#8f0202',
+            pointHoverBackgroundColor: "#8f0202",
             fill: false,
             tension: 0.35,
         },
     ],
 }));
 
-const chartOptions: ChartOptions<'line'> = {
+const chartOptions: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
-        mode: 'index',
+        mode: "index",
         intersect: false,
     },
     onHover: (_event, elements) => selectPoint(elements),
@@ -97,20 +97,20 @@ const chartOptions: ChartOptions<'line'> = {
     plugins: {
         legend: {
             display: true,
-            position: 'bottom',
+            position: "bottom",
             labels: {
                 usePointStyle: true,
-                pointStyle: 'circle',
-                color: '#334238',
+                pointStyle: "circle",
+                color: "#334238",
                 boxWidth: 8,
                 padding: 16,
             },
         },
         tooltip: {
-            mode: 'index',
+            mode: "index",
             intersect: false,
             callbacks: {
-                label: (context: TooltipItem<'line'>) =>
+                label: (context: TooltipItem<"line">) =>
                     ` ${context.dataset.label}: ${formatRupiah(context.parsed.y ?? 0)}`,
             },
         },
@@ -119,14 +119,14 @@ const chartOptions: ChartOptions<'line'> = {
         x: {
             grid: { display: false },
             border: { display: false },
-            ticks: { color: '#5e6b61' },
+            ticks: { color: "#5e6b61" },
         },
         y: {
             beginAtZero: true,
             border: { display: false },
-            grid: { color: '#e6eee7' },
+            grid: { color: "#e6eee7" },
             ticks: {
-                color: '#5e6b61',
+                color: "#5e6b61",
                 callback: (value: string | number) =>
                     `${Number(value) / 1_000_000} jt`,
             },
