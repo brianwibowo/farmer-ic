@@ -1,28 +1,28 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { Filter, Search, X } from '@lucide/vue';
-import { computed, ref } from 'vue';
-import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
-import RevenueChart from '@/components/farmer/RevenueChart.vue';
-import { useFarmerNavigation } from '@/composables/useFarmerNavigation';
+import { Head } from "@inertiajs/vue3";
+import { Filter, Search, X } from "@lucide/vue";
+import { computed, ref } from "vue";
+import FarmerMobileShell from "@/components/farmer/FarmerMobileShell.vue";
+import RevenueChart from "@/components/farmer/RevenueChart.vue";
+import { useFarmerNavigation } from "@/composables/useFarmerNavigation";
 import {
     farmerFinanceMock,
     type FinanceCommodity,
     type FinanceQuarter,
     type FinanceTransaction,
     type RevenuePoint,
-} from '@/mocks/farmerFinance';
+} from "@/mocks/farmerFinance";
 
-type FinanceTab = 'chart' | 'transactions';
+type FinanceTab = "chart" | "transactions";
 
 const { navigate } = useFarmerNavigation();
-const activeTab = ref<FinanceTab>('chart');
-const selectedQuarter = ref<FinanceQuarter>('Q1');
+const activeTab = ref<FinanceTab>("chart");
+const selectedQuarter = ref<FinanceQuarter>("Q1");
 const showAnalysis = ref(false);
-const searchQuery = ref('');
-const selectedCommodity = ref<FinanceCommodity | 'all'>('all');
-const selectedType = ref<FinanceTransaction['type'] | 'all'>('all');
-const activeFilter = ref<'commodity' | 'type' | null>(null);
+const searchQuery = ref("");
+const selectedCommodity = ref<FinanceCommodity | "all">("all");
+const selectedType = ref<FinanceTransaction["type"] | "all">("all");
+const activeFilter = ref<"commodity" | "type" | null>(null);
 
 const selectedData = computed(
     () => farmerFinanceMock.quarters[selectedQuarter.value],
@@ -50,31 +50,31 @@ const filteredTransactions = computed(() => {
                 transaction.commodity,
             ].some((value) => value.toLowerCase().includes(query));
         const matchesCommodity =
-            selectedCommodity.value === 'all' ||
+            selectedCommodity.value === "all" ||
             transaction.commodity === selectedCommodity.value;
         const matchesType =
-            selectedType.value === 'all' ||
+            selectedType.value === "all" ||
             transaction.type === selectedType.value;
 
         return matchesQuery && matchesCommodity && matchesType;
     });
 });
 
-function toggleFilter(filter: 'commodity' | 'type'): void {
+function toggleFilter(filter: "commodity" | "type"): void {
     activeFilter.value = activeFilter.value === filter ? null : filter;
 }
 
 function clearTransactionFilters(): void {
-    searchQuery.value = '';
-    selectedCommodity.value = 'all';
-    selectedType.value = 'all';
+    searchQuery.value = "";
+    selectedCommodity.value = "all";
+    selectedType.value = "all";
     activeFilter.value = null;
 }
 
 const formatRupiah = (value: number): string =>
-    new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
+    new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
         maximumFractionDigits: 0,
     }).format(value);
 </script>
@@ -129,22 +129,31 @@ const formatRupiah = (value: number): string =>
             <template v-if="activeTab === 'chart'">
                 <section aria-labelledby="total-revenue-label">
                     <p id="total-revenue-label" class="text-sm text-[#070807]">
-                        Revenue {{ selectedPoint.label }}
+                        Pendapatan bersih {{ selectedPoint.label }}
                     </p>
                     <p class="mt-1 text-3xl font-semibold tracking-tight">
-                        {{ formatRupiah(selectedPoint.amount) }}
+                        {{ formatRupiah(selectedPoint.net) }}
                     </p>
-                    <p class="mt-1 text-xs text-[#93a99f]">
-                        {{ selectedData.label }} · Total kuartal
-                        {{ formatRupiah(selectedData.total) }}
-                    </p>
+                    <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                        <span class="text-[#1c5e21]">
+                            Pendapatan {{ formatRupiah(selectedPoint.revenue) }}
+                        </span>
+                        <span class="text-[#bc0202]">
+                            Pengeluaran
+                            {{ formatRupiah(selectedPoint.expense) }}
+                        </span>
+                    </div>
+                    <!-- <p class="mt-1 text-xs text-[#93a99f]">
+                        {{ selectedData.label }} · Bersih kuartal
+                        {{ formatRupiah(selectedData.netTotal) }}
+                    </p> -->
                 </section>
 
                 <section
                     class="rounded-2xl border border-[#d9d9d9] bg-white p-4 shadow-sm"
                     aria-labelledby="revenue-chart-title"
                 >
-                    <div class="mb-4 flex items-start justify-between gap-4">
+                    <div class="mb-4 flex items-center justify-between gap-4">
                         <div>
                             <h2 id="revenue-chart-title" class="font-semibold">
                                 Revenue {{ selectedQuarter }}
@@ -153,10 +162,11 @@ const formatRupiah = (value: number): string =>
                                 {{ selectedData.label }}
                             </p>
                         </div>
+                        <!-- Badge Revenue Value -->
                         <span
-                            class="rounded-full bg-[#abe7b2] px-2.5 py-1 text-xs font-medium text-[#1c5e21]"
+                            class="px-2.5 py-1 text-md font-semibold text-[#1c5e21]"
                         >
-                            {{ formatRupiah(selectedData.total) }}
+                            {{ formatRupiah(selectedData.netTotal) }}
                         </span>
                     </div>
                     <RevenueChart
@@ -297,9 +307,9 @@ const formatRupiah = (value: number): string =>
                             class="mb-1 block text-xs font-medium text-[#93a99f]"
                         >
                             {{
-                                activeFilter === 'commodity'
-                                    ? 'Komoditas'
-                                    : 'Tipe transaksi'
+                                activeFilter === "commodity"
+                                    ? "Komoditas"
+                                    : "Tipe transaksi"
                             }}
                         </span>
                         <select
@@ -376,7 +386,7 @@ const formatRupiah = (value: number): string =>
                                         : 'text-[#bc0202]',
                                 ]"
                             >
-                                {{ transaction.type === 'income' ? '+' : '-' }}
+                                {{ transaction.type === "income" ? "+" : "-" }}
                                 {{ formatRupiah(transaction.amount) }}
                             </p>
                         </div>
