@@ -35,7 +35,7 @@ Route::get('/', function () {
 
     $team = Auth::user()?->currentTeam;
 
-    return Inertia::render('farmer/Index', [
+    return Inertia::render('farmer/Dashboard', [
         'currentTeam' => $team,
     ]);
 })->name('home');
