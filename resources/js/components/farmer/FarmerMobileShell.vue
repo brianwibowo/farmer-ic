@@ -20,11 +20,11 @@ const emit = defineEmits<{
 const selectedKey = ref<FarmerNavKey>(props.activeKey);
 
 const routeMap: Record<FarmerNavKey, string> = {
-    home: '/',            // Beranda / Dashboard utama
-    garden: '/kebun',      // Halaman Kebun
-    ai: '/ai',            // Halaman AI
-    finance: '/keuangan',  // Halaman Keuangan
-    activity: '/aktivitas',// Halaman Aktivitas
+    home: '/', // Beranda / Dashboard utama
+    garden: '/kebun', // Halaman Kebun
+    ai: '/ai', // Halaman AI
+    finance: '/keuangan', // Halaman Keuangan
+    activity: '/aktivitas', // Halaman Aktivitas
 };
 watch(
     () => props.activeKey,
@@ -48,7 +48,7 @@ function select(key: FarmerNavKey): void {
 
 <template>
     <div
-        class="flex min-h-dvh w-full justify-center bg-black px-6 pt-6 text-foreground max-[480px]:px-0 max-[480px]:pt-0"
+        class="flex min-h-dvh w-full justify-center bg-card px-6 pt-6 text-foreground max-[480px]:px-0 max-[480px]:pt-0"
     >
         <section
             class="relative flex h-[min(874px,calc(100dvh-24px))] w-full max-w-[440px] flex-col overflow-hidden rounded-t-[24px] rounded-b-[20px] bg-card max-[480px]:h-dvh max-[480px]:max-w-none max-[480px]:rounded-none"
