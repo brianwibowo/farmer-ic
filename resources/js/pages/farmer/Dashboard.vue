@@ -37,7 +37,7 @@ defineOptions({
         />
 
         <div
-            class="mx-auto flex h-full w-full max-w-md flex-1 flex-col justify-between gap-4 p-4 pb-4"
+            class="mx-auto flex min-h-full w-full max-w-md flex-col gap-4 p-4 *:shrink-0"
         >
             <KebunMap />
 

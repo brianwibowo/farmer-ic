@@ -1,20 +1,14 @@
 <script setup lang="ts">
-import type { LucideIcon } from '@lucide/vue';
-import {
-    Gauge,
-    HandCoins,
-    Sparkles,
-    SquareActivity,
-    Sprout,
-} from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import FarmerNavIcon from './FarmerNavIcon.vue';
 
 export type FarmerNavKey = 'home' | 'garden' | 'ai' | 'finance' | 'activity';
 
 type FarmerNavItem = {
     key: FarmerNavKey;
     label: string;
-    icon: LucideIcon;
+    href?: string;
     emphasis?: boolean;
 };
 
@@ -23,7 +17,7 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), {
-    activeKey: 'ai',
+    activeKey: 'home',
 });
 
 const emit = defineEmits<{
@@ -31,11 +25,11 @@ const emit = defineEmits<{
 }>();
 
 const items: FarmerNavItem[] = [
-    { key: 'home', label: 'Beranda', icon: Gauge },
-    { key: 'garden', label: 'Kebun', icon: Sprout },
-    { key: 'ai', label: 'AI', icon: Sparkles, emphasis: true },
-    { key: 'finance', label: 'Keuangan', icon: HandCoins },
-    { key: 'activity', label: 'Aktivitas', icon: SquareActivity },
+    { key: 'home', label: 'Beranda', href: '/' },
+    { key: 'garden', label: 'Kebun', href: '/kebun' },
+    { key: 'ai', label: 'AI', emphasis: true },
+    { key: 'finance', label: 'Keuangan' },
+    { key: 'activity', label: 'Aktivitas' },
 ];
 
 const active = computed(() => props.activeKey);
@@ -48,39 +42,45 @@ function select(key: FarmerNavKey): void {
 <template>
     <nav
         aria-label="Navigasi utama"
-        class="absolute inset-x-0 bottom-0 z-10 h-20 border-t border-black/5 bg-card px-2 shadow-[0_-3px_12px_rgba(7,8,7,0.08)]"
+        class="farmer-bottom-nav relative z-10 shrink-0 rounded-t-[18px] bg-card px-2"
     >
-        <ul class="grid h-full grid-cols-5 items-end">
+        <ul class="grid h-[76px] grid-cols-5 items-end">
             <li
                 v-for="item in items"
                 :key="item.key"
                 class="flex h-full items-end justify-center"
             >
-                <button
-                    type="button"
+                <component
+                    :is="item.href ? Link : 'button'"
+                    :href="item.href"
+                    :type="item.href ? undefined : 'button'"
                     :aria-current="active === item.key ? 'page' : undefined"
                     :aria-label="item.label"
                     :class="[
-                        'flex w-full flex-col items-center justify-center gap-1 pb-2 text-[10px] leading-none font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                        'flex w-full shrink-0 flex-col items-center justify-center gap-1.5 text-[10px] leading-tight font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring min-[390px]:text-[11px]',
                         item.emphasis
-                            ? active === item.key
-                                ? 'h-[72px] max-w-[72px] -translate-y-5 gap-1 rounded-full bg-primary pb-2 text-primary-foreground shadow-sm'
-                                : 'h-[72px] max-w-[72px] -translate-y-5 gap-1 rounded-full bg-card pb-2 text-foreground shadow-sm ring-1 ring-border'
+                            ? 'mb-[18px] aspect-square max-w-[68px] gap-1 rounded-full bg-primary text-secondary-foreground hover:brightness-105 active:scale-95'
                             : active === item.key
-                              ? 'text-secondary'
-                              : 'text-foreground',
+                              ? 'h-full pb-2 text-primary'
+                              : 'h-full pb-2 text-foreground hover:text-primary',
                     ]"
                     @click="select(item.key)"
                 >
-                    <component
-                        :is="item.icon"
-                        :size="item.emphasis ? 28 : 24"
-                        :stroke-width="item.emphasis ? 1.5 : 1.6"
-                        aria-hidden="true"
+                    <FarmerNavIcon
+                        :name="item.key"
+                        :class="item.emphasis ? 'size-8' : 'size-7'"
                     />
                     <span>{{ item.label }}</span>
-                </button>
+                </component>
             </li>
         </ul>
     </nav>
 </template>
+
+<style scoped>
+.farmer-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 3px 14px
+        color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+</style>

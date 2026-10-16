@@ -2,8 +2,9 @@
 import FarmerBottomNav, {
     type FarmerNavKey,
 } from '@/components/farmer/FarmerBottomNav.vue';
-import { router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
+import { Toaster } from '@/components/ui/sonner';
 
 type Props = {
     activeKey?: FarmerNavKey;
@@ -19,12 +20,10 @@ const emit = defineEmits<{
 
 const selectedKey = ref<FarmerNavKey>(props.activeKey);
 
-const routeMap: Record<FarmerNavKey, string> = {
-    home: '/', // Beranda / Dashboard utama
-    garden: '/kebun', // Halaman Kebun
-    ai: '/ai', // Halaman AI
-    finance: '/keuangan', // Halaman Keuangan
-    activity: '/aktivitas', // Halaman Aktivitas
+const upcomingPages: Partial<Record<FarmerNavKey, string>> = {
+    ai: 'AI',
+    finance: 'Keuangan',
+    activity: 'Aktivitas',
 };
 watch(
     () => props.activeKey,
@@ -34,14 +33,11 @@ watch(
 );
 
 function select(key: FarmerNavKey): void {
-    selectedKey.value = key;
-
-    // [PERBAIKAN 3] Jalankan router.visit untuk semua tombol secara dinamis
-    const targetUrl = routeMap[key];
-    if (targetUrl && window.location.pathname !== targetUrl) {
-        void router.visit(targetUrl);
+    if (upcomingPages[key]) {
+        toast.info(`Halaman ${upcomingPages[key]} sedang disiapkan.`);
+        return;
     }
-
+    selectedKey.value = key;
     emit('select', key);
 }
 </script>
@@ -53,11 +49,14 @@ function select(key: FarmerNavKey): void {
         <section
             class="relative flex h-[min(874px,calc(100dvh-24px))] w-full max-w-[440px] flex-col overflow-hidden rounded-t-[24px] rounded-b-[20px] bg-card max-[480px]:h-dvh max-[480px]:max-w-none max-[480px]:rounded-none"
         >
-            <main class="min-h-0 flex-1 overflow-y-auto pb-20">
+            <main
+                class="min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-pb-8 pb-8"
+            >
                 <slot />
             </main>
 
             <FarmerBottomNav :active-key="selectedKey" @select="select" />
+            <Toaster />
         </section>
     </div>
 </template>
