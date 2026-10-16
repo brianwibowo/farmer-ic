@@ -48,7 +48,7 @@ function select(key: FarmerNavKey): void {
 <template>
     <nav
         aria-label="Navigasi utama"
-        class="absolute inset-x-0 bottom-0 z-10 h-20 border-t border-black/5 bg-card px-2 shadow-[0_-3px_12px_rgba(7,8,7,0.08)]"
+        class="absolute inset-x-0 bottom-0 z-10 h-20 border-t border-[#d9d9d9] bg-white px-2 shadow-[0_-3px_12px_rgba(7,8,7,0.08)]"
     >
         <ul class="grid h-full grid-cols-5 items-end">
             <li
@@ -64,11 +64,11 @@ function select(key: FarmerNavKey): void {
                         'flex w-full flex-col items-center justify-center gap-1 pb-2 text-[10px] leading-none font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                         item.emphasis
                             ? active === item.key
-                                ? 'h-[72px] max-w-[72px] -translate-y-5 gap-1 rounded-full bg-primary pb-2 text-primary-foreground shadow-sm'
-                                : 'h-[72px] max-w-[72px] -translate-y-5 gap-1 rounded-full bg-card pb-2 text-foreground shadow-sm ring-1 ring-border'
+                                ? 'h-[72px] max-w-[72px] -translate-y-5 gap-1 rounded-full bg-[#68bb6c] pb-2 text-white shadow-sm'
+                                : 'h-[72px] max-w-[72px] -translate-y-5 gap-1 rounded-full bg-white pb-2 text-[#070807] shadow-sm ring-1 ring-[#d9d9d9]'
                             : active === item.key
-                              ? 'text-secondary'
-                              : 'text-foreground',
+                              ? 'text-[#1c5e21]'
+                              : 'text-[#070807]',
                     ]"
                     @click="select(item.key)"
                 >
