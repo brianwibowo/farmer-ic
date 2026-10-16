@@ -3,6 +3,8 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/css/startup-screen.css">
+        <link rel="preload" href="/images/logo.svg" as="image" type="image/svg+xml">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
@@ -43,5 +45,6 @@
     </head>
     <body class="font-sans antialiased">
         <x-inertia::app />
+        <x-startup-screen />
     </body>
 </html>
