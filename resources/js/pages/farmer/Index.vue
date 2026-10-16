@@ -116,6 +116,14 @@ function formatTime(value: string): string {
     }).format(new Date(value));
 }
 
+function formatRecordingTime(seconds: number): string {
+    const minutes = Math.floor(seconds / 60)
+        .toString()
+        .padStart(2, '0');
+    const remainingSeconds = (seconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${remainingSeconds}`;
+}
+
 function attachmentFromFile(file: File): ChatAttachment {
     return {
         name: file.name,
@@ -668,25 +676,63 @@ onUnmounted(() => {
                     >
                 </div>
                 <div
-                    v-if="voice.isRecording || voice.isTranscribing"
-                    class="mb-2 flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-xs text-foreground"
+                    v-if="voice.isRecording"
+                    role="status"
+                    aria-live="polite"
+                    class="mb-2 flex items-center gap-3 rounded-xl border border-error/20 bg-error/5 px-3 py-2.5 text-xs text-foreground"
                 >
                     <span
-                        class="flex size-6 items-center justify-center rounded-full bg-error/10 text-error"
-                        ><Mic :size="14" class="animate-pulse" /></span
-                    ><span class="flex-1">{{
-                        voice.isTranscribing
-                            ? 'Mengubah suara menjadi teks…'
-                            : `Mendengarkan · ${voice.elapsedSeconds}s`
-                    }}</span
-                    ><button
-                        v-if="voice.isRecording"
+                        class="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-error/10 text-error"
+                    >
+                        <span
+                            class="absolute inset-0 animate-ping rounded-full bg-error/20"
+                        ></span
+                        ><Mic :size="15" class="relative" />
+                    </span>
+                    <span class="flex min-w-0 flex-1 flex-col">
+                        <span class="font-semibold">Rekaman aktif</span>
+                        <span class="truncate text-[11px] text-muted-foreground"
+                            >Silakan bicara, tekan Selesai jika sudah
+                            cukup.</span
+                        >
+                    </span>
+                    <span
+                        class="shrink-0 font-mono text-xs text-error tabular-nums"
+                        >{{
+                            formatRecordingTime(voice.elapsedSeconds.value)
+                        }}</span
+                    >
+                    <button
                         type="button"
-                        class="font-semibold text-error"
+                        class="shrink-0 rounded-lg px-2 py-1 font-semibold text-error transition hover:bg-error/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         @click="voice.stopRecording"
                     >
                         Selesai
                     </button>
+                </div>
+                <div
+                    v-else-if="voice.isTranscribing"
+                    role="status"
+                    aria-live="polite"
+                    class="mb-2 flex items-center gap-3 rounded-xl border border-border bg-muted px-3 py-2.5 text-xs text-foreground"
+                >
+                    <span
+                        class="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground"
+                        ><LoaderCircle :size="15" class="animate-spin"
+                    /></span>
+                    <span class="flex min-w-0 flex-1 flex-col">
+                        <span class="font-semibold">Menyiapkan teks</span>
+                        <span class="text-[11px] text-muted-foreground"
+                            >Tunggu sebentar, suara sedang diproses.</span
+                        >
+                    </span>
+                </div>
+                <div
+                    v-if="voice.error"
+                    role="alert"
+                    class="mb-2 rounded-xl border border-error/25 bg-error/5 px-3 py-2 text-xs text-error"
+                >
+                    {{ voice.error }}
                 </div>
                 <div
                     class="flex items-end gap-1.5 rounded-2xl border border-border bg-background p-1.5 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
