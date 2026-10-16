@@ -9,6 +9,8 @@ Route::inertia('/', 'farmer/Dashboard')->name('home');
 Route::inertia('finance', 'farmer/Finance')->name('finance');
 Route::inertia('kebun/detail', 'farmer/KebunDetail')->name('kebun.detail');
 Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
+Route::inertia('/aktivitas', 'farmer/Aktivitas')->name('aktivitas');
+Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->name('rincian-aktivitas');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
