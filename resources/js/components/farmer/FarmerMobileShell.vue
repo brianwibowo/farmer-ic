@@ -33,6 +33,10 @@ function select(key: FarmerNavKey): void {
         void router.visit('/kebun');
     }
 
+    if (key === 'finance' && window.location.pathname !== '/finance') {
+        void router.visit('/finance');
+    }
+
     emit('select', key);
 }
 </script>
