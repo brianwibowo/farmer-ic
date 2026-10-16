@@ -676,7 +676,7 @@ onUnmounted(() => {
                     >
                 </div>
                 <div
-                    v-if="voice.isRecording"
+                    v-if="voice.isRecording.value"
                     role="status"
                     aria-live="polite"
                     class="mb-2 flex items-center gap-3 rounded-xl border border-error/20 bg-error/5 px-3 py-2.5 text-xs text-foreground"
@@ -711,7 +711,7 @@ onUnmounted(() => {
                     </button>
                 </div>
                 <div
-                    v-else-if="voice.isTranscribing"
+                    v-else-if="voice.isTranscribing.value"
                     role="status"
                     aria-live="polite"
                     class="mb-2 flex items-center gap-3 rounded-xl border border-border bg-muted px-3 py-2.5 text-xs text-foreground"
@@ -728,11 +728,11 @@ onUnmounted(() => {
                     </span>
                 </div>
                 <div
-                    v-if="voice.error"
+                    v-if="voice.error.value"
                     role="alert"
                     class="mb-2 rounded-xl border border-error/25 bg-error/5 px-3 py-2 text-xs text-error"
                 >
-                    {{ voice.error }}
+                    {{ voice.error.value }}
                 </div>
                 <div
                     class="flex items-end gap-1.5 rounded-2xl border border-border bg-background p-1.5 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
@@ -767,27 +767,27 @@ onUnmounted(() => {
                     <button
                         type="button"
                         :aria-label="
-                            voice.isRecording
+                            voice.isRecording.value
                                 ? 'Hentikan rekaman'
-                                : voice.isTranscribing
+                                : voice.isTranscribing.value
                                   ? 'Menunggu transkrip suara'
                                   : 'Rekam pesan suara'
                         "
                         :disabled="voice.isTranscribing.value"
                         class="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         :class="
-                            voice.isRecording
+                            voice.isRecording.value
                                 ? 'bg-error text-error-foreground'
                                 : 'text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-wait disabled:opacity-60'
                         "
                         @click="toggleVoice"
                     >
                         <Square
-                            v-if="voice.isRecording"
+                            v-if="voice.isRecording.value"
                             :size="16"
                             fill="currentColor"
                         /><LoaderCircle
-                            v-else-if="voice.isTranscribing"
+                            v-else-if="voice.isTranscribing.value"
                             :size="18"
                             class="animate-spin"
                         /><Mic v-else :size="19" stroke-width="1.7" />
