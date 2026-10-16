@@ -3,7 +3,7 @@
         "id": "act-penanaman-001",
         "type": "penanaman-benih",
         "typeLabel": "Penanaman Benih",
-        "timestamp": "20 Agustus 2026 - 16.30",
+        "timestamp": "20 Agustus 2026",
         "daysAfterPlanting": 1,
         "officerName": "Paijo",
         "kebunId": "kebun-002",
@@ -36,7 +36,7 @@
         "id": "act-pemupukan-001",
         "type": "pemupukan",
         "typeLabel": "Pemupukan",
-        "timestamp": "20 Agustus 2026 - 16.45",
+        "timestamp": "20 Agustus 2026",
         "daysAfterPlanting": 25,
         "officerName": "Slamet Widodo",
         "kebunId": "kebun-001",
@@ -63,7 +63,7 @@
                 "id": "photo-pupuk-2",
                 "label": "Foto kegiatan",
                 "caption": "Penaburan pupuk susulan di sepanjang barisan tanaman kedelai",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/pupuk-kegiatan.jpg"
             }
         ]
     },
@@ -71,7 +71,7 @@
         "id": "act-pengairan-001",
         "type": "pengairan",
         "typeLabel": "Pengairan",
-        "timestamp": "20 Agustus 2026 - 15.10",
+        "timestamp": "20 Agustus 2026",
         "daysAfterPlanting": 18,
         "officerName": "Hendra Kusuma",
         "kebunId": "kebun-003",
@@ -96,7 +96,7 @@
                 "id": "photo-air-2",
                 "label": "Foto lahan",
                 "caption": "Penyiraman sprinkler merata pada blok ratoon rumput pakan",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/pengairan-lahan.jpg"
             }
         ]
     },
@@ -104,7 +104,7 @@
         "id": "act-pertumbuhan-001",
         "type": "pengecekan-pertumbuhan",
         "typeLabel": "Pengecekan Fase Pertumbuhan",
-        "timestamp": "20 Agustus 2026 - 16.34",
+        "timestamp": "20 Agustus 2026",
         "daysAfterPlanting": 58,
         "officerName": "Wahyu Pratama",
         "kebunId": "kebun-004",
@@ -123,19 +123,19 @@
                 "id": "photo-tumbuh-1",
                 "label": "Foto tanaman (full)",
                 "caption": "Hamparan kanopi kedelai fase R5 tampak rapat dan hijau",
-                "image": "/images/activities/tumbuh-tanaman-full.webp"
+                "image": "/images/activities/tumbuh-tanaman-full.jpg"
             },
             {
                 "id": "photo-tumbuh-2",
                 "label": "Foto daun (close up)",
                 "caption": "Permukaan daun sehat dengan sedikit bekas gigitan ringan di tepi",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/tumbuh-daun-closeup.jpg"
             },
             {
                 "id": "photo-tumbuh-3",
                 "label": "Foto buah",
                 "caption": "Polong kedelai mulai terisi padat pada buku batang utama",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/tumbuh-buah.webp"
             }
         ]
     },
@@ -143,7 +143,7 @@
         "id": "act-pestisida-001",
         "type": "pestisida",
         "typeLabel": "Pestisida",
-        "timestamp": "20 Agustus 2026 - 17.00",
+        "timestamp": "20 Agustus 2026",
         "daysAfterPlanting": 32,
         "officerName": "Paijo",
         "kebunId": "kebun-002",
@@ -171,7 +171,7 @@
                 "id": "photo-pestisida-2",
                 "label": "Foto kegiatan",
                 "caption": "Penyemprotan diarahkan ke pucuk daun jagung menggunakan tangki 16L",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/pestisida-kegiatan.jpg"
             }
         ]
     },
@@ -179,7 +179,7 @@
         "id": "act-insiden-001",
         "type": "pelaporan-insiden",
         "typeLabel": "Pelaporan Insiden",
-        "timestamp": "20 Agustus 2026 - 14.20",
+        "timestamp": "20 Agustus 2026",
         "daysAfterPlanting": 41,
         "officerName": "Sutrisno",
         "kebunId": "kebun-005",
@@ -204,7 +204,7 @@
                 "id": "photo-insiden-2",
                 "label": "Foto lebar/panorama",
                 "caption": "Hamparan 1,4 Ha di sisi barat yang terdampak serangan hama",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/insiden-panorama.jpg"
             }
         ]
     },
@@ -212,7 +212,7 @@
         "id": "act-panen-001",
         "type": "panen",
         "typeLabel": "Panen",
-        "timestamp": "20 Agustus 2026 - 16.22",
+        "timestamp": "20 Agustus 2026",
         "daysAfterPlanting": 105,
         "officerName": "Slamet Widodo",
         "kebunId": "kebun-002",
@@ -241,7 +241,7 @@
                 "id": "photo-panen-2",
                 "label": "Foto kegiatan",
                 "caption": "Proses pemipilan dan pengangkutan hasil panen ke gudang",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/panen-kegiatan.jpg"
             }
         ]
     }

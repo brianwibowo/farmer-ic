@@ -67,14 +67,9 @@ function closePhoto(): void {
                             <Expand :size="13" />
                         </span>
                     </div>
-                    <div class="flex flex-1 flex-col justify-between p-2.5">
+                    <div class="flex flex-1 items-center p-2.5">
                         <p class="text-xs font-semibold text-foreground">
                             {{ photo.label }}
-                        </p>
-                        <p
-                            class="mt-1 line-clamp-2 text-[11px] leading-4 text-muted-foreground"
-                        >
-                            {{ photo.caption }}
                         </p>
                     </div>
                 </button>
@@ -115,12 +110,6 @@ function closePhoto(): void {
                         :alt="selectedPhoto.label"
                         class="aspect-4/3 w-full rounded-lg object-cover"
                     />
-                </div>
-
-                <div class="px-4 py-3">
-                    <p class="text-xs leading-5 text-muted-foreground">
-                        {{ selectedPhoto.caption }}
-                    </p>
                 </div>
             </div>
         </div>
