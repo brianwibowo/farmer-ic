@@ -108,7 +108,8 @@ async function initializeMap(): Promise<void> {
             coloredLayers.push({ layer: marker, status: item.healthStatus });
             const element = marker.getElement();
             const openPreview = () => {
-                lastMarker = element instanceof SVGElement ? element : undefined;
+                lastMarker =
+                    element instanceof SVGElement ? element : undefined;
                 selectedKebun.value = item;
                 previewOpen.value = true;
             };
@@ -116,9 +117,15 @@ async function initializeMap(): Promise<void> {
             element?.setAttribute('tabindex', '0');
             element?.setAttribute('role', 'button');
             element?.setAttribute('aria-haspopup', 'dialog');
-            element?.setAttribute('aria-label', `${item.name}, ${item.city}, ${item.healthStatus}`);
+            element?.setAttribute(
+                'aria-label',
+                `${item.name}, ${item.city}, ${item.healthStatus}`,
+            );
             element?.addEventListener('keydown', (event) => {
-                if (event instanceof KeyboardEvent && (event.key === 'Enter' || event.key === ' ')) {
+                if (
+                    event instanceof KeyboardEvent &&
+                    (event.key === 'Enter' || event.key === ' ')
+                ) {
                     event.preventDefault();
                     openPreview();
                 }
@@ -264,7 +271,11 @@ onBeforeUnmount(() => {
                 ><span class="size-2 rounded-full bg-error" />Kritis</span
             >
         </div>
-        <KebunMapPreview v-if="selectedKebun" v-model:open="previewOpen" :kebun="selectedKebun" @closed="lastMarker?.focus()" />
+        <KebunMapPreview
+            v-if="selectedKebun"
+            v-model:open="previewOpen"
+            :kebun="selectedKebun"
+            @closed="lastMarker?.focus()"
+        />
     </section>
 </template>
-

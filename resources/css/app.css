@@ -38,6 +38,7 @@
 
     --color-surface: var(--surface);
     --color-surface-foreground: var(--surface-foreground);
+    --color-expense-surface: var(--expense-surface);
 
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
@@ -122,6 +123,7 @@
 
     --surface: #abe7b2;
     --surface-foreground: #070807;
+    --expense-surface: #e9bcb8;
 
     --card: #ffffff;
     --card-foreground: #070807;
@@ -188,6 +190,7 @@
 
     --surface: #1b3820;
     --surface-foreground: #abe7b2;
+    --expense-surface: #452924;
 
     --card: #121c14;
     --card-foreground: #f9faf9;

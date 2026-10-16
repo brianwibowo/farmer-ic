@@ -17,7 +17,8 @@ type KebunInsights = {
     summary: string;
 };
 
-export type MappedKebun = Kebun & KebunInsights & { position: [number, number] };
+export type MappedKebun = Kebun &
+    KebunInsights & { position: [number, number] };
 
 const storageKey = 'kebun';
 
@@ -61,6 +62,8 @@ export async function listMappedKebun(): Promise<MappedKebun[]> {
     });
 }
 
-export async function getKebunDetail(id: string): Promise<MappedKebun | undefined> {
+export async function getKebunDetail(
+    id: string,
+): Promise<MappedKebun | undefined> {
     return (await listMappedKebun()).find((item) => item.id === id);
 }

@@ -39,12 +39,10 @@ defineOptions({
         <div
             class="mx-auto flex min-h-full w-full max-w-md flex-col gap-4 p-4 *:shrink-0"
         >
-            <KebunMap />
-
-            <!-- Row 2: Financial Overview -->
             <FinancialOverviewDashboard />
 
-            <!-- Row 3: Pendapatan Komoditas -->
+            <KebunMap />
+
             <CommodityIncome />
         </div>
     </FarmerMobileShell>

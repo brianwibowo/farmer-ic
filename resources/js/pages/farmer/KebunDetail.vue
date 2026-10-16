@@ -16,19 +16,27 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { getKebunDetail, type MappedKebun } from '@/services/kebunService';
 
 const page = usePage();
-const kebunId = computed(() => new URL(page.url, 'http://localhost').searchParams.get('id') ?? 'kebun-001');
+const kebunId = computed(
+    () =>
+        new URL(page.url, 'http://localhost').searchParams.get('id') ??
+        'kebun-001',
+);
 const selectedKebun = ref<MappedKebun>();
 const loading = ref(true);
 const error = ref('');
 let requestId = 0;
-const detail = computed(() => selectedKebun.value ? {
-    ...selectedKebun.value,
-    location: selectedKebun.value.city,
-    crop: selectedKebun.value.seedType,
-    totalArea: `${new Intl.NumberFormat('id-ID').format(selectedKebun.value.availableHectare)} ha`,
-    plantedArea: `${new Intl.NumberFormat('id-ID').format(selectedKebun.value.usedHectare)} ha`,
-    harvestStatus: selectedKebun.value.healthStatus,
-} : undefined);
+const detail = computed(() =>
+    selectedKebun.value
+        ? {
+              ...selectedKebun.value,
+              location: selectedKebun.value.city,
+              crop: selectedKebun.value.seedType,
+              totalArea: `${new Intl.NumberFormat('id-ID').format(selectedKebun.value.availableHectare)} ha`,
+              plantedArea: `${new Intl.NumberFormat('id-ID').format(selectedKebun.value.usedHectare)} ha`,
+              harvestStatus: selectedKebun.value.healthStatus,
+          }
+        : undefined,
+);
 
 async function loadDetail(): Promise<void> {
     const request = ++requestId;
@@ -41,7 +49,8 @@ async function loadDetail(): Promise<void> {
         selectedKebun.value = kebun;
         if (!kebun) error.value = 'Kebun tidak ditemukan.';
     } catch {
-        if (request === requestId) error.value = 'Detail kebun belum dapat dimuat. Silakan coba lagi.';
+        if (request === requestId)
+            error.value = 'Detail kebun belum dapat dimuat. Silakan coba lagi.';
     } finally {
         if (request === requestId) loading.value = false;
     }
@@ -56,23 +65,43 @@ const formatRupiah = (value: number): string =>
         currency: 'IDR',
         maximumFractionDigits: 0,
     }).format(value);
-
 </script>
 
 <template>
     <Head title="Detail Kebun" />
 
     <FarmerMobileShell active-key="garden">
-        <div v-if="loading" class="space-y-4 p-5" role="status" aria-label="Memuat detail kebun">
+        <div
+            v-if="loading"
+            class="space-y-4 p-5"
+            role="status"
+            aria-label="Memuat detail kebun"
+        >
             <div class="h-12 w-2/3 animate-pulse rounded-xl bg-muted" />
             <div class="h-32 animate-pulse rounded-2xl bg-muted" />
             <div class="h-48 animate-pulse rounded-2xl bg-muted" />
             <span class="sr-only">Memuat detail kebun…</span>
         </div>
-        <div v-else-if="error || !detail" class="space-y-4 px-5 py-12 text-center" role="status">
-            <p class="text-sm text-muted-foreground">{{ error || 'Kebun tidak ditemukan.' }}</p>
-            <button type="button" class="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground" @click="void loadDetail()">Coba lagi</button>
-            <Link href="/kebun" class="block text-sm font-medium text-secondary underline">Kembali ke daftar kebun</Link>
+        <div
+            v-else-if="error || !detail"
+            class="space-y-4 px-5 py-12 text-center"
+            role="status"
+        >
+            <p class="text-sm text-muted-foreground">
+                {{ error || 'Kebun tidak ditemukan.' }}
+            </p>
+            <button
+                type="button"
+                class="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+                @click="void loadDetail()"
+            >
+                Coba lagi
+            </button>
+            <Link
+                href="/kebun"
+                class="block text-sm font-medium text-secondary underline"
+                >Kembali ke daftar kebun</Link
+            >
         </div>
         <div v-else class="space-y-6 px-5 pt-8 pb-6">
             <header class="flex items-center gap-3">
@@ -88,8 +117,12 @@ const formatRupiah = (value: number): string =>
                     />
                 </Link>
                 <div>
-                    <p class="text-sm font-medium text-muted-foreground">Kebun</p>
-                    <h1 class="text-2xl leading-8 font-semibold text-card-foreground">
+                    <p class="text-sm font-medium text-muted-foreground">
+                        Kebun
+                    </p>
+                    <h1
+                        class="text-2xl leading-8 font-semibold text-card-foreground"
+                    >
                         {{ detail.name }}
                     </h1>
                 </div>
@@ -156,12 +189,25 @@ const formatRupiah = (value: number): string =>
                 </div>
             </section>
 
-            <section class="rounded-2xl bg-muted p-4" aria-label="Kondisi dan proyeksi kebun">
-                <h2 class="text-sm font-semibold text-card-foreground">Kondisi tanaman · {{ detail.healthStatus }}</h2>
-                <p class="mt-2 text-sm leading-6 text-muted-foreground">{{ detail.plantCondition }}</p>
-                <p class="mt-4 text-xs text-muted-foreground">Proyeksi pendapatan kebun</p>
-                <p class="mt-1 text-xl font-semibold text-success">{{ formatRupiah(detail.projectedRevenue) }}</p>
-                <p class="mt-1 text-xs text-muted-foreground">Estimasi demo · Tanam {{ detail.plantedAt }}</p>
+            <section
+                class="rounded-2xl bg-muted p-4"
+                aria-label="Kondisi dan proyeksi kebun"
+            >
+                <h2 class="text-sm font-semibold text-card-foreground">
+                    Kondisi tanaman · {{ detail.healthStatus }}
+                </h2>
+                <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                    {{ detail.plantCondition }}
+                </p>
+                <p class="mt-4 text-xs text-muted-foreground">
+                    Proyeksi pendapatan kebun
+                </p>
+                <p class="mt-1 text-xl font-semibold text-success">
+                    {{ formatRupiah(detail.projectedRevenue) }}
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    Estimasi demo · Tanam {{ detail.plantedAt }}
+                </p>
             </section>
 
             <section
