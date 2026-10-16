@@ -19,6 +19,7 @@ import {
     X,
 } from '@lucide/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import AiInfographicCard from '@/components/farmer/AiInfographicCard.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import {
     MAX_ATTACHMENT_COUNT,
@@ -28,6 +29,7 @@ import {
     validateAttachments,
 } from '@/composables/useAiChat';
 import { useAiVoice } from '@/composables/useAiVoice';
+import { infographicForPrompt } from '@/data/aiInfographics';
 import type { Team } from '@/types/teams';
 
 type PageProps = { currentTeam?: Team | null };
@@ -60,9 +62,10 @@ const copiedMessageId = ref<string | null>(null);
 const speakingMessageId = ref<string | null>(null);
 const speech = typeof window !== 'undefined' ? window.speechSynthesis : null;
 const quickPrompts = [
+    '📊 Infografis: Panduan Pemupukan Jagung Optimal',
+    '💧 Infografis: Jadwal & Kebutuhan Air Kebun',
+    '🐛 Infografis: Deteksi & Pengendalian Hama Daun',
     'Bagaimana kondisi kebun saya hari ini?',
-    'Bantu saya memahami aktivitas pertanian minggu ini',
-    'Apa yang perlu saya perhatikan dari data kebun?',
 ];
 
 const canSend = computed(
@@ -203,10 +206,25 @@ async function send(): Promise<void> {
     if (!canSend.value) return;
     const text = inputText.value;
     const attachments = [...pendingAttachments.value];
+    const infographic = infographicForPrompt(text);
+    const requestInfographic =
+        infographic !== null &&
+        /\b(infografis|diagram|visual|poster|bagan)\b/i.test(text);
     inputText.value = '';
     pendingAttachments.value = [];
     autoResize();
-    await chat.sendMessage(text, attachments);
+    await chat.sendMessage(text, attachments, requestInfographic);
+    if (infographic && !requestInfographic) {
+        await new Promise((resolve) => window.setTimeout(resolve, 450));
+        messages.value.push({
+            id: `infographic-${Date.now()}`,
+            role: 'assistant',
+            content: `### 🌿 ${infographic.title}\n\n![${infographic.imageAlt}](${infographic.image})\n\n${infographic.description}\n\n> 💧 **Air:** Sedang | ⏳ **Waktu:** Terjadwal | 📊 **Prioritas:** Utama\n\n${infographic.bullets.map((bullet, index) => `${index + 1}. **Langkah ${index + 1}**: ${bullet}`).join('\n')}\n\n> 💡 **Tips Petani:** Gunakan foto dan catatan terbaru sebelum mengambil keputusan di lapangan.`,
+            attachments: [],
+            createdAt: new Date().toISOString(),
+            status: 'complete',
+        });
+    }
     await scrollToLatest();
     inputElement.value?.focus();
 }
@@ -448,6 +466,12 @@ onUnmounted(() => {
                     >
                         <Bot :size="34" stroke-width="1.4" />
                     </div>
+                    <div
+                        class="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-secondary"
+                    >
+                        <Sparkles :size="13" />
+                        <span>Mode Infografis Aktif</span>
+                    </div>
                     <h1
                         class="text-xl font-semibold tracking-tight text-foreground"
                     >
@@ -456,9 +480,9 @@ onUnmounted(() => {
                     <p
                         class="mt-2 max-w-[280px] text-sm leading-relaxed text-muted-foreground"
                     >
-                        Tanyakan kondisi kebun, aktivitas, atau data pertanian
-                        Anda. Saya akan membantu dengan bahasa yang mudah
-                        dipahami.
+                        Tanyakan kondisi kebun, aktivitas, atau panduan visual
+                        pertanian Anda. Jawaban disajikan dalam format
+                        infografis ringkas dan mudah dipahami.
                     </p>
                     <div class="mt-6 flex w-full flex-col gap-2">
                         <button
@@ -490,11 +514,11 @@ onUnmounted(() => {
                         <Sparkles :size="14" stroke-width="1.8" />
                     </div>
                     <div
-                        class="max-w-[86%]"
+                        class="w-full"
                         :class="
                             message.role === 'user'
-                                ? 'items-end'
-                                : 'items-start'
+                                ? 'max-w-[84%] items-end'
+                                : 'max-w-[94%] items-start'
                         "
                     >
                         <div
@@ -538,17 +562,26 @@ onUnmounted(() => {
                                     /></span>
                                 </a>
                             </div>
-                            <div
-                                v-if="message.content"
-                                class="ai-message-content"
-                                v-html="
-                                    message.role === 'assistant'
-                                        ? renderMarkdown(message.content)
-                                        : escapeHtml(
-                                              message.content,
-                                          ).replaceAll('\n', '<br>')
-                                "
-                            />
+                            <div v-if="message.content">
+                                <AiInfographicCard
+                                    v-if="message.role === 'assistant'"
+                                    :content="message.content"
+                                    :is-streaming="
+                                        message.status === 'streaming'
+                                    "
+                                    @copied="copiedMessageId = message.id"
+                                />
+                                <div
+                                    v-else
+                                    class="text-sm leading-relaxed"
+                                    v-html="
+                                        escapeHtml(message.content).replaceAll(
+                                            '\n',
+                                            '<br>',
+                                        )
+                                    "
+                                />
+                            </div>
                             <div
                                 v-if="message.status === 'streaming'"
                                 class="mt-1 flex items-center gap-1 text-muted-foreground"

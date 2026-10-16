@@ -335,6 +335,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
     async function sendMessage(
         content: string,
         attachments: ChatAttachment[] = [],
+        isInfographic = false,
     ): Promise<void> {
         const text = content.trim();
         if (!text && attachments.length === 0) return;
@@ -370,6 +371,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         form.append('message', text);
         if (conversationId.value)
             form.append('conversation_id', conversationId.value);
+        if (isInfographic) form.append('is_infographic', '1');
         for (const attachment of attachments) {
             if (attachment.file)
                 form.append('attachments[]', attachment.file, attachment.name);
@@ -405,10 +407,15 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 }
                 if (parsed.conversationId)
                     conversationId.value = parsed.conversationId;
-                if (parsed.message && !assistantMessage.content) {
+                if (parsed.message) {
                     assistantMessage.content = parsed.message.content;
+                    if (parsed.message.attachments.length > 0) {
+                        assistantMessage.attachments =
+                            parsed.message.attachments;
+                    }
+                } else if (parsed.delta) {
+                    assistantMessage.content += parsed.delta;
                 }
-                if (parsed.delta) assistantMessage.content += parsed.delta;
                 if (parsed.error) {
                     assistantMessage.error = parsed.error;
                     assistantMessage.status = 'error';

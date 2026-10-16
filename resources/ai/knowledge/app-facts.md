@@ -12,9 +12,17 @@ When a user asks about a feature that is not described here, the assistant shoul
 
 ## Visual asset catalog
 
-When a response benefits from a visual reference, the assistant may embed one relevant application asset using the exact Markdown image path below. Keep the image caption short and do not embed more than one or two images in a response.
+When answering agronomic, field, activity, or crop questions, embed one relevant local image asset using Markdown `![Caption](url)` at the beginning of the guide or infographic:
 
-- Padi: `![Ilustrasi padi](/images/commodities/padi.svg)`
-- Jagung: `![Ilustrasi jagung](/images/commodities/jagung.svg)`
-- Kedelai: `![Ilustrasi kedelai](/images/commodities/kedelai.svg)`
-- Foto contoh kebun: `![Contoh kebun](/images/farmer/corn-field.jpeg)`
+- Jagung / Kebun Jagung: `![Lahan dan tanaman jagung](/images/farmer/corn-field.jpeg)` atau `![Ilustrasi komoditas jagung](/images/commodities/jagung.svg)`
+- Padi: `![Ilustrasi komoditas padi](/images/commodities/padi.svg)`
+- Kedelai: `![Ilustrasi komoditas kedelai](/images/commodities/kedelai.svg)`
+- Pemupukan / Nutrisi Lahan: `![Aktivitas pemupukan dan nutrisi tanah](/images/activities/pupuk-sak.jpg)`
+- Pengairan / Irigasi / Pompa Air: `![Mesin pengairan dan irigasi lahan](/images/activities/pengairan-mesin.jpg)`
+- Hama / Penyakit / Pengendalian / Pestisida: `![Pengendalian hama dan aplikasi pestisida](/images/activities/pestisida-bahan.jpg)`
+- Gejala Daun / Daun Kuning / Insiden Tanaman: `![Pemeriksaan gejala daun dan tanaman](/images/activities/insiden-closeup.jpg)`
+- Benih / Penyemaian / Bibit Unggul: `![Penyemaian bibit dan benih unggul](/images/activities/benih-kegiatan.jpg)` atau `![Kemasan benih unggul](/images/activities/benih-bungkus.jpg)`
+- Fase Pertumbuhan Tanaman: `![Fase pertumbuhan dan perkembangan tanaman](/images/activities/tumbuh-tanaman-full.webp)`
+- Panen & Hasil Pertanian: `![Hasil panen pertanian](/images/activities/panen-hasil.jpg)`
+
+Only embed one primary image per response. Do not fabricate URLs outside this catalog.

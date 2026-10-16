@@ -13,16 +13,24 @@ return [
     ],
 
     'models' => [
-        'primary' => env('AI_PRIMARY_MODEL', 'google/gemini-3.8-flash'),
+        'primary' => (env('AI_PRIMARY_MODEL') && env('AI_PRIMARY_MODEL') !== 'google/gemini-3.8-flash')
+            ? env('AI_PRIMARY_MODEL')
+            : env('AI_GPT_PRIMARY_MODEL', 'openai/gpt-6-luna-pro'),
         'text_fallbacks' => array_values(array_filter(array_map(
             'trim',
-            explode(',', (string) env('AI_TEXT_FALLBACK_MODELS', 'google/gemini-3.7-flash,openai/gpt-6-luna')),
+            explode(',', (string) env('AI_TEXT_FALLBACK_MODELS', 'openai/gpt-5.5-pro,openai/gpt-5.2-pro,openai/gpt-4o')),
         ))),
         'vision_fallbacks' => array_values(array_filter(array_map(
             'trim',
-            explode(',', (string) env('AI_VISION_FALLBACK_MODELS', 'google/gemini-3.7-flash,inclusionai/ling-3.0-flash-vl')),
+            explode(',', (string) env('AI_VISION_FALLBACK_MODELS', 'openai/gpt-6-luna-pro,openai/gpt-4o,google/gemini-3.8-flash')),
         ))),
-        'max_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 1024),
+        'infographic_model' => env('AI_INFOGRAPHIC_MODEL', 'google/gemini-2.5-flash-image'),
+        'infographic_fallbacks' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('AI_INFOGRAPHIC_FALLBACK_MODELS', 'google/gemini-3.1-flash-image,google/gemini-3-pro-image')),
+        ))),
+        'infographic_demo_asset' => env('AI_INFOGRAPHIC_DEMO_ASSET', '/images/ai-infographics/smart-farming-overview.png'),
+        'max_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 2048),
         'temperature' => (float) env('AI_TEMPERATURE', 0.2),
     ],
 

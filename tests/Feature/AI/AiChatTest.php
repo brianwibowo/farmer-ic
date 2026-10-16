@@ -238,4 +238,59 @@ class AiChatTest extends TestCase
         $response->assertJsonPath('data.0.id', (string) $own->id);
         $response->assertJsonCount(1, 'data');
     }
+
+    public function test_a_user_can_request_infographic_and_receive_generated_image(): void
+    {
+        Storage::fake('public');
+        $this->app->instance(LlmGateway::class, new class implements LlmGateway
+        {
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                $fakePng = base64_encode('fake-png-data');
+
+                return [
+                    'id' => 'test-infographic-req',
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => 'Berikut infografis diagram pertanian.',
+                                'images' => [
+                                    [
+                                        'type' => 'image_url',
+                                        'image_url' => ['url' => 'data:image/png;base64,'.$fakePng],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 20],
+                ];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield [];
+            }
+        });
+        config(['ai.openrouter.api_key' => 'test-key']);
+
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+
+        $response = $this->actingAs($user)->post(route('ai.messages.store', $team->slug), [
+            'message' => 'Buatkan infografis smart farming jagung',
+            'is_infographic' => true,
+        ], ['Accept' => 'text/event-stream']);
+
+        $response->assertOk();
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('message.done', $stream);
+        $this->assertStringContainsString('Berikut infografis diagram pertanian.', $stream);
+        $this->assertStringContainsString('ai/infographics', stripslashes($stream));
+
+        $this->assertDatabaseHas('ai_attachments', [
+            'disk' => 'public',
+            'kind' => 'image',
+        ]);
+    }
 }
