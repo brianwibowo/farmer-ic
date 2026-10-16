@@ -62,32 +62,30 @@ defineProps<{
         <dl
             class="mt-3.5 grid grid-cols-1 gap-2.5 border-t border-border pt-3 text-[14px] sm:grid-cols-2"
         >
-            <div class="flex items-start gap-2.5">
+            <div class="flex items-center gap-2.5">
                 <CalendarClock
                     :size="18"
                     :stroke-width="1.8"
-                    class="mt-0.5 shrink-0 text-primary"
+                    class="shrink-0 text-primary"
                     aria-hidden="true"
                 />
                 <div class="min-w-0">
-                    <dt class="text-xs text-muted-foreground">
-                        Waktu &amp; Hari Tanam
-                    </dt>
+                    <dt class="sr-only">Waktu &amp; Hari Tanam</dt>
                     <dd class="font-medium text-foreground">
                         {{ activity.timestamp }}
                     </dd>
                 </div>
             </div>
 
-            <div class="flex items-start gap-2.5">
+            <div class="flex items-center gap-2.5">
                 <User
                     :size="18"
                     :stroke-width="1.8"
-                    class="mt-0.5 shrink-0 text-primary"
+                    class="shrink-0 text-primary"
                     aria-hidden="true"
                 />
                 <div class="min-w-0">
-                    <dt class="text-xs text-muted-foreground">Nama Petugas</dt>
+                    <dt class="sr-only">Nama Petugas</dt>
                     <dd class="font-medium text-foreground">
                         {{ activity.officerName }}
                     </dd>

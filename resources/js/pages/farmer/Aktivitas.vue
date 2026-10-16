@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import {
-    ChevronDown,
-    Clock,
-    MapPin,
-    Search,
-    SquareActivity,
-} from '@lucide/vue';
+import { Clock, MapPin, Search, SquareActivity } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
+import ActivityDateRangeFilter from '@/components/farmer/ActivityDateRangeFilter.vue';
+import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
-    activityTypeOptions,
+    parseIndonesianDateToIso,
     type ActivityLog,
     type ActivityType,
 } from '@/data/activityLogs';
@@ -20,6 +16,8 @@ import { listActivityLogs } from '@/services/activityLogService';
 const activities = ref<ActivityLog[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
+const startDate = ref('');
+const endDate = ref('');
 const isLoading = ref(true);
 const errorMessage = ref('');
 const resetMessage = ref('');
@@ -45,7 +43,35 @@ const filteredActivities = computed(() => {
             selectedType.value === 'all' ||
             item.type === selectedType.value;
 
-        return matchesSearch && matchesType;
+        let matchesDate = true;
+        if (startDate.value || endDate.value) {
+            const itemIso = parseIndonesianDateToIso(item.timestamp);
+            if (!itemIso) {
+                matchesDate = false;
+            } else {
+                const effectiveStart =
+                    startDate.value &&
+                    endDate.value &&
+                    startDate.value > endDate.value
+                        ? endDate.value
+                        : startDate.value;
+                const effectiveEnd =
+                    startDate.value &&
+                    endDate.value &&
+                    startDate.value > endDate.value
+                        ? startDate.value
+                        : endDate.value;
+
+                if (effectiveStart && itemIso < effectiveStart) {
+                    matchesDate = false;
+                }
+                if (effectiveEnd && itemIso > effectiveEnd) {
+                    matchesDate = false;
+                }
+            }
+        }
+
+        return matchesSearch && matchesType && matchesDate;
     });
 });
 
@@ -70,6 +96,8 @@ async function resetDemoData(): Promise<void> {
     clearDemoStorage();
     searchQuery.value = '';
     selectedType.value = '';
+    startDate.value = '';
+    endDate.value = '';
     resetMessage.value = 'Data demo aktivitas telah direset.';
     await loadActivities();
 }
@@ -83,16 +111,27 @@ onMounted(() => void loadActivities());
     <FarmerMobileShell active-key="activity">
         <div data-aktivitas-list class="px-4 pt-16 pb-5">
             <div class="flex items-center justify-between gap-3">
-                <h1 class="text-[20px] leading-7 font-semibold text-foreground">
+                <h1
+                    class="min-w-0 truncate text-[20px] leading-7 font-semibold text-foreground"
+                >
                     Aktivitas
                 </h1>
-                <button
-                    type="button"
-                    class="text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    @click="void resetDemoData()"
-                >
-                    Reset demo
-                </button>
+
+                <div class="flex shrink-0 items-center gap-2">
+                    <button
+                        type="button"
+                        class="text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        @click="void resetDemoData()"
+                    >
+                        Reset demo
+                    </button>
+
+                    <!-- Filter rentang tanggal -->
+                    <ActivityDateRangeFilter
+                        v-model:start-date="startDate"
+                        v-model:end-date="endDate"
+                    />
+                </div>
             </div>
 
             <div class="mt-4 flex gap-2">
@@ -112,29 +151,7 @@ onMounted(() => void loadActivities());
                     />
                 </label>
 
-                <label class="relative w-[116px] shrink-0">
-                    <span class="sr-only">Filter jenis aktivitas</span>
-                    <select
-                        v-model="selectedType"
-                        class="h-[38px] w-full appearance-none truncate rounded-lg border border-primary bg-card px-3 pr-7 text-[14px] text-foreground outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                        <option value="" disabled hidden>Aktivitas</option>
-                        <option value="all">Semua</option>
-                        <option
-                            v-for="option in activityTypeOptions"
-                            :key="option.value"
-                            :value="option.value"
-                        >
-                            {{ option.label }}
-                        </option>
-                    </select>
-                    <ChevronDown
-                        :size="16"
-                        :stroke-width="1.8"
-                        class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary"
-                        aria-hidden="true"
-                    />
-                </label>
+                <ActivityTypeFilterDropdown v-model="selectedType" />
             </div>
 
             <div

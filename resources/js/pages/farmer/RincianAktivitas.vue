@@ -14,6 +14,8 @@ const activeLog = ref<ActivityLog | undefined>(undefined);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const statusMessage = ref('');
+const backHref = ref('/aktivitas');
+const shellActiveKey = ref<'activity' | 'garden'>('activity');
 
 async function loadActivityDetail(): Promise<void> {
     isLoading.value = true;
@@ -25,6 +27,17 @@ async function loadActivityDetail(): Promise<void> {
         const idParam = params.get('id');
         const typeParam = params.get('type');
         const kebunParam = params.get('kebun');
+        const fromParam = params.get('from');
+
+        if (fromParam === 'kebun') {
+            shellActiveKey.value = 'garden';
+            backHref.value = kebunParam
+                ? `/kebun/aktivitas?kebun=${encodeURIComponent(kebunParam)}`
+                : '/kebun/aktivitas';
+        } else {
+            shellActiveKey.value = 'activity';
+            backHref.value = '/aktivitas';
+        }
 
         if (idParam) {
             activeLog.value = data.find((item) => item.id === idParam);
@@ -55,13 +68,13 @@ onMounted(() => void loadActivityDetail());
 <template>
     <Head title="Rincian Aktivitas" />
 
-    <FarmerMobileShell active-key="activity">
+    <FarmerMobileShell :active-key="shellActiveKey">
         <div data-rincian-aktivitas class="px-4 pt-16 pb-6">
             <!-- Top Header -->
             <div class="flex items-center justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2">
                     <Link
-                        href="/aktivitas"
+                        :href="backHref"
                         class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         aria-label="Kembali"
                     >
@@ -140,7 +153,7 @@ onMounted(() => void loadActivityDetail());
                     Laporan aktivitas yang dipilih tidak tersedia.
                 </p>
                 <Link
-                    href="/aktivitas"
+                    :href="backHref"
                     class="mt-4 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                     Kembali
