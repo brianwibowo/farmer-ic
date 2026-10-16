@@ -57,11 +57,15 @@ function select(key: FarmerNavKey): void {
 
     selectedKey.value = key;
 
-    if (key === 'garden' && window.location.pathname !== '/kebun') {
-        void router.visit('/kebun');
+    if (key === "garden" && window.location.pathname !== "/kebun") {
+        void router.visit("/kebun");
     }
 
-    emit('select', key);
+    if (key === "finance" && window.location.pathname !== "/finance") {
+        void router.visit("/finance");
+    }
+
+    emit("select", key);
 }
 </script>
 
