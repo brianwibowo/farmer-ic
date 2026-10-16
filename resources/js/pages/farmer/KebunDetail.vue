@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from "@inertiajs/vue3";
+import { Head, router } from '@inertiajs/vue3';
 import {
     Activity,
     ArrowLeft,
@@ -15,71 +15,71 @@ import {
     TrendingUp,
     Wheat,
     X,
-} from "@lucide/vue";
-import FarmerMobileShell from "@/components/farmer/FarmerMobileShell.vue";
-import { computed, ref } from "vue";
+} from '@lucide/vue';
+import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import { computed, ref } from 'vue';
 
 const detail = {
-    name: "Detail Kebon A",
+    name: 'Detail Kebon A',
     location:
-        "Jl. Raya Dieng KM 12, Desa Surengede, Kec. Kejajar, Kab. Wonosobo, Jawa Tengah",
-    crop: "Jagung",
-    cropType: "Jagung Hibrida",
-    seed: "Jagung hibrida BISI-18",
-    totalArea: "1.000 ha",
-    plantedArea: "300 ha",
-    weight: "42 ton",
-    plantedAt: "11 Januari 2026",
-    harvestAt: "11 Maret 2026",
+        'Jl. Raya Dieng KM 12, Desa Surengede, Kec. Kejajar, Kab. Wonosobo, Jawa Tengah',
+    crop: 'Jagung',
+    cropType: 'Jagung Hibrida',
+    seed: 'Jagung hibrida BISI-18',
+    totalArea: '1.000 ha',
+    plantedArea: '300 ha',
+    weight: '42 ton',
+    plantedAt: '11 Januari 2026',
+    harvestAt: '11 Maret 2026',
     revenue: 50_000_000,
     expenses: 18_500_000,
     growth: 78,
     growthCategory: 3,
-    growthCategoryLabel: "Vegetatif aktif",
+    growthCategoryLabel: 'Vegetatif aktif',
     aiConfidence: 92,
-    harvestStatus: "Tumbuh baik",
+    harvestStatus: 'Tumbuh baik',
     weather: {
-        condition: "Cerah berawan",
-        temperature: "26°C",
-        humidity: "78%",
+        condition: 'Cerah berawan',
+        temperature: '26°C',
+        humidity: '78%',
     },
 };
 
 const growthStages = [
     {
         number: 1,
-        label: "Kecambah",
-        range: "0–9 HST",
+        label: 'Kecambah',
+        range: '0–9 HST',
         percent: 20,
-        image: "/images/farmer/jagung-berkecambah.jpg",
+        image: '/images/farmer/jagung-berkecambah.jpg',
     },
     {
         number: 2,
-        label: "Bibit awal",
-        range: "10–29 HST",
+        label: 'Bibit awal',
+        range: '10–29 HST',
         percent: 40,
-        image: "/images/farmer/jagung-tumbuh-fase-2.jpg",
+        image: '/images/farmer/jagung-tumbuh-fase-2.jpg',
     },
     {
         number: 3,
-        label: "Vegetatif aktif",
-        range: "30–59 HST",
+        label: 'Vegetatif aktif',
+        range: '30–59 HST',
         percent: 60,
-        image: "/images/farmer/corn-field.jpeg",
+        image: '/images/farmer/corn-field.jpeg',
     },
     {
         number: 4,
-        label: "Pembungaan",
-        range: "60–79 HST",
+        label: 'Pembungaan',
+        range: '60–79 HST',
         percent: 80,
-        image: "/images/farmer/jagung-tunas.jpeg",
+        image: '/images/farmer/jagung-tunas.jpeg',
     },
     {
         number: 5,
-        label: "Pengisian & panen",
-        range: "80–99 HST",
+        label: 'Pengisian & panen',
+        range: '80–99 HST',
         percent: 100,
-        image: "/images/farmer/jagung-panen.jpg",
+        image: '/images/farmer/jagung-panen.jpg',
     },
 ] as const;
 
@@ -123,14 +123,14 @@ function openGrowthStageImage(): void {
 }
 
 const formatRupiah = (value: number): string =>
-    new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
+    new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
         maximumFractionDigits: 0,
     }).format(value);
 
 function goBack(): void {
-    void router.visit("/kebun");
+    void router.visit('/kebun');
 }
 </script>
 
@@ -163,7 +163,7 @@ function goBack(): void {
             <section class="flex gap-4" aria-labelledby="garden-summary-title">
                 <button
                     type="button"
-                    class="group relative w-36 h-38 shrink-0 self-stretch overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c5e21]"
+                    class="group relative h-38 w-36 shrink-0 self-stretch overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c5e21]"
                     aria-label="Buka foto tanaman jagung"
                     @click="
                         openImage({
@@ -474,26 +474,100 @@ function goBack(): void {
             </section>
 
             <section
-                class="rounded-2xl border border-[#d9d9d9] bg-white p-4 shadow-sm"
+                class="space-y-3 rounded-2xl border border-[#d9d9d9] bg-white p-4 shadow-sm"
                 aria-labelledby="ai-summary-title"
             >
-                <div class="flex items-center gap-2">
-                    <CircleCheck
-                        :size="20"
-                        class="text-[#68bb6c]"
-                        aria-hidden="true"
-                    />
-                    <h2
-                        id="ai-summary-title"
-                        class="text-lg font-semibold text-[#070807]"
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <CircleCheck
+                            :size="20"
+                            class="text-[#68bb6c]"
+                            aria-hidden="true"
+                        />
+                        <h2
+                            id="ai-summary-title"
+                            class="text-lg font-semibold text-[#070807]"
+                        >
+                            Analisa AI
+                        </h2>
+                    </div>
+                    <!-- Badge Presentasi Ai -->
+                    <span
+                        class="rounded-full bg-[#edf3ee] px-2.5 py-1 text-xs font-medium text-[#1c5e21]"
                     >
-                        Ringkasan AI
-                    </h2>
+                        {{ detail.aiConfidence }}% yakin
+                    </span>
                 </div>
-                <p class="mt-3 text-sm leading-6 text-[#070807]">
-                    Pertumbuhan jagung berjalan baik. Pertahankan penyiraman
-                    teratur dan pantau daun selama dua minggu ke depan.
-                </p>
+
+                <article
+                    class="rounded-xl border border-[#d9d9d9] bg-[#f7fbf7] p-3.5"
+                >
+                    <div class="flex items-start gap-3">
+                        <span
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#abe7b2] text-[#1c5e21]"
+                        >
+                            <TrendingUp :size="18" aria-hidden="true" />
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-[#1c5e21]">
+                                Analisa perkembangan sampai panen
+                            </h3>
+                            <p class="mt-1.5 text-sm leading-5 text-[#070807]">
+                                Tanaman berada di fase
+                                <strong>{{
+                                    detail.growthCategoryLabel
+                                }}</strong>
+                                dan diproyeksikan siap panen pada
+                                <strong>{{ detail.harvestAt }}</strong> jika
+                                perawatan berjalan konsisten.
+                            </p>
+                        </div>
+                    </div>
+                </article>
+
+                <article
+                    class="rounded-xl border border-[#d9d9d9] bg-[#fffdf4] p-3.5"
+                >
+                    <div class="flex items-start gap-3">
+                        <span
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f5e7a8] text-[#7a6200]"
+                        >
+                            <Activity :size="18" aria-hidden="true" />
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-[#7a6200]">
+                                Next step
+                            </h3>
+                            <p class="mt-1.5 text-sm leading-5 text-[#070807]">
+                                Jadwalkan penyiraman rutin, cek kondisi daun
+                                setiap 2–3 hari, dan tambahkan nutrisi sesuai
+                                rekomendasi petugas lapangan.
+                            </p>
+                        </div>
+                    </div>
+                </article>
+
+                <article
+                    class="rounded-xl border border-[#f0d1d1] bg-[#fff8f8] p-3.5"
+                >
+                    <div class="flex items-start gap-3">
+                        <span
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f8dede] text-[#bc0202]"
+                        >
+                            <TrendingDown :size="18" aria-hidden="true" />
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-[#bc0202]">
+                                Negatif: risiko perkembangan
+                            </h3>
+                            <p class="mt-1.5 text-sm leading-5 text-[#070807]">
+                                Waspadai genangan air dan perubahan warna daun.
+                                Kondisi tersebut dapat memperlambat pertumbuhan
+                                dan menurunkan hasil panen.
+                            </p>
+                        </div>
+                    </div>
+                </article>
             </section>
 
             <button
