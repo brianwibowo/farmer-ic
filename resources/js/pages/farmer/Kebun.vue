@@ -73,7 +73,7 @@ onMounted(() => void loadKebun());
     <FarmerMobileShell active-key="garden">
         <div class="px-4 pt-16 pb-5">
             <div class="flex items-center justify-between gap-3">
-                <h1 class="text-[20px] leading-7 font-semibold text-foreground">List Kebun</h1>
+                <h1 class="text-[20px] leading-7 font-semibold text-card-foreground">List Kebun</h1>
                 <button type="button" class="text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" @click="void resetDemoData()">
                     Reset demo
                 </button>
@@ -82,13 +82,13 @@ onMounted(() => void loadKebun());
             <div class="mt-4 flex gap-2">
                 <label class="relative min-w-0 flex-1">
                     <span class="sr-only">Cari kebun</span>
-                    <input v-model="searchQuery" type="search" placeholder="Cari kata kunci" class="h-[38px] w-full rounded-lg border border-primary bg-card px-3 pr-10 text-[14px] text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30" />
+                    <input v-model="searchQuery" type="search" placeholder="Cari kata kunci" class="h-[38px] w-full rounded-lg border border-primary bg-card px-3 pr-10 text-[14px] text-card-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30" />
                     <Search :size="20" :stroke-width="1.8" class="absolute top-1/2 right-3 -translate-y-1/2 text-primary" aria-hidden="true" />
                 </label>
 
                 <label class="relative w-[94px] shrink-0">
                     <span class="sr-only">Filter jenis benih</span>
-                    <select v-model="selectedSeed" class="h-[38px] w-full appearance-none rounded-lg border border-primary bg-card px-3 pr-7 text-[14px] text-foreground outline-none focus:ring-2 focus:ring-primary/30">
+                    <select v-model="selectedSeed" class="h-[38px] w-full appearance-none rounded-lg border border-primary bg-card px-3 pr-7 text-[14px] text-card-foreground outline-none focus:ring-2 focus:ring-primary/30">
                         <option value="" disabled hidden>Benih</option>
                         <option v-for="option in seedOptions" :key="option" :value="option">{{ option === 'all' ? 'Semua' : option }}</option>
                     </select>
@@ -112,7 +112,7 @@ onMounted(() => void loadKebun());
 
             <div v-else-if="filteredKebun.length === 0" class="mt-12 rounded-xl bg-muted px-5 py-8 text-center">
                 <LandPlot :size="34" class="mx-auto text-primary" aria-hidden="true" />
-                <h2 class="mt-3 text-base font-semibold text-foreground">Kebun tidak ditemukan</h2>
+                <h2 class="mt-3 text-base font-semibold text-card-foreground">Kebun tidak ditemukan</h2>
                 <p class="mt-1 text-sm text-muted-foreground">Coba ubah kata kunci atau filter benih.</p>
             </div>
 
@@ -125,8 +125,8 @@ onMounted(() => void loadKebun());
                     >
                     <img :src="item.image" :alt="`Foto ${item.name}`" class="h-[74px] w-[78px] shrink-0 rounded-xs object-cover" />
                     <div class="min-w-0 flex-1 pt-0.5">
-                        <h2 class="truncate text-[16px] leading-5 font-medium text-foreground">{{ item.name }}</h2>
-                        <div class="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[16px] leading-5 text-foreground">
+                        <h2 class="truncate text-[16px] leading-5 font-medium text-card-foreground">{{ item.name }}</h2>
+                        <div class="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[16px] leading-5 text-card-foreground">
                             <span class="flex min-w-0 items-center gap-1.5 truncate"><MapPin :size="18" :stroke-width="1.8" class="shrink-0 text-primary" aria-hidden="true" /><span class="truncate">{{ item.city }}</span></span>
                             <span class="flex min-w-0 items-center gap-1.5 truncate"><Sprout :size="18" :stroke-width="1.8" class="shrink-0 text-primary" aria-hidden="true" /><span class="truncate">{{ item.seedType }}</span></span>
                             <span class="flex min-w-0 items-center gap-1.5 truncate"><LandPlot :size="18" :stroke-width="1.8" class="shrink-0 text-primary" aria-hidden="true" /><span class="truncate">{{ formatHectare(item.usedHectare) }}/{{ formatHectare(item.availableHectare) }} ha</span></span>
