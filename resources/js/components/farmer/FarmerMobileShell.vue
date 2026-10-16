@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import FarmerBottomNav, {
     type FarmerNavKey,
-} from '@/components/farmer/FarmerBottomNav.vue';
-import { router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+} from "@/components/farmer/FarmerBottomNav.vue";
+import { router } from "@inertiajs/vue3";
+import { ref, watch } from "vue";
 
 type Props = {
     activeKey?: FarmerNavKey;
 };
 
 const props = withDefaults(defineProps<Props>(), {
-    activeKey: 'ai',
+    activeKey: "ai",
 });
 
 const emit = defineEmits<{
@@ -29,11 +29,15 @@ watch(
 function select(key: FarmerNavKey): void {
     selectedKey.value = key;
 
-    if (key === 'garden' && window.location.pathname !== '/kebun') {
-        void router.visit('/kebun');
+    if (key === "garden" && window.location.pathname !== "/kebun") {
+        void router.visit("/kebun");
     }
 
-    emit('select', key);
+    if (key === "finance" && window.location.pathname !== "/finance") {
+        void router.visit("/finance");
+    }
+
+    emit("select", key);
 }
 </script>
 
