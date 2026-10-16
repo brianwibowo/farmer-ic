@@ -10,6 +10,7 @@ use App\Models\AiUsageEvent;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class AiChatService
@@ -147,17 +148,35 @@ class AiChatService
         $assistant->forceFill([
             'content' => $content,
             'status' => 'failed',
-            'error_message' => 'AI provider unavailable.',
+            'error_message' => $this->userFacingError($lastError),
             'latency_ms' => $latency,
-            'metadata' => ['fallback_attempted' => count($models)],
+            'metadata' => [
+                'fallback_attempted' => count($models),
+                'provider_status' => $lastError instanceof LlmException ? $lastError->status : null,
+            ],
         ])->save();
+        Log::warning('AI completion failed after fallback attempts.', [
+            'conversation_id' => $conversation->id,
+            'models_attempted' => $models,
+            'provider_status' => $lastError instanceof LlmException ? $lastError->status : null,
+            'error_type' => $lastError !== null ? get_class($lastError) : null,
+        ]);
         $this->recordUsage($conversation, $assistant, [], $latency, $lastError?->getCode());
 
         yield ['event' => 'message.error', 'data' => [
             'conversation_id' => (string) $conversation->id,
             'message_id' => (string) $assistant->id,
-            'error' => 'Maaf, layanan AI sedang tidak tersedia. Coba lagi nanti.',
+            'error' => $this->userFacingError($lastError),
         ]];
+    }
+
+    protected function userFacingError(?\Throwable $error): string
+    {
+        if ($error instanceof LlmException && $error->getMessage() === 'AI provider is not configured.') {
+            return 'AI belum dikonfigurasi di server. Hubungi administrator.';
+        }
+
+        return 'Maaf, layanan AI sedang tidak tersedia. Coba lagi nanti.';
     }
 
     protected function mayFallback(LlmException $exception): bool

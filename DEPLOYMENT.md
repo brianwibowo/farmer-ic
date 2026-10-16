@@ -57,6 +57,7 @@ Create these **GitHub Actions secrets** before enabling deployment:
 | `VPS_PASSWORD`    | SSH password, if password authentication is enabled            |
 | `VPS_DEPLOY_PATH` | Absolute directory for Compose files, such as `/home/clouduser/farmer-ic` |
 | `APP_KEY`         | Laravel key generated with `php artisan key:generate --show`   |
+| `OPENROUTER_API_KEY` | OpenRouter key used by the server-side AI integration          |
 
 The SSH password and application key are read only from GitHub Secrets. Do not
 put them in this repository, workflow files, or a committed `.env` file.
@@ -77,7 +78,9 @@ nano .env.production
 At minimum it should contain `APP_URL`, `APP_KEY`,
 `OPENROUTER_API_KEY`, and the model settings from the local example above.
 The workflow supplies `APP_KEY` from GitHub Secrets only when the file does
-not already contain one. It does not copy the OpenRouter key from GitHub.
+not already contain one. When `OPENROUTER_API_KEY` is present as a GitHub
+Secret, the workflow writes it to `.env.production` without exposing it to the
+frontend. A manually managed `.env.production` remains supported.
 
 To deploy manually after updating `.env.production`:
 

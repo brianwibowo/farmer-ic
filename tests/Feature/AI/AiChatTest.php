@@ -4,6 +4,7 @@ namespace Tests\Feature\AI;
 
 use App\AI\Contracts\LlmGateway;
 use App\AI\Exceptions\LlmException;
+use App\AI\Services\OpenRouterGateway;
 use App\Enums\TeamRole;
 use App\Models\AiConversation;
 use App\Models\AiKnowledgeDocument;
@@ -144,6 +145,21 @@ class AiChatTest extends TestCase
             'content' => 'Jawaban fallback.',
             'status' => 'completed',
         ]);
+    }
+
+    public function test_missing_provider_key_returns_an_actionable_stream_error(): void
+    {
+        $this->app->instance(LlmGateway::class, new OpenRouterGateway);
+        config(['ai.openrouter.api_key' => null]);
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->post(route('ai.messages.store', $user->currentTeam->slug), ['message' => 'Tes konfigurasi']);
+
+        $this->assertStringContainsString(
+            'AI belum dikonfigurasi di server.',
+            $response->streamedContent(),
+        );
     }
 
     public function test_unsupported_upload_is_rejected_before_the_provider_is_called(): void

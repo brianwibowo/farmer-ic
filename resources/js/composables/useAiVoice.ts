@@ -22,6 +22,8 @@ type VoiceResponse = {
     text?: string;
 };
 
+const MAX_RECORDING_SECONDS = 120;
+
 declare global {
     interface Window {
         SpeechRecognition?: SpeechRecognitionConstructor;
@@ -156,6 +158,8 @@ export function useAiVoice(
     async function transcribe(blob: Blob): Promise<string> {
         isTranscribing.value = true;
         error.value = null;
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 30000);
         const form = new FormData();
         form.append('audio', blob, 'voice-message.webm');
         form.append('language', 'id-ID');
@@ -165,6 +169,7 @@ export function useAiVoice(
                 method: 'POST',
                 body: form,
                 headers: voiceHeaders(),
+                signal: controller.signal,
             });
             if (!response.ok)
                 throw new Error('Transkrip suara belum tersedia.');
@@ -174,11 +179,14 @@ export function useAiVoice(
             return transcript.value;
         } catch (cause) {
             error.value =
-                cause instanceof Error
-                    ? cause.message
-                    : 'Suara tidak dapat diubah menjadi teks.';
+                cause instanceof DOMException && cause.name === 'AbortError'
+                    ? 'Transkrip suara timeout. Coba rekam dengan durasi lebih pendek.'
+                    : cause instanceof Error
+                      ? cause.message
+                      : 'Suara tidak dapat diubah menjadi teks.';
             return transcript.value;
         } finally {
+            window.clearTimeout(timeout);
             isTranscribing.value = false;
         }
     }
@@ -219,6 +227,9 @@ export function useAiVoice(
             isRecording.value = true;
             timer = window.setInterval(() => {
                 elapsedSeconds.value += 1;
+                if (elapsedSeconds.value >= MAX_RECORDING_SECONDS) {
+                    stopRecording();
+                }
             }, 1000);
         } catch (cause) {
             mediaStream?.getTracks().forEach((track) => track.stop());

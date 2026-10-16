@@ -202,6 +202,7 @@ function choosePrompt(prompt: string): void {
 }
 
 function toggleVoice(): void {
+    if (voice.isTranscribing.value) return;
     if (voice.isRecording.value) voice.stopRecording();
     else void voice.startRecording();
 }
@@ -313,6 +314,8 @@ watch(
 watch(() => messages.value.length, scrollToLatest);
 
 onMounted(() => {
+    // Always enter the page in the idle state. Recording starts only from the mic button.
+    voice.resetVoice();
     void chat.loadConversations();
 });
 onUnmounted(() => {
@@ -345,7 +348,8 @@ onUnmounted(() => {
                 Asisten Kebun Petani
             </h1>
             <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Tanyakan kondisi tanaman, diagnosis visual dari foto, atau konsultasi perawatan.
+                Tanyakan kondisi tanaman, diagnosis visual dari foto, atau
+                konsultasi perawatan.
             </p>
             <div class="mt-6 flex w-full max-w-[260px] flex-col gap-3">
                 <a
@@ -719,13 +723,16 @@ onUnmounted(() => {
                         :aria-label="
                             voice.isRecording
                                 ? 'Hentikan rekaman'
-                                : 'Rekam pesan suara'
+                                : voice.isTranscribing
+                                  ? 'Menunggu transkrip suara'
+                                  : 'Rekam pesan suara'
                         "
+                        :disabled="voice.isTranscribing.value"
                         class="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         :class="
                             voice.isRecording
                                 ? 'bg-error text-error-foreground'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-wait disabled:opacity-60'
                         "
                         @click="toggleVoice"
                     >
@@ -733,6 +740,10 @@ onUnmounted(() => {
                             v-if="voice.isRecording"
                             :size="16"
                             fill="currentColor"
+                        /><LoaderCircle
+                            v-else-if="voice.isTranscribing"
+                            :size="18"
+                            class="animate-spin"
                         /><Mic v-else :size="19" stroke-width="1.7" />
                     </button>
                     <button
