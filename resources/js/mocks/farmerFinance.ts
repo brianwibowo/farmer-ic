@@ -2,12 +2,16 @@ export type FinanceQuarter = 'Q1' | 'Q2' | 'Q3' | 'Q4';
 
 export type RevenuePoint = {
     label: string;
-    amount: number;
+    revenue: number;
+    expense: number;
+    net: number;
 };
 
 export type QuarterFinance = {
     label: string;
-    total: number;
+    totalRevenue: number;
+    totalExpense: number;
+    netTotal: number;
     points: RevenuePoint[];
     analysis: string;
 };
@@ -32,51 +36,123 @@ export type FinanceTransaction = {
 
 export const farmerFinanceMock: {
     totalRevenue: number;
+    totalExpense: number;
+    totalNet: number;
     quarters: Record<FinanceQuarter, QuarterFinance>;
     transactions: FinanceTransaction[];
 } = {
     totalRevenue: 170_000_000,
+    totalExpense: 60_000_000,
+    totalNet: 110_000_000,
     quarters: {
         Q1: {
             label: 'Januari–Maret 2026',
-            total: 42_000_000,
+            totalRevenue: 42_000_000,
+            totalExpense: 15_000_000,
+            netTotal: 27_000_000,
             points: [
-                { label: 'Jan', amount: 12_000_000 },
-                { label: 'Feb', amount: 14_000_000 },
-                { label: 'Mar', amount: 16_000_000 },
+                {
+                    label: 'Jan',
+                    revenue: 12_000_000,
+                    expense: 4_000_000,
+                    net: 8_000_000,
+                },
+                {
+                    label: 'Feb',
+                    revenue: 14_000_000,
+                    expense: 5_000_000,
+                    net: 9_000_000,
+                },
+                {
+                    label: 'Mar',
+                    revenue: 16_000_000,
+                    expense: 6_000_000,
+                    net: 10_000_000,
+                },
             ],
             analysis:
                 'Pendapatan naik stabil sepanjang kuartal. Penjualan Maret menjadi kontributor terbesar berkat panen jagung dan kedelai.',
         },
         Q2: {
             label: 'April–Juni 2026',
-            total: 38_000_000,
+            totalRevenue: 38_000_000,
+            totalExpense: 14_000_000,
+            netTotal: 24_000_000,
             points: [
-                { label: 'Apr', amount: 11_000_000 },
-                { label: 'Mei', amount: 13_000_000 },
-                { label: 'Jun', amount: 14_000_000 },
+                {
+                    label: 'Apr',
+                    revenue: 11_000_000,
+                    expense: 4_000_000,
+                    net: 7_000_000,
+                },
+                {
+                    label: 'Mei',
+                    revenue: 13_000_000,
+                    expense: 5_000_000,
+                    net: 8_000_000,
+                },
+                {
+                    label: 'Jun',
+                    revenue: 14_000_000,
+                    expense: 5_000_000,
+                    net: 9_000_000,
+                },
             ],
             analysis:
                 'Pendapatan tetap positif meski sedikit melambat. Pengaturan jadwal tanam jagung dan kedelai dapat membantu menjaga volume panen.',
         },
         Q3: {
             label: 'Juli–September 2026',
-            total: 51_000_000,
+            totalRevenue: 51_000_000,
+            totalExpense: 17_000_000,
+            netTotal: 34_000_000,
             points: [
-                { label: 'Jul', amount: 16_000_000 },
-                { label: 'Agu', amount: 17_000_000 },
-                { label: 'Sep', amount: 18_000_000 },
+                {
+                    label: 'Jul',
+                    revenue: 16_000_000,
+                    expense: 5_000_000,
+                    net: 11_000_000,
+                },
+                {
+                    label: 'Agu',
+                    revenue: 17_000_000,
+                    expense: 6_000_000,
+                    net: 11_000_000,
+                },
+                {
+                    label: 'Sep',
+                    revenue: 18_000_000,
+                    expense: 6_000_000,
+                    net: 12_000_000,
+                },
             ],
             analysis:
                 'Ini kuartal terbaik tahun berjalan. Produktivitas dan harga jual meningkat, terutama dari jagung dan rumput odot.',
         },
         Q4: {
             label: 'Oktober–Desember 2026',
-            total: 39_000_000,
+            totalRevenue: 39_000_000,
+            totalExpense: 14_000_000,
+            netTotal: 25_000_000,
             points: [
-                { label: 'Okt', amount: 12_000_000 },
-                { label: 'Nov', amount: 13_000_000 },
-                { label: 'Des', amount: 14_000_000 },
+                {
+                    label: 'Okt',
+                    revenue: 12_000_000,
+                    expense: 4_000_000,
+                    net: 8_000_000,
+                },
+                {
+                    label: 'Nov',
+                    revenue: 13_000_000,
+                    expense: 5_000_000,
+                    net: 8_000_000,
+                },
+                {
+                    label: 'Des',
+                    revenue: 14_000_000,
+                    expense: 5_000_000,
+                    net: 9_000_000,
+                },
             ],
             analysis:
                 'Pendapatan diproyeksikan tumbuh bertahap. Fokus pada stok rumput odot dan kontrak pembelian dapat mengurangi risiko penurunan harga.',

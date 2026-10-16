@@ -218,6 +218,168 @@ homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 home.form = homeForm
 
 /**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/finance'
+*/
+export const finance = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: finance.url(options),
+    method: 'get',
+})
+
+finance.definition = {
+    methods: ["get","head"],
+    url: '/finance',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/finance'
+*/
+finance.url = (options?: RouteQueryOptions) => {
+    return finance.definition.url + queryParams(options)
+}
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/finance'
+*/
+finance.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: finance.url(options),
+    method: 'get',
+})
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/finance'
+*/
+finance.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: finance.url(options),
+    method: 'head',
+})
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/finance'
+*/
+const financeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: finance.url(options),
+    method: 'get',
+})
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/finance'
+*/
+financeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: finance.url(options),
+    method: 'get',
+})
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/finance'
+*/
+financeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: finance.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+finance.form = financeForm
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/kebun'
+*/
+export const kebun = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: kebun.url(options),
+    method: 'get',
+})
+
+kebun.definition = {
+    methods: ["get","head"],
+    url: '/kebun',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/kebun'
+*/
+kebun.url = (options?: RouteQueryOptions) => {
+    return kebun.definition.url + queryParams(options)
+}
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/kebun'
+*/
+kebun.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: kebun.url(options),
+    method: 'get',
+})
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/kebun'
+*/
+kebun.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: kebun.url(options),
+    method: 'head',
+})
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/kebun'
+*/
+const kebunForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: kebun.url(options),
+    method: 'get',
+})
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/kebun'
+*/
+kebunForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: kebun.url(options),
+    method: 'get',
+})
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/kebun'
+*/
+kebunForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: kebun.url({
+        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
+            _method: 'HEAD',
+            ...(options?.query ?? options?.mergeQuery ?? {}),
+        }
+    }),
+    method: 'get',
+})
+
+kebun.form = kebunForm
+
+/**
 * @see \App\Http\Controllers\DashboardController::__invoke
 * @see app/Http/Controllers/DashboardController.php:12
 * @param current_team - Default: '$currentTeam'
@@ -326,30 +488,3 @@ dashboardForm.head = (args?: { current_team?: string | number } | [current_team:
 })
 
 dashboard.form = dashboardForm
-
-/**
-* @see \Inertia\Controller::__invoke
-* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
-* @route '/finance'
-*/
-export const finance = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: finance.url(options),
-    method: 'get',
-})
-
-finance.definition = {
-    methods: ["get", "head"],
-    url: '/finance',
-} satisfies RouteDefinition<["get", "head"]>
-
-finance.url = (options?: RouteQueryOptions) => finance.definition.url + queryParams(options)
-
-finance.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: finance.url(options),
-    method: 'get',
-})
-
-finance.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: finance.url(options),
-    method: 'head',
-})
