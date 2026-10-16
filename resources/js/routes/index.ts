@@ -326,3 +326,30 @@ dashboardForm.head = (args?: { current_team?: string | number } | [current_team:
 })
 
 dashboard.form = dashboardForm
+
+/**
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @route '/finance'
+*/
+export const finance = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: finance.url(options),
+    method: 'get',
+})
+
+finance.definition = {
+    methods: ["get", "head"],
+    url: '/finance',
+} satisfies RouteDefinition<["get", "head"]>
+
+finance.url = (options?: RouteQueryOptions) => finance.definition.url + queryParams(options)
+
+finance.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: finance.url(options),
+    method: 'get',
+})
+
+finance.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: finance.url(options),
+    method: 'head',
+})

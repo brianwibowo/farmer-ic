@@ -6,6 +6,8 @@ use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'farmer/Index')->name('home');
+Route::inertia('finance', 'farmer/Finance')->name('finance');
+Route::inertia('kebun/detail', 'farmer/KebunDetail')->name('kebun.detail');
 Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
 
 Route::prefix('{current_team}')
