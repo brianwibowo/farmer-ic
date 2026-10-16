@@ -22,7 +22,11 @@ const showAnalysis = ref(false);
 const searchQuery = ref("");
 const selectedCommodity = ref<FinanceCommodity | "all">("all");
 const selectedType = ref<FinanceTransaction["type"] | "all">("all");
-const activeFilter = ref<"commodity" | "type" | null>(null);
+const isFilterOpen = ref(false);
+
+const hasActiveFilter = computed(
+    () => selectedCommodity.value !== "all" || selectedType.value !== "all",
+);
 
 const selectedData = computed(
     () => farmerFinanceMock.quarters[selectedQuarter.value],
@@ -60,15 +64,14 @@ const filteredTransactions = computed(() => {
     });
 });
 
-function toggleFilter(filter: "commodity" | "type"): void {
-    activeFilter.value = activeFilter.value === filter ? null : filter;
+function toggleFilter(): void {
+    isFilterOpen.value = !isFilterOpen.value;
 }
 
 function clearTransactionFilters(): void {
     searchQuery.value = "";
     selectedCommodity.value = "all";
     selectedType.value = "all";
-    activeFilter.value = null;
 }
 
 const formatRupiah = (value: number): string =>
@@ -264,10 +267,15 @@ const formatRupiah = (value: number): string =>
                     </label>
                     <button
                         type="button"
-                        class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#93a99f] text-white transition-colors hover:bg-[#1c5e21]"
-                        :aria-pressed="activeFilter === 'commodity'"
-                        aria-label="Filter komoditas"
-                        @click="toggleFilter('commodity')"
+                        :class="[
+                            'relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors',
+                            isFilterOpen || hasActiveFilter
+                                ? 'bg-[#1c5e21] text-white'
+                                : 'bg-[#93a99f] text-white hover:bg-[#1c5e21]',
+                        ]"
+                        :aria-pressed="isFilterOpen"
+                        aria-label="Filter transaksi"
+                        @click="toggleFilter"
                     >
                         <Filter
                             :size="19"
@@ -275,67 +283,54 @@ const formatRupiah = (value: number): string =>
                             aria-hidden="true"
                         />
                         <span
-                            v-if="selectedCommodity !== 'all'"
-                            class="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-white"
-                        />
-                    </button>
-                    <button
-                        type="button"
-                        class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#93a99f] text-white transition-colors hover:bg-[#1c5e21]"
-                        :aria-pressed="activeFilter === 'type'"
-                        aria-label="Filter tipe transaksi"
-                        @click="toggleFilter('type')"
-                    >
-                        <Filter
-                            :size="19"
-                            :stroke-width="1.8"
-                            aria-hidden="true"
-                        />
-                        <span
-                            v-if="selectedType !== 'all'"
-                            class="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-white"
+                            v-if="hasActiveFilter"
+                            class="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#abe7b2] ring-2 ring-[#1c5e21]"
                         />
                     </button>
                 </div>
 
                 <div
-                    v-if="activeFilter"
-                    class="mt-3 flex items-end gap-2 rounded-xl border border-[#d9d9d9] bg-white p-3"
+                    v-if="isFilterOpen"
+                    class="mt-3 flex items-end gap-2 rounded-xl border border-[#d9d9d9] bg-white p-3 shadow-xs"
                 >
-                    <label class="min-w-0 flex-1">
-                        <span
-                            class="mb-1 block text-xs font-medium text-[#93a99f]"
-                        >
-                            {{
-                                activeFilter === "commodity"
-                                    ? "Komoditas"
-                                    : "Tipe transaksi"
-                            }}
-                        </span>
-                        <select
-                            v-if="activeFilter === 'commodity'"
-                            v-model="selectedCommodity"
-                            class="h-10 w-full rounded-lg border border-[#d9d9d9] bg-white px-3 text-sm outline-none focus:border-[#68bb6c]"
-                        >
-                            <option value="all">Semua komoditas</option>
-                            <option value="Jagung">Jagung</option>
-                            <option value="Rumput odot">Rumput odot</option>
-                            <option value="Kedelai">Kedelai</option>
-                        </select>
-                        <select
-                            v-else
-                            v-model="selectedType"
-                            class="h-10 w-full rounded-lg border border-[#d9d9d9] bg-white px-3 text-sm outline-none focus:border-[#68bb6c]"
-                        >
-                            <option value="all">Semua transaksi</option>
-                            <option value="income">Pemasukan</option>
-                            <option value="expense">Pengeluaran</option>
-                        </select>
-                    </label>
+                    <div class="grid min-w-0 flex-1 grid-cols-2 gap-2">
+                        <label class="min-w-0">
+                            <span
+                                class="mb-1 block truncate text-xs font-medium text-[#93a99f]"
+                            >
+                                Komoditas
+                            </span>
+                            <select
+                                v-model="selectedCommodity"
+                                class="h-10 w-full rounded-lg border border-[#d9d9d9] bg-white px-2.5 text-xs outline-none focus:border-[#68bb6c]"
+                            >
+                                <option value="all">Semua komoditas</option>
+                                <option value="Jagung">Jagung</option>
+                                <option value="Rumput odot">Rumput odot</option>
+                                <option value="Kedelai">Kedelai</option>
+                            </select>
+                        </label>
+                        <label class="min-w-0">
+                            <span
+                                class="mb-1 block truncate text-xs font-medium text-[#93a99f]"
+                            >
+                                Tipe transaksi
+                            </span>
+                            <select
+                                v-model="selectedType"
+                                class="h-10 w-full rounded-lg border border-[#d9d9d9] bg-white px-2.5 text-xs outline-none focus:border-[#68bb6c]"
+                            >
+                                <option value="all">Semua transaksi</option>
+                                <option value="income">Pemasukan</option>
+                                <option value="expense">Pengeluaran</option>
+                            </select>
+                        </label>
+                    </div>
                     <button
                         type="button"
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#d9d9d9] text-[#93a99f] hover:bg-[#d9d9d9]"
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#d9d9d9] text-[#93a99f] transition-colors hover:bg-[#d9d9d9] hover:text-[#070807]"
                         aria-label="Reset semua filter"
+                        title="Reset filter"
                         @click="clearTransactionFilters"
                     >
                         <X :size="17" aria-hidden="true" />
