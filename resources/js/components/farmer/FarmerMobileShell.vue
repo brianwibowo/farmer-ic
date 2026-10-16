@@ -5,6 +5,7 @@ import FarmerBottomNav, {
 import { ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { Toaster } from '@/components/ui/sonner';
+ import { router } from '@inertiajs/vue3';
 
 type Props = {
     activeKey?: FarmerNavKey;
@@ -22,7 +23,6 @@ const selectedKey = ref<FarmerNavKey>(props.activeKey);
 
 const upcomingPages: Partial<Record<FarmerNavKey, string>> = {
     ai: 'AI',
-    finance: 'Keuangan',
     activity: 'Aktivitas',
 };
 watch(
@@ -32,11 +32,17 @@ watch(
     },
 );
 
-function select(key: FarmerNavKey): void {
+ function select(key: FarmerNavKey): void {
+    if (key === 'finance' && window.location.pathname !== '/finance') {
+        router.visit('/finance');
+        return;
+    }
+
     if (upcomingPages[key]) {
         toast.info(`Halaman ${upcomingPages[key]} sedang disiapkan.`);
         return;
     }
+
     selectedKey.value = key;
     emit('select', key);
 }
