@@ -1,19 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import {
-    ArrowLeft,
-    CalendarDays,
-    ChevronDown,
-    Clock,
-    Search,
-    SquareActivity,
-    User,
-} from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ArrowLeft, Clock, Search, SquareActivity, User } from '@lucide/vue';
+import { computed, onMounted, ref } from 'vue';
+import ActivityDateRangeFilter from '@/components/farmer/ActivityDateRangeFilter.vue';
+import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import {
-    activityTypeOptions,
-    formatIsoToShortDate,
     parseIndonesianDateToIso,
     type ActivityLog,
     type ActivityType,
@@ -27,12 +19,6 @@ const selectedType = ref<'' | 'all' | ActivityType>('');
 const startDate = ref('');
 const endDate = ref('');
 const kebunParam = ref('');
-
-const isFilterOpen = ref(false);
-const filterDropdownRef = ref<HTMLElement | null>(null);
-
-const isDateFilterOpen = ref(false);
-const dateFilterRef = ref<HTMLElement | null>(null);
 
 const isLoading = ref(true);
 const errorMessage = ref('');
@@ -55,71 +41,6 @@ const backHref = computed(() => {
 
     return '/kebun/detail';
 });
-
-const selectedTypeLabel = computed(() => {
-    if (selectedType.value === '' || selectedType.value === 'all') {
-        return 'Aktivitas';
-    }
-
-    return (
-        activityTypeOptions.find((opt) => opt.value === selectedType.value)
-            ?.shortLabel ?? 'Aktivitas'
-    );
-});
-
-const hasActiveDateFilter = computed(
-    () => Boolean(startDate.value) || Boolean(endDate.value),
-);
-
-const dateFilterLabel = computed(() => {
-    if (startDate.value && endDate.value) {
-        if (startDate.value === endDate.value) {
-            return formatIsoToShortDate(startDate.value);
-        }
-        return `${formatIsoToShortDate(startDate.value)} – ${formatIsoToShortDate(endDate.value)}`;
-    }
-
-    if (startDate.value) {
-        return `≥ ${formatIsoToShortDate(startDate.value)}`;
-    }
-
-    if (endDate.value) {
-        return `≤ ${formatIsoToShortDate(endDate.value)}`;
-    }
-
-    return 'Tanggal';
-});
-
-function selectTypeOption(value: 'all' | ActivityType): void {
-    selectedType.value = value;
-    isFilterOpen.value = false;
-}
-
-function resetDateFilter(): void {
-    startDate.value = '';
-    endDate.value = '';
-}
-
-function handleDocumentClick(event: MouseEvent): void {
-    const target = event.target as Node | null;
-    if (!target) return;
-
-    if (
-        isFilterOpen.value &&
-        filterDropdownRef.value &&
-        !filterDropdownRef.value.contains(target)
-    ) {
-        isFilterOpen.value = false;
-    }
-
-    if (
-        isDateFilterOpen.value &&
-        dateFilterRef.value &&
-        !dateFilterRef.value.contains(target)
-    ) {
-        isDateFilterOpen.value = false;
-    }
-}
 
 const filteredActivities = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
@@ -211,12 +132,7 @@ async function loadActivities(): Promise<void> {
 onMounted(() => {
     const params = new URLSearchParams(window.location.search);
     kebunParam.value = params.get('kebun') ?? '';
-    document.addEventListener('pointerdown', handleDocumentClick);
     void loadActivities();
-});
-
-onBeforeUnmount(() => {
-    document.removeEventListener('pointerdown', handleDocumentClick);
 });
 </script>
 
@@ -250,94 +166,11 @@ onBeforeUnmount(() => {
                 </div>
 
                 <!-- Timestamp / Date Range Filter Dropdown -->
-                <div ref="dateFilterRef" class="relative shrink-0 pt-1">
-                    <button
-                        type="button"
-                        aria-label="Filter rentang tanggal aktivitas"
-                        :aria-expanded="isDateFilterOpen"
-                        aria-haspopup="dialog"
-                        class="inline-flex h-[38px] items-center gap-2 rounded-lg bg-secondary px-3 text-[13px] font-medium text-secondary-foreground shadow-xs transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        @click="isDateFilterOpen = !isDateFilterOpen"
-                    >
-                        <span class="max-w-[125px] truncate">{{
-                            dateFilterLabel
-                        }}</span>
-                        <CalendarDays
-                            :size="17"
-                            :stroke-width="1.8"
-                            class="shrink-0 text-secondary-foreground"
-                            aria-hidden="true"
-                        />
-                    </button>
-
-                    <div
-                        v-if="isDateFilterOpen"
-                        role="dialog"
-                        aria-label="Pilih rentang tanggal"
-                        class="absolute top-[calc(100%+6px)] right-0 z-30 w-[264px] rounded-xl border border-border bg-card p-3.5 shadow-lg"
-                    >
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-foreground">
-                                Filter Rentang Tanggal
-                            </span>
-                            <button
-                                v-if="hasActiveDateFilter"
-                                type="button"
-                                class="text-xs font-medium text-secondary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                                @click="resetDateFilter"
-                            >
-                                Reset
-                            </button>
-                        </div>
-
-                        <div class="mt-3 space-y-2.5">
-                            <label class="block">
-                                <span
-                                    class="mb-1 block text-[11px] font-medium text-muted-foreground"
-                                >
-                                    Dari Tanggal
-                                </span>
-                                <input
-                                    v-model="startDate"
-                                    type="date"
-                                    :max="endDate || undefined"
-                                    class="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                                />
-                            </label>
-
-                            <label class="block">
-                                <span
-                                    class="mb-1 block text-[11px] font-medium text-muted-foreground"
-                                >
-                                    Sampai Tanggal
-                                </span>
-                                <input
-                                    v-model="endDate"
-                                    type="date"
-                                    :min="startDate || undefined"
-                                    class="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                                />
-                            </label>
-                        </div>
-
-                        <div class="mt-3 flex justify-end gap-2">
-                            <button
-                                type="button"
-                                class="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                                @click="resetDateFilter"
-                            >
-                                Hapus
-                            </button>
-                            <button
-                                type="button"
-                                class="rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                                @click="isDateFilterOpen = false"
-                            >
-                                Terapkan
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ActivityDateRangeFilter
+                    v-model:start-date="startDate"
+                    v-model:end-date="endDate"
+                    class="pt-1"
+                />
             </div>
 
             <!-- Search & Activity Type Filter Row -->
@@ -358,77 +191,7 @@ onBeforeUnmount(() => {
                     />
                 </label>
 
-                <div
-                    ref="filterDropdownRef"
-                    class="relative w-[132px] shrink-0"
-                >
-                    <button
-                        type="button"
-                        aria-label="Filter jenis aktivitas"
-                        :aria-expanded="isFilterOpen"
-                        aria-haspopup="listbox"
-                        class="flex h-[38px] w-full items-center justify-between gap-1 rounded-lg border border-primary bg-card px-3 text-[14px] text-foreground outline-none focus:ring-2 focus:ring-primary/30"
-                        @click="isFilterOpen = !isFilterOpen"
-                    >
-                        <span class="truncate">{{ selectedTypeLabel }}</span>
-                        <ChevronDown
-                            :size="16"
-                            :stroke-width="1.8"
-                            :class="[
-                                'shrink-0 text-primary transition-transform duration-150',
-                                isFilterOpen ? 'rotate-180' : '',
-                            ]"
-                            aria-hidden="true"
-                        />
-                    </button>
-
-                    <ul
-                        v-if="isFilterOpen"
-                        role="listbox"
-                        aria-label="Pilihan jenis aktivitas"
-                        class="absolute inset-x-0 top-[calc(100%+6px)] z-20 w-full rounded-xl border border-border bg-card p-1 shadow-md"
-                    >
-                        <li>
-                            <button
-                                type="button"
-                                role="option"
-                                :aria-selected="
-                                    selectedType === '' ||
-                                    selectedType === 'all'
-                                "
-                                :class="[
-                                    'flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] leading-4 transition-colors',
-                                    selectedType === '' ||
-                                    selectedType === 'all'
-                                        ? 'bg-muted font-semibold text-secondary'
-                                        : 'text-foreground hover:bg-muted/70',
-                                ]"
-                                @click="selectTypeOption('all')"
-                            >
-                                Semua
-                            </button>
-                        </li>
-                        <li
-                            v-for="option in activityTypeOptions"
-                            :key="option.value"
-                        >
-                            <button
-                                type="button"
-                                role="option"
-                                :aria-selected="selectedType === option.value"
-                                :class="[
-                                    'flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] leading-4 transition-colors',
-                                    selectedType === option.value
-                                        ? 'bg-muted font-semibold text-secondary'
-                                        : 'text-foreground hover:bg-muted/70',
-                                ]"
-                                @click="selectTypeOption(option.value)"
-                            >
-                                {{ option.shortLabel }}
-                            </button>
-                        </li>
-                    </ul>
-                </div>
+                <ActivityTypeFilterDropdown v-model="selectedType" />
             </div>
 
             <!-- Loading Skeleton -->
