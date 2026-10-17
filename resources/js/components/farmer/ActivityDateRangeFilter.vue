@@ -1,143 +1,129 @@
 <script setup lang="ts">
-import { CalendarDays } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { formatIsoToShortDate } from '@/data/activityLogs';
+import { CalendarDays, Check, RotateCcw, X } from '@lucide/vue';
+import { computed, ref } from 'vue';
 
-const startDate = defineModel<string>('startDate', { default: '' });
-const endDate = defineModel<string>('endDate', { default: '' });
+const props = defineProps<{
+    startDate: string;
+    endDate: string;
+}>();
 
-const isDateFilterOpen = ref(false);
-const dateFilterRef = ref<HTMLElement | null>(null);
+const emit = defineEmits<{
+    'update:startDate': [value: string];
+    'update:endDate': [value: string];
+}>();
 
-const hasActiveDateFilter = computed(
-    () => Boolean(startDate.value) || Boolean(endDate.value),
-);
+const isOpen = ref(false);
 
-const dateFilterLabel = computed(() => {
-    if (startDate.value && endDate.value) {
-        if (startDate.value === endDate.value) {
-            return formatIsoToShortDate(startDate.value);
-        }
-        return `${formatIsoToShortDate(startDate.value)} – ${formatIsoToShortDate(endDate.value)}`;
-    }
-
-    if (startDate.value) {
-        return `≥ ${formatIsoToShortDate(startDate.value)}`;
-    }
-
-    if (endDate.value) {
-        return `≤ ${formatIsoToShortDate(endDate.value)}`;
-    }
-
+const hasDate = computed(() => Boolean(props.startDate || props.endDate));
+const buttonLabel = computed(() => {
+    if (props.startDate && props.endDate) return 'Rentang tanggal';
+    if (props.startDate) return 'Mulai tanggal';
+    if (props.endDate) return 'Sampai tanggal';
     return 'Tanggal';
 });
 
-function resetDateFilter(): void {
-    startDate.value = '';
-    endDate.value = '';
+function clearDates(): void {
+    emit('update:startDate', '');
+    emit('update:endDate', '');
 }
-
-function handleDocumentClick(event: MouseEvent): void {
-    const target = event.target as Node | null;
-    if (
-        isDateFilterOpen.value &&
-        dateFilterRef.value &&
-        target &&
-        !dateFilterRef.value.contains(target)
-    ) {
-        isDateFilterOpen.value = false;
-    }
-}
-
-onMounted(() => document.addEventListener('pointerdown', handleDocumentClick));
-
-onBeforeUnmount(() => {
-    document.removeEventListener('pointerdown', handleDocumentClick);
-});
 </script>
 
 <template>
-    <div ref="dateFilterRef" class="relative shrink-0">
+    <div class="relative shrink-0">
         <button
             type="button"
-            aria-label="Filter rentang tanggal aktivitas"
-            :aria-expanded="isDateFilterOpen"
+            class="inline-flex h-11 items-center gap-2 rounded-xl bg-secondary px-3.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            :aria-expanded="isOpen"
             aria-haspopup="dialog"
-            class="inline-flex h-[38px] items-center gap-2 rounded-lg bg-secondary px-3 text-[13px] font-medium text-secondary-foreground shadow-xs transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            @click="isDateFilterOpen = !isDateFilterOpen"
+            @click="isOpen = !isOpen"
+            @keydown.esc="isOpen = false"
         >
-            <span class="max-w-[125px] truncate">{{ dateFilterLabel }}</span>
-            <CalendarDays
-                :size="17"
-                :stroke-width="1.8"
-                class="shrink-0 text-secondary-foreground"
-                aria-hidden="true"
-            />
+            <CalendarDays :size="17" :stroke-width="1.8" aria-hidden="true" />
+            <span>{{ buttonLabel }}</span>
+            <span
+                v-if="hasDate"
+                class="inline-flex size-5 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground"
+            >
+                <Check :size="12" :stroke-width="2.4" aria-hidden="true" />
+            </span>
         </button>
 
         <div
-            v-if="isDateFilterOpen"
+            v-if="isOpen"
+            class="absolute top-13 right-0 z-30 w-[min(320px,calc(100vw-32px))] rounded-2xl border border-border bg-card p-4 text-foreground shadow-lg"
             role="dialog"
-            aria-label="Pilih rentang tanggal"
-            class="absolute top-[calc(100%+6px)] right-0 z-30 w-[264px] rounded-xl border border-border bg-card p-3.5 shadow-lg"
+            aria-label="Filter rentang tanggal"
         >
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-foreground">
-                    Filter Rentang Tanggal
-                </span>
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-sm font-semibold">Filter rentang tanggal</p>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        Tampilkan aktivitas pada periode tertentu.
+                    </p>
+                </div>
                 <button
-                    v-if="hasActiveDateFilter"
                     type="button"
-                    class="text-xs font-medium text-secondary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    @click="resetDateFilter"
+                    class="inline-flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                    aria-label="Tutup filter tanggal"
+                    @click="isOpen = false"
                 >
-                    Reset
+                    <X :size="16" aria-hidden="true" />
                 </button>
             </div>
 
-            <div class="mt-3 space-y-2.5">
-                <label class="block">
-                    <span
-                        class="mb-1 block text-[11px] font-medium text-muted-foreground"
-                    >
-                        Dari Tanggal
-                    </span>
+            <div class="mt-4 grid grid-cols-2 gap-2">
+                <label
+                    class="min-w-0 text-xs font-medium text-muted-foreground"
+                >
+                    Dari tanggal
                     <input
-                        v-model="startDate"
+                        :value="startDate"
                         type="date"
-                        :max="endDate || undefined"
-                        class="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+                        class="mt-1 h-10 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        @input="
+                            emit(
+                                'update:startDate',
+                                ($event.target as HTMLInputElement).value,
+                            )
+                        "
                     />
                 </label>
-
-                <label class="block">
-                    <span
-                        class="mb-1 block text-[11px] font-medium text-muted-foreground"
-                    >
-                        Sampai Tanggal
-                    </span>
+                <label
+                    class="min-w-0 text-xs font-medium text-muted-foreground"
+                >
+                    Sampai tanggal
                     <input
-                        v-model="endDate"
+                        :value="endDate"
                         type="date"
-                        :min="startDate || undefined"
-                        class="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+                        class="mt-1 h-10 w-full min-w-0 rounded-lg border border-input bg-background px-2.5 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        @input="
+                            emit(
+                                'update:endDate',
+                                ($event.target as HTMLInputElement).value,
+                            )
+                        "
                     />
                 </label>
             </div>
 
-            <div class="mt-3 flex justify-end gap-2">
+            <div
+                class="mt-4 flex items-center justify-between border-t border-border pt-3"
+            >
                 <button
                     type="button"
-                    class="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    @click="resetDateFilter"
+                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                    :disabled="!hasDate"
+                    @click="clearDates"
                 >
-                    Hapus
+                    <RotateCcw :size="14" aria-hidden="true" />
+                    Bersihkan
                 </button>
                 <button
                     type="button"
-                    class="rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    @click="isDateFilterOpen = false"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    @click="isOpen = false"
                 >
+                    <Check :size="14" aria-hidden="true" />
                     Terapkan
                 </button>
             </div>
