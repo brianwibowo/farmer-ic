@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Clock, MapPin, Search, SquareActivity } from '@lucide/vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ArrowLeft, Clock, MapPin, Search, SquareActivity } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
@@ -13,9 +13,13 @@ import {
     type ActivityTimeFilter,
     type ActivityType,
 } from '@/data/activityLogs';
+import type { Kebun } from '@/data/kebun';
 import { listActivityLogs } from '@/services/activityLogService';
+import { listKebun } from '@/services/kebunService';
 
+const page = usePage();
 const activities = ref<ActivityLog[]>([]);
+const kebunList = ref<Kebun[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
 const selectedTimeFilter = ref<ActivityTimeFilter>('all');
@@ -25,10 +29,48 @@ const resetMessage = ref('');
 
 const availableMonths = computed(() => collectActivityMonths(activities.value));
 
+const kebunParam = computed(() => {
+    try {
+        const url = new URL(page.url, 'http://localhost');
+        return (
+            url.searchParams.get('kebun') || url.searchParams.get('id') || ''
+        );
+    } catch {
+        return '';
+    }
+});
+
+const currentKebun = computed(() => {
+    if (!kebunParam.value) return undefined;
+    return kebunList.value.find((item) => item.id === kebunParam.value);
+});
+
+const currentKebunName = computed(() => {
+    if (!kebunParam.value) return '';
+    if (currentKebun.value) return currentKebun.value.name;
+
+    const match = activities.value.find(
+        (item) => item.kebunId === kebunParam.value,
+    );
+    return match?.kebunName ?? '';
+});
+
+const backHref = computed(() => {
+    if (kebunParam.value) {
+        return `/kebun/detail?id=${encodeURIComponent(kebunParam.value)}`;
+    }
+
+    return '/kebun';
+});
+
 const filteredActivities = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
 
     return activities.value.filter((item) => {
+        if (kebunParam.value && item.kebunId !== kebunParam.value) {
+            return false;
+        }
+
         const searchable = [
             item.typeLabel,
             item.timestamp,
@@ -64,7 +106,12 @@ async function loadActivities(): Promise<void> {
     errorMessage.value = '';
 
     try {
-        activities.value = await listActivityLogs();
+        const [activityData, kebunData] = await Promise.all([
+            listActivityLogs(),
+            listKebun(),
+        ]);
+        activities.value = activityData;
+        kebunList.value = kebunData;
     } catch {
         errorMessage.value = 'Data aktivitas belum dapat dimuat. Coba lagi.';
     } finally {
@@ -85,16 +132,41 @@ onMounted(() => void loadActivities());
 </script>
 
 <template>
-    <Head title="Aktivitas" />
+    <Head
+        :title="
+            currentKebunName ? `Aktivitas - ${currentKebunName}` : 'Aktivitas'
+        "
+    />
 
-    <FarmerMobileShell active-key="activity">
+    <FarmerMobileShell :active-key="kebunParam ? 'garden' : 'activity'">
         <div data-aktivitas-list class="px-4 pt-16 pb-5">
-            <div class="flex items-center justify-between gap-3">
-                <h1
-                    class="min-w-0 truncate text-[20px] leading-7 font-semibold text-foreground"
-                >
-                    Aktivitas
-                </h1>
+            <div
+                class="flex justify-between gap-3"
+                :class="currentKebunName ? 'items-start' : 'items-center'"
+            >
+                <div class="flex min-w-0 items-center gap-2.5">
+                    <Link
+                        v-if="kebunParam"
+                        :href="backHref"
+                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        aria-label="Kembali ke Detail Kebun"
+                    >
+                        <ArrowLeft :size="18" :stroke-width="1.8" />
+                    </Link>
+                    <div class="min-w-0">
+                        <h1
+                            class="truncate text-[20px] leading-7 font-semibold text-foreground"
+                        >
+                            Aktivitas
+                        </h1>
+                        <p
+                            v-if="currentKebunName"
+                            class="mt-0.5 truncate text-[15px] leading-5 font-semibold text-secondary"
+                        >
+                            {{ currentKebunName }}
+                        </p>
+                    </div>
+                </div>
 
                 <button
                     type="button"
@@ -196,7 +268,11 @@ onMounted(() => void loadActivities());
             <ul v-else class="mt-6 space-y-8">
                 <li v-for="item in filteredActivities" :key="item.id">
                     <Link
-                        :href="`/rincian-aktivitas?id=${item.id}`"
+                        :href="
+                            kebunParam
+                                ? `/rincian-aktivitas?id=${item.id}&kebun=${encodeURIComponent(kebunParam)}`
+                                : `/rincian-aktivitas?id=${item.id}`
+                        "
                         class="group -m-1 flex gap-5 rounded-lg p-1 transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                         <img
