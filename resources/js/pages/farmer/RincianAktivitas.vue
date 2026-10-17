@@ -1,15 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import {
-    ArrowLeft,
-    CheckCircle2,
-    Clock3,
-    MapPin,
-    RotateCcw,
-    Share2,
-    SquareActivity,
-    X,
-} from '@lucide/vue';
+import { ArrowLeft, SquareActivity } from '@lucide/vue';
 import { onMounted, ref } from 'vue';
 import ActivityMetadataCard from '@/components/farmer/ActivityMetadataCard.vue';
 import ActivityPhotoGallery from '@/components/farmer/ActivityPhotoGallery.vue';
@@ -25,11 +16,6 @@ const errorMessage = ref('');
 const statusMessage = ref('');
 const backHref = ref('/aktivitas');
 const shellActiveKey = ref<'activity' | 'garden'>('activity');
-const copiedMessage = ref('');
-
-function isIncident(log: ActivityLog): boolean {
-    return log.report.kind === 'pelaporan-insiden';
-}
 
 async function loadActivityDetail(): Promise<void> {
     isLoading.value = true;
@@ -76,26 +62,6 @@ async function resetDemoData(): Promise<void> {
     await loadActivityDetail();
 }
 
-async function shareActivity(): Promise<void> {
-    if (!activeLog.value) return;
-    const shareText = `${activeLog.value.typeLabel} · ${activeLog.value.kebunName}`;
-    try {
-        if (navigator.share) {
-            await navigator.share({
-                title: 'Rincian aktivitas',
-                text: shareText,
-            });
-        } else if (navigator.clipboard) {
-            await navigator.clipboard.writeText(window.location.href);
-            copiedMessage.value = 'Tautan rincian disalin.';
-        } else {
-            copiedMessage.value = 'Tautan rincian siap dibagikan.';
-        }
-    } catch {
-        // The share sheet can be dismissed without an error state.
-    }
-}
-
 onMounted(() => void loadActivityDetail());
 </script>
 
@@ -103,167 +69,107 @@ onMounted(() => void loadActivityDetail());
     <Head title="Rincian Aktivitas" />
 
     <FarmerMobileShell :active-key="shellActiveKey">
-        <div data-rincian-aktivitas class="px-4 pt-5 pb-5">
-            <header class="flex items-center justify-between gap-3">
-                <div class="flex min-w-0 items-center gap-2.5">
+        <div data-rincian-aktivitas class="px-4 pt-16 pb-6">
+            <!-- Top Header -->
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-2">
                     <Link
                         :href="backHref"
-                        class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        aria-label="Kembali ke daftar aktivitas"
+                        class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        aria-label="Kembali"
                     >
-                        <ArrowLeft
-                            :size="19"
-                            :stroke-width="1.8"
-                            aria-hidden="true"
-                        />
+                        <ArrowLeft :size="18" :stroke-width="1.8" />
                     </Link>
-                    <div class="min-w-0">
-                        <p
-                            class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                        >
-                            Catatan lapangan
-                        </p>
-                        <h1
-                            class="truncate text-[22px] leading-7 font-semibold text-foreground"
-                        >
-                            Rincian aktivitas
-                        </h1>
-                    </div>
-                </div>
-                <div class="flex shrink-0 items-center gap-1">
-                    <button
-                        type="button"
-                        class="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                        aria-label="Bagikan rincian aktivitas"
-                        :disabled="!activeLog"
-                        @click="void shareActivity()"
+                    <h1
+                        class="truncate text-[20px] leading-7 font-semibold text-foreground"
                     >
-                        <Share2 :size="17" aria-hidden="true" />
-                    </button>
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1 text-xs font-semibold text-success hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        @click="void resetDemoData()"
-                    >
-                        <RotateCcw :size="13" aria-hidden="true" />
-                        Reset
-                    </button>
+                        Rincian Aktivitas
+                    </h1>
                 </div>
-            </header>
 
-            <div
-                v-if="statusMessage || copiedMessage"
-                class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-success/25 bg-success/10 px-3 py-2.5 text-xs text-success"
-                role="status"
-            >
-                <span>{{ statusMessage || copiedMessage }}</span>
                 <button
                     type="button"
-                    class="rounded p-1 hover:bg-success/10 focus-visible:outline-2 focus-visible:outline-ring"
-                    aria-label="Tutup notifikasi"
-                    @click="
-                        statusMessage = '';
-                        copiedMessage = '';
-                    "
+                    class="shrink-0 text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    @click="void resetDemoData()"
                 >
-                    <X :size="15" aria-hidden="true" />
+                    Reset demo
                 </button>
             </div>
 
+            <!-- Reset / Status Feedback Banner -->
+            <div
+                v-if="statusMessage"
+                class="mt-4 flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm text-success"
+                role="status"
+            >
+                <span>{{ statusMessage }}</span>
+                <button
+                    type="button"
+                    class="shrink-0 rounded px-1 text-lg leading-none text-success/80 hover:text-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    aria-label="Tutup notifikasi"
+                    @click="statusMessage = ''"
+                >
+                    &times;
+                </button>
+            </div>
+
+            <!-- Loading Skeleton -->
             <div
                 v-if="isLoading"
                 class="mt-5 space-y-4"
                 aria-live="polite"
                 aria-label="Memuat rincian aktivitas"
             >
-                <div class="h-52 animate-pulse rounded-2xl bg-muted" />
-                <div class="h-56 animate-pulse rounded-2xl bg-muted" />
-                <div class="h-64 animate-pulse rounded-2xl bg-muted" />
+                <div class="h-32 animate-pulse rounded-xl bg-muted" />
+                <div class="h-48 animate-pulse rounded-xl bg-muted" />
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="h-36 animate-pulse rounded-xl bg-muted" />
+                    <div class="h-36 animate-pulse rounded-xl bg-muted" />
+                </div>
             </div>
 
-            <div
+            <!-- Error State -->
+            <p
                 v-else-if="errorMessage"
-                class="mt-5 rounded-2xl border border-error/25 bg-error/10 px-4 py-4 text-sm text-error"
-                role="alert"
+                class="mt-5 rounded-lg bg-error/10 px-3 py-2 text-sm text-error"
             >
                 {{ errorMessage }}
-                <button
-                    type="button"
-                    class="mt-3 block rounded-lg bg-error px-3 py-2 text-xs font-semibold text-error-foreground"
-                    @click="void loadActivityDetail()"
-                >
-                    Coba lagi
-                </button>
-            </div>
+            </p>
 
+            <!-- Empty / Not Found State -->
             <div
                 v-else-if="!activeLog"
-                class="mt-10 rounded-2xl border border-dashed border-border bg-muted/50 px-5 py-10 text-center"
+                class="mt-10 rounded-xl bg-muted px-5 py-8 text-center"
             >
                 <SquareActivity
-                    :size="36"
+                    :size="34"
                     class="mx-auto text-primary"
                     aria-hidden="true"
                 />
                 <h2 class="mt-3 text-base font-semibold text-foreground">
                     Rincian aktivitas tidak ditemukan
                 </h2>
-                <p class="mt-1 text-sm leading-5 text-muted-foreground">
+                <p class="mt-1 text-sm text-muted-foreground">
                     Laporan aktivitas yang dipilih tidak tersedia.
                 </p>
                 <Link
                     :href="backHref"
-                    class="mt-4 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    >Kembali ke aktivitas</Link
+                    class="mt-4 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-            </div>
-
-            <div v-else class="mt-5 space-y-4">
-                <div
-                    class="flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-surface/35 px-3.5 py-3"
-                >
-                    <div class="flex min-w-0 items-center gap-2.5">
-                        <span
-                            class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
-                        >
-                            <CheckCircle2
-                                v-if="!isIncident(activeLog)"
-                                :size="17"
-                                aria-hidden="true"
-                            />
-                            <Clock3 v-else :size="17" aria-hidden="true" />
-                        </span>
-                        <p class="truncate text-xs font-medium text-secondary">
-                            {{
-                                isIncident(activeLog)
-                                    ? 'Perlu tindak lanjut lapangan'
-                                    : 'Aktivitas tercatat'
-                            }}
-                        </p>
-                    </div>
-                    <span
-                        class="shrink-0 text-[11px] font-semibold text-muted-foreground"
-                        >{{ activeLog.photos.length }} foto</span
-                    >
-                </div>
-
-                <ActivityMetadataCard :activity="activeLog" />
-                <ActivityReportSection :report="activeLog.report" />
-                <ActivityPhotoGallery :photos="activeLog.photos" />
-
-                <Link
-                    :href="backHref"
-                    class="flex h-11 items-center justify-center rounded-xl border border-border bg-card text-sm font-semibold text-foreground hover:border-primary hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >
-                    Kembali ke daftar aktivitas
+                    Kembali
                 </Link>
             </div>
 
-            <div class="sr-only">
-                <span
-                    ><MapPin aria-hidden="true" /> Activity details for
-                    {{ activeLog?.kebunName }}</span
-                >
+            <!-- Main Activity Detail Content -->
+            <div v-else class="mt-5 space-y-4">
+                <!-- 1 & 2. Timestamp, HST & Nama Petugas -->
+                <ActivityMetadataCard :activity="activeLog" />
+
+                <!-- 3. Laporan -->
+                <ActivityReportSection :report="activeLog.report" />
+
+                <!-- 4. Foto Dokumentasi -->
+                <ActivityPhotoGallery :photos="activeLog.photos" />
             </div>
         </div>
     </FarmerMobileShell>
@@ -272,6 +178,38 @@ onMounted(() => void loadActivityDetail());
 <style>
 [data-rincian-aktivitas] {
     color-scheme: light;
+    --background: #f9faf9;
+    --foreground: #070807;
+    --surface: #abe7b2;
+    --surface-foreground: #070807;
+    --card: #ffffff;
+    --card-foreground: #070807;
+    --popover: #ffffff;
+    --popover-foreground: #070807;
+    --primary: #68bb6c;
+    --primary-foreground: #ffffff;
+    --secondary: #1c5e21;
+    --secondary-foreground: #ffffff;
+    --accent: #93a99f;
+    --accent-foreground: #070807;
+    --muted: #ebf3ed;
+    --muted-foreground: #2a1a0e;
+    --text-muted: #2a1a0e;
+    --border: #d9d9d9;
+    --input: #d9d9d9;
+    --ring: #68bb6c;
+    --success: #4a943e;
+    --success-foreground: #ffffff;
+    --warning: #edc92c;
+    --warning-foreground: #070807;
+    --error: #bc0202;
+    --error-foreground: #ffffff;
+    --destructive: #bc0202;
+    --destructive-foreground: #ffffff;
+    --info: #d9d9d9;
+    --info-foreground: #070807;
+    --disable: #e5e7ea;
+    --disable-foreground: #8c9096;
 }
 
 main:has(> [data-rincian-aktivitas]) {
