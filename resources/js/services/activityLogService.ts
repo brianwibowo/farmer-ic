@@ -4,6 +4,7 @@ import {
 } from '@/composables/useDemoStorage';
 import {
     activityLogSeedData,
+    sortActivityLogsByDateDesc,
     type ActivityLog,
     type ActivityType,
 } from '@/data/activityLogs';
@@ -29,7 +30,7 @@ export async function listActivityLogs(): Promise<ActivityLog[]> {
         // The seed data is still returned when storage is unavailable.
     }
 
-    return logs;
+    return sortActivityLogsByDateDesc(logs);
 }
 
 export async function getActivityLogByType(

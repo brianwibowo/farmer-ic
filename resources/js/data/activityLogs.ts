@@ -188,6 +188,15 @@ export function formatIsoToShortDate(isoDate: string): string {
     return `${Number(day)} ${shortMonth}`;
 }
 
+export function sortActivityLogsByDateDesc(logs: ActivityLog[]): ActivityLog[] {
+    return [...logs].sort((a, b) => {
+        const aIso = parseIndonesianDateToIso(a.timestamp) ?? '';
+        const bIso = parseIndonesianDateToIso(b.timestamp) ?? '';
+
+        return bIso.localeCompare(aIso);
+    });
+}
+
 export type ActivityPeriod = 'all' | 'week' | 'month';
 
 export type ActivityTimeFilter = ActivityPeriod | `month:${string}`;
