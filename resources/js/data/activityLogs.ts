@@ -187,3 +187,94 @@ export function formatIsoToShortDate(isoDate: string): string {
     const shortMonth = SHORT_MONTH_LABELS[month] ?? month;
     return `${Number(day)} ${shortMonth}`;
 }
+
+export type ActivityPeriod = 'all' | 'week' | 'month';
+
+export type ActivityTimeFilter = ActivityPeriod | `month:${string}`;
+
+const FULL_MONTH_NAMES = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+];
+
+export function formatIsoMonthToLabel(isoMonth: string): string {
+    const [year, month] = isoMonth.split('-');
+    const monthName = FULL_MONTH_NAMES[Number(month) - 1];
+    if (!year || !monthName) {
+        return isoMonth;
+    }
+
+    return `${monthName} ${year}`;
+}
+
+export function formatIsoMonthToShortLabel(isoMonth: string): string {
+    const [year, month] = isoMonth.split('-');
+    const shortMonth = SHORT_MONTH_LABELS[month];
+    if (!year || !shortMonth) {
+        return isoMonth;
+    }
+
+    return `${shortMonth} ${year}`;
+}
+
+export function collectActivityMonths(logs: ActivityLog[]): string[] {
+    const months = new Set<string>();
+
+    for (const log of logs) {
+        const iso = parseIndonesianDateToIso(log.timestamp);
+        if (iso) {
+            months.add(iso.slice(0, 7));
+        }
+    }
+
+    return [...months].sort().reverse();
+}
+
+function isoFromDate(date: Date): string {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
+export function matchesActivityTimeFilter(
+    timestamp: string,
+    filter: ActivityTimeFilter,
+): boolean {
+    if (filter === 'all') {
+        return true;
+    }
+
+    const itemIso = parseIndonesianDateToIso(timestamp);
+    if (!itemIso) {
+        return false;
+    }
+
+    if (filter.startsWith('month:')) {
+        return itemIso.startsWith(filter.slice('month:'.length));
+    }
+
+    const today = new Date();
+    const start = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+    );
+
+    if (filter === 'week') {
+        start.setDate(start.getDate() - 6);
+    } else if (filter === 'month') {
+        start.setMonth(start.getMonth() - 1);
+    }
+
+    return itemIso >= isoFromDate(start);
+}

@@ -2,13 +2,15 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Clock, MapPin, Search, SquareActivity } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import ActivityDateRangeFilter from '@/components/farmer/ActivityDateRangeFilter.vue';
+import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
-    parseIndonesianDateToIso,
+    collectActivityMonths,
+    matchesActivityTimeFilter,
     type ActivityLog,
+    type ActivityTimeFilter,
     type ActivityType,
 } from '@/data/activityLogs';
 import { listActivityLogs } from '@/services/activityLogService';
@@ -16,11 +18,12 @@ import { listActivityLogs } from '@/services/activityLogService';
 const activities = ref<ActivityLog[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
-const startDate = ref('');
-const endDate = ref('');
+const selectedTimeFilter = ref<ActivityTimeFilter>('all');
 const isLoading = ref(true);
 const errorMessage = ref('');
 const resetMessage = ref('');
+
+const availableMonths = computed(() => collectActivityMonths(activities.value));
 
 const filteredActivities = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
@@ -43,35 +46,12 @@ const filteredActivities = computed(() => {
             selectedType.value === 'all' ||
             item.type === selectedType.value;
 
-        let matchesDate = true;
-        if (startDate.value || endDate.value) {
-            const itemIso = parseIndonesianDateToIso(item.timestamp);
-            if (!itemIso) {
-                matchesDate = false;
-            } else {
-                const effectiveStart =
-                    startDate.value &&
-                    endDate.value &&
-                    startDate.value > endDate.value
-                        ? endDate.value
-                        : startDate.value;
-                const effectiveEnd =
-                    startDate.value &&
-                    endDate.value &&
-                    startDate.value > endDate.value
-                        ? startDate.value
-                        : endDate.value;
+        const matchesTime = matchesActivityTimeFilter(
+            item.timestamp,
+            selectedTimeFilter.value,
+        );
 
-                if (effectiveStart && itemIso < effectiveStart) {
-                    matchesDate = false;
-                }
-                if (effectiveEnd && itemIso > effectiveEnd) {
-                    matchesDate = false;
-                }
-            }
-        }
-
-        return matchesSearch && matchesType && matchesDate;
+        return matchesSearch && matchesType && matchesTime;
     });
 });
 
@@ -96,8 +76,7 @@ async function resetDemoData(): Promise<void> {
     clearDemoStorage();
     searchQuery.value = '';
     selectedType.value = '';
-    startDate.value = '';
-    endDate.value = '';
+    selectedTimeFilter.value = 'all';
     resetMessage.value = 'Data demo aktivitas telah direset.';
     await loadActivities();
 }
@@ -117,21 +96,13 @@ onMounted(() => void loadActivities());
                     Aktivitas
                 </h1>
 
-                <div class="flex shrink-0 items-center gap-2">
-                    <button
-                        type="button"
-                        class="text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        @click="void resetDemoData()"
-                    >
-                        Reset demo
-                    </button>
-
-                    <!-- Filter rentang tanggal -->
-                    <ActivityDateRangeFilter
-                        v-model:start-date="startDate"
-                        v-model:end-date="endDate"
-                    />
-                </div>
+                <button
+                    type="button"
+                    class="shrink-0 text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    @click="void resetDemoData()"
+                >
+                    Reset demo
+                </button>
             </div>
 
             <div class="mt-4 flex gap-2">
@@ -153,6 +124,12 @@ onMounted(() => void loadActivities());
 
                 <ActivityTypeFilterDropdown v-model="selectedType" />
             </div>
+
+            <ActivityPeriodFilter
+                v-model="selectedTimeFilter"
+                :months="availableMonths"
+                class="mt-3"
+            />
 
             <div
                 v-if="resetMessage"
@@ -212,7 +189,7 @@ onMounted(() => void loadActivities());
                     Aktivitas tidak ditemukan
                 </h2>
                 <p class="mt-1 text-sm text-muted-foreground">
-                    Coba ubah kata kunci atau filter aktivitas.
+                    Coba ubah kata kunci, jenis aktivitas, atau periode waktu.
                 </p>
             </div>
 

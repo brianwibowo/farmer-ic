@@ -2,12 +2,14 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, Clock, Search, SquareActivity, User } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import ActivityDateRangeFilter from '@/components/farmer/ActivityDateRangeFilter.vue';
+import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import {
-    parseIndonesianDateToIso,
+    collectActivityMonths,
+    matchesActivityTimeFilter,
     type ActivityLog,
+    type ActivityTimeFilter,
     type ActivityType,
 } from '@/data/activityLogs';
 import { kebunSeedData } from '@/data/kebun';
@@ -16,12 +18,13 @@ import { listActivityLogs } from '@/services/activityLogService';
 const activities = ref<ActivityLog[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
-const startDate = ref('');
-const endDate = ref('');
+const selectedTimeFilter = ref<ActivityTimeFilter>('all');
 const kebunParam = ref('');
 
 const isLoading = ref(true);
 const errorMessage = ref('');
+
+const availableMonths = computed(() => collectActivityMonths(activities.value));
 
 const kebunSubtitle = computed(() => {
     if (kebunParam.value) {
@@ -67,35 +70,12 @@ const filteredActivities = computed(() => {
             selectedType.value === 'all' ||
             item.type === selectedType.value;
 
-        let matchesDate = true;
-        if (startDate.value || endDate.value) {
-            const itemIso = parseIndonesianDateToIso(item.timestamp);
-            if (!itemIso) {
-                matchesDate = false;
-            } else {
-                const effectiveStart =
-                    startDate.value &&
-                    endDate.value &&
-                    startDate.value > endDate.value
-                        ? endDate.value
-                        : startDate.value;
-                const effectiveEnd =
-                    startDate.value &&
-                    endDate.value &&
-                    startDate.value > endDate.value
-                        ? startDate.value
-                        : endDate.value;
+        const matchesTime = matchesActivityTimeFilter(
+            item.timestamp,
+            selectedTimeFilter.value,
+        );
 
-                if (effectiveStart && itemIso < effectiveStart) {
-                    matchesDate = false;
-                }
-                if (effectiveEnd && itemIso > effectiveEnd) {
-                    matchesDate = false;
-                }
-            }
-        }
-
-        return matchesSearch && matchesType && matchesDate;
+        return matchesSearch && matchesType && matchesTime;
     });
 });
 
@@ -141,7 +121,7 @@ onMounted(() => {
 
     <FarmerMobileShell active-key="garden">
         <div data-kebun-aktivitas-list class="px-4 pt-12 pb-5">
-            <!-- Header Row: Back Button + Title/Subtitle + Date Range Filter -->
+            <!-- Header Row: Back Button + Title/Subtitle -->
             <div class="flex items-start justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2.5">
                     <Link
@@ -164,13 +144,6 @@ onMounted(() => {
                         </p>
                     </div>
                 </div>
-
-                <!-- Timestamp / Date Range Filter Dropdown -->
-                <ActivityDateRangeFilter
-                    v-model:start-date="startDate"
-                    v-model:end-date="endDate"
-                    class="pt-1"
-                />
             </div>
 
             <!-- Search & Activity Type Filter Row -->
@@ -193,6 +166,12 @@ onMounted(() => {
 
                 <ActivityTypeFilterDropdown v-model="selectedType" />
             </div>
+
+            <ActivityPeriodFilter
+                v-model="selectedTimeFilter"
+                :months="availableMonths"
+                class="mt-3"
+            />
 
             <!-- Loading Skeleton -->
             <div
@@ -239,7 +218,7 @@ onMounted(() => {
                     Aktivitas tidak ditemukan
                 </h2>
                 <p class="mt-1 text-sm text-muted-foreground">
-                    Coba ubah kata kunci, jenis aktivitas, atau rentang tanggal.
+                    Coba ubah kata kunci, jenis aktivitas, atau periode waktu.
                 </p>
             </div>
 
