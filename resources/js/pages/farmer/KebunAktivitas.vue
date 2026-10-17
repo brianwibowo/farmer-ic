@@ -10,8 +10,8 @@ import {
     type ActivityLog,
     type ActivityType,
 } from '@/data/activityLogs';
-import { kebunSeedData } from '@/data/kebun';
 import { listActivityLogs } from '@/services/activityLogService';
+import { listKebun } from '@/services/kebunService';
 
 const activities = ref<ActivityLog[]>([]);
 const searchQuery = ref('');
@@ -19,13 +19,14 @@ const selectedType = ref<'' | 'all' | ActivityType>('');
 const startDate = ref('');
 const endDate = ref('');
 const kebunParam = ref('');
+const kebunList = ref<Awaited<ReturnType<typeof listKebun>>>([]);
 
 const isLoading = ref(true);
 const errorMessage = ref('');
 
 const kebunSubtitle = computed(() => {
     if (kebunParam.value) {
-        const match = kebunSeedData.find(
+        const match = kebunList.value.find(
             (item) => item.id === kebunParam.value,
         );
         if (match) return match.name;
@@ -36,7 +37,7 @@ const kebunSubtitle = computed(() => {
 
 const backHref = computed(() => {
     if (kebunParam.value) {
-        return `/kebun/detail?kebun=${encodeURIComponent(kebunParam.value)}`;
+        return `/kebun/detail?id=${encodeURIComponent(kebunParam.value)}`;
     }
 
     return '/kebun/detail';
@@ -129,10 +130,10 @@ async function loadActivities(): Promise<void> {
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
     const params = new URLSearchParams(window.location.search);
     kebunParam.value = params.get('kebun') ?? '';
-    void loadActivities();
+    [kebunList.value] = await Promise.all([listKebun(), loadActivities()]);
 });
 </script>
 
