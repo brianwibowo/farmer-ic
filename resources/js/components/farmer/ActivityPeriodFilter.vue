@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
 <template>
     <div ref="monthMenuRef" class="relative">
         <div
-            class="period-chip-row flex items-center justify-between gap-1.5 overflow-x-auto"
+            class="period-chip-row flex items-center gap-1.5 overflow-x-auto"
             role="group"
             aria-label="Filter periode waktu"
         >
@@ -94,12 +94,12 @@ onBeforeUnmount(() => {
                 :aria-pressed="filter === option.value"
                 :class="[
                     chipBaseClass,
-                    'shrink-0',
+                    'min-w-0 flex-1',
                     filter === option.value ? chipActiveClass : chipIdleClass,
                 ]"
                 @click="filter = option.value"
             >
-                {{ option.label }}
+                <span class="min-w-0 truncate">{{ option.label }}</span>
             </button>
 
             <button
