@@ -1,41 +1,66 @@
 <script setup lang="ts">
-import { Head } from "@inertiajs/vue3";
-import { Filter, Search, X } from "@lucide/vue";
-import { computed, ref } from "vue";
-import FarmerMobileShell from "@/components/farmer/FarmerMobileShell.vue";
-import RevenueChart from "@/components/farmer/RevenueChart.vue";
-import { useFarmerNavigation } from "@/composables/useFarmerNavigation";
+import { Head } from '@inertiajs/vue3';
+import { Filter, Search, X } from '@lucide/vue';
+import { computed, onMounted, ref } from 'vue';
+import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import RevenueChart from '@/components/farmer/RevenueChart.vue';
+import { useFarmerNavigation } from '@/composables/useFarmerNavigation';
 import {
-    farmerFinanceMock,
     type FinanceCommodity,
     type FinanceQuarter,
     type FinanceTransaction,
     type RevenuePoint,
-} from "@/data/farmerFinance";
+} from '@/data/farmerFinance';
+import { getFarmFinance } from '@/services/farmDemoService';
 
-type FinanceTab = "chart" | "transactions";
+type FinanceTab = 'chart' | 'transactions';
 
 const { navigate } = useFarmerNavigation();
-const activeTab = ref<FinanceTab>("chart");
-const selectedQuarter = ref<FinanceQuarter>("Q1");
+const activeTab = ref<FinanceTab>('chart');
+const selectedQuarter = ref<FinanceQuarter>('Q1');
 const showAnalysis = ref(false);
-const searchQuery = ref("");
-const selectedCommodity = ref<FinanceCommodity | "all">("all");
-const selectedType = ref<FinanceTransaction["type"] | "all">("all");
+const searchQuery = ref('');
+const selectedCommodity = ref<FinanceCommodity | 'all'>('all');
+const selectedType = ref<FinanceTransaction['type'] | 'all'>('all');
 const isFilterOpen = ref(false);
+type FinanceData = Awaited<ReturnType<typeof getFarmFinance>>;
+const financeData = ref<FinanceData>();
+
+const emptyPoint: RevenuePoint = {
+    label: '-',
+    revenue: 0,
+    expense: 0,
+    net: 0,
+};
+const emptyQuarter: FinanceData['quarters'][FinanceQuarter] = {
+    label: 'Memuat data keuangan',
+    totalRevenue: 0,
+    totalExpense: 0,
+    netTotal: 0,
+    points: [emptyPoint],
+    analysis: '',
+};
 
 const hasActiveFilter = computed(
-    () => selectedCommodity.value !== "all" || selectedType.value !== "all",
+    () => selectedCommodity.value !== 'all' || selectedType.value !== 'all',
 );
 
 const selectedData = computed(
-    () => farmerFinanceMock.quarters[selectedQuarter.value],
+    () => financeData.value?.quarters[selectedQuarter.value] ?? emptyQuarter,
 );
-const selectedPoint = ref<RevenuePoint>(selectedData.value.points[0]);
+const selectedPoint = ref<RevenuePoint>(emptyPoint);
+
+onMounted(async () => {
+    financeData.value = await getFarmFinance();
+    selectedPoint.value =
+        financeData.value.quarters[selectedQuarter.value].points[0] ??
+        emptyPoint;
+});
 
 function selectQuarter(quarter: FinanceQuarter): void {
     selectedQuarter.value = quarter;
-    selectedPoint.value = farmerFinanceMock.quarters[quarter].points[0];
+    selectedPoint.value =
+        financeData.value?.quarters[quarter].points[0] ?? emptyPoint;
 }
 
 function selectPoint(point: RevenuePoint): void {
@@ -45,7 +70,7 @@ function selectPoint(point: RevenuePoint): void {
 const filteredTransactions = computed(() => {
     const query = searchQuery.value.trim().toLowerCase();
 
-    return farmerFinanceMock.transactions.filter((transaction) => {
+    return (financeData.value?.transactions ?? []).filter((transaction) => {
         const matchesQuery =
             !query ||
             [
@@ -54,10 +79,10 @@ const filteredTransactions = computed(() => {
                 transaction.commodity,
             ].some((value) => value.toLowerCase().includes(query));
         const matchesCommodity =
-            selectedCommodity.value === "all" ||
+            selectedCommodity.value === 'all' ||
             transaction.commodity === selectedCommodity.value;
         const matchesType =
-            selectedType.value === "all" ||
+            selectedType.value === 'all' ||
             transaction.type === selectedType.value;
 
         return matchesQuery && matchesCommodity && matchesType;
@@ -69,15 +94,15 @@ function toggleFilter(): void {
 }
 
 function clearTransactionFilters(): void {
-    searchQuery.value = "";
-    selectedCommodity.value = "all";
-    selectedType.value = "all";
+    searchQuery.value = '';
+    selectedCommodity.value = 'all';
+    selectedType.value = 'all';
 }
 
 const formatRupiah = (value: number): string =>
-    new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
+    new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
         maximumFractionDigits: 0,
     }).format(value);
 </script>
@@ -170,7 +195,7 @@ const formatRupiah = (value: number): string =>
                         </div>
                         <!-- Badge Revenue Value -->
                         <span
-                            class="px-2.5 py-1 text-md font-semibold text-[#1c5e21]"
+                            class="text-md px-2.5 py-1 font-semibold text-[#1c5e21]"
                         >
                             {{ formatRupiah(selectedPoint.net) }}
                         </span>
@@ -384,7 +409,7 @@ const formatRupiah = (value: number): string =>
                                         : 'text-[#bc0202]',
                                 ]"
                             >
-                                {{ transaction.type === "income" ? "+" : "-" }}
+                                {{ transaction.type === 'income' ? '+' : '-' }}
                                 {{ formatRupiah(transaction.amount) }}
                             </p>
                         </div>

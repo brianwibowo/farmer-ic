@@ -62,6 +62,9 @@ frontend assets.
 - Keep components small and readable.
 - Use the existing Tailwind, Vue, Inertia, and UI primitives. Do not install a
   new npm package without asking.
+- Before any frontend UI work, read and follow the project design guidance in
+  [`design.md`](design.md), including its tokens, typography, component
+  patterns, and mobile layout conventions.
 - Use the existing semantic theme utilities for all UI colors, such as
   `text-primary`, `text-foreground`, `text-muted-foreground`, `bg-card`,
   `bg-muted`, `border-border`, `text-success`, `text-warning`, and
