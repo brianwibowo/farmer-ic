@@ -124,3 +124,29 @@ export const activityTypeOptions: Array<{
 
 export const activityLogSeedData: ActivityLog[] =
     rawActivityLogs as ActivityLog[];
+
+const indonesianMonths: Record<string, string> = {
+    Januari: '01',
+    Februari: '02',
+    Maret: '03',
+    April: '04',
+    Mei: '05',
+    Juni: '06',
+    Juli: '07',
+    Agustus: '08',
+    September: '09',
+    Oktober: '10',
+    November: '11',
+    Desember: '12',
+};
+
+export function parseIndonesianDateToIso(value: string): string | undefined {
+    const match = value.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+    if (!match) return undefined;
+
+    const [, day, monthName, year] = match;
+    const month = indonesianMonths[monthName];
+    if (!month) return undefined;
+
+    return `${year}-${month}-${day.padStart(2, '0')}`;
+}
