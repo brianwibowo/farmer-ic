@@ -1,0 +1,31 @@
+.farm-map .leaflet-container {
+    background: var(--muted);
+    font-family: var(--font-sans);
+}
+
+.farm-map .leaflet-bar,
+.farm-map .leaflet-bar a {
+    border-color: var(--border);
+    background: var(--card);
+    color: var(--card-foreground);
+}
+
+.farm-map .leaflet-bar a:hover {
+    background: var(--muted);
+}
+
+.farm-map .leaflet-control-attribution {
+    max-width: 100%;
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: 9px;
+}
+
+.farm-map .leaflet-control-attribution a {
+    color: var(--secondary);
+}
+
+.farm-map .leaflet-interactive:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}

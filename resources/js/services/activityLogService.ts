@@ -8,7 +8,7 @@ import {
     type ActivityType,
 } from '@/data/activityLogs';
 
-const storageKey = 'activity_logs_v4';
+const storageKey = 'activity_logs_v6';
 
 function wait(milliseconds: number): Promise<void> {
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));

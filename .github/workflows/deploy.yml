@@ -28,13 +28,14 @@ jobs:
                   REPOSITORY: ${{ github.repository }}
                   COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
                   APP_KEY: ${{ secrets.APP_KEY }}
+                  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
               with:
                   host: ${{ secrets.VPS_HOST || '43.231.129.222' }}
                   port: ${{ secrets.VPS_PORT || '12323' }}
                   username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || 'clouduser' }}
                   password: ${{ secrets.VPS_PASSWORD }}
                   key: ${{ secrets.VPS_KEY || secrets.SSH_PRIVATE_KEY }}
-                  envs: VPS_DEPLOY_PATH,REPOSITORY,COMMIT_SHA,APP_KEY
+                  envs: VPS_DEPLOY_PATH,REPOSITORY,COMMIT_SHA,APP_KEY,OPENROUTER_API_KEY
                   script: |
                       set -eu
 
@@ -64,6 +65,14 @@ jobs:
                       fi
                       if ! grep -q '^APP_KEY=.' .env.production; then
                         printf 'APP_KEY=%s\n' "$APP_KEY" >> .env.production
+                      fi
+
+                      if [ -n "${OPENROUTER_API_KEY:-}" ]; then
+                        if grep -q '^OPENROUTER_API_KEY=' .env.production; then
+                          sed -i "s#^OPENROUTER_API_KEY=.*#OPENROUTER_API_KEY=$OPENROUTER_API_KEY#" .env.production
+                        else
+                          printf 'OPENROUTER_API_KEY=%s\n' "$OPENROUTER_API_KEY" >> .env.production
+                        fi
                       fi
 
                       export APP_IMAGE=farmer-ic

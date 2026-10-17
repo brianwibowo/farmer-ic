@@ -27,9 +27,9 @@ const emit = defineEmits<{
 const items: FarmerNavItem[] = [
     { key: 'home', label: 'Beranda', href: '/' },
     { key: 'garden', label: 'Kebun', href: '/kebun' },
-    { key: 'ai', label: 'AI', emphasis: true },
-    { key: 'finance', label: 'Keuangan' },
-    { key: 'activity', label: 'Aktivitas' },
+    { key: 'ai', label: 'AI', emphasis: true, href: '/kebun-petani/ai' },
+    { key: 'finance', label: 'Keuangan', href: '/finance' },
+    { key: 'activity', label: 'Aktivitas', href: '/aktivitas' },
 ];
 
 const active = computed(() => props.activeKey);

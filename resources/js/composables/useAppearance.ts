@@ -75,15 +75,15 @@ export function initializeTheme(): void {
         return;
     }
 
-    // Initialize theme from saved preference or default to system...
+    // Initialize from a saved preference, otherwise always start in light mode.
     const savedAppearance = getStoredAppearance();
-    updateTheme(savedAppearance || 'system');
+    updateTheme(savedAppearance || 'light');
 
-    // Set up system theme change listener...
+    // Keep explicit System selections responsive without making them the default.
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 
-const appearance = ref<Appearance>('system');
+const appearance = ref<Appearance>('light');
 
 export function useAppearance(): UseAppearanceReturn {
     onMounted(() => {
