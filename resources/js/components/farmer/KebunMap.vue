@@ -2,15 +2,20 @@
 import { LocateFixed, LoaderCircle, MapPin, RotateCcw } from '@lucide/vue';
 import type { FeatureGroup, Map as LeafletMap, Path, TileLayer } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import '../../../css/farm-map.css';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useAppearance } from '@/composables/useAppearance';
 import { listMappedKebun, type MappedKebun } from '@/services/kebunService';
+import KebunMapPreview from './KebunMapPreview.vue';
 
 const mapElement = ref<HTMLDivElement>();
 const isLoading = ref(true);
 const errorMessage = ref('');
 const tilesUnavailable = ref(false);
 const kebunCount = ref(0);
+const selectedKebun = ref<MappedKebun>();
+const previewOpen = ref(false);
+let lastMarker: SVGElement | undefined;
 const { resolvedAppearance } = useAppearance();
 let map: LeafletMap | undefined;
 let areas: FeatureGroup | undefined;
@@ -90,11 +95,8 @@ async function initializeMap(): Promise<void> {
 
         for (const item of kebun) {
             const color = healthColor(item.healthStatus);
-            const polygon = leaflet
-                .polygon(item.boundary, { color, weight: 2, fillOpacity: 0.22 })
-                .addTo(areas);
             const marker = leaflet
-                .circleMarker(polygon.getBounds().getCenter(), {
+                .circleMarker(item.position, {
                     radius: 7,
                     color,
                     fillColor: color,
@@ -103,52 +105,31 @@ async function initializeMap(): Promise<void> {
                 })
                 .addTo(areas);
 
-            for (const layer of [polygon, marker]) {
-                coloredLayers.push({ layer, status: item.healthStatus });
-                layer.bindPopup(
-                    () => {
-                        const content = document.createElement('div');
-                        const title = document.createElement('strong');
-                        title.textContent = item.name;
-                        const description = document.createElement('p');
-                        description.textContent = `${item.city} · ${item.seedType} · ${item.healthStatus}`;
-                        const area = document.createElement('p');
-                        const format = new Intl.NumberFormat('id-ID');
-                        area.textContent = `${format.format(item.usedHectare)} / ${format.format(item.availableHectare)} ha terpakai`;
-                        const focusButton = document.createElement('button');
-                        focusButton.type = 'button';
-                        focusButton.className = 'kebun-map-focus';
-                        focusButton.textContent = 'Lihat area kebun';
-                        focusButton.addEventListener('click', () => {
-                            map?.closePopup();
-                            map?.fitBounds(polygon.getBounds(), {
-                                padding: [32, 32],
-                                maxZoom: 14,
-                            });
-                        });
-                        content.append(title, description, area, focusButton);
-                        return content;
-                    },
-                    { maxWidth: 220 },
-                );
-
-                const element = layer.getElement();
-                element?.setAttribute('tabindex', '0');
-                element?.setAttribute('role', 'button');
-                element?.setAttribute(
-                    'aria-label',
-                    `${item.name}, ${item.city}, ${item.healthStatus}`,
-                );
-                element?.addEventListener('keydown', (event) => {
-                    if (
-                        event instanceof KeyboardEvent &&
-                        (event.key === 'Enter' || event.key === ' ')
-                    ) {
-                        event.preventDefault();
-                        layer.openPopup(marker.getLatLng());
-                    }
-                });
-            }
+            coloredLayers.push({ layer: marker, status: item.healthStatus });
+            const element = marker.getElement();
+            const openPreview = () => {
+                lastMarker =
+                    element instanceof SVGElement ? element : undefined;
+                selectedKebun.value = item;
+                previewOpen.value = true;
+            };
+            marker.on('click', openPreview);
+            element?.setAttribute('tabindex', '0');
+            element?.setAttribute('role', 'button');
+            element?.setAttribute('aria-haspopup', 'dialog');
+            element?.setAttribute(
+                'aria-label',
+                `${item.name}, ${item.city}, ${item.healthStatus}`,
+            );
+            element?.addEventListener('keydown', (event) => {
+                if (
+                    event instanceof KeyboardEvent &&
+                    (event.key === 'Enter' || event.key === ' ')
+                ) {
+                    event.preventDefault();
+                    openPreview();
+                }
+            });
         }
 
         showAllKebun();
@@ -207,12 +188,12 @@ onBeforeUnmount(() => {
         </div>
 
         <div
-            class="kebun-map relative isolate min-h-[240px] flex-1 overflow-hidden rounded-[20px] border border-border bg-muted"
+            class="farm-map relative isolate min-h-[240px] flex-1 overflow-hidden rounded-[20px] border border-border bg-muted"
         >
             <div
                 ref="mapElement"
                 class="absolute inset-0"
-                aria-label="Peta lokasi dan batas area kebun di Jawa Tengah"
+                aria-label="Peta titik lokasi kebun di Jawa Tengah"
                 :aria-busy="isLoading"
             />
 
@@ -290,61 +271,11 @@ onBeforeUnmount(() => {
                 ><span class="size-2 rounded-full bg-error" />Kritis</span
             >
         </div>
+        <KebunMapPreview
+            v-if="selectedKebun"
+            v-model:open="previewOpen"
+            :kebun="selectedKebun"
+            @closed="lastMarker?.focus()"
+        />
     </section>
 </template>
-
-<style scoped>
-.kebun-map :deep(.leaflet-container) {
-    background: var(--muted);
-    font-family: var(--font-sans);
-}
-
-.kebun-map :deep(.leaflet-bar),
-.kebun-map :deep(.leaflet-popup-content-wrapper),
-.kebun-map :deep(.leaflet-popup-tip) {
-    border-color: var(--border);
-    background: var(--card);
-    color: var(--foreground);
-}
-
-.kebun-map :deep(.leaflet-bar a) {
-    border-color: var(--border);
-    background: var(--card);
-    color: var(--foreground);
-}
-
-.kebun-map :deep(.leaflet-bar a:hover) {
-    background: var(--muted);
-}
-
-.kebun-map :deep(.leaflet-control-attribution) {
-    background: var(--card);
-    color: var(--muted-foreground);
-    font-size: 9px;
-}
-
-.kebun-map :deep(.leaflet-control-attribution a),
-.kebun-map :deep(.leaflet-popup-close-button) {
-    color: var(--secondary);
-}
-
-.kebun-map :deep(.leaflet-popup-content p) {
-    margin: 6px 0;
-}
-
-.kebun-map :deep(.kebun-map-focus) {
-    margin-top: 4px;
-    border-radius: 6px;
-    background: var(--primary);
-    padding: 7px 10px;
-    color: var(--primary-foreground);
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.kebun-map :deep(.leaflet-interactive:focus-visible),
-.kebun-map :deep(.kebun-map-focus:focus-visible) {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-}
-</style>
