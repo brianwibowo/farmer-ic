@@ -31,6 +31,9 @@ file is ignored by Git and is read by Compose at runtime:
 
 ```dotenv
 OPENROUTER_API_KEY=your-server-side-key
+# Optional OpenRouter enterprise alias or model ID approved for this account.
+# Leave empty to use the built-in high-quality default.
+AI_ENTERPRISE_MODEL=
 AI_PRIMARY_MODEL=google/gemini-3.8-flash
 AI_TEXT_FALLBACK_MODELS=google/gemini-3.7-flash,openai/gpt-6-luna
 AI_VISION_FALLBACK_MODELS=google/gemini-3.7-flash,inclusionai/ling-3.0-flash-vl
@@ -77,6 +80,12 @@ nano .env.production
 
 At minimum it should contain `APP_URL`, `APP_KEY`,
 `OPENROUTER_API_KEY`, and the model settings from the local example above.
+For production, set `AI_ENTERPRISE_MODEL` to a model ID or enterprise alias
+that is enabled for the OpenRouter account. The legacy
+`AI_PRIMARY_MODEL=google/gemini-3.8-flash` value is automatically routed to
+that enterprise setting; an explicitly configured non-legacy primary model
+still takes precedence. Verify every fallback ID against the account's
+OpenRouter model list before deployment.
 The workflow supplies `APP_KEY` from GitHub Secrets only when the file does
 not already contain one. When `OPENROUTER_API_KEY` is present as a GitHub
 Secret, the workflow writes it to `.env.production` without exposing it to the

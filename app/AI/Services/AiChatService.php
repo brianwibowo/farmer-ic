@@ -440,7 +440,6 @@ class AiChatService
             || $status >= 500;
     }
 
-    /** @return array{input_tokens: int|null, output_tokens: int|null} */
     /**
      * @param  array<string, mixed>  $chunk
      * @return array{input_tokens: int|null, output_tokens: int|null}
@@ -453,8 +452,11 @@ class AiChatService
         ];
     }
 
-    /** @param array{input_tokens: int|null, output_tokens: int|null} $current */
-    /** @return array{input_tokens: int|null, output_tokens: int|null} */
+    /**
+     * @param  array{input_tokens: int|null, output_tokens: int|null}  $current
+     * @param  array<string, mixed>  $chunk
+     * @return array{input_tokens: int|null, output_tokens: int|null}
+     */
     protected function mergeUsage(array $current, array $chunk): array
     {
         $usage = $this->usageFromChunk($chunk);

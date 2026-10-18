@@ -138,10 +138,10 @@ class OpenRouterGateway implements LlmGateway
                     return false;
                 }
 
-                $status = $exception->response?->status();
+                $status = $exception->response->status();
 
                 return in_array($status, [408, 409, 425, 429], true)
-                    || ($status !== null && $status >= 500);
+                    || $status >= 500;
             },
         );
     }

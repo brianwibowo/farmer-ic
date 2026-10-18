@@ -52,7 +52,10 @@ class PromptAssembler
         return $messages;
     }
 
-    /** @param Collection<int, AiMessage> $history */
+    /**
+     * @param  Collection<int, AiMessage>  $history
+     * @return Collection<int, AiMessage>
+     */
     protected function boundedHistory(Collection $history, ?AiMessage $activeMessage = null): Collection
     {
         $maxChars = max(2000, (int) config('ai.limits.max_history_chars', 18000));
@@ -198,7 +201,7 @@ PROMPT);
     {
         try {
             $maxBytes = max(1024, (int) config('ai.limits.max_attachment_prompt_bytes', 4_000_000));
-            if ($attachment->size !== null && $attachment->size > $maxBytes) {
+            if ($attachment->size > $maxBytes) {
                 return null;
             }
 
