@@ -16,6 +16,7 @@ import {
     X,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { normalizeAiResponse } from '@/services/aiChatService';
 
 const props = withDefaults(
     defineProps<{
@@ -87,7 +88,11 @@ function inlineMarkdown(value: string): string {
 }
 
 function renderFullMarkdown(value: string): string {
-    const safe = escapeHtml(value.trim());
+    const prepared = normalizeAiResponse(value).replace(
+        /^(#{1,6}\s+.+)$/gm,
+        '\n$1\n',
+    );
+    const safe = escapeHtml(prepared);
     if (!safe) return '';
     return safe
         .split(/\n{2,}/)
@@ -99,13 +104,32 @@ function renderFullMarkdown(value: string): string {
                     .map((line) => `<li>${inlineMarkdown(line.slice(2))}</li>`)
                     .join('')}</ul>`;
             }
-            return `<p>${lines.map(inlineMarkdown).join('<br>')}</p>`;
+            const orderedLines = lines.filter((line) => /^\d+[.)]\s/.test(line));
+            if (orderedLines.length === lines.length && orderedLines.length > 0) {
+                return `<ol class="my-1 list-decimal space-y-1 pl-5">${orderedLines
+                    .map((line) => `<li>${inlineMarkdown(line.replace(/^\d+[.)]\s/, ''))}</li>`)
+                    .join('')}</ol>`;
+            }
+            if (lines.length === 1 && /^#{1,6}\s+/.test(lines[0])) {
+                const heading = lines[0].replace(/^#{1,6}\s+/, '');
+                return `<h3 class="mt-1 text-sm font-semibold text-foreground">${inlineMarkdown(heading)}</h3>`;
+            }
+            if (lines.every((line) => /^>\s?/.test(line))) {
+                return `<blockquote class="border-l-2 border-primary/40 pl-3 text-muted-foreground">${lines
+                    .map((line) => inlineMarkdown(line.replace(/^>\s?/, '')))
+                    .join('<br>')}</blockquote>`;
+            }
+            return `<p>${lines
+                .map((line) =>
+                    inlineMarkdown(line.replace(/^\s*[*-]\s+/, '• ')),
+                )
+                .join('<br>')}</p>`;
         })
         .join('');
 }
 
 const parsed = computed<ParsedInfographic>(() => {
-    const raw = props.content || '';
+    const raw = normalizeAiResponse(props.content || '');
     let text = raw;
 
     // 1. Extract primary image
@@ -136,12 +160,18 @@ const parsed = computed<ParsedInfographic>(() => {
         /^>\s*(💡|⚠️|📌)?\s*(?:\*\*(?:Tips Petani|Catatan|Peringatan|Rekomendasi):\*\*|\b(?:Tips Petani|Catatan|Peringatan|Rekomendasi):?)\s*(.+)$/im,
     );
     if (tipMatch) {
-        tip = tipMatch[2]?.trim() || tipMatch[0].replace(/^>\s*/, '').trim();
+        tip = (tipMatch[2] || tipMatch[0].replace(/^>\s*/, ''))
+            .replace(/\*\*/g, '')
+            .replace(/^Tips Petani:\s*/i, '')
+            .trim();
         text = text.replace(tipMatch[0], '').trim();
     } else {
         const blockquoteMatch = text.match(/^>\s*💡\s*(.+)$/m);
         if (blockquoteMatch) {
-            tip = blockquoteMatch[1].trim();
+            tip = blockquoteMatch[1]
+                .replace(/\*\*/g, '')
+                .replace(/^Tips Petani:\s*/i, '')
+                .trim();
             text = text.replace(blockquoteMatch[0], '').trim();
         }
     }
@@ -185,7 +215,12 @@ const parsed = computed<ParsedInfographic>(() => {
             stepMatch[4] ||
             `Langkah ${stepNum}`
         ).trim();
-        const stepDesc = stepMatch[5].trim();
+        const stepDesc = stepMatch[5]
+            .replace(/^\s*[*-]\s+/, '')
+            .replace(/^\*\*Keterangan\*\*:\s*/i, '')
+            .replace(/\*\*/g, '')
+            .replace(/__([^_]+)__/g, '$1')
+            .trim();
         steps.push({
             step: stepNum,
             title: stepTitle,
@@ -202,7 +237,7 @@ const parsed = computed<ParsedInfographic>(() => {
     // Intro / description remaining
     const intro = text.trim() ? text.trim() : null;
 
-    const hasInfographicElements = Boolean(
+    const hasInfographicElements = !props.isStreaming && Boolean(
         image ||
         metrics.length > 0 ||
         (steps.length > 0 && (title || metrics.length > 0)) ||
@@ -251,7 +286,7 @@ async function copyContent(): Promise<void> {
         >
             <div class="flex items-center gap-1.5 font-medium text-secondary">
                 <Sparkles :size="13" class="text-primary" />
-                <span>Infografis Cerdas</span>
+                <span>{{ parsed.image ? 'Infografis Cerdas' : 'Ringkasan Cerdas' }}</span>
             </div>
             <div
                 class="flex items-center gap-1 rounded-lg bg-muted/80 p-0.5 text-[11px]"
@@ -423,7 +458,11 @@ async function copyContent(): Promise<void> {
                     <Check v-if="isCopied" :size="12" class="text-success" />
                     <Copy v-else :size="12" />
                     <span>{{
-                        isCopied ? 'Tersalin' : 'Salin Infografis'
+                        isCopied
+                            ? 'Tersalin'
+                            : parsed.image
+                              ? 'Salin Infografis'
+                              : 'Salin Ringkasan'
                     }}</span>
                 </button>
             </div>

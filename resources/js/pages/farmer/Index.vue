@@ -2,6 +2,7 @@
 import { Head, usePage } from '@inertiajs/vue3';
 import {
     AlertCircle,
+    BarChart3,
     Bot,
     Check,
     ChevronLeft,
@@ -15,11 +16,14 @@ import {
     Send,
     Sparkles,
     Square,
+    ThumbsDown,
+    ThumbsUp,
     Volume2,
     X,
 } from '@lucide/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import AiInfographicCard from '@/components/farmer/AiInfographicCard.vue';
+import AiPerformanceReport from '@/components/farmer/AiPerformanceReport.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import {
     MAX_ATTACHMENT_COUNT,
@@ -28,8 +32,17 @@ import {
     useAiChat,
     validateAttachments,
 } from '@/composables/useAiChat';
+import { useAiTelemetry } from '@/composables/useAiTelemetry';
 import { useAiVoice } from '@/composables/useAiVoice';
-import { infographicForPrompt } from '@/data/aiInfographics';
+import {
+    classifyAiPrompt,
+    estimateTokens,
+    normalizeAiResponse,
+    outOfScopeResponse,
+    toSpeechText,
+} from '@/services/aiChatService';
+import { queryDemoData } from '@/services/aiDemoDataService';
+import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { Team } from '@/types/teams';
 
 type PageProps = { currentTeam?: Team | null };
@@ -49,7 +62,11 @@ const {
     isLoadingConversations,
     isSending,
     error: chatError,
+    lastRequestMetrics,
 } = chat;
+const telemetry = useAiTelemetry();
+const telemetryReport = telemetry.report;
+const telemetryEvents = telemetry.events;
 
 const inputText = ref('');
 const pendingAttachments = ref<ChatAttachment[]>([]);
@@ -58,8 +75,11 @@ const messageList = ref<HTMLElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const isDragging = ref(false);
 const isHistoryOpen = ref(false);
+const isReportOpen = ref(false);
 const copiedMessageId = ref<string | null>(null);
 const speakingMessageId = ref<string | null>(null);
+const voiceInputPending = ref(false);
+const metricIds = ref<Record<string, string>>({});
 const speech = typeof window !== 'undefined' ? window.speechSynthesis : null;
 const quickPrompts = [
     '📊 Infografis: Panduan Pemupukan Jagung Optimal',
@@ -206,25 +226,82 @@ async function send(): Promise<void> {
     if (!canSend.value) return;
     const text = inputText.value;
     const attachments = [...pendingAttachments.value];
-    const infographic = infographicForPrompt(text);
-    const requestInfographic =
-        infographic !== null &&
-        /\b(infografis|diagram|visual|poster|bagan)\b/i.test(text);
+    const classification = classifyAiPrompt(text, attachments.length > 0);
+    const requestInfographic = classification.intent === 'infographic';
+    const requestMode = requestInfographic
+        ? 'infographic'
+        : voiceInputPending.value
+          ? 'voice'
+          : classification.intent === 'data'
+            ? 'data'
+            : 'text';
+    const startedAt = performance.now();
+    const localIntent =
+        attachments.length === 0 &&
+        (classification.intent === 'data' || classification.intent === 'out_of_scope');
+    if (localIntent) isSending.value = true;
     inputText.value = '';
     pendingAttachments.value = [];
+    voiceInputPending.value = false;
     autoResize();
-    await chat.sendMessage(text, attachments, requestInfographic);
-    if (infographic && !requestInfographic) {
-        await new Promise((resolve) => window.setTimeout(resolve, 450));
-        messages.value.push({
-            id: `infographic-${Date.now()}`,
-            role: 'assistant',
-            content: `### 🌿 ${infographic.title}\n\n![${infographic.imageAlt}](${infographic.image})\n\n${infographic.description}\n\n> 💧 **Air:** Sedang | ⏳ **Waktu:** Terjadwal | 📊 **Prioritas:** Utama\n\n${infographic.bullets.map((bullet, index) => `${index + 1}. **Langkah ${index + 1}**: ${bullet}`).join('\n')}\n\n> 💡 **Tips Petani:** Gunakan foto dan catatan terbaru sebelum mengambil keputusan di lapangan.`,
-            attachments: [],
-            createdAt: new Date().toISOString(),
-            status: 'complete',
-        });
+
+    if (classification.intent === 'data' && attachments.length === 0) {
+        let demoAnswer = null;
+        try {
+            demoAnswer = await queryDemoData(text);
+        } catch {
+            demoAnswer = null;
+        }
+        if (demoAnswer) {
+            await showLocalAnswer(
+                text,
+                `${demoAnswer.content}\n\nℹ️ **Sumber:** ${demoAnswer.source}`,
+                requestMode === 'voice' ? 'voice' : 'data',
+                'positive',
+                startedAt,
+                0,
+            );
+            isSending.value = false;
+            await scrollToLatest();
+            inputElement.value?.focus();
+            return;
+        }
+        isSending.value = false;
     }
+
+    if (classification.intent === 'out_of_scope' && attachments.length === 0) {
+        await showLocalAnswer(
+            text,
+            outOfScopeResponse(),
+            requestMode === 'voice' ? 'voice' : 'text',
+            'negative',
+            startedAt,
+        );
+        isSending.value = false;
+        await scrollToLatest();
+        inputElement.value?.focus();
+        return;
+    }
+
+    await chat.sendMessage(text, attachments, requestInfographic);
+    const assistant = messages.value.at(-1);
+    const metrics = lastRequestMetrics.value;
+    const responseText = normalizeAiResponse(assistant?.content ?? '');
+    const responseIsNegative = /\b(belum tersedia|di luar konteks|tidak tersedia|tidak dapat membantu)\b/i.test(responseText);
+    const metricId = telemetry.record({
+        mode: requestMode,
+        status:
+            metrics?.status === 'error' || metrics?.status === 'aborted' || assistant?.status === 'error'
+                ? 'error'
+                : responseIsNegative
+                  ? 'negative'
+                  : 'positive',
+        latencyMs: metrics?.latencyMs ?? Math.round(performance.now() - startedAt),
+        firstTokenMs: metrics?.firstTokenMs,
+        inputTokens: estimateTokens(text),
+        outputTokens: estimateTokens(responseText),
+    });
+    if (assistant) metricIds.value[assistant.id] = metricId;
     await scrollToLatest();
     inputElement.value?.focus();
 }
@@ -254,7 +331,7 @@ async function speak(message: ChatMessage): Promise<void> {
         return;
     }
     if (!speech) return;
-    const utterance = new SpeechSynthesisUtterance(message.content);
+    const utterance = new SpeechSynthesisUtterance(toSpeechText(message.content));
     utterance.lang = 'id-ID';
     utterance.rate = 0.92;
     utterance.onend = () => {
@@ -278,6 +355,61 @@ async function copyMessage(message: ChatMessage): Promise<void> {
     }
 }
 
+function setFeedback(message: ChatMessage, feedback: 'up' | 'down'): void {
+    message.feedback = feedback;
+    if (message.feedback) {
+        const metricId = metricIds.value[message.id];
+        if (metricId) telemetry.updateFeedback(metricId, message.feedback);
+    }
+}
+
+function resetDemoData(): void {
+    clearDemoStorage();
+    window.location.reload();
+}
+
+async function showLocalAnswer(
+    userText: string,
+    answer: string,
+    mode: 'text' | 'data' | 'voice',
+    status: 'positive' | 'negative',
+    startedAt: number,
+    delayMs = 420,
+): Promise<void> {
+    const now = new Date().toISOString();
+    const userId = `local-user-${Date.now()}`;
+    const assistantId = `local-assistant-${Date.now() + 1}`;
+    messages.value.push(
+        {
+            id: userId,
+            role: 'user',
+            content: userText,
+            attachments: [],
+            createdAt: now,
+            status: 'complete',
+        },
+        {
+            id: assistantId,
+            role: 'assistant',
+            content: answer,
+            attachments: [],
+            createdAt: new Date().toISOString(),
+            status: 'complete',
+        },
+    );
+    if (delayMs > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+    }
+    const metricId = telemetry.record({
+        mode,
+        status,
+        latencyMs: Math.round(performance.now() - startedAt),
+        inputTokens: estimateTokens(userText),
+        outputTokens: estimateTokens(answer),
+    });
+    metricIds.value[assistantId] = metricId;
+}
+
 function retryLast(): void {
     const failedIndex = [...messages.value]
         .reverse()
@@ -288,7 +420,9 @@ function retryLast(): void {
     if (!previous || previous.role !== 'user') return;
     messages.value.splice(index, 1);
     messages.value.splice(index - 1, 1);
-    void chat.sendMessage(previous.content, previous.attachments);
+    inputText.value = previous.content;
+    pendingAttachments.value = [...previous.attachments];
+    void send();
 }
 
 function selectConversation(id: string): void {
@@ -317,6 +451,7 @@ watch(
     (transcribing, wasTranscribing) => {
         if (wasTranscribing && !transcribing && voice.transcript.value) {
             inputText.value = voice.transcript.value;
+            voiceInputPending.value = true;
             autoResize();
             inputElement.value?.focus();
         }
@@ -332,6 +467,7 @@ watch(
             voice.transcript.value
         ) {
             inputText.value = voice.transcript.value;
+            voiceInputPending.value = true;
             autoResize();
             inputElement.value?.focus();
         }
@@ -438,6 +574,14 @@ onUnmounted(() => {
                 </div>
                 <button
                     type="button"
+                    aria-label="Buka laporan performa AI"
+                    class="flex size-9 items-center justify-center rounded-full text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    @click="isReportOpen = true"
+                >
+                    <BarChart3 :size="19" stroke-width="1.8" />
+                </button>
+                <button
+                    type="button"
                     aria-label="Percakapan baru"
                     class="flex size-9 items-center justify-center rounded-full text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     @click="newConversation"
@@ -470,7 +614,7 @@ onUnmounted(() => {
                         class="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-secondary"
                     >
                         <Sparkles :size="13" />
-                        <span>Mode Infografis Aktif</span>
+                        <span>Mode respons adaptif</span>
                     </div>
                     <h1
                         class="text-xl font-semibold tracking-tight text-foreground"
@@ -481,8 +625,8 @@ onUnmounted(() => {
                         class="mt-2 max-w-[280px] text-sm leading-relaxed text-muted-foreground"
                     >
                         Tanyakan kondisi kebun, aktivitas, atau panduan visual
-                        pertanian Anda. Jawaban disajikan dalam format
-                        infografis ringkas dan mudah dipahami.
+                        pertanian Anda. AI akan memilih format data, jawaban,
+                        atau infografis yang paling sesuai.
                     </p>
                     <div class="mt-6 flex w-full flex-col gap-2">
                         <button
@@ -604,6 +748,30 @@ onUnmounted(() => {
                             </div>
                         </div>
                         <div
+                            v-if="message.role === 'assistant' && message.status === 'complete' && message.content"
+                            class="mt-1 flex items-center justify-start gap-1 px-1 text-[10px] text-muted-foreground"
+                        >
+                            <span class="mr-1">Membantu?</span>
+                            <button
+                                type="button"
+                                class="rounded p-1 transition hover:bg-muted hover:text-success"
+                                :class="message.feedback === 'up' ? 'bg-success/10 text-success' : ''"
+                                aria-label="Jawaban membantu"
+                                @click="setFeedback(message, 'up')"
+                            >
+                                <ThumbsUp :size="12" />
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded p-1 transition hover:bg-muted hover:text-error"
+                                :class="message.feedback === 'down' ? 'bg-error/10 text-error' : ''"
+                                aria-label="Jawaban kurang membantu"
+                                @click="setFeedback(message, 'down')"
+                            >
+                                <ThumbsDown :size="12" />
+                            </button>
+                        </div>
+                        <div
                             class="mt-1 flex items-center gap-2 px-1 text-[10px] text-muted-foreground"
                             :class="
                                 message.role === 'user'
@@ -717,7 +885,31 @@ onUnmounted(() => {
                     >
                 </div>
                 <div
-                    v-if="voice.isRecording.value"
+                    v-if="voice.isPreparing.value"
+                    role="status"
+                    aria-live="polite"
+                    class="mb-2 flex items-center gap-3 rounded-xl border border-border bg-muted px-3 py-2.5 text-xs text-foreground"
+                >
+                    <span
+                        class="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground"
+                        ><LoaderCircle :size="15" class="animate-spin"
+                    /></span>
+                    <span class="flex min-w-0 flex-1 flex-col">
+                        <span class="font-semibold">Menyiapkan mikrofon</span>
+                        <span class="text-[11px] text-muted-foreground"
+                            >Izinkan akses mikrofon jika browser memintanya.</span
+                        >
+                    </span>
+                    <button
+                        type="button"
+                        class="shrink-0 rounded-lg px-2 py-1 font-semibold text-muted-foreground transition hover:bg-background hover:text-foreground"
+                        @click="voice.cancelPreparing"
+                    >
+                        Batal
+                    </button>
+                </div>
+                <div
+                    v-else-if="voice.isRecording.value"
                     role="status"
                     aria-live="polite"
                     class="mb-2 flex items-center gap-3 rounded-xl border border-error/20 bg-error/5 px-3 py-2.5 text-xs text-foreground"
@@ -733,8 +925,11 @@ onUnmounted(() => {
                     <span class="flex min-w-0 flex-1 flex-col">
                         <span class="font-semibold">Rekaman aktif</span>
                         <span class="truncate text-[11px] text-muted-foreground"
-                            >Silakan bicara, tekan Selesai jika sudah
-                            cukup.</span
+                            >{{
+                                voice.recordingMode.value === 'browser'
+                                    ? 'Dikte browser aktif · hasil bisa diedit.'
+                                    : 'Suara diproses menjadi teks, lalu bisa diedit.'
+                            }}</span
                         >
                     </span>
                     <span
@@ -810,11 +1005,13 @@ onUnmounted(() => {
                         :aria-label="
                             voice.isRecording.value
                                 ? 'Hentikan rekaman'
+                            : voice.isPreparing.value
+                              ? 'Menunggu izin mikrofon'
                                 : voice.isTranscribing.value
                                   ? 'Menunggu transkrip suara'
                                   : 'Rekam pesan suara'
                         "
-                        :disabled="voice.isTranscribing.value"
+                        :disabled="voice.isTranscribing.value || voice.isPreparing.value"
                         class="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         :class="
                             voice.isRecording.value
@@ -932,6 +1129,13 @@ onUnmounted(() => {
                     </div>
                 </div>
             </aside>
+            <AiPerformanceReport
+                v-if="isReportOpen"
+                :report="telemetryReport"
+                :events="telemetryEvents"
+                @close="isReportOpen = false"
+                @reset="resetDemoData"
+            />
         </section>
     </FarmerMobileShell>
 </template>

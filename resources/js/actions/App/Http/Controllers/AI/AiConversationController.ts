@@ -210,7 +210,7 @@ store.form = storeForm
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}'
 */
-export const show = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+export const show = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     url: show.url(args, options),
     method: 'get',
 })
@@ -226,7 +226,7 @@ show.definition = {
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}'
 */
-show.url = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions) => {
+show.url = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions) => {
     if (Array.isArray(args)) {
         args = {
             current_team: args[0],
@@ -261,7 +261,7 @@ show.url = (args: { current_team?: string | { slug: string }, conversation: stri
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}'
 */
-show.get = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+show.get = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     url: show.url(args, options),
     method: 'get',
 })
@@ -272,7 +272,7 @@ show.get = (args: { current_team?: string | { slug: string }, conversation: stri
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}'
 */
-show.head = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+show.head = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     url: show.url(args, options),
     method: 'head',
 })
@@ -283,7 +283,7 @@ show.head = (args: { current_team?: string | { slug: string }, conversation: str
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}'
 */
-const showForm = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+const showForm = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: show.url(args, options),
     method: 'get',
 })
@@ -294,7 +294,7 @@ const showForm = (args: { current_team?: string | { slug: string }, conversation
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}'
 */
-showForm.get = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+showForm.get = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: show.url(args, options),
     method: 'get',
 })
@@ -305,7 +305,7 @@ showForm.get = (args: { current_team?: string | { slug: string }, conversation: 
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}'
 */
-showForm.head = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+showForm.head = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
     action: show.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'HEAD',

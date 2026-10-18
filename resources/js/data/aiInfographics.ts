@@ -10,8 +10,8 @@ export type AiInfographic = {
 
 /** Demo-only visual generation policy. The real provider can replace this service later. */
 export const infographicGenerationConfig = {
-    primaryModel: 'gpt-enterprise-high',
-    fallbackModels: ['gpt-enterprise-standard', 'vision-fallback'],
+    primaryModel: 'google/gemini-2.5-flash-image',
+    fallbackModels: ['google/gemini-3.1-flash-image', 'google/gemini-3-pro-image'],
     maxVisualsPerReply: 1,
 };
 
@@ -31,9 +31,9 @@ const smartFarmingInfographic: AiInfographic = {
 };
 
 const agriculturalTopic =
-    /\b(kebun|tanaman|padi|jagung|kedelai|irigasi|tanah|cuaca|pertanian|pupuk|hama)\b/i;
+    /\b(kebun|tanaman|padi|jagung|kedelai|cabai|tomat|bawang|irigasi|tanah|cuaca|pertanian|pupuk|hama|panen)\b/i;
 const visualIntent =
-    /\b(gambar|foto|visual|infografis|diagram|ilustrasi|tunjukkan|lihat|seperti apa)\b/i;
+    /\b(gambar|foto|visual|infografis|diagram|ilustrasi|tunjukkan|tampilkan|gambarkan|buatkan|poster|bagan|skema|alur|lihat|seperti apa)\b/i;
 const educationalIntent =
     /\b(apa itu|jelaskan|pengertian|mengenal|bagaimana cara)\b/i;
 

@@ -5,7 +5,7 @@ import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFo
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}/messages'
 */
-export const store = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+export const store = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: store.url(args, options),
     method: 'post',
 })
@@ -21,7 +21,7 @@ store.definition = {
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}/messages'
 */
-store.url = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions) => {
+store.url = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions) => {
     if (Array.isArray(args)) {
         args = {
             current_team: args[0],
@@ -56,7 +56,7 @@ store.url = (args: { current_team?: string | { slug: string }, conversation: str
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}/messages'
 */
-store.post = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+store.post = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: store.url(args, options),
     method: 'post',
 })
@@ -67,7 +67,7 @@ store.post = (args: { current_team?: string | { slug: string }, conversation: st
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}/messages'
 */
-const storeForm = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const storeForm = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: store.url(args, options),
     method: 'post',
 })
@@ -78,7 +78,7 @@ const storeForm = (args: { current_team?: string | { slug: string }, conversatio
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/conversations/{conversation}/messages'
 */
-storeForm.post = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+storeForm.post = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: store.url(args, options),
     method: 'post',
 })

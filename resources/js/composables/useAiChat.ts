@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import type { Team } from '@/types/teams';
+import { normalizeAiResponse } from '@/services/aiChatService';
 
 export type ChatRole = 'user' | 'assistant' | 'system';
 export type MessageStatus = 'sending' | 'streaming' | 'complete' | 'error';
@@ -23,6 +24,13 @@ export type ChatMessage = {
     createdAt: string;
     status: MessageStatus;
     error?: string;
+    feedback?: 'up' | 'down';
+};
+
+export type AiRequestMetrics = {
+    latencyMs: number;
+    firstTokenMs?: number;
+    status: 'complete' | 'error' | 'aborted';
 };
 
 export type Conversation = {
@@ -121,7 +129,7 @@ function parseMessage(value: unknown): ChatMessage | null {
     return {
         id: stringValue(item.id, id('message')),
         role,
-        content: text,
+        content: role === 'assistant' ? normalizeAiResponse(text) : text,
         attachments: Array.isArray(item.attachments)
             ? (item.attachments as ChatAttachment[])
             : [],
@@ -261,6 +269,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
     const isLoadingConversations = ref(false);
     const isSending = ref(false);
     const error = ref<string | null>(null);
+    const lastRequestMetrics = ref<AiRequestMetrics | null>(null);
     let controller: AbortController | null = null;
 
     const currentConversation = computed(() =>
@@ -343,6 +352,9 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
 
         error.value = null;
         isSending.value = true;
+        const startedAt = performance.now();
+        let firstDeltaAt: number | undefined;
+        lastRequestMetrics.value = null;
         const userMessage: ChatMessage = {
             id: id('user'),
             role: 'user',
@@ -361,6 +373,11 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         };
         messages.value.push(userMessage, assistantMessage);
         controller = new AbortController();
+        let didTimeout = false;
+        const requestTimeout = window.setTimeout(() => {
+            didTimeout = true;
+            controller?.abort();
+        }, 90_000);
 
         const endpoint =
             endpoints.messages ??
@@ -408,19 +425,23 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (parsed.conversationId)
                     conversationId.value = parsed.conversationId;
                 if (parsed.message) {
-                    assistantMessage.content = parsed.message.content;
+                    assistantMessage.content = normalizeAiResponse(parsed.message.content);
                     if (parsed.message.attachments.length > 0) {
                         assistantMessage.attachments =
                             parsed.message.attachments;
                     }
                 } else if (parsed.delta) {
+                    if (firstDeltaAt === undefined) firstDeltaAt = performance.now();
                     assistantMessage.content += parsed.delta;
                 }
                 if (parsed.error) {
                     assistantMessage.error = parsed.error;
                     assistantMessage.status = 'error';
                 }
-                if (parsed.done) assistantMessage.status = 'complete';
+                if (parsed.done) {
+                    assistantMessage.content = normalizeAiResponse(assistantMessage.content);
+                    assistantMessage.status = 'complete';
+                }
             };
 
             if (isSse(response)) {
@@ -455,12 +476,21 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             }
 
             if (assistantMessage.status === 'streaming') {
+                assistantMessage.content = normalizeAiResponse(assistantMessage.content);
                 assistantMessage.status = assistantMessage.content
                     ? 'complete'
                     : 'error';
             }
             if (assistantMessage.status === 'error' && !assistantMessage.error)
                 assistantMessage.error = 'Jawaban kosong dari server.';
+            lastRequestMetrics.value = {
+                latencyMs: Math.round(performance.now() - startedAt),
+                firstTokenMs:
+                    firstDeltaAt === undefined
+                        ? undefined
+                        : Math.round(firstDeltaAt - startedAt),
+                status: assistantMessage.status === 'error' ? 'error' : 'complete',
+            };
             if (receivedConversation) {
                 addConversation(receivedConversation);
             } else if (conversationId.value) {
@@ -474,15 +504,39 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 });
             }
         } catch (cause) {
-            if (cause instanceof DOMException && cause.name === 'AbortError')
+            if (cause instanceof DOMException && cause.name === 'AbortError') {
+                if (didTimeout) {
+                    assistantMessage.status = 'error';
+                    assistantMessage.error =
+                        'Jawaban terlalu lama. Coba kirim pertanyaan yang lebih singkat.';
+                    error.value = assistantMessage.error;
+                }
+                lastRequestMetrics.value = {
+                    latencyMs: Math.round(performance.now() - startedAt),
+                    firstTokenMs:
+                        firstDeltaAt === undefined
+                            ? undefined
+                            : Math.round(firstDeltaAt - startedAt),
+                    status: didTimeout ? 'error' : 'aborted',
+                };
                 return;
+            }
             assistantMessage.status = 'error';
             assistantMessage.error =
                 cause instanceof Error
                     ? cause.message
                     : 'Terjadi kesalahan saat menghubungi AI.';
             error.value = assistantMessage.error;
+            lastRequestMetrics.value = {
+                latencyMs: Math.round(performance.now() - startedAt),
+                firstTokenMs:
+                    firstDeltaAt === undefined
+                        ? undefined
+                        : Math.round(firstDeltaAt - startedAt),
+                status: 'error',
+            };
         } finally {
+            window.clearTimeout(requestTimeout);
             isSending.value = false;
             controller = null;
         }
@@ -508,6 +562,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         isLoadingConversations,
         isSending,
         error,
+        lastRequestMetrics,
         loadConversations,
         loadConversation,
         newConversation,

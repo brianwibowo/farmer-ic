@@ -1,4 +1,5 @@
 import { onBeforeUnmount, ref } from 'vue';
+import { toSpeechText } from '@/services/aiChatService';
 
 type SpeechRecognitionEventLike = Event & {
     results: ArrayLike<ArrayLike<{ transcript: string }>>;
@@ -58,12 +59,14 @@ export function useAiVoice(
     synthesisEndpoint = '/ai/voice/synthesize',
 ) {
     const isRecording = ref(false);
+    const isPreparing = ref(false);
     const isTranscribing = ref(false);
     const transcript = ref('');
     const error = ref<string | null>(null);
     const audioUrl = ref<string | null>(null);
     const isSpeaking = ref(false);
     const elapsedSeconds = ref(0);
+    const recordingMode = ref<'server' | 'browser' | null>(null);
     let mediaRecorder: MediaRecorder | null = null;
     let mediaStream: MediaStream | null = null;
     let chunks: Blob[] = [];
@@ -71,6 +74,7 @@ export function useAiVoice(
     let recognition: SpeechRecognitionLike | null = null;
     let speechAudio: HTMLAudioElement | null = null;
     let speechAudioUrl: string | null = null;
+    let preparationRun = 0;
 
     function clearTimer(): void {
         if (timer !== null) window.clearInterval(timer);
@@ -92,6 +96,8 @@ export function useAiVoice(
 
     async function speakText(text: string): Promise<boolean> {
         stopSpeaking();
+        const speechText = toSpeechText(text);
+        if (!speechText) return false;
 
         try {
             const response = await fetch(synthesisEndpoint, {
@@ -100,7 +106,7 @@ export function useAiVoice(
                     ...voiceHeaders(),
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ text }),
+                body: JSON.stringify({ text: speechText }),
             });
             if (!response.ok) return false;
 
@@ -133,7 +139,12 @@ export function useAiVoice(
         const Recognition =
             window.SpeechRecognition ?? window.webkitSpeechRecognition;
         if (!Recognition) return false;
-        recognition = new Recognition();
+        try {
+            recognition = new Recognition();
+        } catch {
+            return false;
+        }
+        recordingMode.value = 'browser';
         recognition.lang = 'id-ID';
         recognition.interimResults = true;
         recognition.continuous = true;
@@ -147,11 +158,22 @@ export function useAiVoice(
         recognition.onerror = () => {
             error.value =
                 'Pengenalan suara di browser gagal. Coba bicara lagi.';
+            clearTimer();
+            isRecording.value = false;
+            recordingMode.value = null;
         };
         recognition.onend = () => {
             recognition = null;
+            clearTimer();
+            isRecording.value = false;
         };
-        recognition.start();
+        try {
+            recognition.start();
+        } catch {
+            recognition = null;
+            recordingMode.value = null;
+            return false;
+        }
         return true;
     }
 
@@ -193,15 +215,31 @@ export function useAiVoice(
 
     async function startRecording(): Promise<void> {
         if (isRecording.value) return;
+        const currentRun = ++preparationRun;
+        isPreparing.value = true;
+        const preparationTimeout = window.setTimeout(() => {
+            if (currentRun !== preparationRun) return;
+            isPreparing.value = false;
+            error.value =
+                'Izin mikrofon belum diberikan. Coba lagi atau gunakan dikte browser.';
+        }, 15_000);
         error.value = null;
         transcript.value = '';
         clearAudioUrl();
         elapsedSeconds.value = 0;
 
         try {
+            if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+                throw new Error('MediaRecorder tidak tersedia.');
+            }
             mediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
             });
+            if (currentRun !== preparationRun) {
+                mediaStream.getTracks().forEach((track) => track.stop());
+                mediaStream = null;
+                return;
+            }
             chunks = [];
             const options = MediaRecorder.isTypeSupported(
                 'audio/webm;codecs=opus',
@@ -209,6 +247,7 @@ export function useAiVoice(
                 ? { mimeType: 'audio/webm;codecs=opus' }
                 : undefined;
             mediaRecorder = new MediaRecorder(mediaStream, options);
+            recordingMode.value = 'server';
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) chunks.push(event.data);
             };
@@ -242,8 +281,21 @@ export function useAiVoice(
                         : 'Mikrofon tidak tersedia di perangkat ini.';
             } else {
                 isRecording.value = true;
+                timer = window.setInterval(() => {
+                    elapsedSeconds.value += 1;
+                    if (elapsedSeconds.value >= MAX_RECORDING_SECONDS) stopRecording();
+                }, 1000);
             }
+        } finally {
+            window.clearTimeout(preparationTimeout);
+            if (currentRun === preparationRun) isPreparing.value = false;
         }
+    }
+
+    function cancelPreparing(): void {
+        preparationRun += 1;
+        isPreparing.value = false;
+        error.value = 'Permintaan mikrofon dibatalkan.';
     }
 
     function stopRecording(): void {
@@ -252,22 +304,27 @@ export function useAiVoice(
             recognition.stop();
             recognition = null;
             isRecording.value = false;
+            recordingMode.value = null;
             return;
         }
         if (!mediaRecorder || mediaRecorder.state === 'inactive') {
             isRecording.value = false;
+            recordingMode.value = null;
             return;
         }
         mediaRecorder.stop();
         isRecording.value = false;
+        recordingMode.value = null;
     }
 
     function resetVoice(): void {
+        preparationRun += 1;
         stopRecording();
         transcript.value = '';
         error.value = null;
         clearAudioUrl();
         elapsedSeconds.value = 0;
+        recordingMode.value = null;
     }
 
     onBeforeUnmount(() => {
@@ -279,13 +336,16 @@ export function useAiVoice(
 
     return {
         isRecording,
+        isPreparing,
         isTranscribing,
         transcript,
         error,
         audioUrl,
         isSpeaking,
         elapsedSeconds,
+        recordingMode,
         startRecording,
+        cancelPreparing,
         stopRecording,
         resetVoice,
         speakText,

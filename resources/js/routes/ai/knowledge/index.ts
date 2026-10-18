@@ -210,7 +210,7 @@ store.form = storeForm
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
-export const update = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
+export const update = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
     url: update.url(args, options),
     method: 'patch',
 })
@@ -226,7 +226,7 @@ update.definition = {
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
-update.url = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions) => {
+update.url = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions) => {
     if (Array.isArray(args)) {
         args = {
             current_team: args[0],
@@ -261,7 +261,7 @@ update.url = (args: { current_team?: string | { slug: string }, document: string
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
-update.patch = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
+update.patch = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
     url: update.url(args, options),
     method: 'patch',
 })
@@ -272,7 +272,7 @@ update.patch = (args: { current_team?: string | { slug: string }, document: stri
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
-const updateForm = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const updateForm = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: update.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PATCH',
@@ -288,7 +288,7 @@ const updateForm = (args: { current_team?: string | { slug: string }, document: 
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
-updateForm.patch = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+updateForm.patch = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: update.url(args, {
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'PATCH',
@@ -306,7 +306,7 @@ update.form = updateForm
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
-export const publish = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+export const publish = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: publish.url(args, options),
     method: 'post',
 })
@@ -322,7 +322,7 @@ publish.definition = {
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
-publish.url = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions) => {
+publish.url = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions) => {
     if (Array.isArray(args)) {
         args = {
             current_team: args[0],
@@ -357,7 +357,7 @@ publish.url = (args: { current_team?: string | { slug: string }, document: strin
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
-publish.post = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+publish.post = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: publish.url(args, options),
     method: 'post',
 })
@@ -368,7 +368,7 @@ publish.post = (args: { current_team?: string | { slug: string }, document: stri
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
-const publishForm = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const publishForm = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: publish.url(args, options),
     method: 'post',
 })
@@ -379,7 +379,7 @@ const publishForm = (args: { current_team?: string | { slug: string }, document:
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
-publishForm.post = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+publishForm.post = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: publish.url(args, options),
     method: 'post',
 })
@@ -392,7 +392,7 @@ publish.form = publishForm
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
-export const archive = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+export const archive = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: archive.url(args, options),
     method: 'post',
 })
@@ -408,7 +408,7 @@ archive.definition = {
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
-archive.url = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions) => {
+archive.url = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions) => {
     if (Array.isArray(args)) {
         args = {
             current_team: args[0],
@@ -443,7 +443,7 @@ archive.url = (args: { current_team?: string | { slug: string }, document: strin
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
-archive.post = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+archive.post = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: archive.url(args, options),
     method: 'post',
 })
@@ -454,7 +454,7 @@ archive.post = (args: { current_team?: string | { slug: string }, document: stri
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
-const archiveForm = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+const archiveForm = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: archive.url(args, options),
     method: 'post',
 })
@@ -465,7 +465,7 @@ const archiveForm = (args: { current_team?: string | { slug: string }, document:
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
-archiveForm.post = (args: { current_team?: string | { slug: string }, document: string | number | { id: string | number } } | [current_team: string | { slug: string }, document: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+archiveForm.post = (args: { current_team?: string | { slug: string }, document: number | { id: number } } | [current_team: string | { slug: string }, document: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
     action: archive.url(args, options),
     method: 'post',
 })
