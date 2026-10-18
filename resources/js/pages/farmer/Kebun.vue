@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import {
-    Activity,
-    ChevronDown,
+    CalendarDays,
+    CheckCircle2,
+    ChevronRight,
+    CircleAlert,
+    CircleX,
     LandPlot,
     MapPin,
     Search,
@@ -10,22 +13,17 @@ import {
 } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
-import { listKebun } from '@/services/kebunService';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
-import type { Kebun, SeedType } from '@/data/kebun';
+import type { SeedType } from '@/data/kebun';
+import { listMappedKebun, type MappedKebun } from '@/services/kebunService';
 
-const kebun = ref<Kebun[]>([]);
+const kebun = ref<MappedKebun[]>([]);
 const searchQuery = ref('');
-const selectedSeed = ref<'' | 'all' | SeedType>('');
+const selectedSeed = ref<'all' | SeedType>('all');
 const isLoading = ref(true);
 const errorMessage = ref('');
 const resetMessage = ref('');
-const seedOptions: Array<'all' | SeedType> = [
-    'all',
-    'Jagung',
-    'Rumput',
-    'Kedelai',
-];
+const seedOptions: Array<'all' | SeedType> = ['all', 'Jagung', 'Rumput', 'Kedelai'];
 
 const filteredKebun = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
@@ -34,33 +32,36 @@ const filteredKebun = computed(() => {
         const searchable = [
             item.name,
             item.city,
-            item.usedHectare.toString(),
-            item.availableHectare.toString(),
-            `${item.usedHectare}/${item.availableHectare} ha`,
+            item.district,
             item.seedType,
+            item.seedTypeDetail ?? '',
             item.healthStatus,
-            item.image,
         ]
             .join(' ')
             .toLocaleLowerCase();
         const matchesSearch = !query || searchable.includes(query);
-        const matchesSeed =
-            selectedSeed.value === '' ||
-            selectedSeed.value === 'all' ||
-            item.seedType === selectedSeed.value;
+        const matchesSeed = selectedSeed.value === 'all' || item.seedType === selectedSeed.value;
 
         return matchesSearch && matchesSeed;
     });
 });
 
+const healthyCount = computed(() => kebun.value.filter((item) => item.healthStatus === 'Sehat').length);
+const attentionCount = computed(() => kebun.value.filter((item) => item.healthStatus === 'Perlu Perhatian').length);
+const criticalCount = computed(() => kebun.value.filter((item) => item.healthStatus === 'Kritis').length);
+
 function formatHectare(value: number): string {
     return new Intl.NumberFormat('id-ID').format(value);
 }
 
-function healthClass(status: Kebun['healthStatus']): string {
-    if (status === 'Sehat') return 'text-success';
-    if (status === 'Kritis') return 'text-error';
-    return 'text-warning';
+function healthMeta(status: MappedKebun['healthStatus']) {
+    if (status === 'Sehat') {
+        return { icon: CheckCircle2, label: 'Sehat', class: 'border-success/25 bg-success/10 text-success' };
+    }
+    if (status === 'Kritis') {
+        return { icon: CircleX, label: 'Kritis', class: 'border-error/25 bg-error/10 text-error' };
+    }
+    return { icon: CircleAlert, label: 'Perlu perhatian', class: 'border-warning/30 bg-warning/15 text-warning' };
 }
 
 async function loadKebun(): Promise<void> {
@@ -68,7 +69,7 @@ async function loadKebun(): Promise<void> {
     errorMessage.value = '';
 
     try {
-        kebun.value = await listKebun();
+        kebun.value = await listMappedKebun();
     } catch {
         errorMessage.value = 'Data kebun belum dapat dimuat. Coba lagi.';
     } finally {
@@ -89,197 +90,146 @@ onMounted(() => void loadKebun());
     <Head title="Kebun" />
 
     <FarmerMobileShell active-key="garden">
-        <div class="px-4 pt-16 pb-5">
-            <div class="flex items-center justify-between gap-3">
-                <h1
-                    class="text-[20px] leading-7 font-semibold text-card-foreground"
-                >
-                    List Kebun
-                </h1>
+        <div data-kebun-list class="px-4 pt-5 pb-5">
+            <header class="flex items-start justify-between gap-3">
+                <div>
+                    <!-- <p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Ruang kerja petani</p> -->
+                    <h1 class="mt-1 text-[22px] leading-7 font-semibold text-foreground">Daftar Kebun</h1>
+                </div>
                 <button
                     type="button"
-                    class="text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    class="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-success hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     @click="void resetDemoData()"
                 >
                     Reset demo
                 </button>
-            </div>
+            </header>
 
-            <div class="mt-4 flex gap-2">
+            <section class="mt-5" aria-label="Ringkasan kondisi kebun">
+                <div class="flex items-center justify-between rounded-2xl border border-primary/20 bg-surface/35 p-4">
+                    <div>
+                        <p class="text-xs text-muted-foreground">Total kebun terdaftar</p>
+                        <p class="mt-1 text-3xl leading-9 font-semibold text-secondary">{{ kebun.length }}</p>
+                    </div>
+                    <span class="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                        <LandPlot :size="22" aria-hidden="true" />
+                    </span>
+                </div>
+                <div class="mt-3 grid grid-cols-3 gap-2">
+                    <article class="flex items-center gap-1.5 rounded-2xl border border-success/25 bg-success/10 px-2 py-2.5">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-success/15 text-success">
+                            <component :is="healthMeta('Sehat').icon" :size="15" aria-hidden="true" />
+                        </span>
+                        <p class="text-lg leading-6 font-semibold text-success">{{ healthyCount }}</p>
+                        <p class="truncate text-[10px] font-medium text-success/80">Sehat</p>
+                    </article>
+                    <article class="flex items-center gap-1.5 rounded-2xl border border-warning/30 bg-warning/15 px-2 py-2.5">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning">
+                            <component :is="healthMeta('Perlu Perhatian').icon" :size="15" aria-hidden="true" />
+                        </span>
+                        <p class="text-lg leading-6 font-semibold text-warning">{{ attentionCount }}</p>
+                        <p class="truncate text-[10px] font-medium text-warning">Perhatian</p>
+                    </article>
+                    <article class="flex items-center gap-1.5 rounded-2xl border border-error/25 bg-error/10 px-2 py-2.5">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-error/10 text-error">
+                            <component :is="healthMeta('Kritis').icon" :size="15" aria-hidden="true" />
+                        </span>
+                        <p class="text-lg leading-6 font-semibold text-error">{{ criticalCount }}</p>
+                        <p class="truncate text-[10px] font-medium text-error">Kritis</p>
+                    </article>
+                </div>
+            </section>
+
+            <div class="mt-5 flex gap-2">
                 <label class="relative min-w-0 flex-1">
                     <span class="sr-only">Cari kebun</span>
                     <input
                         v-model="searchQuery"
                         type="search"
-                        placeholder="Cari kata kunci"
-                        class="h-[38px] w-full rounded-lg border border-primary bg-card px-3 pr-10 text-[14px] text-card-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
+                        placeholder="Cari nama, lokasi, atau komoditas"
+                        class="h-11 w-full rounded-xl border border-border bg-card px-3 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
-                    <Search
-                        :size="20"
-                        :stroke-width="1.8"
-                        class="absolute top-1/2 right-3 -translate-y-1/2 text-primary"
-                        aria-hidden="true"
-                    />
+                    <Search :size="19" :stroke-width="1.8" class="absolute top-1/2 right-3 -translate-y-1/2 text-primary" aria-hidden="true" />
                 </label>
+            </div>
 
-                <label class="relative w-[94px] shrink-0">
-                    <span class="sr-only">Filter jenis benih</span>
-                    <select
-                        v-model="selectedSeed"
-                        class="h-[38px] w-full appearance-none rounded-lg border border-primary bg-card px-3 pr-7 text-[14px] text-card-foreground outline-none focus:ring-2 focus:ring-primary/30"
+            <div class="mt-2.5" role="group" aria-label="Filter kategori komoditas">
+                <div class="period-chip-row flex items-center gap-1.5 overflow-x-auto">
+                    <button
+                        v-for="option in seedOptions"
+                        :key="option"
+                        type="button"
+                        :aria-pressed="selectedSeed === option"
+                        :class="[
+                            'inline-flex h-[34px] min-w-0 flex-1 items-center justify-center rounded-lg border px-2.5 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                            selectedSeed === option
+                                ? 'border-secondary bg-secondary text-secondary-foreground'
+                                : 'border-border bg-card text-foreground hover:border-primary hover:text-secondary',
+                        ]"
+                        @click="selectedSeed = option"
                     >
-                        <option value="" disabled hidden>Benih</option>
-                        <option
-                            v-for="option in seedOptions"
-                            :key="option"
-                            :value="option"
-                        >
-                            {{ option === 'all' ? 'Semua' : option }}
-                        </option>
-                    </select>
-                    <ChevronDown
-                        :size="16"
-                        :stroke-width="1.8"
-                        class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary"
-                        aria-hidden="true"
-                    />
-                </label>
+                        <span class="truncate">{{ option === 'all' ? 'Semua' : option }}</span>
+                    </button>
+                </div>
             </div>
 
-            <div
-                v-if="resetMessage"
-                class="mt-4 flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm text-success"
-                role="status"
-            >
+            <div v-if="resetMessage" class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-success/25 bg-success/10 px-3 py-2.5 text-xs text-success" role="status">
                 <span>{{ resetMessage }}</span>
-                <button
-                    type="button"
-                    class="shrink-0 rounded px-1 text-lg leading-none text-success/80 hover:text-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    aria-label="Tutup notifikasi"
-                    @click="resetMessage = ''"
-                >
-                    &times;
-                </button>
+                <button type="button" class="rounded p-1 text-base leading-none hover:bg-success/10 focus-visible:outline-2 focus-visible:outline-ring" aria-label="Tutup notifikasi" @click="resetMessage = ''">&times;</button>
             </div>
 
-            <div
-                v-if="isLoading"
-                class="mt-6 space-y-6"
-                aria-live="polite"
-                aria-label="Memuat data kebun"
-            >
-                <div
-                    v-for="index in 5"
-                    :key="index"
-                    class="flex animate-pulse gap-5"
-                >
-                    <div
-                        class="h-[74px] w-[78px] shrink-0 rounded-sm bg-muted"
-                    />
-                    <div class="flex-1 space-y-3 pt-1">
-                        <div class="h-4 w-36 rounded bg-muted" />
-                        <div class="h-3 w-28 rounded bg-muted" />
-                        <div class="h-3 w-32 rounded bg-muted" />
+            <div v-if="isLoading" class="mt-5 space-y-3" aria-live="polite" aria-label="Memuat data kebun">
+                <div v-for="index in 4" :key="index" class="flex gap-3 rounded-2xl border border-border bg-card p-3">
+                    <div class="size-[84px] shrink-0 animate-pulse rounded-xl bg-muted" />
+                    <div class="min-w-0 flex-1 space-y-3 pt-1">
+                        <div class="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                        <div class="h-3 w-1/2 animate-pulse rounded bg-muted" />
+                        <div class="h-3 w-2/3 animate-pulse rounded bg-muted" />
                     </div>
                 </div>
             </div>
 
-            <p
-                v-else-if="errorMessage"
-                class="mt-4 rounded-lg bg-error/10 px-3 py-2 text-sm text-error"
-            >
+            <div v-else-if="errorMessage" class="mt-5 rounded-2xl border border-error/25 bg-error/10 px-4 py-4 text-sm text-error" role="alert">
                 {{ errorMessage }}
-            </p>
-
-            <div
-                v-else-if="filteredKebun.length === 0"
-                class="mt-12 rounded-xl bg-muted px-5 py-8 text-center"
-            >
-                <LandPlot
-                    :size="34"
-                    class="mx-auto text-primary"
-                    aria-hidden="true"
-                />
-                <h2 class="mt-3 text-base font-semibold text-card-foreground">
-                    Kebun tidak ditemukan
-                </h2>
-                <p class="mt-1 text-sm text-muted-foreground">
-                    Coba ubah kata kunci atau filter benih.
-                </p>
+                <button type="button" class="mt-3 rounded-lg bg-error px-3 py-2 text-xs font-semibold text-error-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" @click="void loadKebun()">Coba lagi</button>
             </div>
 
-            <ul v-else class="mt-6 space-y-10">
+            <div v-else-if="filteredKebun.length === 0" class="mt-8 rounded-2xl border border-dashed border-border bg-muted/50 px-5 py-10 text-center">
+                <LandPlot :size="36" class="mx-auto text-primary" aria-hidden="true" />
+                <h2 class="mt-3 text-base font-semibold text-foreground">Kebun tidak ditemukan</h2>
+                <p class="mt-1 text-sm leading-5 text-muted-foreground">Coba ubah kata kunci atau filter komoditas.</p>
+            </div>
+
+            <ul v-else class="mt-5 space-y-3" aria-label="Daftar kebun">
                 <li v-for="item in filteredKebun" :key="item.id">
                     <Link
                         :href="`/kebun/detail?id=${encodeURIComponent(item.id)}`"
-                        class="flex w-full gap-5 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+                        class="group block rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
-                        <img
-                            :src="item.image"
-                            :alt="`Foto ${item.name}`"
-                            class="h-[74px] w-[78px] shrink-0 rounded-xs object-cover"
-                        />
-                        <div class="min-w-0 flex-1 pt-0.5">
-                            <h2
-                                class="truncate text-[16px] leading-5 font-medium text-card-foreground"
-                            >
-                                {{ item.name }}
-                            </h2>
-                            <div
-                                class="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[16px] leading-5 text-card-foreground"
-                            >
-                                <span
-                                    class="flex min-w-0 items-center gap-1.5 truncate"
-                                    ><MapPin
-                                        :size="18"
-                                        :stroke-width="1.8"
-                                        class="shrink-0 text-primary"
-                                        aria-hidden="true"
-                                    /><span class="truncate">{{
-                                        item.city
-                                    }}</span></span
-                                >
-                                <span
-                                    class="flex min-w-0 items-center gap-1.5 truncate"
-                                    ><Sprout
-                                        :size="18"
-                                        :stroke-width="1.8"
-                                        class="shrink-0 text-primary"
-                                        aria-hidden="true"
-                                    /><span class="truncate">{{
-                                        item.seedType
-                                    }}</span></span
-                                >
-                                <span
-                                    class="flex min-w-0 items-center gap-1.5 truncate"
-                                    ><LandPlot
-                                        :size="18"
-                                        :stroke-width="1.8"
-                                        class="shrink-0 text-primary"
-                                        aria-hidden="true"
-                                    /><span class="truncate"
-                                        >{{
-                                            formatHectare(item.usedHectare)
-                                        }}/{{
-                                            formatHectare(item.availableHectare)
-                                        }}
-                                        ha</span
-                                    ></span
-                                >
-                                <span
-                                    :class="[
-                                        'flex min-w-0 items-center gap-1.5 truncate',
-                                        healthClass(item.healthStatus),
-                                    ]"
-                                    ><Activity
-                                        :size="18"
-                                        :stroke-width="1.8"
-                                        class="shrink-0"
-                                        aria-hidden="true"
-                                    /><span class="truncate">{{
-                                        item.healthStatus
-                                    }}</span></span
-                                >
+                        <div class="flex gap-3">
+                            <img :src="item.image" :alt="`Foto ${item.name}`" class="w-28 shrink-0 self-stretch rounded-xl object-cover" />
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <h2 class="truncate text-base leading-5 font-semibold text-foreground group-hover:text-secondary">{{ item.name }}</h2>
+                                        <p class="mt-1 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                                            <span class="sr-only">Lokasi:</span><MapPin :size="14" class="shrink-0 text-primary" aria-hidden="true" />{{ item.city }} · {{ item.district }}
+                                        </p>
+                                    </div>
+                                    <ChevronRight :size="18" class="mt-1 shrink-0 text-muted-foreground group-hover:text-primary" aria-hidden="true" />
+                                </div>
+                                <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                    <span class="flex items-center gap-1.5"><Sprout :size="14" class="text-primary" aria-hidden="true" />{{ item.seedType }}</span>
+                                    <span class="flex items-center gap-1.5"><LandPlot :size="14" class="text-primary" aria-hidden="true" />{{ formatHectare(item.usedHectare) }}/{{ formatHectare(item.availableHectare) }} ha</span>
+                                </div>
+                                <div class="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                    <CalendarDays :size="13" class="shrink-0 text-primary" aria-hidden="true" />
+                                    <span>Proyeksi panen:</span>
+                                    <span class="font-medium text-secondary">{{ item.harvestAt }}</span>
+                                </div>
+                                <span :class="['mt-2 inline-flex w-fit items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold', healthMeta(item.healthStatus).class]">
+                                    <component :is="healthMeta(item.healthStatus).icon" :size="12" aria-hidden="true" />{{ healthMeta(item.healthStatus).label }}
+                                </span>
                             </div>
                         </div>
                     </Link>
@@ -288,3 +238,11 @@ onMounted(() => void loadKebun());
         </div>
     </FarmerMobileShell>
 </template>
+
+<style>
+[data-kebun-list] { color-scheme: light; }
+.period-chip-row { margin: -4px; padding: 4px; scrollbar-width: none; -ms-overflow-style: none; }
+.period-chip-row::-webkit-scrollbar { display: none; }
+main:has(> [data-kebun-list]) { scrollbar-width: none; -ms-overflow-style: none; }
+main:has(> [data-kebun-list])::-webkit-scrollbar { display: none; }
+</style>
