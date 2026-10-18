@@ -118,11 +118,11 @@ onMounted(() => void loadActivityDetail());
                         />
                     </Link>
                     <div class="min-w-0">
-                        <p
+                        <!-- <p
                             class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                         >
                             Catatan lapangan
-                        </p>
+                        </p> -->
                         <h1
                             class="truncate text-[22px] leading-7 font-semibold text-foreground"
                         >
@@ -131,7 +131,7 @@ onMounted(() => void loadActivityDetail());
                     </div>
                 </div>
                 <div class="flex shrink-0 items-center gap-1">
-                    <button
+                    <!-- <button
                         type="button"
                         class="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                         aria-label="Bagikan rincian aktivitas"
@@ -139,7 +139,7 @@ onMounted(() => void loadActivityDetail());
                         @click="void shareActivity()"
                     >
                         <Share2 :size="17" aria-hidden="true" />
-                    </button>
+                    </button> -->
                     <button
                         type="button"
                         class="inline-flex items-center gap-1 text-xs font-semibold text-success hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -219,7 +219,7 @@ onMounted(() => void loadActivityDetail());
             </div>
 
             <div v-else class="mt-5 space-y-4">
-                <div
+                <!-- <div
                     class="flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-surface/35 px-3.5 py-3"
                 >
                     <div class="flex min-w-0 items-center gap-2.5">
@@ -245,7 +245,7 @@ onMounted(() => void loadActivityDetail());
                         class="shrink-0 text-[11px] font-semibold text-muted-foreground"
                         >{{ activeLog.photos.length }} foto</span
                     >
-                </div>
+                </div> -->
 
                 <ActivityMetadataCard :activity="activeLog" />
                 <ActivityReportSection :report="activeLog.report" />

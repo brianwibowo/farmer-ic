@@ -172,14 +172,14 @@ function isBadgeRow(row: DetailRow): boolean {
                     >
                         Laporan aktivitas
                     </h2>
-                    <p class="mt-0.5 text-[11px] text-muted-foreground">
+                    <!-- <p class="mt-0.5 text-[11px] text-muted-foreground">
                         Data yang dicatat di lapangan
-                    </p>
+                    </p> -->
                 </div>
             </div>
-            <span class="text-[11px] font-medium text-muted-foreground"
+            <!-- <span class="text-[11px] font-medium text-muted-foreground"
                 >Lengkap</span
-            >
+            > -->
         </div>
 
         <dl v-if="detailRows.length" class="mt-4 divide-y divide-border/80">

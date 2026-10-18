@@ -111,12 +111,12 @@ function activityTone(activity: ActivityLog): string {
             </div>
         </dl>
 
-        <div class="border-t border-border px-4 py-3">
+        <!-- <div class="border-t border-border px-4 py-3">
             <p class="text-xs text-muted-foreground">Konteks kebun</p>
             <p class="mt-1 text-sm font-medium text-foreground">
                 {{ activity.seedType }} · dicatat oleh
                 {{ activity.officerName }}
             </p>
-        </div>
+        </div> -->
     </section>
 </template>
