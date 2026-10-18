@@ -48,8 +48,6 @@ interface StepItem {
 
 interface ParsedInfographic {
     image: { url: string; alt: string } | null;
-    generatedImageHidden: boolean;
-    hiddenImageAlt: string | null;
     title: string | null;
     metrics: MetricItem[];
     steps: StepItem[];
@@ -66,10 +64,6 @@ function escapeHtml(value: string): string {
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
-}
-
-function isGeneratedInfographicUrl(value: string): boolean {
-    return /\/storage\/ai\/infographics\//i.test(value);
 }
 
 const imageMarkdownPattern =
@@ -164,17 +158,13 @@ const parsed = computed<ParsedInfographic>(() => {
         /!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+|data:image\/[^)\s]+)\)/,
     );
     let image: { url: string; alt: string } | null = null;
-    let generatedImageHidden = false;
-    let hiddenImageAlt: string | null = null;
     if (imageMatch) {
         const alt = imageMatch[1]?.trim() || 'Visual Diagram Infografis';
         const url = imageMatch[2];
-        if (isGeneratedInfographicUrl(url)) {
-            generatedImageHidden = true;
-            hiddenImageAlt = alt;
-        } else {
-            image = { alt, url };
-        }
+        // Render the generated asset once in the Visual tab. Attachments are
+        // filtered separately by AiMessageList, so the markdown image is the
+        // single canonical visual and no duplicate thumbnail is shown.
+        image = { alt, url };
         // Remove image markdown from flow so it doesn't duplicate
         text = text.replace(imageMatch[0], '').trim();
     }
@@ -187,7 +177,7 @@ const parsed = computed<ParsedInfographic>(() => {
         text = text.replace(titleMatch[0], '').trim();
     }
 
-    if (!title && hiddenImageAlt) title = hiddenImageAlt;
+    if (!title && image) title = image.alt;
 
     // 3. Extract Tip / Callout (> 💡 or > **Tips or > ⚠️)
     let tip: string | null = null;
@@ -276,7 +266,6 @@ const parsed = computed<ParsedInfographic>(() => {
         !props.isStreaming &&
         Boolean(
             image ||
-            generatedImageHidden ||
             metrics.length > 0 ||
             (steps.length > 0 && (title || metrics.length > 0)) ||
             (title && steps.length > 1),
@@ -284,8 +273,6 @@ const parsed = computed<ParsedInfographic>(() => {
 
     return {
         image,
-        generatedImageHidden,
-        hiddenImageAlt,
         title,
         metrics,
         steps,
@@ -367,16 +354,6 @@ async function copyContent(): Promise<void> {
             v-if="parsed.hasInfographicElements && viewMode === 'infographic'"
             class="space-y-3.5"
         >
-            <div
-                v-if="parsed.generatedImageHidden"
-                class="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs leading-relaxed text-foreground"
-            >
-                <Sparkles :size="15" class="mt-0.5 shrink-0 text-warning" />
-                <p>
-                    Visual AI disembunyikan agar teks dan angka penting tetap
-                    terbaca. Ringkasan terstruktur di bawah adalah panduan umum.
-                </p>
-            </div>
             <!-- HERO IMAGE BANNER -->
             <div
                 v-if="parsed.image"
