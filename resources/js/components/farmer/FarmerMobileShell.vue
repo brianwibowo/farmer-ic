@@ -21,9 +21,7 @@ const emit = defineEmits<{
 
 const selectedKey = ref<FarmerNavKey>(props.activeKey);
 
-const upcomingPages: Partial<Record<FarmerNavKey, string>> = {
-
-};
+const upcomingPages: Partial<Record<FarmerNavKey, string>> = {};
 watch(
     () => props.activeKey,
     (key) => {
@@ -57,15 +55,15 @@ function select(key: FarmerNavKey): void {
 
     selectedKey.value = key;
 
-    if (key === "garden" && window.location.pathname !== "/kebun") {
-        void router.visit("/kebun");
+    if (key === 'garden' && window.location.pathname !== '/kebun') {
+        void router.visit('/kebun');
     }
 
-    if (key === "finance" && window.location.pathname !== "/finance") {
-        void router.visit("/finance");
+    if (key === 'finance' && window.location.pathname !== '/finance') {
+        void router.visit('/finance');
     }
 
-    emit("select", key);
+    emit('select', key);
 }
 </script>
 
@@ -77,7 +75,12 @@ function select(key: FarmerNavKey): void {
             class="relative flex h-[min(874px,calc(100dvh-24px))] w-full max-w-[440px] flex-col overflow-hidden rounded-t-[24px] rounded-b-[20px] bg-card text-card-foreground max-[480px]:h-dvh max-[480px]:max-w-none max-[480px]:rounded-none"
         >
             <main
-                class="min-h-0 flex-1 scroll-pb-8 overflow-y-auto overscroll-y-contain pb-8"
+                class="min-h-0 flex-1 overscroll-y-contain"
+                :class="
+                    props.activeKey === 'ai'
+                        ? 'overflow-hidden pb-0'
+                        : 'scroll-pb-8 overflow-y-auto pb-8'
+                "
             >
                 <slot />
             </main>

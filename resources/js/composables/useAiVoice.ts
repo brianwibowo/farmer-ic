@@ -1,29 +1,26 @@
 import { onBeforeUnmount, ref } from 'vue';
-import { toSpeechText } from '@/services/aiChatService';
+import {
+    audioFilename,
+    browserRecognitionError,
+    transcribeErrorMessage,
+    voiceHeaders,
+    type SpeechRecognitionConstructor,
+    type SpeechRecognitionLike,
+    type VoiceResponse,
+} from '@/services/aiVoiceProtocol';
+import { createAiVoicePlayback } from '@/services/aiVoicePlayback';
 
-type SpeechRecognitionEventLike = Event & {
-    results: ArrayLike<ArrayLike<{ transcript: string }>>;
-};
-
-type SpeechRecognitionLike = {
-    lang: string;
-    interimResults: boolean;
-    continuous: boolean;
-    onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-    onerror: ((event: Event) => void) | null;
-    onend: (() => void) | null;
-    start: () => void;
-    stop: () => void;
-};
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
-
-type VoiceResponse = {
-    transcript?: string;
-    text?: string;
+export type AiVoiceTranscriptionMetrics = {
+    mode: 'server' | 'browser';
+    status: 'complete' | 'error';
+    recordingMs: number;
+    processingMs: number;
+    totalMs: number;
 };
 
 const MAX_RECORDING_SECONDS = 120;
+const PREPARATION_TIMEOUT_MS = 15_000;
+const TRANSCRIPTION_TIMEOUT_MS = 30_000;
 
 declare global {
     interface Window {
@@ -32,49 +29,35 @@ declare global {
     }
 }
 
-function csrfToken(): string | null {
-    const element = document.querySelector<HTMLMetaElement>(
-        'meta[name="csrf-token"]',
-    );
-    if (element?.content) return element.content;
-    const cookie = document.cookie
-        .split('; ')
-        .find((item) => item.startsWith('XSRF-TOKEN='));
-    return cookie
-        ? decodeURIComponent(cookie.slice('XSRF-TOKEN='.length))
-        : null;
-}
-
-function voiceHeaders(): Record<string, string> {
-    const token = csrfToken();
-    return {
-        Accept: 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
-    };
-}
-
 export function useAiVoice(
     endpoint = '/ai/voice/transcribe',
     synthesisEndpoint = '/ai/voice/synthesize',
 ) {
+    const playback = createAiVoicePlayback(synthesisEndpoint);
+    const { isSpeaking, speakText, stopSpeaking } = playback;
     const isRecording = ref(false);
     const isPreparing = ref(false);
     const isTranscribing = ref(false);
     const transcript = ref('');
     const error = ref<string | null>(null);
     const audioUrl = ref<string | null>(null);
-    const isSpeaking = ref(false);
     const elapsedSeconds = ref(0);
     const recordingMode = ref<'server' | 'browser' | null>(null);
+    const lastTranscriptionMetrics = ref<AiVoiceTranscriptionMetrics | null>(
+        null,
+    );
     let mediaRecorder: MediaRecorder | null = null;
     let mediaStream: MediaStream | null = null;
-    let chunks: Blob[] = [];
     let timer: number | null = null;
     let recognition: SpeechRecognitionLike | null = null;
-    let speechAudio: HTMLAudioElement | null = null;
-    let speechAudioUrl: string | null = null;
     let preparationRun = 0;
+    let recordingSession = 0;
+    let transcriptionRun = 0;
+    let transcriptionController: AbortController | null = null;
+    let recordingStartedAt: number | null = null;
+    let recognitionStartedAt: number | null = null;
+    let recognitionFinalStatus: AiVoiceTranscriptionMetrics['status'] | null =
+        null;
 
     function clearTimer(): void {
         if (timer !== null) window.clearInterval(timer);
@@ -86,104 +69,131 @@ export function useAiVoice(
         audioUrl.value = null;
     }
 
-    function stopSpeaking(): void {
-        speechAudio?.pause();
-        if (speechAudioUrl) URL.revokeObjectURL(speechAudioUrl);
-        speechAudio = null;
-        speechAudioUrl = null;
-        isSpeaking.value = false;
+    function stopMediaStream(): void {
+        mediaStream?.getTracks().forEach((track) => track.stop());
+        mediaStream = null;
     }
 
-    async function speakText(text: string): Promise<boolean> {
-        stopSpeaking();
-        const speechText = toSpeechText(text);
-        if (!speechText) return false;
+    function clearRecordingState(): void {
+        clearTimer();
+        isRecording.value = false;
+        recordingMode.value = null;
+    }
 
+    function stopRecognition(): void {
+        if (!recognition) return;
         try {
-            const response = await fetch(synthesisEndpoint, {
-                method: 'POST',
-                headers: {
-                    ...voiceHeaders(),
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ text: speechText }),
-            });
-            if (!response.ok) return false;
-
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            speechAudioUrl = url;
-            speechAudio = new Audio(url);
-            speechAudio.onended = () => {
-                URL.revokeObjectURL(url);
-                speechAudio = null;
-                speechAudioUrl = null;
-                isSpeaking.value = false;
-            };
-            speechAudio.onerror = () => {
-                URL.revokeObjectURL(url);
-                speechAudio = null;
-                speechAudioUrl = null;
-                isSpeaking.value = false;
-            };
-            await speechAudio.play();
-            isSpeaking.value = true;
-            return true;
+            recognition.abort?.();
         } catch {
-            stopSpeaking();
-            return false;
+            // Some browser implementations throw when aborting an ended session.
         }
+        recognition = null;
     }
 
-    function startBrowserRecognition(): boolean {
+    function cancelTranscription(): void {
+        transcriptionRun += 1;
+        transcriptionController?.abort();
+        transcriptionController = null;
+        isTranscribing.value = false;
+    }
+
+    function startBrowserRecognition(session: number): boolean {
         const Recognition =
             window.SpeechRecognition ?? window.webkitSpeechRecognition;
         if (!Recognition) return false;
+        stopRecognition();
         try {
             recognition = new Recognition();
         } catch {
             return false;
         }
+        const currentRecognition = recognition;
         recordingMode.value = 'browser';
+        recognitionStartedAt = performance.now();
+        recognitionFinalStatus = null;
         recognition.lang = 'id-ID';
         recognition.interimResults = true;
         recognition.continuous = true;
         recognition.onresult = (event) => {
+            if (
+                recognition !== currentRecognition ||
+                session !== recordingSession
+            )
+                return;
             let value = '';
             for (let index = 0; index < event.results.length; index += 1) {
                 value += event.results[index]?.[0]?.transcript ?? '';
             }
             transcript.value = value.trim();
         };
-        recognition.onerror = () => {
-            error.value =
-                'Pengenalan suara di browser gagal. Coba bicara lagi.';
-            clearTimer();
-            isRecording.value = false;
-            recordingMode.value = null;
+        recognition.onerror = (event) => {
+            if (
+                recognition !== currentRecognition ||
+                session !== recordingSession
+            )
+                return;
+            recognitionFinalStatus = 'error';
+            const message = browserRecognitionError(event.error);
+            if (message) error.value = message;
+            clearRecordingState();
         };
         recognition.onend = () => {
+            if (
+                recognition !== currentRecognition ||
+                session !== recordingSession
+            )
+                return;
+            const startedAt = recognitionStartedAt;
+            const totalMs =
+                startedAt === null
+                    ? Math.max(0, elapsedSeconds.value * 1000)
+                    : Math.max(0, Math.round(performance.now() - startedAt));
+            const status =
+                recognitionFinalStatus ??
+                (transcript.value.trim() ? 'complete' : 'error');
+            if (startedAt !== null || status === 'error') {
+                lastTranscriptionMetrics.value = {
+                    mode: 'browser',
+                    status,
+                    recordingMs: totalMs,
+                    processingMs: 0,
+                    totalMs,
+                };
+            }
+            recognitionStartedAt = null;
+            recognitionFinalStatus = null;
             recognition = null;
-            clearTimer();
-            isRecording.value = false;
+            clearRecordingState();
         };
         try {
             recognition.start();
         } catch {
             recognition = null;
+            recognitionStartedAt = null;
+            recognitionFinalStatus = null;
             recordingMode.value = null;
             return false;
         }
         return true;
     }
 
-    async function transcribe(blob: Blob): Promise<string> {
+    async function transcribe(
+        blob: Blob,
+        recordingMs: number,
+    ): Promise<string> {
+        const currentRun = ++transcriptionRun;
+        transcriptionController?.abort();
+        const controller = new AbortController();
+        transcriptionController = controller;
         isTranscribing.value = true;
         error.value = null;
-        const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 30000);
+        const processingStartedAt = performance.now();
+        const timeout = window.setTimeout(
+            () => controller.abort(),
+            TRANSCRIPTION_TIMEOUT_MS,
+        );
         const form = new FormData();
-        form.append('audio', blob, 'voice-message.webm');
+        form.append('audio', blob, audioFilename(blob));
         form.append('language', 'id-ID');
 
         try {
@@ -193,76 +203,155 @@ export function useAiVoice(
                 headers: voiceHeaders(),
                 signal: controller.signal,
             });
+            let payload: VoiceResponse = {};
+            try {
+                payload = (await response.json()) as VoiceResponse;
+            } catch {
+                payload = {};
+            }
             if (!response.ok)
-                throw new Error('Transkrip suara belum tersedia.');
-            const payload = (await response.json()) as VoiceResponse;
+                throw new Error(
+                    transcribeErrorMessage(response.status, payload),
+                );
+            if (currentRun !== transcriptionRun) return '';
             const value = payload.transcript ?? payload.text ?? '';
             transcript.value = value.trim();
+            if (!transcript.value) {
+                throw new Error(
+                    'Suara tidak menghasilkan teks. Coba bicara lebih dekat ke mikrofon.',
+                );
+            }
+            const processingMs = Math.max(
+                0,
+                Math.round(performance.now() - processingStartedAt),
+            );
+            lastTranscriptionMetrics.value = {
+                mode: 'server',
+                status: 'complete',
+                recordingMs,
+                processingMs,
+                totalMs: recordingMs + processingMs,
+            };
             return transcript.value;
         } catch (cause) {
+            if (currentRun !== transcriptionRun) return '';
             error.value =
                 cause instanceof DOMException && cause.name === 'AbortError'
                     ? 'Transkrip suara timeout. Coba rekam dengan durasi lebih pendek.'
                     : cause instanceof Error
                       ? cause.message
                       : 'Suara tidak dapat diubah menjadi teks.';
+            const processingMs = Math.max(
+                0,
+                Math.round(performance.now() - processingStartedAt),
+            );
+            lastTranscriptionMetrics.value = {
+                mode: 'server',
+                status: 'error',
+                recordingMs,
+                processingMs,
+                totalMs: recordingMs + processingMs,
+            };
             return transcript.value;
         } finally {
             window.clearTimeout(timeout);
-            isTranscribing.value = false;
+            if (currentRun === transcriptionRun) {
+                transcriptionController = null;
+                isTranscribing.value = false;
+            }
         }
     }
 
     async function startRecording(): Promise<void> {
-        if (isRecording.value) return;
+        if (
+            isRecording.value ||
+            isPreparing.value ||
+            isTranscribing.value ||
+            (mediaRecorder !== null && mediaRecorder.state !== 'inactive')
+        )
+            return;
         const currentRun = ++preparationRun;
+        const session = ++recordingSession;
         isPreparing.value = true;
         const preparationTimeout = window.setTimeout(() => {
             if (currentRun !== preparationRun) return;
+            preparationRun += 1;
             isPreparing.value = false;
+            stopMediaStream();
             error.value =
                 'Izin mikrofon belum diberikan. Coba lagi atau gunakan dikte browser.';
-        }, 15_000);
+        }, PREPARATION_TIMEOUT_MS);
         error.value = null;
         transcript.value = '';
+        lastTranscriptionMetrics.value = null;
         clearAudioUrl();
         elapsedSeconds.value = 0;
 
         try {
-            if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+            if (
+                !navigator.mediaDevices?.getUserMedia ||
+                typeof MediaRecorder === 'undefined'
+            ) {
                 throw new Error('MediaRecorder tidak tersedia.');
             }
             mediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
             });
             if (currentRun !== preparationRun) {
-                mediaStream.getTracks().forEach((track) => track.stop());
-                mediaStream = null;
+                stopMediaStream();
                 return;
             }
-            chunks = [];
+            const stream = mediaStream;
+            if (!stream)
+                throw new Error('Mikrofon tidak tersedia di perangkat ini.');
             const options = MediaRecorder.isTypeSupported(
                 'audio/webm;codecs=opus',
             )
                 ? { mimeType: 'audio/webm;codecs=opus' }
                 : undefined;
-            mediaRecorder = new MediaRecorder(mediaStream, options);
+            const recorder = new MediaRecorder(stream, options);
+            const recorderChunks: Blob[] = [];
+            mediaRecorder = recorder;
             recordingMode.value = 'server';
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) chunks.push(event.data);
+            recorder.ondataavailable = (event) => {
+                if (event.data.size > 0) recorderChunks.push(event.data);
             };
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks, {
-                    type: mediaRecorder?.mimeType || 'audio/webm',
+            recorder.onstop = () => {
+                const startedAt = recordingStartedAt;
+                recordingStartedAt = null;
+                const recordingMs =
+                    startedAt === null
+                        ? Math.max(0, elapsedSeconds.value * 1000)
+                        : Math.max(
+                              0,
+                              Math.round(performance.now() - startedAt),
+                          );
+                const capturedChunks = recorderChunks;
+                const blob = new Blob(capturedChunks, {
+                    type:
+                        recorder.mimeType ||
+                        capturedChunks[0]?.type ||
+                        'audio/webm',
                 });
+                if (mediaStream === stream) stopMediaStream();
+                if (mediaRecorder === recorder) mediaRecorder = null;
+                if (session !== recordingSession) return;
                 if (blob.size > 0) {
+                    clearAudioUrl();
                     audioUrl.value = URL.createObjectURL(blob);
-                    void transcribe(blob);
+                    void transcribe(blob, recordingMs);
+                } else {
+                    lastTranscriptionMetrics.value = {
+                        mode: 'server',
+                        status: 'error',
+                        recordingMs,
+                        processingMs: 0,
+                        totalMs: recordingMs,
+                    };
                 }
-                mediaStream?.getTracks().forEach((track) => track.stop());
-                mediaStream = null;
             };
-            mediaRecorder.start();
+            recordingStartedAt = performance.now();
+            recorder.start();
             isRecording.value = true;
             timer = window.setInterval(() => {
                 elapsedSeconds.value += 1;
@@ -271,19 +360,29 @@ export function useAiVoice(
                 }
             }, 1000);
         } catch (cause) {
-            mediaStream?.getTracks().forEach((track) => track.stop());
-            mediaStream = null;
+            stopMediaStream();
+            if (currentRun !== preparationRun) return;
             // Browser speech recognition is a useful fallback on devices without MediaRecorder permissions.
-            if (!startBrowserRecognition()) {
+            if (!startBrowserRecognition(session)) {
                 error.value =
                     cause instanceof Error && cause.name === 'NotAllowedError'
                         ? 'Izin mikrofon diperlukan untuk memakai voice.'
-                        : 'Mikrofon tidak tersedia di perangkat ini.';
+                        : cause instanceof Error &&
+                            cause.name === 'NotFoundError'
+                          ? 'Mikrofon tidak ditemukan di perangkat ini.'
+                          : cause instanceof Error &&
+                              cause.name === 'NotReadableError'
+                            ? 'Mikrofon sedang dipakai aplikasi lain.'
+                            : cause instanceof Error &&
+                                cause.name === 'SecurityError'
+                              ? 'Akses mikrofon memerlukan koneksi aman (HTTPS).'
+                              : 'Perekaman dan dikte browser tidak tersedia di perangkat ini.';
             } else {
                 isRecording.value = true;
                 timer = window.setInterval(() => {
                     elapsedSeconds.value += 1;
-                    if (elapsedSeconds.value >= MAX_RECORDING_SECONDS) stopRecording();
+                    if (elapsedSeconds.value >= MAX_RECORDING_SECONDS)
+                        stopRecording();
                 }, 1000);
             }
         } finally {
@@ -295,19 +394,25 @@ export function useAiVoice(
     function cancelPreparing(): void {
         preparationRun += 1;
         isPreparing.value = false;
-        error.value = 'Permintaan mikrofon dibatalkan.';
+        stopMediaStream();
+        error.value = null;
     }
 
     function stopRecording(): void {
         clearTimer();
         if (recognition) {
-            recognition.stop();
-            recognition = null;
+            const currentRecognition = recognition;
+            try {
+                currentRecognition.stop();
+            } catch {
+                stopRecognition();
+            }
             isRecording.value = false;
             recordingMode.value = null;
             return;
         }
         if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+            stopMediaStream();
             isRecording.value = false;
             recordingMode.value = null;
             return;
@@ -319,19 +424,28 @@ export function useAiVoice(
 
     function resetVoice(): void {
         preparationRun += 1;
+        recordingSession += 1;
+        cancelTranscription();
         stopRecording();
+        stopRecognition();
+        isPreparing.value = false;
         transcript.value = '';
         error.value = null;
         clearAudioUrl();
         elapsedSeconds.value = 0;
+        lastTranscriptionMetrics.value = null;
         recordingMode.value = null;
     }
 
     onBeforeUnmount(() => {
+        preparationRun += 1;
+        recordingSession += 1;
+        cancelTranscription();
         stopRecording();
+        stopRecognition();
         stopSpeaking();
         clearAudioUrl();
-        mediaStream?.getTracks().forEach((track) => track.stop());
+        stopMediaStream();
     });
 
     return {
@@ -341,6 +455,7 @@ export function useAiVoice(
         transcript,
         error,
         audioUrl,
+        lastTranscriptionMetrics,
         isSpeaking,
         elapsedSeconds,
         recordingMode,

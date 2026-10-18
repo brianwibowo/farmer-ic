@@ -2,11 +2,9 @@
 import {
     Activity,
     Check,
-    CheckCircle2,
     Clock,
     Copy,
     Droplets,
-    Eye,
     FileText,
     Layers,
     Lightbulb,
@@ -50,6 +48,8 @@ interface StepItem {
 
 interface ParsedInfographic {
     image: { url: string; alt: string } | null;
+    generatedImageHidden: boolean;
+    hiddenImageAlt: string | null;
     title: string | null;
     metrics: MetricItem[];
     steps: StepItem[];
@@ -66,6 +66,25 @@ function escapeHtml(value: string): string {
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
+}
+
+function isGeneratedInfographicUrl(value: string): boolean {
+    return /\/storage\/ai\/infographics\//i.test(value);
+}
+
+const imageMarkdownPattern =
+    /!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+|data:image\/[^)\s]+)\)/g;
+
+function removeAllImageMarkdown(value: string): string {
+    return value.replace(imageMarkdownPattern, '');
+}
+
+function cleanInlineLabel(value: string): string {
+    return value
+        .replace(/^#{1,6}\s+/, '')
+        .replace(/\*\*/g, '')
+        .replace(/__([^_]+)__/g, '$1')
+        .trim();
 }
 
 function inlineMarkdown(value: string): string {
@@ -88,7 +107,7 @@ function inlineMarkdown(value: string): string {
 }
 
 function renderFullMarkdown(value: string): string {
-    const prepared = normalizeAiResponse(value).replace(
+    const prepared = removeAllImageMarkdown(normalizeAiResponse(value)).replace(
         /^(#{1,6}\s+.+)$/gm,
         '\n$1\n',
     );
@@ -104,10 +123,18 @@ function renderFullMarkdown(value: string): string {
                     .map((line) => `<li>${inlineMarkdown(line.slice(2))}</li>`)
                     .join('')}</ul>`;
             }
-            const orderedLines = lines.filter((line) => /^\d+[.)]\s/.test(line));
-            if (orderedLines.length === lines.length && orderedLines.length > 0) {
+            const orderedLines = lines.filter((line) =>
+                /^\d+[.)]\s/.test(line),
+            );
+            if (
+                orderedLines.length === lines.length &&
+                orderedLines.length > 0
+            ) {
                 return `<ol class="my-1 list-decimal space-y-1 pl-5">${orderedLines
-                    .map((line) => `<li>${inlineMarkdown(line.replace(/^\d+[.)]\s/, ''))}</li>`)
+                    .map(
+                        (line) =>
+                            `<li>${inlineMarkdown(line.replace(/^\d+[.)]\s/, ''))}</li>`,
+                    )
                     .join('')}</ol>`;
             }
             if (lines.length === 1 && /^#{1,6}\s+/.test(lines[0])) {
@@ -137,11 +164,17 @@ const parsed = computed<ParsedInfographic>(() => {
         /!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+|data:image\/[^)\s]+)\)/,
     );
     let image: { url: string; alt: string } | null = null;
+    let generatedImageHidden = false;
+    let hiddenImageAlt: string | null = null;
     if (imageMatch) {
-        image = {
-            alt: imageMatch[1]?.trim() || 'Visual Diagram Infografis',
-            url: imageMatch[2],
-        };
+        const alt = imageMatch[1]?.trim() || 'Visual Diagram Infografis';
+        const url = imageMatch[2];
+        if (isGeneratedInfographicUrl(url)) {
+            generatedImageHidden = true;
+            hiddenImageAlt = alt;
+        } else {
+            image = { alt, url };
+        }
         // Remove image markdown from flow so it doesn't duplicate
         text = text.replace(imageMatch[0], '').trim();
     }
@@ -150,9 +183,11 @@ const parsed = computed<ParsedInfographic>(() => {
     let title: string | null = null;
     const titleMatch = text.match(/^#{1,3}\s+(.+)$/m);
     if (titleMatch) {
-        title = titleMatch[1].trim();
+        title = cleanInlineLabel(titleMatch[1]);
         text = text.replace(titleMatch[0], '').trim();
     }
+
+    if (!title && hiddenImageAlt) title = hiddenImageAlt;
 
     // 3. Extract Tip / Callout (> 💡 or > **Tips or > ⚠️)
     let tip: string | null = null;
@@ -209,12 +244,12 @@ const parsed = computed<ParsedInfographic>(() => {
 
     while ((stepMatch = stepRegex.exec(text)) !== null) {
         const stepNum = parseInt(stepMatch[1], 10);
-        const stepTitle = (
+        const stepTitle = cleanInlineLabel(
             stepMatch[2] ||
-            stepMatch[3] ||
-            stepMatch[4] ||
-            `Langkah ${stepNum}`
-        ).trim();
+                stepMatch[3] ||
+                stepMatch[4] ||
+                `Langkah ${stepNum}`,
+        );
         const stepDesc = stepMatch[5]
             .replace(/^\s*[*-]\s+/, '')
             .replace(/^\*\*Keterangan\*\*:\s*/i, '')
@@ -237,15 +272,20 @@ const parsed = computed<ParsedInfographic>(() => {
     // Intro / description remaining
     const intro = text.trim() ? text.trim() : null;
 
-    const hasInfographicElements = !props.isStreaming && Boolean(
-        image ||
-        metrics.length > 0 ||
-        (steps.length > 0 && (title || metrics.length > 0)) ||
-        (title && steps.length > 1),
-    );
+    const hasInfographicElements =
+        !props.isStreaming &&
+        Boolean(
+            image ||
+            generatedImageHidden ||
+            metrics.length > 0 ||
+            (steps.length > 0 && (title || metrics.length > 0)) ||
+            (title && steps.length > 1),
+        );
 
     return {
         image,
+        generatedImageHidden,
+        hiddenImageAlt,
         title,
         metrics,
         steps,
@@ -286,7 +326,9 @@ async function copyContent(): Promise<void> {
         >
             <div class="flex items-center gap-1.5 font-medium text-secondary">
                 <Sparkles :size="13" class="text-primary" />
-                <span>{{ parsed.image ? 'Infografis Cerdas' : 'Ringkasan Cerdas' }}</span>
+                <span>{{
+                    parsed.image ? 'Infografis AI' : 'Ringkasan visual'
+                }}</span>
             </div>
             <div
                 class="flex items-center gap-1 rounded-lg bg-muted/80 p-0.5 text-[11px]"
@@ -325,6 +367,16 @@ async function copyContent(): Promise<void> {
             v-if="parsed.hasInfographicElements && viewMode === 'infographic'"
             class="space-y-3.5"
         >
+            <div
+                v-if="parsed.generatedImageHidden"
+                class="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs leading-relaxed text-foreground"
+            >
+                <Sparkles :size="15" class="mt-0.5 shrink-0 text-warning" />
+                <p>
+                    Visual AI disembunyikan agar teks dan angka penting tetap
+                    terbaca. Ringkasan terstruktur di bawah adalah panduan umum.
+                </p>
+            </div>
             <!-- HERO IMAGE BANNER -->
             <div
                 v-if="parsed.image"
@@ -347,7 +399,7 @@ async function copyContent(): Promise<void> {
                     </p>
                     <button
                         type="button"
-                        aria-label="Perbesar foto"
+                        aria-label="Perbesar infografis"
                         class="flex size-6 shrink-0 items-center justify-center rounded-md bg-white/20 text-white backdrop-blur transition hover:bg-white/30"
                         @click="isLightboxOpen = true"
                     >

@@ -1,255 +1,53 @@
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import type { Team } from '@/types/teams';
-import { normalizeAiResponse } from '@/services/aiChatService';
+import {
+    compactAiPrompt,
+    hasUsableAiResponse,
+    normalizeAiResponse,
+} from '@/services/aiChatService';
+import {
+    apiError,
+    extractDelta,
+    headers,
+    id,
+    isSse,
+    mergeResponseText,
+    parseConversation,
+    parseMessage,
+    readSse,
+    validateAttachments,
+    MAX_ATTACHMENT_COUNT,
+    MAX_ATTACHMENT_SIZE,
+} from '@/services/aiChatProtocol';
+import type {
+    AiChatEndpoints,
+    AiRequestMetrics,
+    ChatAttachment,
+    ChatMessage,
+    Conversation,
+} from '@/types/aiChat';
+export type {
+    AiChatEndpoints,
+    AiRequestMetrics,
+    ChatAttachment,
+    ChatMessage,
+    ChatRole,
+    Conversation,
+    MessageStatus,
+} from '@/types/aiChat';
 
-export type ChatRole = 'user' | 'assistant' | 'system';
-export type MessageStatus = 'sending' | 'streaming' | 'complete' | 'error';
-
-export type ChatAttachment = {
-    id?: string | number;
-    name: string;
-    size: number;
-    type: string;
-    file?: File;
-    url?: string;
-    previewUrl?: string;
+type ActiveRequest = {
+    id: number;
+    controller: AbortController;
+    startedAt: number;
+    firstDeltaAt?: number;
+    didTimeout: boolean;
+    assistantMessage: ChatMessage;
+    cancelledByUser: boolean;
 };
 
-export type ChatMessage = {
-    id: string;
-    role: ChatRole;
-    content: string;
-    attachments: ChatAttachment[];
-    createdAt: string;
-    status: MessageStatus;
-    error?: string;
-    feedback?: 'up' | 'down';
-};
-
-export type AiRequestMetrics = {
-    latencyMs: number;
-    firstTokenMs?: number;
-    status: 'complete' | 'error' | 'aborted';
-};
-
-export type Conversation = {
-    id: string;
-    title: string;
-    updatedAt: string;
-    preview?: string;
-};
-
-export type AiChatEndpoints = {
-    base?: string;
-    conversations?: string;
-    messages?: string;
-};
-
-const MAX_ATTACHMENT_COUNT = 3;
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
-const IMAGE_TYPES = new Set([
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-]);
-
-function id(prefix: string): string {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function stringValue(value: unknown, fallback: string): string {
-    return typeof value === 'string' || typeof value === 'number'
-        ? String(value)
-        : fallback;
-}
-
-function csrfToken(): string | null {
-    const element = document.querySelector<HTMLMetaElement>(
-        'meta[name="csrf-token"]',
-    );
-    if (element?.content) {
-        return element.content;
-    }
-
-    const cookie = document.cookie
-        .split('; ')
-        .find((item) => item.startsWith('XSRF-TOKEN='));
-    return cookie
-        ? decodeURIComponent(cookie.slice('XSRF-TOKEN='.length))
-        : null;
-}
-
-function apiError(payload: unknown, fallback: string): string {
-    if (typeof payload === 'string' && payload.trim()) {
-        return payload;
-    }
-    if (payload && typeof payload === 'object') {
-        const data = payload as { message?: unknown; error?: unknown };
-        if (typeof data.message === 'string') return data.message;
-        if (typeof data.error === 'string') return data.error;
-    }
-    return fallback;
-}
-
-function parseConversation(value: unknown): Conversation | null {
-    if (!value || typeof value !== 'object') return null;
-    const item = value as Record<string, unknown>;
-    const idValue = item.id ?? item.uuid;
-    if (idValue === undefined || idValue === null) return null;
-    return {
-        id: stringValue(idValue, id('conversation')),
-        title:
-            typeof item.title === 'string' && item.title.trim()
-                ? item.title
-                : 'Percakapan baru',
-        preview:
-            typeof item.preview === 'string'
-                ? item.preview
-                : typeof item.last_message === 'string'
-                  ? item.last_message
-                  : undefined,
-        updatedAt:
-            typeof item.updated_at === 'string'
-                ? item.updated_at
-                : new Date().toISOString(),
-    };
-}
-
-function parseMessage(value: unknown): ChatMessage | null {
-    if (!value || typeof value !== 'object') return null;
-    const item = value as Record<string, unknown>;
-    const role =
-        item.role === 'user' || item.role === 'system'
-            ? item.role
-            : 'assistant';
-    const text = item.content ?? item.text ?? item.message;
-    if (typeof text !== 'string') return null;
-    return {
-        id: stringValue(item.id, id('message')),
-        role,
-        content: role === 'assistant' ? normalizeAiResponse(text) : text,
-        attachments: Array.isArray(item.attachments)
-            ? (item.attachments as ChatAttachment[])
-            : [],
-        createdAt:
-            typeof item.created_at === 'string'
-                ? item.created_at
-                : new Date().toISOString(),
-        status: 'complete',
-    };
-}
-
-function headers(extra: Record<string, string> = {}): HeadersInit {
-    const token = csrfToken();
-    return {
-        Accept: 'application/json, text/event-stream',
-        'X-Requested-With': 'XMLHttpRequest',
-        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
-        ...extra,
-    };
-}
-
-function isSse(response: Response): boolean {
-    return (
-        response.headers.get('content-type')?.includes('text/event-stream') ??
-        false
-    );
-}
-
-function extractDelta(payload: unknown): {
-    delta?: string;
-    done?: boolean;
-    conversationId?: string;
-    message?: ChatMessage;
-    error?: string;
-} {
-    if (payload === '[DONE]') return { done: true };
-    if (typeof payload === 'string') return { delta: payload };
-    if (!payload || typeof payload !== 'object') return {};
-    const data = payload as Record<string, unknown>;
-    const message = parseMessage(data.message ?? data.data);
-    const delta = data.delta ?? data.content ?? data.text ?? data.token;
-    return {
-        delta: typeof delta === 'string' ? delta : undefined,
-        done:
-            data.done === true ||
-            data.type === 'message.done' ||
-            data.type === 'done',
-        conversationId:
-            data.conversation_id !== undefined
-                ? stringValue(data.conversation_id, '')
-                : undefined,
-        message: message ?? undefined,
-        error: typeof data.error === 'string' ? data.error : undefined,
-    };
-}
-
-async function readSse(
-    response: Response,
-    onData: (payload: unknown) => void,
-): Promise<void> {
-    if (!response.body) throw new Error('Stream tidak tersedia dari server.');
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-        const result = await reader.read();
-        buffer += decoder.decode(result.value ?? new Uint8Array(), {
-            stream: !result.done,
-        });
-        const blocks = buffer.split(/\r?\n\r?\n/);
-        buffer = blocks.pop() ?? '';
-
-        for (const block of blocks) {
-            const data = block
-                .split(/\r?\n/)
-                .filter((line) => line.startsWith('data:'))
-                .map((line) => line.slice(5).trimStart())
-                .join('\n');
-            if (!data) continue;
-            try {
-                onData(JSON.parse(data));
-            } catch {
-                onData(data);
-            }
-        }
-        if (result.done) break;
-    }
-
-    const trailing = buffer
-        .split(/\r?\n/)
-        .filter((line) => line.startsWith('data:'))
-        .map((line) => line.slice(5).trimStart())
-        .join('\n');
-    if (trailing) {
-        try {
-            onData(JSON.parse(trailing));
-        } catch {
-            onData(trailing);
-        }
-    }
-}
-
-export function validateAttachments(
-    files: File[],
-    existing = 0,
-): string | null {
-    if (existing + files.length > MAX_ATTACHMENT_COUNT) {
-        return `Maksimal ${MAX_ATTACHMENT_COUNT} gambar per pesan.`;
-    }
-    for (const file of files) {
-        if (!IMAGE_TYPES.has(file.type)) {
-            return `${file.name} bukan format gambar yang didukung.`;
-        }
-        if (file.size > MAX_ATTACHMENT_SIZE) {
-            return `${file.name} melebihi batas 10 MB.`;
-        }
-    }
-    return null;
-}
+export { MAX_ATTACHMENT_COUNT, MAX_ATTACHMENT_SIZE, validateAttachments };
 
 export function useAiChat(endpoints: AiChatEndpoints = {}) {
     const page = usePage<{ currentTeam?: Team | null }>();
@@ -270,11 +68,51 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
     const isSending = ref(false);
     const error = ref<string | null>(null);
     const lastRequestMetrics = ref<AiRequestMetrics | null>(null);
-    let controller: AbortController | null = null;
+    let requestSequence = 0;
+    let activeRequest: ActiveRequest | null = null;
+    let conversationLoadSequence = 0;
 
     const currentConversation = computed(() =>
         conversations.value.find((item) => item.id === conversationId.value),
     );
+
+    // A proxy or upstream stream can close without delivering a final SSE
+    // event. Do not leave the composer idle while an assistant bubble still
+    // claims to be streaming.
+    watch(isSending, (sending) => {
+        if (sending) return;
+        for (const message of messages.value) {
+            if (message.status !== 'streaming') continue;
+            message.status = 'error';
+            message.error =
+                message.error || 'Koneksi ke layanan AI terputus. Coba lagi.';
+        }
+    });
+
+    function isActiveRequest(requestId: number): boolean {
+        return activeRequest?.id === requestId;
+    }
+
+    function cancelActiveRequest(cancelledByUser = false): void {
+        const request = activeRequest;
+        if (!request) return;
+        request.cancelledByUser = cancelledByUser;
+        if (
+            cancelledByUser &&
+            request.assistantMessage.status === 'streaming'
+        ) {
+            request.assistantMessage.status = request.assistantMessage.content
+                ? 'complete'
+                : 'cancelled';
+            if (!request.assistantMessage.content) {
+                request.assistantMessage.error = 'Jawaban dihentikan.';
+            }
+        }
+        requestSequence += 1;
+        activeRequest = null;
+        request.controller.abort();
+        isSending.value = false;
+    }
 
     async function loadConversations(): Promise<void> {
         isLoadingConversations.value = true;
@@ -302,6 +140,8 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
     }
 
     async function loadConversation(idValue: string): Promise<void> {
+        const loadId = ++conversationLoadSequence;
+        cancelActiveRequest();
         error.value = null;
         try {
             const response = await fetch(
@@ -315,11 +155,13 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 : Array.isArray(payload.data)
                   ? payload.data
                   : [];
+            if (loadId !== conversationLoadSequence) return;
             messages.value = values
                 .map(parseMessage)
                 .filter((item): item is ChatMessage => item !== null);
             conversationId.value = idValue;
         } catch (cause) {
+            if (loadId !== conversationLoadSequence) return;
             error.value =
                 cause instanceof Error
                     ? cause.message
@@ -328,7 +170,8 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
     }
 
     function newConversation(): void {
-        controller?.abort();
+        conversationLoadSequence += 1;
+        cancelActiveRequest();
         conversationId.value = null;
         messages.value = [];
         error.value = null;
@@ -345,15 +188,14 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         content: string,
         attachments: ChatAttachment[] = [],
         isInfographic = false,
-    ): Promise<void> {
-        const text = content.trim();
-        if (!text && attachments.length === 0) return;
-        if (isSending.value) return;
+    ): Promise<ChatMessage | null> {
+        const text = compactAiPrompt(content);
+        if (!text && attachments.length === 0) return null;
+        if (isSending.value) return null;
 
         error.value = null;
         isSending.value = true;
         const startedAt = performance.now();
-        let firstDeltaAt: number | undefined;
         lastRequestMetrics.value = null;
         const userMessage: ChatMessage = {
             id: id('user'),
@@ -372,11 +214,20 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             status: 'streaming',
         };
         messages.value.push(userMessage, assistantMessage);
-        controller = new AbortController();
-        let didTimeout = false;
+        const requestId = ++requestSequence;
+        const requestController = new AbortController();
+        const request: ActiveRequest = {
+            id: requestId,
+            controller: requestController,
+            startedAt,
+            didTimeout: false,
+            assistantMessage,
+            cancelledByUser: false,
+        };
+        activeRequest = request;
         const requestTimeout = window.setTimeout(() => {
-            didTimeout = true;
-            controller?.abort();
+            request.didTimeout = true;
+            requestController.abort();
         }, 90_000);
 
         const endpoint =
@@ -400,7 +251,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 method: 'POST',
                 body: form,
                 headers: headers(),
-                signal: controller.signal,
+                signal: requestController.signal,
             });
             if (!response.ok) {
                 let payload: unknown = null;
@@ -415,6 +266,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             }
 
             const apply = (payload: unknown): void => {
+                if (!isActiveRequest(requestId)) return;
                 const parsed = extractDelta(payload);
                 if (payload && typeof payload === 'object') {
                     const value = payload as Record<string, unknown>;
@@ -425,22 +277,43 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (parsed.conversationId)
                     conversationId.value = parsed.conversationId;
                 if (parsed.message) {
-                    assistantMessage.content = normalizeAiResponse(parsed.message.content);
+                    assistantMessage.content = normalizeAiResponse(
+                        parsed.message.content,
+                    );
                     if (parsed.message.attachments.length > 0) {
                         assistantMessage.attachments =
                             parsed.message.attachments;
                     }
                 } else if (parsed.delta) {
-                    if (firstDeltaAt === undefined) firstDeltaAt = performance.now();
-                    assistantMessage.content += parsed.delta;
+                    // Image generation sends a synthetic progress sentence
+                    // before the provider response. Keep it in the UI's
+                    // loading state instead of persisting it as answer text.
+                    if (/^🎨\s*Sedang merancang/i.test(parsed.delta.trim())) {
+                        return;
+                    }
+                    if (request.firstDeltaAt === undefined)
+                        request.firstDeltaAt = performance.now();
+                    assistantMessage.content =
+                        parsed.deltaMode === 'snapshot'
+                            ? mergeResponseText(
+                                  assistantMessage.content,
+                                  parsed.delta,
+                              )
+                            : assistantMessage.content + parsed.delta;
                 }
                 if (parsed.error) {
                     assistantMessage.error = parsed.error;
                     assistantMessage.status = 'error';
                 }
-                if (parsed.done) {
-                    assistantMessage.content = normalizeAiResponse(assistantMessage.content);
-                    assistantMessage.status = 'complete';
+                if (parsed.done && assistantMessage.status !== 'error') {
+                    assistantMessage.content = normalizeAiResponse(
+                        assistantMessage.content,
+                    );
+                    assistantMessage.status =
+                        hasUsableAiResponse(assistantMessage.content) ||
+                        assistantMessage.attachments.length > 0
+                            ? 'complete'
+                            : 'streaming';
                 }
             };
 
@@ -460,7 +333,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (streamUrl) {
                     const streamResponse = await fetch(streamUrl, {
                         headers: headers(),
-                        signal: controller.signal,
+                        signal: requestController.signal,
                     });
                     if (!streamResponse.ok)
                         throw new Error('Stream jawaban tidak tersedia.');
@@ -470,26 +343,36 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     const assistant = parseMessage(
                         payload.message ?? payload.data ?? payload,
                     );
-                    if (assistant?.content && !assistantMessage.content)
+                    if (
+                        isActiveRequest(requestId) &&
+                        assistant?.content &&
+                        !assistantMessage.content
+                    )
                         assistantMessage.content = assistant.content;
                 }
             }
 
+            if (!isActiveRequest(requestId)) return null;
             if (assistantMessage.status === 'streaming') {
-                assistantMessage.content = normalizeAiResponse(assistantMessage.content);
-                assistantMessage.status = assistantMessage.content
-                    ? 'complete'
-                    : 'error';
+                assistantMessage.content = normalizeAiResponse(
+                    assistantMessage.content,
+                );
+                assistantMessage.status =
+                    hasUsableAiResponse(assistantMessage.content) ||
+                    assistantMessage.attachments.length > 0
+                        ? 'complete'
+                        : 'error';
             }
             if (assistantMessage.status === 'error' && !assistantMessage.error)
                 assistantMessage.error = 'Jawaban kosong dari server.';
             lastRequestMetrics.value = {
                 latencyMs: Math.round(performance.now() - startedAt),
                 firstTokenMs:
-                    firstDeltaAt === undefined
+                    request.firstDeltaAt === undefined
                         ? undefined
-                        : Math.round(firstDeltaAt - startedAt),
-                status: assistantMessage.status === 'error' ? 'error' : 'complete',
+                        : Math.round(request.firstDeltaAt - startedAt),
+                status:
+                    assistantMessage.status === 'error' ? 'error' : 'complete',
             };
             if (receivedConversation) {
                 addConversation(receivedConversation);
@@ -503,56 +386,107 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     updatedAt: new Date().toISOString(),
                 });
             }
+            return assistantMessage;
         } catch (cause) {
             if (cause instanceof DOMException && cause.name === 'AbortError') {
-                if (didTimeout) {
+                if (isActiveRequest(requestId) && request.didTimeout) {
                     assistantMessage.status = 'error';
                     assistantMessage.error =
                         'Jawaban terlalu lama. Coba kirim pertanyaan yang lebih singkat.';
                     error.value = assistantMessage.error;
+                    lastRequestMetrics.value = {
+                        latencyMs: Math.round(performance.now() - startedAt),
+                        firstTokenMs:
+                            request.firstDeltaAt === undefined
+                                ? undefined
+                                : Math.round(request.firstDeltaAt - startedAt),
+                        status: 'error',
+                    };
+                } else if (isActiveRequest(requestId)) {
+                    if (request.cancelledByUser) {
+                        assistantMessage.status = assistantMessage.content
+                            ? 'complete'
+                            : 'cancelled';
+                        if (!assistantMessage.content) {
+                            assistantMessage.error = 'Jawaban dihentikan.';
+                        }
+                    } else {
+                        assistantMessage.status = 'error';
+                        assistantMessage.error =
+                            'Koneksi ke layanan AI terputus. Coba lagi.';
+                        error.value = assistantMessage.error;
+                    }
+                    lastRequestMetrics.value = {
+                        latencyMs: Math.round(performance.now() - startedAt),
+                        firstTokenMs:
+                            request.firstDeltaAt === undefined
+                                ? undefined
+                                : Math.round(request.firstDeltaAt - startedAt),
+                        status: request.cancelledByUser ? 'aborted' : 'error',
+                    };
                 }
+                return assistantMessage;
+            }
+            if (isActiveRequest(requestId)) {
+                assistantMessage.status = 'error';
+                assistantMessage.error =
+                    cause instanceof Error
+                        ? cause.message
+                        : 'Terjadi kesalahan saat menghubungi AI.';
+                error.value = assistantMessage.error;
                 lastRequestMetrics.value = {
                     latencyMs: Math.round(performance.now() - startedAt),
                     firstTokenMs:
-                        firstDeltaAt === undefined
+                        request.firstDeltaAt === undefined
                             ? undefined
-                            : Math.round(firstDeltaAt - startedAt),
-                    status: didTimeout ? 'error' : 'aborted',
+                            : Math.round(request.firstDeltaAt - startedAt),
+                    status: 'error',
                 };
-                return;
+                return assistantMessage;
             }
-            assistantMessage.status = 'error';
-            assistantMessage.error =
-                cause instanceof Error
-                    ? cause.message
-                    : 'Terjadi kesalahan saat menghubungi AI.';
-            error.value = assistantMessage.error;
-            lastRequestMetrics.value = {
-                latencyMs: Math.round(performance.now() - startedAt),
-                firstTokenMs:
-                    firstDeltaAt === undefined
-                        ? undefined
-                        : Math.round(firstDeltaAt - startedAt),
-                status: 'error',
-            };
+            return null;
         } finally {
             window.clearTimeout(requestTimeout);
-            isSending.value = false;
-            controller = null;
+            if (isActiveRequest(requestId)) {
+                if (request.assistantMessage.status === 'streaming') {
+                    request.assistantMessage.status = request.cancelledByUser
+                        ? request.assistantMessage.content
+                            ? 'complete'
+                            : 'cancelled'
+                        : 'error';
+                    if (!request.assistantMessage.content) {
+                        request.assistantMessage.error = request.cancelledByUser
+                            ? 'Jawaban dihentikan.'
+                            : 'Koneksi ke layanan AI terputus. Coba lagi.';
+                    }
+                }
+                activeRequest = null;
+                isSending.value = false;
+            }
         }
     }
 
     function stopStreaming(): void {
-        controller?.abort();
-        controller = null;
-        isSending.value = false;
-        const current = messages.value.at(-1);
-        if (current?.role === 'assistant' && current.status === 'streaming') {
-            current.status = current.content ? 'complete' : 'error';
+        const request = activeRequest;
+        if (!request) return;
+        request.cancelledByUser = true;
+        const current = request.assistantMessage;
+        if (current.status === 'streaming') {
+            current.status = current.content ? 'complete' : 'cancelled';
+            if (!current.content) current.error = 'Jawaban dihentikan.';
         }
+        lastRequestMetrics.value = {
+            latencyMs: Math.round(performance.now() - request.startedAt),
+            firstTokenMs:
+                request.firstDeltaAt === undefined
+                    ? undefined
+                    : Math.round(request.firstDeltaAt - request.startedAt),
+            status: 'aborted',
+        };
+        cancelActiveRequest(true);
     }
 
-    onBeforeUnmount(() => controller?.abort());
+    onBeforeUnmount(() => cancelActiveRequest());
 
     return {
         conversations,
@@ -570,5 +504,3 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         stopStreaming,
     };
 }
-
-export { MAX_ATTACHMENT_COUNT, MAX_ATTACHMENT_SIZE };
