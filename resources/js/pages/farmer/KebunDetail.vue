@@ -4,9 +4,11 @@ import {
     Activity,
     ArrowLeft,
     CalendarDays,
-    Camera,
+    CircleAlert,
     CircleCheck,
+    CircleX,
     CloudSun,
+    Maximize2,
     LandPlot,
     MapPin,
     Scale,
@@ -35,23 +37,13 @@ const detail = computed(() => {
     const item = selectedKebun.value;
     if (!item) return undefined;
 
-    const growthCategory =
-        item.growth >= 90
-            ? 5
-            : item.growth >= 80
-              ? 4
-              : item.growth >= 60
-                ? 3
-                : item.growth >= 40
-                  ? 2
-                  : 1;
-    const growthCategoryLabel = [
-        'Kecambah',
-        'Bibit awal',
-        'Vegetatif aktif',
-        'Pembungaan',
-        'Pengisian & panen',
-    ][growthCategory - 1];
+    const growthCategory = item.growth >= 80 ? 4 : item.growth >= 60 ? 3 : 2;
+    const growthCategoryLabel =
+        growthCategory === 4
+            ? 'Pembungaan'
+            : growthCategory === 3
+              ? 'Vegetatif aktif'
+              : 'Bibit awal';
 
     return {
         ...item,
@@ -62,14 +54,30 @@ const detail = computed(() => {
         seed: `${item.seedType} ${item.seedTypeDetail}`,
         totalArea: `${new Intl.NumberFormat('id-ID').format(item.availableHectare)} ha`,
         plantedArea: `${new Intl.NumberFormat('id-ID').format(item.usedHectare)} ha`,
-        weight: `${new Intl.NumberFormat('id-ID').format(item.weightTon)} ton`,
+        weight: `${new Intl.NumberFormat('id-ID').format(Math.round(item.usedHectare * 0.14))} ton`,
         growthCategory,
         growthCategoryLabel,
-        aiConfidence: item.aiConfidence,
+        aiConfidence: 92,
         harvestStatus: item.healthStatus,
-        weather: item.weather,
+        weather: {
+            condition: 'Cerah berawan',
+            temperature: '26°C',
+            humidity: '78%',
+        },
     };
 });
+
+function healthTone(status: string): string {
+    if (status === 'Kritis') return 'border-error/25 bg-error/10 text-error';
+    if (status === 'Perlu Perhatian') return 'border-warning/30 bg-warning/15 text-warning  ';
+    return 'border-success/25 bg-success/10 text-success';
+}
+
+function healthIcon(status: string) {
+    if (status === 'Kritis') return CircleX;
+    if (status === 'Perlu Perhatian') return CircleAlert;
+    return CircleCheck;
+}
 
 async function loadDetail(): Promise<void> {
     const request = ++requestId;
@@ -231,7 +239,7 @@ watch(kebunId, () => void loadDetail());
                 </Link>
                 <div>
                     <p class="text-sm font-medium text-muted-foreground">
-                        Kebun
+                        Detail Kebun
                     </p>
                     <h1
                         class="text-2xl leading-8 font-semibold text-card-foreground"
@@ -263,7 +271,7 @@ watch(kebunId, () => void loadDetail());
                     <span
                         class="absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-lg bg-card/95 text-secondary shadow-sm"
                         aria-hidden="true"
-                        ><Camera :size="15"
+                        ><Maximize2 :size="15"
                     /></span>
                 </button>
                 <div class="min-w-0 flex-1">
@@ -312,8 +320,9 @@ watch(kebunId, () => void loadDetail());
                             ></span
                         >
                         <span
-                            class="flex min-w-0 items-center gap-2 text-success"
-                            ><CircleCheck
+                            :class="['inline-flex w-fit items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold', healthTone(detail.harvestStatus)]"
+                            ><component
+                                :is="healthIcon(detail.harvestStatus)"
                                 :size="17"
                                 class="shrink-0"
                                 aria-hidden="true"
@@ -382,24 +391,24 @@ watch(kebunId, () => void loadDetail());
                 aria-label="Ringkasan keuangan"
             >
                 <article
-                    class="rounded-2xl border border-border bg-card p-4 shadow-sm"
+                    class="rounded-2xl border border-success/20 bg-success/10 p-3.5"
                 >
-                    <div class="flex items-center gap-2 text-secondary">
-                        <TrendingUp :size="18" aria-hidden="true" />
-                        <h2 class="text-sm font-medium">Pendapatan</h2>
+                    <div class="flex items-center gap-2 text-success">
+                        <TrendingUp :size="17" aria-hidden="true" />
+                        <h2 class="text-xs font-medium">Pendapatan</h2>
                     </div>
-                    <p class="mt-3 text-xl font-semibold text-secondary">
+                    <p class="mt-2 text-sm font-semibold text-success">
                         {{ formatRupiah(detail.revenue) }}
                     </p>
                 </article>
                 <article
-                    class="rounded-2xl border border-border bg-card p-4 shadow-sm"
+                    class="rounded-2xl border border-error/20 bg-error/10 p-3.5"
                 >
                     <div class="flex items-center gap-2 text-error">
-                        <TrendingDown :size="18" aria-hidden="true" />
-                        <h2 class="text-sm font-medium">Pengeluaran</h2>
+                        <TrendingDown :size="17" aria-hidden="true" />
+                        <h2 class="text-xs font-medium">Pengeluaran</h2>
                     </div>
-                    <p class="mt-3 text-xl font-semibold text-error">
+                    <p class="mt-2 text-sm font-semibold text-error">
                         {{ formatRupiah(detail.expenses) }}
                     </p>
                 </article>
@@ -592,7 +601,12 @@ watch(kebunId, () => void loadDetail());
                             <p
                                 class="mt-1.5 text-sm leading-5 text-card-foreground"
                             >
-                                {{ detail.nextStep }}
+                                Jadwalkan penyiraman rutin,
+                                <strong
+                                    >cek kondisi daun setiap 2–3 hari, dan
+                                    tambahkan nutrisi</strong
+                                >
+                                sesuai rekomendasi petugas lapangan.
                             </p>
                         </div>
                     </div>
@@ -612,7 +626,13 @@ watch(kebunId, () => void loadDetail());
                             <p
                                 class="mt-1.5 text-sm leading-5 text-card-foreground"
                             >
-                                {{ detail.risk }}
+                                <strong>{{
+                                    detail.healthStatus === 'Sehat'
+                                        ? 'Tetap pantau perubahan kondisi kebun.'
+                                        : 'Waspadai perubahan kondisi tanaman.'
+                                }}</strong>
+                                Periksa genangan air dan perubahan warna daun
+                                agar pertumbuhan tetap terjaga.
                             </p>
                         </div>
                     </div>
