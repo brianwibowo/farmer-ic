@@ -1,35 +1,8 @@
-import {
-    readDemoStorage,
-    writeDemoStorage,
-} from '@/composables/useDemoStorage';
-import {
-    activityLogSeedData,
-    type ActivityLog,
-    type ActivityType,
-} from '@/data/activityLogs';
-
-const storageKey = 'activity_logs_v6';
-
-function wait(milliseconds: number): Promise<void> {
-    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-}
+import type { ActivityLog, ActivityType } from '@/data/activityLogs';
+import { listFarmActivities } from '@/services/farmDemoService';
 
 export async function listActivityLogs(): Promise<ActivityLog[]> {
-    await wait(420);
-    const logs = readDemoStorage<ActivityLog[]>(
-        storageKey,
-        activityLogSeedData,
-    );
-
-    try {
-        if (!window.localStorage.getItem(`demo_v1_${storageKey}`)) {
-            writeDemoStorage(storageKey, activityLogSeedData);
-        }
-    } catch {
-        // The seed data is still returned when storage is unavailable.
-    }
-
-    return logs;
+    return listFarmActivities();
 }
 
 export async function getActivityLogByType(
