@@ -37,6 +37,20 @@ export async function getReportData(
         );
         writeDemoStorage(storageKey, stored);
     }
+    if (!Array.isArray(stored.data.operational_targets)) {
+        stored.data.operational_targets = structuredClone(
+            reportSeedData.data.operational_targets,
+        );
+        writeDemoStorage(storageKey, stored);
+    }
+    stored.data.operational_targets = stored.data.operational_targets.map((target) => {
+        const seedTarget = reportSeedData.data.operational_targets.find(
+            (item) => item.id === target.id,
+        );
+        return seedTarget && !target.commodity_icon_url
+            ? { ...seedTarget, ...target, commodity_icon_url: seedTarget.commodity_icon_url, icon_bg_color: seedTarget.icon_bg_color }
+            : target;
+    });
 
     try {
         if (!window.localStorage.getItem(`demo_v1_${storageKey}`)) {

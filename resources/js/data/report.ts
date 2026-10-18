@@ -98,6 +98,8 @@ export type ReportData = {
         operational_targets: Array<{
             id: string;
             commodity_name: string;
+            commodity_icon_url: string;
+            icon_bg_color: string;
             icon: string;
             farm_name: string;
             area_hectares: number;
@@ -112,8 +114,10 @@ export type ReportData = {
             };
             operational_task: {
                 task_name: string;
-                target_value: number;
-                completed_value: number;
+                    target_area_hectares?: number;
+                    completed_area_hectares?: number;
+                    target_tonnage?: number;
+                    completed_tonnage?: number;
                 progress_percentage: number;
                 target_unit: string;
             };
@@ -250,6 +254,8 @@ export const reportSeedData: ReportData = {
             {
                 id: 'target-001',
                 commodity_name: 'Jagung',
+                commodity_icon_url: '/images/commodities/jagung.png',
+                icon_bg_color: '#FFF3CD',
                 icon: '🌽',
                 farm_name: 'Kebun Makmur',
                 area_hectares: 170,
@@ -264,8 +270,8 @@ export const reportSeedData: ReportData = {
                 },
                 operational_task: {
                     task_name: 'Spreading Pupuk NPK ke-2',
-                    target_value: 170,
-                    completed_value: 150,
+                    target_area_hectares: 170,
+                    completed_area_hectares: 150,
                     progress_percentage: 88.24,
                     target_unit: 'Ha',
                 },
@@ -273,6 +279,8 @@ export const reportSeedData: ReportData = {
             {
                 id: 'target-002',
                 commodity_name: 'Kedelai',
+                commodity_icon_url: '/images/commodities/kedelai.png',
+                icon_bg_color: '#D1E7DD',
                 icon: '🫘',
                 farm_name: 'Kebun Makmur',
                 area_hectares: 130,
@@ -287,8 +295,8 @@ export const reportSeedData: ReportData = {
                 },
                 operational_task: {
                     task_name: 'Kontrol kelembaban & bedengan',
-                    target_value: 130,
-                    completed_value: 130,
+                    target_area_hectares: 130,
+                    completed_area_hectares: 130,
                     progress_percentage: 100,
                     target_unit: 'Ha',
                 },
@@ -296,6 +304,8 @@ export const reportSeedData: ReportData = {
             {
                 id: 'target-003',
                 commodity_name: 'Rumput Pakan',
+                commodity_icon_url: '/images/commodities/rumput.png',
+                icon_bg_color: '#D7F4F0',
                 icon: '🌿',
                 farm_name: 'Kebun Makmur',
                 area_hectares: 150.5,
@@ -310,8 +320,8 @@ export const reportSeedData: ReportData = {
                 },
                 operational_task: {
                     task_name: 'Panen Babat ke-3',
-                    target_value: 1500,
-                    completed_value: 1200,
+                    target_tonnage: 1500,
+                    completed_tonnage: 1200,
                     progress_percentage: 80,
                     target_unit: 'Ton',
                 },
