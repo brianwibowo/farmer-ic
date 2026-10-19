@@ -24,6 +24,7 @@ export type ChatMessage = {
     attachments: ChatAttachment[];
     createdAt: string;
     status: MessageStatus;
+    progress?: string;
     error?: string;
     feedback?: 'up' | 'down';
 };

@@ -3,6 +3,7 @@ import { farmerFinanceMock } from '@/data/farmerFinance';
 import { isDashboardDataPrompt } from '@/services/aiChatService';
 import { listActivityLogs } from '@/services/activityLogService';
 import { listKebun } from '@/services/kebunService';
+import { farmDemoSeedData } from '@/data/farmDemo';
 
 export type AiDemoDataAnswer = {
     content: string;
@@ -66,18 +67,55 @@ export async function queryDemoData(
 
     if (wantsFinance) {
         await wait(420);
+        const quarterMatch = value.match(/\bq\s*([1-4])\b/i);
+        const quarterKey = quarterMatch
+            ? (`Q${quarterMatch[1]}` as keyof typeof farmerFinanceMock.quarters)
+            : null;
+        const quarter = quarterKey
+            ? farmerFinanceMock.quarters[quarterKey]
+            : null;
+        const allGardens =
+            /\b(?:semua|seluruh|tiap|setiap)\s+(?:kebun|lahan)\b/i.test(value);
         const latest = farmerFinanceMock.transactions.slice(-3).reverse();
+        const financeScope = quarter
+            ? `Periode: ${quarter.label}`
+            : 'Periode: seluruh data demo 2026';
+        const scopeLine = allGardens
+            ? `Cakupan: seluruh kebun (${farmDemoSeedData.kebun.length} kebun)`
+            : 'Cakupan: data keuangan yang tersedia';
+        const totals = quarter
+            ? [
+                  `**Pendapatan:** ${formatRupiah(quarter.totalRevenue)}`,
+                  `**Pengeluaran:** ${formatRupiah(quarter.totalExpense)}`,
+                  `**Laba bersih:** ${formatRupiah(quarter.netTotal)}`,
+              ].join(' | ')
+            : [
+                  `**Pendapatan:** ${formatRupiah(farmerFinanceMock.totalRevenue)}`,
+                  `**Pengeluaran:** ${formatRupiah(farmerFinanceMock.totalExpense)}`,
+                  `**Laba bersih:** ${formatRupiah(farmerFinanceMock.totalNet)}`,
+              ].join(' | ');
         return {
             source: `Data demo keuangan · diperbarui ${updatedLabel()}`,
             content: [
                 '### 💰 Ringkasan Keuangan Kebun',
-                `> 📊 **Pendapatan:** ${formatRupiah(farmerFinanceMock.totalRevenue)} | ⏳ **Periode:** 2026 | 📌 **Sumber:** Data demo`,
+                `> 📊 ${totals} | ⏳ **${financeScope}**`,
+                `> 🌱 **${scopeLine}** | 📌 **Sumber:** Data demo`,
                 '',
-                'Transaksi terbaru:',
-                ...latest.map(
-                    (item, index) =>
-                        `${index + 1}. **${item.description}**: ${item.type === 'expense' ? 'Pengeluaran ' : ''}${formatRupiah(item.amount)}`,
-                ),
+                ...(quarter
+                    ? [
+                          'Rincian bulanan:',
+                          ...quarter.points.map(
+                              (point) =>
+                                  `- **${point.label}:** pendapatan ${formatRupiah(point.revenue)}, pengeluaran ${formatRupiah(point.expense)}, laba ${formatRupiah(point.net)}`,
+                          ),
+                      ]
+                    : [
+                          'Transaksi terbaru:',
+                          ...latest.map(
+                              (item, index) =>
+                                  `${index + 1}. **${item.description}**: ${item.type === 'expense' ? 'Pengeluaran ' : ''}${formatRupiah(item.amount)}`,
+                          ),
+                      ]),
                 '',
                 '> 💡 **Tips Petani:** Bandingkan pemasukan dan biaya operasional per komoditas sebelum menentukan target panen berikutnya.',
             ].join('\n'),

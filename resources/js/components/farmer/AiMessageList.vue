@@ -5,6 +5,7 @@ import {
     Check,
     Copy,
     Image as ImageIcon,
+    LoaderCircle,
     RefreshCw,
     Sparkles,
     Square,
@@ -188,18 +189,27 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                 </div>
                 <div
                     v-if="message.status === 'streaming'"
-                    class="mt-1 flex items-center gap-1 text-muted-foreground"
+                    class="mt-2 flex items-center gap-2 rounded-lg bg-muted/60 px-2.5 py-2 text-xs text-muted-foreground"
                     aria-label="Jawaban sedang ditulis"
+                    role="status"
+                    aria-live="polite"
                 >
-                    <span
-                        class="size-1.5 animate-pulse rounded-full bg-current"
+                    <LoaderCircle
+                        :size="15"
+                        class="shrink-0 animate-spin motion-reduce:animate-none"
                     />
-                    <span
-                        class="size-1.5 animate-pulse rounded-full bg-current [animation-delay:120ms]"
-                    />
-                    <span
-                        class="size-1.5 animate-pulse rounded-full bg-current [animation-delay:240ms]"
-                    />
+                    <span class="min-w-0">
+                        <span class="block font-medium text-foreground">{{
+                            message.progress ||
+                            (message.content
+                                ? 'AI sedang menulis…'
+                                : 'Menyiapkan jawaban…')
+                        }}</span>
+                        <span class="block text-[11px] leading-4">
+                            Jawaban biasanya muncul dalam beberapa detik. Jika
+                            lebih dari 30 detik, Anda bisa menghentikannya.
+                        </span>
+                    </span>
                 </div>
                 <div
                     v-if="message.status === 'cancelled'"

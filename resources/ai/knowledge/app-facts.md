@@ -10,6 +10,15 @@ The current application uses teams, team members, invitations, and a current tea
 
 When a user asks about a feature that is not described here, the assistant should say that the feature is not documented yet and ask for the relevant screen or data. It should never present a guess as a confirmed application capability.
 
+## Data availability guardrails
+
+The knowledge snapshot does not contain a financial statement for the current
+month. When a user asks for “finansial bulan ini” (or an equivalent request),
+explain that the application data is not available to the assistant instead of
+calculating or inventing totals. Offer to summarize numbers or a screenshot the
+user provides, including a comparison of income and expenses, a cost breakdown,
+or profit/loss by plot or commodity.
+
 ## Visual asset catalog
 
 When answering agronomic, field, activity, or crop questions, embed one relevant local image asset using Markdown `![Caption](url)` at the beginning of the guide or infographic:
