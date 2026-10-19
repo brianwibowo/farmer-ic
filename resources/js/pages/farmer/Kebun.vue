@@ -9,6 +9,7 @@ import {
     Sprout,
 } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
+import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { listKebun } from '@/services/kebunService';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
@@ -89,7 +90,9 @@ onMounted(() => void loadKebun());
     <Head title="Kebun" />
 
     <FarmerMobileShell active-key="garden">
-        <div class="px-4 pt-16 pb-5">
+        <div class="px-4 pt-4 pb-5">
+            <DashboardHeader class="mb-6" />
+
             <div class="flex items-center justify-between gap-3">
                 <h1
                     class="text-[20px] leading-7 font-semibold text-card-foreground"
