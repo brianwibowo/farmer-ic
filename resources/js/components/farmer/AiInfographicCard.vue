@@ -20,9 +20,11 @@ const props = withDefaults(
     defineProps<{
         content: string;
         isStreaming?: boolean;
+        forceVisual?: boolean;
     }>(),
     {
         isStreaming: false,
+        forceVisual: false,
     },
 );
 
@@ -100,11 +102,11 @@ function inlineMarkdown(value: string): string {
         .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 }
 
-function renderFullMarkdown(value: string): string {
-    const prepared = removeAllImageMarkdown(normalizeAiResponse(value)).replace(
-        /^(#{1,6}\s+.+)$/gm,
-        '\n$1\n',
-    );
+function renderFullMarkdown(value: string, stripImages = true): string {
+    const normalized = normalizeAiResponse(value);
+    const prepared = (
+        stripImages ? removeAllImageMarkdown(normalized) : normalized
+    ).replace(/^(#{1,6}\s+.+)$/gm, '\n$1\n');
     const safe = escapeHtml(prepared);
     if (!safe) return '';
     return safe
@@ -263,6 +265,7 @@ const parsed = computed<ParsedInfographic>(() => {
     const intro = text.trim() ? text.trim() : null;
 
     const hasInfographicElements =
+        props.forceVisual &&
         !props.isStreaming &&
         Boolean(
             image ||
@@ -501,7 +504,7 @@ async function copyContent(): Promise<void> {
         <div
             v-else
             class="ai-message-content text-sm leading-relaxed"
-            v-html="renderFullMarkdown(content)"
+            v-html="renderFullMarkdown(content, false)"
         />
 
         <!-- LIGHTBOX MODAL FOR HERO IMAGE -->

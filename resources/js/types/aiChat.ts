@@ -25,6 +25,7 @@ export type ChatMessage = {
     createdAt: string;
     status: MessageStatus;
     progress?: string;
+    presentation?: 'text' | 'infographic';
     error?: string;
     feedback?: 'up' | 'down';
 };

@@ -26,14 +26,6 @@ function normalize(value: string): string {
     return value.toLocaleLowerCase('id-ID').replace(/\s+/g, ' ').trim();
 }
 
-function updatedLabel(): string {
-    return new Intl.DateTimeFormat('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    }).format(new Date());
-}
-
 export async function queryDemoData(
     prompt: string,
 ): Promise<AiDemoDataAnswer | null> {
@@ -95,7 +87,7 @@ export async function queryDemoData(
                   `**Laba bersih:** ${formatRupiah(farmerFinanceMock.totalNet)}`,
               ].join(' | ');
         return {
-            source: `Data demo keuangan · diperbarui ${updatedLabel()}`,
+            source: 'Data demo keuangan · seed prototipe',
             content: [
                 '### 💰 Ringkasan Keuangan Kebun',
                 `> 📊 ${totals} | ⏳ **${financeScope}**`,
@@ -126,7 +118,7 @@ export async function queryDemoData(
         const logs = (await listActivityLogs()).slice(0, 3);
         const entries = logs.length ? logs : activityLogSeedData.slice(0, 3);
         return {
-            source: `Data demo aktivitas · diperbarui ${updatedLabel()}`,
+            source: 'Data demo aktivitas · seed prototipe',
             content: [
                 '### 🧾 Aktivitas Kebun Terbaru',
                 `> 📌 **Catatan:** ${entries.length} aktivitas | ⏳ **Status:** Tersedia | 📊 **Sumber:** Data demo`,
@@ -145,7 +137,7 @@ export async function queryDemoData(
         const kebun = await listKebun();
         const attention = kebun.filter((item) => item.healthStatus !== 'Sehat');
         return {
-            source: `Data demo kebun · diperbarui ${updatedLabel()}`,
+            source: 'Data demo kebun · seed prototipe',
             content: [
                 '### 🌱 Kondisi Kebun',
                 `> 🌾 **Total kebun:** ${kebun.length} | ✅ **Sehat:** ${kebun.length - attention.length} | ⚠️ **Perlu perhatian:** ${attention.length}`,

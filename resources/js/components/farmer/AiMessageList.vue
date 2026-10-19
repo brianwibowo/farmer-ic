@@ -177,6 +177,7 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                         v-if="message.role === 'assistant'"
                         :content="message.content"
                         :is-streaming="message.status === 'streaming'"
+                        :force-visual="message.presentation === 'infographic'"
                         @copied="emit('copied', message.id)"
                     />
                     <div

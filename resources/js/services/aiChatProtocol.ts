@@ -89,6 +89,9 @@ export function parseMessage(value: unknown): ChatMessage | null {
     const attachments = Array.isArray(item.attachments)
         ? (item.attachments as ChatAttachment[])
         : [];
+    const hasGeneratedInfographic = attachments.some((attachment) =>
+        /\/storage\/ai\/infographics\//i.test(attachment.url ?? ''),
+    );
     if (typeof text !== 'string' && attachments.length === 0) return null;
     return {
         id: stringValue(item.id, id('message')),
@@ -105,6 +108,7 @@ export function parseMessage(value: unknown): ChatMessage | null {
                 ? item.created_at
                 : new Date().toISOString(),
         status: 'complete',
+        presentation: hasGeneratedInfographic ? 'infographic' : 'text',
     };
 }
 

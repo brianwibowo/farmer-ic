@@ -286,6 +286,22 @@ async function send(): Promise<void> {
         return;
     }
 
+    if (classification.needsClarification && attachments.length === 0) {
+        await showLocalAnswer(
+            text,
+            'Saya belum menangkap tujuan pertanyaannya. Anda ingin saya membantu yang mana?\n\n1. **Data kebun atau aktivitas** yang tersedia di aplikasi\n2. **Panduan perawatan tanaman**\n3. **Ringkasan visual atau infografis** pertanian\n\nSebutkan kebun, komoditas, periode, atau tujuan Anda agar jawabannya lebih tepat.',
+            requestMode === 'voice' ? 'voice' : 'text',
+            'negative',
+            startedAt,
+            300,
+            voiceMetric,
+        );
+        isSending.value = false;
+        await scrollToLatest();
+        inputElement.value?.focus();
+        return;
+    }
+
     const assistant = await chat.sendMessage(
         text,
         attachments,
@@ -410,6 +426,7 @@ async function showLocalAnswer(
             attachments: [],
             createdAt: new Date().toISOString(),
             status: 'complete',
+            presentation: 'text',
         },
     );
     if (delayMs > 0) {

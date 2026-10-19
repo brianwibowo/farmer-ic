@@ -221,6 +221,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             attachments: [],
             createdAt: new Date().toISOString(),
             status: 'streaming',
+            presentation: isInfographic ? 'infographic' : 'text',
             progress: isInfographic
                 ? 'Menyiapkan infografis…'
                 : 'Menghubungkan ke AI…',
