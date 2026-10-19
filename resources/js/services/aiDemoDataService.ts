@@ -1,5 +1,5 @@
 import { activityLogSeedData } from '@/data/activityLogs';
-import { farmerFinanceMock } from '@/mocks/farmerFinance';
+import { farmerFinanceMock } from '@/data/farmerFinance';
 import { isDashboardDataPrompt } from '@/services/aiChatService';
 import { listActivityLogs } from '@/services/activityLogService';
 import { listKebun } from '@/services/kebunService';

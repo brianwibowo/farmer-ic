@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
+import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import KebunMap from '@/components/farmer/KebunMap.vue';
 import { dashboard } from '@/routes';
 import type { DashboardInvitation, Team } from '@/types';
@@ -8,6 +10,11 @@ import type { DashboardInvitation, Team } from '@/types';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import FinancialOverviewDashboard from '@/components/farmer/FinancialOverviewDashboard.vue';
 import CommodityIncome from '@/components/farmer/CommodityIncome.vue';
+
+const page = usePage();
+const userName = computed(
+    () => page.props.auth?.user?.name?.trim() || 'Petani IC',
+);
 
 defineProps<{
     pendingInvitations?: DashboardInvitation[];
@@ -39,12 +46,21 @@ defineOptions({
         <div
             class="mx-auto flex min-h-full w-full max-w-md flex-col gap-4 p-4 *:shrink-0"
         >
-            <KebunMap />
+            <DashboardHeader />
 
-            <!-- Row 2: Financial Overview -->
+            <div class="min-w-0">
+                <p class="text-xs leading-5 text-muted-foreground">
+                    Good morning,
+                </p>
+                <h1 class="text-base leading-6 font-semibold text-foreground">
+                    {{ userName }}
+                </h1>
+            </div>
+
             <FinancialOverviewDashboard />
 
-            <!-- Row 3: Pendapatan Komoditas -->
+            <KebunMap />
+
             <CommodityIncome />
         </div>
     </FarmerMobileShell>

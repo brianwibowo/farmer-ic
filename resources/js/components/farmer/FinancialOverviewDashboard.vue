@@ -1,63 +1,60 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { onMounted, ref } from 'vue';
 import StatCard from '@/components/StatCardDashboard.vue';
+import {
+    getDashboardFinancialSummary,
+    type DashboardFinancialSummary,
+} from '@/services/farmDemoService';
 
-// [LOGIKA DIISOLASI DI SINI]
-const activeTab = ref<'pendapatan' | 'pengeluaran'>('pendapatan');
+const financialSummary = ref<DashboardFinancialSummary>({
+    income: 0,
+    projectedIncome: 0,
+    expenses: 0,
+    projectedExpenses: 0,
+});
+const loading = ref(true);
 
-const financialData = {
-    pendapatan: [
-        { title: 'Pendapatan Kebun', value: 'Rp 25.000.000', type: 'income' },
-        { title: 'Proyeksi Pendapatan', value: 'Rp 15.000.000', type: 'projection' },
-    ],
-    pengeluaran: [
-        { title: 'Pengeluaran Kebun', value: 'Rp 8.300.000', type: 'expense' },
-        { title: 'Proyeksi Pengeluaran', value: 'Rp 5.000.000', type: 'expense' },
-    ],
-};
+onMounted(async () => {
+    try {
+        financialSummary.value = await getDashboardFinancialSummary();
+    } finally {
+        loading.value = false;
+    }
+});
 
-const currentCards = computed(() => financialData[activeTab.value]);
+const formatRupiah = (value: number): string =>
+    `Rp ${new Intl.NumberFormat('id-ID').format(value)}`;
 </script>
 
 <template>
-    <section class="space-y-2">
-        <!-- Filter Toggle Button Kanan Atas -->
-        <div class="flex justify-end gap-1.5 text-xs font-bold">
-            <button
-                type="button"
-                @click="activeTab = 'pendapatan'"
-                :class="[
-                    'rounded-full px-3 py-1.5 transition-all duration-200 active:scale-95',
-                    activeTab === 'pendapatan'
-                        ? 'bg-[#1E5E27] text-white shadow-sm'
-                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-400'
-                ]"
-            >
-                Pendapatan
-            </button>
-
-            <button
-                type="button"
-                @click="activeTab = 'pengeluaran'"
-                :class="[
-                    'rounded-full px-3 py-1.5 transition-all duration-200 active:scale-95',
-                    activeTab === 'pengeluaran'
-                        ? 'bg-red-600 text-white shadow-sm'
-                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-400'
-                ]"
-            >
-                Pengeluaran
-            </button>
+    <section aria-label="Pendapatan dan pengeluaran kebun">
+        <div
+            v-if="loading"
+            class="grid grid-cols-2 gap-3"
+            role="status"
+            aria-label="Memuat ringkasan keuangan"
+        >
+            <div class="h-32 animate-pulse rounded-2xl bg-muted" />
+            <div class="h-32 animate-pulse rounded-2xl bg-muted" />
         </div>
-
-        <!-- Grid 2 Stat Card -->
-        <div class="grid grid-cols-2 gap-3 bg">
+        <div v-else class="grid grid-cols-2 gap-3">
             <StatCard
-                v-for="(card, index) in currentCards"
-                :key="index"
-                :title="card.title"
-                :value="card.value"
-                :type="card.type as any"
+                title="Pendapatan Kebun"
+                :value="formatRupiah(financialSummary.income)"
+                projection-title="Proyeksi Pendapatan"
+                :projection-value="
+                    formatRupiah(financialSummary.projectedIncome)
+                "
+                type="income"
+            />
+            <StatCard
+                title="Pengeluaran Kebun"
+                :value="formatRupiah(financialSummary.expenses)"
+                projection-title="Proyeksi Pengeluaran"
+                :projection-value="
+                    formatRupiah(financialSummary.projectedExpenses)
+                "
+                type="expense"
             />
         </div>
     </section>

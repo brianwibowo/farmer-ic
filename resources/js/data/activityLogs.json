@@ -1,218 +1,9 @@
 [
     {
-        "id": "act-penanaman-001",
-        "type": "penanaman-benih",
-        "typeLabel": "Penanaman Benih",
-        "timestamp": "20 Agustus 2026 - 16.30",
-        "daysAfterPlanting": 1,
-        "officerName": "Paijo",
-        "kebunId": "kebun-002",
-        "kebunName": "Kebun Tani Lestari",
-        "city": "Temanggung",
-        "seedType": "Jagung",
-        "report": {
-            "kind": "penanaman-benih",
-            "brandOrVariety": "BISI 18 (Jagung Hibrida)",
-            "quantityKg": 18,
-            "plantingPattern": "Tajuq Zigzag (70 x 20 cm)",
-            "areaSize": "1,2 Ha"
-        },
-        "photos": [
-            {
-                "id": "photo-benih-1",
-                "label": "Foto bungkus benih",
-                "caption": "Kemasan benih jagung hibrida BISI 18 berlabel sertifikat resmi",
-                "image": "/images/activities/benih-bungkus.jpg"
-            },
-            {
-                "id": "photo-benih-2",
-                "label": "Foto kegiatan",
-                "caption": "Proses penanaman tajuq di petak utara Kebun Tani Lestari",
-                "image": "/images/activities/benih-kegiatan.jpg"
-            }
-        ]
-    },
-    {
-        "id": "act-pemupukan-001",
-        "type": "pemupukan",
-        "typeLabel": "Pemupukan",
-        "timestamp": "20 Agustus 2026 - 16.45",
-        "daysAfterPlanting": 25,
-        "officerName": "Slamet Widodo",
-        "kebunId": "kebun-001",
-        "kebunName": "Kebun Sumber Makmur",
-        "city": "Wonosobo",
-        "seedType": "Kedelai",
-        "report": {
-            "kind": "pemupukan",
-            "fertilizationStage": "Pupuk Susulan 1 (Fase Vegetatif)",
-            "fertilizerType": "NPK + Urea",
-            "brandName": "NPK Phonska Plus & Pupuk Kaltim",
-            "subsidyStatus": "Subsidi",
-            "applicationMethod": "Tabur Alur Baris",
-            "usageAmount": "6 Sak (300 kg)"
-        },
-        "photos": [
-            {
-                "id": "photo-pupuk-1",
-                "label": "Foto sak pupuk",
-                "caption": "Sak pupuk NPK Phonska dan Urea siap tabur di tepi blok",
-                "image": "/images/activities/pupuk-sak.jpg"
-            },
-            {
-                "id": "photo-pupuk-2",
-                "label": "Foto kegiatan",
-                "caption": "Penaburan pupuk susulan di sepanjang barisan tanaman kedelai",
-                "image": "/images/kebun-placeholder.svg"
-            }
-        ]
-    },
-    {
-        "id": "act-pengairan-001",
-        "type": "pengairan",
-        "typeLabel": "Pengairan",
-        "timestamp": "20 Agustus 2026 - 15.10",
-        "daysAfterPlanting": 18,
-        "officerName": "Hendra Kusuma",
-        "kebunId": "kebun-003",
-        "kebunName": "Kebun Arum Sari",
-        "city": "Banjarnegara",
-        "seedType": "Rumput",
-        "report": {
-            "kind": "pengairan",
-            "waterSource": "Sumur Bor Dalam",
-            "irrigationMethod": "Sprinkler Berputar",
-            "machineType": "Pompa Diesel Solar 6.5 PK",
-            "durationHours": 4.5
-        },
-        "photos": [
-            {
-                "id": "photo-air-1",
-                "label": "Foto mesin",
-                "caption": "Mesin pompa diesel beroperasi mengalirkan air dari sumur bor",
-                "image": "/images/activities/pengairan-mesin.jpg"
-            },
-            {
-                "id": "photo-air-2",
-                "label": "Foto lahan",
-                "caption": "Penyiraman sprinkler merata pada blok ratoon rumput pakan",
-                "image": "/images/kebun-placeholder.svg"
-            }
-        ]
-    },
-    {
-        "id": "act-pertumbuhan-001",
-        "type": "pengecekan-pertumbuhan",
-        "typeLabel": "Pengecekan Fase Pertumbuhan",
-        "timestamp": "20 Agustus 2026 - 16.34",
-        "daysAfterPlanting": 58,
-        "officerName": "Wahyu Pratama",
-        "kebunId": "kebun-004",
-        "kebunName": "Kebun Maju Bersama",
-        "city": "Magelang",
-        "seedType": "Kedelai",
-        "report": {
-            "kind": "pengecekan-pertumbuhan",
-            "growthPhase": "Pengisian Polong (Fase R5)",
-            "averageHeightCm": 68,
-            "diseaseIndication": "Aman",
-            "pestIndication": "Ringan"
-        },
-        "photos": [
-            {
-                "id": "photo-tumbuh-1",
-                "label": "Foto tanaman (full)",
-                "caption": "Hamparan kanopi kedelai fase R5 tampak rapat dan hijau",
-                "image": "/images/activities/tumbuh-tanaman-full.webp"
-            },
-            {
-                "id": "photo-tumbuh-2",
-                "label": "Foto daun (close up)",
-                "caption": "Permukaan daun sehat dengan sedikit bekas gigitan ringan di tepi",
-                "image": "/images/kebun-placeholder.svg"
-            },
-            {
-                "id": "photo-tumbuh-3",
-                "label": "Foto buah",
-                "caption": "Polong kedelai mulai terisi padat pada buku batang utama",
-                "image": "/images/kebun-placeholder.svg"
-            }
-        ]
-    },
-    {
-        "id": "act-pestisida-001",
-        "type": "pestisida",
-        "typeLabel": "Pestisida",
-        "timestamp": "20 Agustus 2026 - 17.00",
-        "daysAfterPlanting": 32,
-        "officerName": "Paijo",
-        "kebunId": "kebun-002",
-        "kebunName": "Kebun Tani Lestari",
-        "city": "Temanggung",
-        "seedType": "Jagung",
-        "report": {
-            "kind": "pestisida",
-            "pesticideCategory": "Insektisida",
-            "purpose": "Korektif",
-            "brandName": "Prevathon 50 SC",
-            "activeIngredient": "Klorantraniliprol 50 g/L",
-            "dosagePerTank": "25 ml / tangki",
-            "tankSizeLiters": 16,
-            "tankCount": 8
-        },
-        "photos": [
-            {
-                "id": "photo-pestisida-1",
-                "label": "Foto bahan pestisida",
-                "caption": "Botol insektisida Prevathon 50 SC dan gelas takar dosis",
-                "image": "/images/activities/pestisida-bahan.jpg"
-            },
-            {
-                "id": "photo-pestisida-2",
-                "label": "Foto kegiatan",
-                "caption": "Penyemprotan diarahkan ke pucuk daun jagung menggunakan tangki 16L",
-                "image": "/images/kebun-placeholder.svg"
-            }
-        ]
-    },
-    {
-        "id": "act-insiden-001",
-        "type": "pelaporan-insiden",
-        "typeLabel": "Pelaporan Insiden",
-        "timestamp": "20 Agustus 2026 - 14.20",
-        "daysAfterPlanting": 41,
-        "officerName": "Sutrisno",
-        "kebunId": "kebun-005",
-        "kebunName": "Kebun Harapan Jaya",
-        "city": "Purworejo",
-        "seedType": "Jagung",
-        "report": {
-            "kind": "pelaporan-insiden",
-            "incidentCategory": "Serangan Hama Ulat Grayak (FAW)",
-            "severity": "Darurat",
-            "affectedAreaHa": 1.4,
-            "proposedSolution": "Penyemprotan insektisida sistemik bahan aktif emamektin benzoat secara serentak pada pagi hari di Blok B dan C dalam 24 jam."
-        },
-        "photos": [
-            {
-                "id": "photo-insiden-1",
-                "label": "Foto close up",
-                "caption": "Kerusakan pucuk daun jagung akibat larva Spodoptera frugiperda",
-                "image": "/images/activities/insiden-closeup.jpg"
-            },
-            {
-                "id": "photo-insiden-2",
-                "label": "Foto lebar/panorama",
-                "caption": "Hamparan 1,4 Ha di sisi barat yang terdampak serangan hama",
-                "image": "/images/kebun-placeholder.svg"
-            }
-        ]
-    },
-    {
         "id": "act-panen-001",
         "type": "panen",
         "typeLabel": "Panen",
-        "timestamp": "20 Agustus 2026 - 16.22",
+        "timestamp": "17 Oktober 2026",
         "daysAfterPlanting": 105,
         "officerName": "Slamet Widodo",
         "kebunId": "kebun-002",
@@ -241,7 +32,216 @@
                 "id": "photo-panen-2",
                 "label": "Foto kegiatan",
                 "caption": "Proses pemipilan dan pengangkutan hasil panen ke gudang",
-                "image": "/images/kebun-placeholder.svg"
+                "image": "/images/activities/panen-kegiatan.jpg"
+            }
+        ]
+    },
+    {
+        "id": "act-insiden-001",
+        "type": "pelaporan-insiden",
+        "typeLabel": "Pelaporan Insiden",
+        "timestamp": "14 Oktober 2026",
+        "daysAfterPlanting": 41,
+        "officerName": "Sutrisno",
+        "kebunId": "kebun-005",
+        "kebunName": "Kebun Harapan Jaya",
+        "city": "Purworejo",
+        "seedType": "Jagung",
+        "report": {
+            "kind": "pelaporan-insiden",
+            "incidentCategory": "Serangan Hama Ulat Grayak (FAW)",
+            "severity": "Darurat",
+            "affectedAreaHa": 1.4,
+            "proposedSolution": "Penyemprotan insektisida sistemik bahan aktif emamektin benzoat secara serentak pada pagi hari di Blok B dan C dalam 24 jam."
+        },
+        "photos": [
+            {
+                "id": "photo-insiden-1",
+                "label": "Foto close up",
+                "caption": "Kerusakan pucuk daun jagung akibat larva Spodoptera frugiperda",
+                "image": "/images/activities/insiden-closeup.jpg"
+            },
+            {
+                "id": "photo-insiden-2",
+                "label": "Foto lebar/panorama",
+                "caption": "Hamparan 1,4 Ha di sisi barat yang terdampak serangan hama",
+                "image": "/images/activities/insiden-panorama.jpg"
+            }
+        ]
+    },
+    {
+        "id": "act-pestisida-001",
+        "type": "pestisida",
+        "typeLabel": "Pestisida",
+        "timestamp": "06 Oktober 2026",
+        "daysAfterPlanting": 32,
+        "officerName": "Paijo",
+        "kebunId": "kebun-002",
+        "kebunName": "Kebun Tani Lestari",
+        "city": "Temanggung",
+        "seedType": "Jagung",
+        "report": {
+            "kind": "pestisida",
+            "pesticideCategory": "Insektisida",
+            "purpose": "Korektif",
+            "brandName": "Prevathon 50 SC",
+            "activeIngredient": "Klorantraniliprol 50 g/L",
+            "dosagePerTank": "25 ml / tangki",
+            "tankSizeLiters": 16,
+            "tankCount": 8
+        },
+        "photos": [
+            {
+                "id": "photo-pestisida-1",
+                "label": "Foto bahan pestisida",
+                "caption": "Botol insektisida Prevathon 50 SC dan gelas takar dosis",
+                "image": "/images/activities/pestisida-bahan.jpg"
+            },
+            {
+                "id": "photo-pestisida-2",
+                "label": "Foto kegiatan",
+                "caption": "Penyemprotan diarahkan ke pucuk daun jagung menggunakan tangki 16L",
+                "image": "/images/activities/pestisida-kegiatan.jpg"
+            }
+        ]
+    },
+    {
+        "id": "act-pertumbuhan-001",
+        "type": "pengecekan-pertumbuhan",
+        "typeLabel": "Pengecekan Fase Pertumbuhan",
+        "timestamp": "28 September 2026",
+        "daysAfterPlanting": 58,
+        "officerName": "Wahyu Pratama",
+        "kebunId": "kebun-004",
+        "kebunName": "Kebun Maju Bersama",
+        "city": "Magelang",
+        "seedType": "Kedelai",
+        "report": {
+            "kind": "pengecekan-pertumbuhan",
+            "growthPhase": "Pengisian Polong (Fase R5)",
+            "averageHeightCm": 68,
+            "diseaseIndication": "Aman",
+            "pestIndication": "Ringan"
+        },
+        "photos": [
+            {
+                "id": "photo-tumbuh-1",
+                "label": "Foto tanaman (full)",
+                "caption": "Hamparan kanopi kedelai fase R5 tampak rapat dan hijau",
+                "image": "/images/activities/tumbuh-tanaman-full.jpg"
+            },
+            {
+                "id": "photo-tumbuh-2",
+                "label": "Foto daun (close up)",
+                "caption": "Permukaan daun sehat dengan sedikit bekas gigitan ringan di tepi",
+                "image": "/images/activities/tumbuh-daun-closeup.jpg"
+            },
+            {
+                "id": "photo-tumbuh-3",
+                "label": "Foto buah",
+                "caption": "Polong kedelai mulai terisi padat pada buku batang utama",
+                "image": "/images/activities/tumbuh-buah.webp"
+            }
+        ]
+    },
+    {
+        "id": "act-pengairan-001",
+        "type": "pengairan",
+        "typeLabel": "Pengairan",
+        "timestamp": "19 September 2026",
+        "daysAfterPlanting": 18,
+        "officerName": "Hendra Kusuma",
+        "kebunId": "kebun-003",
+        "kebunName": "Kebun Arum Sari",
+        "city": "Banjarnegara",
+        "seedType": "Rumput",
+        "report": {
+            "kind": "pengairan",
+            "waterSource": "Sumur Bor Dalam",
+            "irrigationMethod": "Sprinkler Berputar",
+            "machineType": "Pompa Diesel Solar 6.5 PK",
+            "durationHours": 4.5
+        },
+        "photos": [
+            {
+                "id": "photo-air-1",
+                "label": "Foto mesin",
+                "caption": "Mesin pompa diesel beroperasi mengalirkan air dari sumur bor",
+                "image": "/images/activities/pengairan-mesin.jpg"
+            },
+            {
+                "id": "photo-air-2",
+                "label": "Foto lahan",
+                "caption": "Penyiraman sprinkler merata pada blok ratoon rumput pakan",
+                "image": "/images/activities/pengairan-lahan.jpg"
+            }
+        ]
+    },
+    {
+        "id": "act-pemupukan-001",
+        "type": "pemupukan",
+        "typeLabel": "Pemupukan",
+        "timestamp": "08 September 2026",
+        "daysAfterPlanting": 25,
+        "officerName": "Slamet Widodo",
+        "kebunId": "kebun-001",
+        "kebunName": "Kebun Sumber Makmur",
+        "city": "Wonosobo",
+        "seedType": "Kedelai",
+        "report": {
+            "kind": "pemupukan",
+            "fertilizationStage": "Pupuk Susulan 1 (Fase Vegetatif)",
+            "fertilizerType": "NPK + Urea",
+            "brandName": "NPK Phonska Plus & Pupuk Kaltim",
+            "subsidyStatus": "Subsidi",
+            "applicationMethod": "Tabur Alur Baris",
+            "usageAmount": "6 Sak (300 kg)"
+        },
+        "photos": [
+            {
+                "id": "photo-pupuk-1",
+                "label": "Foto sak pupuk",
+                "caption": "Sak pupuk NPK Phonska dan Urea siap tabur di tepi blok",
+                "image": "/images/activities/pupuk-sak.jpg"
+            },
+            {
+                "id": "photo-pupuk-2",
+                "label": "Foto kegiatan",
+                "caption": "Penaburan pupuk susulan di sepanjang barisan tanaman kedelai",
+                "image": "/images/activities/pupuk-kegiatan.jpg"
+            }
+        ]
+    },
+    {
+        "id": "act-penanaman-001",
+        "type": "penanaman-benih",
+        "typeLabel": "Penanaman Benih",
+        "timestamp": "26 Agustus 2026",
+        "daysAfterPlanting": 1,
+        "officerName": "Paijo",
+        "kebunId": "kebun-002",
+        "kebunName": "Kebun Tani Lestari",
+        "city": "Temanggung",
+        "seedType": "Jagung",
+        "report": {
+            "kind": "penanaman-benih",
+            "brandOrVariety": "BISI 18 (Jagung Hibrida)",
+            "quantityKg": 18,
+            "plantingPattern": "Tajuq Zigzag (70 x 20 cm)",
+            "areaSize": "1,2 Ha"
+        },
+        "photos": [
+            {
+                "id": "photo-benih-1",
+                "label": "Foto bungkus benih",
+                "caption": "Kemasan benih jagung hibrida BISI 18 berlabel sertifikat resmi",
+                "image": "/images/activities/benih-bungkus.jpg"
+            },
+            {
+                "id": "photo-benih-2",
+                "label": "Foto kegiatan",
+                "caption": "Proses penanaman tajuq di petak utara Kebun Tani Lestari",
+                "image": "/images/activities/benih-kegiatan.jpg"
             }
         ]
     }

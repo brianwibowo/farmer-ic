@@ -6,6 +6,7 @@ const farmerRoutes: Partial<Record<FarmerNavKey, string>> = {
     home: home().url,
     ai: home().url,
     finance: finance().url,
+    report: '/laporan',
 };
 
 export function useFarmerNavigation() {
