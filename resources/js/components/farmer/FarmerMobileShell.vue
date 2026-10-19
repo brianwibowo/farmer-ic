@@ -50,6 +50,11 @@ function select(key: FarmerNavKey): void {
         return;
     }
 
+    if (key === 'report' && window.location.pathname !== '/laporan') {
+        router.visit('/laporan');
+        return;
+    }
+
     if (upcomingPages[key]) {
         toast.info(`Halaman ${upcomingPages[key]} sedang disiapkan.`);
         return;

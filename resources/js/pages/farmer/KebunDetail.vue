@@ -380,9 +380,10 @@ watch(kebunId, () => void loadDetail());
                     <p class="mt-3 text-sm font-semibold text-card-foreground">
                         {{ card.value }}
                     </p>
-                    <p class="mt-1 text-xs text-[#93a99f]">
+                    <!-- Commented to turn off subtext at cards -->
+                    <!-- <p class="mt-1 text-xs text-[#93a99f]">
                         {{ card.subtext }}
-                    </p>
+                    </p> -->
                 </article>
             </section>
 

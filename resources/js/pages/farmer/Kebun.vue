@@ -12,6 +12,7 @@ import {
     Sprout,
 } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
+import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { SeedType } from '@/data/kebun';

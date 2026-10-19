@@ -3,7 +3,13 @@ import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import FarmerNavIcon from './FarmerNavIcon.vue';
 
-export type FarmerNavKey = 'home' | 'garden' | 'ai' | 'finance' | 'activity';
+export type FarmerNavKey =
+    | 'home'
+    | 'garden'
+    | 'ai'
+    | 'finance'
+    | 'activity'
+    | 'report';
 
 type FarmerNavItem = {
     key: FarmerNavKey;
@@ -30,6 +36,7 @@ const items: FarmerNavItem[] = [
     { key: 'ai', label: 'AI', emphasis: true, href: '/kebun-petani/ai' },
     { key: 'finance', label: 'Keuangan', href: '/finance' },
     { key: 'activity', label: 'Aktivitas', href: '/aktivitas' },
+    // { key: 'report', label: 'Laporan', href: '/laporan' },
 ];
 
 const active = computed(() => props.activeKey);

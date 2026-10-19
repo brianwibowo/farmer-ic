@@ -37,9 +37,13 @@ defineProps<{ name: FarmerNavKey }>();
                 d="M9 17a9 9 0 1 1 17 3M19 6v10M22 8.5c-.8-1.4-5-1.7-5 1s5 1 5 3.5-4.2 2.4-5.5 1M2 21l4-1 8 3h4a2 2 0 0 0 0-4h-4M2 28l7 2a5 5 0 0 0 4-.5l13-8a2 2 0 0 0-2-3l-6 3"
             />
         </template>
-        <template v-else>
+        <template v-else-if="name === 'activity'">
             <rect x="3" y="3" width="26" height="26" rx="7" />
             <path d="m8 19 6-6 4 4 6-6" />
+        </template>
+        <template v-else>
+            <rect x="6" y="3" width="20" height="26" rx="3" />
+            <path d="M10 9h12M10 14h12M10 19h7M10 24h9" />
         </template>
     </svg>
 </template>

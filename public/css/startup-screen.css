@@ -68,20 +68,21 @@ body:has(.startup-screen) {
     border: 1px solid var(--startup-primary);
     border-radius: 50%;
     background: transparent;
-    animation: startup-dot 1600ms ease-in-out infinite;
-    animation-delay: calc(var(--dot-index) * 400ms);
+    will-change: transform;
+    animation: startup-dot 800ms cubic-bezier(0.45, 0, 0.55, 1) infinite both;
+    animation-delay: calc(var(--dot-index) * 200ms - 200ms);
 }
 
 @keyframes startup-dot {
     0%,
-    20% {
-        transform: translateY(-15px);
-        background: var(--startup-primary);
-    }
-    25%,
+    50%,
     100% {
-        transform: translateY(0);
+        transform: translate3d(0, 0, 0);
         background: transparent;
+    }
+    25% {
+        transform: translate3d(0, -15px, 0);
+        background: var(--startup-primary);
     }
 }
 
@@ -119,6 +120,7 @@ body:has(.startup-screen) {
     }
     .startup-screen__dots span {
         animation: none;
+        will-change: auto;
     }
     .startup-screen__dots span:first-child {
         background: var(--startup-primary);
