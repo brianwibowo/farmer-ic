@@ -109,6 +109,71 @@ export type ActivityLog = {
     photos: ActivityPhoto[];
 };
 
+export type ActivityStatusFilter = 'all' | 'needs-check' | 'normal';
+export type ActivityAttentionPriority = 'attention' | 'urgent';
+
+export type ActivityAttention = {
+    status: 'normal' | 'needs-check';
+    priority?: ActivityAttentionPriority;
+    reasons: string[];
+};
+
+/**
+ * Derive a single attention state from the report-specific health signals.
+ * One activity is counted once even when both disease and pest indications
+ * need attention.
+ */
+export function getActivityAttention(log: ActivityLog): ActivityAttention {
+    const reasons: string[] = [];
+    let isUrgent = false;
+
+    if (log.report.kind === 'pengecekan-pertumbuhan') {
+        if (log.report.diseaseIndication !== 'Aman') {
+            reasons.push(`Penyakit ${log.report.diseaseIndication.toLocaleLowerCase()}`);
+            isUrgent ||= log.report.diseaseIndication === 'Berat';
+        }
+
+        if (log.report.pestIndication !== 'Aman') {
+            reasons.push(`Hama ${log.report.pestIndication.toLocaleLowerCase()}`);
+            isUrgent ||= log.report.pestIndication === 'Berat';
+        }
+    }
+
+    if (log.report.kind === 'pelaporan-insiden') {
+        reasons.push(`Insiden ${log.report.severity.toLocaleLowerCase()}`);
+        isUrgent = log.report.severity === 'Darurat';
+    }
+
+    if (reasons.length === 0) {
+        return { status: 'normal', reasons };
+    }
+
+    return {
+        status: 'needs-check',
+        priority: isUrgent ? 'urgent' : 'attention',
+        reasons,
+    };
+}
+
+export function getActivitySearchText(log: ActivityLog): string {
+    const reportText = Object.values(log.report)
+        .filter((value): value is string => typeof value === 'string')
+        .join(' ');
+
+    return [
+        log.typeLabel,
+        log.timestamp,
+        log.kebunName,
+        log.city,
+        log.officerName,
+        log.seedType,
+        reportText,
+        getActivityAttention(log).reasons.join(' '),
+    ]
+        .join(' ')
+        .toLocaleLowerCase();
+}
+
 export const activityTypeOptions: Array<{
     value: ActivityType;
     label: string;

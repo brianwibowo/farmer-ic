@@ -2,7 +2,7 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     Activity,
-    // ArrowDownUp, — NOTE (merge resolution 2026-10-19): kept for the paused sort-toggle idea.
+    ArrowUpRight,
     Camera,
     ChevronRight,
     CircleAlert,
@@ -23,9 +23,12 @@ import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
     collectActivityMonths,
+    getActivityAttention,
+    getActivitySearchText,
     matchesActivityTimeFilter,
     // parseIndonesianDateToIso, — NOTE (merge resolution 2026-10-19): kept for the commented date-range/sort code below.
     type ActivityLog,
+    type ActivityStatusFilter,
     type ActivityTimeFilter,
     type ActivityType,
 } from '@/data/activityLogs';
@@ -38,9 +41,15 @@ const activities = ref<ActivityLog[]>([]);
 const kebunList = ref<Kebun[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
+const selectedStatus = ref<ActivityStatusFilter>('all');
+const statusOptions: Array<{ value: ActivityStatusFilter; label: string }> = [
+    { value: 'all', label: 'Semua' },
+    { value: 'needs-check', label: 'Perlu cek' },
+    { value: 'normal', label: 'Normal' },
+];
 const selectedTimeFilter = ref<ActivityTimeFilter>('all');
 // NOTE (merge resolution 2026-10-19): the date-range inputs and sort toggle were
-// removed from the UI (replaced by ActivityPeriodFilter chips + newest-first sorting
+// removed from the UI (replaced by ActivityPeriodFilter dropdown + newest-first sorting
 // in listActivityLogs()). Kept commented per review; delete once confirmed unused.
 // const startDate = ref('');
 // const endDate = ref('');
@@ -85,7 +94,7 @@ const backHref = computed(() => {
     return '/kebun';
 });
 
-const filteredActivities = computed(() => {
+const filteredByGeneralFilters = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
 
     const filtered = activities.value.filter((item) => {
@@ -93,16 +102,7 @@ const filteredActivities = computed(() => {
             return false;
         }
 
-        const searchable = [
-            item.typeLabel,
-            item.timestamp,
-            item.kebunName,
-            item.city,
-            item.officerName,
-            item.seedType,
-        ]
-            .join(' ')
-            .toLocaleLowerCase();
+        const searchable = getActivitySearchText(item);
 
         const matchesSearch = !query || searchable.includes(query);
         const matchesType =
@@ -147,32 +147,37 @@ const filteredActivities = computed(() => {
 
     // NOTE (merge resolution 2026-10-19): the manual newest/oldest sort is disabled —
     // listActivityLogs() already returns newest-first. Kept commented per review.
-    // return [...filtered].sort((a, b) => {
-    //     const aDate = parseIndonesianDateToIso(a.timestamp) ?? '';
-    //     const bDate = parseIndonesianDateToIso(b.timestamp) ?? '';
-    //     return sortNewestFirst.value
-    //         ? bDate.localeCompare(aDate)
-    //         : aDate.localeCompare(bDate);
-    // });
-
     return filtered;
 });
+
+const filteredActivities = computed(() =>
+    filteredByGeneralFilters.value.filter((item) => {
+        const status = getActivityAttention(item).status;
+        return (
+            selectedStatus.value === 'all' ||
+            (selectedStatus.value === 'needs-check' &&
+                status === 'needs-check') ||
+            (selectedStatus.value === 'normal' && status === 'normal')
+        );
+    }),
+);
 
 // NOTE (merge resolution 2026-10-19): the startDate/endDate term is disabled along
 // with the date-range UI (see the commented refs above); it is kept commented below.
 const activeFilterCount = computed(
     () =>
         Number(Boolean(searchQuery.value.trim())) +
-        Number(Boolean(selectedType.value)),
-    // + Number(Boolean(startDate.value || endDate.value)),
+        Number(
+            selectedType.value !== '' && selectedType.value !== 'all',
+        ) +
+        Number(selectedStatus.value !== 'all') +
+        Number(selectedTimeFilter.value !== 'all'),
 );
 
-const urgentCount = computed(
+const needsCheckCount = computed(
     () =>
-        filteredActivities.value.filter(
-            (item) =>
-                item.report.kind === 'pelaporan-insiden' &&
-                item.report.severity === 'Darurat',
+        filteredByGeneralFilters.value.filter(
+            (item) => getActivityAttention(item).status === 'needs-check',
         ).length,
 );
 
@@ -187,6 +192,7 @@ function thumbnailFor(item: ActivityLog): string {
 function clearFilters(): void {
     searchQuery.value = '';
     selectedType.value = '';
+    selectedStatus.value = 'all';
     selectedTimeFilter.value = 'all';
     // NOTE (merge resolution 2026-10-19): date resets disabled with the range UI.
     // startDate.value = '';
@@ -212,11 +218,16 @@ function reportSummary(item: ActivityLog): string {
     }
 }
 
-function isUrgent(item: ActivityLog): boolean {
-    return (
-        item.report.kind === 'pelaporan-insiden' &&
-        item.report.severity === 'Darurat'
-    );
+function attentionFor(item: ActivityLog) {
+    return getActivityAttention(item);
+}
+
+function attentionLabelFor(item: ActivityLog): string {
+    return attentionFor(item).reasons.join(' · ');
+}
+
+function kebunActivitiesHrefFor(item: ActivityLog): string {
+    return `/kebun/aktivitas?kebun=${encodeURIComponent(item.kebunId)}`;
 }
 
 async function loadActivities(): Promise<void> {
@@ -340,7 +351,7 @@ onMounted(() => void loadActivities());
                         <CircleAlert :size="16" aria-hidden="true" />
                     </span>
                     <p class="text-lg leading-5 font-semibold text-foreground">
-                        {{ urgentCount }}
+                        {{ needsCheckCount }}
                     </p>
                     <p class="truncate text-[11px] font-medium text-foreground">
                         Perlu cek
@@ -348,7 +359,7 @@ onMounted(() => void loadActivities());
                 </div>
             </section>
 
-            <div class="mt-4 flex gap-2">
+            <div class="mt-4">
                 <label class="relative min-w-0 flex-1">
                     <span class="sr-only">Cari aktivitas</span>
                     <input
@@ -365,14 +376,40 @@ onMounted(() => void loadActivities());
                     />
                 </label>
 
-                <ActivityTypeFilterDropdown v-model="selectedType" />
+                <div class="mt-2 grid grid-cols-2 gap-2">
+                    <ActivityPeriodFilter
+                        v-model="selectedTimeFilter"
+                        :months="availableMonths"
+                        stretch
+                    />
+                    <ActivityTypeFilterDropdown
+                        v-model="selectedType"
+                        stretch
+                    />
+                </div>
             </div>
 
-            <ActivityPeriodFilter
-                v-model="selectedTimeFilter"
-                :months="availableMonths"
-                class="mt-3"
-            />
+            <div
+                class="mt-3 flex items-center gap-1.5 overflow-x-auto"
+                role="group"
+                aria-label="Filter status aktivitas"
+            >
+                <button
+                    v-for="option in statusOptions"
+                    :key="option.value"
+                    type="button"
+                    :aria-pressed="selectedStatus === option.value"
+                    :class="[
+                        'inline-flex h-[34px] shrink-0 items-center justify-center rounded-lg border px-3 text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                        selectedStatus === option.value
+                            ? 'border-secondary bg-secondary text-secondary-foreground'
+                            : 'border-border bg-card text-foreground hover:border-primary hover:text-secondary',
+                    ]"
+                    @click="selectedStatus = option.value"
+                >
+                    {{ option.label }}
+                </button>
+            </div>
 
             <div
                 v-if="activeFilterCount"
@@ -481,16 +518,17 @@ onMounted(() => void loadActivities());
 
             <ul v-else class="mt-5 space-y-3" aria-label="Daftar aktivitas">
                 <li v-for="item in filteredActivities" :key="item.id">
-                    <Link
-                        :href="
-                            kebunParam
-                                ? `/rincian-aktivitas?id=${item.id}&kebun=${encodeURIComponent(kebunParam)}`
-                                : `/rincian-aktivitas?id=${item.id}`
-                        "
-                        class="group flex gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    >
+                    <div class="overflow-hidden rounded-2xl border border-border bg-card">
+                        <Link
+                            :href="
+                                kebunParam
+                                    ? `/rincian-aktivitas?id=${item.id}&kebun=${encodeURIComponent(kebunParam)}`
+                                    : `/rincian-aktivitas?id=${item.id}`
+                            "
+                            class="group flex gap-3 p-3 transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        >
                         <div
-                            class="relative size-[76px] shrink-0 overflow-hidden rounded-xl bg-muted"
+                            class="relative size-[120px] shrink-0 overflow-hidden rounded-xl bg-muted"
                         >
                             <img
                                 :src="thumbnailFor(item)"
@@ -518,9 +556,15 @@ onMounted(() => void loadActivities());
                                     </h2>
                                 </div>
                                 <span
-                                    v-if="isUrgent(item)"
-                                    class="inline-flex shrink-0 rounded-full bg-error/10 px-2 py-1 text-[10px] font-semibold text-error"
-                                    >Darurat</span
+                                    v-if="attentionFor(item).status === 'needs-check'"
+                                    :class="[
+                                        'inline-flex max-w-[130px] shrink-0 truncate rounded-full px-2 py-1 text-[10px] font-semibold',
+                                        attentionFor(item).priority === 'urgent'
+                                            ? 'bg-error/10 text-error'
+                                            : 'bg-warning/15 text-foreground',
+                                    ]"
+                                    :title="attentionLabelFor(item)"
+                                    >{{ attentionLabelFor(item) }}</span
                                 >
                                 <ChevronRight
                                     v-else
@@ -566,7 +610,20 @@ onMounted(() => void loadActivities());
                                 />{{ reportSummary(item) }}
                             </p>
                         </div>
-                    </Link>
+                        </Link>
+                        <!-- <div
+                            v-if="attentionFor(item).status === 'needs-check'"
+                            class="border-t border-border px-3 py-2"
+                        >
+                            <Link
+                                :href="kebunActivitiesHrefFor(item)"
+                                class="inline-flex items-center gap-1 text-xs font-semibold text-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            >
+                                Lihat aktivitas kebun
+                                <ArrowUpRight :size="14" aria-hidden="true" />
+                            </Link>
+                        </div> -->
+                    </div>
                 </li>
             </ul>
         </div>

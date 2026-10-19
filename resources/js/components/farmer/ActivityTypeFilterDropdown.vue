@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { activityTypeOptions, type ActivityType } from '@/data/activityLogs';
 
 const selectedType = defineModel<'' | 'all' | ActivityType>({ default: '' });
+const props = defineProps<{ stretch?: boolean }>();
 
 const isFilterOpen = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
@@ -44,7 +45,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div ref="dropdownRef" class="relative w-[132px] shrink-0">
+    <div
+        ref="dropdownRef"
+        :class="[
+            'relative',
+            props.stretch ? 'min-w-0 w-full' : 'w-[132px] shrink-0',
+        ]"
+    >
         <button
             type="button"
             aria-label="Filter jenis aktivitas"
