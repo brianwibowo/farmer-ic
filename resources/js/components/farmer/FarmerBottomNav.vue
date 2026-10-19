@@ -8,8 +8,8 @@ export type FarmerNavKey =
     | 'garden'
     | 'ai'
     | 'finance'
-    | 'activity';
-    // | 'report';
+    | 'activity'
+    | 'report';
 
 type FarmerNavItem = {
     key: FarmerNavKey;

@@ -34,6 +34,12 @@ export type CommodityCatalogItem = {
     image: string;
 };
 
+export const overallFarmSummary: CommodityCatalogItem = {
+    id: 'all',
+    name: 'Keseluruhan Kebun',
+    image: '/images/commodities/kebun.png',
+};
+
 export type FarmDemoState = {
     kebun: Kebun[];
     kebunLocations: Record<string, [number, number]>;

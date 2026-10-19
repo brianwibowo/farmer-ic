@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, LoaderCircle, Sprout } from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
+import { LoaderCircle, Sprout } from '@lucide/vue';
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import CommodityCard from '@/components/CommodityCardDashboard.vue';
 import {
@@ -98,31 +99,12 @@ onBeforeUnmount(() => {
             >
                 Ringkasan Kebun
             </h2>
-            <div
-                v-if="!loading && !error && items.length > 1"
-                class="flex gap-1"
+            <Link
+                href="/laporan"
+                class="inline-flex min-h-8 shrink-0 items-center justify-center rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-                <button
-                    type="button"
-                    :disabled="activeIndex === 0"
-                    class="flex size-8 items-center justify-center rounded-full border border-border bg-card text-secondary hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default disabled:opacity-35 dark:text-surface-foreground"
-                    aria-label="Kartu sebelumnya"
-                    aria-controls="commodity-summary-slides"
-                    @click="goTo(activeIndex - 1)"
-                >
-                    <ChevronLeft :size="17" aria-hidden="true" />
-                </button>
-                <button
-                    type="button"
-                    :disabled="activeIndex === items.length - 1"
-                    class="flex size-8 items-center justify-center rounded-full border border-border bg-card text-secondary hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default disabled:opacity-35 dark:text-surface-foreground"
-                    aria-label="Kartu berikutnya"
-                    aria-controls="commodity-summary-slides"
-                    @click="goTo(activeIndex + 1)"
-                >
-                    <ChevronRight :size="17" aria-hidden="true" />
-                </button>
-            </div>
+                Laporan
+            </Link>
         </div>
 
         <div

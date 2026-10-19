@@ -4,6 +4,7 @@ import {
 } from '@/composables/useDemoStorage';
 import {
     farmDemoSeedData,
+    overallFarmSummary,
     type CommodityCatalogItem,
     type FarmDemoState,
     type KebunInsight,
@@ -143,47 +144,73 @@ export async function getFarmCommoditySummaries(): Promise<CommoditySummary[]> {
         insight: state.kebunInsights[item.id],
     }));
 
-    return state.commodityCatalog.map((commodity: CommodityCatalogItem) => {
-        const seedType =
-            commodity.name === 'Rumput' ? 'Rumput' : commodity.name;
-        const items = mappedKebun.filter((item) => item.seedType === seedType);
-        const plantedArea = items.reduce(
-            (total, item) => total + item.usedHectare,
-            0,
-        );
-        const totalArea = items.reduce(
-            (total, item) => total + item.availableHectare,
-            0,
-        );
-        const totalWeight = items.reduce(
-            (total, item) => total + (item.insight?.weightTon ?? 0),
-            0,
-        );
-        const income = sumTransactions(
-            state.finance.transactions,
-            commodity.name === 'Rumput' ? 'Rumput odot' : commodity.name,
-            'income',
-        );
+    const commoditySummaries = state.commodityCatalog.map(
+        (commodity: CommodityCatalogItem) => {
+            const seedType =
+                commodity.name === 'Rumput' ? 'Rumput' : commodity.name;
+            const items = mappedKebun.filter(
+                (item) => item.seedType === seedType,
+            );
+            const plantedArea = items.reduce(
+                (total, item) => total + item.usedHectare,
+                0,
+            );
+            const totalArea = items.reduce(
+                (total, item) => total + item.availableHectare,
+                0,
+            );
+            const totalWeight = items.reduce(
+                (total, item) => total + (item.insight?.weightTon ?? 0),
+                0,
+            );
+            const income = sumTransactions(
+                state.finance.transactions,
+                commodity.name === 'Rumput' ? 'Rumput odot' : commodity.name,
+                'income',
+            );
 
-        return {
-            id: commodity.id,
-            name: commodity.name,
-            image: commodity.image,
-            statistics: [
-                { label: 'Jumlah', value: `${items.length} Kebun` },
-                {
-                    label: 'Luas tanam',
-                    value: `${formatHectare(plantedArea)} / ${formatHectare(totalArea)}`,
-                },
-                { label: 'Total panen', value: formatTon(totalWeight) },
-                {
-                    label: 'Total pendapatan',
-                    value: `Rp ${new Intl.NumberFormat('id-ID').format(income)}`,
-                    highlight: true,
-                },
-            ],
-        };
-    });
+            return {
+                id: commodity.id,
+                name: commodity.name,
+                image: commodity.image,
+                statistics: [
+                    { label: 'Jumlah', value: `${items.length} Kebun` },
+                    {
+                        label: 'Luas tanam',
+                        value: `${formatHectare(plantedArea)} / ${formatHectare(totalArea)}`,
+                    },
+                    { label: 'Total panen', value: formatTon(totalWeight) },
+                    {
+                        label: 'Total pendapatan',
+                        value: `Rp ${new Intl.NumberFormat('id-ID').format(income)}`,
+                        highlight: true,
+                    },
+                ],
+            };
+        },
+    );
+
+    const overall: CommoditySummary = {
+        ...overallFarmSummary,
+        statistics: [
+            { label: 'Jumlah', value: `${state.kebun.length} Kebun` },
+            {
+                label: 'Luas total',
+                value: formatHectare(
+                    state.kebun.reduce(
+                        (total, item) => total + item.availableHectare,
+                        0,
+                    ),
+                ),
+            },
+            {
+                label: 'Total tanam',
+                value: `${state.kebun.filter((item) => item.usedHectare > 0).length} Kebun`,
+            },
+        ],
+    };
+
+    return [overall, ...commoditySummaries];
 }
 
 export async function getDashboardFinancialSummary(): Promise<DashboardFinancialSummary> {
