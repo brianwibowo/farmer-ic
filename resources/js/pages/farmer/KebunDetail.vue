@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from "@inertiajs/vue3";
 import {
     Activity,
     ArrowLeft,
@@ -15,20 +15,20 @@ import {
     TrendingUp,
     Wheat,
     X,
-} from '@lucide/vue';
-import { computed, onMounted, ref, watch } from 'vue';
-import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
-import { getKebunDetail, type MappedKebun } from '@/services/kebunService';
+} from "@lucide/vue";
+import { computed, onMounted, ref, watch } from "vue";
+import FarmerMobileShell from "@/components/farmer/FarmerMobileShell.vue";
+import { getKebunDetail, type MappedKebun } from "@/services/kebunService";
 
 const page = usePage();
 const kebunId = computed(
     () =>
-        new URL(page.url, 'http://localhost').searchParams.get('id') ??
-        'kebun-001',
+        new URL(page.url, "http://localhost").searchParams.get("id") ??
+        "kebun-001",
 );
 const selectedKebun = ref<MappedKebun>();
 const loading = ref(true);
-const error = ref('');
+const error = ref("");
 let requestId = 0;
 
 const detail = computed(() => {
@@ -46,11 +46,11 @@ const detail = computed(() => {
                   ? 2
                   : 1;
     const growthCategoryLabel = [
-        'Kecambah',
-        'Bibit awal',
-        'Vegetatif aktif',
-        'Pembungaan',
-        'Pengisian & panen',
+        "Kecambah",
+        "Bibit awal",
+        "Vegetatif aktif",
+        "Pembungaan",
+        "Pengisian & panen",
     ][growthCategory - 1];
 
     return {
@@ -60,9 +60,9 @@ const detail = computed(() => {
         address: item.address,
         crop: item.seedType,
         seed: `${item.seedType} ${item.seedTypeDetail}`,
-        totalArea: `${new Intl.NumberFormat('id-ID').format(item.availableHectare)} ha`,
-        plantedArea: `${new Intl.NumberFormat('id-ID').format(item.usedHectare)} ha`,
-        weight: `${new Intl.NumberFormat('id-ID').format(item.weightTon)} ton`,
+        totalArea: `${new Intl.NumberFormat("id-ID").format(item.availableHectare)} ha`,
+        plantedArea: `${new Intl.NumberFormat("id-ID").format(item.usedHectare)} ha`,
+        weight: `${new Intl.NumberFormat("id-ID").format(item.weightTon)} ton`,
         growthCategory,
         growthCategoryLabel,
         aiConfidence: item.aiConfidence,
@@ -74,17 +74,17 @@ const detail = computed(() => {
 async function loadDetail(): Promise<void> {
     const request = ++requestId;
     loading.value = true;
-    error.value = '';
+    error.value = "";
     selectedKebun.value = undefined;
 
     try {
         const kebun = await getKebunDetail(kebunId.value);
         if (request !== requestId) return;
         selectedKebun.value = kebun;
-        if (!kebun) error.value = 'Kebun tidak ditemukan.';
+        if (!kebun) error.value = "Kebun tidak ditemukan.";
     } catch {
         if (request === requestId) {
-            error.value = 'Detail kebun belum dapat dimuat. Silakan coba lagi.';
+            error.value = "Detail kebun belum dapat dimuat. Silakan coba lagi.";
         }
     } finally {
         if (request === requestId) loading.value = false;
@@ -94,38 +94,38 @@ async function loadDetail(): Promise<void> {
 const growthStages = [
     {
         number: 1,
-        label: 'Kecambah',
-        range: '0–9 HST',
+        label: "Kecambah",
+        range: "0–9 HST",
         percent: 20,
-        image: '/images/farmer/jagung-berkecambah.jpg',
+        image: "/images/farmer/jagung-berkecambah.jpg",
     },
     {
         number: 2,
-        label: 'Bibit awal',
-        range: '10–29 HST',
+        label: "Bibit awal",
+        range: "10–29 HST",
         percent: 40,
-        image: '/images/farmer/jagung-tumbuh-fase-2.jpg',
+        image: "/images/farmer/jagung-tumbuh-fase-2.jpg",
     },
     {
         number: 3,
-        label: 'Vegetatif aktif',
-        range: '30–59 HST',
+        label: "Vegetatif aktif",
+        range: "30–59 HST",
         percent: 60,
-        image: '/images/farmer/corn-field.jpeg',
+        image: "/images/farmer/corn-field.jpeg",
     },
     {
         number: 4,
-        label: 'Pembungaan',
-        range: '60–79 HST',
+        label: "Pembungaan",
+        range: "60–79 HST",
         percent: 80,
-        image: '/images/farmer/jagung-tunas.jpeg',
+        image: "/images/farmer/jagung-tunas.jpeg",
     },
     {
         number: 5,
-        label: 'Pengisian & panen',
-        range: '80–99 HST',
+        label: "Pengisian & panen",
+        range: "80–99 HST",
         percent: 100,
-        image: '/images/farmer/jagung-panen.jpg',
+        image: "/images/farmer/jagung-panen.jpg",
     },
 ] as const;
 
@@ -165,15 +165,15 @@ function openGrowthStageImage(): void {
     const stage = selectedGrowthStage.value;
     openImage({
         src: stage.image,
-        alt: `Referensi tanaman ${detail.value?.crop ?? 'kebun'} fase ${stage.label}`,
+        alt: `Referensi tanaman ${detail.value?.crop ?? "kebun"} fase ${stage.label}`,
         title: `Fase ${stage.number}: ${stage.label}`,
         caption: `${stage.range}. Referensi untuk mencocokkan fase pertumbuhan tanaman.`,
     });
 }
 function formatRupiah(value: number): string {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
         maximumFractionDigits: 0,
     }).format(value);
 }
@@ -201,7 +201,7 @@ watch(kebunId, () => void loadDetail());
             role="status"
         >
             <p class="text-sm text-muted-foreground">
-                {{ error || 'Kebun tidak ditemukan.' }}
+                {{ error || "Kebun tidak ditemukan." }}
             </p>
             <button
                 type="button"
@@ -371,9 +371,9 @@ watch(kebunId, () => void loadDetail());
                     <p class="mt-3 text-sm font-semibold text-card-foreground">
                         {{ card.value }}
                     </p>
-                    <p class="mt-1 text-xs text-[#93a99f]">
+                    <!-- <p class="mt-1 text-xs text-[#93a99f]">
                         {{ card.subtext }}
-                    </p>
+                    </p> -->
                 </article>
             </section>
 
