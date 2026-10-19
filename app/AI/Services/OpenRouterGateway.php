@@ -4,7 +4,9 @@ namespace App\AI\Services;
 
 use App\AI\Contracts\LlmGateway;
 use App\AI\Exceptions\LlmException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
@@ -12,7 +14,11 @@ class OpenRouterGateway implements LlmGateway
 {
     public function complete(array $messages, string $model, array $options = []): array
     {
-        $response = $this->request()->post('/chat/completions', $this->payload($messages, $model, $options));
+        $response = $this->send(
+            $this->request(),
+            '/chat/completions',
+            $this->payload($messages, $model, $options),
+        );
 
         return $this->decodeResponse($response);
     }
@@ -24,11 +30,15 @@ class OpenRouterGateway implements LlmGateway
             throw new LlmException('TTS provider is not configured.');
         }
 
-        $response = $this->request()->post('/audio/speech', array_merge([
-            'model' => $model,
-            'input' => $input,
-            'response_format' => 'mp3',
-        ], $options));
+        $response = $this->send(
+            $this->request(),
+            '/audio/speech',
+            array_merge([
+                'model' => $model,
+                'input' => $input,
+                'response_format' => 'mp3',
+            ], $options),
+        );
 
         if ($response->failed()) {
             throw $this->exceptionFromResponse($response);
@@ -39,9 +49,11 @@ class OpenRouterGateway implements LlmGateway
 
     public function stream(array $messages, string $model, array $options = []): iterable
     {
-        $response = $this->request()
-            ->withOptions(['stream' => true])
-            ->post('/chat/completions', $this->payload($messages, $model, $options + ['stream' => true]));
+        $response = $this->send(
+            $this->request()->withOptions(['stream' => true]),
+            '/chat/completions',
+            $this->payload($messages, $model, $options + ['stream' => true]),
+        );
 
         if ($response->failed()) {
             throw $this->exceptionFromResponse($response);
@@ -52,7 +64,10 @@ class OpenRouterGateway implements LlmGateway
 
         try {
             while (! $stream->eof()) {
-                $buffer .= $stream->read(8192);
+                // Read small chunks so downstream SSE clients receive deltas as
+                // soon as the provider emits them instead of waiting for a
+                // large buffer to fill.
+                $buffer .= $stream->read(1024);
                 [$lines, $buffer] = $this->splitLines($buffer);
 
                 foreach ($lines as $line) {
@@ -107,7 +122,40 @@ class OpenRouterGateway implements LlmGateway
 
         $retries = (int) config('ai.openrouter.max_retries', 1);
 
-        return $retries > 0 ? $request->retry($retries, 250) : $request;
+        if ($retries <= 0) {
+            return $request;
+        }
+
+        return $request->retry(
+            $retries,
+            static fn (int $attempt): int => min(2000, 250 * (2 ** max(0, $attempt - 1))),
+            static function (\Throwable $exception): bool {
+                if ($exception instanceof ConnectionException) {
+                    return true;
+                }
+
+                if (! $exception instanceof RequestException) {
+                    return false;
+                }
+
+                $status = $exception->response->status();
+
+                return in_array($status, [408, 409, 425, 429], true)
+                    || $status >= 500;
+            },
+        );
+    }
+
+    /** @param array<string, mixed> $payload */
+    protected function send(PendingRequest $request, string $path, array $payload): Response
+    {
+        try {
+            return $request->post($path, $payload);
+        } catch (RequestException $exception) {
+            throw $this->exceptionFromResponse($exception->response);
+        } catch (ConnectionException $exception) {
+            throw new LlmException('AI provider connection failed.', null, null, $exception);
+        }
     }
 
     /** @return array<string, mixed> */
@@ -118,12 +166,22 @@ class OpenRouterGateway implements LlmGateway
      */
     protected function payload(array $messages, string $model, array $options): array
     {
-        return array_merge([
+        $payload = array_merge([
             'model' => $model,
             'messages' => $messages,
             'temperature' => config('ai.models.temperature', 0.2),
             'max_tokens' => config('ai.models.max_tokens', 2048),
         ], $options);
+
+        // OpenRouter reports usage in a final SSE chunk only when explicitly
+        // requested. Keep this opt-out friendly for non-streaming providers.
+        if (($payload['stream'] ?? false) === true) {
+            $payload['stream_options'] = array_merge([
+                'include_usage' => true,
+            ], is_array($payload['stream_options'] ?? null) ? $payload['stream_options'] : []);
+        }
+
+        return $payload;
     }
 
     /** @return array<string, mixed> */

@@ -1,0 +1,126 @@
+import { activityLogSeedData } from '@/data/activityLogs';
+import { farmerFinanceMock } from '@/data/farmerFinance';
+import { isDashboardDataPrompt } from '@/services/aiChatService';
+import { listActivityLogs } from '@/services/activityLogService';
+import { listKebun } from '@/services/kebunService';
+
+export type AiDemoDataAnswer = {
+    content: string;
+    source: string;
+};
+
+function wait(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+function formatRupiah(value: number): string {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0,
+    }).format(value);
+}
+
+function normalize(value: string): string {
+    return value.toLocaleLowerCase('id-ID').replace(/\s+/g, ' ').trim();
+}
+
+function updatedLabel(): string {
+    return new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    }).format(new Date());
+}
+
+export async function queryDemoData(
+    prompt: string,
+): Promise<AiDemoDataAnswer | null> {
+    const value = normalize(prompt);
+    if (!isDashboardDataPrompt(value)) return null;
+
+    // Keep these patterns deliberately narrow. Agronomy guidance such as
+    // "cara mengendalikan hama" or "berapa dosis pupuk" must stay with the
+    // LLM instead of being replaced by a dashboard summary.
+    const wantsFinance =
+        /\b(?:keuangan|pendapatan|pemasukan|omzet|transaksi)\b/i.test(value) ||
+        /\b(?:total|jumlah|rincian|ringkasan|laporan|data)\s+(?:pendapatan|pemasukan|transaksi|biaya|keuangan)\b/i.test(
+            value,
+        ) ||
+        /\b(?:biaya|pengeluaran)\s+(?:operasional|kebun|terakhir|terbaru|tahun|bulan)\b/i.test(
+            value,
+        );
+    const wantsActivity =
+        /\b(?:data|laporan|riwayat)\s+(?:aktivitas|kegiatan)\b/i.test(value) ||
+        /\b(?:data|laporan|riwayat)\s+(?:panen|pemupukan|pengairan|pestisida|penanaman)\b/i.test(
+            value,
+        ) ||
+        /\b(?:aktivitas|kegiatan)\s+(?:terakhir|terbaru|hari ini|minggu ini)\b/i.test(
+            value,
+        ) ||
+        /\b(?:total|jumlah)\s+(?:aktivitas|kegiatan)\b/i.test(value);
+    const wantsGarden =
+        /\b(?:data|laporan|ringkasan)\s+(?:kebun|lahan)\b/i.test(value) ||
+        /\b(?:kondisi|status|kesehatan)\s+(?:kebun|lahan)\b/i.test(value) ||
+        /\b(?:total|jumlah)\s+(?:kebun|lahan)\b/i.test(value);
+
+    if (wantsFinance) {
+        await wait(420);
+        const latest = farmerFinanceMock.transactions.slice(-3).reverse();
+        return {
+            source: `Data demo keuangan · diperbarui ${updatedLabel()}`,
+            content: [
+                '### 💰 Ringkasan Keuangan Kebun',
+                `> 📊 **Pendapatan:** ${formatRupiah(farmerFinanceMock.totalRevenue)} | ⏳ **Periode:** 2026 | 📌 **Sumber:** Data demo`,
+                '',
+                'Transaksi terbaru:',
+                ...latest.map(
+                    (item, index) =>
+                        `${index + 1}. **${item.description}**: ${item.type === 'expense' ? 'Pengeluaran ' : ''}${formatRupiah(item.amount)}`,
+                ),
+                '',
+                '> 💡 **Tips Petani:** Bandingkan pemasukan dan biaya operasional per komoditas sebelum menentukan target panen berikutnya.',
+            ].join('\n'),
+        };
+    }
+
+    if (wantsActivity) {
+        const logs = (await listActivityLogs()).slice(0, 3);
+        const entries = logs.length ? logs : activityLogSeedData.slice(0, 3);
+        return {
+            source: `Data demo aktivitas · diperbarui ${updatedLabel()}`,
+            content: [
+                '### 🧾 Aktivitas Kebun Terbaru',
+                `> 📌 **Catatan:** ${entries.length} aktivitas | ⏳ **Status:** Tersedia | 📊 **Sumber:** Data demo`,
+                '',
+                ...entries.map(
+                    (item, index) =>
+                        `${index + 1}. **${item.typeLabel}**: ${item.kebunName} · ${item.city}`,
+                ),
+                '',
+                '> 💡 **Tips Petani:** Buka rincian aktivitas untuk memeriksa foto, petugas, dan catatan lapangan sebelum mengambil keputusan.',
+            ].join('\n'),
+        };
+    }
+
+    if (wantsGarden) {
+        const kebun = await listKebun();
+        const attention = kebun.filter((item) => item.healthStatus !== 'Sehat');
+        return {
+            source: `Data demo kebun · diperbarui ${updatedLabel()}`,
+            content: [
+                '### 🌱 Kondisi Kebun',
+                `> 🌾 **Total kebun:** ${kebun.length} | ✅ **Sehat:** ${kebun.length - attention.length} | ⚠️ **Perlu perhatian:** ${attention.length}`,
+                '',
+                ...kebun.map(
+                    (item, index) =>
+                        `${index + 1}. **${item.name}**: ${item.seedType} · ${item.healthStatus} · ${item.city}`,
+                ),
+                '',
+                '> 💡 **Catatan:** Status Perlu Perhatian atau Kritis sebaiknya diverifikasi melalui rincian kebun dan catatan lapangan terbaru.',
+            ].join('\n'),
+        };
+    }
+
+    return null;
+}

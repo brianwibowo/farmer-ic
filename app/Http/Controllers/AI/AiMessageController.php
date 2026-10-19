@@ -38,12 +38,26 @@ class AiMessageController extends Controller
 
         /** @var array<int, UploadedFile> $files */
         $files = $request->file('attachments', []);
-        $this->chat->createUserMessage($conversation, $request->user(), $request->input('message'), $files);
+        $userMessage = $this->chat->createUserMessage(
+            $conversation,
+            $request->user(),
+            $request->input('message'),
+            $files,
+        );
 
-        $events = $this->chat->streamReply($conversation->fresh());
+        $events = $this->chat->streamReply(
+            $conversation->fresh(),
+            $request->boolean('is_infographic'),
+            $userMessage,
+        );
 
         return response()->eventStream(
             function () use ($events): iterable {
+                $executionTimeout = (int) config('ai.openrouter.execution_timeout', 120);
+                if ($executionTimeout > 0) {
+                    set_time_limit($executionTimeout);
+                }
+
                 foreach ($events as $event) {
                     yield new StreamedEvent($event['event'], $event['data']);
                 }

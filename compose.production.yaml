@@ -30,29 +30,12 @@ services:
             - app_database:/var/lib/farmer-ic
         restart: unless-stopped
 
-    caddy:
-        profiles: [proxy]
-        image: caddy:2-alpine
-        depends_on:
-            - app
-        ports:
-            - '80:80'
-            - '443:443'
-        volumes:
-            - ./Caddyfile:/etc/caddy/Caddyfile:ro
-            - caddy_data:/data
-            - caddy_config:/config
-        restart: unless-stopped
-
 volumes:
     app_storage:
     app_database:
 
-    caddy_data:
-
-    caddy_config:
-
 networks:
+    default:
     proxy:
         external: true
         name: ${PROXY_NETWORK:-outline_default}

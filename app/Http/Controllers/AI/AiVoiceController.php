@@ -75,7 +75,7 @@ class AiVoiceController extends Controller
             try {
                 $result = $this->gateway->complete($messages, $model, [
                     'temperature' => 0,
-                    'max_tokens' => 2048,
+                    'max_tokens' => config('ai.voice.max_output_tokens', 512),
                 ]);
                 break;
             } catch (LlmException $exception) {

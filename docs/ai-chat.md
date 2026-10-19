@@ -7,8 +7,16 @@ same team scope and require an authenticated, verified team member.
 
 Set `OPENROUTER_API_KEY` in the server environment. It must not use a `VITE_`
 prefix and must never be sent to the browser. Model IDs are configured through
-`AI_PRIMARY_MODEL`, `AI_TEXT_FALLBACK_MODELS`, `AI_VISION_FALLBACK_MODELS`, and
-`AI_STT_MODEL`.
+`AI_PRIMARY_MODEL`, `AI_ENTERPRISE_MODEL`, `AI_TEXT_FALLBACK_MODELS`,
+`AI_VISION_FALLBACK_MODELS`, and `AI_STT_MODEL`.
+
+For production, set `AI_ENTERPRISE_MODEL` to an exact model ID or enterprise
+alias enabled for the OpenRouter account. The legacy
+`AI_PRIMARY_MODEL=google/gemini-3.8-flash` value is treated as a compatibility
+sentinel and resolves to `AI_ENTERPRISE_MODEL`; a different explicit primary
+model takes precedence. If `AI_ENTERPRISE_MODEL` is empty, the application
+uses `AI_GPT_PRIMARY_MODEL` and then its built-in high-quality default. Keep
+fallback lists limited to IDs returned by the account's OpenRouter model list.
 
 `AI_STT_FALLBACK_MODELS` provides compatible audio-capable fallbacks for
 transcription outages.

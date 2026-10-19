@@ -4,6 +4,7 @@ namespace App\AI\Services;
 
 use App\AI\Contracts\LlmGateway;
 use App\AI\Exceptions\LlmException;
+use App\Models\AiAttachment;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\AiUsageEvent;
@@ -11,6 +12,7 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AiChatService
@@ -65,15 +67,36 @@ class AiChatService
     /**
      * @return \Generator<int, array{event: string, data: array<string, mixed>}, mixed, void>
      */
-    public function streamReply(AiConversation $conversation): \Generator
-    {
-        $userMessage = $conversation->messages()->latest('id')->first();
+    public function streamReply(
+        AiConversation $conversation,
+        bool $forceInfographic = false,
+        ?AiMessage $activeMessage = null,
+    ): \Generator {
+        $userMessage = $activeMessage?->loadMissing('attachments')
+            ?? $conversation->messages()->latest('id')->first();
         if (! $userMessage) {
             return;
         }
 
+        // A caller can pass a message loaded before refreshing the
+        // conversation. Refuse a message from another conversation rather
+        // than accidentally routing the wrong prompt.
+        if ((int) $userMessage->ai_conversation_id !== (int) $conversation->getKey()) {
+            return;
+        }
+
+        $userText = (string) ($userMessage->content ?? '');
+        $isInfographic = $forceInfographic
+            || (bool) preg_match('/\b(infografis|diagram visual|bagan alur|poster visual|diagram smart farming)\b/i', $userText);
+
+        if ($isInfographic) {
+            yield from $this->streamInfographicReply($conversation, $userMessage);
+
+            return;
+        }
+
         $hasVision = $userMessage->attachments->contains(fn ($attachment): bool => $attachment->kind === 'image');
-        $prompt = $this->prompts->build($conversation);
+        $prompt = $this->prompts->build($conversation, isInfographic: false, activeMessage: $userMessage);
         $assistant = $conversation->messages()->create([
             'role' => 'assistant',
             'status' => 'streaming',
@@ -94,8 +117,11 @@ class AiChatService
             try {
                 $assistant->forceFill(['model' => $model, 'provider' => 'openrouter'])->save();
 
+                $lastChunk = [];
+                $usage = ['input_tokens' => null, 'output_tokens' => null];
                 foreach ($this->gateway->stream($prompt, $model) as $chunk) {
                     $lastChunk = $chunk;
+                    $usage = $this->mergeUsage($usage, $chunk);
                     $delta = data_get($chunk, 'choices.0.delta.content');
                     if (! is_string($delta) || $delta === '') {
                         continue;
@@ -111,7 +137,15 @@ class AiChatService
                     ]];
                 }
 
-                $usage = $this->usageFromChunk($lastChunk);
+                if (trim($content) === '') {
+                    $lastError = new LlmException('AI provider returned an empty response.', 502);
+                    if ($index < count($models) - 1) {
+                        continue;
+                    }
+
+                    break;
+                }
+
                 $latency = (int) round((microtime(true) - $startedAt) * 1000);
                 $assistant->forceFill([
                     'content' => $content,
@@ -148,11 +182,13 @@ class AiChatService
         $assistant->forceFill([
             'content' => $content,
             'status' => 'failed',
+            'request_id' => $lastError instanceof LlmException ? $lastError->requestId : null,
             'error_message' => $this->userFacingError($lastError),
             'latency_ms' => $latency,
             'metadata' => [
                 'fallback_attempted' => count($models),
                 'provider_status' => $lastError instanceof LlmException ? $lastError->status : null,
+                'provider_request_id' => $lastError instanceof LlmException ? $lastError->requestId : null,
             ],
         ])->save();
         Log::warning('AI completion failed after fallback attempts.', [
@@ -162,6 +198,216 @@ class AiChatService
             'error_type' => $lastError !== null ? get_class($lastError) : null,
         ]);
         $this->recordUsage($conversation, $assistant, [], $latency, $lastError?->getCode());
+
+        yield ['event' => 'message.error', 'data' => [
+            'conversation_id' => (string) $conversation->id,
+            'message_id' => (string) $assistant->id,
+            'error' => $this->userFacingError($lastError),
+        ]];
+    }
+
+    /**
+     * @return \Generator<int, array{event: string, data: array<string, mixed>}, mixed, void>
+     */
+    protected function streamInfographicReply(AiConversation $conversation, AiMessage $userMessage): \Generator
+    {
+        $assistant = $conversation->messages()->create([
+            'role' => 'assistant',
+            'status' => 'streaming',
+            'content' => '',
+        ]);
+        $startedAt = microtime(true);
+        $models = $this->models->infographicCandidates();
+        $prompt = $this->prompts->build($conversation, isInfographic: true, activeMessage: $userMessage);
+        $lastError = null;
+
+        yield ['event' => 'message.start', 'data' => [
+            'conversation_id' => (string) $conversation->id,
+            'message_id' => (string) $assistant->id,
+        ]];
+
+        yield ['event' => 'message.delta', 'data' => [
+            'conversation_id' => (string) $conversation->id,
+            'message_id' => (string) $assistant->id,
+            'delta' => "🎨 Sedang merancang & membuat gambar infografis diagram dengan AI...\n\n",
+        ]];
+
+        foreach ($models as $index => $model) {
+            try {
+                $assistant->forceFill(['model' => $model, 'provider' => 'openrouter'])->save();
+
+                $response = $this->gateway->complete($prompt, $model, [
+                    'modalities' => ['text', 'image'],
+                    'max_tokens' => config('ai.models.infographic_max_tokens', 1536),
+                ]);
+
+                $rawImage = data_get($response, 'choices.0.message.images.0.image_url.url');
+                $textContent = trim((string) data_get($response, 'choices.0.message.content', ''));
+                $publicUrl = null;
+
+                if (is_string($rawImage) && preg_match('/^data:image\/(\w+);base64,(.+)$/', $rawImage, $matches)) {
+                    $ext = strtolower($matches[1]);
+                    $binary = base64_decode($matches[2]);
+                    $filename = 'infographic-'.Str::uuid().'.'.$ext;
+                    $relativePath = 'ai/infographics/'.$filename;
+                    Storage::disk('public')->put($relativePath, $binary);
+                    $publicUrl = '/storage/'.$relativePath;
+
+                    AiAttachment::create([
+                        'ai_conversation_id' => $conversation->id,
+                        'ai_message_id' => $assistant->id,
+                        'user_id' => $conversation->user_id,
+                        'disk' => 'public',
+                        'path' => $relativePath,
+                        'original_name' => 'infografis-'.date('Ymd-His').'.'.$ext,
+                        'mime_type' => 'image/'.($ext === 'jpg' ? 'jpeg' : $ext),
+                        'size' => strlen($binary),
+                        'sha256' => hash('sha256', $binary),
+                        'kind' => 'image',
+                        'status' => 'ready',
+                        'metadata' => [
+                            'is_generated' => true,
+                            'url' => $publicUrl,
+                        ],
+                    ]);
+                }
+
+                // Keep the demo visual consistent when a provider returns
+                // text-only output or a small catalog icon instead of an
+                // infographic image.
+                if ($publicUrl === null) {
+                    $demoAsset = (string) config('ai.models.infographic_demo_asset', '');
+                    $demoPath = public_path(ltrim($demoAsset, '/'));
+                    if ($demoAsset !== '' && is_file($demoPath)) {
+                        $publicUrl = $demoAsset;
+                    }
+                }
+
+                $textContent = preg_replace(
+                    '/!\[[^\]]*\]\((?:https?:\/\/|\/)[^)]+\)\s*/i',
+                    '',
+                    $textContent,
+                ) ?? $textContent;
+
+                if ($publicUrl === null && trim($textContent) === '') {
+                    throw new LlmException('AI provider returned an empty infographic response.', 502);
+                }
+
+                $title = $conversation->title ?: 'Diagram Infografis Pertanian';
+                $finalContent = $publicUrl
+                    ? '!['.$title.']('.$publicUrl.")\n\n".$textContent
+                    : $textContent;
+
+                $usage = $this->usageFromChunk($response);
+                $latency = (int) round((microtime(true) - $startedAt) * 1000);
+
+                $assistant->forceFill([
+                    'content' => $finalContent,
+                    'status' => 'completed',
+                    'request_id' => data_get($response, 'id'),
+                    'input_tokens' => $usage['input_tokens'],
+                    'output_tokens' => $usage['output_tokens'],
+                    'latency_ms' => $latency,
+                    'metadata' => [
+                        'is_infographic' => true,
+                        'has_image' => $publicUrl !== null,
+                        'fallback_index' => $index,
+                    ],
+                ])->save();
+
+                $conversation->forceFill(['last_message_at' => now()])->save();
+                $this->recordUsage($conversation, $assistant, $usage, $latency);
+
+                yield ['event' => 'message.delta', 'data' => [
+                    'conversation_id' => (string) $conversation->id,
+                    'message_id' => (string) $assistant->id,
+                    'delta' => $finalContent,
+                ]];
+
+                yield ['event' => 'message.done', 'data' => [
+                    'conversation_id' => (string) $conversation->id,
+                    'message' => $this->messagePayload($assistant->fresh('attachments')),
+                ]];
+
+                return;
+            } catch (LlmException $exception) {
+                $lastError = $exception;
+                if (! $this->mayFallback($exception)) {
+                    break;
+                }
+            } catch (\Throwable $exception) {
+                $lastError = $exception;
+            }
+        }
+
+        // Fallback to text completion if image generation failed
+        Log::warning('Infographic image generation failed, falling back to standard text response.', [
+            'conversation_id' => $conversation->id,
+            'error' => $lastError?->getMessage(),
+        ]);
+
+        $textPrompt = $this->prompts->build($conversation, isInfographic: false, activeMessage: $userMessage);
+        $textModels = $this->models->candidates(hasVision: false);
+
+        foreach ($textModels as $index => $model) {
+            try {
+                $assistant->forceFill(['model' => $model, 'provider' => 'openrouter'])->save();
+                $content = '';
+                $chunk = [];
+                $usage = ['input_tokens' => null, 'output_tokens' => null];
+
+                foreach ($this->gateway->stream($textPrompt, $model) as $chunk) {
+                    $usage = $this->mergeUsage($usage, $chunk);
+                    $delta = data_get($chunk, 'choices.0.delta.content');
+                    if (! is_string($delta) || $delta === '') {
+                        continue;
+                    }
+                    $content .= $delta;
+                    $assistant->forceFill(['content' => $content])->saveQuietly();
+
+                    yield ['event' => 'message.delta', 'data' => [
+                        'conversation_id' => (string) $conversation->id,
+                        'message_id' => (string) $assistant->id,
+                        'delta' => $delta,
+                    ]];
+                }
+
+                if (trim($content) === '') {
+                    throw new LlmException('AI provider returned an empty response.', 502);
+                }
+
+                $latency = (int) round((microtime(true) - $startedAt) * 1000);
+                $assistant->forceFill([
+                    'content' => $content,
+                    'status' => 'completed',
+                    'latency_ms' => $latency,
+                ])->save();
+                $conversation->forceFill(['last_message_at' => now()])->save();
+                $this->recordUsage($conversation, $assistant, $usage, $latency);
+
+                yield ['event' => 'message.done', 'data' => [
+                    'conversation_id' => (string) $conversation->id,
+                    'message' => $this->messagePayload($assistant->fresh('attachments')),
+                ]];
+
+                return;
+            } catch (\Throwable $e) {
+                $lastError = $e;
+            }
+        }
+
+        $latency = (int) round((microtime(true) - $startedAt) * 1000);
+        $assistant->forceFill([
+            'content' => '',
+            'status' => 'failed',
+            'request_id' => $lastError instanceof LlmException ? $lastError->requestId : null,
+            'error_message' => $this->userFacingError($lastError),
+            'latency_ms' => $latency,
+            'metadata' => [
+                'provider_status' => $lastError instanceof LlmException ? $lastError->status : null,
+                'provider_request_id' => $lastError instanceof LlmException ? $lastError->requestId : null,
+            ],
+        ])->save();
 
         yield ['event' => 'message.error', 'data' => [
             'conversation_id' => (string) $conversation->id,
@@ -194,7 +440,6 @@ class AiChatService
             || $status >= 500;
     }
 
-    /** @return array{input_tokens: int|null, output_tokens: int|null} */
     /**
      * @param  array<string, mixed>  $chunk
      * @return array{input_tokens: int|null, output_tokens: int|null}
@@ -204,6 +449,21 @@ class AiChatService
         return [
             'input_tokens' => data_get($chunk, 'usage.prompt_tokens') ?? data_get($chunk, 'usage.input_tokens'),
             'output_tokens' => data_get($chunk, 'usage.completion_tokens') ?? data_get($chunk, 'usage.output_tokens'),
+        ];
+    }
+
+    /**
+     * @param  array{input_tokens: int|null, output_tokens: int|null}  $current
+     * @param  array<string, mixed>  $chunk
+     * @return array{input_tokens: int|null, output_tokens: int|null}
+     */
+    protected function mergeUsage(array $current, array $chunk): array
+    {
+        $usage = $this->usageFromChunk($chunk);
+
+        return [
+            'input_tokens' => $usage['input_tokens'] ?? $current['input_tokens'],
+            'output_tokens' => $usage['output_tokens'] ?? $current['output_tokens'],
         ];
     }
 
@@ -240,6 +500,9 @@ class AiChatService
                 'name' => $attachment->original_name,
                 'size' => $attachment->size,
                 'type' => $attachment->mime_type,
+                'url' => $attachment->disk === 'public'
+                    ? ('/storage/'.$attachment->path)
+                    : data_get($attachment->metadata, 'url'),
             ])->values()->all(),
         ];
     }
