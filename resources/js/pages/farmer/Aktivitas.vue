@@ -323,7 +323,7 @@ onMounted(() => void loadActivities());
                         {{ filteredActivities.length }}
                     </p>
                     <p
-                        class="truncate text-[11px] font-medium text-muted-foreground"
+                        class="min-w-0 text-[11px] leading-4 font-medium text-muted-foreground"
                     >
                         Aktivitas
                     </p>
@@ -340,7 +340,7 @@ onMounted(() => void loadActivities());
                         {{ gardenCount }}
                     </p>
                     <p
-                        class="truncate text-[11px] font-medium text-muted-foreground"
+                        class="min-w-0 text-[11px] leading-4 font-medium text-muted-foreground"
                     >
                         Kebun
                     </p>
@@ -356,7 +356,7 @@ onMounted(() => void loadActivities());
                     <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ needsCheckCount }}
                     </p>
-                    <p class="truncate text-[11px] font-medium text-foreground">
+                    <p class="min-w-0 text-[11px] leading-4 font-medium text-foreground">
                         Perlu cek
                     </p>
                 </div>
