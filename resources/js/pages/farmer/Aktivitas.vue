@@ -190,6 +190,12 @@ function thumbnailFor(item: ActivityLog): string {
     return item.photos[0]?.image ?? '/images/kebun-placeholder.svg';
 }
 
+function activityTypeLabelFor(item: ActivityLog): string {
+    return item.type === 'pengecekan-pertumbuhan'
+        ? 'Pertumbuhan'
+        : item.typeLabel;
+}
+
 function clearFilters(): void {
     searchQuery.value = '';
     selectedType.value = '';
@@ -312,7 +318,7 @@ onMounted(() => void loadActivities());
                 aria-label="Ringkasan aktivitas"
             >
                 <div
-                    class="flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-3"
+                    class="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-primary/25 bg-primary/10 px-2 py-3 text-center"
                 >
                     <span
                         class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
@@ -329,7 +335,7 @@ onMounted(() => void loadActivities());
                     </p>
                 </div>
                 <div
-                    class="flex items-center gap-2 rounded-xl border border-secondary/20 bg-surface/35 px-3 py-3"
+                    class="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-secondary/20 bg-surface/35 px-2 py-3 text-center"
                 >
                     <span
                         class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary"
@@ -346,7 +352,7 @@ onMounted(() => void loadActivities());
                     </p>
                 </div>
                 <div
-                    class="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-3"
+                    class="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-warning/40 bg-warning/10 px-2 py-3 text-center"
                 >
                     <span
                         class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning"
@@ -550,7 +556,7 @@ onMounted(() => void loadActivities());
                                 <div class="min-w-0">
                                     <span
                                         class="inline-flex max-w-full truncate rounded-md bg-surface px-2 py-1 text-[10px] leading-3 font-semibold text-secondary"
-                                        >{{ item.typeLabel }}</span
+                                        >{{ activityTypeLabelFor(item) }}</span
                                     >
                                     <h2
                                         class="mt-1 truncate text-[16px] leading-5 font-semibold text-foreground group-hover:text-secondary"

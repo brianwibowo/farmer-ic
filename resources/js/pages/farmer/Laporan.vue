@@ -151,7 +151,7 @@ onMounted(() => void loadReport());
     <Head title="Laporan" />
 
     <FarmerMobileShell active-key="report">
-        <div class="space-y-5 px-5 pt-7 pb-6">
+        <div data-report-page class="space-y-5 px-5 pt-7 pb-6">
             <header class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-sm font-medium text-secondary">
@@ -727,3 +727,14 @@ onMounted(() => void loadReport());
         </div>
     </FarmerMobileShell>
 </template>
+
+<style>
+main:has(> [data-report-page]) {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+main:has(> [data-report-page])::-webkit-scrollbar {
+    display: none;
+}
+</style>
