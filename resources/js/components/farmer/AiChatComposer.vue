@@ -166,7 +166,7 @@ function onInput(event: Event): void {
             {{ voice.error.value }}
         </div>
         <div
-            class="flex items-end gap-1.5 rounded-2xl border border-border bg-background p-1.5 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
+            class="flex items-end gap-1.5 rounded-2xl border border-border bg-background p-1.5 shadow-sm transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
         >
             <button
                 type="button"
@@ -190,7 +190,7 @@ function onInput(event: Event): void {
                 rows="1"
                 placeholder="Tulis pesan…"
                 aria-label="Pesan untuk asisten kebun"
-                class="max-h-[136px] min-h-9 flex-1 resize-none border-0 bg-transparent px-1.5 py-2 text-sm leading-5 text-foreground outline-none placeholder:text-muted-foreground"
+                class="max-h-[136px] min-h-9 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-1.5 py-2 text-sm leading-5 break-words whitespace-pre-wrap text-foreground outline-none placeholder:text-muted-foreground"
                 @input="onInput"
                 @paste="emit('paste', $event)"
                 @keydown.enter.exact.prevent="emit('send')"

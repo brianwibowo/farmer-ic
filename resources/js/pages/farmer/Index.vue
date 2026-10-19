@@ -173,8 +173,10 @@ function onPaste(event: ClipboardEvent): void {
 function autoResize(): void {
     const element = inputElement.value;
     if (!element) return;
-    element.style.height = 'auto';
-    element.style.height = `${Math.min(element.scrollHeight, 136)}px`;
+    element.style.height = '0px';
+    const height = Math.min(Math.max(element.scrollHeight, 36), 136);
+    element.style.height = `${height}px`;
+    element.style.overflowY = element.scrollHeight > 136 ? 'auto' : 'hidden';
 }
 
 async function scrollToLatest(): Promise<void> {
@@ -210,7 +212,7 @@ async function send(): Promise<void> {
     inputText.value = '';
     pendingAttachments.value = [];
     voiceInputPending.value = false;
-    autoResize();
+    void nextTick(autoResize);
 
     if (classification.intent === 'data' && attachments.length === 0) {
         let demoAnswer = null;
@@ -289,8 +291,10 @@ async function send(): Promise<void> {
 
 function choosePrompt(prompt: string): void {
     inputText.value = prompt;
-    autoResize();
-    inputElement.value?.focus();
+    void nextTick(() => {
+        autoResize();
+        inputElement.value?.focus();
+    });
 }
 
 function toggleVoice(): void {
