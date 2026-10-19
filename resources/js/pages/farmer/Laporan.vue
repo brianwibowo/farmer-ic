@@ -190,7 +190,7 @@ onMounted(() => void loadReport());
                             'rounded-xl border px-2 py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                             filters.period === period.value
                                 ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-border bg-muted text-muted-foreground hover:bg-card',
+                                : 'border-border bg-background text-muted-foreground hover:bg-card',
                         ]"
                         @click="filters.period = period.value"
                     >
@@ -242,7 +242,7 @@ onMounted(() => void loadReport());
                             'rounded-xl border px-2 py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                             filters.quarter === quarter
                                 ? 'border-secondary bg-secondary text-secondary-foreground'
-                                : 'border-border bg-muted text-muted-foreground hover:bg-card',
+                                : 'border-border bg-background text-muted-foreground hover:bg-card',
                         ]"
                         @click="filters.quarter = quarter as 1 | 2 | 3 | 4"
                     >
@@ -288,7 +288,7 @@ onMounted(() => void loadReport());
                         id="report-commodity"
                         v-model="filters.commodity"
                         :disabled="filters.kebunId !== 'all'"
-                        class="h-10 min-w-0 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        class="h-10 min-w-0 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                     >
                         <option value="all">Semua komoditas</option>
                         <option value="Jagung">Jagung</option>
