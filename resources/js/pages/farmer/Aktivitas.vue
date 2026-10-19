@@ -319,7 +319,7 @@ onMounted(() => void loadActivities());
                     >
                         <Activity :size="16" aria-hidden="true" />
                     </span>
-                    <p class="text-lg leading-5 font-semibold text-primary">
+                    <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ filteredActivities.length }}
                     </p>
                     <p
@@ -336,7 +336,7 @@ onMounted(() => void loadActivities());
                     >
                         <LandPlot :size="16" aria-hidden="true" />
                     </span>
-                    <p class="text-lg leading-5 font-semibold text-secondary">
+                    <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ gardenCount }}
                     </p>
                     <p
