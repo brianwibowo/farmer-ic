@@ -43,6 +43,7 @@ type ActiveRequest = {
     startedAt: number;
     firstDeltaAt?: number;
     didTimeout: boolean;
+    reconciled: boolean;
     assistantMessage: ChatMessage;
     cancelledByUser: boolean;
 };
@@ -221,6 +222,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             controller: requestController,
             startedAt,
             didTimeout: false,
+            reconciled: false,
             assistantMessage,
             cancelledByUser: false,
         };
@@ -229,6 +231,56 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             request.didTimeout = true;
             requestController.abort();
         }, 90_000);
+        let reconciliationTimer: number | null = null;
+
+        const reconcilePersistedReply = async (): Promise<void> => {
+            const currentId = conversationId.value;
+            if (!currentId || !isActiveRequest(requestId)) return;
+            try {
+                const persistedResponse = await fetch(
+                    `${conversationsEndpoint.value}/${encodeURIComponent(currentId)}`,
+                    { headers: headers(), signal: requestController.signal },
+                );
+                if (!persistedResponse.ok) return;
+                const payload = (await persistedResponse.json()) as Record<
+                    string,
+                    unknown
+                >;
+                const values = Array.isArray(payload.messages)
+                    ? payload.messages
+                    : Array.isArray(payload.data)
+                      ? payload.data
+                      : [];
+                const persistedMessages = values
+                    .map(parseMessage)
+                    .filter((item): item is ChatMessage => item !== null);
+                const persistedUserIndex = persistedMessages
+                    .map(
+                        (item) => item.role === 'user' && item.content === text,
+                    )
+                    .lastIndexOf(true);
+                const persistedReply = persistedMessages
+                    .slice(persistedUserIndex + 1)
+                    .reverse()
+                    .find(
+                        (item) =>
+                            item.role === 'assistant' &&
+                            item.content.trim() !== '',
+                    );
+                if (!persistedReply || !isActiveRequest(requestId)) return;
+                assistantMessage.content = persistedReply.content;
+                assistantMessage.attachments = persistedReply.attachments;
+                assistantMessage.status = 'complete';
+                request.reconciled = true;
+                request.controller.abort();
+            } catch {
+                // The primary SSE stream remains the source of truth.
+            }
+        };
+        reconciliationTimer = window.setInterval(
+            () => void reconcilePersistedReply(),
+            4_000,
+        );
 
         const endpoint =
             endpoints.messages ??
@@ -389,7 +441,9 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             return assistantMessage;
         } catch (cause) {
             if (cause instanceof DOMException && cause.name === 'AbortError') {
-                if (isActiveRequest(requestId) && request.didTimeout) {
+                if (isActiveRequest(requestId) && request.reconciled) {
+                    assistantMessage.status = 'complete';
+                } else if (isActiveRequest(requestId) && request.didTimeout) {
                     assistantMessage.status = 'error';
                     assistantMessage.error =
                         'Jawaban terlalu lama. Coba kirim pertanyaan yang lebih singkat.';
@@ -447,6 +501,8 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             return null;
         } finally {
             window.clearTimeout(requestTimeout);
+            if (reconciliationTimer !== null)
+                window.clearInterval(reconciliationTimer);
             if (isActiveRequest(requestId)) {
                 if (request.assistantMessage.status === 'streaming') {
                     request.assistantMessage.status = request.cancelledByUser

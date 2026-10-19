@@ -484,7 +484,14 @@ watch(() => messages.value.length, scrollToLatest);
 onMounted(() => {
     // Always enter the page in the idle state. Recording starts only from the mic button.
     voice.resetVoice();
-    void chat.loadConversations();
+    void chat.loadConversations().then(() => {
+        // Reopen the most recently updated server conversation after refresh so
+        // a completed response is visible without requiring a manual reload.
+        const latest = conversations.value[0];
+        if (latest && messages.value.length === 0) {
+            void chat.loadConversation(latest.id).then(scrollToLatest);
+        }
+    });
 });
 onUnmounted(() => {
     speech?.cancel();
