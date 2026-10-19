@@ -135,7 +135,7 @@ const dashboardDataPatterns = [
     /\b(?:ringkasan|rincian)\s+(?:kebun|lahan|aktivitas|kegiatan|keuangan|pendapatan|transaksi)\b/i,
     /\b(?:pendapatan|pemasukan|omzet|transaksi)\s+(?:kebun|terakhir|terbaru|tahun|bulan)\b/i,
     /\b(?:biaya|pengeluaran)\s+(?:operasional|kebun|terakhir|terbaru|tahun|bulan)\b/i,
-    /\b(?:keuangan|pendapatan|pemasukan|omzet|transaksi)\b/i,
+    /\b(?:keuangan|finansial|pendapatan|pemasukan|omzet|transaksi|laba|profit|saldo)\b/i,
 ];
 
 const guidancePatterns = [
