@@ -35,8 +35,10 @@ async function loadActivityDetail(): Promise<void> {
                 ? `/kebun/aktivitas?kebun=${encodeURIComponent(kebunParam)}`
                 : '/kebun/aktivitas';
         } else {
-            shellActiveKey.value = 'activity';
-            backHref.value = '/aktivitas';
+            shellActiveKey.value = kebunParam ? 'garden' : 'activity';
+            backHref.value = kebunParam
+                ? `/aktivitas?kebun=${encodeURIComponent(kebunParam)}`
+                : '/aktivitas';
         }
 
         if (idParam) {
