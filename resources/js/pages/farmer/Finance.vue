@@ -184,7 +184,7 @@ const formatRupiah = (value: number): string =>
                 </section>
 
                 <section
-                    class="rounded-2xl border border-[#d9d9d9] bg-white p-4 shadow-sm"
+                    class="rounded-2xl border border-border bg-card p-4 shadow-sm"
                     aria-labelledby="revenue-chart-title"
                 >
                     <div class="mb-4 flex items-center justify-between gap-4">

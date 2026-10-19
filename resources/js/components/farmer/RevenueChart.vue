@@ -12,10 +12,10 @@ import {
     type ChartData,
     type ChartOptions,
     type TooltipItem,
-} from "chart.js";
-import { computed } from "vue";
-import { Line } from "vue-chartjs";
-import type { RevenuePoint } from "@/data/farmerFinance";
+} from 'chart.js';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { Line } from 'vue-chartjs';
+import type { RevenuePoint } from '@/data/farmerFinance';
 
 ChartJS.register(
     CategoryScale,
@@ -35,10 +35,28 @@ const emit = defineEmits<{
     pointSelected: [point: RevenuePoint];
 }>();
 
+const isDark = ref(false);
+let themeObserver: MutationObserver | undefined;
+
+function syncTheme(): void {
+    isDark.value = document.documentElement.classList.contains('dark');
+}
+
+onMounted(() => {
+    syncTheme();
+    themeObserver = new MutationObserver(syncTheme);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+    });
+});
+
+onBeforeUnmount(() => themeObserver?.disconnect());
+
 const formatRupiah = (value: number): string =>
-    new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
+    new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
         maximumFractionDigits: 0,
     }).format(value);
 
@@ -47,49 +65,53 @@ const selectPoint = (elements: ActiveElement[]): void => {
     const point = index === undefined ? undefined : props.points[index];
 
     if (point) {
-        emit("pointSelected", point);
+        emit('pointSelected', point);
     }
 };
 
-const chartData = computed<ChartData<"line">>(() => ({
+const chartData = computed<ChartData<'line'>>(() => ({
     labels: props.points.map((point) => point.label),
     datasets: [
         {
-            label: "Pendapatan",
+            label: 'Pendapatan',
             data: props.points.map((point) => point.revenue),
-            borderColor: "#1c5e21",
-            backgroundColor: "rgba(104, 187, 108, 0.18)",
-            pointBackgroundColor: "#68bb6c",
-            pointBorderColor: "#ffffff",
+            borderColor: isDark.value ? '#8fe697' : '#1c5e21',
+            backgroundColor: isDark.value
+                ? 'rgba(104, 187, 108, 0.24)'
+                : 'rgba(104, 187, 108, 0.18)',
+            pointBackgroundColor: isDark.value ? '#8fe697' : '#68bb6c',
+            pointBorderColor: isDark.value ? '#121c14' : '#ffffff',
             pointBorderWidth: 2,
             pointRadius: 5,
             pointHoverRadius: 8,
-            pointHoverBackgroundColor: "#1c5e21",
+            pointHoverBackgroundColor: isDark.value ? '#68bb6c' : '#1c5e21',
             fill: true,
             tension: 0.35,
         },
         {
-            label: "Pengeluaran",
+            label: 'Pengeluaran',
             data: props.points.map((point) => point.expense),
-            borderColor: "#bc0202",
-            backgroundColor: "rgba(188, 2, 2, 0.08)",
-            pointBackgroundColor: "#bc0202",
-            pointBorderColor: "#ffffff",
+            borderColor: isDark.value ? '#ff8585' : '#bc0202',
+            backgroundColor: isDark.value
+                ? 'rgba(220, 38, 38, 0.16)'
+                : 'rgba(188, 2, 2, 0.08)',
+            pointBackgroundColor: isDark.value ? '#ff8585' : '#bc0202',
+            pointBorderColor: isDark.value ? '#121c14' : '#ffffff',
             pointBorderWidth: 2,
             pointRadius: 5,
             pointHoverRadius: 8,
-            pointHoverBackgroundColor: "#8f0202",
+            pointHoverBackgroundColor: isDark.value ? '#dc2626' : '#8f0202',
             fill: true,
             tension: 0.35,
         },
     ],
 }));
 
-const chartOptions: ChartOptions<"line"> = {
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
-        mode: "index",
+        mode: 'index',
         intersect: false,
     },
     onHover: (_event, elements) => selectPoint(elements),
@@ -97,20 +119,25 @@ const chartOptions: ChartOptions<"line"> = {
     plugins: {
         legend: {
             display: true,
-            position: "bottom",
+            position: 'bottom',
             labels: {
                 usePointStyle: true,
-                pointStyle: "circle",
-                color: "#334238",
+                pointStyle: 'circle',
+                color: isDark.value ? '#f9faf9' : '#334238',
                 boxWidth: 8,
                 padding: 16,
             },
         },
         tooltip: {
-            mode: "index",
+            mode: 'index',
             intersect: false,
+            backgroundColor: isDark.value ? '#121c14' : '#ffffff',
+            titleColor: isDark.value ? '#f9faf9' : '#070807',
+            bodyColor: isDark.value ? '#f9faf9' : '#070807',
+            borderColor: isDark.value ? '#2d4538' : '#d9d9d9',
+            borderWidth: 1,
             callbacks: {
-                label: (context: TooltipItem<"line">) =>
+                label: (context: TooltipItem<'line'>) =>
                     ` ${context.dataset.label}: ${formatRupiah(context.parsed.y ?? 0)}`,
             },
         },
@@ -119,20 +146,20 @@ const chartOptions: ChartOptions<"line"> = {
         x: {
             grid: { display: false },
             border: { display: false },
-            ticks: { color: "#5e6b61" },
+            ticks: { color: isDark.value ? '#c6d6c8' : '#5e6b61' },
         },
         y: {
             beginAtZero: true,
             border: { display: false },
-            grid: { color: "#e6eee7" },
+            grid: { color: isDark.value ? '#2d4538' : '#e6eee7' },
             ticks: {
-                color: "#5e6b61",
+                color: isDark.value ? '#c6d6c8' : '#5e6b61',
                 callback: (value: string | number) =>
                     `${Number(value) / 1_000_000} jt`,
             },
         },
     },
-};
+}));
 </script>
 
 <template>
