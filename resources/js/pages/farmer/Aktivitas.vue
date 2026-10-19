@@ -634,41 +634,6 @@ onMounted(() => void loadActivities());
 </template>
 
 <style>
-[data-aktivitas-list] {
-    color-scheme: light;
-    --background: #f9faf9;
-    --foreground: #070807;
-    --surface: #abe7b2;
-    --surface-foreground: #070807;
-    --card: #ffffff;
-    --card-foreground: #070807;
-    --popover: #ffffff;
-    --popover-foreground: #070807;
-    --primary: #68bb6c;
-    --primary-foreground: #ffffff;
-    --secondary: #1c5e21;
-    --secondary-foreground: #ffffff;
-    --accent: #93a99f;
-    --accent-foreground: #070807;
-    --muted: #ebf3ed;
-    --muted-foreground: #2a1a0e;
-    --text-muted: #2a1a0e;
-    --border: #d9d9d9;
-    --input: #d9d9d9;
-    --ring: #68bb6c;
-    --success: #4a943e;
-    --success-foreground: #ffffff;
-    --warning: #edc92c;
-    --warning-foreground: #070807;
-    --error: #bc0202;
-    --error-foreground: #ffffff;
-    --destructive: #bc0202;
-    --destructive-foreground: #ffffff;
-    --info: #d9d9d9;
-    --info-foreground: #070807;
-    --disable: #e5e7ea;
-    --disable-foreground: #8c9096;
-}
 
 main:has(> [data-aktivitas-list]) {
     scrollbar-width: none;
