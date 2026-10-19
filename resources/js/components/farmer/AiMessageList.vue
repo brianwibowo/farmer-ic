@@ -11,6 +11,7 @@ import {
     Square,
     ThumbsDown,
     ThumbsUp,
+    User,
     Volume2,
 } from '@lucide/vue';
 import AiInfographicCard from '@/components/farmer/AiInfographicCard.vue';
@@ -315,8 +316,9 @@ async function copyMessage(message: ChatMessage): Promise<void> {
         <div
             v-if="message.role === 'user'"
             class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
+            aria-label="Pesan dari Anda"
         >
-            <span class="text-[11px] font-semibold">Anda</span>
+            <User :size="15" stroke-width="1.8" aria-hidden="true" />
         </div>
     </article>
 </template>

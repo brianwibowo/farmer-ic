@@ -14,7 +14,7 @@ import type { useAiVoice } from '@/composables/useAiVoice';
 
 type VoiceApi = ReturnType<typeof useAiVoice>;
 
-defineProps<{
+const props = defineProps<{
     modelValue: string;
     pendingAttachments: ChatAttachment[];
     maxAttachmentCount: number;
@@ -44,6 +44,17 @@ function updateValue(event: Event): void {
 function onInput(event: Event): void {
     updateValue(event);
     emit('resize');
+}
+
+function onKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        const target = event.target as HTMLTextAreaElement;
+        if (target && target.value !== props.modelValue) {
+            emit('update:modelValue', target.value);
+        }
+        emit('send');
+    }
 }
 </script>
 
@@ -218,7 +229,7 @@ function onInput(event: Event): void {
                 class="max-h-[136px] min-h-9 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-1.5 py-2 text-sm leading-5 break-words whitespace-pre-wrap text-foreground outline-none placeholder:text-muted-foreground"
                 @input="onInput"
                 @paste="emit('paste', $event)"
-                @keydown.enter.exact.prevent="emit('send')"
+                @keydown="onKeydown"
             />
             <button
                 type="button"
