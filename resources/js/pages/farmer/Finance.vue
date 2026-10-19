@@ -112,7 +112,7 @@ const formatRupiah = (value: number): string =>
     <Head title="Keuangan" />
 
     <FarmerMobileShell active-key="finance" @select="navigate">
-        <div class="space-y-6 px-4 pt-4 pb-6">
+        <div data-finance-page class="space-y-6 px-4 pt-4 pb-6">
             <DashboardHeader />
 
             <header>
@@ -123,7 +123,7 @@ const formatRupiah = (value: number): string =>
             </header>
 
             <div
-                class="grid grid-cols-2 overflow-hidden rounded-xl bg-[#d9d9d9] p-1"
+                class="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-muted p-1"
                 role="tablist"
                 aria-label="Tampilan keuangan"
             >
@@ -134,8 +134,8 @@ const formatRupiah = (value: number): string =>
                     :class="[
                         'rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                         activeTab === 'chart'
-                            ? 'bg-[#1c5e21] text-white shadow-sm'
-                            : 'text-[#1c5e21] hover:bg-white',
+                            ? 'bg-secondary text-secondary-foreground shadow-sm'
+                            : 'text-secondary hover:bg-card',
                     ]"
                     @click="activeTab = 'chart'"
                 >
@@ -148,8 +148,8 @@ const formatRupiah = (value: number): string =>
                     :class="[
                         'rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                         activeTab === 'transactions'
-                            ? 'bg-[#1c5e21] text-white shadow-sm'
-                            : 'text-[#1c5e21] hover:bg-white',
+                            ? 'bg-secondary text-secondary-foreground shadow-sm'
+                            : 'text-secondary hover:bg-card',
                     ]"
                     @click="activeTab = 'transactions'"
                 >
@@ -281,7 +281,7 @@ const formatRupiah = (value: number): string =>
                 </div>
                 <div class="flex items-center gap-2">
                     <label
-                        class="flex min-w-0 flex-1 items-center gap-2 rounded-lg bg-[#d9d9d9] px-3 text-[#1c5e21]"
+                        class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 text-secondary shadow-sm"
                     >
                         <Search
                             :size="18"
@@ -293,7 +293,7 @@ const formatRupiah = (value: number): string =>
                             v-model="searchQuery"
                             type="search"
                             placeholder="Search"
-                            class="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#1c5e21]/80"
+                            class="h-11 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                         />
                     </label>
                     <button
@@ -301,8 +301,8 @@ const formatRupiah = (value: number): string =>
                         :class="[
                             'relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors',
                             isFilterOpen || hasActiveFilter
-                                ? 'bg-[#1c5e21] text-white'
-                                : 'bg-[#93a99f] text-white hover:bg-[#1c5e21]',
+                                ? 'bg-secondary text-secondary-foreground'
+                                : 'border border-border bg-muted text-secondary hover:bg-secondary hover:text-secondary-foreground',
                         ]"
                         :aria-pressed="isFilterOpen"
                         aria-label="Filter transaksi"
@@ -315,25 +315,25 @@ const formatRupiah = (value: number): string =>
                         />
                         <span
                             v-if="hasActiveFilter"
-                            class="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#abe7b2] ring-2 ring-[#1c5e21]"
+                            class="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary ring-2 ring-secondary"
                         />
                     </button>
                 </div>
 
                 <div
                     v-if="isFilterOpen"
-                    class="mt-3 flex items-end gap-2 rounded-xl border border-[#d9d9d9] bg-white p-3 shadow-xs"
+                    class="mt-3 flex items-end gap-2 rounded-xl border border-border bg-card p-3 shadow-xs"
                 >
                     <div class="grid min-w-0 flex-1 grid-cols-2 gap-2">
                         <label class="min-w-0">
                             <span
-                                class="mb-1 block truncate text-xs font-medium text-[#93a99f]"
+                                class="mb-1 block truncate text-xs font-medium text-muted-foreground"
                             >
                                 Komoditas
                             </span>
                             <select
                                 v-model="selectedCommodity"
-                                class="h-10 w-full rounded-lg border border-[#d9d9d9] bg-white px-2.5 text-xs outline-none focus:border-[#68bb6c]"
+                                class="h-10 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground outline-none focus:border-primary"
                             >
                                 <option value="all">Semua komoditas</option>
                                 <option value="Jagung">Jagung</option>
@@ -343,13 +343,13 @@ const formatRupiah = (value: number): string =>
                         </label>
                         <label class="min-w-0">
                             <span
-                                class="mb-1 block truncate text-xs font-medium text-[#93a99f]"
+                                class="mb-1 block truncate text-xs font-medium text-muted-foreground"
                             >
                                 Tipe transaksi
                             </span>
                             <select
                                 v-model="selectedType"
-                                class="h-10 w-full rounded-lg border border-[#d9d9d9] bg-white px-2.5 text-xs outline-none focus:border-[#68bb6c]"
+                                class="h-10 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground outline-none focus:border-primary"
                             >
                                 <option value="all">Semua transaksi</option>
                                 <option value="income">Pemasukan</option>
@@ -359,7 +359,7 @@ const formatRupiah = (value: number): string =>
                     </div>
                     <button
                         type="button"
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#d9d9d9] text-[#93a99f] transition-colors hover:bg-[#d9d9d9] hover:text-[#070807]"
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         aria-label="Reset semua filter"
                         title="Reset filter"
                         @click="clearTransactionFilters"
@@ -428,3 +428,14 @@ const formatRupiah = (value: number): string =>
         </div>
     </FarmerMobileShell>
 </template>
+
+<style>
+main:has(> [data-finance-page]) {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+main:has(> [data-finance-page])::-webkit-scrollbar {
+    display: none;
+}
+</style>

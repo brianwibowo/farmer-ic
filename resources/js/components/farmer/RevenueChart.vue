@@ -79,7 +79,7 @@ const chartData = computed<ChartData<"line">>(() => ({
             pointRadius: 5,
             pointHoverRadius: 8,
             pointHoverBackgroundColor: "#8f0202",
-            fill: false,
+            fill: true,
             tension: 0.35,
         },
     ],
