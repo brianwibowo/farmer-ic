@@ -466,12 +466,19 @@ onMounted(() => void loadReport());
                 >
                     <div class="flex items-center justify-between gap-2">
                         <div>
-                            <h2
-                                id="finance-report-title"
-                                class="text-sm font-semibold"
-                            >
-                                Keuangan
-                            </h2>
+                            <div class="flex items-center gap-2">
+                                <h2
+                                    id="finance-report-title"
+                                    class="text-sm font-semibold"
+                                >
+                                    Keuangan
+                                </h2>
+                                <span
+                                    class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-secondary"
+                                >
+                                    {{ report.finance.farms.length }} kebun
+                                </span>
+                            </div>
                             <p class="mt-1 text-[11px] text-muted-foreground">
                                 Pendapatan vs pengeluaran
                             </p>
@@ -491,7 +498,13 @@ onMounted(() => void loadReport());
                             >
                         </div>
                     </div>
-                    <div class="mt-4 space-y-3">
+                    <div
+                        v-if="report.finance.farms.length === 0"
+                        class="mt-4 rounded-xl bg-muted p-3 text-center text-xs text-muted-foreground"
+                    >
+                        Tidak ada data kebun pada filter ini.
+                    </div>
+                    <div v-else class="mt-4 space-y-3">
                         <article
                             v-for="(farm, index) in report.finance.farms"
                             :key="farm.id"
@@ -499,7 +512,7 @@ onMounted(() => void loadReport());
                         >
                             <div class="min-w-0">
                                 <p class="truncate text-xs font-semibold">
-                                    {{ index + 1 }}. {{ farm.name }}
+                                    {{ farm.name }}
                                 </p>
                                 <p
                                     class="truncate text-[10px] text-muted-foreground"
