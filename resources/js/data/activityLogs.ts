@@ -112,41 +112,178 @@ export type ActivityLog = {
 export const activityTypeOptions: Array<{
     value: ActivityType;
     label: string;
+    shortLabel: string;
 }> = [
-    { value: 'penanaman-benih', label: 'Penanaman Benih' },
-    { value: 'pemupukan', label: 'Pemupukan' },
-    { value: 'pengairan', label: 'Pengairan' },
-    { value: 'pengecekan-pertumbuhan', label: 'Pengecekan Fase Pertumbuhan' },
-    { value: 'pestisida', label: 'Pestisida' },
-    { value: 'pelaporan-insiden', label: 'Pelaporan Insiden' },
-    { value: 'panen', label: 'Panen' },
+    {
+        value: 'penanaman-benih',
+        label: 'Penanaman Benih',
+        shortLabel: 'Penanaman',
+    },
+    { value: 'pemupukan', label: 'Pemupukan', shortLabel: 'Pemupukan' },
+    { value: 'pengairan', label: 'Pengairan', shortLabel: 'Pengairan' },
+    {
+        value: 'pengecekan-pertumbuhan',
+        label: 'Pengecekan Fase Pertumbuhan',
+        shortLabel: 'Pertumbuhan',
+    },
+    { value: 'pestisida', label: 'Pestisida', shortLabel: 'Pestisida' },
+    {
+        value: 'pelaporan-insiden',
+        label: 'Pelaporan Insiden',
+        shortLabel: 'Insiden',
+    },
+    { value: 'panen', label: 'Panen', shortLabel: 'Panen' },
 ];
 
 export const activityLogSeedData: ActivityLog[] =
     rawActivityLogs as ActivityLog[];
 
-const indonesianMonths: Record<string, string> = {
-    Januari: '01',
-    Februari: '02',
-    Maret: '03',
-    April: '04',
-    Mei: '05',
-    Juni: '06',
-    Juli: '07',
-    Agustus: '08',
-    September: '09',
-    Oktober: '10',
-    November: '11',
-    Desember: '12',
+const INDONESIAN_MONTHS: Record<string, string> = {
+    januari: '01',
+    februari: '02',
+    maret: '03',
+    april: '04',
+    mei: '05',
+    juni: '06',
+    juli: '07',
+    agustus: '08',
+    september: '09',
+    oktober: '10',
+    november: '11',
+    desember: '12',
 };
 
-export function parseIndonesianDateToIso(value: string): string | undefined {
-    const match = value.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
-    if (!match) return undefined;
+const SHORT_MONTH_LABELS: Record<string, string> = {
+    '01': 'Jan',
+    '02': 'Feb',
+    '03': 'Mar',
+    '04': 'Apr',
+    '05': 'Mei',
+    '06': 'Jun',
+    '07': 'Jul',
+    '08': 'Agu',
+    '09': 'Sep',
+    '10': 'Okt',
+    '11': 'Nov',
+    '12': 'Des',
+};
 
-    const [, day, monthName, year] = match;
-    const month = indonesianMonths[monthName];
-    if (!month) return undefined;
+export function parseIndonesianDateToIso(timestamp: string): string | null {
+    const clean = timestamp.split('-')[0]?.trim() ?? '';
+    const parts = clean.split(/\s+/);
+    if (parts.length < 3) return null;
 
-    return `${year}-${month}-${day.padStart(2, '0')}`;
+    const day = parts[0].padStart(2, '0');
+    const month = INDONESIAN_MONTHS[parts[1].toLocaleLowerCase()];
+    const year = parts[2];
+
+    if (!month || !/^\d{4}$/.test(year)) return null;
+    return `${year}-${month}-${day}`;
+}
+
+export function formatIsoToShortDate(isoDate: string): string {
+    const [year, month, day] = isoDate.split('-');
+    if (!year || !month || !day) return isoDate;
+    const shortMonth = SHORT_MONTH_LABELS[month] ?? month;
+    return `${Number(day)} ${shortMonth}`;
+}
+
+export function sortActivityLogsByDateDesc(logs: ActivityLog[]): ActivityLog[] {
+    return [...logs].sort((a, b) => {
+        const aIso = parseIndonesianDateToIso(a.timestamp) ?? '';
+        const bIso = parseIndonesianDateToIso(b.timestamp) ?? '';
+
+        return bIso.localeCompare(aIso);
+    });
+}
+
+export type ActivityPeriod = 'all' | 'week' | 'month';
+
+export type ActivityTimeFilter = ActivityPeriod | `month:${string}`;
+
+const FULL_MONTH_NAMES = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+];
+
+export function formatIsoMonthToLabel(isoMonth: string): string {
+    const [year, month] = isoMonth.split('-');
+    const monthName = FULL_MONTH_NAMES[Number(month) - 1];
+    if (!year || !monthName) {
+        return isoMonth;
+    }
+
+    return `${monthName} ${year}`;
+}
+
+export function formatIsoMonthToShortLabel(isoMonth: string): string {
+    const [year, month] = isoMonth.split('-');
+    const shortMonth = SHORT_MONTH_LABELS[month];
+    if (!year || !shortMonth) {
+        return isoMonth;
+    }
+
+    return `${shortMonth} ${year}`;
+}
+
+export function collectActivityMonths(logs: ActivityLog[]): string[] {
+    const months = new Set<string>();
+
+    for (const log of logs) {
+        const iso = parseIndonesianDateToIso(log.timestamp);
+        if (iso) {
+            months.add(iso.slice(0, 7));
+        }
+    }
+
+    return [...months].sort().reverse();
+}
+
+function isoFromDate(date: Date): string {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
+export function matchesActivityTimeFilter(
+    timestamp: string,
+    filter: ActivityTimeFilter,
+): boolean {
+    if (filter === 'all') {
+        return true;
+    }
+
+    const itemIso = parseIndonesianDateToIso(timestamp);
+    if (!itemIso) {
+        return false;
+    }
+
+    if (filter.startsWith('month:')) {
+        return itemIso.startsWith(filter.slice('month:'.length));
+    }
+
+    const today = new Date();
+    const start = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+    );
+
+    if (filter === 'week') {
+        start.setDate(start.getDate() - 6);
+    } else if (filter === 'month') {
+        start.setMonth(start.getMonth() - 1);
+    }
+
+    return itemIso >= isoFromDate(start);
 }

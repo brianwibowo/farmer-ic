@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import {
-    AlertTriangle,
+    Activity,
     ArrowDownUp,
     Camera,
     ChevronRight,
+    CircleAlert,
     Clock3,
+    LandPlot,
     Leaf,
     MapPin,
     Search,
@@ -19,8 +21,11 @@ import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDr
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
+    collectActivityMonths,
+    matchesActivityTimeFilter,
     parseIndonesianDateToIso,
     type ActivityLog,
+    type ActivityTimeFilter,
     type ActivityType,
 } from '@/data/activityLogs';
 import { listActivityLogs } from '@/services/activityLogService';
@@ -28,12 +33,15 @@ import { listActivityLogs } from '@/services/activityLogService';
 const activities = ref<ActivityLog[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
+const selectedTimeFilter = ref<ActivityTimeFilter>('all');
 const startDate = ref('');
 const endDate = ref('');
 const sortNewestFirst = ref(true);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const resetMessage = ref('');
+
+const availableMonths = computed(() => collectActivityMonths(activities.value));
 
 const filteredActivities = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
@@ -54,6 +62,11 @@ const filteredActivities = computed(() => {
             selectedType.value === '' ||
             selectedType.value === 'all' ||
             item.type === selectedType.value;
+
+        const matchesTime = matchesActivityTimeFilter(
+            item.timestamp,
+            selectedTimeFilter.value,
+        );
 
         let matchesDate = true;
         if (startDate.value || endDate.value) {
@@ -80,7 +93,7 @@ const filteredActivities = computed(() => {
             }
         }
 
-        return matchesSearch && matchesType && matchesDate;
+        return matchesSearch && matchesType && matchesDate && matchesTime;
     });
 
     return [...filtered].sort((a, b) => {
@@ -119,6 +132,7 @@ function thumbnailFor(item: ActivityLog): string {
 function clearFilters(): void {
     searchQuery.value = '';
     selectedType.value = '';
+    selectedTimeFilter.value = 'all';
     startDate.value = '';
     endDate.value = '';
 }
@@ -203,87 +217,70 @@ onMounted(() => void loadActivities());
                 aria-label="Ringkasan aktivitas"
             >
                 <div
-                    class="rounded-xl border border-border bg-muted/60 px-3 py-3"
+                    class="flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-3"
                 >
-                    <p class="text-[11px] text-muted-foreground">Aktivitas</p>
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                        <Activity :size="16" aria-hidden="true" />
+                    </span>
                     <p
-                        class="mt-1 text-lg leading-5 font-semibold text-foreground"
+                        class="text-lg leading-5 font-semibold text-primary"
                     >
                         {{ filteredActivities.length }}
                     </p>
+                    <p class="truncate text-[11px] font-medium text-muted-foreground">Aktivitas</p>
                 </div>
                 <div
-                    class="rounded-xl border border-border bg-muted/60 px-3 py-3"
+                    class="flex items-center gap-2 rounded-xl border border-secondary/20 bg-surface/35 px-3 py-3"
                 >
-                    <p class="text-[11px] text-muted-foreground">Kebun</p>
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                        <LandPlot :size="16" aria-hidden="true" />
+                    </span>
                     <p
-                        class="mt-1 text-lg leading-5 font-semibold text-foreground"
+                        class="text-lg leading-5 font-semibold text-secondary"
                     >
                         {{ gardenCount }}
                     </p>
+                    <p class="truncate text-[11px] font-medium text-muted-foreground">Kebun</p>
                 </div>
                 <div
-                    class="rounded-xl border border-warning/40 bg-warning/10 px-3 py-3"
+                    class="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-3"
                 >
-                    <p class="text-[11px] text-muted-foreground">Perlu cek</p>
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning">
+                        <CircleAlert :size="16" aria-hidden="true" />
+                    </span>
                     <p
-                        class="mt-1 flex items-center gap-1 text-lg leading-5 font-semibold text-foreground"
+                        class="text-lg leading-5 font-semibold text-foreground"
                     >
-                        <AlertTriangle
-                            v-if="urgentCount"
-                            :size="16"
-                            class="text-warning"
-                            aria-hidden="true"
-                        />
                         {{ urgentCount }}
                     </p>
+                    <p class="truncate text-[11px] font-medium text-foreground">Perlu cek</p>
                 </div>
             </section>
 
-            <div class="mt-5 flex items-center gap-2">
+            <div class="mt-4 flex gap-2">
                 <label class="relative min-w-0 flex-1">
                     <span class="sr-only">Cari aktivitas</span>
                     <input
                         v-model="searchQuery"
                         type="search"
-                        placeholder="Cari kebun, kegiatan, petugas..."
-                        class="h-11 w-full rounded-xl border border-primary bg-card px-3 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20"
+                        placeholder="Cari kata kunci"
+                        class="h-[38px] w-full rounded-lg border border-primary bg-card px-3 pr-10 text-[14px] text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
                     />
                     <Search
-                        :size="19"
+                        :size="20"
                         :stroke-width="1.8"
                         class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary"
                         aria-hidden="true"
                     />
                 </label>
-                <ActivityDateRangeFilter
-                    v-model:start-date="startDate"
-                    v-model:end-date="endDate"
-                />
+                <ActivityTypeFilterDropdown v-model="selectedType" />
             </div>
 
-            <div class="mt-2.5 flex items-center gap-2">
-                <ActivityTypeFilterDropdown v-model="selectedType" />
-                <button
-                    type="button"
-                    class="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-sm font-medium text-foreground hover:border-primary hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    @click="sortNewestFirst = !sortNewestFirst"
-                >
-                    <ArrowDownUp
-                        :size="16"
-                        class="text-primary"
-                        aria-hidden="true"
-                    />
-                    {{ sortNewestFirst ? 'Terbaru' : 'Terlama' }}
-                </button>
-                <span
-                    v-if="activeFilterCount"
-                    class="inline-flex size-8 items-center justify-center rounded-full bg-surface text-xs font-semibold text-secondary"
-                    :title="`${activeFilterCount} filter aktif`"
-                >
-                    {{ activeFilterCount }}
-                </span>
-            </div>
+            <ActivityPeriodFilter
+                v-model="selectedTimeFilter"
+                :months="availableMonths"
+                class="mt-3"
+            />
 
             <div
                 v-if="activeFilterCount"
