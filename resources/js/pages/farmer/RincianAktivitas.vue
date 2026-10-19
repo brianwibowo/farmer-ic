@@ -2,11 +2,11 @@
 import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowLeft,
-    CheckCircle2,
-    Clock3,
+    // CheckCircle2, — NOTE (merge resolution 2026-10-19): kept for the commented-out status banner below.
+    // Clock3, — NOTE (merge resolution 2026-10-19): kept for the commented-out status banner below.
     MapPin,
     RotateCcw,
-    Share2,
+    // Share2, — NOTE (merge resolution 2026-10-19): kept for the commented-out share button below.
     SquareActivity,
     X,
 } from '@lucide/vue';
@@ -49,8 +49,10 @@ async function loadActivityDetail(): Promise<void> {
                 ? `/kebun/aktivitas?kebun=${encodeURIComponent(kebunParam)}`
                 : '/kebun/aktivitas';
         } else {
-            shellActiveKey.value = 'activity';
-            backHref.value = '/aktivitas';
+            shellActiveKey.value = kebunParam ? 'garden' : 'activity';
+            backHref.value = kebunParam
+                ? `/aktivitas?kebun=${encodeURIComponent(kebunParam)}`
+                : '/aktivitas';
         }
 
         if (idParam) {
@@ -76,25 +78,27 @@ async function resetDemoData(): Promise<void> {
     await loadActivityDetail();
 }
 
-async function shareActivity(): Promise<void> {
-    if (!activeLog.value) return;
-    const shareText = `${activeLog.value.typeLabel} · ${activeLog.value.kebunName}`;
-    try {
-        if (navigator.share) {
-            await navigator.share({
-                title: 'Rincian aktivitas',
-                text: shareText,
-            });
-        } else if (navigator.clipboard) {
-            await navigator.clipboard.writeText(window.location.href);
-            copiedMessage.value = 'Tautan rincian disalin.';
-        } else {
-            copiedMessage.value = 'Tautan rincian siap dibagikan.';
-        }
-    } catch {
-        // The share sheet can be dismissed without an error state.
-    }
-}
+// NOTE (merge resolution 2026-10-19): the share flow is parked — its button is
+// commented out in the header below. Kept commented per review; delete once confirmed unused.
+// async function shareActivity(): Promise<void> {
+//     if (!activeLog.value) return;
+//     const shareText = `${activeLog.value.typeLabel} · ${activeLog.value.kebunName}`;
+//     try {
+//         if (navigator.share) {
+//             await navigator.share({
+//                 title: 'Rincian aktivitas',
+//                 text: shareText,
+//             });
+//         } else if (navigator.clipboard) {
+//             await navigator.clipboard.writeText(window.location.href);
+//             copiedMessage.value = 'Tautan rincian disalin.';
+//         } else {
+//             copiedMessage.value = 'Tautan rincian siap dibagikan.';
+//         }
+//     } catch {
+//         // The share sheet can be dismissed without an error state.
+//     }
+// }
 
 onMounted(() => void loadActivityDetail());
 </script>
@@ -103,7 +107,7 @@ onMounted(() => void loadActivityDetail());
     <Head title="Rincian Aktivitas" />
 
     <FarmerMobileShell :active-key="shellActiveKey">
-        <div data-rincian-aktivitas class="px-4 pt-5 pb-5">
+        <div data-rincian-aktivitas class="px-4 pt-16 pb-6">
             <header class="flex items-center justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2.5">
                     <Link
@@ -150,6 +154,17 @@ onMounted(() => void loadActivityDetail());
                     </button>
                 </div>
             </header>
+
+            <!-- NOTE (merge resolution 2026-10-19): duplicate reset button — the header
+                 'Reset' button is the active one. Kept commented per review.
+            <button
+                type="button"
+                class="shrink-0 text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                @click="void resetDemoData()"
+            >
+                Reset demo
+            </button>
+            -->
 
             <div
                 v-if="statusMessage || copiedMessage"
@@ -272,6 +287,38 @@ onMounted(() => void loadActivityDetail());
 <style>
 [data-rincian-aktivitas] {
     color-scheme: light;
+    --background: #f9faf9;
+    --foreground: #070807;
+    --surface: #abe7b2;
+    --surface-foreground: #070807;
+    --card: #ffffff;
+    --card-foreground: #070807;
+    --popover: #ffffff;
+    --popover-foreground: #070807;
+    --primary: #68bb6c;
+    --primary-foreground: #ffffff;
+    --secondary: #1c5e21;
+    --secondary-foreground: #ffffff;
+    --accent: #93a99f;
+    --accent-foreground: #070807;
+    --muted: #ebf3ed;
+    --muted-foreground: #2a1a0e;
+    --text-muted: #2a1a0e;
+    --border: #d9d9d9;
+    --input: #d9d9d9;
+    --ring: #68bb6c;
+    --success: #4a943e;
+    --success-foreground: #ffffff;
+    --warning: #edc92c;
+    --warning-foreground: #070807;
+    --error: #bc0202;
+    --error-foreground: #ffffff;
+    --destructive: #bc0202;
+    --destructive-foreground: #ffffff;
+    --info: #d9d9d9;
+    --info-foreground: #070807;
+    --disable: #e5e7ea;
+    --disable-foreground: #8c9096;
 }
 
 main:has(> [data-rincian-aktivitas]) {

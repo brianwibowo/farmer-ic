@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     Activity,
-    ArrowDownUp,
+    // ArrowDownUp, — NOTE (merge resolution 2026-10-19): kept for the paused sort-toggle idea.
     Camera,
     ChevronRight,
     CircleAlert,
@@ -14,38 +14,85 @@ import {
     SlidersHorizontal,
     SquareActivity,
     X,
+    ArrowLeft,
 } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import ActivityDateRangeFilter from '@/components/farmer/ActivityDateRangeFilter.vue';
+import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
     collectActivityMonths,
     matchesActivityTimeFilter,
-    parseIndonesianDateToIso,
+    // parseIndonesianDateToIso, — NOTE (merge resolution 2026-10-19): kept for the commented date-range/sort code below.
     type ActivityLog,
     type ActivityTimeFilter,
     type ActivityType,
 } from '@/data/activityLogs';
+import type { Kebun } from '@/data/kebun';
 import { listActivityLogs } from '@/services/activityLogService';
+import { listKebun } from '@/services/kebunService';
 
+const page = usePage();
 const activities = ref<ActivityLog[]>([]);
+const kebunList = ref<Kebun[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
 const selectedTimeFilter = ref<ActivityTimeFilter>('all');
-const startDate = ref('');
-const endDate = ref('');
-const sortNewestFirst = ref(true);
+// NOTE (merge resolution 2026-10-19): the date-range inputs and sort toggle were
+// removed from the UI (replaced by ActivityPeriodFilter chips + newest-first sorting
+// in listActivityLogs()). Kept commented per review; delete once confirmed unused.
+// const startDate = ref('');
+// const endDate = ref('');
+// const sortNewestFirst = ref(true);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const resetMessage = ref('');
 
 const availableMonths = computed(() => collectActivityMonths(activities.value));
 
+const kebunParam = computed(() => {
+    try {
+        const url = new URL(page.url, 'http://localhost');
+        return (
+            url.searchParams.get('kebun') || url.searchParams.get('id') || ''
+        );
+    } catch {
+        return '';
+    }
+});
+
+const currentKebun = computed(() => {
+    if (!kebunParam.value) return undefined;
+    return kebunList.value.find((item) => item.id === kebunParam.value);
+});
+
+const currentKebunName = computed(() => {
+    if (!kebunParam.value) return '';
+    if (currentKebun.value) return currentKebun.value.name;
+
+    const match = activities.value.find(
+        (item) => item.kebunId === kebunParam.value,
+    );
+    return match?.kebunName ?? '';
+});
+
+const backHref = computed(() => {
+    if (kebunParam.value) {
+        return `/kebun/detail?id=${encodeURIComponent(kebunParam.value)}`;
+    }
+
+    return '/kebun';
+});
+
 const filteredActivities = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
+
     const filtered = activities.value.filter((item) => {
+        if (kebunParam.value && item.kebunId !== kebunParam.value) {
+            return false;
+        }
+
         const searchable = [
             item.typeLabel,
             item.timestamp,
@@ -68,48 +115,56 @@ const filteredActivities = computed(() => {
             selectedTimeFilter.value,
         );
 
-        let matchesDate = true;
-        if (startDate.value || endDate.value) {
-            const itemIso = parseIndonesianDateToIso(item.timestamp);
-            if (!itemIso) {
-                matchesDate = false;
-            } else {
-                const effectiveStart =
-                    startDate.value &&
-                    endDate.value &&
-                    startDate.value > endDate.value
-                        ? endDate.value
-                        : startDate.value;
-                const effectiveEnd =
-                    startDate.value &&
-                    endDate.value &&
-                    startDate.value > endDate.value
-                        ? startDate.value
-                        : endDate.value;
+        // NOTE (merge resolution 2026-10-19): date-range matching is disabled — the
+        // range UI was replaced by ActivityPeriodFilter chips. Kept commented per review.
+        // let matchesDate = true;
+        // if (startDate.value || endDate.value) {
+        //     const itemIso = parseIndonesianDateToIso(item.timestamp);
+        //     if (!itemIso) {
+        //         matchesDate = false;
+        //     } else {
+        //         const effectiveStart =
+        //             startDate.value &&
+        //             endDate.value &&
+        //             startDate.value > endDate.value
+        //                 ? endDate.value
+        //                 : startDate.value;
+        //         const effectiveEnd =
+        //             startDate.value &&
+        //             endDate.value &&
+        //             startDate.value > endDate.value
+        //                 ? startDate.value
+        //                 : endDate.value;
+        //
+        //         if (effectiveStart && itemIso < effectiveStart)
+        //             matchesDate = false;
+        //         if (effectiveEnd && itemIso > effectiveEnd) matchesDate = false;
+        //     }
+        // }
 
-                if (effectiveStart && itemIso < effectiveStart)
-                    matchesDate = false;
-                if (effectiveEnd && itemIso > effectiveEnd) matchesDate = false;
-            }
-        }
-
-        return matchesSearch && matchesType && matchesDate && matchesTime;
+        return matchesSearch && matchesType && matchesTime;
     });
 
-    return [...filtered].sort((a, b) => {
-        const aDate = parseIndonesianDateToIso(a.timestamp) ?? '';
-        const bDate = parseIndonesianDateToIso(b.timestamp) ?? '';
-        return sortNewestFirst.value
-            ? bDate.localeCompare(aDate)
-            : aDate.localeCompare(bDate);
-    });
+    // NOTE (merge resolution 2026-10-19): the manual newest/oldest sort is disabled —
+    // listActivityLogs() already returns newest-first. Kept commented per review.
+    // return [...filtered].sort((a, b) => {
+    //     const aDate = parseIndonesianDateToIso(a.timestamp) ?? '';
+    //     const bDate = parseIndonesianDateToIso(b.timestamp) ?? '';
+    //     return sortNewestFirst.value
+    //         ? bDate.localeCompare(aDate)
+    //         : aDate.localeCompare(bDate);
+    // });
+
+    return filtered;
 });
 
+// NOTE (merge resolution 2026-10-19): the startDate/endDate term is disabled along
+// with the date-range UI (see the commented refs above); it is kept commented below.
 const activeFilterCount = computed(
     () =>
         Number(Boolean(searchQuery.value.trim())) +
-        Number(Boolean(selectedType.value)) +
-        Number(Boolean(startDate.value || endDate.value)),
+        Number(Boolean(selectedType.value)),
+    // + Number(Boolean(startDate.value || endDate.value)),
 );
 
 const urgentCount = computed(
@@ -133,8 +188,9 @@ function clearFilters(): void {
     searchQuery.value = '';
     selectedType.value = '';
     selectedTimeFilter.value = 'all';
-    startDate.value = '';
-    endDate.value = '';
+    // NOTE (merge resolution 2026-10-19): date resets disabled with the range UI.
+    // startDate.value = '';
+    // endDate.value = '';
 }
 
 function reportSummary(item: ActivityLog): string {
@@ -166,8 +222,14 @@ function isUrgent(item: ActivityLog): boolean {
 async function loadActivities(): Promise<void> {
     isLoading.value = true;
     errorMessage.value = '';
+
     try {
-        activities.value = await listActivityLogs();
+        const [activityData, kebunData] = await Promise.all([
+            listActivityLogs(),
+            listKebun(),
+        ]);
+        activities.value = activityData;
+        kebunList.value = kebunData;
     } catch {
         errorMessage.value = 'Data aktivitas belum dapat dimuat. Coba lagi.';
     } finally {
@@ -186,31 +248,50 @@ onMounted(() => void loadActivities());
 </script>
 
 <template>
-    <Head title="Aktivitas" />
+    <Head
+        :title="
+            currentKebunName ? `Aktivitas - ${currentKebunName}` : 'Aktivitas'
+        "
+    />
 
-    <FarmerMobileShell active-key="activity">
-        <div data-aktivitas-list class="px-4 pt-5 pb-5">
-            <header class="flex items-start justify-between gap-3">
-                <div>
-                    <p
-                        class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+    <FarmerMobileShell :active-key="kebunParam ? 'garden' : 'activity'">
+        <div data-aktivitas-list class="px-4 pt-16 pb-5">
+            <div
+                class="flex justify-between gap-3"
+                :class="currentKebunName ? 'items-start' : 'items-center'"
+            >
+                <div class="flex min-w-0 items-center gap-2.5">
+                    <Link
+                        v-if="kebunParam"
+                        :href="backHref"
+                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        aria-label="Kembali ke Detail Kebun"
                     >
-                        Catatan lapangan
-                    </p>
-                    <h1
-                        class="mt-1 text-[24px] leading-8 font-semibold text-foreground"
-                    >
-                        Aktivitas
-                    </h1>
+                        <ArrowLeft :size="18" :stroke-width="1.8" />
+                    </Link>
+                    <div class="min-w-0">
+                        <h1
+                            class="truncate text-[20px] leading-7 font-semibold text-foreground"
+                        >
+                            Aktivitas
+                        </h1>
+                        <p
+                            v-if="currentKebunName"
+                            class="mt-0.5 truncate text-[15px] leading-5 font-semibold text-secondary"
+                        >
+                            {{ currentKebunName }}
+                        </p>
+                    </div>
                 </div>
+
                 <button
                     type="button"
-                    class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-success hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    class="shrink-0 text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     @click="void resetDemoData()"
                 >
                     Reset demo
                 </button>
-            </header>
+            </div>
 
             <section
                 class="mt-5 grid grid-cols-3 gap-2"
@@ -219,41 +300,51 @@ onMounted(() => void loadActivities());
                 <div
                     class="flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-3"
                 >
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                    <span
+                        class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
+                    >
                         <Activity :size="16" aria-hidden="true" />
                     </span>
-                    <p
-                        class="text-lg leading-5 font-semibold text-primary"
-                    >
+                    <p class="text-lg leading-5 font-semibold text-primary">
                         {{ filteredActivities.length }}
                     </p>
-                    <p class="truncate text-[11px] font-medium text-muted-foreground">Aktivitas</p>
+                    <p
+                        class="truncate text-[11px] font-medium text-muted-foreground"
+                    >
+                        Aktivitas
+                    </p>
                 </div>
                 <div
                     class="flex items-center gap-2 rounded-xl border border-secondary/20 bg-surface/35 px-3 py-3"
                 >
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                    <span
+                        class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary"
+                    >
                         <LandPlot :size="16" aria-hidden="true" />
                     </span>
-                    <p
-                        class="text-lg leading-5 font-semibold text-secondary"
-                    >
+                    <p class="text-lg leading-5 font-semibold text-secondary">
                         {{ gardenCount }}
                     </p>
-                    <p class="truncate text-[11px] font-medium text-muted-foreground">Kebun</p>
+                    <p
+                        class="truncate text-[11px] font-medium text-muted-foreground"
+                    >
+                        Kebun
+                    </p>
                 </div>
                 <div
                     class="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-3"
                 >
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning">
+                    <span
+                        class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning"
+                    >
                         <CircleAlert :size="16" aria-hidden="true" />
                     </span>
-                    <p
-                        class="text-lg leading-5 font-semibold text-foreground"
-                    >
+                    <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ urgentCount }}
                     </p>
-                    <p class="truncate text-[11px] font-medium text-foreground">Perlu cek</p>
+                    <p class="truncate text-[11px] font-medium text-foreground">
+                        Perlu cek
+                    </p>
                 </div>
             </section>
 
@@ -273,6 +364,7 @@ onMounted(() => void loadActivities());
                         aria-hidden="true"
                     />
                 </label>
+
                 <ActivityTypeFilterDropdown v-model="selectedType" />
             </div>
 
@@ -390,7 +482,11 @@ onMounted(() => void loadActivities());
             <ul v-else class="mt-5 space-y-3" aria-label="Daftar aktivitas">
                 <li v-for="item in filteredActivities" :key="item.id">
                     <Link
-                        :href="`/rincian-aktivitas?id=${item.id}`"
+                        :href="
+                            kebunParam
+                                ? `/rincian-aktivitas?id=${item.id}&kebun=${encodeURIComponent(kebunParam)}`
+                                : `/rincian-aktivitas?id=${item.id}`
+                        "
                         class="group flex gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                         <div
@@ -480,6 +576,38 @@ onMounted(() => void loadActivities());
 <style>
 [data-aktivitas-list] {
     color-scheme: light;
+    --background: #f9faf9;
+    --foreground: #070807;
+    --surface: #abe7b2;
+    --surface-foreground: #070807;
+    --card: #ffffff;
+    --card-foreground: #070807;
+    --popover: #ffffff;
+    --popover-foreground: #070807;
+    --primary: #68bb6c;
+    --primary-foreground: #ffffff;
+    --secondary: #1c5e21;
+    --secondary-foreground: #ffffff;
+    --accent: #93a99f;
+    --accent-foreground: #070807;
+    --muted: #ebf3ed;
+    --muted-foreground: #2a1a0e;
+    --text-muted: #2a1a0e;
+    --border: #d9d9d9;
+    --input: #d9d9d9;
+    --ring: #68bb6c;
+    --success: #4a943e;
+    --success-foreground: #ffffff;
+    --warning: #edc92c;
+    --warning-foreground: #070807;
+    --error: #bc0202;
+    --error-foreground: #ffffff;
+    --destructive: #bc0202;
+    --destructive-foreground: #ffffff;
+    --info: #d9d9d9;
+    --info-foreground: #070807;
+    --disable: #e5e7ea;
+    --disable-foreground: #8c9096;
 }
 
 main:has(> [data-aktivitas-list]) {

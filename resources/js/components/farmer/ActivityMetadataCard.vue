@@ -111,7 +111,8 @@ function activityTone(activity: ActivityLog): string {
             </div>
         </dl>
 
-        <!-- <div class="border-t border-border px-4 py-3">
+        <!-- NOTE (merge resolution 2026-10-19): kept commented per review; remove once confirmed unused.
+        <div class="border-t border-border px-4 py-3">
             <p class="text-xs text-muted-foreground">Konteks kebun</p>
             <p class="mt-1 text-sm font-medium text-foreground">
                 {{ activity.seedType }} · dicatat oleh
