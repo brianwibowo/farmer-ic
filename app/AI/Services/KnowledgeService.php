@@ -14,7 +14,7 @@ class KnowledgeService
         $facts = $this->read('facts_path');
         $demoFacts = $this->loadFarmDemoFacts();
         if ($demoFacts !== '') {
-            $facts .= "\n\n" . $demoFacts;
+            $facts .= "\n\n".$demoFacts;
         }
         $policy = $this->read('policy_path');
         $published = $team?->aiKnowledgeDocuments()
@@ -55,37 +55,41 @@ class KnowledgeService
     }
 
     /**
-     * Membaca data kebun langsung dari resources/js/data/kebun.json
-     * dan merangkumnya menjadi teks fakta ringkas untuk prompt LLM.
+     * Membaca snapshot demo terpadu dan merangkumnya menjadi fakta ringkas
+     * untuk prompt LLM.
      */
     protected function loadFarmDemoFacts(): string
     {
-        $kebunPath = resource_path('js/data/kebun.json');
-        if (! is_file($kebunPath) || ! is_readable($kebunPath)) {
+        $dataPath = resource_path('js/data/farmDemoData.json');
+        if (! is_file($dataPath) || ! is_readable($dataPath)) {
             return '';
         }
 
-        $kebunList = json_decode((string) file_get_contents($kebunPath), true);
+        $data = json_decode((string) file_get_contents($dataPath), true);
+        if (! is_array($data)) {
+            return '';
+        }
+
+        $kebunList = $data['kebun'] ?? [];
         if (! is_array($kebunList) || empty($kebunList)) {
             return '';
         }
 
-        $insightsPath = resource_path('js/data/kebunInsights.json');
-        $insights = is_file($insightsPath) ? json_decode((string) file_get_contents($insightsPath), true) : [];
+        $insights = $data['kebunInsights'] ?? [];
         if (! is_array($insights)) {
             $insights = [];
         }
 
-        $lines = ["## Data Kebun Petani (Sumber: resources/js/data/kebun.json)\n"];
-        $lines[] = 'Petani saat ini memiliki ' . count($kebunList) . ' kebun aktif yang terdaftar di aplikasi:';
+        $lines = ["## Data Kebun Petani (Sumber: resources/js/data/farmDemoData.json)\n"];
+        $lines[] = 'Petani saat ini memiliki '.count($kebunList).' kebun aktif yang terdaftar di aplikasi:';
 
         foreach ($kebunList as $index => $item) {
             $id = $item['id'] ?? '';
             $name = $item['name'] ?? 'Kebun';
             $city = $item['city'] ?? '';
-            $district = ! empty($item['district']) ? ', Kec. ' . $item['district'] : '';
+            $district = ! empty($item['district']) ? ', Kec. '.$item['district'] : '';
             $crop = $item['seedType'] ?? '';
-            $variety = ! empty($item['seedTypeDetail']) ? ' (' . $item['seedTypeDetail'] . ')' : '';
+            $variety = ! empty($item['seedTypeDetail']) ? ' ('.$item['seedTypeDetail'].')' : '';
             $used = $item['usedHectare'] ?? 0;
             $total = $item['availableHectare'] ?? 0;
             $health = $item['healthStatus'] ?? 'Sehat';
@@ -106,17 +110,29 @@ class KnowledgeService
             $lines[] = "{$num}. **{$name}**: {$city}{$district}. Komoditas: {$crop}{$variety}. Luas: {$used}/{$total} ha. Status: {$health}{$extra}.";
         }
 
-        $lines[] = "\n## Data Keuangan Petani Tahun 2026 (Periode Berjalan: Oktober 2026)";
-        $lines[] = "- Total Pendapatan Kumulatif 2026: Rp 170.000.000";
-        $lines[] = "- Total Pengeluaran (OPEX) 2026: Rp 60.000.000";
-        $lines[] = "- Laba Bersih Kumulatif 2026: Rp 110.000.000";
-        $lines[] = "- Kuartal 4 (Oktober–Desember 2026): Total Pendapatan Rp 39.000.000, Pengeluaran Rp 14.000.000, Laba Bersih Rp 25.000.000.";
-        $lines[] = "  * Bulan ini (Oktober 2026): Pendapatan Rp 12.000.000, Pengeluaran Rp 4.000.000, Laba Bersih Rp 8.000.000.";
-        $lines[] = "  * November 2026 (Proyeksi): Pendapatan Rp 13.000.000, Pengeluaran Rp 5.000.000, Laba Bersih Rp 8.000.000.";
-        $lines[] = "  * Desember 2026 (Proyeksi): Pendapatan Rp 14.000.000, Pengeluaran Rp 5.000.000, Laba Bersih Rp 9.000.000.";
-        $lines[] = "- Kuartal 3 (Juli–September 2026): Pendapatan Rp 51.000.000, Pengeluaran Rp 17.000.000, Laba Rp 34.000.000 (Kuartal terbaik berkat panen jagung & rumput odot).";
-        $lines[] = "- Kuartal 2 (April–Juni 2026): Pendapatan Rp 38.000.000, Pengeluaran Rp 14.000.000, Laba Rp 24.000.000.";
-        $lines[] = "- Kuartal 1 (Januari–Maret 2026): Pendapatan Rp 42.000.000, Pengeluaran Rp 15.000.000, Laba Rp 27.000.000.";
+        $finance = $data['finance'] ?? [];
+        if (is_array($finance)) {
+            $formatRupiah = static fn (int|float $value): string => 'Rp '.number_format($value, 0, ',', '.');
+            $lines[] = "\n## Data Keuangan Petani Tahun 2026 (Sumber: farmDemoData.json)";
+            $lines[] = '- Total Pendapatan Kumulatif 2026: '.$formatRupiah((float) ($finance['totalRevenue'] ?? 0));
+            $lines[] = '- Total Pengeluaran (OPEX) 2026: '.$formatRupiah((float) ($finance['totalExpense'] ?? 0));
+            $lines[] = '- Laba Bersih Kumulatif 2026: '.$formatRupiah((float) ($finance['totalNet'] ?? 0));
+
+            foreach (($finance['quarters'] ?? []) as $quarter => $summary) {
+                if (! is_array($summary)) {
+                    continue;
+                }
+
+                $lines[] = sprintf(
+                    '- %s (%s): Pendapatan %s, Pengeluaran %s, Laba Bersih %s.',
+                    $quarter,
+                    $summary['label'] ?? '',
+                    $formatRupiah((float) ($summary['totalRevenue'] ?? 0)),
+                    $formatRupiah((float) ($summary['totalExpense'] ?? 0)),
+                    $formatRupiah((float) ($summary['netTotal'] ?? 0)),
+                );
+            }
+        }
 
         return implode("\n", $lines);
     }

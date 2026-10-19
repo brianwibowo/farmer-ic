@@ -1,4 +1,4 @@
-import rawKebunData from './kebun.json';
+import farmDemoData from './farmDemoData.json';
 
 export type SeedType = 'Jagung' | 'Rumput' | 'Kedelai';
 export type HealthStatus = 'Sehat' | 'Perlu Perhatian' | 'Kritis';
@@ -17,4 +17,4 @@ export type Kebun = {
     image: string;
 };
 
-export const kebunSeedData: Kebun[] = rawKebunData as Kebun[];
+export const kebunSeedData: Kebun[] = farmDemoData.kebun as Kebun[];

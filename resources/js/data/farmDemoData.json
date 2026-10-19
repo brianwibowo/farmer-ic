@@ -1,0 +1,2996 @@
+{
+  "version": 1,
+  "generatedAt": "2026-10-19",
+  "kebun": [
+    {
+      "id": "kebun-001",
+      "name": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "district": "Kejajar",
+      "address": "Jl. Raya Kejajar Km 4",
+      "usedHectare": 300,
+      "availableHectare": 1000,
+      "seedType": "Kedelai",
+      "seedTypeDetail": "Anjasmoro",
+      "healthStatus": "Sehat",
+      "image": "/images/farm_fields/kedelai_1.jpg"
+    },
+    {
+      "id": "kebun-002",
+      "name": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "district": "Parakan",
+      "address": "Jl. Parakan-Ngadirejo No. 27",
+      "usedHectare": 180,
+      "availableHectare": 750,
+      "seedType": "Jagung",
+      "seedTypeDetail": "Hibrida BISI-18",
+      "healthStatus": "Sehat",
+      "image": "/images/farm_fields/jagung_1.jpg"
+    },
+    {
+      "id": "kebun-003",
+      "name": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "district": "Karangkobar",
+      "address": "Jl. Raya Karangkobar Km 8",
+      "usedHectare": 420,
+      "availableHectare": 1200,
+      "seedType": "Rumput",
+      "seedTypeDetail": "Odot",
+      "healthStatus": "Perlu Perhatian",
+      "image": "/images/farm_fields/rumput.avif"
+    },
+    {
+      "id": "kebun-004",
+      "name": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "district": "Salaman",
+      "address": "Jl. Salaman-Borobudur Km 5",
+      "usedHectare": 95,
+      "availableHectare": 500,
+      "seedType": "Kedelai",
+      "seedTypeDetail": "Grobogan",
+      "healthStatus": "Sehat",
+      "image": "/images/farm_fields/kedelai_2.webp"
+    },
+    {
+      "id": "kebun-005",
+      "name": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "district": "Purwodadi",
+      "address": "Jl. Kutoarjo-Kemiri No. 12",
+      "usedHectare": 260,
+      "availableHectare": 900,
+      "seedType": "Jagung",
+      "seedTypeDetail": "Komposit Lamuru",
+      "healthStatus": "Kritis",
+      "image": "/images/farm_fields/jagung_2.jpeg"
+    }
+  ],
+  "kebunLocations": {
+    "kebun-001": [
+      -7.3395,
+      109.9035
+    ],
+    "kebun-002": [
+      -7.28,
+      110.172
+    ],
+    "kebun-003": [
+      -7.3695,
+      109.683
+    ],
+    "kebun-004": [
+      -7.465,
+      110.21
+    ],
+    "kebun-005": [
+      -7.6705,
+      110.009
+    ]
+  },
+  "kebunInsights": {
+    "kebun-001": {
+      "plantCondition": "Daun kedelai hijau merata, pertumbuhan stabil, dan belum terlihat gejala serangan hama.",
+      "projectedRevenue": 50000000,
+      "revenue": 35000000,
+      "expenses": 18500000,
+      "growth": 78,
+      "plantedAt": "11 September 2026",
+      "harvestAt": "10 Desember 2026",
+      "summary": "Pertahankan penyiraman teratur dan pantau daun kedelai setiap minggu menjelang fase pembungaan.",
+      "weightTon": 42,
+      "aiConfidence": 94,
+      "weather": {
+        "condition": "Cerah berawan",
+        "temperature": "26°C",
+        "humidity": "78%"
+      },
+      "nextStep": "Jadwalkan penyiraman rutin dan pantau daun kedelai setiap 2–3 hari.",
+      "risk": "Perubahan warna daun dapat menandakan serangan hama menjelang fase pembungaan."
+    },
+    "kebun-002": {
+      "plantCondition": "Batang jagung kokoh dan warna daun baik. Kelembapan tanah masih mendukung pertumbuhan.",
+      "projectedRevenue": 42000000,
+      "revenue": 28000000,
+      "expenses": 16000000,
+      "growth": 65,
+      "plantedAt": "20 Agustus 2026",
+      "harvestAt": "20 November 2026",
+      "summary": "Jaga ketersediaan air dan lakukan pemupukan susulan sesuai fase pertumbuhan jagung.",
+      "weightTon": 31,
+      "aiConfidence": 92,
+      "weather": {
+        "condition": "Cerah",
+        "temperature": "27°C",
+        "humidity": "74%"
+      },
+      "nextStep": "Lakukan pemupukan susulan dan cek kelembapan tanah di setiap petak.",
+      "risk": "Kekurangan air dapat memperlambat pembentukan tongkol jagung."
+    },
+    "kebun-003": {
+      "plantCondition": "Sebagian rumput mulai menguning di petak timur. Perlu pemeriksaan kelembapan dan pemerataan irigasi.",
+      "projectedRevenue": 28000000,
+      "revenue": 18500000,
+      "expenses": 12500000,
+      "growth": 56,
+      "plantedAt": "1 September 2026",
+      "harvestAt": "15 November 2026",
+      "summary": "Periksa saluran irigasi petak timur dan pantau kembali warna daun setelah penyiraman.",
+      "weightTon": 24,
+      "aiConfidence": 88,
+      "weather": {
+        "condition": "Mendung",
+        "temperature": "24°C",
+        "humidity": "84%"
+      },
+      "nextStep": "Periksa saluran irigasi petak timur dan ratakan penyiraman.",
+      "risk": "Daun menguning dan genangan air berisiko menurunkan pertumbuhan rumput."
+    },
+    "kebun-004": {
+      "plantCondition": "Tanaman kedelai tumbuh merata dengan pembentukan polong yang baik. Tidak ada indikasi penyakit dominan.",
+      "projectedRevenue": 23000000,
+      "revenue": 16000000,
+      "expenses": 8500000,
+      "growth": 82,
+      "plantedAt": "15 Agustus 2026",
+      "harvestAt": "15 November 2026",
+      "summary": "Pantau kematangan polong dan siapkan tenaga panen untuk mempertahankan kualitas hasil.",
+      "weightTon": 18,
+      "aiConfidence": 95,
+      "weather": {
+        "condition": "Cerah berawan",
+        "temperature": "25°C",
+        "humidity": "76%"
+      },
+      "nextStep": "Siapkan tenaga panen dan pantau kematangan polong secara berkala.",
+      "risk": "Panen terlambat dapat menurunkan kualitas dan kadar air kedelai."
+    },
+    "kebun-005": {
+      "plantCondition": "Daun jagung menggulung pada beberapa petak dan tanah terlihat kering. Membutuhkan penanganan irigasi segera.",
+      "projectedRevenue": 31000000,
+      "revenue": 20000000,
+      "expenses": 17500000,
+      "growth": 43,
+      "plantedAt": "5 September 2026",
+      "harvestAt": "5 Desember 2026",
+      "summary": "Prioritaskan pemulihan pasokan air dan lakukan pemeriksaan lapangan pada tanaman yang mengalami stres.",
+      "weightTon": 20,
+      "aiConfidence": 86,
+      "weather": {
+        "condition": "Panas",
+        "temperature": "29°C",
+        "humidity": "68%"
+      },
+      "nextStep": "Prioritaskan pemulihan pasokan air dan lakukan pemeriksaan lapangan segera.",
+      "risk": "Stres air dapat memperlambat pertumbuhan dan menurunkan hasil panen jagung."
+    }
+  },
+  "activityLogs": [
+    {
+      "id": "act-panen-001",
+      "type": "panen",
+      "typeLabel": "Panen",
+      "timestamp": "17 Oktober 2026",
+      "daysAfterPlanting": 105,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "panen",
+        "harvestedArea": "3,0 Ha",
+        "grossWeight": "21,6 Ton",
+        "quality": {
+          "moistureContent": "15,4%",
+          "color": "Kuning Oranye Cerah",
+          "ripeness": "Masak Fisiologis (96%)",
+          "cleanliness": "Bersih (Kotoran < 1,2%)"
+        }
+      },
+      "photos": [
+        {
+          "id": "photo-panen-1",
+          "label": "Foto hasil panen",
+          "caption": "Karung jagung pipil kering siap timbang dan uji kadar air",
+          "image": "/images/activities/panen-hasil.jpg"
+        },
+        {
+          "id": "photo-panen-2",
+          "label": "Foto kegiatan",
+          "caption": "Proses pemipilan dan pengangkutan hasil panen ke gudang",
+          "image": "/images/activities/panen-kegiatan.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-insiden-001",
+      "type": "pelaporan-insiden",
+      "typeLabel": "Pelaporan Insiden",
+      "timestamp": "14 Oktober 2026",
+      "daysAfterPlanting": 41,
+      "officerName": "Sutrisno",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pelaporan-insiden",
+        "incidentCategory": "Serangan Hama Ulat Grayak (FAW)",
+        "severity": "Darurat",
+        "affectedAreaHa": 1.4,
+        "proposedSolution": "Penyemprotan insektisida sistemik bahan aktif emamektin benzoat secara serentak pada pagi hari di Blok B dan C dalam 24 jam."
+      },
+      "photos": [
+        {
+          "id": "photo-insiden-1",
+          "label": "Foto close up",
+          "caption": "Kerusakan pucuk daun jagung akibat larva Spodoptera frugiperda",
+          "image": "/images/activities/insiden-closeup.jpg"
+        },
+        {
+          "id": "photo-insiden-2",
+          "label": "Foto lebar/panorama",
+          "caption": "Hamparan 1,4 Ha di sisi barat yang terdampak serangan hama",
+          "image": "/images/activities/insiden-panorama.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pestisida-001",
+      "type": "pestisida",
+      "typeLabel": "Pestisida",
+      "timestamp": "06 Oktober 2026",
+      "daysAfterPlanting": 32,
+      "officerName": "Paijo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pestisida",
+        "pesticideCategory": "Insektisida",
+        "purpose": "Korektif",
+        "brandName": "Prevathon 50 SC",
+        "activeIngredient": "Klorantraniliprol 50 g/L",
+        "dosagePerTank": "25 ml / tangki",
+        "tankSizeLiters": 16,
+        "tankCount": 8
+      },
+      "photos": [
+        {
+          "id": "photo-pestisida-1",
+          "label": "Foto bahan pestisida",
+          "caption": "Botol insektisida Prevathon 50 SC dan gelas takar dosis",
+          "image": "/images/activities/pestisida-bahan.jpg"
+        },
+        {
+          "id": "photo-pestisida-2",
+          "label": "Foto kegiatan",
+          "caption": "Penyemprotan diarahkan ke pucuk daun jagung menggunakan tangki 16L",
+          "image": "/images/activities/pestisida-kegiatan.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-001",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "28 September 2026",
+      "daysAfterPlanting": 58,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian Polong (Fase R5)",
+        "averageHeightCm": 68,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Ringan"
+      },
+      "photos": [
+        {
+          "id": "photo-tumbuh-1",
+          "label": "Foto tanaman (full)",
+          "caption": "Hamparan kanopi kedelai fase R5 tampak rapat dan hijau",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        },
+        {
+          "id": "photo-tumbuh-2",
+          "label": "Foto daun (close up)",
+          "caption": "Permukaan daun sehat dengan sedikit bekas gigitan ringan di tepi",
+          "image": "/images/activities/tumbuh-daun-closeup.jpg"
+        },
+        {
+          "id": "photo-tumbuh-3",
+          "label": "Foto buah",
+          "caption": "Polong kedelai mulai terisi padat pada buku batang utama",
+          "image": "/images/activities/tumbuh-buah.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pengairan-001",
+      "type": "pengairan",
+      "typeLabel": "Pengairan",
+      "timestamp": "19 September 2026",
+      "daysAfterPlanting": 18,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengairan",
+        "waterSource": "Sumur Bor Dalam",
+        "irrigationMethod": "Sprinkler Berputar",
+        "machineType": "Pompa Diesel Solar 6.5 PK",
+        "durationHours": 4.5
+      },
+      "photos": [
+        {
+          "id": "photo-air-1",
+          "label": "Foto mesin",
+          "caption": "Mesin pompa diesel beroperasi mengalirkan air dari sumur bor",
+          "image": "/images/activities/pengairan-mesin.jpg"
+        },
+        {
+          "id": "photo-air-2",
+          "label": "Foto lahan",
+          "caption": "Penyiraman sprinkler merata pada blok ratoon rumput pakan",
+          "image": "/images/activities/pengairan-lahan.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pemupukan-001",
+      "type": "pemupukan",
+      "typeLabel": "Pemupukan",
+      "timestamp": "08 September 2026",
+      "daysAfterPlanting": 25,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pemupukan",
+        "fertilizationStage": "Pupuk Susulan 1 (Fase Vegetatif)",
+        "fertilizerType": "NPK + Urea",
+        "brandName": "NPK Phonska Plus & Pupuk Kaltim",
+        "subsidyStatus": "Subsidi",
+        "applicationMethod": "Tabur Alur Baris",
+        "usageAmount": "6 Sak (300 kg)"
+      },
+      "photos": [
+        {
+          "id": "photo-pupuk-1",
+          "label": "Foto sak pupuk",
+          "caption": "Sak pupuk NPK Phonska dan Urea siap tabur di tepi blok",
+          "image": "/images/activities/pupuk-sak.jpg"
+        },
+        {
+          "id": "photo-pupuk-2",
+          "label": "Foto kegiatan",
+          "caption": "Penaburan pupuk susulan di sepanjang barisan tanaman kedelai",
+          "image": "/images/activities/pupuk-kegiatan.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-penanaman-001",
+      "type": "penanaman-benih",
+      "typeLabel": "Penanaman Benih",
+      "timestamp": "26 Agustus 2026",
+      "daysAfterPlanting": 1,
+      "officerName": "Paijo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "penanaman-benih",
+        "brandOrVariety": "BISI 18 (Jagung Hibrida)",
+        "quantityKg": 18,
+        "plantingPattern": "Tajuq Zigzag (70 x 20 cm)",
+        "areaSize": "1,2 Ha"
+      },
+      "photos": [
+        {
+          "id": "photo-benih-1",
+          "label": "Foto bungkus benih",
+          "caption": "Kemasan benih jagung hibrida BISI 18 berlabel sertifikat resmi",
+          "image": "/images/activities/benih-bungkus.jpg"
+        },
+        {
+          "id": "photo-benih-2",
+          "label": "Foto kegiatan",
+          "caption": "Proses penanaman tajuq di petak utara Kebun Tani Lestari",
+          "image": "/images/activities/benih-kegiatan.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-1",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Januari 2026",
+      "daysAfterPlanting": 10,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Kecambah",
+        "averageHeightCm": 8,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-1",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Kecambah dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-2",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Februari 2026",
+      "daysAfterPlanting": 25,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Bibit awal",
+        "averageHeightCm": 18,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-2",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Bibit awal dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-3",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Maret 2026",
+      "daysAfterPlanting": 40,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 38,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-3",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-4",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "17 April 2026",
+      "daysAfterPlanting": 50,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 52,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-4",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-5",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Mei 2026",
+      "daysAfterPlanting": 55,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 62,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-5",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-6",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 Juni 2026",
+      "daysAfterPlanting": 70,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 82,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-6",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-7",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Juli 2026",
+      "daysAfterPlanting": 75,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 98,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-7",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-8",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "14 Agustus 2026",
+      "daysAfterPlanting": 78,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 110,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-8",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-9",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 September 2026",
+      "daysAfterPlanting": 88,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 125,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-9",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-10",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 Oktober 2026",
+      "daysAfterPlanting": 96,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 145,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-10",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-11",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 November 2026",
+      "daysAfterPlanting": 102,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 152,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-11",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-001-12",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "10 Desember 2026",
+      "daysAfterPlanting": 108,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-001",
+      "kebunName": "Kebun Sumber Makmur",
+      "city": "Wonosobo",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 158,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-001-12",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-1",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Januari 2026",
+      "daysAfterPlanting": 11,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Kecambah",
+        "averageHeightCm": 12,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-1",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Kecambah dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-2",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Februari 2026",
+      "daysAfterPlanting": 26,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Bibit awal",
+        "averageHeightCm": 22,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-2",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Bibit awal dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-3",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Maret 2026",
+      "daysAfterPlanting": 41,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 42,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-3",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-4",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "17 April 2026",
+      "daysAfterPlanting": 51,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 56,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-4",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-5",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Mei 2026",
+      "daysAfterPlanting": 56,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 66,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-5",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-6",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 Juni 2026",
+      "daysAfterPlanting": 71,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 86,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-6",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-7",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Juli 2026",
+      "daysAfterPlanting": 76,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 102,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-7",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-8",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "14 Agustus 2026",
+      "daysAfterPlanting": 79,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 114,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-8",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-9",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 September 2026",
+      "daysAfterPlanting": 89,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 129,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-9",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-10",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 Oktober 2026",
+      "daysAfterPlanting": 97,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 149,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-10",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-11",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 November 2026",
+      "daysAfterPlanting": 103,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 156,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-11",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-002-12",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "10 Desember 2026",
+      "daysAfterPlanting": 109,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-002",
+      "kebunName": "Kebun Tani Lestari",
+      "city": "Temanggung",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 162,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-002-12",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-1",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Januari 2026",
+      "daysAfterPlanting": 12,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Kecambah",
+        "averageHeightCm": 16,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-1",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Kecambah dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-2",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Februari 2026",
+      "daysAfterPlanting": 27,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Bibit awal",
+        "averageHeightCm": 26,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-2",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Bibit awal dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-3",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Maret 2026",
+      "daysAfterPlanting": 42,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 46,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-3",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-4",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "17 April 2026",
+      "daysAfterPlanting": 52,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 60,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-4",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-5",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Mei 2026",
+      "daysAfterPlanting": 57,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 70,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-5",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-6",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 Juni 2026",
+      "daysAfterPlanting": 72,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 90,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-6",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-7",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Juli 2026",
+      "daysAfterPlanting": 77,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 106,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-7",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-8",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "14 Agustus 2026",
+      "daysAfterPlanting": 80,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 118,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-8",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-9",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 September 2026",
+      "daysAfterPlanting": 90,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 133,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-9",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-10",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 Oktober 2026",
+      "daysAfterPlanting": 98,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 153,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-10",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-11",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 November 2026",
+      "daysAfterPlanting": 104,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 160,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-11",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-003-12",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "10 Desember 2026",
+      "daysAfterPlanting": 110,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 166,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-003-12",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-1",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Januari 2026",
+      "daysAfterPlanting": 13,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Kecambah",
+        "averageHeightCm": 20,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-1",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Kecambah dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-2",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Februari 2026",
+      "daysAfterPlanting": 28,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Bibit awal",
+        "averageHeightCm": 30,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-2",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Bibit awal dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-3",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Maret 2026",
+      "daysAfterPlanting": 43,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 50,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-3",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-4",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "17 April 2026",
+      "daysAfterPlanting": 53,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 64,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-4",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-5",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Mei 2026",
+      "daysAfterPlanting": 58,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 74,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-5",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-6",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 Juni 2026",
+      "daysAfterPlanting": 73,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 94,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-6",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-7",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Juli 2026",
+      "daysAfterPlanting": 78,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 110,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-7",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-8",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "14 Agustus 2026",
+      "daysAfterPlanting": 81,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 122,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-8",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-9",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 September 2026",
+      "daysAfterPlanting": 91,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 137,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-9",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-10",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 Oktober 2026",
+      "daysAfterPlanting": 99,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 157,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-10",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-11",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 November 2026",
+      "daysAfterPlanting": 105,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 164,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-11",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-004-12",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "10 Desember 2026",
+      "daysAfterPlanting": 111,
+      "officerName": "Wahyu Pratama",
+      "kebunId": "kebun-004",
+      "kebunName": "Kebun Maju Bersama",
+      "city": "Magelang",
+      "seedType": "Kedelai",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 170,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-004-12",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-1",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Januari 2026",
+      "daysAfterPlanting": 14,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Kecambah",
+        "averageHeightCm": 24,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-1",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Kecambah dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-2",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "18 Februari 2026",
+      "daysAfterPlanting": 29,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Bibit awal",
+        "averageHeightCm": 34,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-2",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Bibit awal dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-3",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Maret 2026",
+      "daysAfterPlanting": 44,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 54,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-3",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-4",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "17 April 2026",
+      "daysAfterPlanting": 54,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 68,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-4",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-5",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Mei 2026",
+      "daysAfterPlanting": 59,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 78,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-5",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Vegetatif aktif dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-6",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 Juni 2026",
+      "daysAfterPlanting": 74,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 98,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-6",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-7",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "16 Juli 2026",
+      "daysAfterPlanting": 79,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 114,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-7",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-8",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "14 Agustus 2026",
+      "daysAfterPlanting": 82,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pembungaan",
+        "averageHeightCm": 126,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-8",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pembungaan dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-9",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "15 September 2026",
+      "daysAfterPlanting": 92,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 141,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-9",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-10",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 Oktober 2026",
+      "daysAfterPlanting": 100,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 161,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-10",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-11",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "12 November 2026",
+      "daysAfterPlanting": 106,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 168,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-11",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-mock-kebun-005-12",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "10 Desember 2026",
+      "daysAfterPlanting": 112,
+      "officerName": "Slamet Widodo",
+      "kebunId": "kebun-005",
+      "kebunName": "Kebun Harapan Jaya",
+      "city": "Purworejo",
+      "seedType": "Jagung",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pengisian & panen",
+        "averageHeightCm": 174,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-pertumbuhan-mock-kebun-005-12",
+          "label": "Foto update pertumbuhan",
+          "caption": "Update fase Pengisian & panen dari petugas lapangan.",
+          "image": "/images/activities/tumbuh-tanaman-full.webp"
+        }
+      ]
+    }
+  ],
+  "commodityCatalog": [
+    {
+      "id": "all",
+      "name": "Keseluruhan Kebun",
+      "image": "/images/commodities/kebun.png",
+      "statistics": [
+        {
+          "label": "Jumlah",
+          "value": "5 Kebun"
+        },
+        {
+          "label": "Luas total",
+          "value": "300 ha"
+        },
+        {
+          "label": "Total tanam",
+          "value": "5 Kebun"
+        }
+      ]
+    },
+    {
+      "id": "jagung",
+      "name": "Jagung",
+      "image": "/images/commodities/jagung.png",
+      "statistics": [
+        {
+          "label": "Jumlah",
+          "value": "5 Kebun"
+        },
+        {
+          "label": "Luas tanam",
+          "value": "50/100 HA"
+        },
+        {
+          "label": "Total panen",
+          "value": "50 Ton"
+        },
+        {
+          "label": "Total pendapatan",
+          "value": "Rp 8.300.000",
+          "highlight": true
+        }
+      ]
+    },
+    {
+      "id": "kedelai",
+      "name": "Kedelai",
+      "image": "/images/commodities/kedelai.png",
+      "statistics": [
+        {
+          "label": "Jumlah",
+          "value": "5 Kebun"
+        },
+        {
+          "label": "Luas tanam",
+          "value": "50/100 HA"
+        },
+        {
+          "label": "Total panen",
+          "value": "50 Ton"
+        },
+        {
+          "label": "Total pendapatan",
+          "value": "Rp 8.300.000",
+          "highlight": true
+        }
+      ]
+    },
+    {
+      "id": "rumput",
+      "name": "Rumput",
+      "image": "/images/commodities/rumput.png",
+      "statistics": [
+        {
+          "label": "Jumlah",
+          "value": "5 Kebun"
+        },
+        {
+          "label": "Luas tanam",
+          "value": "50/100 HA"
+        },
+        {
+          "label": "Total panen",
+          "value": "50 Ton"
+        },
+        {
+          "label": "Total pendapatan",
+          "value": "Rp 8.300.000",
+          "highlight": true
+        }
+      ]
+    }
+  ],
+  "dashboardFinancialSummary": {
+    "income": 8300000,
+    "projectedIncome": 8300000,
+    "expenses": 8300000,
+    "projectedExpenses": 8300000
+  },
+  "finance": {
+    "totalRevenue": 170000000,
+    "totalExpense": 60000000,
+    "totalNet": 110000000,
+    "quarters": {
+      "Q1": {
+        "label": "Januari–Maret 2026",
+        "totalRevenue": 42000000,
+        "totalExpense": 15000000,
+        "netTotal": 27000000,
+        "points": [
+          {
+            "label": "Jan",
+            "revenue": 12000000,
+            "expense": 4000000,
+            "net": 8000000
+          },
+          {
+            "label": "Feb",
+            "revenue": 14000000,
+            "expense": 5000000,
+            "net": 9000000
+          },
+          {
+            "label": "Mar",
+            "revenue": 16000000,
+            "expense": 6000000,
+            "net": 10000000
+          }
+        ],
+        "analysis": "Pendapatan naik stabil sepanjang kuartal. Penjualan Maret menjadi kontributor terbesar berkat panen jagung dan kedelai."
+      },
+      "Q2": {
+        "label": "April–Juni 2026",
+        "totalRevenue": 38000000,
+        "totalExpense": 14000000,
+        "netTotal": 24000000,
+        "points": [
+          {
+            "label": "Apr",
+            "revenue": 11000000,
+            "expense": 4000000,
+            "net": 7000000
+          },
+          {
+            "label": "Mei",
+            "revenue": 13000000,
+            "expense": 5000000,
+            "net": 8000000
+          },
+          {
+            "label": "Jun",
+            "revenue": 14000000,
+            "expense": 5000000,
+            "net": 9000000
+          }
+        ],
+        "analysis": "Pendapatan tetap positif meski sedikit melambat. Pengaturan jadwal tanam jagung dan kedelai dapat membantu menjaga volume panen."
+      },
+      "Q3": {
+        "label": "Juli–September 2026",
+        "totalRevenue": 51000000,
+        "totalExpense": 17000000,
+        "netTotal": 34000000,
+        "points": [
+          {
+            "label": "Jul",
+            "revenue": 16000000,
+            "expense": 5000000,
+            "net": 11000000
+          },
+          {
+            "label": "Agu",
+            "revenue": 17000000,
+            "expense": 6000000,
+            "net": 11000000
+          },
+          {
+            "label": "Sep",
+            "revenue": 18000000,
+            "expense": 6000000,
+            "net": 12000000
+          }
+        ],
+        "analysis": "Ini kuartal terbaik tahun berjalan. Produktivitas dan harga jual meningkat, terutama dari jagung dan rumput odot."
+      },
+      "Q4": {
+        "label": "Oktober–Desember 2026",
+        "totalRevenue": 39000000,
+        "totalExpense": 14000000,
+        "netTotal": 25000000,
+        "points": [
+          {
+            "label": "Okt",
+            "revenue": 12000000,
+            "expense": 4000000,
+            "net": 8000000
+          },
+          {
+            "label": "Nov",
+            "revenue": 13000000,
+            "expense": 5000000,
+            "net": 8000000
+          },
+          {
+            "label": "Des",
+            "revenue": 14000000,
+            "expense": 5000000,
+            "net": 9000000
+          }
+        ],
+        "analysis": "Pendapatan diproyeksikan tumbuh bertahap. Fokus pada stok rumput odot dan kontrak pembelian dapat mengurangi risiko penurunan harga."
+      }
+    },
+    "transactions": [
+      {
+        "id": 1,
+        "description": "Penjualan jagung ke koperasi daerah",
+        "category": "Penjualan panen",
+        "commodity": "Jagung",
+        "date": {
+          "day": "10",
+          "month": "Jan",
+          "year": "2026"
+        },
+        "amount": 12000000,
+        "type": "income"
+      },
+      {
+        "id": 2,
+        "description": "Pembelian benih dan pupuk jagung",
+        "category": "Operasional",
+        "commodity": "Jagung",
+        "date": {
+          "day": "12",
+          "month": "Jan",
+          "year": "2026"
+        },
+        "amount": 4000000,
+        "type": "expense"
+      },
+      {
+        "id": 3,
+        "description": "Penjualan rumput odot ke peternak",
+        "category": "Penjualan panen",
+        "commodity": "Rumput odot",
+        "date": {
+          "day": "16",
+          "month": "Feb",
+          "year": "2026"
+        },
+        "amount": 14000000,
+        "type": "income"
+      },
+      {
+        "id": 4,
+        "description": "Pemeliharaan dan pengairan lahan",
+        "category": "Pemeliharaan",
+        "commodity": "Rumput odot",
+        "date": {
+          "day": "18",
+          "month": "Feb",
+          "year": "2026"
+        },
+        "amount": 5000000,
+        "type": "expense"
+      },
+      {
+        "id": 5,
+        "description": "Penjualan kedelai hasil panen",
+        "category": "Penjualan panen",
+        "commodity": "Kedelai",
+        "date": {
+          "day": "14",
+          "month": "Mar",
+          "year": "2026"
+        },
+        "amount": 16000000,
+        "type": "income"
+      },
+      {
+        "id": 6,
+        "description": "Perawatan lahan kedelai",
+        "category": "Pemeliharaan",
+        "commodity": "Kedelai",
+        "date": {
+          "day": "20",
+          "month": "Mar",
+          "year": "2026"
+        },
+        "amount": 6000000,
+        "type": "expense"
+      },
+      {
+        "id": 7,
+        "description": "Penjualan jagung pipil kering",
+        "category": "Penjualan panen",
+        "commodity": "Jagung",
+        "date": {
+          "day": "12",
+          "month": "Apr",
+          "year": "2026"
+        },
+        "amount": 11000000,
+        "type": "income"
+      },
+      {
+        "id": 8,
+        "description": "Pembelian pupuk susulan jagung",
+        "category": "Operasional",
+        "commodity": "Jagung",
+        "date": {
+          "day": "15",
+          "month": "Apr",
+          "year": "2026"
+        },
+        "amount": 4000000,
+        "type": "expense"
+      },
+      {
+        "id": 9,
+        "description": "Penjualan rumput odot ke peternak",
+        "category": "Penjualan panen",
+        "commodity": "Rumput odot",
+        "date": {
+          "day": "19",
+          "month": "Mei",
+          "year": "2026"
+        },
+        "amount": 13000000,
+        "type": "income"
+      },
+      {
+        "id": 10,
+        "description": "Perawatan saluran irigasi",
+        "category": "Pemeliharaan",
+        "commodity": "Rumput odot",
+        "date": {
+          "day": "22",
+          "month": "Mei",
+          "year": "2026"
+        },
+        "amount": 5000000,
+        "type": "expense"
+      },
+      {
+        "id": 11,
+        "description": "Penjualan kedelai ke mitra pangan",
+        "category": "Penjualan panen",
+        "commodity": "Kedelai",
+        "date": {
+          "day": "16",
+          "month": "Jun",
+          "year": "2026"
+        },
+        "amount": 14000000,
+        "type": "income"
+      },
+      {
+        "id": 12,
+        "description": "Pengendalian hama kedelai",
+        "category": "Pemeliharaan",
+        "commodity": "Kedelai",
+        "date": {
+          "day": "20",
+          "month": "Jun",
+          "year": "2026"
+        },
+        "amount": 5000000,
+        "type": "expense"
+      },
+      {
+        "id": 13,
+        "description": "Penjualan jagung pipil kering",
+        "category": "Penjualan panen",
+        "commodity": "Jagung",
+        "date": {
+          "day": "12",
+          "month": "Jul",
+          "year": "2026"
+        },
+        "amount": 16000000,
+        "type": "income"
+      },
+      {
+        "id": 14,
+        "description": "Pemupukan lahan jagung",
+        "category": "Operasional",
+        "commodity": "Jagung",
+        "date": {
+          "day": "18",
+          "month": "Jul",
+          "year": "2026"
+        },
+        "amount": 5000000,
+        "type": "expense"
+      },
+      {
+        "id": 15,
+        "description": "Penjualan rumput odot kontrak peternak",
+        "category": "Penjualan panen",
+        "commodity": "Rumput odot",
+        "date": {
+          "day": "17",
+          "month": "Agu",
+          "year": "2026"
+        },
+        "amount": 17000000,
+        "type": "income"
+      },
+      {
+        "id": 16,
+        "description": "Perawatan dan pengairan rumput",
+        "category": "Pemeliharaan",
+        "commodity": "Rumput odot",
+        "date": {
+          "day": "21",
+          "month": "Agu",
+          "year": "2026"
+        },
+        "amount": 6000000,
+        "type": "expense"
+      },
+      {
+        "id": 17,
+        "description": "Penjualan kedelai kualitas premium",
+        "category": "Penjualan panen",
+        "commodity": "Kedelai",
+        "date": {
+          "day": "18",
+          "month": "Sep",
+          "year": "2026"
+        },
+        "amount": 18000000,
+        "type": "income"
+      },
+      {
+        "id": 18,
+        "description": "Penyortiran dan perawatan kedelai",
+        "category": "Operasional",
+        "commodity": "Kedelai",
+        "date": {
+          "day": "23",
+          "month": "Sep",
+          "year": "2026"
+        },
+        "amount": 6000000,
+        "type": "expense"
+      },
+      {
+        "id": 19,
+        "description": "Penjualan jagung ke koperasi daerah",
+        "category": "Penjualan panen",
+        "commodity": "Jagung",
+        "date": {
+          "day": "11",
+          "month": "Okt",
+          "year": "2026"
+        },
+        "amount": 12000000,
+        "type": "income"
+      },
+      {
+        "id": 20,
+        "description": "Pembelian benih musim berikutnya",
+        "category": "Operasional",
+        "commodity": "Jagung",
+        "date": {
+          "day": "16",
+          "month": "Okt",
+          "year": "2026"
+        },
+        "amount": 4000000,
+        "type": "expense"
+      },
+      {
+        "id": 21,
+        "description": "Penjualan rumput odot ke peternak",
+        "category": "Penjualan panen",
+        "commodity": "Rumput odot",
+        "date": {
+          "day": "15",
+          "month": "Nov",
+          "year": "2026"
+        },
+        "amount": 13000000,
+        "type": "income"
+      },
+      {
+        "id": 22,
+        "description": "Perawatan lahan dan irigasi",
+        "category": "Pemeliharaan",
+        "commodity": "Rumput odot",
+        "date": {
+          "day": "20",
+          "month": "Nov",
+          "year": "2026"
+        },
+        "amount": 5000000,
+        "type": "expense"
+      },
+      {
+        "id": 23,
+        "description": "Penjualan kedelai ke mitra pangan",
+        "category": "Penjualan panen",
+        "commodity": "Kedelai",
+        "date": {
+          "day": "12",
+          "month": "Des",
+          "year": "2026"
+        },
+        "amount": 14000000,
+        "type": "income"
+      },
+      {
+        "id": 24,
+        "description": "Persiapan lahan dan pemupukan",
+        "category": "Operasional",
+        "commodity": "Kedelai",
+        "date": {
+          "day": "18",
+          "month": "Des",
+          "year": "2026"
+        },
+        "amount": 5000000,
+        "type": "expense"
+      }
+    ]
+  },
+  "report": {
+    "status": "success",
+    "message": "Page Report Data Retrieved Successfully",
+    "data": {
+      "quarterly_report": {
+        "period_label": "Q2 (Apr - Jun)",
+        "total_opex_idr": 4850000000,
+        "estimated_revenue_idr": 7200000000,
+        "farms": [
+          {
+            "id": "farm-001",
+            "name": "Pangan Nusantara",
+            "province": "Jawa Barat",
+            "commodity": "Jagung",
+            "status": "Panen Q2",
+            "progress_percentage": 82,
+            "estimated_revenue_idr": 2000000000,
+            "opex_idr": 710000000,
+            "roi_percentage": 69,
+            "area_hectares": 200,
+            "phase": "Panen Q2",
+            "hst": 105,
+            "status_label": "Siap Panen"
+          },
+          {
+            "id": "farm-002",
+            "name": "Subur Makmur",
+            "province": "Jawa Tengah",
+            "commodity": "Jagung",
+            "status": "Isi Biji Q2",
+            "progress_percentage": 78,
+            "estimated_revenue_idr": 1750000000,
+            "opex_idr": 680000000,
+            "roi_percentage": 69,
+            "area_hectares": 180,
+            "phase": "Isi Biji",
+            "hst": 80,
+            "status_label": "Optimal"
+          },
+          {
+            "id": "farm-003",
+            "name": "Maju Jaya",
+            "province": "Lampung",
+            "commodity": "Kedelai",
+            "status": "Isi Polong",
+            "progress_percentage": 64,
+            "estimated_revenue_idr": 800000000,
+            "opex_idr": 520000000,
+            "roi_percentage": 54,
+            "area_hectares": 150,
+            "phase": "Isi Polong",
+            "hst": 62,
+            "status_label": "Optimal"
+          },
+          {
+            "id": "farm-004",
+            "name": "Makmur Abadi",
+            "province": "Lampung",
+            "commodity": "Rumput Pakan",
+            "status": "Babat Q2",
+            "progress_percentage": 71,
+            "estimated_revenue_idr": 750000000,
+            "opex_idr": 450000000,
+            "roi_percentage": 67,
+            "area_hectares": 130,
+            "phase": "Babat",
+            "hst": 38,
+            "status_label": "Siap Panen"
+          },
+          {
+            "id": "farm-005",
+            "name": "Tunas Baru",
+            "province": "Jawa Timur",
+            "commodity": "Kedelai",
+            "status": "Berbunga",
+            "progress_percentage": 58,
+            "estimated_revenue_idr": 590000000,
+            "opex_idr": 380000000,
+            "roi_percentage": 55,
+            "area_hectares": 100,
+            "phase": "Berbunga",
+            "hst": 45,
+            "status_label": "Optimal"
+          },
+          {
+            "id": "farm-006",
+            "name": "Hijau Mandiri",
+            "province": "Banten",
+            "commodity": "Rumput Pakan",
+            "status": "Ratoon 2",
+            "progress_percentage": 49,
+            "estimated_revenue_idr": 450000000,
+            "opex_idr": 290000000,
+            "roi_percentage": 55,
+            "area_hectares": 90,
+            "phase": "Ratoon 2",
+            "hst": 30,
+            "status_label": "Optimal"
+          }
+        ],
+        "farm_recap": [
+          {
+            "id": "recap-001",
+            "name": "Kebun Subur Makmur",
+            "province": "Jatim",
+            "commodity_summary": "JAGUNG",
+            "area_hectares": 200,
+            "phase": "Fase Q2",
+            "hst": 85,
+            "opex_idr": 680000000,
+            "estimated_revenue_idr": 1150000000,
+            "status_label": "Optimal",
+            "icon": "🌽"
+          },
+          {
+            "id": "recap-002",
+            "name": "Kebun Maju Jaya",
+            "province": "Lampung",
+            "commodity_summary": "KEDELAI",
+            "area_hectares": 150,
+            "phase": "Isi Polong",
+            "hst": 62,
+            "opex_idr": 520000000,
+            "estimated_revenue_idr": 800000000,
+            "status_label": "Optimal",
+            "icon": "🫘"
+          },
+          {
+            "id": "recap-003",
+            "name": "Kebun Makmur Abadi",
+            "province": "Lampung",
+            "commodity_summary": "RUMPUT",
+            "area_hectares": 130,
+            "phase": "Babat",
+            "hst": 38,
+            "opex_idr": 450000000,
+            "estimated_revenue_idr": 750000000,
+            "status_label": "Siap Panen",
+            "icon": "🌿"
+          },
+          {
+            "id": "recap-004",
+            "name": "7 Kebun Lainnya",
+            "province": "",
+            "commodity_summary": "4 Jagung, 2 Kedelai, 1 Rumput Pakan",
+            "area_hectares": 770,
+            "phase": "Rekapitulasi",
+            "hst": 0,
+            "opex_idr": 3200000000,
+            "estimated_revenue_idr": 4500000000,
+            "status_label": "Optimal",
+            "icon": "🌱"
+          }
+        ]
+      },
+      "monthly_commodity_reports": [
+        {
+          "id": "monthly-jagung",
+          "order": 1,
+          "commodity_name": "Tanaman Jagung",
+          "farm_count": 5,
+          "total_area_hectares": 650,
+          "period_label": "Bulan: Mei 2026",
+          "stages": [
+            {
+              "label": "Bibit (V1-V3)",
+              "completed_area_hectares": 90,
+              "farm_count": 1,
+              "progress_percentage": 32,
+              "value_label": "90 Ha (1 Kebun)"
+            },
+            {
+              "label": "Vegetatif (V4-VT)",
+              "completed_area_hectares": 180,
+              "farm_count": 2,
+              "progress_percentage": 62,
+              "value_label": "180 Ha (2 Kebun)"
+            },
+            {
+              "label": "Bunga & Isi Biji",
+              "completed_area_hectares": 200,
+              "farm_count": 2,
+              "progress_percentage": 70,
+              "value_label": "200 Ha (2 Kebun)"
+            },
+            {
+              "label": "Panen (>100 HST)",
+              "completed_area_hectares": 180,
+              "farm_count": 1,
+              "progress_percentage": 64,
+              "value_label": "180 Ha (1 Kebun)"
+            }
+          ]
+        },
+        {
+          "id": "monthly-kedelai",
+          "order": 2,
+          "commodity_name": "Tanaman Kedelai",
+          "farm_count": 3,
+          "total_area_hectares": 350,
+          "period_label": "Siklus 85 HST",
+          "stages": [
+            {
+              "label": "Vegetatif & Bakal Akar",
+              "completed_area_hectares": 90,
+              "farm_count": 1,
+              "progress_percentage": 42,
+              "value_label": "90 Ha (Kebun Agro)"
+            },
+            {
+              "label": "Pembungaan (Fase R1-R2)",
+              "completed_area_hectares": 110,
+              "farm_count": 1,
+              "progress_percentage": 50,
+              "value_label": "110 Ha (Kebun Tunas)"
+            },
+            {
+              "label": "Pengisian Polong (R3-R6)",
+              "completed_area_hectares": 150,
+              "farm_count": 2,
+              "progress_percentage": 70,
+              "value_label": "150 Ha (Kebun Makmur)"
+            },
+            {
+              "label": "Masak Polong / Panen (R8)",
+              "completed_area_hectares": 0,
+              "farm_count": 0,
+              "progress_percentage": 100,
+              "value_label": "Panen dalam 14 Hari"
+            }
+          ]
+        },
+        {
+          "id": "monthly-rumput",
+          "order": 3,
+          "commodity_name": "Rumput Pakan",
+          "farm_count": 2,
+          "total_area_hectares": 250,
+          "period_label": "Panen Tiap 40 Hari",
+          "stages": [
+            {
+              "label": "Tunas Baru / Stek Awal",
+              "completed_area_hectares": 0,
+              "farm_count": 0,
+              "progress_percentage": 14,
+              "value_label": "0 Ha (Selesai Tanam)"
+            },
+            {
+              "label": "Pertumbuhan Anakan (Vegetatif)",
+              "completed_area_hectares": 20,
+              "farm_count": 1,
+              "progress_percentage": 48,
+              "value_label": "20 Ha (Kebun Hijau)"
+            },
+            {
+              "label": "Siap Babat / Panen Susuan",
+              "completed_area_hectares": 190,
+              "farm_count": 2,
+              "progress_percentage": 88,
+              "value_label": "190 Ha (Kebun Makmur)"
+            },
+            {
+              "label": "Regenerasi (Rotasi ke-3)",
+              "completed_area_hectares": 150,
+              "farm_count": 1,
+              "progress_percentage": 78,
+              "value_label": "Pupuk Urea Pasca-Babat"
+            }
+          ]
+        }
+      ],
+      "filter_metadata": {
+        "week": 3,
+        "month": "Januari",
+        "year": 2026,
+        "generated_at": "2026-10-17T20:55:00Z"
+      },
+      "summary_cards": {
+        "total_area": {
+          "total_hectares": 450.5,
+          "unit": "Ha",
+          "total_commodities": 3,
+          "commodities_progress_percentage": 100
+        },
+        "weekly_opex": {
+          "current_week_opex_idr": 125000000,
+          "current_month_opex_idr": 450000000,
+          "monthly_budget_idr": 500000000,
+          "monthly_budget_progress_percentage": 90
+        },
+        "estimated_harvest": {
+          "total_estimated_revenue_idr": 350000000,
+          "harvesting_commodities_count": 1,
+          "total_commodities_count": 3,
+          "harvest_progress_percentage": 33.33,
+          "harvesting_commodities": [
+            "Rumput Pakan"
+          ]
+        },
+        "budget_efficiency": {
+          "efficiency_percentage": 93.5,
+          "weekly_ceiling_idr": 133700000,
+          "ceiling_compliance_status": "Sesuai Plafon Mingguan",
+          "ceiling_usage_percentage": 93.49
+        }
+      },
+      "land_and_cash_proportion": {
+        "donut_chart_data": [
+          {
+            "commodity_name": "Jagung",
+            "area_hectares": 170,
+            "area_percentage": 37.74,
+            "weekly_opex_idr": 45000000,
+            "estimated_revenue_idr": 120000000
+          },
+          {
+            "commodity_name": "Kedelai",
+            "area_hectares": 130,
+            "area_percentage": 28.85,
+            "weekly_opex_idr": 35000000,
+            "estimated_revenue_idr": 80000000
+          },
+          {
+            "commodity_name": "Rumput Pakan",
+            "area_hectares": 150.5,
+            "area_percentage": 33.41,
+            "weekly_opex_idr": 45000000,
+            "estimated_revenue_idr": 150000000
+          }
+        ]
+      },
+      "operational_targets": [
+        {
+          "id": "target-001",
+          "commodity_name": "Jagung",
+          "commodity_icon_url": "/images/commodities/jagung.png",
+          "icon_bg_color": "#FFF3CD",
+          "icon": "🌽",
+          "farm_name": "Kebun Makmur",
+          "area_hectares": 170,
+          "status_description": "Jagung masa pemupukan NPK ke-2",
+          "fase": {
+            "code": "V3",
+            "category": "Vegetatif",
+            "description": "3 daun terbuka sempurna",
+            "current_stage_index": 3,
+            "total_stages_in_cycle": 12,
+            "is_active": true
+          },
+          "operational_task": {
+            "task_name": "Spreading Pupuk NPK ke-2",
+            "target_area_hectares": 170,
+            "completed_area_hectares": 150,
+            "progress_percentage": 88.24,
+            "target_unit": "Ha"
+          }
+        },
+        {
+          "id": "target-002",
+          "commodity_name": "Kedelai",
+          "commodity_icon_url": "/images/commodities/kedelai.png",
+          "icon_bg_color": "#D1E7DD",
+          "icon": "🫘",
+          "farm_name": "Kebun Makmur",
+          "area_hectares": 130,
+          "status_description": "Kedelai masa monitor polong fase R3",
+          "fase": {
+            "code": "R3",
+            "category": "Generatif",
+            "description": "Beginning Pod (pembentukan polong 5 mm)",
+            "current_stage_index": 3,
+            "total_stages_in_cycle": 6,
+            "is_active": true
+          },
+          "operational_task": {
+            "task_name": "Kontrol kelembaban & bedengan",
+            "target_area_hectares": 130,
+            "completed_area_hectares": 130,
+            "progress_percentage": 100,
+            "target_unit": "Ha"
+          }
+        },
+        {
+          "id": "target-003",
+          "commodity_name": "Rumput Pakan",
+          "commodity_icon_url": "/images/commodities/rumput.png",
+          "icon_bg_color": "#D7F4F0",
+          "icon": "🌿",
+          "farm_name": "Kebun Makmur",
+          "area_hectares": 150.5,
+          "status_description": "Rumput pakan masa panen babat ke-3",
+          "fase": {
+            "code": "Babat ke-3",
+            "category": "Panen Rotasi",
+            "description": "Siklus pemotongan/pemanenan ke-3",
+            "current_stage_index": 3,
+            "total_stages_in_cycle": 6,
+            "is_active": true
+          },
+          "operational_task": {
+            "task_name": "Panen Babat ke-3",
+            "target_tonnage": 1500,
+            "completed_tonnage": 1200,
+            "progress_percentage": 80,
+            "target_unit": "Ton"
+          }
+        }
+      ]
+    }
+  }
+}
