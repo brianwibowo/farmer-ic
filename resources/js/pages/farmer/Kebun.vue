@@ -62,7 +62,7 @@ function healthMeta(status: MappedKebun['healthStatus']) {
     if (status === 'Kritis') {
         return { icon: CircleX, label: 'Kritis', class: 'border-error/25 bg-error/10 text-error' };
     }
-    return { icon: CircleAlert, label: 'Perlu perhatian', class: 'border-warning/30 bg-warning/15 text-warning' };
+    return { icon: CircleAlert, label: 'Perlu perhatian', class: 'border-warning/45 bg-warning/30 text-warning-foreground' };
 }
 
 async function loadKebun(): Promise<void> {
@@ -91,7 +91,9 @@ onMounted(() => void loadKebun());
     <Head title="Kebun" />
 
     <FarmerMobileShell active-key="garden">
-        <div data-kebun-list class="px-4 pt-5 pb-5">
+        <div data-kebun-list class="px-4 pt-4 pb-5">
+            <DashboardHeader class="mb-6" />
+
             <header class="flex items-start justify-between gap-3">
                 <div>
                     <!-- <p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Ruang kerja petani</p> -->
@@ -124,12 +126,12 @@ onMounted(() => void loadKebun());
                         <p class="text-lg leading-6 font-semibold text-success">{{ healthyCount }}</p>
                         <p class="truncate text-[10px] font-medium text-success/80">Sehat</p>
                     </article>
-                    <article class="flex items-center gap-1.5 rounded-2xl border border-warning/30 bg-warning/15 px-2 py-2.5">
-                        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning">
+                    <article class="flex items-center gap-1.5 rounded-2xl border border-warning/45 bg-warning/20 px-2 py-2.5">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/30 text-warning-foreground">
                             <component :is="healthMeta('Perlu Perhatian').icon" :size="15" aria-hidden="true" />
                         </span>
-                        <p class="text-lg leading-6 font-semibold text-warning">{{ attentionCount }}</p>
-                        <p class="truncate text-[10px] font-medium text-warning">Perhatian</p>
+                        <p class="text-lg leading-6 font-semibold text-warning-foreground">{{ attentionCount }}</p>
+                        <p class="truncate text-[10px] font-medium text-warning-foreground">Perhatian</p>
                     </article>
                     <article class="flex items-center gap-1.5 rounded-2xl border border-error/25 bg-error/10 px-2 py-2.5">
                         <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-error/10 text-error">

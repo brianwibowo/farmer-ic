@@ -93,7 +93,7 @@ stored9ea11ce0ed9b1a22a692f5b77006ae4.post = (args?: { current_team?: string | {
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/ai/conversations/{conversation}/messages'
  */
-const store297d73f8b26d2a49485ac523c54950f6 = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+const store297d73f8b26d2a49485ac523c54950f6 = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: store297d73f8b26d2a49485ac523c54950f6.url(args, options),
     method: 'post',
 })
@@ -109,7 +109,7 @@ store297d73f8b26d2a49485ac523c54950f6.definition = {
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/ai/conversations/{conversation}/messages'
  */
-store297d73f8b26d2a49485ac523c54950f6.url = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions) => {
+store297d73f8b26d2a49485ac523c54950f6.url = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions) => {
     if (Array.isArray(args)) {
         args = {
                     current_team: args[0],
@@ -144,7 +144,7 @@ store297d73f8b26d2a49485ac523c54950f6.url = (args: { current_team?: string | { s
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/ai/conversations/{conversation}/messages'
  */
-store297d73f8b26d2a49485ac523c54950f6.post = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+store297d73f8b26d2a49485ac523c54950f6.post = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     url: store297d73f8b26d2a49485ac523c54950f6.url(args, options),
     method: 'post',
 })
@@ -155,7 +155,7 @@ store297d73f8b26d2a49485ac523c54950f6.post = (args: { current_team?: string | { 
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/ai/conversations/{conversation}/messages'
  */
-    const store297d73f8b26d2a49485ac523c54950f6Form = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    const store297d73f8b26d2a49485ac523c54950f6Form = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
         action: store297d73f8b26d2a49485ac523c54950f6.url(args, options),
         method: 'post',
     })
@@ -166,7 +166,7 @@ store297d73f8b26d2a49485ac523c54950f6.post = (args: { current_team?: string | { 
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/ai/conversations/{conversation}/messages'
  */
-        store297d73f8b26d2a49485ac523c54950f6Form.post = (args: { current_team?: string | { slug: string }, conversation: number | { id: number } } | [current_team: string | { slug: string }, conversation: number | { id: number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+        store297d73f8b26d2a49485ac523c54950f6Form.post = (args: { current_team?: string | { slug: string }, conversation: string | number | { id: string | number } } | [current_team: string | { slug: string }, conversation: string | number | { id: string | number } ], options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
             action: store297d73f8b26d2a49485ac523c54950f6.url(args, options),
             method: 'post',
         })
