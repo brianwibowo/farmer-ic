@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import type { Team } from '@/types/teams';
 import {
@@ -206,14 +206,17 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             createdAt: new Date().toISOString(),
             status: 'complete',
         };
-        const assistantMessage: ChatMessage = {
+        // Streaming callbacks must mutate the reactive proxy, not the original
+        // plain object inserted into the array. Raw mutations bypass Vue's
+        // render tracking and leave the loading bubble visible until refresh.
+        const assistantMessage = reactive<ChatMessage>({
             id: id('assistant'),
             role: 'assistant',
             content: '',
             attachments: [],
             createdAt: new Date().toISOString(),
             status: 'streaming',
-        };
+        });
         messages.value.push(userMessage, assistantMessage);
         const requestId = ++requestSequence;
         const requestController = new AbortController();
@@ -234,9 +237,40 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         let reconciliationTimer: number | null = null;
 
         const reconcilePersistedReply = async (): Promise<void> => {
-            const currentId = conversationId.value;
-            if (!currentId || !isActiveRequest(requestId)) return;
+            if (!isActiveRequest(requestId)) return;
             try {
+                let currentId = conversationId.value;
+                // Some reverse proxies buffer the first SSE event. In that
+                // case message.start has not populated conversationId yet;
+                // resolve the newest conversation from the normal history API.
+                if (!currentId) {
+                    const conversationsResponse = await fetch(
+                        conversationsEndpoint.value,
+                        {
+                            headers: headers(),
+                            signal: requestController.signal,
+                        },
+                    );
+                    if (!conversationsResponse.ok) return;
+                    const conversationPayload =
+                        (await conversationsResponse.json()) as unknown;
+                    const values = Array.isArray(conversationPayload)
+                        ? conversationPayload
+                        : conversationPayload &&
+                            typeof conversationPayload === 'object' &&
+                            Array.isArray(
+                                (conversationPayload as { data?: unknown })
+                                    .data,
+                            )
+                          ? (conversationPayload as { data: unknown[] }).data
+                          : [];
+                    const latest = values
+                        .map(parseConversation)
+                        .find((item): item is Conversation => item !== null);
+                    currentId = latest?.id ?? null;
+                    if (currentId) conversationId.value = currentId;
+                }
+                if (!currentId || !isActiveRequest(requestId)) return;
                 const persistedResponse = await fetch(
                     `${conversationsEndpoint.value}/${encodeURIComponent(currentId)}`,
                     { headers: headers(), signal: requestController.signal },
@@ -279,7 +313,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         };
         reconciliationTimer = window.setInterval(
             () => void reconcilePersistedReply(),
-            4_000,
+            2_000,
         );
 
         const endpoint =
