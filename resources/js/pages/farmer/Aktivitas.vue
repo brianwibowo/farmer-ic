@@ -1,31 +1,76 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Clock, MapPin, Search, SquareActivity } from '@lucide/vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ArrowLeft, Clock, MapPin, Search, SquareActivity } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import ActivityDateRangeFilter from '@/components/farmer/ActivityDateRangeFilter.vue';
+import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
-    parseIndonesianDateToIso,
+    collectActivityMonths,
+    matchesActivityTimeFilter,
     type ActivityLog,
+    type ActivityTimeFilter,
     type ActivityType,
 } from '@/data/activityLogs';
+import type { Kebun } from '@/data/kebun';
 import { listActivityLogs } from '@/services/activityLogService';
+import { listKebun } from '@/services/kebunService';
 
+const page = usePage();
 const activities = ref<ActivityLog[]>([]);
+const kebunList = ref<Kebun[]>([]);
 const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
-const startDate = ref('');
-const endDate = ref('');
+const selectedTimeFilter = ref<ActivityTimeFilter>('all');
 const isLoading = ref(true);
 const errorMessage = ref('');
 const resetMessage = ref('');
+
+const availableMonths = computed(() => collectActivityMonths(activities.value));
+
+const kebunParam = computed(() => {
+    try {
+        const url = new URL(page.url, 'http://localhost');
+        return (
+            url.searchParams.get('kebun') || url.searchParams.get('id') || ''
+        );
+    } catch {
+        return '';
+    }
+});
+
+const currentKebun = computed(() => {
+    if (!kebunParam.value) return undefined;
+    return kebunList.value.find((item) => item.id === kebunParam.value);
+});
+
+const currentKebunName = computed(() => {
+    if (!kebunParam.value) return '';
+    if (currentKebun.value) return currentKebun.value.name;
+
+    const match = activities.value.find(
+        (item) => item.kebunId === kebunParam.value,
+    );
+    return match?.kebunName ?? '';
+});
+
+const backHref = computed(() => {
+    if (kebunParam.value) {
+        return `/kebun/detail?id=${encodeURIComponent(kebunParam.value)}`;
+    }
+
+    return '/kebun';
+});
 
 const filteredActivities = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
 
     return activities.value.filter((item) => {
+        if (kebunParam.value && item.kebunId !== kebunParam.value) {
+            return false;
+        }
+
         const searchable = [
             item.typeLabel,
             item.timestamp,
@@ -43,35 +88,12 @@ const filteredActivities = computed(() => {
             selectedType.value === 'all' ||
             item.type === selectedType.value;
 
-        let matchesDate = true;
-        if (startDate.value || endDate.value) {
-            const itemIso = parseIndonesianDateToIso(item.timestamp);
-            if (!itemIso) {
-                matchesDate = false;
-            } else {
-                const effectiveStart =
-                    startDate.value &&
-                    endDate.value &&
-                    startDate.value > endDate.value
-                        ? endDate.value
-                        : startDate.value;
-                const effectiveEnd =
-                    startDate.value &&
-                    endDate.value &&
-                    startDate.value > endDate.value
-                        ? startDate.value
-                        : endDate.value;
+        const matchesTime = matchesActivityTimeFilter(
+            item.timestamp,
+            selectedTimeFilter.value,
+        );
 
-                if (effectiveStart && itemIso < effectiveStart) {
-                    matchesDate = false;
-                }
-                if (effectiveEnd && itemIso > effectiveEnd) {
-                    matchesDate = false;
-                }
-            }
-        }
-
-        return matchesSearch && matchesType && matchesDate;
+        return matchesSearch && matchesType && matchesTime;
     });
 });
 
@@ -84,7 +106,12 @@ async function loadActivities(): Promise<void> {
     errorMessage.value = '';
 
     try {
-        activities.value = await listActivityLogs();
+        const [activityData, kebunData] = await Promise.all([
+            listActivityLogs(),
+            listKebun(),
+        ]);
+        activities.value = activityData;
+        kebunList.value = kebunData;
     } catch {
         errorMessage.value = 'Data aktivitas belum dapat dimuat. Coba lagi.';
     } finally {
@@ -96,8 +123,7 @@ async function resetDemoData(): Promise<void> {
     clearDemoStorage();
     searchQuery.value = '';
     selectedType.value = '';
-    startDate.value = '';
-    endDate.value = '';
+    selectedTimeFilter.value = 'all';
     resetMessage.value = 'Data demo aktivitas telah direset.';
     await loadActivities();
 }
@@ -106,32 +132,49 @@ onMounted(() => void loadActivities());
 </script>
 
 <template>
-    <Head title="Aktivitas" />
+    <Head
+        :title="
+            currentKebunName ? `Aktivitas - ${currentKebunName}` : 'Aktivitas'
+        "
+    />
 
-    <FarmerMobileShell active-key="activity">
+    <FarmerMobileShell :active-key="kebunParam ? 'garden' : 'activity'">
         <div data-aktivitas-list class="px-4 pt-16 pb-5">
-            <div class="flex items-center justify-between gap-3">
-                <h1
-                    class="min-w-0 truncate text-[20px] leading-7 font-semibold text-foreground"
-                >
-                    Aktivitas
-                </h1>
-
-                <div class="flex shrink-0 items-center gap-2">
-                    <button
-                        type="button"
-                        class="text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        @click="void resetDemoData()"
+            <div
+                class="flex justify-between gap-3"
+                :class="currentKebunName ? 'items-start' : 'items-center'"
+            >
+                <div class="flex min-w-0 items-center gap-2.5">
+                    <Link
+                        v-if="kebunParam"
+                        :href="backHref"
+                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        aria-label="Kembali ke Detail Kebun"
                     >
-                        Reset demo
-                    </button>
-
-                    <!-- Filter rentang tanggal -->
-                    <ActivityDateRangeFilter
-                        v-model:start-date="startDate"
-                        v-model:end-date="endDate"
-                    />
+                        <ArrowLeft :size="18" :stroke-width="1.8" />
+                    </Link>
+                    <div class="min-w-0">
+                        <h1
+                            class="truncate text-[20px] leading-7 font-semibold text-foreground"
+                        >
+                            Aktivitas
+                        </h1>
+                        <p
+                            v-if="currentKebunName"
+                            class="mt-0.5 truncate text-[15px] leading-5 font-semibold text-secondary"
+                        >
+                            {{ currentKebunName }}
+                        </p>
+                    </div>
                 </div>
+
+                <button
+                    type="button"
+                    class="shrink-0 text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    @click="void resetDemoData()"
+                >
+                    Reset demo
+                </button>
             </div>
 
             <div class="mt-4 flex gap-2">
@@ -153,6 +196,12 @@ onMounted(() => void loadActivities());
 
                 <ActivityTypeFilterDropdown v-model="selectedType" />
             </div>
+
+            <ActivityPeriodFilter
+                v-model="selectedTimeFilter"
+                :months="availableMonths"
+                class="mt-3"
+            />
 
             <div
                 v-if="resetMessage"
@@ -212,14 +261,18 @@ onMounted(() => void loadActivities());
                     Aktivitas tidak ditemukan
                 </h2>
                 <p class="mt-1 text-sm text-muted-foreground">
-                    Coba ubah kata kunci atau filter aktivitas.
+                    Coba ubah kata kunci, jenis aktivitas, atau periode waktu.
                 </p>
             </div>
 
             <ul v-else class="mt-6 space-y-8">
                 <li v-for="item in filteredActivities" :key="item.id">
                     <Link
-                        :href="`/rincian-aktivitas?id=${item.id}`"
+                        :href="
+                            kebunParam
+                                ? `/rincian-aktivitas?id=${item.id}&kebun=${encodeURIComponent(kebunParam)}`
+                                : `/rincian-aktivitas?id=${item.id}`
+                        "
                         class="group -m-1 flex gap-5 rounded-lg p-1 transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                         <img

@@ -35,13 +35,23 @@ const detail = computed(() => {
     const item = selectedKebun.value;
     if (!item) return undefined;
 
-    const growthCategory = item.growth >= 80 ? 4 : item.growth >= 60 ? 3 : 2;
-    const growthCategoryLabel =
-        growthCategory === 4
-            ? 'Pembungaan'
-            : growthCategory === 3
-              ? 'Vegetatif aktif'
-              : 'Bibit awal';
+    const growthCategory =
+        item.growth >= 90
+            ? 5
+            : item.growth >= 80
+              ? 4
+              : item.growth >= 60
+                ? 3
+                : item.growth >= 40
+                  ? 2
+                  : 1;
+    const growthCategoryLabel = [
+        'Kecambah',
+        'Bibit awal',
+        'Vegetatif aktif',
+        'Pembungaan',
+        'Pengisian & panen',
+    ][growthCategory - 1];
 
     return {
         ...item,
@@ -52,16 +62,12 @@ const detail = computed(() => {
         seed: `${item.seedType} ${item.seedTypeDetail}`,
         totalArea: `${new Intl.NumberFormat('id-ID').format(item.availableHectare)} ha`,
         plantedArea: `${new Intl.NumberFormat('id-ID').format(item.usedHectare)} ha`,
-        weight: `${new Intl.NumberFormat('id-ID').format(Math.round(item.usedHectare * 0.14))} ton`,
+        weight: `${new Intl.NumberFormat('id-ID').format(item.weightTon)} ton`,
         growthCategory,
         growthCategoryLabel,
-        aiConfidence: 92,
+        aiConfidence: item.aiConfidence,
         harvestStatus: item.healthStatus,
-        weather: {
-            condition: 'Cerah berawan',
-            temperature: '26°C',
-            humidity: '78%',
-        },
+        weather: item.weather,
     };
 });
 
@@ -586,12 +592,7 @@ watch(kebunId, () => void loadDetail());
                             <p
                                 class="mt-1.5 text-sm leading-5 text-card-foreground"
                             >
-                                Jadwalkan penyiraman rutin,
-                                <strong
-                                    >cek kondisi daun setiap 2–3 hari, dan
-                                    tambahkan nutrisi</strong
-                                >
-                                sesuai rekomendasi petugas lapangan.
+                                {{ detail.nextStep }}
                             </p>
                         </div>
                     </div>
@@ -611,13 +612,7 @@ watch(kebunId, () => void loadDetail());
                             <p
                                 class="mt-1.5 text-sm leading-5 text-card-foreground"
                             >
-                                <strong>{{
-                                    detail.healthStatus === 'Sehat'
-                                        ? 'Tetap pantau perubahan kondisi kebun.'
-                                        : 'Waspadai perubahan kondisi tanaman.'
-                                }}</strong>
-                                Periksa genangan air dan perubahan warna daun
-                                agar pertumbuhan tetap terjaga.
+                                {{ detail.risk }}
                             </p>
                         </div>
                     </div>

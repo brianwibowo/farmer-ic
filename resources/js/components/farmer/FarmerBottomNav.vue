@@ -8,8 +8,8 @@ export type FarmerNavKey =
     | 'garden'
     | 'ai'
     | 'finance'
-    | 'activity'
-    | 'report';
+    | 'activity';
+    // | 'report';
 
 type FarmerNavItem = {
     key: FarmerNavKey;
@@ -36,7 +36,7 @@ const items: FarmerNavItem[] = [
     { key: 'ai', label: 'AI', emphasis: true, href: '/kebun-petani/ai' },
     { key: 'finance', label: 'Keuangan', href: '/finance' },
     { key: 'activity', label: 'Aktivitas', href: '/aktivitas' },
-    { key: 'report', label: 'Laporan', href: '/laporan' },
+    // { key: 'report', label: 'Laporan', href: '/laporan' },
 ];
 
 const active = computed(() => props.activeKey);
@@ -51,7 +51,7 @@ function select(key: FarmerNavKey): void {
         aria-label="Navigasi utama"
         class="farmer-bottom-nav relative z-10 shrink-0 rounded-t-[18px] bg-card px-2"
     >
-        <ul class="grid h-[76px] grid-cols-6 items-end">
+        <ul class="grid h-[76px] grid-cols-5 items-end">
             <li
                 v-for="item in items"
                 :key="item.key"
