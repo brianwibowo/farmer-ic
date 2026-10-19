@@ -14,7 +14,7 @@ import type { FinanceTransaction } from '@/data/farmerFinance';
 
 // Bump the demo snapshot version whenever the seed history changes so an
 // existing browser session receives the complete mock timeline.
-const storageKey = 'farm_state_v2';
+const storageKey = 'farm_state_v7';
 
 export type DashboardFinancialSummary = {
     income: number;
