@@ -22,9 +22,9 @@ const name = computed(() => user.value?.name?.trim() || 'Petani IC');
     <header class="py-1">
         <div class="flex items-center justify-between gap-3">
             <img
-                src="/images/logo-dashboard.png"
+                src="/images/logo-dashboard.svg"
                 alt="Farm IC"
-                class="h-7 w-auto min-w-0 object-contain"
+                class="h-9 w-auto min-w-0 object-contain"
             />
 
             <div class="flex shrink-0 items-center gap-2">
