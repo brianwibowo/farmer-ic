@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .commodity-carousel {
     scrollbar-width: none;
-    touch-action: pan-y pinch-zoom;
+    touch-action: auto;
     cursor: grab;
     -webkit-user-select: none;
     user-select: none;

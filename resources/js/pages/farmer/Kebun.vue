@@ -91,7 +91,9 @@ onMounted(() => void loadKebun());
     <Head title="Kebun" />
 
     <FarmerMobileShell active-key="garden">
-        <div data-kebun-list class="px-4 pt-5 pb-5">
+        <div data-kebun-list class="px-4 pt-4 pb-5">
+            <DashboardHeader class="mb-6" />
+
             <header class="flex items-start justify-between gap-3">
                 <div>
                     <!-- <p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Ruang kerja petani</p> -->

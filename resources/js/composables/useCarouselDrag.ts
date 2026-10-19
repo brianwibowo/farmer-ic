@@ -46,6 +46,12 @@ export function useCarouselDrag(
     }
 
     function pointerDown(event: PointerEvent): void {
+        // Touch and pen use native scrolling, including momentum and axis locking.
+        // Custom dragging is only needed for a mouse.
+        if (event.pointerType !== 'mouse') {
+            suppressClick = false;
+            return;
+        }
         const element = track.value;
         if (
             !element ||
