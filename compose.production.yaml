@@ -22,19 +22,16 @@ services:
             QUEUE_CONNECTION: sync
         networks:
             default: {}
-            proxy:
-                aliases:
-                    - farmer-ic-app
         volumes:
             - app_storage:/var/www/html/storage
             - app_database:/var/lib/farmer-ic
         restart: unless-stopped
 
     caddy:
-        profiles: [proxy]
         image: caddy:2-alpine
         depends_on:
-            - app
+            app:
+                condition: service_healthy
         ports:
             - '80:80'
             - '443:443'
@@ -53,6 +50,5 @@ volumes:
     caddy_config:
 
 networks:
-    proxy:
-        external: true
-        name: ${PROXY_NETWORK:-outline_default}
+    default:
+        name: farmer-ic_proxy

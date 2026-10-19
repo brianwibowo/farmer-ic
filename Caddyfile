@@ -4,7 +4,16 @@ farmer-ic.duckdns.org {
     handle @ai_stream {
         reverse_proxy app:80 {
             flush_interval -1
+            transport http {
+                read_timeout 0s
+                write_timeout 0s
+            }
         }
+    }
+
+    header @ai_stream {
+        Cache-Control "no-cache, no-transform"
+        X-Accel-Buffering "no"
     }
 
     encode gzip
