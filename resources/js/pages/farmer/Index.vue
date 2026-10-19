@@ -255,8 +255,20 @@ async function send(): Promise<void> {
         return;
     }
 
+    let llmPrompt = text;
+    if (requestInfographic && attachments.length === 0) {
+        try {
+            const demoContext = await queryDemoData(text);
+            if (demoContext) {
+                llmPrompt = `${text}\n\nDATA APLIKASI YANG HARUS DIPAKAI:\n${demoContext.content}`;
+            }
+        } catch {
+            // The model can still answer when the optional demo context fails.
+        }
+    }
+
     const assistant = await chat.sendMessage(
-        text,
+        llmPrompt,
         attachments,
         requestInfographic,
     );
