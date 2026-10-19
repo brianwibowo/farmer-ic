@@ -44,9 +44,7 @@ export async function queryDemoData(
     // "cara mengendalikan hama" or "berapa dosis pupuk" must stay with the
     // LLM instead of being replaced by a dashboard summary.
     const wantsFinance =
-        /\b(?:keuangan|finansial|pendapatan|pemasukan|omzet|transaksi|laba|profit|saldo)\b/i.test(
-            value,
-        ) ||
+        /\b(?:keuangan|pendapatan|pemasukan|omzet|transaksi)\b/i.test(value) ||
         /\b(?:total|jumlah|rincian|ringkasan|laporan|data)\s+(?:pendapatan|pemasukan|transaksi|biaya|keuangan)\b/i.test(
             value,
         ) ||
@@ -70,13 +68,9 @@ export async function queryDemoData(
     if (wantsFinance) {
         await wait(420);
         const quarterMatch = value.match(/\bq\s*([1-4])\b/i);
-        const asksCurrentMonth =
-            /\b(?:bulan ini|bulan sekarang|periode ini)\b/i.test(value);
         const quarterKey = quarterMatch
             ? (`Q${quarterMatch[1]}` as keyof typeof farmerFinanceMock.quarters)
-            : asksCurrentMonth
-              ? 'Q4'
-              : null;
+            : null;
         const quarter = quarterKey
             ? farmerFinanceMock.quarters[quarterKey]
             : null;
@@ -100,21 +94,12 @@ export async function queryDemoData(
                   `**Pengeluaran:** ${formatRupiah(farmerFinanceMock.totalExpense)}`,
                   `**Laba bersih:** ${formatRupiah(farmerFinanceMock.totalNet)}`,
               ].join(' | ');
-        const currentMonthPoint =
-            asksCurrentMonth && quarter
-                ? quarter.points[quarter.points.length - 1]
-                : null;
         return {
             source: `Data demo keuangan · diperbarui ${updatedLabel()}`,
             content: [
                 '### 💰 Ringkasan Keuangan Kebun',
                 `> 📊 ${totals} | ⏳ **${financeScope}**`,
                 `> 🌱 **${scopeLine}** | 📌 **Sumber:** Data demo`,
-                ...(currentMonthPoint
-                    ? [
-                          `> 📅 **Bulan ini (${currentMonthPoint.label}):** pendapatan ${formatRupiah(currentMonthPoint.revenue)} | pengeluaran ${formatRupiah(currentMonthPoint.expense)} | laba ${formatRupiah(currentMonthPoint.net)}`,
-                      ]
-                    : []),
                 '',
                 ...(quarter
                     ? [

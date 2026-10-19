@@ -45,6 +45,8 @@ import {
     toSpeechText,
 } from '@/services/aiChatService';
 import { queryDemoData } from '@/services/aiDemoDataService';
+import { queryKnowledge } from '@/services/aiKnowledgeService';
+import { validateAiResponse } from '@/services/aiResponseValidator';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { Team } from '@/types/teams';
 
@@ -197,7 +199,8 @@ async function send(): Promise<void> {
         ? 'infographic'
         : voiceInputPending.value
           ? 'voice'
-          : classification.intent === 'data'
+          : classification.intent === 'data' ||
+              classification.intent === 'knowledge'
             ? 'data'
             : 'text';
     const voiceMetric = voiceInputPending.value
@@ -207,12 +210,38 @@ async function send(): Promise<void> {
     const localIntent =
         attachments.length === 0 &&
         (classification.intent === 'data' ||
+            classification.intent === 'knowledge' ||
             classification.intent === 'out_of_scope');
     if (localIntent) isSending.value = true;
     inputText.value = '';
     pendingAttachments.value = [];
     voiceInputPending.value = false;
     void nextTick(autoResize);
+
+    if (classification.intent === 'knowledge' && attachments.length === 0) {
+        let knowledgeAnswer = null;
+        try {
+            knowledgeAnswer = await queryKnowledge(text);
+        } catch {
+            knowledgeAnswer = null;
+        }
+        if (knowledgeAnswer) {
+            await showLocalAnswer(
+                text,
+                knowledgeAnswer.content,
+                requestMode === 'voice' ? 'voice' : 'data',
+                'negative',
+                startedAt,
+                0,
+                voiceMetric,
+            );
+            isSending.value = false;
+            await scrollToLatest();
+            inputElement.value?.focus();
+            return;
+        }
+        isSending.value = false;
+    }
 
     if (classification.intent === 'data' && attachments.length === 0) {
         let demoAnswer = null;
@@ -224,7 +253,9 @@ async function send(): Promise<void> {
         if (demoAnswer) {
             await showLocalAnswer(
                 text,
-                `${demoAnswer.content}\n\nℹ️ **Sumber:** ${demoAnswer.source}`,
+                demoAnswer.source
+                    ? `${demoAnswer.content}\n\nℹ️ **Sumber:** ${demoAnswer.source}`
+                    : demoAnswer.content,
                 requestMode === 'voice' ? 'voice' : 'data',
                 'positive',
                 startedAt,
@@ -255,20 +286,8 @@ async function send(): Promise<void> {
         return;
     }
 
-    let llmPrompt = text;
-    if (requestInfographic && attachments.length === 0) {
-        try {
-            const demoContext = await queryDemoData(text);
-            if (demoContext) {
-                llmPrompt = `${text}\n\nDATA APLIKASI YANG HARUS DIPAKAI:\n${demoContext.content}`;
-            }
-        } catch {
-            // The model can still answer when the optional demo context fails.
-        }
-    }
-
     const assistant = await chat.sendMessage(
-        llmPrompt,
+        text,
         attachments,
         requestInfographic,
     );
@@ -368,6 +387,10 @@ async function showLocalAnswer(
     delayMs = 420,
     voiceMetric?: AiVoiceMetric,
 ): Promise<void> {
+    const validation = validateAiResponse(answer);
+    const safeAnswer = validation.ok
+        ? validation.content
+        : 'Jawaban lokal tidak lolos pemeriksaan format.';
     const now = new Date().toISOString();
     const userId = `local-user-${Date.now()}`;
     const assistantId = `local-assistant-${Date.now() + 1}`;
@@ -383,7 +406,7 @@ async function showLocalAnswer(
         {
             id: assistantId,
             role: 'assistant',
-            content: answer,
+            content: safeAnswer,
             attachments: [],
             createdAt: new Date().toISOString(),
             status: 'complete',
@@ -394,10 +417,10 @@ async function showLocalAnswer(
     }
     const metricId = telemetry.record({
         mode,
-        status,
+        status: validation.ok ? status : 'negative',
         latencyMs: Math.round(performance.now() - startedAt),
         inputTokens: estimateTokens(userText),
-        outputTokens: estimateTokens(answer),
+        outputTokens: estimateTokens(safeAnswer),
         voice: voiceMetric,
     });
     metricIds.value[assistantId] = metricId;
@@ -565,6 +588,7 @@ onUnmounted(() => {
             @drop.prevent="onDrop($event)"
         >
             <AiChatHeader
+                :is-sending="isSending"
                 @open-history="isHistoryOpen = true"
                 @open-report="isReportOpen = true"
                 @new-conversation="newConversation"

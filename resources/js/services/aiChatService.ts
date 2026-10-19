@@ -1,158 +1,20 @@
-export type AiPromptIntent =
-    | 'agriculture'
-    | 'data'
-    | 'infographic'
-    | 'general'
-    | 'out_of_scope';
-
-export type AiPromptClassification = {
-    intent: AiPromptIntent;
-    confidence: number;
-    topic: string | null;
-};
-
-const agricultureTerms = [
-    'kebun',
-    'lahan',
-    'sawah',
-    'ladang',
-    'tanaman',
-    'padi',
-    'jagung',
-    'kedelai',
-    'cabai',
-    'tomat',
-    'bawang',
-    'tebu',
-    'kopi',
-    'kakao',
-    'teh',
-    'sayur',
-    'sayuran',
-    'buah',
-    'panen',
-    'benih',
-    'pupuk',
-    'irigasi',
-    'pengairan',
-    'tanah',
-    'hama',
-    'penyakit',
-    'pestisida',
-    'cuaca',
-    'kelembapan',
-    'pertanian',
-    'smart farming',
-    'smartfarm',
-    'agritech',
-    'pertanian cerdas',
-    'petani',
-    'komoditas',
-    'bibit',
-];
-
-const dataTerms = [
-    'data',
-    'laporan',
-    'aktivitas',
-    'kondisi',
-    'hari ini',
-    'terakhir',
-    'riwayat',
-    'biaya',
-    'pendapatan',
-    'keuangan',
-    'stok',
-    'jadwal',
-    'status',
-    'berapa',
-    'total',
-    'rincian',
-    'jumlah',
-    'harga',
-    'penjualan',
-];
-
-const visualTerms = [
-    'infografis',
-    'infographic',
-    'diagram',
-    'visual',
-    'visualisasikan',
-    'poster',
-    'bagan',
-    'gambar',
-    'ilustrasi',
-    'gambarkan',
-    'tampilkan',
-    'tunjukkan',
-    'skema',
-    'alur',
-    'grafik',
-    'chart',
-    'peta',
-    'ringkas jadi',
-    'sajikan dalam bentuk',
-    'buatkan visual',
-    'buat visual',
-    'dalam bentuk gambar',
-];
-
-const outOfScopeTerms = [
-    'kode program',
-    'coding',
-    'python',
-    'javascript',
-    'html',
-    'css',
-    'sql',
-    'resep masakan',
-    'film',
-    'musik',
-    'lirik lagu',
-    'politik',
-    'presiden',
-    'saham',
-    'crypto',
-    'berita artis',
-    'sepak bola',
-];
-
-const greetingPattern =
-    /^(halo|hai|hi|selamat pagi|selamat siang|selamat sore|selamat malam|terima kasih|makasih)\b/i;
-
-/**
- * A data intent is reserved for a known dashboard lookup. Generic words such
- * as "berapa", "kondisi", or "status" also occur in agronomy questions and
- * must not divert those questions to the local demo resolver.
- */
-const dashboardDataPatterns = [
-    /\b(?:data|laporan|riwayat)\s+(?:kebun|lahan|aktivitas|kegiatan|keuangan|pendapatan|transaksi)\b/i,
-    /\b(?:data|laporan|riwayat)\s+(?:panen|pemupukan|pengairan|pestisida|penanaman)\b/i,
-    /\b(?:aktivitas|kegiatan)\s+(?:terakhir|terbaru|hari ini|minggu ini)\b/i,
-    /\b(?:kondisi|status|kesehatan)\s+(?:kebun|lahan)\b/i,
-    /\b(?:total|jumlah)\s+(?:kebun|lahan|aktivitas|kegiatan|transaksi)\b/i,
-    /\b(?:ringkasan|rincian)\s+(?:kebun|lahan|aktivitas|kegiatan|keuangan|pendapatan|transaksi)\b/i,
-    /\b(?:pendapatan|pemasukan|omzet|transaksi)\s+(?:kebun|terakhir|terbaru|tahun|bulan)\b/i,
-    /\b(?:biaya|pengeluaran)\s+(?:operasional|kebun|terakhir|terbaru|tahun|bulan)\b/i,
-    /\b(?:keuangan|finansial|pendapatan|pemasukan|omzet|transaksi|laba|profit|saldo)\b/i,
-];
-
-const guidancePatterns = [
-    /\b(?:cara|bagaimana|dosis|rekomendasi|panduan|tips?|langkah|mengatasi|mengendalikan|mencegah|menanam|memupuk|mengairi|merawat|jelaskan|apa itu)\b/i,
-    /\b(?:harga|biaya)\s+(?:pupuk|benih|pestisida|irigasi|tanaman|jagung|padi|kedelai)\b/i,
-];
+export {
+    classifyAiPrompt,
+    isDashboardDataPrompt,
+    routeAiPrompt,
+    shouldRequestInfographic,
+} from '@/services/aiIntentRouter';
+export type {
+    AiDomain,
+    AiIntent,
+    AiIntentRoute,
+    AiPeriod,
+    AiPromptClassification,
+    AiPromptIntent,
+} from '@/services/aiIntentRouter';
 
 /** Keep a single user turn bounded before it reaches the model. */
 export const MAX_AI_PROMPT_CHARS = 6000;
-
-function normalizePrompt(value: string): string {
-    return value
-        .normalize('NFKC')
-        .toLocaleLowerCase('id-ID')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
 
 /**
  * Compact user input without changing its meaning. The API already owns the
@@ -172,82 +34,6 @@ export function compactAiPrompt(value: string): string {
 
     if (compact.length <= MAX_AI_PROMPT_CHARS) return compact;
     return `${compact.slice(0, MAX_AI_PROMPT_CHARS - 1).trimEnd()}…`;
-}
-
-function includesAny(value: string, terms: string[]): string | null {
-    return (
-        terms.find((term) => {
-            const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            return new RegExp(
-                `(?:^|\\s)${escaped}(?:$|\\s|[?!,.:;])`,
-                'i',
-            ).test(value);
-        }) ?? null
-    );
-}
-
-export function isDashboardDataPrompt(value: string): boolean {
-    const prompt = normalizePrompt(value);
-    if (guidancePatterns.some((pattern) => pattern.test(prompt))) {
-        // A direct dashboard phrase such as "bagaimana kondisi kebun" is a
-        // lookup, while "bagaimana merawat tanaman" remains guidance.
-        const isExplicitLookup =
-            /\b(?:kondisi|status|kesehatan)\s+(?:kebun|lahan)\b/i.test(prompt);
-        if (!isExplicitLookup) return false;
-    }
-
-    return dashboardDataPatterns.some((pattern) => pattern.test(prompt));
-}
-
-export function classifyAiPrompt(
-    value: string,
-    hasAttachments = false,
-): AiPromptClassification {
-    const prompt = normalizePrompt(value);
-    const topic = includesAny(prompt, agricultureTerms);
-    const dataSignal = includesAny(prompt, dataTerms);
-    const visualSignal = includesAny(prompt, visualTerms);
-    const outOfScopeSignal = includesAny(prompt, outOfScopeTerms);
-    const dashboardDataSignal = isDashboardDataPrompt(prompt);
-    // Keep a clearly unsupported topic out of the visual/data branches. This
-    // prevents requests such as "buat poster sepak bola" from becoming an
-    // agricultural infographic merely because they contain a visual verb.
-    if (outOfScopeSignal && !hasAttachments) {
-        return { intent: 'out_of_scope', confidence: 0.98, topic: null };
-    }
-
-    const hasSupportedVisualContext = Boolean(
-        topic || dashboardDataSignal || hasAttachments,
-    );
-
-    if (visualSignal && hasSupportedVisualContext) {
-        return {
-            intent: 'infographic',
-            confidence: 0.94,
-            topic: topic ?? dataSignal,
-        };
-    }
-    if (visualSignal && !hasSupportedVisualContext) {
-        return { intent: 'out_of_scope', confidence: 0.96, topic: null };
-    }
-    if (dashboardDataSignal && (topic || dataSignal || hasAttachments)) {
-        return { intent: 'data', confidence: 0.88, topic: topic ?? dataSignal };
-    }
-    if (topic || hasAttachments) {
-        return { intent: 'agriculture', confidence: 0.82, topic };
-    }
-    if (greetingPattern.test(prompt) || prompt.length <= 12) {
-        return { intent: 'general', confidence: 0.72, topic: null };
-    }
-
-    return { intent: 'general', confidence: 0.55, topic: null };
-}
-
-export function shouldRequestInfographic(
-    value: string,
-    hasAttachments = false,
-): boolean {
-    return classifyAiPrompt(value, hasAttachments).intent === 'infographic';
 }
 
 function removeControlChars(value: string): string {

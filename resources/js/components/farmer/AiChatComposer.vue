@@ -166,6 +166,31 @@ function onInput(event: Event): void {
             {{ voice.error.value }}
         </div>
         <div
+            v-if="isSending"
+            role="status"
+            aria-live="polite"
+            class="mb-2 flex items-center gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2.5 text-xs text-foreground"
+        >
+            <LoaderCircle
+                :size="16"
+                class="shrink-0 animate-spin text-secondary motion-reduce:animate-none"
+            />
+            <span class="min-w-0 flex-1">
+                <span class="block font-semibold">Asisten sedang bekerja…</span>
+                <span class="block text-[11px] text-muted-foreground"
+                    >Jawaban biasanya muncul dalam beberapa detik. Jika lebih
+                    dari 30 detik, Anda bisa menghentikannya.</span
+                >
+            </span>
+            <button
+                type="button"
+                class="shrink-0 rounded-lg px-2 py-1 font-semibold text-secondary transition hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                @click="emit('stop-streaming')"
+            >
+                Hentikan
+            </button>
+        </div>
+        <div
             class="flex items-end gap-1.5 rounded-2xl border border-border bg-background p-1.5 shadow-sm transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
         >
             <button
@@ -231,6 +256,7 @@ function onInput(event: Event): void {
                 v-if="isSending"
                 type="button"
                 aria-label="Hentikan jawaban"
+                title="Hentikan jawaban"
                 class="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary-foreground transition hover:bg-secondary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 @click="emit('stop-streaming')"
             >
