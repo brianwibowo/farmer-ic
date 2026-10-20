@@ -2,6 +2,7 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     Activity,
+    ArrowUp,
     ArrowUpRight,
     Camera,
     ChevronRight,
@@ -16,7 +17,7 @@ import {
     X,
     ArrowLeft,
 } from '@lucide/vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
@@ -43,7 +44,7 @@ const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
 const selectedStatus = ref<ActivityStatusFilter>('all');
 const statusOptions: Array<{ value: ActivityStatusFilter; label: string }> = [
-    { value: 'all', label: 'Semua status' },
+    { value: 'all', label: 'Semua' },
     { value: 'needs-check', label: 'Perlu cek' },
     { value: 'normal', label: 'Normal' },
 ];
@@ -57,6 +58,11 @@ const selectedTimeFilter = ref<ActivityTimeFilter>('all');
 const isLoading = ref(true);
 const errorMessage = ref('');
 const resetMessage = ref('');
+const pageRoot = ref<HTMLElement | null>(null);
+const showBackToTop = ref(false);
+let scrollContainer: HTMLElement | null = null;
+
+const BACK_TO_TOP_THRESHOLD = 160;
 
 const availableMonths = computed(() => collectActivityMonths(activities.value));
 
@@ -264,7 +270,39 @@ async function resetDemoData(): Promise<void> {
     await loadActivities();
 }
 
-onMounted(() => void loadActivities());
+function handleScroll(): void {
+    showBackToTop.value =
+        (scrollContainer?.scrollTop ?? 0) > BACK_TO_TOP_THRESHOLD;
+}
+
+function scrollToTop(): void {
+    if (!scrollContainer) return;
+
+    const reduceMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)',
+    ).matches;
+
+    scrollContainer.scrollTo({
+        top: 0,
+        behavior: reduceMotion ? 'auto' : 'smooth',
+    });
+}
+
+onMounted(() => {
+    void loadActivities();
+
+    // The page scrolls inside FarmerMobileShell's <main>, not the window.
+    scrollContainer = pageRoot.value?.closest('main') ?? null;
+    scrollContainer?.addEventListener('scroll', handleScroll, {
+        passive: true,
+    });
+    handleScroll();
+});
+
+onBeforeUnmount(() => {
+    scrollContainer?.removeEventListener('scroll', handleScroll);
+    scrollContainer = null;
+});
 </script>
 
 <template>
@@ -275,7 +313,7 @@ onMounted(() => void loadActivities());
     />
 
     <FarmerMobileShell :active-key="kebunParam ? 'garden' : 'activity'">
-        <div data-aktivitas-list class="px-4 pt-4 pb-5">
+        <div ref="pageRoot" data-aktivitas-list class="px-4 pt-4 pb-5">
             <div
                 class="flex justify-between gap-3"
                 :class="currentKebunName ? 'items-start' : 'items-center'"
@@ -635,6 +673,25 @@ onMounted(() => void loadActivities());
                     </div>
                 </li>
             </ul>
+
+            <Transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="translate-y-2 opacity-0"
+                enter-to-class="translate-y-0 opacity-100"
+                leave-active-class="transition duration-150 ease-in"
+                leave-from-class="translate-y-0 opacity-100"
+                leave-to-class="translate-y-2 opacity-0"
+            >
+                <button
+                    v-if="showBackToTop"
+                    type="button"
+                    aria-label="Kembali ke atas"
+                    class="absolute right-4 bottom-[calc(92px+env(safe-area-inset-bottom,0px))] z-40 inline-flex size-11 items-center justify-center rounded-full border border-primary/30 bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    @click="scrollToTop"
+                >
+                    <ArrowUp :size="20" :stroke-width="2" aria-hidden="true" />
+                </button>
+            </Transition>
         </div>
     </FarmerMobileShell>
 </template>
