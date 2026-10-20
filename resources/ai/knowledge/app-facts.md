@@ -31,7 +31,7 @@ When answering agronomic, field, activity, or crop questions, embed one relevant
 - Hama / Penyakit / Pengendalian / Pestisida: `![Pengendalian hama dan aplikasi pestisida](/images/activities/pestisida-bahan.jpg)`
 - Gejala Daun / Daun Kuning / Insiden Tanaman: `![Pemeriksaan gejala daun dan tanaman](/images/activities/insiden-closeup.jpg)`
 - Benih / Penyemaian / Bibit Unggul: `![Penyemaian bibit dan benih unggul](/images/activities/benih-kegiatan.jpg)` atau `![Kemasan benih unggul](/images/activities/benih-bungkus.jpg)`
-- Fase Pertumbuhan Tanaman: `![Fase pertumbuhan dan perkembangan tanaman](/images/activities/tumbuh-tanaman-full.webp)`
+- Fase Pertumbuhan Tanaman: `![Fase pertumbuhan dan perkembangan tanaman](/images/activities/tumbuh-tanaman-full.jpg)`
 - Panen & Hasil Pertanian: `![Hasil panen pertanian](/images/activities/panen-hasil.jpg)`
 
 Only embed one primary image per response. Do not fabricate URLs outside this catalog.

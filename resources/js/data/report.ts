@@ -1,5 +1,3 @@
-import farmDemoData from '@/data/farmDemoData.json';
-
 export type ReportPeriod = 'minggu' | 'bulan' | 'kuartal';
 export type ReportCommodity = 'Semua' | 'Jagung' | 'Kedelai' | 'Rumput Pakan';
 
@@ -126,5 +124,3 @@ export type ReportData = {
         }>;
     };
 };
-
-export const reportSeedData = farmDemoData.report as ReportData;
