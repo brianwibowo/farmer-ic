@@ -121,7 +121,7 @@ onMounted(async () => {
     <Head :title="`Aktivitas - ${kebunSubtitle}`" />
 
     <FarmerMobileShell active-key="garden">
-        <div data-kebun-aktivitas-list class="px-4 pt-12 pb-5">
+        <div data-kebun-aktivitas-list class="px-4 pt-4 pb-5">
             <!-- Header Row: Back Button + Title/Subtitle -->
             <div class="flex items-start justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2.5">
