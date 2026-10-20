@@ -14,7 +14,7 @@ import type { FinanceTransaction } from '@/data/farmerFinance';
 
 // Bump the demo snapshot version whenever the unified JSON seed changes so an
 // existing browser session receives the latest demo data.
-const storageKey = 'farm_state_v8';
+const storageKey = 'farm_state_v13';
 
 export type DashboardFinancialSummary = {
     income: number;
