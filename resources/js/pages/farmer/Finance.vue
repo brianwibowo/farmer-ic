@@ -2,7 +2,6 @@
 import { Head } from '@inertiajs/vue3';
 import { Filter, Search, X } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import RevenueChart from '@/components/farmer/RevenueChart.vue';
 import { useFarmerNavigation } from '@/composables/useFarmerNavigation';
@@ -118,8 +117,6 @@ const formatRupiah = (value: number): string =>
 
     <FarmerMobileShell active-key="finance" @select="navigate">
         <div data-finance-page class="space-y-6 px-4 pt-4 pb-6">
-            <DashboardHeader />
-
             <header>
                 <p class="text-sm font-medium text-[#1c5e21]">Keuangan</p>
                 <h1 class="mt-1 text-2xl font-semibold tracking-tight">
