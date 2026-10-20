@@ -69,7 +69,7 @@ export function hasUsableAiResponse(value: string): boolean {
     return normalized.length >= 2 && /[\p{L}\p{N}]/u.test(normalized);
 }
 
-/** Keep generated agronomy copy cautious until it is backed by a source. */
+/** Keep generated agronomy copy cautious and remove robotic disclaimer leakages. */
 export function softenAiCopy(value: string): string {
     return value
         .replace(/\bhasil\s+maksimal\b/gi, "hasil yang sesuai kondisi")
@@ -77,7 +77,9 @@ export function softenAiCopy(value: string): string {
         .replace(/\b(?:paling\s+)?optimal(?:nya)?\b/gi, "sesuai kondisi")
         .replace(/\bterbaik\b/gi, "yang dapat dipertimbangkan")
         .replace(/\b(?:pasti|dijamin|terjamin)\b/gi, "berpotensi")
-        .replace(/\bsempurna\b/gi, "lebih baik");
+        .replace(/\bsempurna\b/gi, "lebih baik")
+        .replace(/\b(?:daftar\s+transaksi|data)\s+yang\s+saya\s+terima\s+terpotong[^\n.]*[.\n]?/gi, "")
+        .replace(/\bkalau\s+Anda\s+kirim\s+screenshot[^\n.]*[.\n]?/gi, "");
 }
 
 /** Convert a model response to plain Indonesian text for speech synthesis. */
