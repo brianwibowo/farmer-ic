@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "generatedAt": "2026-10-20",
   "kebun": [
     {
@@ -1452,6 +1452,33 @@
       ]
     },
     {
+      "id": "act-pertumbuhan-ratoon-kebun-003-4",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "22 Agustus 2026",
+      "daysAfterPlanting": 219,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pertumbuhan anakan",
+        "averageHeightCm": 30,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-act-pertumbuhan-ratoon-kebun-003-4",
+          "label": "Foto tanaman (full)",
+          "caption": "Pertumbuhan anakan setelah pemotongan; tinggi rata-rata 30 cm.",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
       "id": "act-penanaman-001",
       "type": "penanaman-benih",
       "typeLabel": "Penanaman Benih",
@@ -1550,6 +1577,87 @@
           "id": "photo-panen-003b",
           "label": "Foto tanaman (full)",
           "caption": "Kerapatan rumput pada petak yang baru dipotong",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-ratoon-kebun-003-3",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "3 Agustus 2026",
+      "daysAfterPlanting": 200,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Siap babat",
+        "averageHeightCm": 76,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-act-pertumbuhan-ratoon-kebun-003-3",
+          "label": "Foto tanaman (full)",
+          "caption": "Pengamatan rutin; tinggi rata-rata 76 cm menjelang babat.",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-ratoon-kebun-003-2",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "20 Juli 2026",
+      "daysAfterPlanting": 186,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pertumbuhan anakan",
+        "averageHeightCm": 48,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-act-pertumbuhan-ratoon-kebun-003-2",
+          "label": "Foto tanaman (full)",
+          "caption": "Pertumbuhan anakan setelah pemotongan; tinggi rata-rata 48 cm.",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-ratoon-kebun-003-1",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "6 Juli 2026",
+      "daysAfterPlanting": 172,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Tunas baru",
+        "averageHeightCm": 12,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-act-pertumbuhan-ratoon-kebun-003-1",
+          "label": "Foto tanaman (full)",
+          "caption": "Tunas baru setelah pemotongan; tinggi rata-rata 12 cm.",
           "image": "/images/activities/tumbuh-tanaman-full.jpg"
         }
       ]
