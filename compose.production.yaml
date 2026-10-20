@@ -9,7 +9,8 @@ name: farmer-ic
 #
 # Current default: SQLite + sync queue (safe baseline).
 # To activate the full RAG stack, set in .env.production:
-#   DB_CONNECTION=pgsql  QUEUE_CONNECTION=redis  AI_RAG_VECTOR_ENABLED=true
+#   DB_CONNECTION=pgsql  DB_HOST=farmer-ic-postgres
+#   QUEUE_CONNECTION=redis  AI_RAG_VECTOR_ENABLED=true
 
 services:
     app:
@@ -28,7 +29,7 @@ services:
             APP_URL: ${APP_URL:-https://farmer.icdigital.io}
             DB_CONNECTION: ${DB_CONNECTION:-sqlite}
             DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
-            DB_HOST: ${DB_HOST:-postgres}
+            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
             DB_PORT: ${DB_PORT:-5432}
             SESSION_DRIVER: ${SESSION_DRIVER:-file}
             CACHE_STORE: ${CACHE_STORE:-file}
@@ -71,7 +72,7 @@ services:
             APP_DEBUG: 'false'
             DB_CONNECTION: ${DB_CONNECTION:-sqlite}
             DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
-            DB_HOST: ${DB_HOST:-postgres}
+            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
             DB_PORT: ${DB_PORT:-5432}
             QUEUE_CONNECTION: redis
             REDIS_HOST: ${REDIS_HOST:-redis}
@@ -81,10 +82,20 @@ services:
             - app_storage:/var/www/html/storage
             - app_database:/var/lib/farmer-ic
         depends_on:
+            postgres:
+                condition: service_healthy
+                required: false
             redis:
                 condition: service_healthy
             qdrant:
                 condition: service_healthy
+        # The image healthcheck targets Apache; this container runs a queue worker.
+        healthcheck:
+            test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "queue:work"']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
         restart: unless-stopped
         deploy:
             resources:
@@ -102,13 +113,23 @@ services:
             APP_ENV: production
             DB_CONNECTION: ${DB_CONNECTION:-sqlite}
             DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
-            DB_HOST: ${DB_HOST:-postgres}
+            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
             DB_PORT: ${DB_PORT:-5432}
             QUEUE_CONNECTION: redis
             REDIS_HOST: ${REDIS_HOST:-redis}
         depends_on:
+            postgres:
+                condition: service_healthy
+                required: false
             redis:
                 condition: service_healthy
+        # The image healthcheck targets Apache; this container runs the scheduler.
+        healthcheck:
+            test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "schedule:work"']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
         restart: unless-stopped
         deploy:
             resources:
@@ -124,6 +145,12 @@ services:
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
         volumes:
             - postgres_data:/var/lib/postgresql/data
+        # Use a unique name so the app never resolves Outline's "postgres"
+        # alias on the shared proxy network.
+        networks:
+            default:
+                aliases:
+                    - farmer-ic-postgres
         healthcheck:
             test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-farmer_ic}']
             interval: 10s
