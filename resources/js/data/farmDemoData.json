@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 5,
   "generatedAt": "2026-10-20",
   "kebun": [
     {
@@ -255,8 +255,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "panen",
-        "harvestedArea": "3,0 Ha",
-        "grossWeight": "30,0 Ton",
+        "harvestedArea": "2,0 Ha",
+        "grossWeight": "18,5 Ton",
         "quality": {
           "moistureContent": "68,4%",
           "color": "Hijau Segar",
@@ -338,7 +338,7 @@
       "type": "pelaporan-insiden",
       "typeLabel": "Pelaporan Insiden",
       "timestamp": "14 Oktober 2026",
-      "daysAfterPlanting": 41,
+      "daysAfterPlanting": 39,
       "officerName": "Sutrisno",
       "kebunId": "kebun-005",
       "kebunName": "Kebun Harapan Jaya",
@@ -518,7 +518,7 @@
       "type": "pestisida",
       "typeLabel": "Pestisida",
       "timestamp": "06 Oktober 2026",
-      "daysAfterPlanting": 32,
+      "daysAfterPlanting": 47,
       "officerName": "Paijo",
       "kebunId": "kebun-002",
       "kebunName": "Kebun Tani Lestari",
@@ -763,7 +763,7 @@
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
       "timestamp": "28 September 2026",
-      "daysAfterPlanting": 58,
+      "daysAfterPlanting": 44,
       "officerName": "Wahyu Pratama",
       "kebunId": "kebun-004",
       "kebunName": "Kebun Maju Bersama",
@@ -771,7 +771,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian Polong (Fase R5)",
+        "growthPhase": "Pembungaan & Pembentukan Polong",
         "averageHeightCm": 68,
         "diseaseIndication": "Aman",
         "pestIndication": "Ringan"
@@ -780,7 +780,7 @@
         {
           "id": "photo-tumbuh-1",
           "label": "Foto tanaman (full)",
-          "caption": "Hamparan kanopi kedelai fase R5 tampak rapat dan hijau",
+          "caption": "Hamparan kanopi kedelai tampak rapat dan hijau memasuki pembentukan polong",
           "image": "/images/activities/tumbuh-tanaman-full.jpg"
         },
         {
@@ -1372,7 +1372,7 @@
       "report": {
         "kind": "penanaman-benih",
         "brandOrVariety": "Rumput Odot (stek batang)",
-        "quantityKg": 1200,
+        "quantityKg": 600,
         "plantingPattern": "Stek Antar Baris (60 cm)",
         "areaSize": "2,0 Ha"
       },
@@ -1563,8 +1563,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
-        "averageHeightCm": 134,
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 76,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1590,8 +1590,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
-        "averageHeightCm": 130,
+        "growthPhase": "Pertumbuhan anakan",
+        "averageHeightCm": 44,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1617,8 +1617,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
-        "averageHeightCm": 123,
+        "growthPhase": "Tunas baru",
+        "averageHeightCm": 6,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1745,8 +1745,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
-        "averageHeightCm": 114,
+        "growthPhase": "Siap babat",
+        "averageHeightCm": 106,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1910,8 +1910,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
-        "averageHeightCm": 102,
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 86,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -2052,7 +2052,7 @@
       "report": {
         "kind": "pengecekan-pertumbuhan",
         "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 90,
+        "averageHeightCm": 62,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -2192,8 +2192,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 74,
+        "growthPhase": "Pertumbuhan anakan",
+        "averageHeightCm": 34,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -2339,8 +2339,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 56,
+        "growthPhase": "Tunas baru",
+        "averageHeightCm": 4,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -2982,11 +2982,11 @@
         },
         {
           "label": "Luas total",
-          "value": "300 ha"
+          "value": "1.255 / 4.350 ha"
         },
         {
-          "label": "Total tanam",
-          "value": "5 Kebun"
+          "label": "Total komoditas",
+          "value": "3 Komoditas"
         }
       ]
     },
@@ -2997,19 +2997,19 @@
       "statistics": [
         {
           "label": "Jumlah",
-          "value": "5 Kebun"
+          "value": "2 Kebun"
         },
         {
           "label": "Luas tanam",
-          "value": "50/100 HA"
+          "value": "440 / 1.650 ha"
         },
         {
           "label": "Total panen",
-          "value": "50 Ton"
+          "value": "51 Ton"
         },
         {
           "label": "Total pendapatan",
-          "value": "Rp 8.300.000",
+          "value": "Rp 51.000.000",
           "highlight": true
         }
       ]
@@ -3021,19 +3021,19 @@
       "statistics": [
         {
           "label": "Jumlah",
-          "value": "5 Kebun"
+          "value": "2 Kebun"
         },
         {
           "label": "Luas tanam",
-          "value": "50/100 HA"
+          "value": "395 / 1.500 ha"
         },
         {
           "label": "Total panen",
-          "value": "50 Ton"
+          "value": "60 Ton"
         },
         {
           "label": "Total pendapatan",
-          "value": "Rp 8.300.000",
+          "value": "Rp 62.000.000",
           "highlight": true
         }
       ]
@@ -3045,29 +3045,29 @@
       "statistics": [
         {
           "label": "Jumlah",
-          "value": "5 Kebun"
+          "value": "1 Kebun"
         },
         {
           "label": "Luas tanam",
-          "value": "50/100 HA"
+          "value": "420 / 1.200 ha"
         },
         {
           "label": "Total panen",
-          "value": "50 Ton"
+          "value": "24 Ton"
         },
         {
           "label": "Total pendapatan",
-          "value": "Rp 8.300.000",
+          "value": "Rp 57.000.000",
           "highlight": true
         }
       ]
     }
   ],
   "dashboardFinancialSummary": {
-    "income": 8300000,
-    "projectedIncome": 8300000,
-    "expenses": 8300000,
-    "projectedExpenses": 8300000
+    "income": 170000000,
+    "projectedIncome": 170000000,
+    "expenses": 60000000,
+    "projectedExpenses": 60000000
   },
   "finance": {
     "totalRevenue": 170000000,
@@ -3195,7 +3195,8 @@
           "year": "2026"
         },
         "amount": 12000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 2,
@@ -3208,7 +3209,8 @@
           "year": "2026"
         },
         "amount": 4000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 3,
@@ -3221,7 +3223,8 @@
           "year": "2026"
         },
         "amount": 14000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 4,
@@ -3234,7 +3237,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 5,
@@ -3247,7 +3251,8 @@
           "year": "2026"
         },
         "amount": 16000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 6,
@@ -3260,7 +3265,8 @@
           "year": "2026"
         },
         "amount": 6000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 7,
@@ -3273,7 +3279,8 @@
           "year": "2026"
         },
         "amount": 11000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 8,
@@ -3286,7 +3293,8 @@
           "year": "2026"
         },
         "amount": 4000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 9,
@@ -3299,7 +3307,8 @@
           "year": "2026"
         },
         "amount": 13000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 10,
@@ -3312,7 +3321,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 11,
@@ -3325,7 +3335,8 @@
           "year": "2026"
         },
         "amount": 14000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 12,
@@ -3338,7 +3349,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 13,
@@ -3351,7 +3363,8 @@
           "year": "2026"
         },
         "amount": 16000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 14,
@@ -3364,7 +3377,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 15,
@@ -3377,7 +3391,8 @@
           "year": "2026"
         },
         "amount": 17000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 16,
@@ -3390,7 +3405,8 @@
           "year": "2026"
         },
         "amount": 6000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 17,
@@ -3403,7 +3419,8 @@
           "year": "2026"
         },
         "amount": 18000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 18,
@@ -3416,7 +3433,8 @@
           "year": "2026"
         },
         "amount": 6000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 19,
@@ -3429,7 +3447,8 @@
           "year": "2026"
         },
         "amount": 12000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 20,
@@ -3442,7 +3461,8 @@
           "year": "2026"
         },
         "amount": 4000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 21,
@@ -3455,7 +3475,8 @@
           "year": "2026"
         },
         "amount": 13000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": true
       },
       {
         "id": 22,
@@ -3468,7 +3489,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": true
       },
       {
         "id": 23,
@@ -3481,7 +3503,8 @@
           "year": "2026"
         },
         "amount": 14000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": true
       },
       {
         "id": 24,
@@ -3494,7 +3517,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": true
       }
     ]
   },
