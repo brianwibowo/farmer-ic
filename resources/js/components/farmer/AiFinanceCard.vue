@@ -13,7 +13,13 @@ function amount(label: string): string {
 
 const income = computed(() => amount('Pemasukan'));
 const expense = computed(() => amount('Pengeluaran'));
-const net = computed(() => amount('Laba bersih'));
+const parsedNet = computed(() => amount('Laba bersih'));
+const net = computed(() => {
+    if (parsedNet.value !== '—') return parsedNet.value;
+    const toNumber = (value: string) => Number(value.replace(/[^0-9-]/g, '')) || 0;
+    const total = toNumber(income.value) - toNumber(expense.value);
+    return total > 0 ? `Rp${total.toLocaleString('id-ID')}` : '—';
+});
 const source = computed(() => text.value.match(/Sumber:\s*(.+)$/im)?.[1]?.trim() ?? 'Data finance');
 const body = computed(() => text.value
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
@@ -35,16 +41,16 @@ function formatBody(value: string): string {
     <div class="space-y-3">
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <div class="rounded-xl border border-success/20 bg-success/10 p-3">
-                <div class="flex items-center gap-2 text-xs font-medium text-success"><ArrowUp :size="14" /> Pemasukan</div>
-                <div class="mt-1 text-base font-semibold text-foreground">{{ income }}</div>
+                <div class="flex items-center gap-1.5 text-xs font-medium text-success"><ArrowUp :size="14" /> Pemasukan</div>
+                <div class="mt-1 min-w-0 break-words text-sm font-semibold leading-5 text-foreground sm:text-base">{{ income }}</div>
             </div>
             <div class="rounded-xl border border-error/20 bg-error/10 p-3">
-                <div class="flex items-center gap-2 text-xs font-medium text-error"><ArrowDown :size="14" /> Pengeluaran</div>
-                <div class="mt-1 text-base font-semibold text-foreground">{{ expense }}</div>
+                <div class="flex items-center gap-1.5 text-xs font-medium text-error"><ArrowDown :size="14" /> Pengeluaran</div>
+                <div class="mt-1 min-w-0 break-words text-sm font-semibold leading-5 text-foreground sm:text-base">{{ expense }}</div>
             </div>
             <div class="rounded-xl border border-primary/20 bg-primary/10 p-3">
-                <div class="flex items-center gap-2 text-xs font-medium text-secondary"><TrendingUp :size="14" /> Laba bersih</div>
-                <div class="mt-1 text-base font-semibold text-foreground">{{ net }}</div>
+                <div class="flex items-center gap-1.5 text-xs font-medium text-secondary"><TrendingUp :size="14" /> Laba bersih</div>
+                <div class="mt-1 min-w-0 break-words text-sm font-semibold leading-5 text-foreground sm:text-base">{{ net }}</div>
             </div>
         </div>
         <div v-if="body" class="text-sm leading-6 text-foreground" v-html="formatBody(body)" />
