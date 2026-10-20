@@ -192,18 +192,22 @@ export async function getFarmCommoditySummaries(): Promise<CommoditySummary[]> {
         },
     );
 
+    const totalPlantedArea = state.kebun.reduce(
+        (total, item) => total + item.usedHectare,
+        0,
+    );
+    const totalFarmArea = state.kebun.reduce(
+        (total, item) => total + item.availableHectare,
+        0,
+    );
+
     const overall: CommoditySummary = {
         ...overallFarmSummary,
         statistics: [
             { label: 'Jumlah', value: `${state.kebun.length} Kebun` },
             {
-                label: 'Luas total',
-                value: formatHectare(
-                    state.kebun.reduce(
-                        (total, item) => total + item.availableHectare,
-                        0,
-                    ),
-                ),
+                label: 'Luas Total',
+                value: `${formatHectare(totalPlantedArea)} / ${formatHectare(totalFarmArea)}`,
             },
             {
                 label: 'Total tanam',
