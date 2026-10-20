@@ -488,7 +488,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                         ? 'Konteks siap. Menyiapkan infografis…'
                         : 'Konteks siap. Model sedang menyusun jawaban…';
                     assistantMessage.metadata = {
-                        ...(assistantMessage.metadata ?? {}),
+                        ...assistantMessage.metadata,
                         ...(parsed.route ? { route: parsed.route } : {}),
                         retrieval: parsed.retrieval,
                     };

@@ -18,6 +18,7 @@ export type AiIntentRoute = {
     needsClarification: boolean;
     reason:
         | 'explicit_data_lookup'
+        | 'finance_analysis'
         | 'current_finance_unavailable'
         | 'explicit_visual_request'
         | 'agriculture_guidance'
@@ -209,12 +210,6 @@ function hasExplicitDataLookup(value: string, domain: AiDomain): boolean {
     }
 
     return true;
-}
-
-function hasCurrentFinanceGuardrail(value: string): boolean {
-    return (
-        detectDomain(value) === 'finance' && detectPeriod(value) === 'current'
-    );
 }
 
 export function routeAiPrompt(

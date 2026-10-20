@@ -241,7 +241,7 @@ class AiChatService
                         'request_trace' => $this->requestTrace(
                             $prompt,
                             '/api/v1/chat/completions',
-                            $models[$index] ?? $model,
+                            $model,
                             data_get($lastChunk, 'provider_request_id') ?: data_get($lastChunk, 'id'),
                             'completed',
                             $latency,
@@ -418,16 +418,10 @@ class AiChatService
                     $textContent,
                 ) ?? $textContent;
 
-                if ($publicUrl === null && trim($textContent) === '') {
-                    throw new LlmException('AI provider returned an empty infographic response.', 502);
-                }
-
                 $title = $conversation->title ?: 'Diagram Infografis Pertanian';
                 $textContent = $this->appendCitations($textContent, $evidence);
                 $validation = $this->groundedValidator->validate($textContent, $evidence);
-                $finalContent = $publicUrl
-                    ? '!['.$title.']('.$publicUrl.")\n\n".$textContent
-                    : $textContent;
+                $finalContent = '!['.$title.']('.$publicUrl.")\n\n".$textContent;
 
                 $usage = $this->usageFromChunk($response);
                 $latency = (int) round((microtime(true) - $startedAt) * 1000);
@@ -548,7 +542,11 @@ class AiChatService
         ]];
     }
 
-    /** @param array<int, array<string, mixed>> $messages */
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     * @param  array<int, array<string, mixed>>  $evidence
+     * @return array<string, mixed>
+     */
     protected function requestTrace(
         array $messages,
         string $endpoint,
