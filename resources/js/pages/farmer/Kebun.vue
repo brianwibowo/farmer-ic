@@ -12,7 +12,6 @@ import {
     Sprout,
 } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { SeedType } from '@/data/kebun';
@@ -47,9 +46,11 @@ const filteredKebun = computed(() => {
     });
 });
 
-const healthyCount = computed(() => kebun.value.filter((item) => item.healthStatus === 'Sehat').length);
-const attentionCount = computed(() => kebun.value.filter((item) => item.healthStatus === 'Perlu Perhatian').length);
-const criticalCount = computed(() => kebun.value.filter((item) => item.healthStatus === 'Kritis').length);
+// Summary counts follow the active search/commodity filter so they always match
+// the list below.
+const healthyCount = computed(() => filteredKebun.value.filter((item) => item.healthStatus === 'Sehat').length);
+const attentionCount = computed(() => filteredKebun.value.filter((item) => item.healthStatus === 'Perlu Perhatian').length);
+const criticalCount = computed(() => filteredKebun.value.filter((item) => item.healthStatus === 'Kritis').length);
 
 function formatHectare(value: number): string {
     return new Intl.NumberFormat('id-ID').format(value);
@@ -92,8 +93,6 @@ onMounted(() => void loadKebun());
 
     <FarmerMobileShell active-key="garden">
         <div data-kebun-list class="px-4 pt-4 pb-5">
-            <DashboardHeader class="mb-6" />
-
             <header class="flex items-start justify-between gap-3">
                 <div>
                     <!-- <p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Ruang kerja petani</p> -->
@@ -112,7 +111,7 @@ onMounted(() => void loadKebun());
                 <div class="flex items-center justify-between rounded-2xl border border-primary/20 bg-surface/35 p-4">
                     <div>
                         <p class="text-xs text-muted-foreground">Total kebun terdaftar</p>
-                        <p class="mt-1 text-3xl leading-9 font-semibold text-secondary">{{ kebun.length }}</p>
+                        <p class="mt-1 text-3xl leading-9 font-semibold text-secondary">{{ filteredKebun.length }}</p>
                     </div>
                     <span class="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                         <LandPlot :size="22" aria-hidden="true" />

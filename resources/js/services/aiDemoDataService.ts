@@ -13,15 +13,15 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 function formatRupiah(value: number): string {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
         maximumFractionDigits: 0,
     }).format(value);
 }
 
 function normalize(value: string): string {
-    return value.toLocaleLowerCase('id-ID').replace(/\s+/g, ' ').trim();
+    return value.toLocaleLowerCase("id-ID").replace(/\s+/g, " ").trim();
 }
 
 export async function queryDemoData(
@@ -51,9 +51,14 @@ export async function queryDemoData(
         ) ||
         /\b(?:total|jumlah)\s+(?:aktivitas|kegiatan)\b/i.test(value);
     const wantsGarden =
-        /\b(?:data|laporan|ringkasan)\s+(?:kebun|lahan)\b/i.test(value) ||
+        /\b(?:data|laporan|ringkasan|daftar|list|tampilkan|sebutkan)\s+(?:kebun|lahan)\b/i.test(
+            value,
+        ) ||
         /\b(?:kondisi|status|kesehatan)\s+(?:kebun|lahan)\b/i.test(value) ||
-        /\b(?:total|jumlah)\s+(?:kebun|lahan)\b/i.test(value);
+        /\b(?:ada\s+)?(?:total|jumlah|berapa)\s+(?:banyak\s+)?(?:kebun|lahan)\b/i.test(
+            value,
+        ) ||
+        /\bkebun\s+(?:apa\s+saja|yang\s+dimiliki|saya|kami)\b/i.test(value);
 
     if (wantsFinance) {
         await wait(420);
@@ -68,16 +73,16 @@ export async function queryDemoData(
         const latest = finance.transactions.slice(-3).reverse();
         const financeScope = quarter
             ? `Periode: ${quarter.label}`
-            : 'Periode: seluruh data demo 2026';
+            : "Periode: seluruh data demo 2026";
         const scopeLine = allGardens
             ? `Cakupan: seluruh kebun (${farmDemoSeedData.kebun.length} kebun)`
-            : 'Cakupan: data keuangan yang tersedia';
+            : "Cakupan: data keuangan yang tersedia";
         const totals = quarter
             ? [
                   `**Pendapatan:** ${formatRupiah(quarter.totalRevenue)}`,
                   `**Pengeluaran:** ${formatRupiah(quarter.totalExpense)}`,
                   `**Laba bersih:** ${formatRupiah(quarter.netTotal)}`,
-              ].join(' | ')
+              ].join(" | ")
             : [
                   `**Pendapatan:** ${formatRupiah(finance.totalRevenue)}`,
                   `**Pengeluaran:** ${formatRupiah(finance.totalExpense)}`,
@@ -86,28 +91,28 @@ export async function queryDemoData(
         return {
             source: 'Data demo keuangan · farmDemoData origin/dev',
             content: [
-                '### 💰 Ringkasan Keuangan Kebun',
+                "### 💰 Ringkasan Keuangan Kebun",
                 `> 📊 ${totals} | ⏳ **${financeScope}**`,
                 `> 🌱 **${scopeLine}** | 📌 **Sumber:** Data demo`,
                 '',
                 ...(quarter
                     ? [
-                          'Rincian bulanan:',
+                          "Rincian bulanan:",
                           ...quarter.points.map(
                               (point) =>
                                   `- **${point.label}:** pendapatan ${formatRupiah(point.revenue)}, pengeluaran ${formatRupiah(point.expense)}, laba ${formatRupiah(point.net)}`,
                           ),
                       ]
                     : [
-                          'Transaksi terbaru:',
+                          "Transaksi terbaru:",
                           ...latest.map(
                               (item, index) =>
-                                  `${index + 1}. **${item.description}**: ${item.type === 'expense' ? 'Pengeluaran ' : ''}${formatRupiah(item.amount)}`,
+                                  `${index + 1}. **${item.description}**: ${item.type === "expense" ? "Pengeluaran " : ""}${formatRupiah(item.amount)}`,
                           ),
                       ]),
-                '',
-                '> 💡 **Tips Petani:** Bandingkan pemasukan dan biaya operasional per komoditas sebelum menentukan target panen berikutnya.',
-            ].join('\n'),
+                "",
+                "> 💡 **Tips Petani:** Bandingkan pemasukan dan biaya operasional per komoditas sebelum menentukan target panen berikutnya.",
+            ].join("\n"),
         };
     }
 
@@ -117,16 +122,16 @@ export async function queryDemoData(
         return {
             source: 'Data demo aktivitas · farmDemoData origin/dev',
             content: [
-                '### 🧾 Aktivitas Kebun Terbaru',
+                "### 🧾 Aktivitas Kebun Terbaru",
                 `> 📌 **Catatan:** ${entries.length} aktivitas | ⏳ **Status:** Tersedia | 📊 **Sumber:** Data demo`,
-                '',
+                "",
                 ...entries.map(
                     (item, index) =>
                         `${index + 1}. **${item.typeLabel}**: ${item.kebunName} · ${item.city}`,
                 ),
-                '',
-                '> 💡 **Tips Petani:** Buka rincian aktivitas untuk memeriksa foto, petugas, dan catatan lapangan sebelum mengambil keputusan.',
-            ].join('\n'),
+                "",
+                "> 💡 **Tips Petani:** Buka rincian aktivitas untuk memeriksa foto, petugas, dan catatan lapangan sebelum mengambil keputusan.",
+            ].join("\n"),
         };
     }
 
@@ -158,16 +163,16 @@ export async function queryDemoData(
         return {
             source: 'Data demo kebun · seed prototipe',
             content: [
-                '### 🌱 Kondisi Kebun',
-                `> 🌾 **Total kebun:** ${kebun.length} | ✅ **Sehat:** ${kebun.length - attention.length} | ⚠️ **Perlu perhatian:** ${attention.length}`,
-                '',
+                "### 🌱 Kondisi Kebun Petani",
+                `> 🌾 **Total kebun:** ${kebun.length} | ✅ **Sehat:** ${kebun.length - attention.length} | ⚠️ **Perlu perhatian/Kritis:** ${attention.length}`,
+                "",
                 ...kebun.map(
                     (item, index) =>
-                        `${index + 1}. **${item.name}**: ${item.seedType} · ${item.healthStatus} · ${item.city}`,
+                        `${index + 1}. **${item.name}**: ${item.seedType}${item.seedTypeDetail ? " (" + item.seedTypeDetail + ")" : ""} · ${item.healthStatus} · ${item.city} (${item.usedHectare}/${item.availableHectare} ha)`,
                 ),
-                '',
-                '> 💡 **Catatan:** Status Perlu Perhatian atau Kritis sebaiknya diverifikasi melalui rincian kebun dan catatan lapangan terbaru.',
-            ].join('\n'),
+                "",
+                '> 💡 **Tips:** Sebutkan nama kebun tertentu (misal: *"Kondisi kebun Sumber Makmur"*) untuk melihat rincian lokasi dan varietas benihnya.',
+            ].join("\n"),
         };
     }
 

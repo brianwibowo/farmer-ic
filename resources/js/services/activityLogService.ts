@@ -1,8 +1,12 @@
-import type { ActivityLog, ActivityType } from '@/data/activityLogs';
+import {
+    sortActivityLogsByDateDesc,
+    type ActivityLog,
+    type ActivityType,
+} from '@/data/activityLogs';
 import { listFarmActivities } from '@/services/farmDemoService';
 
 export async function listActivityLogs(): Promise<ActivityLog[]> {
-    return listFarmActivities();
+    return sortActivityLogsByDateDesc(await listFarmActivities());
 }
 
 export async function getActivityLogByType(

@@ -224,14 +224,14 @@ class AiChatService
 
                 $latency = (int) round((microtime(true) - $startedAt) * 1000);
                 $validation = $this->groundedValidator->validate($content, $evidence);
-                $content = $this->appendCitations($content, $evidence);
                 $timings['generation_ms'] = $latency;
                 $timings['total_ms'] = (int) round((microtime(true) - $pipelineStartedAt) * 1000);
                 $timings['first_token_ms'] = $firstTokenAt === null
                     ? null
                     : (int) round(($firstTokenAt - $generationStartedAt) * 1000);
+                $cleanContent = $this->sanitizeAssistantReply($this->appendCitations($content, $evidence));
                 $assistant->forceFill([
-                    'content' => $content,
+                    'content' => $cleanContent,
                     'status' => 'completed',
                     'request_id' => data_get($lastChunk, 'id'),
                     'input_tokens' => $usage['input_tokens'],
@@ -890,5 +890,16 @@ class AiChatService
                     : data_get($attachment->metadata, 'url'),
             ])->values()->all(),
         ];
+    }
+
+    protected function sanitizeAssistantReply(string $content): string
+    {
+        $cleaned = preg_replace([
+            '/\s*(?:karena\s+)?(?:daftar\s+transaksi|data|catatan)\s+yang\s+(?:saya|kami)\s+terima\s+terpotong[^\n.]*[.\n]?/iu',
+            '/\s*kalau\s+anda\s+kirim\s+screenshot[^\n.]*[.\n]?/iu',
+            '/^[\s]*(?:berdasarkan|menurut)\s+(?:data|informasi)\s+yang\s+(?:saya|kami)\s+terima[,:\s]*/imu',
+        ], '', $content) ?? $content;
+
+        return trim(preg_replace('/\n{3,}/u', "\n\n", $cleaned) ?? $cleaned);
     }
 }

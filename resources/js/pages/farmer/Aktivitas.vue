@@ -19,7 +19,6 @@ import {
 import { computed, onMounted, ref } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
-import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
@@ -44,7 +43,7 @@ const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
 const selectedStatus = ref<ActivityStatusFilter>('all');
 const statusOptions: Array<{ value: ActivityStatusFilter; label: string }> = [
-    { value: 'all', label: 'Semua' },
+    { value: 'all', label: 'Semua status' },
     { value: 'needs-check', label: 'Perlu cek' },
     { value: 'normal', label: 'Normal' },
 ];
@@ -175,9 +174,12 @@ const activeFilterCount = computed(
         Number(selectedTimeFilter.value !== 'all'),
 );
 
+// Counted from filteredActivities (not filteredByGeneralFilters) so the card
+// follows the active status chip. Otherwise "Normal" still shows the global
+// needs-check total while the list and Aktivitas card show only normal rows.
 const needsCheckCount = computed(
     () =>
-        filteredByGeneralFilters.value.filter(
+        filteredActivities.value.filter(
             (item) => getActivityAttention(item).status === 'needs-check',
         ).length,
 );
@@ -274,8 +276,6 @@ onMounted(() => void loadActivities());
 
     <FarmerMobileShell :active-key="kebunParam ? 'garden' : 'activity'">
         <div data-aktivitas-list class="px-4 pt-4 pb-5">
-            <DashboardHeader class="mb-6" />
-
             <div
                 class="flex justify-between gap-3"
                 :class="currentKebunName ? 'items-start' : 'items-center'"
@@ -594,7 +594,7 @@ onMounted(() => void loadActivities());
                                         aria-hidden="true"
                                     /><span class="truncate">{{
                                         item.timestamp
-                                    }}</span>
+                                    }} · HST {{ item.daysAfterPlanting }}</span>
                                 </p>
                                 <p
                                     class="flex min-w-0 items-center gap-1.5 truncate"

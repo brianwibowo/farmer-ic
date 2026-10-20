@@ -27,7 +27,7 @@ const selectedMonth = computed(() =>
 const selectedLabel = computed(() =>
     selectedMonth.value
         ? formatIsoMonthToShortLabel(selectedMonth.value)
-        : 'Semua',
+        : 'Semua bulan',
 );
 
 function selectMonth(month: string): void {

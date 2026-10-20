@@ -2,7 +2,6 @@
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
-import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import KebunMap from '@/components/farmer/KebunMap.vue';
 import { dashboard } from '@/routes';
 import type { DashboardInvitation, Team } from '@/types';
@@ -46,8 +45,6 @@ defineOptions({
         <div
             class="mx-auto flex min-h-full w-full max-w-md flex-col gap-4 p-4 *:shrink-0"
         >
-            <DashboardHeader />
-
             <div class="min-w-0">
                 <p class="text-xs leading-5 text-muted-foreground">
                     Good morning,
