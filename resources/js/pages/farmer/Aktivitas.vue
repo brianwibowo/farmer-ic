@@ -43,7 +43,7 @@ const searchQuery = ref('');
 const selectedType = ref<'' | 'all' | ActivityType>('');
 const selectedStatus = ref<ActivityStatusFilter>('all');
 const statusOptions: Array<{ value: ActivityStatusFilter; label: string }> = [
-    { value: 'all', label: 'Semua' },
+    { value: 'all', label: 'Semua status' },
     { value: 'needs-check', label: 'Perlu cek' },
     { value: 'normal', label: 'Normal' },
 ];
@@ -174,9 +174,12 @@ const activeFilterCount = computed(
         Number(selectedTimeFilter.value !== 'all'),
 );
 
+// Counted from filteredActivities (not filteredByGeneralFilters) so the card
+// follows the active status chip. Otherwise "Normal" still shows the global
+// needs-check total while the list and Aktivitas card show only normal rows.
 const needsCheckCount = computed(
     () =>
-        filteredByGeneralFilters.value.filter(
+        filteredActivities.value.filter(
             (item) => getActivityAttention(item).status === 'needs-check',
         ).length,
 );
