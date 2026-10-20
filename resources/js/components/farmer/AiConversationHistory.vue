@@ -8,6 +8,17 @@ defineProps<{
     isLoading: boolean;
 }>();
 
+
+function cleanPreview(value: string | undefined): string {
+    return (value ?? 'Belum ada pesan')
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+        .replace(/^#{1,6}\s*/gm, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\|/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim() || 'Belum ada pesan';
+}
+
 const emit = defineEmits<{
     close: [];
     newConversation: [];
@@ -73,7 +84,7 @@ const emit = defineEmits<{
                         {{ conversation.title }}
                     </p>
                     <p class="mt-1 truncate text-xs text-muted-foreground">
-                        {{ conversation.preview || 'Belum ada pesan' }}
+                        {{ cleanPreview(conversation.preview) }}
                     </p>
                 </button>
             </div>
