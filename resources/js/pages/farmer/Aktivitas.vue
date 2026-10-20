@@ -594,7 +594,7 @@ onMounted(() => void loadActivities());
                                         aria-hidden="true"
                                     /><span class="truncate">{{
                                         item.timestamp
-                                    }}</span>
+                                    }} · HST {{ item.daysAfterPlanting }}</span>
                                 </p>
                                 <p
                                     class="flex min-w-0 items-center gap-1.5 truncate"

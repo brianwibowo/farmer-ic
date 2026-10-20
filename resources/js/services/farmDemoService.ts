@@ -14,7 +14,7 @@ import type { FinanceTransaction } from '@/data/farmerFinance';
 
 // Bump the demo snapshot version whenever the seed history changes so an
 // existing browser session receives the complete mock timeline.
-const storageKey = 'farm_state_v2';
+const storageKey = 'farm_state_v4';
 
 export type DashboardFinancialSummary = {
     income: number;
@@ -289,6 +289,8 @@ export type FarmReport = {
         plantedAt: string;
         harvestAt: string;
         lastUpdatedAt: string;
+        observedKebunCount: number;
+        observedUpdateCount: number;
     };
     growthStages: Array<{
         label: string;
@@ -672,6 +674,8 @@ export function buildFarmReport(
             plantedAt: earliestPlanting ?? '-',
             harvestAt: harvestItems[0]?.date ?? '-',
             lastUpdatedAt: growthUpdates[0]?.timestamp ?? '-',
+            observedKebunCount: growthSnapshots.length,
+            observedUpdateCount: growthUpdates.length,
         },
         growthStages,
         risks,

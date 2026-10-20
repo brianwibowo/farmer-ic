@@ -569,6 +569,13 @@ onMounted(() => void loadReport());
                         {{ report.growthTimeline.plantedAt }} · Proyeksi panen
                         {{ report.growthTimeline.harvestAt }}
                     </p>
+                    <p class="mt-1 text-[11px] text-muted-foreground">
+                        Histori pertumbuhan tersedia untuk
+                        {{ report.growthTimeline.observedKebunCount }} dari
+                        {{ report.summary.totalKebun }} kebun ·
+                        {{ report.growthTimeline.observedUpdateCount }} update
+                        pada periode ini.
+                    </p>
                     <div class="relative mt-5 px-2">
                         <div
                             class="absolute top-3 right-5 left-5 h-1 rounded-full bg-muted"
