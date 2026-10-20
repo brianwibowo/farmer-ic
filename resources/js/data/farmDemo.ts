@@ -1,9 +1,6 @@
-import rawActivityLogs from '@/data/activityLogs.json';
-import rawCommoditySummaries from '@/data/commoditySummaries.json';
-import rawKebunInsights from '@/data/kebunInsights.json';
-import rawKebunLocations from '@/data/kebunLocations.json';
+import farmDemoData from '@/data/farmDemoData.json';
 import type { ActivityLog } from '@/data/activityLogs';
-import { farmerFinanceMock } from '@/data/farmerFinance';
+import { farmerFinanceMock, type FarmerFinance } from '@/data/farmerFinance';
 import { kebunSeedData, type Kebun } from '@/data/kebun';
 
 export type KebunWeather = {
@@ -32,6 +29,11 @@ export type CommodityCatalogItem = {
     id: string;
     name: string;
     image: string;
+    statistics?: Array<{
+        label: string;
+        value: string;
+        highlight?: boolean;
+    }>;
 };
 
 export const overallFarmSummary: CommodityCatalogItem = {
@@ -45,24 +47,31 @@ export type FarmDemoState = {
     kebunLocations: Record<string, [number, number]>;
     kebunInsights: Record<string, KebunInsight>;
     activityLogs: ActivityLog[];
-    finance: typeof farmerFinanceMock;
+    finance: FarmerFinance;
     commodityCatalog: CommodityCatalogItem[];
 };
 
-const commodityCatalog = rawCommoditySummaries
+const kebunLocations = Object.fromEntries(
+    Object.entries(farmDemoData.kebunLocations).map(([id, position]) => [
+        id,
+        [position[0], position[1]] as [number, number],
+    ]),
+) as Record<string, [number, number]>;
+
+const commodityCatalog = farmDemoData.commodityCatalog
     .filter((item) => item.id !== 'all')
-    .map(({ id, name, image }) => ({ id, name, image }));
+    .map(({ id, name, image, statistics }) => ({
+        id,
+        name,
+        image,
+        statistics,
+    }));
 
 export const farmDemoSeedData: FarmDemoState = {
     kebun: kebunSeedData,
-    kebunLocations: Object.fromEntries(
-        Object.entries(rawKebunLocations).map(([id, position]) => [
-            id,
-            [position[0], position[1]] as [number, number],
-        ]),
-    ),
-    kebunInsights: rawKebunInsights as Record<string, KebunInsight>,
-    activityLogs: rawActivityLogs as ActivityLog[],
+    kebunLocations,
+    kebunInsights: farmDemoData.kebunInsights as Record<string, KebunInsight>,
+    activityLogs: farmDemoData.activityLogs as ActivityLog[],
     finance: farmerFinanceMock,
     commodityCatalog,
 };

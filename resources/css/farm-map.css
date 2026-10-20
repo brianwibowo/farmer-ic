@@ -29,3 +29,28 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
 }
+
+.farm-map .farm-map-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+
+.farm-map-marker__dot {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--farm-marker-color, var(--success));
+    pointer-events: none;
+}
+
+.farm-map .leaflet-control-scale-line {
+    border-color: var(--muted-foreground);
+    background: var(--card);
+    color: var(--card-foreground);
+    text-shadow: none;
+}

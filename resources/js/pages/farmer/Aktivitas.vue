@@ -19,7 +19,6 @@ import {
 import { computed, onMounted, ref } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
-import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
@@ -274,8 +273,6 @@ onMounted(() => void loadActivities());
 
     <FarmerMobileShell :active-key="kebunParam ? 'garden' : 'activity'">
         <div data-aktivitas-list class="px-4 pt-4 pb-5">
-            <DashboardHeader class="mb-6" />
-
             <div
                 class="flex justify-between gap-3"
                 :class="currentKebunName ? 'items-start' : 'items-center'"

@@ -2,7 +2,6 @@
 import { Head } from '@inertiajs/vue3';
 import { Filter, Search, X } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import RevenueChart from '@/components/farmer/RevenueChart.vue';
 import { useFarmerNavigation } from '@/composables/useFarmerNavigation';
@@ -24,6 +23,7 @@ const searchQuery = ref('');
 const selectedCommodity = ref<FinanceCommodity | 'all'>('all');
 const selectedType = ref<FinanceTransaction['type'] | 'all'>('all');
 const isFilterOpen = ref(false);
+const isLoading = ref(true);
 type FinanceData = Awaited<ReturnType<typeof getFarmFinance>>;
 const financeData = ref<FinanceData>();
 
@@ -52,10 +52,14 @@ const selectedData = computed(
 const selectedPoint = ref<RevenuePoint>(emptyPoint);
 
 onMounted(async () => {
-    financeData.value = await getFarmFinance();
-    selectedPoint.value =
-        financeData.value.quarters[selectedQuarter.value].points[0] ??
-        emptyPoint;
+    try {
+        financeData.value = await getFarmFinance();
+        selectedPoint.value =
+            financeData.value.quarters[selectedQuarter.value].points[0] ??
+            emptyPoint;
+    } finally {
+        isLoading.value = false;
+    }
 });
 
 function selectQuarter(quarter: FinanceQuarter): void {
@@ -113,8 +117,6 @@ const formatRupiah = (value: number): string =>
 
     <FarmerMobileShell active-key="finance" @select="navigate">
         <div data-finance-page class="space-y-6 px-4 pt-4 pb-6">
-            <DashboardHeader />
-
             <header>
                 <p class="text-sm font-medium text-[#1c5e21]">Keuangan</p>
                 <h1 class="mt-1 text-2xl font-semibold tracking-tight">
@@ -157,7 +159,29 @@ const formatRupiah = (value: number): string =>
                 </button>
             </div>
 
-            <template v-if="activeTab === 'chart'">
+            <div
+                v-if="isLoading"
+                class="space-y-4"
+                role="status"
+                aria-label="Memuat data keuangan"
+            >
+                <div class="space-y-2">
+                    <div class="h-4 w-40 animate-pulse rounded bg-muted" />
+                    <div class="h-10 w-56 animate-pulse rounded bg-muted" />
+                    <div class="h-3 w-64 animate-pulse rounded bg-muted" />
+                </div>
+                <div class="h-72 animate-pulse rounded-2xl bg-muted" />
+                <div class="grid grid-cols-4 gap-2">
+                    <div
+                        v-for="quarter in 4"
+                        :key="quarter"
+                        class="h-10 animate-pulse rounded-full bg-muted"
+                    />
+                </div>
+                <div class="h-24 animate-pulse rounded-2xl bg-muted" />
+            </div>
+
+            <template v-else-if="activeTab === 'chart'">
                 <section aria-labelledby="total-revenue-label">
                     <p id="total-revenue-label" class="text-sm text-[#070807]">
                         Pendapatan bersih {{ selectedData.label }}
@@ -262,7 +286,10 @@ const formatRupiah = (value: number): string =>
                 </section>
             </template>
 
-            <section v-else aria-labelledby="transactions-title">
+            <section
+                v-else-if="!isLoading"
+                aria-labelledby="transactions-title"
+            >
                 <div class="mb-3 flex items-end justify-between">
                     <div>
                         <h2

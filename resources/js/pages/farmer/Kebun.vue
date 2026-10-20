@@ -12,7 +12,6 @@ import {
     Sprout,
 } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { SeedType } from '@/data/kebun';
@@ -92,8 +91,6 @@ onMounted(() => void loadKebun());
 
     <FarmerMobileShell active-key="garden">
         <div data-kebun-list class="px-4 pt-4 pb-5">
-            <DashboardHeader class="mb-6" />
-
             <header class="flex items-start justify-between gap-3">
                 <div>
                     <!-- <p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Ruang kerja petani</p> -->

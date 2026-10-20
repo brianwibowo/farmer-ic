@@ -107,7 +107,7 @@ onMounted(() => void loadActivityDetail());
     <Head title="Rincian Aktivitas" />
 
     <FarmerMobileShell :active-key="shellActiveKey">
-        <div data-rincian-aktivitas class="px-4 pt-16 pb-6">
+        <div data-rincian-aktivitas class="px-4 pt-4 pb-6">
             <header class="flex items-center justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2.5">
                     <Link

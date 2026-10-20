@@ -20,6 +20,7 @@ import {
     MAX_ATTACHMENT_COUNT,
     MAX_ATTACHMENT_SIZE,
 } from '@/services/aiChatProtocol';
+import { validateAiResponse } from '@/services/aiResponseValidator';
 import type {
     AiChatEndpoints,
     AiRequestMetrics,
@@ -92,6 +93,10 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
 
     function isActiveRequest(requestId: number): boolean {
         return activeRequest?.id === requestId;
+    }
+
+    function validatedResponse(value: string) {
+        return validateAiResponse(normalizeAiResponse(value));
     }
 
     function cancelActiveRequest(cancelledByUser = false): void {
@@ -216,6 +221,9 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             attachments: [],
             createdAt: new Date().toISOString(),
             status: 'streaming',
+            progress: isInfographic
+                ? 'Menyiapkan infografis…'
+                : 'Menghubungkan ke AI…',
         });
         messages.value.push(userMessage, assistantMessage);
         const requestId = ++requestSequence;
@@ -230,10 +238,42 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             cancelledByUser: false,
         };
         activeRequest = request;
+        const progressTimers = [
+            window.setTimeout(() => {
+                if (
+                    isActiveRequest(requestId) &&
+                    assistantMessage.status === 'streaming' &&
+                    !assistantMessage.content
+                ) {
+                    assistantMessage.progress = isInfographic
+                        ? 'Masih menyiapkan infografis…'
+                        : 'Membaca konteks kebun…';
+                }
+            }, 1_800),
+            window.setTimeout(() => {
+                if (
+                    isActiveRequest(requestId) &&
+                    assistantMessage.status === 'streaming' &&
+                    !assistantMessage.content
+                ) {
+                    assistantMessage.progress = 'Masih memproses…';
+                }
+            }, 6_000),
+            window.setTimeout(() => {
+                if (
+                    isActiveRequest(requestId) &&
+                    assistantMessage.status === 'streaming' &&
+                    !assistantMessage.content
+                ) {
+                    assistantMessage.progress =
+                        'Responsnya memerlukan waktu lebih lama…';
+                }
+            }, 12_000),
+        ];
         const requestTimeout = window.setTimeout(() => {
             request.didTimeout = true;
             requestController.abort();
-        }, 90_000);
+        }, 30_000);
         let reconciliationTimer: number | null = null;
 
         const reconcilePersistedReply = async (): Promise<void> => {
@@ -302,9 +342,12 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                             item.content.trim() !== '',
                     );
                 if (!persistedReply || !isActiveRequest(requestId)) return;
-                assistantMessage.content = persistedReply.content;
+                const validation = validatedResponse(persistedReply.content);
+                if (!validation.ok) return;
+                assistantMessage.content = validation.content;
                 assistantMessage.attachments = persistedReply.attachments;
                 assistantMessage.status = 'complete';
+                assistantMessage.progress = undefined;
                 request.reconciled = true;
                 request.controller.abort();
             } catch {
@@ -363,9 +406,16 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (parsed.conversationId)
                     conversationId.value = parsed.conversationId;
                 if (parsed.message) {
-                    assistantMessage.content = normalizeAiResponse(
+                    const validation = validatedResponse(
                         parsed.message.content,
                     );
+                    assistantMessage.content = validation.content;
+                    assistantMessage.progress = undefined;
+                    if (!validation.ok) {
+                        assistantMessage.status = 'error';
+                        assistantMessage.error =
+                            'Jawaban AI tidak lolos pemeriksaan keamanan dan format.';
+                    }
                     if (parsed.message.attachments.length > 0) {
                         assistantMessage.attachments =
                             parsed.message.attachments;
@@ -375,10 +425,13 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     // before the provider response. Keep it in the UI's
                     // loading state instead of persisting it as answer text.
                     if (/^🎨\s*Sedang merancang/i.test(parsed.delta.trim())) {
+                        assistantMessage.progress =
+                            'Sedang menyiapkan infografis…';
                         return;
                     }
                     if (request.firstDeltaAt === undefined)
                         request.firstDeltaAt = performance.now();
+                    assistantMessage.progress = 'AI sedang menulis…';
                     assistantMessage.content =
                         parsed.deltaMode === 'snapshot'
                             ? mergeResponseText(
@@ -390,16 +443,27 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (parsed.error) {
                     assistantMessage.error = parsed.error;
                     assistantMessage.status = 'error';
+                    assistantMessage.progress = undefined;
                 }
                 if (parsed.done && assistantMessage.status !== 'error') {
-                    assistantMessage.content = normalizeAiResponse(
+                    const validation = validatedResponse(
                         assistantMessage.content,
                     );
+                    assistantMessage.content = validation.content;
                     assistantMessage.status =
-                        hasUsableAiResponse(assistantMessage.content) ||
-                        assistantMessage.attachments.length > 0
+                        validation.ok &&
+                        (hasUsableAiResponse(assistantMessage.content) ||
+                            assistantMessage.attachments.length > 0)
                             ? 'complete'
                             : 'streaming';
+                    if (!validation.ok) {
+                        assistantMessage.status = 'error';
+                        assistantMessage.error =
+                            'Jawaban AI tidak lolos pemeriksaan keamanan dan format.';
+                    }
+                    if (assistantMessage.status === 'complete') {
+                        assistantMessage.progress = undefined;
+                    }
                 }
             };
 
@@ -440,17 +504,23 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
 
             if (!isActiveRequest(requestId)) return null;
             if (assistantMessage.status === 'streaming') {
-                assistantMessage.content = normalizeAiResponse(
-                    assistantMessage.content,
-                );
+                const validation = validatedResponse(assistantMessage.content);
+                assistantMessage.content = validation.content;
                 assistantMessage.status =
-                    hasUsableAiResponse(assistantMessage.content) ||
-                    assistantMessage.attachments.length > 0
+                    validation.ok &&
+                    (hasUsableAiResponse(assistantMessage.content) ||
+                        assistantMessage.attachments.length > 0)
                         ? 'complete'
                         : 'error';
+                if (!validation.ok) {
+                    assistantMessage.error =
+                        'Jawaban AI tidak lolos pemeriksaan keamanan dan format.';
+                }
             }
             if (assistantMessage.status === 'error' && !assistantMessage.error)
                 assistantMessage.error = 'Jawaban kosong dari server.';
+            if (assistantMessage.status === 'error')
+                assistantMessage.progress = undefined;
             lastRequestMetrics.value = {
                 latencyMs: Math.round(performance.now() - startedAt),
                 firstTokenMs:
@@ -479,8 +549,9 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     assistantMessage.status = 'complete';
                 } else if (isActiveRequest(requestId) && request.didTimeout) {
                     assistantMessage.status = 'error';
+                    assistantMessage.progress = undefined;
                     assistantMessage.error =
-                        'Jawaban terlalu lama. Coba kirim pertanyaan yang lebih singkat.';
+                        'Jawaban belum selesai setelah 30 detik. Coba lagi dengan pertanyaan yang lebih singkat.';
                     error.value = assistantMessage.error;
                     lastRequestMetrics.value = {
                         latencyMs: Math.round(performance.now() - startedAt),
@@ -495,11 +566,13 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                         assistantMessage.status = assistantMessage.content
                             ? 'complete'
                             : 'cancelled';
+                        assistantMessage.progress = undefined;
                         if (!assistantMessage.content) {
                             assistantMessage.error = 'Jawaban dihentikan.';
                         }
                     } else {
                         assistantMessage.status = 'error';
+                        assistantMessage.progress = undefined;
                         assistantMessage.error =
                             'Koneksi ke layanan AI terputus. Coba lagi.';
                         error.value = assistantMessage.error;
@@ -517,6 +590,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             }
             if (isActiveRequest(requestId)) {
                 assistantMessage.status = 'error';
+                assistantMessage.progress = undefined;
                 assistantMessage.error =
                     cause instanceof Error
                         ? cause.message
@@ -535,6 +609,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             return null;
         } finally {
             window.clearTimeout(requestTimeout);
+            progressTimers.forEach((timer) => window.clearTimeout(timer));
             if (reconciliationTimer !== null)
                 window.clearInterval(reconciliationTimer);
             if (isActiveRequest(requestId)) {
@@ -544,6 +619,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                             ? 'complete'
                             : 'cancelled'
                         : 'error';
+                    request.assistantMessage.progress = undefined;
                     if (!request.assistantMessage.content) {
                         request.assistantMessage.error = request.cancelledByUser
                             ? 'Jawaban dihentikan.'
@@ -563,6 +639,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         const current = request.assistantMessage;
         if (current.status === 'streaming') {
             current.status = current.content ? 'complete' : 'cancelled';
+            current.progress = undefined;
             if (!current.content) current.error = 'Jawaban dihentikan.';
         }
         lastRequestMetrics.value = {
