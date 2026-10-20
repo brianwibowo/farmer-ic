@@ -12,9 +12,9 @@ import {
 import type { ActivityLog } from '@/data/activityLogs';
 import type { FinanceTransaction } from '@/data/farmerFinance';
 
-// Bump the demo snapshot version whenever the seed history changes so an
-// existing browser session receives the complete mock timeline.
-const storageKey = 'farm_state_v7';
+// Bump the demo snapshot version whenever the unified JSON seed changes so an
+// existing browser session receives the latest demo data.
+const storageKey = 'farm_state_v8';
 
 export type DashboardFinancialSummary = {
     income: number;

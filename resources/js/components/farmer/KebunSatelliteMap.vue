@@ -4,6 +4,7 @@ import type { Map as LeafletMap, TileLayer } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../../../css/farm-map.css';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { FARM_MAP_MAX_ZOOM, SATELLITE_MIN_ZOOM } from '@/lib/farmMap';
 
 const props = defineProps<{ position: [number, number]; name: string }>();
 const container = ref<HTMLDivElement>();
@@ -40,8 +41,11 @@ async function initialize(): Promise<void> {
             .map(container.value, {
                 scrollWheelZoom: false,
                 zoomControl: false,
+                minZoom: SATELLITE_MIN_ZOOM,
+                maxZoom: FARM_MAP_MAX_ZOOM,
+                bounceAtZoomLimits: false,
             })
-            .setView(props.position, 16);
+            .setView(props.position, SATELLITE_MIN_ZOOM);
         leaflet.control
             .zoom({
                 position: 'bottomright',
@@ -49,10 +53,12 @@ async function initialize(): Promise<void> {
                 zoomOutTitle: 'Perkecil citra satelit',
             })
             .addTo(map);
+        leaflet.control.scale({ imperial: false, maxWidth: 100 }).addTo(map);
         tiles = leaflet.tileLayer(
             'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
             {
-                maxZoom: 19,
+                maxZoom: FARM_MAP_MAX_ZOOM,
+                maxNativeZoom: FARM_MAP_MAX_ZOOM,
                 attribution:
                     'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
             },

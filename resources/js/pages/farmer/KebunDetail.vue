@@ -69,7 +69,7 @@ const detail = computed(() => {
 
 function healthTone(status: string): string {
     if (status === 'Kritis') return 'border-error/25 bg-error/10 text-error';
-    if (status === 'Perlu Perhatian') return 'border-warning/30 bg-warning/15 text-warning  ';
+    if (status === 'Perlu Perhatian') return 'border-warning/45 bg-warning/20 text-warning-foreground';
     return 'border-success/25 bg-success/10 text-success';
 }
 
@@ -592,11 +592,11 @@ watch(kebunId, () => void loadDetail());
                 <article class="rounded-xl border border-border bg-muted p-3.5">
                     <div class="flex items-start gap-3">
                         <span
-                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning"
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning/30 text-warning-foreground"
                             ><Activity :size="18" aria-hidden="true"
                         /></span>
                         <div>
-                            <h3 class="text-sm font-semibold text-warning">
+                            <h3 class="text-sm font-semibold text-warning-foreground">
                                 Next step
                             </h3>
                             <p

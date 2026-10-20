@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { BarChart3, ChevronLeft, Plus, Sparkles } from '@lucide/vue';
 
+const props = withDefaults(
+    defineProps<{
+        isSending?: boolean;
+    }>(),
+    {
+        isSending: false,
+    },
+);
+
 const emit = defineEmits<{
     openHistory: [];
     openReport: [];
@@ -33,8 +42,19 @@ const emit = defineEmits<{
                 <p
                     class="flex items-center gap-1 text-[11px] text-muted-foreground"
                 >
-                    <span class="size-1.5 rounded-full bg-success" />
-                    Siap membantu
+                    <span
+                        class="size-1.5 rounded-full"
+                        :class="
+                            props.isSending
+                                ? 'animate-pulse bg-primary'
+                                : 'bg-success'
+                        "
+                    />
+                    {{
+                        props.isSending
+                            ? 'Menyiapkan jawaban…'
+                            : 'Siap membantu'
+                    }}
                 </p>
             </div>
         </div>

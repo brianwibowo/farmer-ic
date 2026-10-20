@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { LocateFixed, LoaderCircle, MapPin, RotateCcw } from '@lucide/vue';
-import type { FeatureGroup, Map as LeafletMap, Path, TileLayer } from 'leaflet';
+import type {
+    FeatureGroup,
+    Map as LeafletMap,
+    Marker,
+    TileLayer,
+} from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../../../css/farm-map.css';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useAppearance } from '@/composables/useAppearance';
+import { FARM_MAP_MAX_ZOOM, FARM_MARKER_HIT_SIZE } from '@/lib/farmMap';
 import { listMappedKebun, type MappedKebun } from '@/services/kebunService';
 import KebunMapPreview from './KebunMapPreview.vue';
 
@@ -15,15 +21,17 @@ const tilesUnavailable = ref(false);
 const kebunCount = ref(0);
 const selectedKebun = ref<MappedKebun>();
 const previewOpen = ref(false);
-let lastMarker: SVGElement | undefined;
+let lastMarker: HTMLElement | undefined;
 const { resolvedAppearance } = useAppearance();
 let map: LeafletMap | undefined;
 let areas: FeatureGroup | undefined;
 let tiles: TileLayer | undefined;
 let resizeObserver: ResizeObserver | undefined;
 let disposed = false;
-let coloredLayers: Array<{ layer: Path; status: MappedKebun['healthStatus'] }> =
-    [];
+let coloredMarkers: Array<{
+    marker: Marker;
+    status: MappedKebun['healthStatus'];
+}> = [];
 
 function healthColor(status: MappedKebun['healthStatus']): string {
     const token =
@@ -39,7 +47,11 @@ function healthColor(status: MappedKebun['healthStatus']): string {
 
 function showAllKebun(): void {
     if (map && areas?.getLayers().length) {
-        map.fitBounds(areas.getBounds(), { padding: [24, 24], maxZoom: 12 });
+        map.fitBounds(areas.getBounds(), {
+            paddingTopLeft: [36, 36],
+            paddingBottomRight: [60, 72],
+            maxZoom: 12,
+        });
     }
 }
 
@@ -49,7 +61,7 @@ function destroyMap(): void {
     map = undefined;
     areas = undefined;
     tiles = undefined;
-    coloredLayers = [];
+    coloredMarkers = [];
 }
 
 async function initializeMap(): Promise<void> {
@@ -71,6 +83,8 @@ async function initializeMap(): Promise<void> {
         map = leaflet.map(mapElement.value, {
             scrollWheelZoom: false,
             zoomControl: false,
+            maxZoom: FARM_MAP_MAX_ZOOM,
+            bounceAtZoomLimits: false,
         });
         leaflet.control
             .zoom({
@@ -79,10 +93,12 @@ async function initializeMap(): Promise<void> {
                 zoomOutTitle: 'Perkecil peta',
             })
             .addTo(map);
+        leaflet.control.scale({ imperial: false, maxWidth: 100 }).addTo(map);
         tiles = leaflet.tileLayer(
             'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             {
-                maxZoom: 19,
+                maxZoom: FARM_MAP_MAX_ZOOM,
+                maxNativeZoom: FARM_MAP_MAX_ZOOM,
                 attribution:
                     '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
             },
@@ -95,41 +111,48 @@ async function initializeMap(): Promise<void> {
 
         for (const item of kebun) {
             const color = healthColor(item.healthStatus);
-            const marker = leaflet
-                .circleMarker(item.position, {
-                    radius: 7,
-                    color,
-                    fillColor: color,
-                    fillOpacity: 1,
-                    weight: 3,
-                })
-                .addTo(areas);
+            const marker = leaflet.marker(item.position, {
+                icon: leaflet.divIcon({
+                    className: 'farm-map-marker',
+                    html: '<span class="farm-map-marker__dot" aria-hidden="true"></span>',
+                    iconSize: [FARM_MARKER_HIT_SIZE, FARM_MARKER_HIT_SIZE],
+                    iconAnchor: [
+                        FARM_MARKER_HIT_SIZE / 2,
+                        FARM_MARKER_HIT_SIZE / 2,
+                    ],
+                }),
+                title: item.name,
+                keyboard: true,
+                riseOnHover: true,
+                autoPanOnFocus: true,
+            });
 
-            coloredLayers.push({ layer: marker, status: item.healthStatus });
-            const element = marker.getElement();
+            coloredMarkers.push({ marker, status: item.healthStatus });
             const openPreview = () => {
-                lastMarker =
-                    element instanceof SVGElement ? element : undefined;
+                lastMarker = marker.getElement();
                 selectedKebun.value = item;
                 previewOpen.value = true;
             };
             marker.on('click', openPreview);
-            element?.setAttribute('tabindex', '0');
-            element?.setAttribute('role', 'button');
-            element?.setAttribute('aria-haspopup', 'dialog');
-            element?.setAttribute(
-                'aria-label',
-                `${item.name}, ${item.city}, ${item.healthStatus}`,
-            );
-            element?.addEventListener('keydown', (event) => {
-                if (
-                    event instanceof KeyboardEvent &&
-                    (event.key === 'Enter' || event.key === ' ')
-                ) {
-                    event.preventDefault();
-                    openPreview();
-                }
+            // Icons only exist after the map has its first view. Configure them
+            // on add so the first render also has its color and keyboard label.
+            marker.on('add', () => {
+                const element = marker.getElement();
+                element?.style.setProperty('--farm-marker-color', color);
+                element?.setAttribute('role', 'button');
+                element?.setAttribute('aria-haspopup', 'dialog');
+                element?.setAttribute(
+                    'aria-label',
+                    `${item.name}, ${item.city}, ${item.healthStatus}`,
+                );
+                element?.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        openPreview();
+                    }
+                });
             });
+            marker.addTo(areas);
         }
 
         showAllKebun();
@@ -154,9 +177,10 @@ function retryTiles(): void {
 watch(
     resolvedAppearance,
     () => {
-        for (const { layer, status } of coloredLayers) {
-            const color = healthColor(status);
-            layer.setStyle({ color, fillColor: color });
+        for (const { marker, status } of coloredMarkers) {
+            marker
+                .getElement()
+                ?.style.setProperty('--farm-marker-color', healthColor(status));
         }
     },
     { flush: 'post' },

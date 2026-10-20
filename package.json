@@ -6,6 +6,7 @@
         "build": "vp build",
         "build:ssr": "vp build && vp build --ssr",
         "dev": "vp dev",
+        "test:ai": "vitest run resources/js/services/aiIntentRouter.test.ts resources/js/services/aiDemoDataService.test.ts resources/js/services/aiKnowledgeService.test.ts resources/js/services/aiResponseValidator.test.ts",
         "check": "vp check",
         "check:fix": "vp check --fix",
         "types:check": "vue-tsc --noEmit"

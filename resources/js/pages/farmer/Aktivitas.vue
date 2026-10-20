@@ -190,6 +190,12 @@ function thumbnailFor(item: ActivityLog): string {
     return item.photos[0]?.image ?? '/images/kebun-placeholder.svg';
 }
 
+function activityTypeLabelFor(item: ActivityLog): string {
+    return item.type === 'pengecekan-pertumbuhan'
+        ? 'Pertumbuhan'
+        : item.typeLabel;
+}
+
 function clearFilters(): void {
     searchQuery.value = '';
     selectedType.value = '';
@@ -312,41 +318,41 @@ onMounted(() => void loadActivities());
                 aria-label="Ringkasan aktivitas"
             >
                 <div
-                    class="flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-3"
+                    class="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-primary/25 bg-primary/10 px-2 py-3 text-center"
                 >
                     <span
                         class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"
                     >
                         <Activity :size="16" aria-hidden="true" />
                     </span>
-                    <p class="text-lg leading-5 font-semibold text-primary">
+                    <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ filteredActivities.length }}
                     </p>
                     <p
-                        class="truncate text-[11px] font-medium text-muted-foreground"
+                        class="min-w-0 text-[11px] leading-4 font-medium text-muted-foreground"
                     >
                         Aktivitas
                     </p>
                 </div>
                 <div
-                    class="flex items-center gap-2 rounded-xl border border-secondary/20 bg-surface/35 px-3 py-3"
+                    class="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-secondary/20 bg-surface/35 px-2 py-3 text-center"
                 >
                     <span
                         class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary"
                     >
                         <LandPlot :size="16" aria-hidden="true" />
                     </span>
-                    <p class="text-lg leading-5 font-semibold text-secondary">
+                    <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ gardenCount }}
                     </p>
                     <p
-                        class="truncate text-[11px] font-medium text-muted-foreground"
+                        class="min-w-0 text-[11px] leading-4 font-medium text-muted-foreground"
                     >
                         Kebun
                     </p>
                 </div>
                 <div
-                    class="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-3"
+                    class="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-warning/40 bg-warning/10 px-2 py-3 text-center"
                 >
                     <span
                         class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning"
@@ -356,7 +362,7 @@ onMounted(() => void loadActivities());
                     <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ needsCheckCount }}
                     </p>
-                    <p class="truncate text-[11px] font-medium text-foreground">
+                    <p class="min-w-0 text-[11px] leading-4 font-medium text-foreground">
                         Perlu cek
                     </p>
                 </div>
@@ -550,7 +556,7 @@ onMounted(() => void loadActivities());
                                 <div class="min-w-0">
                                     <span
                                         class="inline-flex max-w-full truncate rounded-md bg-surface px-2 py-1 text-[10px] leading-3 font-semibold text-secondary"
-                                        >{{ item.typeLabel }}</span
+                                        >{{ activityTypeLabelFor(item) }}</span
                                     >
                                     <h2
                                         class="mt-1 truncate text-[16px] leading-5 font-semibold text-foreground group-hover:text-secondary"
@@ -634,41 +640,6 @@ onMounted(() => void loadActivities());
 </template>
 
 <style>
-[data-aktivitas-list] {
-    color-scheme: light;
-    --background: #f9faf9;
-    --foreground: #070807;
-    --surface: #abe7b2;
-    --surface-foreground: #070807;
-    --card: #ffffff;
-    --card-foreground: #070807;
-    --popover: #ffffff;
-    --popover-foreground: #070807;
-    --primary: #68bb6c;
-    --primary-foreground: #ffffff;
-    --secondary: #1c5e21;
-    --secondary-foreground: #ffffff;
-    --accent: #93a99f;
-    --accent-foreground: #070807;
-    --muted: #ebf3ed;
-    --muted-foreground: #2a1a0e;
-    --text-muted: #2a1a0e;
-    --border: #d9d9d9;
-    --input: #d9d9d9;
-    --ring: #68bb6c;
-    --success: #4a943e;
-    --success-foreground: #ffffff;
-    --warning: #edc92c;
-    --warning-foreground: #070807;
-    --error: #bc0202;
-    --error-foreground: #ffffff;
-    --destructive: #bc0202;
-    --destructive-foreground: #ffffff;
-    --info: #d9d9d9;
-    --info-foreground: #070807;
-    --disable: #e5e7ea;
-    --disable-foreground: #8c9096;
-}
 
 main:has(> [data-aktivitas-list]) {
     scrollbar-width: none;
