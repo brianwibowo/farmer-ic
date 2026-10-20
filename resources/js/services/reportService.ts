@@ -3,13 +3,14 @@ import {
     writeDemoStorage,
 } from '@/composables/useDemoStorage';
 import {
-    reportSeedData,
     type ReportCommodity,
     type ReportData,
     type ReportPeriod,
 } from '@/data/report';
+import { farmDemoSeedData } from '@/data/farmDemo';
 
 const storageKey = 'report_v1';
+const reportSeedData = farmDemoSeedData.report;
 
 function wait(milliseconds: number): Promise<void> {
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));

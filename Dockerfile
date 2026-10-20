@@ -58,7 +58,10 @@ RUN apt-get update \
         intl \
         mbstring \
         opcache \
+        pdo_pgsql \
         pdo_sqlite \
+        pgsql \
+        redis \
         zip \
     && a2enmod expires headers rewrite \
     && rm -rf /var/lib/apt/lists/*

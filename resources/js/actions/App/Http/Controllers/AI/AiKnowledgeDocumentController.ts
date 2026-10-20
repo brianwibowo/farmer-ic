@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults, validateParameters } from './../../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::index
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:15
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:16
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -17,7 +17,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::index
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:15
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:16
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -55,7 +55,7 @@ index.url = (args?: { current_team?: string | { slug: string } } | [current_team
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::index
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:15
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:16
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -66,7 +66,7 @@ index.get = (args?: { current_team?: string | { slug: string } } | [current_team
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::index
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:15
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:16
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -77,7 +77,7 @@ index.head = (args?: { current_team?: string | { slug: string } } | [current_tea
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::index
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:15
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:16
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -88,7 +88,7 @@ const indexForm = (args?: { current_team?: string | { slug: string } } | [curren
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::index
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:15
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:16
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -99,7 +99,7 @@ indexForm.get = (args?: { current_team?: string | { slug: string } } | [current_
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::index
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:15
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:16
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -117,7 +117,7 @@ index.form = indexForm
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::store
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:28
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:29
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -133,7 +133,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::store
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:28
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:29
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -171,7 +171,7 @@ store.url = (args?: { current_team?: string | { slug: string } } | [current_team
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::store
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:28
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:29
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -182,7 +182,7 @@ store.post = (args?: { current_team?: string | { slug: string } } | [current_tea
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::store
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:28
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:29
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -193,7 +193,7 @@ const storeForm = (args?: { current_team?: string | { slug: string } } | [curren
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::store
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:28
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:29
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge'
 */
@@ -206,7 +206,7 @@ store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::update
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:46
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:47
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
@@ -222,7 +222,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::update
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:46
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:47
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
@@ -257,7 +257,7 @@ update.url = (args: { current_team?: string | { slug: string }, document: number
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::update
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:46
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:47
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
@@ -268,7 +268,7 @@ update.patch = (args: { current_team?: string | { slug: string }, document: numb
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::update
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:46
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:47
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
@@ -284,7 +284,7 @@ const updateForm = (args: { current_team?: string | { slug: string }, document: 
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::update
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:46
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:47
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}'
 */
@@ -302,7 +302,7 @@ update.form = updateForm
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::publish
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:66
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:67
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
@@ -318,7 +318,7 @@ publish.definition = {
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::publish
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:66
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:67
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
@@ -353,7 +353,7 @@ publish.url = (args: { current_team?: string | { slug: string }, document: numbe
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::publish
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:66
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:67
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
@@ -364,7 +364,7 @@ publish.post = (args: { current_team?: string | { slug: string }, document: numb
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::publish
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:66
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:67
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
@@ -375,7 +375,7 @@ const publishForm = (args: { current_team?: string | { slug: string }, document:
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::publish
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:66
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:67
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/publish'
 */
@@ -388,7 +388,7 @@ publish.form = publishForm
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::archive
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:80
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:85
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
@@ -404,7 +404,7 @@ archive.definition = {
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::archive
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:80
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:85
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
@@ -439,7 +439,7 @@ archive.url = (args: { current_team?: string | { slug: string }, document: numbe
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::archive
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:80
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:85
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
@@ -450,7 +450,7 @@ archive.post = (args: { current_team?: string | { slug: string }, document: numb
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::archive
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:80
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:85
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */
@@ -461,7 +461,7 @@ const archiveForm = (args: { current_team?: string | { slug: string }, document:
 
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::archive
-* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:80
+* @see app/Http/Controllers/AI/AiKnowledgeDocumentController.php:85
 * @param current_team - Default: '$currentTeam'
 * @route '/{current_team?}/ai/knowledge/{document}/archive'
 */

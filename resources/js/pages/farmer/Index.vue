@@ -45,7 +45,6 @@ import {
     toSpeechText,
 } from '@/services/aiChatService';
 import { queryDemoData } from '@/services/aiDemoDataService';
-import { queryKnowledge } from '@/services/aiKnowledgeService';
 import { validateAiResponse } from '@/services/aiResponseValidator';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { Team } from '@/types/teams';
@@ -210,38 +209,12 @@ async function send(): Promise<void> {
     const localIntent =
         attachments.length === 0 &&
         (classification.intent === 'data' ||
-            classification.intent === 'knowledge' ||
             classification.intent === 'out_of_scope');
     if (localIntent) isSending.value = true;
     inputText.value = '';
     pendingAttachments.value = [];
     voiceInputPending.value = false;
     void nextTick(autoResize);
-
-    if (classification.intent === 'knowledge' && attachments.length === 0) {
-        let knowledgeAnswer = null;
-        try {
-            knowledgeAnswer = await queryKnowledge(text);
-        } catch {
-            knowledgeAnswer = null;
-        }
-        if (knowledgeAnswer) {
-            await showLocalAnswer(
-                text,
-                knowledgeAnswer.content,
-                requestMode === 'voice' ? 'voice' : 'data',
-                'negative',
-                startedAt,
-                0,
-                voiceMetric,
-            );
-            isSending.value = false;
-            await scrollToLatest();
-            inputElement.value?.focus();
-            return;
-        }
-        isSending.value = false;
-    }
 
     if (classification.intent === 'data' && attachments.length === 0) {
         let demoAnswer = null;

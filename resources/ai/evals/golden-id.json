@@ -1,0 +1,2357 @@
+[
+  {
+    "id": "soybean-001",
+    "prompt": "cara menanam kedelai dari awal",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-002",
+    "prompt": "kalau mau tanam kedelai persiapan lahannya bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-003",
+    "prompt": "panduan awal budidaya kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-004",
+    "prompt": "kedelai mulai ditanam, tanahnya disiapkan seperti apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-005",
+    "prompt": "apa yang perlu dicek sebelum tanam kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-006",
+    "prompt": "langkah menyiapkan lahan untuk kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-007",
+    "prompt": "cara nanam kedelai dari awal",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-008",
+    "prompt": "kedelaii baru mau ditanam, mulai dari mana",
+    "style": "typo",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-009",
+    "prompt": "persiapan tanah dan benih kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-010",
+    "prompt": "bagaimana merawat kedelai setelah tanam",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-011",
+    "prompt": "kedelai baru tumbuh apa yang diamati",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-012",
+    "prompt": "cek kelembapan tanah untuk kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-013",
+    "prompt": "cara mengamati gulma pada kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-014",
+    "prompt": "apa yang dicek setelah kedelai ditanam",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-015",
+    "prompt": "panduan kedelai untuk petani pemula",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-001",
+    "prompt": "pemupukan jagung sesuai fase itu gimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-002",
+    "prompt": "pupuk jagung kapan diberikan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-003",
+    "prompt": "jadwal pupuk jagung dari tanam sampai generatif",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-004",
+    "prompt": "pemupukan jagng sesuai fase gimana ya",
+    "style": "typo",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-005",
+    "prompt": "jagung umur muda perlu pupuk apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-006",
+    "prompt": "cara membagi pupuk jagung per fase",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-007",
+    "prompt": "daun jagung berubah warna boleh tambah pupuk",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-008",
+    "prompt": "pupuk dasar jagung diberikan kapan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-009",
+    "prompt": "fase vegetatif jagung perlu diperhatikan apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-010",
+    "prompt": "pemupukan jagung yang aman",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-011",
+    "prompt": "berapa kali pemupukan jagung",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-012",
+    "prompt": "jagung mau berbunga, apa yang dipantau",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-013",
+    "prompt": "cara catat pemupukan jagung",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-014",
+    "prompt": "panduan pupuk jagung tanpa mengarang dosis",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-015",
+    "prompt": "jagung setelah pemupukan perlu dicek apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-001",
+    "prompt": "tanah kebun saya kering irigasinya perlu seperti apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-002",
+    "prompt": "jadwal siram tanaman yang aman",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-003",
+    "prompt": "kalau tanah kering kapan mengairi kebun",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-004",
+    "prompt": "tanah sudah becek masih perlu disiram nggak",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-005",
+    "prompt": "cara cek kelembapan tanah sebelum irigasi",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-006",
+    "prompt": "pengairan setelah hujan deras bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-007",
+    "prompt": "irigasi tanaman saat cuaca panas",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-008",
+    "prompt": "berapa sering kebun disiram",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-009",
+    "prompt": "cek drainase dan kelembapan lahan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-010",
+    "prompt": "air untuk tanaman jangan sampai menggenang",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-011",
+    "prompt": "irigasi tanaman pagi atau sore",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-012",
+    "prompt": "tanah lembap tapi daun layu apa yang dicek",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-013",
+    "prompt": "cara mencatat kegiatan pengairan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-014",
+    "prompt": "pengairan jagung sesuai kondisi tanah",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-015",
+    "prompt": "irigasi kedelai setelah hujan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-001",
+    "prompt": "cara cek hama pada kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-002",
+    "prompt": "bagaimana memeriksa hama tanaman",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-003",
+    "prompt": "cek hama di daun dan batang",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-004",
+    "prompt": "kalau ada serangga di kebun harus cek apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-005",
+    "prompt": "cara scouting hama kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-006",
+    "prompt": "foto gejala hama tanaman untuk pemeriksaan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-007",
+    "prompt": "hama jagung perlu dipantau bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-008",
+    "prompt": "langkah pemeriksaan sebelum pakai pestisida",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-009",
+    "prompt": "cek telur larva dan lubang daun",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-010",
+    "prompt": "cara mencatat serangan hama",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-011",
+    "prompt": "pemeriksaan hama setelah hujan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-012",
+    "prompt": "apa bagian tanaman yang perlu dilihat saat cek hama",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-013",
+    "prompt": "identifikasi hama jangan hanya dari foto",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-014",
+    "prompt": "pola gejala hama tanaman dicatat bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-015",
+    "prompt": "panduan pemeriksaan hama petani",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-001",
+    "prompt": "ada bercak di daun langkah pemeriksaannya apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-002",
+    "prompt": "daun tanaman berubah warna harus cek apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-003",
+    "prompt": "gejala penyakit tanaman dicatat bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-004",
+    "prompt": "cara memeriksa daun yang rusak",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-005",
+    "prompt": "pemeriksaan gejala tanaman dari foto",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-006",
+    "prompt": "daun kuning apakah langsung diberi pupuk",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-007",
+    "prompt": "bagian tanaman terdampak perlu dicatat apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-008",
+    "prompt": "cara membedakan gejala dan diagnosis",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-009",
+    "prompt": "cek penyakit tanaman sebelum pestisida",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "disease-010",
+    "prompt": "pola bercak pada daun perlu diamati",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "gejala"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "finance-001",
+    "prompt": "finansial bulan ini",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-002",
+    "prompt": "laporan keuangan kebun sekarang ada",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-003",
+    "prompt": "laporan finansial kebun saat ini tersedia tidak",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-004",
+    "prompt": "bisa lihat pemasukan bulan ini",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-005",
+    "prompt": "data pengeluaran kebun bulan ini ada",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-006",
+    "prompt": "ringkasan biaya kebun sekarang",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-007",
+    "prompt": "saldo dan laba kebun bulan ini bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-008",
+    "prompt": "laporan keuangan Farmer IC hari ini",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-009",
+    "prompt": "pemasukan pengeluaran periode ini ada",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-010",
+    "prompt": "rekap finansial kebun bulan ini",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-011",
+    "prompt": "data profit kebun bulan berjalan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-012",
+    "prompt": "rincian biaya bulan ini bisa ditampilkan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-013",
+    "prompt": "laporan keuangan sekarang ada nggak",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-014",
+    "prompt": "finansial bulan inii",
+    "style": "typo",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "finance-015",
+    "prompt": "keuangan kebun bulan sekarang",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "knowledge",
+      "domain": "finance",
+      "period": "current",
+      "reason": "current_finance_unavailable"
+    },
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "finansial"
+    ],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-001",
+    "prompt": "buatkan kode python untuk aplikasi ini",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-002",
+    "prompt": "tolong tulis javascript untuk chatbot",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-003",
+    "prompt": "bagaimana politik hari ini",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-004",
+    "prompt": "prediksi harga crypto",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-005",
+    "prompt": "buat query sql untuk database",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-006",
+    "prompt": "siapa pemenang sepak bola",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-007",
+    "prompt": "buat html halaman login",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-008",
+    "prompt": "kode css untuk dashboard",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-009",
+    "prompt": "jelaskan trading crypto",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-010",
+    "prompt": "buat program python pertanian",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-011",
+    "prompt": "tulis kode javascript vue",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-012",
+    "prompt": "berita politik terbaru",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-013",
+    "prompt": "cara bermain sepak bola",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-014",
+    "prompt": "investasi crypto aman atau tidak",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "outscope-015",
+    "prompt": "buatkan script sql",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "out_of_scope",
+      "domain": "general",
+      "reason": "unsupported_topic"
+    },
+    "expected_document": "",
+    "expected_terms": [],
+    "citation_required": false,
+    "retrieval_required": false,
+    "citation_fixture": "Data belum tersedia."
+  },
+  {
+    "id": "facts-001",
+    "prompt": "bisa lihat data Farmer IC yang tersedia",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-002",
+    "prompt": "fitur aplikasi Farmer IC apa saja",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-003",
+    "prompt": "gambar kegiatan pengairan ada tidak",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-004",
+    "prompt": "katalog gambar tanaman di aplikasi",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-005",
+    "prompt": "aplikasi ini menyimpan data apa",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-006",
+    "prompt": "informasi komoditas apa yang tersedia",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-007",
+    "prompt": "menu aktivitas Farmer IC isinya apa",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-008",
+    "prompt": "apakah ada gambar jagung di aplikasi",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-009",
+    "prompt": "data fitur kebun yang tersedia",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-010",
+    "prompt": "daftar aktivitas pertanian di aplikasi",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-011",
+    "prompt": "Farmer IC punya panduan apa",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-012",
+    "prompt": "aplikasi menampilkan gambar hama tidak",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-013",
+    "prompt": "informasi lahan apa yang bisa dilihat",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-014",
+    "prompt": "fitur laporan aplikasi tersedia apa",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "facts-015",
+    "prompt": "sumber data aplikasi Farmer IC apa",
+    "style": "paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": [
+      "Farmer IC"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-001",
+    "prompt": "persiapan lahan kedelai setelah hujan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-002",
+    "prompt": "kedelai perlu drainase seperti apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-003",
+    "prompt": "cara cek tanah untuk benih kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-004",
+    "prompt": "apa yang diamati pada kedelai muda",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-005",
+    "prompt": "kedelai tumbuh tidak rata harus catat apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-006",
+    "prompt": "benih kedelai dan jarak tanam perlu disiapkan bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-007",
+    "prompt": "perawatan awal kedelai di lahan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-008",
+    "prompt": "kapan cek gulma kedelai",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-009",
+    "prompt": "kedelai setelah tanam perlu dipantau",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "soybean-extra-010",
+    "prompt": "panduan tanah kedelai yang sederhana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kedelai"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-001",
+    "prompt": "jagung fase vegetatif dipupuk bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-002",
+    "prompt": "jagung fase generatif perlu dicatat apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-003",
+    "prompt": "cara pemupukan jagung sesuai kondisi tanah",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-004",
+    "prompt": "jagung kena hujan setelah pupuk bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-005",
+    "prompt": "pupuk jagung jangan langsung ditambah kenapa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-006",
+    "prompt": "catatan pemupukan jagung untuk evaluasi",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-007",
+    "prompt": "fase tanaman jagung dan kebutuhan nutrisi",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-008",
+    "prompt": "pemupukan jagung tanpa uji tanah aman tidak",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-009",
+    "prompt": "jagung kurang subur apa yang diperiksa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "corn-extra-010",
+    "prompt": "panduan pemupukan jagung ringkas",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "jagung"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-001",
+    "prompt": "cek air dan tanah kebun sebelum menyiram",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-002",
+    "prompt": "tanaman kering tapi tanah basah apa artinya",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-003",
+    "prompt": "drainase kebun setelah hujan perlu dicek",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-004",
+    "prompt": "cara menghindari genangan di lahan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-005",
+    "prompt": "irigasi lahan tadah hujan bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-006",
+    "prompt": "kelembapan tanah tanaman dipantau kapan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-007",
+    "prompt": "pengairan kebun berdasarkan cuaca",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-008",
+    "prompt": "air terlalu banyak untuk tanaman apa risikonya",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-009",
+    "prompt": "catatan hujan dan irigasi dibuat bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "irrigation-extra-010",
+    "prompt": "menyiram tanaman sesuai fase tumbuh",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "kelembapan"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-extra-001",
+    "prompt": "hama di polong kedelai diperiksa bagaimana",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-extra-002",
+    "prompt": "cara cek bagian bawah daun tanaman",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-extra-003",
+    "prompt": "serangga kecil di kebun perlu dicatat apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-extra-004",
+    "prompt": "scouting tanaman dilakukan kapan",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  },
+  {
+    "id": "pest-extra-005",
+    "prompt": "pestisida dipakai setelah identifikasi apa",
+    "style": "paraphrase",
+    "expected_route": {
+      "intent": "llm",
+      "reason": "agriculture_guidance"
+    },
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": [
+      "hama"
+    ],
+    "citation_required": true,
+    "retrieval_required": true,
+    "citation_fixture": "Jawaban berbasis panduan [S1].\n\nSumber: [S1] Knowledge base Farmer IC."
+  }
+]

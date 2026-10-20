@@ -21,10 +21,12 @@ const props = withDefaults(
         content: string;
         isStreaming?: boolean;
         forceVisual?: boolean;
+        metadata?: Record<string, unknown>;
     }>(),
     {
         isStreaming: false,
         forceVisual: false,
+        metadata: () => ({}),
     },
 );
 
@@ -35,6 +37,12 @@ const emit = defineEmits<{
 const viewMode = ref<'infographic' | 'text'>('infographic');
 const isLightboxOpen = ref(false);
 const isCopied = ref(false);
+const imageGeneration = computed(() => {
+    const value = props.metadata?.image_generation;
+    return value && typeof value === 'object'
+        ? (value as { status?: string; reason?: string | null })
+        : null;
+});
 
 interface MetricItem {
     icon?: string;
@@ -319,7 +327,18 @@ async function copyContent(): Promise<void> {
                 <span>{{
                     parsed.image ? 'Infografis AI' : 'Ringkasan visual'
                 }}</span>
+                <span
+                    v-if="imageGeneration"
+                    class="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
+                    :title="imageGeneration.reason || undefined"
+                >
+                    {{ imageGeneration.status === 'generated' ? 'Generated' : imageGeneration.status === 'fallback' ? 'Fallback' : 'Failed' }}
+                </span>
             </div>
+            <span
+                v-if="imageGeneration?.status === 'fallback' && imageGeneration.reason"
+                class="ml-2 text-[10px] text-warning"
+            >Alasan: {{ imageGeneration.reason }}</span>
             <div
                 class="flex items-center gap-1 rounded-lg bg-muted/80 p-0.5 text-[11px]"
             >

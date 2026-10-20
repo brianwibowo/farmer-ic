@@ -179,7 +179,7 @@ function onInput(event: Event): void {
                 <span class="block font-semibold">Asisten sedang bekerja…</span>
                 <span class="block text-[11px] text-muted-foreground"
                     >Jawaban biasanya muncul dalam beberapa detik. Jika lebih
-                    dari 30 detik, Anda bisa menghentikannya.</span
+                    dari 60 detik, Anda bisa menghentikannya.</span
                 >
             </span>
             <button

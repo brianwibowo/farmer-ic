@@ -178,6 +178,7 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                         :content="message.content"
                         :is-streaming="message.status === 'streaming'"
                         :force-visual="message.presentation === 'infographic'"
+                        :metadata="message.metadata"
                         @copied="emit('copied', message.id)"
                     />
                     <div
@@ -208,7 +209,7 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                         }}</span>
                         <span class="block text-[11px] leading-4">
                             Jawaban biasanya muncul dalam beberapa detik. Jika
-                            lebih dari 30 detik, Anda bisa menghentikannya.
+                            lebih dari 60 detik, Anda bisa menghentikannya.
                         </span>
                     </span>
                 </div>

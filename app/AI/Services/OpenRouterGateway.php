@@ -14,6 +14,10 @@ class OpenRouterGateway implements LlmGateway
 {
     public function complete(array $messages, string $model, array $options = []): array
     {
+        if (($options['image_generation'] ?? false) === true) {
+            return $this->completeImage($messages, $model, $options);
+        }
+
         $response = $this->send(
             $this->request(),
             '/chat/completions',
@@ -21,6 +25,59 @@ class OpenRouterGateway implements LlmGateway
         );
 
         return $this->decodeResponse($response);
+    }
+
+    /**
+     * OpenRouter image models use the Images API, not chat/completions.
+     * Normalize its b64_json/url response to the shape consumed by AiChatService.
+     *
+     * @param  array<int, array<string, mixed>>  $messages
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    protected function completeImage(array $messages, string $model, array $options): array
+    {
+        $prompt = '';
+        foreach (array_reverse($messages) as $message) {
+            if (($message['role'] ?? null) === 'user') {
+                $content = $message['content'] ?? '';
+                $prompt = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE);
+                break;
+            }
+        }
+
+        $payload = [
+            'model' => $model,
+            'prompt' => $prompt,
+            'n' => (int) ($options['n'] ?? 1),
+            'size' => (string) ($options['size'] ?? '1024x1024'),
+            'response_format' => 'b64_json',
+        ];
+        $response = $this->send($this->request(), '/images', $payload);
+        $decoded = $this->decodeResponse($response);
+        $images = [];
+        foreach ((array) ($decoded['data'] ?? []) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $url = $item['url'] ?? null;
+            if (is_string($item['b64_json'] ?? null)) {
+                $url = 'data:image/png;base64,'.$item['b64_json'];
+            }
+            if (is_string($url) && $url !== '') {
+                $images[] = ['type' => 'image_url', 'image_url' => ['url' => $url]];
+            }
+        }
+
+        return [
+            'id' => $decoded['id'] ?? null,
+            'provider_request_id' => $response->header('x-request-id'),
+            'choices' => [['message' => [
+                'content' => '',
+                'images' => $images,
+            ]]],
+            'usage' => $decoded['usage'] ?? [],
+        ];
     }
 
     /** @param array<string, mixed> $options */
@@ -193,7 +250,13 @@ class OpenRouterGateway implements LlmGateway
 
         $json = $response->json();
 
-        return is_array($json) ? $json : [];
+        if (! is_array($json)) {
+            return [];
+        }
+
+        $json['provider_request_id'] = $response->header('x-request-id');
+
+        return $json;
     }
 
     protected function exceptionFromResponse(Response $response): LlmException

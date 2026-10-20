@@ -1,10 +1,12 @@
 import rawActivityLogs from '@/data/activityLogs.json';
+import originDevDemoData from '@/data/farmDemoData.json';
 import rawCommoditySummaries from '@/data/commoditySummaries.json';
 import rawKebunInsights from '@/data/kebunInsights.json';
 import rawKebunLocations from '@/data/kebunLocations.json';
 import type { ActivityLog } from '@/data/activityLogs';
 import { farmerFinanceMock } from '@/data/farmerFinance';
 import { kebunSeedData, type Kebun } from '@/data/kebun';
+import type { ReportData } from '@/data/report';
 
 export type KebunWeather = {
     condition: string;
@@ -47,9 +49,12 @@ export type FarmDemoState = {
     activityLogs: ActivityLog[];
     finance: typeof farmerFinanceMock;
     commodityCatalog: CommodityCatalogItem[];
+    report: ReportData;
 };
 
-const commodityCatalog = rawCommoditySummaries
+const originDev = originDevDemoData as { kebun: Kebun[]; kebunLocations: Record<string, [number, number]>; kebunInsights: Record<string, KebunInsight>; activityLogs: ActivityLog[]; commodityCatalog: CommodityCatalogItem[] };
+
+const commodityCatalog = (originDev.commodityCatalog?.length ? originDev.commodityCatalog : rawCommoditySummaries)
     .filter((item) => item.id !== 'all')
     .map(({ id, name, image }) => ({ id, name, image }));
 
@@ -174,18 +179,20 @@ const growthHistorySeedData: ActivityLog[] = kebunSeedData.flatMap(
 );
 
 export const farmDemoSeedData: FarmDemoState = {
-    kebun: kebunSeedData,
+    // origin/dev is the canonical additive demo snapshot; local seed remains the fallback.
+    kebun: originDev.kebun?.length ? originDev.kebun : kebunSeedData,
     kebunLocations: Object.fromEntries(
-        Object.entries(rawKebunLocations).map(([id, position]) => [
+        Object.entries(originDev.kebunLocations?.length ? originDev.kebunLocations : rawKebunLocations).map(([id, position]) => [
             id,
             [position[0], position[1]] as [number, number],
         ]),
     ),
-    kebunInsights: rawKebunInsights as Record<string, KebunInsight>,
+    kebunInsights: originDev.kebunInsights ?? (rawKebunInsights as Record<string, KebunInsight>),
     activityLogs: [
-        ...(rawActivityLogs as ActivityLog[]),
+        ...(originDev.activityLogs?.length ? originDev.activityLogs : (rawActivityLogs as ActivityLog[])),
         ...growthHistorySeedData,
     ],
     finance: farmerFinanceMock,
     commodityCatalog,
+    report: originDev.report as ReportData,
 };

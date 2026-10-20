@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\AI;
 
+use App\AI\Contracts\EmbeddingGateway;
 use App\AI\Contracts\LlmGateway;
+use App\AI\Exceptions\EmbeddingException;
 use App\AI\Exceptions\LlmException;
 use App\AI\Services\OpenRouterGateway;
 use App\Enums\TeamRole;
+use App\Models\AiAttachment;
 use App\Models\AiConversation;
 use App\Models\AiKnowledgeDocument;
+use App\Models\AiMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -106,6 +110,199 @@ class AiChatTest extends TestCase
         ]);
     }
 
+    public function test_grounded_route_injects_retrieved_evidence_citation_and_trace_metadata(): void
+    {
+        $gateway = new class implements LlmGateway
+        {
+            /** @var array<int, array<string, mixed>> */
+            public array $capturedMessages = [];
+
+            /** @var array<string, mixed> */
+            public array $capturedOptions = [];
+
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                return [];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                $this->capturedMessages = $messages;
+                $this->capturedOptions = $options;
+                yield [
+                    'id' => 'grounded-request',
+                    'choices' => [['delta' => ['content' => 'Gunakan langkah sesuai sumber [S1].']]],
+                    'usage' => ['prompt_tokens' => 20, 'completion_tokens' => 8],
+                ];
+            }
+        };
+        $this->app->instance(LlmGateway::class, $gateway);
+        config(['ai.openrouter.api_key' => 'test-key']);
+
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+        $document = $team->aiKnowledgeDocuments()->create([
+            'created_by' => $user->id,
+            'title' => 'Panduan kedelai demo',
+            'content' => 'Penanaman kedelai perlu mengikuti kondisi tanah dan panduan lokal.',
+            'status' => AiKnowledgeDocument::STATUS_PUBLISHED,
+            'source' => 'Panduan internal kedelai',
+            'content_hash' => hash('sha256', 'Penanaman kedelai perlu mengikuti kondisi tanah dan panduan lokal.'),
+            'version' => 1,
+            'published_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->post(
+            route('ai.messages.store', $team->slug),
+            ['message' => 'bagaimana cara menanam kedelai'],
+            ['Accept' => 'text/event-stream'],
+        );
+
+        $response->assertOk();
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('Sumber: [S1]', $stream);
+        $this->assertStringContainsString('retrieval', $stream);
+        $this->assertStringContainsString('Menyusun jawaban dari ', $stream);
+        $this->assertStringContainsString('Panduan kedelai demo', implode(' ', array_map(
+            static fn (array $message): string => (string) ($message['content'] ?? ''),
+            $gateway->capturedMessages,
+        )));
+        $this->assertSame(1024, $gateway->capturedOptions['max_tokens']);
+        $assistant = AiConversation::query()->latest('id')->firstOrFail()->messages()->where('role', 'assistant')->latest('id')->firstOrFail();
+        $this->assertSame('assistant', $assistant->role);
+        $this->assertStringContainsString('Panduan internal kedelai', (string) $assistant->content);
+        $this->assertMatchesRegularExpression('/Sumber: (?:\[S\d+\].*Panduan internal kedelai|.*Panduan internal kedelai.*)/s', (string) $assistant->content);
+        $this->assertIsArray($assistant->metadata);
+        $this->assertSame('llm', data_get($assistant->metadata, 'route.intent'));
+        $this->assertDatabaseHas('ai_usage_events', [
+            'ai_message_id' => $assistant->id,
+        ]);
+
+        $this->assertGreaterThan(0, $document->id);
+    }
+
+    public function test_current_finance_uses_deterministic_snapshot_and_calls_provider(): void
+    {
+        config(['ai.rag.vector_enabled' => true]);
+        $this->app->instance(LlmGateway::class, new class implements LlmGateway
+        {
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                return [];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield ['id' => 'finance-analysis-request', 'choices' => [['delta' => ['content' => 'Pemasukan Rp170.000.000, pengeluaran Rp60.000.000, laba bersih Rp110.000.000 [S1].']]]];
+            }
+        });
+
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->post(
+            route('ai.messages.store', $user->currentTeam->slug),
+            ['message' => 'finansial bulan ini'],
+            ['Accept' => 'text/event-stream'],
+        );
+
+        $response->assertOk();
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('170.000.000', $stream);
+        $this->assertStringContainsString('Sumber:', $stream);
+        $this->assertStringContainsString('finance-demo-snapshot', $stream);
+    }
+
+    public function test_vector_retrieval_failure_falls_back_to_in_memory_without_failing_chat(): void
+    {
+        config([
+            'ai.rag.vector_enabled' => true,
+            'ai.openrouter.api_key' => 'test-key',
+        ]);
+        $this->app->instance(EmbeddingGateway::class, new class implements EmbeddingGateway
+        {
+            public function embed(array $inputs): array
+            {
+                throw new EmbeddingException('embedding unavailable');
+            }
+        });
+        $this->app->instance(LlmGateway::class, new class implements LlmGateway
+        {
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                return [];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield [
+                    'id' => 'fallback-retrieval-request',
+                    'choices' => [['delta' => ['content' => 'Jawaban berbasis panduan.']]],
+                ];
+            }
+        });
+
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->post(
+            route('ai.messages.store', $user->currentTeam->slug),
+            ['message' => 'cara nanam kedelai dari awal'],
+            ['Accept' => 'text/event-stream'],
+        );
+
+        $response->assertOk();
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('Jawaban berbasis panduan.', $stream);
+        $this->assertStringContainsString('Sumber:', $stream);
+        $this->assertStringContainsString('in-memory', $stream);
+    }
+
+    public function test_strict_grounding_abstains_when_provider_omits_citation(): void
+    {
+        config([
+            'ai.rag.require_citations' => true,
+            'ai.openrouter.api_key' => 'test-key',
+        ]);
+        $this->app->instance(LlmGateway::class, new class implements LlmGateway
+        {
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                return [];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield [
+                    'id' => 'ungrounded-request',
+                    'choices' => [['delta' => ['content' => 'Jawaban tanpa sumber.']]],
+                ];
+            }
+        });
+
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+        $team->aiKnowledgeDocuments()->create([
+            'created_by' => $user->id,
+            'title' => 'Panduan kedelai demo',
+            'content' => 'Kedelai perlu dipantau setelah hujan.',
+            'status' => AiKnowledgeDocument::STATUS_PUBLISHED,
+            'source' => 'Panduan internal kedelai',
+            'content_hash' => hash('sha256', 'Kedelai perlu dipantau setelah hujan.'),
+            'version' => 1,
+            'published_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->post(
+            route('ai.messages.store', $team->slug),
+            ['message' => 'bagaimana cara menanam kedelai'],
+            ['Accept' => 'text/event-stream'],
+        );
+
+        $response->assertOk();
+        $response->streamedContent();
+        $assistant = AiConversation::query()->latest('id')->firstOrFail()->messages()->where('role', 'assistant')->latest('id')->firstOrFail();
+        $this->assertSame('completed', $assistant->status);
+        $this->assertStringContainsString('belum bisa memastikan', (string) $assistant->content);
+        $this->assertStringNotContainsString('Jawaban tanpa sumber.', (string) $assistant->content);
+    }
+
     public function test_provider_failure_uses_the_next_configured_model(): void
     {
         $this->app->instance(LlmGateway::class, new class implements LlmGateway
@@ -145,6 +342,17 @@ class AiChatTest extends TestCase
             'content' => 'Jawaban fallback.',
             'status' => 'completed',
         ]);
+
+        $assistant = AiConversation::query()
+            ->latest('id')
+            ->firstOrFail()
+            ->messages()
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame(1, data_get($assistant->metadata, 'fallback_index'));
+        $this->assertSame('fallback-model', $assistant->model);
+        $this->assertSame('fallback-request', $assistant->request_id);
     }
 
     public function test_missing_provider_key_returns_an_actionable_stream_error(): void
@@ -292,5 +500,47 @@ class AiChatTest extends TestCase
             'disk' => 'public',
             'kind' => 'image',
         ]);
+        $assistant = AiMessage::query()->where('role', 'assistant')->latest('id')->firstOrFail();
+        $this->assertSame('generated', data_get($assistant->metadata, 'image_generation.status'));
+        $this->assertTrue((bool) data_get($assistant->metadata, 'has_image'));
+    }
+
+    public function test_text_only_image_provider_response_is_failed_and_never_uses_local_asset(): void
+    {
+        Storage::fake('public');
+        $this->app->instance(LlmGateway::class, new class implements LlmGateway
+        {
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                return [
+                    'id' => 'text-only-image-response',
+                    'choices' => [['message' => ['content' => 'Saya tidak dapat membuat gambar.']]],
+                ];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield [];
+            }
+        });
+        config(['ai.openrouter.api_key' => 'test-key', 'ai.models.infographic_fallbacks' => []]);
+
+        $user = User::factory()->create();
+        $team = $user->currentTeam;
+        $response = $this->actingAs($user)->post(route('ai.messages.store', $team->slug), [
+            'message' => 'Buatkan gambar infografis jagung',
+            'is_infographic' => true,
+        ], ['Accept' => 'text/event-stream']);
+
+        $response->assertOk();
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('message.error', $stream);
+        $this->assertStringContainsString('Image generation gagal', $stream);
+        $this->assertStringNotContainsString('/images/ai-infographics/', $stream);
+        $assistant = AiMessage::query()->where('role', 'assistant')->latest('id')->firstOrFail();
+        $this->assertSame('failed', $assistant->status);
+        $this->assertSame('failed', data_get($assistant->metadata, 'image_generation.status'));
+        $this->assertSame('AI image provider returned no generated image.', data_get($assistant->metadata, 'image_generation.reason'));
+        $this->assertSame(0, AiAttachment::query()->count());
     }
 }

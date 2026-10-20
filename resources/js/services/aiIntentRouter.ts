@@ -150,7 +150,7 @@ const outOfScopeTerms = [
 ];
 
 const currentPeriodPattern =
-    /\b(?:bulan ini|bulan sekarang|bulan berjalan|periode ini|periode berjalan|saat ini|hari ini|minggu ini)\b/i;
+    /\b(?:bulan ini|bulan sekarang|bulan berjalan|periode ini|periode berjalan|saat ini|sekarang|kini|hari ini|minggu ini)\b/i;
 const quarterPattern = /\bq(?:uarter)?\s*[1-4]\b/i;
 const historicalPattern =
     /\b(?:tahun lalu|tahun ini|bulan lalu|periode lalu|q[1-4]|quarter)\b/i;
@@ -252,21 +252,6 @@ export function routeAiPrompt(
         };
     }
 
-    // Current-period financial data is explicitly unavailable in the demo
-    // knowledge base. Route every synonym here to one knowledge answer rather
-    // than letting a static finance resolver invent a Q4/current-month value.
-    if (!hasAttachments && hasCurrentFinanceGuardrail(prompt)) {
-        return {
-            intent: 'knowledge',
-            confidence: 0.99,
-            topic: 'finansial bulan ini',
-            domain: 'finance',
-            period: 'current',
-            needsClarification: false,
-            reason: 'current_finance_unavailable',
-        };
-    }
-
     // An explicit visual verb is a presentation request. “Gambarkan kondisi
     // lahan” must not silently become a data summary just because it contains
     // the word “kondisi”.
@@ -282,6 +267,18 @@ export function routeAiPrompt(
         };
     }
 
+    if (domain === 'finance') {
+        return {
+            intent: 'llm',
+            confidence: 0.9,
+            topic,
+            domain,
+            period,
+            needsClarification: false,
+            reason: 'finance_analysis',
+        };
+    }
+
     // A concrete data lookup remains the default for “tampilkan kondisi
     // kebun” because “tampilkan” is intentionally not a visual trigger.
     if (hasExplicitDataLookup(prompt, domain)) {
@@ -293,18 +290,6 @@ export function routeAiPrompt(
             period,
             needsClarification: false,
             reason: 'explicit_data_lookup',
-        };
-    }
-
-    if (domain === 'finance' && !hasExplicitDataLookup(prompt, domain)) {
-        return {
-            intent: 'llm',
-            confidence: 0.58,
-            topic,
-            domain,
-            period,
-            needsClarification: true,
-            reason: 'general_question',
         };
     }
 
@@ -327,7 +312,7 @@ export function routeAiPrompt(
         domain,
         period,
         needsClarification:
-            prompt.length > 0 && prompt.length < 18 && !isGreeting(prompt),
+            prompt.length > 0 && prompt.length < 14 && !isGreeting(prompt),
         reason: 'general_question',
     };
 }

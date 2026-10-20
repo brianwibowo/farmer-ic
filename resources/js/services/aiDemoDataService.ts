@@ -1,5 +1,3 @@
-import { activityLogSeedData } from '@/data/activityLogs';
-import { farmerFinanceMock } from '@/data/farmerFinance';
 import { isDashboardDataPrompt } from '@/services/aiChatService';
 import { listActivityLogs } from '@/services/activityLogService';
 import { listKebun } from '@/services/kebunService';
@@ -60,15 +58,14 @@ export async function queryDemoData(
     if (wantsFinance) {
         await wait(420);
         const quarterMatch = value.match(/\bq\s*([1-4])\b/i);
+        const finance = farmDemoSeedData.finance;
         const quarterKey = quarterMatch
-            ? (`Q${quarterMatch[1]}` as keyof typeof farmerFinanceMock.quarters)
+            ? (`Q${quarterMatch[1]}` as keyof typeof finance.quarters)
             : null;
-        const quarter = quarterKey
-            ? farmerFinanceMock.quarters[quarterKey]
-            : null;
+        const quarter = quarterKey ? finance.quarters[quarterKey] : null;
         const allGardens =
             /\b(?:semua|seluruh|tiap|setiap)\s+(?:kebun|lahan)\b/i.test(value);
-        const latest = farmerFinanceMock.transactions.slice(-3).reverse();
+        const latest = finance.transactions.slice(-3).reverse();
         const financeScope = quarter
             ? `Periode: ${quarter.label}`
             : 'Periode: seluruh data demo 2026';
@@ -82,12 +79,12 @@ export async function queryDemoData(
                   `**Laba bersih:** ${formatRupiah(quarter.netTotal)}`,
               ].join(' | ')
             : [
-                  `**Pendapatan:** ${formatRupiah(farmerFinanceMock.totalRevenue)}`,
-                  `**Pengeluaran:** ${formatRupiah(farmerFinanceMock.totalExpense)}`,
-                  `**Laba bersih:** ${formatRupiah(farmerFinanceMock.totalNet)}`,
+                  `**Pendapatan:** ${formatRupiah(finance.totalRevenue)}`,
+                  `**Pengeluaran:** ${formatRupiah(finance.totalExpense)}`,
+                  `**Laba bersih:** ${formatRupiah(finance.totalNet)}`,
               ].join(' | ');
         return {
-            source: 'Data demo keuangan · seed prototipe',
+            source: 'Data demo keuangan · farmDemoData origin/dev',
             content: [
                 '### 💰 Ringkasan Keuangan Kebun',
                 `> 📊 ${totals} | ⏳ **${financeScope}**`,
@@ -116,9 +113,9 @@ export async function queryDemoData(
 
     if (wantsActivity) {
         const logs = (await listActivityLogs()).slice(0, 3);
-        const entries = logs.length ? logs : activityLogSeedData.slice(0, 3);
+        const entries = logs.slice(0, 3);
         return {
-            source: 'Data demo aktivitas · seed prototipe',
+            source: 'Data demo aktivitas · farmDemoData origin/dev',
             content: [
                 '### 🧾 Aktivitas Kebun Terbaru',
                 `> 📌 **Catatan:** ${entries.length} aktivitas | ⏳ **Status:** Tersedia | 📊 **Sumber:** Data demo`,
@@ -135,6 +132,28 @@ export async function queryDemoData(
 
     if (wantsGarden) {
         const kebun = await listKebun();
+        const specific = kebun.find((item) => {
+            const nameLower = item.name.toLowerCase();
+            const simpleName = nameLower.replace(/^kebun\s+/, '');
+            return value.includes(nameLower) || value.includes(simpleName);
+        });
+
+        if (specific) {
+            return {
+                source: `Data demo kebun · ${specific.name}`,
+                content: [
+                    `### 🌱 Kondisi ${specific.name}`,
+                    `> 🌾 **Komoditas:** ${specific.seedType} (${specific.seedTypeDetail || 'Varietas Unggul'}) | 🩺 **Status:** ${specific.healthStatus}`,
+                    `> 📍 **Lokasi:** ${specific.district ? `${specific.district}, ` : ''}${specific.city} | 📐 **Lahan Terpakai:** ${specific.usedHectare} ha / ${specific.availableHectare} ha`,
+                    '',
+                    `- **Status Tanaman:** ${specific.healthStatus === 'Sehat' ? '✅ Tanaman dalam kondisi sehat dan pertumbuhannya optimal.' : specific.healthStatus === 'Kritis' ? '🚨 Status kritis, butuh tindakan penanganan dan inspeksi segera.' : '⚠️ Perlu perhatian khusus dan pemantauan berkala.'}`,
+                    `- **Alamat:** ${specific.address}`,
+                    '',
+                    '> 💡 **Catatan:** Anda dapat membuka halaman rincian kebun untuk melihat riwayat pemupukan, catatan lapangan, dan dokumentasi foto.',
+                ].join('\n'),
+            };
+        }
+
         const attention = kebun.filter((item) => item.healthStatus !== 'Sehat');
         return {
             source: 'Data demo kebun · seed prototipe',

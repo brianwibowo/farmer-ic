@@ -26,6 +26,7 @@ export type ChatMessage = {
     status: MessageStatus;
     progress?: string;
     presentation?: 'text' | 'infographic';
+    metadata?: Record<string, unknown>;
     error?: string;
     feedback?: 'up' | 'down';
 };

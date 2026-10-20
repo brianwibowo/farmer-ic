@@ -1,0 +1,98 @@
+[
+  {
+    "prompt": "cara nanam kedelai dari awal",
+    "category": "soybean-paraphrase",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["kedelai", "tanah"]
+  },
+  {
+    "prompt": "kalau mau tanam kedelai, persiapan lahannya bagaimana?",
+    "category": "soybean-long",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["kedelai", "persiapan lahan"]
+  },
+  {
+    "prompt": "kedelai baru tumbuh, apa yang perlu diamati?",
+    "category": "soybean-follow-up",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["kedelai", "kelembapan"]
+  },
+  {
+    "prompt": "pemupukan jagung sesuai fase itu gimana",
+    "category": "corn-short",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["jagung", "fase"]
+  },
+  {
+    "prompt": "pupuk jagung kapan diberikan?",
+    "category": "corn-when",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["jagung", "fase"]
+  },
+  {
+    "prompt": "pemupukan jagng sesuai fase gimana ya",
+    "category": "corn-typo-voice",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["jagung", "fase"]
+  },
+  {
+    "prompt": "daun jagung berubah warna, boleh langsung tambah pupuk?",
+    "category": "corn-symptom",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["jagung", "gejala"]
+  },
+  {
+    "prompt": "tanah kebun saya kering, irigasinya perlu seperti apa",
+    "category": "irrigation",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["kelembapan tanah", "curah hujan"]
+  },
+  {
+    "prompt": "jadwal siram tanaman yang aman",
+    "category": "irrigation-short",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["pengairan", "kelembapan"]
+  },
+  {
+    "prompt": "tanah sudah becek masih perlu disiram nggak",
+    "category": "irrigation-slang",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["genangan", "tanah"]
+  },
+  {
+    "prompt": "cara cek hama dan penyakit tanaman dari foto",
+    "category": "pest-photo",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["hama", "foto"]
+  },
+  {
+    "prompt": "ada bercak di daun, langkah pemeriksaannya apa?",
+    "category": "disease-symptom",
+    "expected_document": "demo-agronomy-guides",
+    "expected_terms": ["gejala", "komoditas"]
+  },
+  {
+    "prompt": "finansial bulan ini",
+    "category": "finance-guardrail",
+    "expected_document": "application-facts",
+    "expected_terms": ["finansial"]
+  },
+  {
+    "prompt": "laporan keuangan kebun sekarang ada?",
+    "category": "finance-paraphrase",
+    "expected_document": "application-facts",
+    "expected_terms": ["finansial"]
+  },
+  {
+    "prompt": "bisa lihat data Farmer IC yang tersedia?",
+    "category": "app-facts",
+    "expected_document": "application-facts",
+    "expected_terms": ["Farmer IC"]
+  },
+  {
+    "prompt": "resep rendang untuk makan siang",
+    "category": "out-of-domain",
+    "expected_document": "",
+    "expected_terms": []
+  }
+]

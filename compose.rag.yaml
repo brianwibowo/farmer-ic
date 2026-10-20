@@ -1,0 +1,116 @@
+# Local RAG override. Combine with the base app stack:
+#
+#   docker compose -f compose.yaml -f compose.rag.yaml up --build
+#
+# PostgreSQL provides production-parity relational storage.
+# Qdrant is bound to loopback only (127.0.0.1:6333).
+# Redis provides queue backend for async indexing jobs.
+# Worker service runs queue:work on the ai-index queue.
+services:
+    app:
+        depends_on:
+            postgres:
+                condition: service_healthy
+            qdrant:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        environment:
+            DB_CONNECTION: pgsql
+            DB_HOST: postgres
+            DB_PORT: 5432
+            DB_DATABASE: ${POSTGRES_DB:-farmer_ic}
+            DB_USERNAME: ${POSTGRES_USER:-farmer_ic}
+            DB_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+            AI_RAG_VECTOR_ENABLED: ${AI_RAG_VECTOR_ENABLED:-true}
+            QDRANT_URL: http://qdrant:6333
+            QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+            QUEUE_CONNECTION: redis
+            REDIS_HOST: redis
+            CACHE_STORE: redis
+
+    worker:
+        image: farmer-ic:local
+        command: php artisan queue:work redis --queue=ai-index,default --sleep=2 --tries=3 --timeout=180
+        env_file:
+            - path: .env.docker
+              required: false
+        environment:
+            APP_ENV: ${APP_ENV:-local}
+            DB_CONNECTION: pgsql
+            DB_HOST: postgres
+            DB_PORT: 5432
+            DB_DATABASE: ${POSTGRES_DB:-farmer_ic}
+            DB_USERNAME: ${POSTGRES_USER:-farmer_ic}
+            DB_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+            QUEUE_CONNECTION: redis
+            REDIS_HOST: redis
+            CACHE_STORE: redis
+            AI_RAG_VECTOR_ENABLED: ${AI_RAG_VECTOR_ENABLED:-true}
+            QDRANT_URL: http://qdrant:6333
+            QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+        volumes:
+            - app_storage:/var/www/html/storage
+            - app_database:/var/lib/farmer-ic
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            qdrant:
+                condition: service_healthy
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    memory: 256M
+
+    postgres:
+        image: postgres:17-alpine
+        ports:
+            - '127.0.0.1:${DB_PORT:-5432}:5432'
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB:-farmer_ic}
+            POSTGRES_USER: ${POSTGRES_USER:-farmer_ic}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-farmer_ic}']
+            interval: 5s
+            timeout: 3s
+            retries: 5
+        restart: unless-stopped
+
+    redis:
+        image: redis:7-alpine
+        ports:
+            - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 3s
+            retries: 5
+        restart: unless-stopped
+
+    qdrant:
+        image: ${QDRANT_IMAGE:-qdrant/qdrant:v1.14.1}
+        ports:
+            - '127.0.0.1:${QDRANT_PORT:-6333}:6333'
+        volumes:
+            - qdrant_storage:/qdrant/storage
+        healthcheck:
+            test: ['CMD-SHELL', 'kill -0 1 && test -f /qdrant/storage/raft_state.json']
+            interval: 5s
+            timeout: 3s
+            retries: 20
+            start_period: 10s
+        restart: unless-stopped
+
+volumes:
+    postgres_data:
+    qdrant_storage:
+    redis_data:
+
