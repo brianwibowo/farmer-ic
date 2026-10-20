@@ -329,7 +329,8 @@ async function copyContent(): Promise<void> {
                 }}</span>
                 <span
                     v-if="imageGeneration"
-                    class="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
+                    class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                    :class="imageGeneration.status === 'generated' ? 'bg-success/10 text-success' : imageGeneration.status === 'fallback' ? 'bg-warning/15 text-warning' : 'bg-error/10 text-error'"
                     :title="imageGeneration.reason || undefined"
                 >
                     {{ imageGeneration.status === 'generated' ? 'Generated' : imageGeneration.status === 'fallback' ? 'Fallback' : 'Failed' }}
