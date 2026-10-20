@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 7,
   "generatedAt": "2026-10-20",
   "kebun": [
     {
@@ -135,7 +135,7 @@
       "revenue": 18500000,
       "expenses": 12500000,
       "growth": 56,
-      "plantedAt": "1 September 2026",
+      "plantedAt": "15 Januari 2026",
       "harvestAt": "15 November 2026",
       "summary": "Periksa saluran irigasi petak timur dan pantau kembali warna daun setelah penyiraman.",
       "weightTon": 24,
@@ -247,7 +247,7 @@
       "type": "panen",
       "typeLabel": "Panen",
       "timestamp": "16 Oktober 2026",
-      "daysAfterPlanting": 45,
+      "daysAfterPlanting": 274,
       "officerName": "Hendra Kusuma",
       "kebunId": "kebun-003",
       "kebunName": "Kebun Arum Sari",
@@ -255,12 +255,12 @@
       "seedType": "Rumput",
       "report": {
         "kind": "panen",
-        "harvestedArea": "3,0 Ha",
-        "grossWeight": "30,0 Ton",
+        "harvestedArea": "2,0 Ha",
+        "grossWeight": "18,5 Ton",
         "quality": {
           "moistureContent": "68,4%",
           "color": "Hijau Segar",
-          "ripeness": "Siap Potong (HST 45)",
+          "ripeness": "Siap Potong (Babat ke-5)",
           "cleanliness": "Bersih dari Gulma"
         }
       },
@@ -338,7 +338,7 @@
       "type": "pelaporan-insiden",
       "typeLabel": "Pelaporan Insiden",
       "timestamp": "14 Oktober 2026",
-      "daysAfterPlanting": 41,
+      "daysAfterPlanting": 39,
       "officerName": "Sutrisno",
       "kebunId": "kebun-005",
       "kebunName": "Kebun Harapan Jaya",
@@ -371,7 +371,7 @@
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
       "timestamp": "13 Oktober 2026",
-      "daysAfterPlanting": 42,
+      "daysAfterPlanting": 271,
       "officerName": "Hendra Kusuma",
       "kebunId": "kebun-003",
       "kebunName": "Kebun Arum Sari",
@@ -379,8 +379,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
-        "averageHeightCm": 92,
+        "growthPhase": "Siap babat",
+        "averageHeightCm": 112,
         "diseaseIndication": "Ringan",
         "pestIndication": "Aman"
       },
@@ -518,7 +518,7 @@
       "type": "pestisida",
       "typeLabel": "Pestisida",
       "timestamp": "06 Oktober 2026",
-      "daysAfterPlanting": 32,
+      "daysAfterPlanting": 47,
       "officerName": "Paijo",
       "kebunId": "kebun-002",
       "kebunName": "Kebun Tani Lestari",
@@ -589,7 +589,7 @@
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
       "timestamp": "6 Oktober 2026",
-      "daysAfterPlanting": 35,
+      "daysAfterPlanting": 264,
       "officerName": "Hendra Kusuma",
       "kebunId": "kebun-003",
       "kebunName": "Kebun Arum Sari",
@@ -597,8 +597,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 76,
+        "growthPhase": "Siap babat",
+        "averageHeightCm": 106,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -606,7 +606,7 @@
         {
           "id": "photo-pertumbuhan-mock-kebun-003-5",
           "label": "Foto tanaman (full)",
-          "caption": "Pengamatan rutin; tinggi rata-rata 76 cm dengan pertumbuhan seragam.",
+          "caption": "Pengamatan rutin; tinggi rata-rata 106 cm dengan pertumbuhan seragam.",
           "image": "/images/activities/tumbuh-tanaman-full.jpg"
         }
       ]
@@ -730,7 +730,7 @@
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
       "timestamp": "29 September 2026",
-      "daysAfterPlanting": 28,
+      "daysAfterPlanting": 257,
       "officerName": "Hendra Kusuma",
       "kebunId": "kebun-003",
       "kebunName": "Kebun Arum Sari",
@@ -738,8 +738,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 58,
+        "growthPhase": "Siap babat",
+        "averageHeightCm": 95,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -747,7 +747,7 @@
         {
           "id": "photo-pertumbuhan-mock-kebun-003-4",
           "label": "Foto tanaman (full)",
-          "caption": "Pengamatan rutin; tinggi rata-rata 58 cm dengan pertumbuhan seragam.",
+          "caption": "Pengamatan rutin; tinggi rata-rata 95 cm dengan pertumbuhan seragam.",
           "image": "/images/activities/tumbuh-tanaman-full.jpg"
         },
         {
@@ -763,7 +763,7 @@
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
       "timestamp": "28 September 2026",
-      "daysAfterPlanting": 58,
+      "daysAfterPlanting": 44,
       "officerName": "Wahyu Pratama",
       "kebunId": "kebun-004",
       "kebunName": "Kebun Maju Bersama",
@@ -771,7 +771,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian Polong (Fase R5)",
+        "growthPhase": "Pembungaan & Pembentukan Polong",
         "averageHeightCm": 68,
         "diseaseIndication": "Aman",
         "pestIndication": "Ringan"
@@ -780,7 +780,7 @@
         {
           "id": "photo-tumbuh-1",
           "label": "Foto tanaman (full)",
-          "caption": "Hamparan kanopi kedelai fase R5 tampak rapat dan hijau",
+          "caption": "Hamparan kanopi kedelai tampak rapat dan hijau memasuki pembentukan polong",
           "image": "/images/activities/tumbuh-tanaman-full.jpg"
         },
         {
@@ -910,7 +910,7 @@
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
       "timestamp": "22 September 2026",
-      "daysAfterPlanting": 21,
+      "daysAfterPlanting": 250,
       "officerName": "Hendra Kusuma",
       "kebunId": "kebun-003",
       "kebunName": "Kebun Arum Sari",
@@ -918,8 +918,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 38,
+        "growthPhase": "Siap babat",
+        "averageHeightCm": 80,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -927,7 +927,7 @@
         {
           "id": "photo-pertumbuhan-mock-kebun-003-3",
           "label": "Foto tanaman (full)",
-          "caption": "Pengamatan rutin; tinggi rata-rata 38 cm dengan pertumbuhan seragam.",
+          "caption": "Pengamatan rutin; tinggi rata-rata 80 cm dengan pertumbuhan seragam.",
           "image": "/images/activities/tumbuh-tanaman-full.jpg"
         }
       ]
@@ -937,7 +937,7 @@
       "type": "pengairan",
       "typeLabel": "Pengairan",
       "timestamp": "19 September 2026",
-      "daysAfterPlanting": 18,
+      "daysAfterPlanting": 247,
       "officerName": "Hendra Kusuma",
       "kebunId": "kebun-003",
       "kebunName": "Kebun Arum Sari",
@@ -1090,7 +1090,7 @@
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
       "timestamp": "15 September 2026",
-      "daysAfterPlanting": 14,
+      "daysAfterPlanting": 243,
       "officerName": "Hendra Kusuma",
       "kebunId": "kebun-003",
       "kebunName": "Kebun Arum Sari",
@@ -1098,8 +1098,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
-        "averageHeightCm": 20,
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 62,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1107,7 +1107,7 @@
         {
           "id": "photo-pertumbuhan-mock-kebun-003-2",
           "label": "Foto tanaman (full)",
-          "caption": "Pengamatan rutin; tinggi rata-rata 20 cm dengan pertumbuhan seragam.",
+          "caption": "Pengamatan rutin; tinggi rata-rata 62 cm dengan pertumbuhan seragam.",
           "image": "/images/activities/tumbuh-tanaman-full.jpg"
         }
       ]
@@ -1243,7 +1243,7 @@
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
       "timestamp": "8 September 2026",
-      "daysAfterPlanting": 7,
+      "daysAfterPlanting": 236,
       "officerName": "Hendra Kusuma",
       "kebunId": "kebun-003",
       "kebunName": "Kebun Arum Sari",
@@ -1251,8 +1251,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
-        "averageHeightCm": 7,
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 45,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1260,7 +1260,7 @@
         {
           "id": "photo-pertumbuhan-mock-kebun-003-1",
           "label": "Foto tanaman (full)",
-          "caption": "Pengamatan rutin; tinggi rata-rata 7 cm dengan pertumbuhan seragam.",
+          "caption": "Pengamatan rutin; tinggi rata-rata 45 cm dengan pertumbuhan seragam.",
           "image": "/images/activities/tumbuh-tanaman-full.jpg"
         },
         {
@@ -1359,39 +1359,6 @@
       ]
     },
     {
-      "id": "act-penanaman-003",
-      "type": "penanaman-benih",
-      "typeLabel": "Penanaman Benih",
-      "timestamp": "1 September 2026",
-      "daysAfterPlanting": 1,
-      "officerName": "Hendra Kusuma",
-      "kebunId": "kebun-003",
-      "kebunName": "Kebun Arum Sari",
-      "city": "Banjarnegara",
-      "seedType": "Rumput",
-      "report": {
-        "kind": "penanaman-benih",
-        "brandOrVariety": "Rumput Odot (stek batang)",
-        "quantityKg": 1200,
-        "plantingPattern": "Stek Antar Baris (60 cm)",
-        "areaSize": "2,0 Ha"
-      },
-      "photos": [
-        {
-          "id": "photo-benih-003a",
-          "label": "Foto lahan",
-          "caption": "Blok ratoon setelah pengolahan lahan",
-          "image": "/images/farm_fields/rumput.avif"
-        },
-        {
-          "id": "photo-benih-003b",
-          "label": "Foto kegiatan",
-          "caption": "Penyiraman awal setelah tanam",
-          "image": "/images/activities/pengairan-lahan.jpg"
-        }
-      ]
-    },
-    {
       "id": "act-pertumbuhan-mock-kebun-004-2",
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
@@ -1485,6 +1452,33 @@
       ]
     },
     {
+      "id": "act-pertumbuhan-ratoon-kebun-003-4",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "22 Agustus 2026",
+      "daysAfterPlanting": 219,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pertumbuhan anakan",
+        "averageHeightCm": 30,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-act-pertumbuhan-ratoon-kebun-003-4",
+          "label": "Foto tanaman (full)",
+          "caption": "Pertumbuhan anakan setelah pemotongan; tinggi rata-rata 30 cm.",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
       "id": "act-penanaman-001",
       "type": "penanaman-benih",
       "typeLabel": "Penanaman Benih",
@@ -1551,6 +1545,161 @@
       ]
     },
     {
+      "id": "act-panen-003",
+      "type": "panen",
+      "typeLabel": "Panen",
+      "timestamp": "8 Agustus 2026",
+      "daysAfterPlanting": 205,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "panen",
+        "harvestedArea": "2,0 Ha",
+        "grossWeight": "18,0 Ton",
+        "quality": {
+          "moistureContent": "69,5%",
+          "color": "Hijau Segar",
+          "ripeness": "Siap Potong (Babat ke-4)",
+          "cleanliness": "Bersih dari Gulma"
+        }
+      },
+      "photos": [
+        {
+          "id": "photo-panen-003a",
+          "label": "Foto lahan panen",
+          "caption": "Blok ratoon odot setelah pemotongan keempat",
+          "image": "/images/farm_fields/rumput.avif"
+        },
+        {
+          "id": "photo-panen-003b",
+          "label": "Foto tanaman (full)",
+          "caption": "Kerapatan rumput pada petak yang baru dipotong",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-ratoon-kebun-003-3",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "3 Agustus 2026",
+      "daysAfterPlanting": 200,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Siap babat",
+        "averageHeightCm": 76,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-act-pertumbuhan-ratoon-kebun-003-3",
+          "label": "Foto tanaman (full)",
+          "caption": "Pengamatan rutin; tinggi rata-rata 76 cm menjelang babat.",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-ratoon-kebun-003-2",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "20 Juli 2026",
+      "daysAfterPlanting": 186,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Pertumbuhan anakan",
+        "averageHeightCm": 48,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-act-pertumbuhan-ratoon-kebun-003-2",
+          "label": "Foto tanaman (full)",
+          "caption": "Pertumbuhan anakan setelah pemotongan; tinggi rata-rata 48 cm.",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-pertumbuhan-ratoon-kebun-003-1",
+      "type": "pengecekan-pertumbuhan",
+      "typeLabel": "Pengecekan Fase Pertumbuhan",
+      "timestamp": "6 Juli 2026",
+      "daysAfterPlanting": 172,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "pengecekan-pertumbuhan",
+        "growthPhase": "Tunas baru",
+        "averageHeightCm": 12,
+        "diseaseIndication": "Aman",
+        "pestIndication": "Aman"
+      },
+      "photos": [
+        {
+          "id": "photo-act-pertumbuhan-ratoon-kebun-003-1",
+          "label": "Foto tanaman (full)",
+          "caption": "Tunas baru setelah pemotongan; tinggi rata-rata 12 cm.",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
+      "id": "act-panen-002",
+      "type": "panen",
+      "typeLabel": "Panen",
+      "timestamp": "29 Juni 2026",
+      "daysAfterPlanting": 165,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "panen",
+        "harvestedArea": "2,0 Ha",
+        "grossWeight": "18,0 Ton",
+        "quality": {
+          "moistureContent": "69,0%",
+          "color": "Hijau Segar",
+          "ripeness": "Siap Potong (Babat ke-3)",
+          "cleanliness": "Bersih dari Gulma"
+        }
+      },
+      "photos": [
+        {
+          "id": "photo-panen-002a",
+          "label": "Foto lahan panen",
+          "caption": "Blok ratoon odot setelah pemotongan ketiga",
+          "image": "/images/farm_fields/rumput.avif"
+        },
+        {
+          "id": "photo-panen-002b",
+          "label": "Foto tanaman (full)",
+          "caption": "Kerapatan rumput pada petak yang baru dipotong",
+          "image": "/images/activities/tumbuh-tanaman-full.jpg"
+        }
+      ]
+    },
+    {
       "id": "act-pertumbuhan-hist-kebun-003-11",
       "type": "pengecekan-pertumbuhan",
       "typeLabel": "Pengecekan Fase Pertumbuhan",
@@ -1563,8 +1712,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
-        "averageHeightCm": 134,
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 76,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1590,8 +1739,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
-        "averageHeightCm": 130,
+        "growthPhase": "Pertumbuhan anakan",
+        "averageHeightCm": 44,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1617,8 +1766,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
-        "averageHeightCm": 123,
+        "growthPhase": "Tunas baru",
+        "averageHeightCm": 6,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1745,8 +1894,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
-        "averageHeightCm": 114,
+        "growthPhase": "Siap babat",
+        "averageHeightCm": 106,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -1910,8 +2059,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
-        "averageHeightCm": 102,
+        "growthPhase": "Vegetatif aktif",
+        "averageHeightCm": 86,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -2052,7 +2201,7 @@
       "report": {
         "kind": "pengecekan-pertumbuhan",
         "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 90,
+        "averageHeightCm": 62,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -2192,8 +2341,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 74,
+        "growthPhase": "Pertumbuhan anakan",
+        "averageHeightCm": 34,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -2339,8 +2488,8 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
-        "averageHeightCm": 56,
+        "growthPhase": "Tunas baru",
+        "averageHeightCm": 4,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
       },
@@ -2937,6 +3086,39 @@
       ]
     },
     {
+      "id": "act-penanaman-003",
+      "type": "penanaman-benih",
+      "typeLabel": "Penanaman Benih",
+      "timestamp": "15 Januari 2026",
+      "daysAfterPlanting": 1,
+      "officerName": "Hendra Kusuma",
+      "kebunId": "kebun-003",
+      "kebunName": "Kebun Arum Sari",
+      "city": "Banjarnegara",
+      "seedType": "Rumput",
+      "report": {
+        "kind": "penanaman-benih",
+        "brandOrVariety": "Rumput Odot (stek batang)",
+        "quantityKg": 600,
+        "plantingPattern": "Stek Antar Baris (60 cm)",
+        "areaSize": "2,0 Ha"
+      },
+      "photos": [
+        {
+          "id": "photo-benih-003a",
+          "label": "Foto lahan",
+          "caption": "Lahan siap tanam setelah pengolahan tanah",
+          "image": "/images/farm_fields/rumput.avif"
+        },
+        {
+          "id": "photo-benih-003b",
+          "label": "Foto kegiatan",
+          "caption": "Penyiraman awal setelah tanam",
+          "image": "/images/activities/pengairan-lahan.jpg"
+        }
+      ]
+    },
+    {
       "id": "act-penanaman-hist-004",
       "type": "penanaman-benih",
       "typeLabel": "Penanaman Benih",
@@ -2982,11 +3164,11 @@
         },
         {
           "label": "Luas total",
-          "value": "300 ha"
+          "value": "1.255 / 4.350 ha"
         },
         {
-          "label": "Total tanam",
-          "value": "5 Kebun"
+          "label": "Total komoditas",
+          "value": "3 Komoditas"
         }
       ]
     },
@@ -2997,19 +3179,19 @@
       "statistics": [
         {
           "label": "Jumlah",
-          "value": "5 Kebun"
+          "value": "2 Kebun"
         },
         {
           "label": "Luas tanam",
-          "value": "50/100 HA"
+          "value": "440 / 1.650 ha"
         },
         {
           "label": "Total panen",
-          "value": "50 Ton"
+          "value": "51 Ton"
         },
         {
           "label": "Total pendapatan",
-          "value": "Rp 8.300.000",
+          "value": "Rp 51.000.000",
           "highlight": true
         }
       ]
@@ -3021,19 +3203,19 @@
       "statistics": [
         {
           "label": "Jumlah",
-          "value": "5 Kebun"
+          "value": "2 Kebun"
         },
         {
           "label": "Luas tanam",
-          "value": "50/100 HA"
+          "value": "395 / 1.500 ha"
         },
         {
           "label": "Total panen",
-          "value": "50 Ton"
+          "value": "60 Ton"
         },
         {
           "label": "Total pendapatan",
-          "value": "Rp 8.300.000",
+          "value": "Rp 62.000.000",
           "highlight": true
         }
       ]
@@ -3045,29 +3227,29 @@
       "statistics": [
         {
           "label": "Jumlah",
-          "value": "5 Kebun"
+          "value": "1 Kebun"
         },
         {
           "label": "Luas tanam",
-          "value": "50/100 HA"
+          "value": "420 / 1.200 ha"
         },
         {
           "label": "Total panen",
-          "value": "50 Ton"
+          "value": "24 Ton"
         },
         {
           "label": "Total pendapatan",
-          "value": "Rp 8.300.000",
+          "value": "Rp 57.000.000",
           "highlight": true
         }
       ]
     }
   ],
   "dashboardFinancialSummary": {
-    "income": 8300000,
-    "projectedIncome": 8300000,
-    "expenses": 8300000,
-    "projectedExpenses": 8300000
+    "income": 170000000,
+    "projectedIncome": 170000000,
+    "expenses": 60000000,
+    "projectedExpenses": 60000000
   },
   "finance": {
     "totalRevenue": 170000000,
@@ -3195,7 +3377,8 @@
           "year": "2026"
         },
         "amount": 12000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 2,
@@ -3208,7 +3391,8 @@
           "year": "2026"
         },
         "amount": 4000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 3,
@@ -3221,7 +3405,8 @@
           "year": "2026"
         },
         "amount": 14000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 4,
@@ -3234,7 +3419,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 5,
@@ -3247,7 +3433,8 @@
           "year": "2026"
         },
         "amount": 16000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 6,
@@ -3260,7 +3447,8 @@
           "year": "2026"
         },
         "amount": 6000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 7,
@@ -3273,7 +3461,8 @@
           "year": "2026"
         },
         "amount": 11000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 8,
@@ -3286,7 +3475,8 @@
           "year": "2026"
         },
         "amount": 4000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 9,
@@ -3299,7 +3489,8 @@
           "year": "2026"
         },
         "amount": 13000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 10,
@@ -3312,7 +3503,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 11,
@@ -3325,7 +3517,8 @@
           "year": "2026"
         },
         "amount": 14000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 12,
@@ -3338,7 +3531,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 13,
@@ -3351,7 +3545,8 @@
           "year": "2026"
         },
         "amount": 16000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 14,
@@ -3364,7 +3559,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 15,
@@ -3377,7 +3573,8 @@
           "year": "2026"
         },
         "amount": 17000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 16,
@@ -3390,7 +3587,8 @@
           "year": "2026"
         },
         "amount": 6000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 17,
@@ -3403,7 +3601,8 @@
           "year": "2026"
         },
         "amount": 18000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 18,
@@ -3416,7 +3615,8 @@
           "year": "2026"
         },
         "amount": 6000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 19,
@@ -3429,7 +3629,8 @@
           "year": "2026"
         },
         "amount": 12000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": false
       },
       {
         "id": 20,
@@ -3442,7 +3643,8 @@
           "year": "2026"
         },
         "amount": 4000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": false
       },
       {
         "id": 21,
@@ -3455,7 +3657,8 @@
           "year": "2026"
         },
         "amount": 13000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": true
       },
       {
         "id": 22,
@@ -3468,7 +3671,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": true
       },
       {
         "id": 23,
@@ -3481,7 +3685,8 @@
           "year": "2026"
         },
         "amount": 14000000,
-        "type": "income"
+        "type": "income",
+        "isProjected": true
       },
       {
         "id": 24,
@@ -3494,7 +3699,8 @@
           "year": "2026"
         },
         "amount": 5000000,
-        "type": "expense"
+        "type": "expense",
+        "isProjected": true
       }
     ]
   },
