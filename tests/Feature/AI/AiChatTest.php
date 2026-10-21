@@ -6,6 +6,7 @@ use App\AI\Contracts\EmbeddingGateway;
 use App\AI\Contracts\LlmGateway;
 use App\AI\Exceptions\EmbeddingException;
 use App\AI\Exceptions\LlmException;
+use App\AI\Services\AiChatService;
 use App\AI\Services\OpenRouterGateway;
 use App\Enums\TeamRole;
 use App\Models\AiAttachment;
@@ -542,5 +543,46 @@ class AiChatTest extends TestCase
         $this->assertSame('failed', data_get($assistant->metadata, 'image_generation.status'));
         $this->assertSame('AI image provider returned no generated image.', data_get($assistant->metadata, 'image_generation.reason'));
         $this->assertSame(0, AiAttachment::query()->count());
+    }
+
+    public function test_two_concurrent_conversations_keep_trace_and_content_isolated(): void
+    {
+        $this->app->instance(LlmGateway::class, new class implements LlmGateway
+        {
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                return [];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                $prompt = (string) data_get($messages, '1.content', '');
+                $marker = str_contains($prompt, 'USER_A') ? 'USER_A' : 'USER_B';
+                yield ['id' => 'request-'.$marker, 'choices' => [['delta' => ['content' => 'Jawaban '.$marker.' selesai.'], 'finish_reason' => 'stop']]];
+            }
+        });
+        config(['ai.openrouter.api_key' => 'test-key']);
+        $a = User::factory()->create();
+        $b = User::factory()->create();
+        $ca = $this->app->make(AiChatService::class)->createConversation($a, $a->currentTeam);
+        $cb = $this->app->make(AiChatService::class)->createConversation($b, $b->currentTeam);
+        $service = $this->app->make(AiChatService::class);
+        $ma = $service->createUserMessage($ca, $a, 'USER_A jelaskan panduan kebun jagung');
+        $mb = $service->createUserMessage($cb, $b, 'USER_B jelaskan panduan kebun kedelai');
+        $ga = $service->streamReply($ca->fresh(), false, $ma);
+        $gb = $service->streamReply($cb->fresh(), false, $mb);
+        foreach ([$ga, $gb] as $g) {
+            foreach ($g as $_) {
+            }
+        }
+        $aa = $ca->fresh()->messages()->where('role', 'assistant')->firstOrFail();
+        $ab = $cb->fresh()->messages()->where('role', 'assistant')->firstOrFail();
+        $this->assertSame('completed', $aa->status);
+        $this->assertSame('completed', $ab->status);
+        $this->assertStringContainsString('USER_A', (string) $aa->content);
+        $this->assertStringContainsString('USER_B', (string) $ab->content);
+        $this->assertNotSame(data_get($aa->metadata, 'trace_id'), data_get($ab->metadata, 'trace_id'));
+        $this->assertSame('stop', data_get($aa->metadata, 'provider_finish_reason'));
+        $this->assertSame('stop', data_get($ab->metadata, 'provider_finish_reason'));
     }
 }

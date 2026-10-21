@@ -153,6 +153,7 @@ class AiChatService
         $content = '';
         $lastError = null;
         $lastChunk = [];
+        $finishReason = null;
         $lastPersistedAt = microtime(true);
         $lastPersistedLength = 0;
 
@@ -184,6 +185,7 @@ class AiChatService
                 $generationStartedAt = microtime(true);
                 foreach ($this->gateway->stream($prompt, $model, $generationOptions) as $chunk) {
                     $lastChunk = $chunk;
+                    $finishReason = data_get($chunk, 'choices.0.finish_reason') ?? $finishReason;
                     $usage = $this->mergeUsage($usage, $chunk);
                     $delta = data_get($chunk, 'choices.0.delta.content');
                     if (! is_string($delta) || $delta === '') {
@@ -223,6 +225,7 @@ class AiChatService
                 }
 
                 $latency = (int) round((microtime(true) - $startedAt) * 1000);
+                $truncated = $finishReason === 'length';
                 $validation = $this->groundedValidator->validate($content, $evidence);
                 $content = $this->appendCitations($content, $evidence);
                 $timings['generation_ms'] = $latency;
@@ -232,8 +235,8 @@ class AiChatService
                     : (int) round(($firstTokenAt - $generationStartedAt) * 1000);
                 $assistant->forceFill([
                     'content' => $content,
-                    'status' => 'completed',
-                    'request_id' => data_get($lastChunk, 'id'),
+                    'status' => $truncated ? 'failed' : 'completed',
+                    'request_id' => data_get($lastChunk, 'provider_request_id') ?: data_get($lastChunk, 'id'),
                     'input_tokens' => $usage['input_tokens'],
                     'output_tokens' => $usage['output_tokens'],
                     'latency_ms' => $latency,
@@ -247,6 +250,8 @@ class AiChatService
                             $latency,
                             $evidence,
                         ),
+                        'provider_finish_reason' => $finishReason,
+                        'truncated' => $truncated,
                         'fallback_index' => $index,
                         'fallback' => [
                             'attempts' => $index + 1,
@@ -266,9 +271,10 @@ class AiChatService
                 $conversation->forceFill(['last_message_at' => now()])->save();
                 $this->recordUsage($conversation, $assistant, $usage, $latency);
 
-                yield ['event' => 'message.done', 'data' => [
+                yield ['event' => $truncated ? 'message.error' : 'message.done', 'data' => [
                     'conversation_id' => (string) $conversation->id,
                     'message' => $this->messagePayload($assistant->fresh('attachments')),
+                    ...($truncated ? ['error' => 'Jawaban terpotong karena batas output provider. Silakan coba lagi.'] : []),
                 ]];
 
                 return;
