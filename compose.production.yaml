@@ -181,8 +181,8 @@ services:
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
         volumes:
             - postgres_data:/var/lib/postgresql/data
-        # Use a unique name so the app never resolves Outline's "postgres"
-        # alias on the shared proxy network.
+        ports:
+            - '127.0.0.1:5432:5432'
         networks:
             default:
                 aliases:
