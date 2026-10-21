@@ -20,9 +20,13 @@ const props = withDefaults(
     defineProps<{
         content: string;
         isStreaming?: boolean;
+        forceVisual?: boolean;
+        metadata?: Record<string, unknown>;
     }>(),
     {
         isStreaming: false,
+        forceVisual: false,
+        metadata: () => ({}),
     },
 );
 
@@ -33,6 +37,12 @@ const emit = defineEmits<{
 const viewMode = ref<'infographic' | 'text'>('infographic');
 const isLightboxOpen = ref(false);
 const isCopied = ref(false);
+const imageGeneration = computed(() => {
+    const value = props.metadata?.image_generation;
+    return value && typeof value === 'object'
+        ? (value as { status?: string; reason?: string | null })
+        : null;
+});
 
 interface MetricItem {
     icon?: string;
@@ -100,11 +110,11 @@ function inlineMarkdown(value: string): string {
         .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 }
 
-function renderFullMarkdown(value: string): string {
-    const prepared = removeAllImageMarkdown(normalizeAiResponse(value)).replace(
-        /^(#{1,6}\s+.+)$/gm,
-        '\n$1\n',
-    );
+function renderFullMarkdown(value: string, stripImages = true): string {
+    const normalized = normalizeAiResponse(value);
+    const prepared = (
+        stripImages ? removeAllImageMarkdown(normalized) : normalized
+    ).replace(/^(#{1,6}\s+.+)$/gm, '\n$1\n');
     const safe = escapeHtml(prepared);
     if (!safe) return '';
     return safe
@@ -263,6 +273,7 @@ const parsed = computed<ParsedInfographic>(() => {
     const intro = text.trim() ? text.trim() : null;
 
     const hasInfographicElements =
+        props.forceVisual &&
         !props.isStreaming &&
         Boolean(
             image ||
@@ -316,7 +327,19 @@ async function copyContent(): Promise<void> {
                 <span>{{
                     parsed.image ? 'Infografis AI' : 'Ringkasan visual'
                 }}</span>
+                <span
+                    v-if="imageGeneration"
+                    class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                    :class="imageGeneration.status === 'generated' ? 'bg-success/10 text-success' : imageGeneration.status === 'fallback' ? 'bg-warning/15 text-warning' : 'bg-error/10 text-error'"
+                    :title="imageGeneration.reason || undefined"
+                >
+                    {{ imageGeneration.status === 'generated' ? 'Generated' : imageGeneration.status === 'fallback' ? 'Fallback' : 'Failed' }}
+                </span>
             </div>
+            <span
+                v-if="imageGeneration?.status === 'fallback' && imageGeneration.reason"
+                class="ml-2 text-[10px] text-warning"
+            >Alasan: {{ imageGeneration.reason }}</span>
             <div
                 class="flex items-center gap-1 rounded-lg bg-muted/80 p-0.5 text-[11px]"
             >
@@ -501,7 +524,7 @@ async function copyContent(): Promise<void> {
         <div
             v-else
             class="ai-message-content text-sm leading-relaxed"
-            v-html="renderFullMarkdown(content)"
+            v-html="renderFullMarkdown(content, false)"
         />
 
         <!-- LIGHTBOX MODAL FOR HERO IMAGE -->

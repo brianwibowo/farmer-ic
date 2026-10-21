@@ -1,5 +1,17 @@
 name: farmer-ic
 
+# Production RAG topology for a single VPS.
+#
+# Prerequisites:
+#   - .env.production with all secrets (DB, Redis, Qdrant, OpenRouter keys)
+#   - APP_IMAGE / APP_TAG set when using a pre-built image
+#   - TLS termination handled by the external reverse proxy network
+#
+# Current default: SQLite + sync queue (safe baseline).
+# To activate the full RAG stack, set in .env.production:
+#   DB_CONNECTION=pgsql  DB_HOST=farmer-ic-postgres
+#   QUEUE_CONNECTION=redis  AI_RAG_VECTOR_ENABLED=true
+
 services:
     app:
         build:
@@ -15,11 +27,15 @@ services:
             APP_ENV: production
             APP_DEBUG: 'false'
             APP_URL: ${APP_URL:-https://farmer.icdigital.io}
-            DB_CONNECTION: sqlite
-            DB_DATABASE: /var/lib/farmer-ic/database.sqlite
-            SESSION_DRIVER: file
-            CACHE_STORE: file
-            QUEUE_CONNECTION: sync
+            DB_CONNECTION: ${DB_CONNECTION:-sqlite}
+            DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
+            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
+            DB_PORT: ${DB_PORT:-5432}
+            SESSION_DRIVER: ${SESSION_DRIVER:-file}
+            CACHE_STORE: ${CACHE_STORE:-file}
+            QUEUE_CONNECTION: ${QUEUE_CONNECTION:-sync}
+            REDIS_HOST: ${REDIS_HOST:-redis}
+            QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
         networks:
             default: {}
             proxy:
@@ -28,11 +44,165 @@ services:
         volumes:
             - app_storage:/var/www/html/storage
             - app_database:/var/lib/farmer-ic
+        depends_on:
+            postgres:
+                condition: service_healthy
+                required: false
+            redis:
+                condition: service_healthy
+                required: false
+            qdrant:
+                condition: service_healthy
+                required: false
         restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    memory: 512M
+
+    worker:
+        image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
+        command: php artisan queue:work redis --queue=ai-index,default --sleep=2 --tries=3 --timeout=180
+        profiles: ['rag']
+        env_file:
+            - path: .env.production
+              required: false
+        environment:
+            APP_ENV: production
+            APP_DEBUG: 'false'
+            DB_CONNECTION: ${DB_CONNECTION:-sqlite}
+            DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
+            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
+            DB_PORT: ${DB_PORT:-5432}
+            QUEUE_CONNECTION: redis
+            REDIS_HOST: ${REDIS_HOST:-redis}
+            CACHE_STORE: ${CACHE_STORE:-redis}
+            QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+        volumes:
+            - app_storage:/var/www/html/storage
+            - app_database:/var/lib/farmer-ic
+        depends_on:
+            postgres:
+                condition: service_healthy
+                required: false
+            redis:
+                condition: service_healthy
+            qdrant:
+                condition: service_healthy
+        # The image healthcheck targets Apache; this container runs a queue worker.
+        healthcheck:
+            test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "queue:work"']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    memory: 256M
+
+    scheduler:
+        image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
+        command: php artisan schedule:work --no-interaction
+        profiles: ['rag']
+        env_file:
+            - path: .env.production
+              required: false
+        environment:
+            APP_ENV: production
+            DB_CONNECTION: ${DB_CONNECTION:-sqlite}
+            DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
+            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
+            DB_PORT: ${DB_PORT:-5432}
+            QUEUE_CONNECTION: redis
+            REDIS_HOST: ${REDIS_HOST:-redis}
+        depends_on:
+            postgres:
+                condition: service_healthy
+                required: false
+            redis:
+                condition: service_healthy
+        # The image healthcheck targets Apache; this container runs the scheduler.
+        healthcheck:
+            test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "schedule:work"']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    memory: 128M
+
+    postgres:
+        image: postgres:17-alpine
+        profiles: ['rag']
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB:-farmer_ic}
+            POSTGRES_USER: ${POSTGRES_USER:-farmer_ic}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        # Use a unique name so the app never resolves Outline's "postgres"
+        # alias on the shared proxy network.
+        networks:
+            default:
+                aliases:
+                    - farmer-ic-postgres
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-farmer_ic}']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    memory: 512M
+
+    redis:
+        image: redis:7-alpine
+        profiles: ['rag']
+        command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 3s
+            retries: 5
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    memory: 192M
+
+    qdrant:
+        image: ${QDRANT_IMAGE:-qdrant/qdrant:v1.14.1}
+        profiles: ['rag']
+        expose:
+            - '6333'
+        volumes:
+            - qdrant_storage:/qdrant/storage
+        healthcheck:
+            test: ['CMD-SHELL', 'kill -0 1 && test -f /qdrant/storage/raft_state.json']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    memory: 512M
 
 volumes:
     app_storage:
     app_database:
+    postgres_data:
+    redis_data:
+    qdrant_storage:
 
 networks:
     default:

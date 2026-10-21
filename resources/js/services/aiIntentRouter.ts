@@ -18,6 +18,7 @@ export type AiIntentRoute = {
     needsClarification: boolean;
     reason:
         | 'explicit_data_lookup'
+        | 'finance_analysis'
         | 'current_finance_unavailable'
         | 'explicit_visual_request'
         | 'agriculture_guidance'
@@ -79,6 +80,7 @@ const financeTerms = [
     'laba',
     'profit',
     'saldo',
+    'keuntungan',
     'pengeluaran',
     'biaya',
 ];
@@ -143,10 +145,13 @@ const outOfScopeTerms = [
     'crypto',
     'berita artis',
     'sepak bola',
+    'buat kode',
+    'tulis kode',
+    'buat program',
 ];
 
 const currentPeriodPattern =
-    /\b(?:bulan ini|bulan sekarang|bulan berjalan|periode ini|periode berjalan|saat ini|hari ini|minggu ini)\b/i;
+    /\b(?:bulan ini|bulan sekarang|bulan berjalan|periode ini|periode berjalan|saat ini|sekarang|kini|hari ini|minggu ini)\b/i;
 const quarterPattern = /\bq(?:uarter)?\s*[1-4]\b/i;
 const historicalPattern =
     /\b(?:tahun lalu|tahun ini|bulan lalu|periode lalu|q[1-4]|quarter)\b/i;
@@ -163,7 +168,7 @@ function hasTerm(value: string, terms: string[]): boolean {
     return terms.some((term) => {
         const escaped = term.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
         return new RegExp(
-            '(?:^|\\s)' + escaped + '(?:$|\\s|[?!,.:;()])',
+            '(?:^|\\s)' + escaped + '(?:nya|mu|ku)?(?:$|\\s|[?!,.:;()])',
             'i',
         ).test(value);
     });
@@ -175,9 +180,10 @@ function firstTerm(value: string, terms: string[]): string | null {
 
 function detectDomain(value: string): AiDomain {
     if (hasTerm(value, financeTerms)) return 'finance';
-    if (hasTerm(value, activityTerms)) return 'activity';
+    if (/\b(?:aktivitas|kegiatan)\b/i.test(value)) return 'activity';
     if (/\b(?:kebun|lahan|sawah|ladang)\b/i.test(value)) return 'garden';
     if (hasTerm(value, agricultureTerms)) return 'agronomy';
+    if (hasTerm(value, activityTerms)) return 'activity';
     return null;
 }
 
@@ -186,6 +192,12 @@ function detectPeriod(value: string): AiPeriod {
     if (quarterPattern.test(value)) return 'quarter';
     if (historicalPattern.test(value)) return 'historical';
     return 'unknown';
+}
+
+function isGreeting(value: string): boolean {
+    return /^(?:halo|hai|hei|hi|pagi|siang|sore|malam|terima kasih|makasih)(?:[!.,\s]|$)/i.test(
+        value,
+    );
 }
 
 function hasExplicitDataLookup(value: string, domain: AiDomain): boolean {
@@ -200,12 +212,6 @@ function hasExplicitDataLookup(value: string, domain: AiDomain): boolean {
     return true;
 }
 
-function hasCurrentFinanceGuardrail(value: string): boolean {
-    return (
-        detectDomain(value) === 'finance' && detectPeriod(value) === 'current'
-    );
-}
-
 export function routeAiPrompt(
     value: string,
     hasAttachments = false,
@@ -213,6 +219,7 @@ export function routeAiPrompt(
     const prompt = normalize(value);
     const domain = detectDomain(prompt);
     const period = detectPeriod(prompt);
+    const visualSignal = hasTerm(prompt, visualTerms);
     const topic =
         firstTerm(prompt, agricultureTerms) ?? firstTerm(prompt, financeTerms);
 
@@ -240,37 +247,10 @@ export function routeAiPrompt(
         };
     }
 
-    // Current-period financial data is explicitly unavailable in the demo
-    // knowledge base. Route every synonym here to one knowledge answer rather
-    // than letting a static finance resolver invent a Q4/current-month value.
-    if (!hasAttachments && hasCurrentFinanceGuardrail(prompt)) {
-        return {
-            intent: 'knowledge',
-            confidence: 0.99,
-            topic: 'finansial bulan ini',
-            domain: 'finance',
-            period: 'current',
-            needsClarification: false,
-            reason: 'current_finance_unavailable',
-        };
-    }
-
-    // A concrete data lookup wins over a visual verb. “Tampilkan kondisi
-    // kebun” is a data request; it should not unexpectedly invoke image
-    // generation.
-    if (hasExplicitDataLookup(prompt, domain)) {
-        return {
-            intent: 'data',
-            confidence: 0.92,
-            topic,
-            domain,
-            period,
-            needsClarification: false,
-            reason: 'explicit_data_lookup',
-        };
-    }
-
-    if (hasTerm(prompt, visualTerms) && Boolean(domain)) {
+    // An explicit visual verb is a presentation request. “Gambarkan kondisi
+    // lahan” must not silently become a data summary just because it contains
+    // the word “kondisi”.
+    if (visualSignal && Boolean(domain)) {
         return {
             intent: 'infographic',
             confidence: 0.94,
@@ -282,15 +262,29 @@ export function routeAiPrompt(
         };
     }
 
-    if (domain === 'finance' && !hasExplicitDataLookup(prompt, domain)) {
+    if (domain === 'finance') {
         return {
             intent: 'llm',
-            confidence: 0.58,
+            confidence: 0.9,
             topic,
             domain,
             period,
-            needsClarification: true,
-            reason: 'general_question',
+            needsClarification: false,
+            reason: 'finance_analysis',
+        };
+    }
+
+    // A concrete data lookup remains the default for “tampilkan kondisi
+    // kebun” because “tampilkan” is intentionally not a visual trigger.
+    if (hasExplicitDataLookup(prompt, domain)) {
+        return {
+            intent: 'data',
+            confidence: 0.92,
+            topic,
+            domain,
+            period,
+            needsClarification: false,
+            reason: 'explicit_data_lookup',
         };
     }
 
@@ -312,7 +306,8 @@ export function routeAiPrompt(
         topic,
         domain,
         period,
-        needsClarification: prompt.length > 0 && prompt.length < 18,
+        needsClarification:
+            prompt.length > 0 && prompt.length < 14 && !isGreeting(prompt),
         reason: 'general_question',
     };
 }

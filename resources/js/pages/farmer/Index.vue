@@ -43,16 +43,11 @@ import {
     normalizeAiResponse,
     outOfScopeResponse,
     toSpeechText,
-} from "@/services/aiChatService";
-import { queryKnowledge } from "@/services/aiKnowledgeService";
-import { validateAiResponse } from "@/services/aiResponseValidator";
-import {
-    buildFullFarmContext,
-    extractTargetedKebunContext,
-    queryDemoData,
-} from "@/services/aiDemoDataService";
-import { clearDemoStorage } from "@/composables/useDemoStorage";
-import type { Team } from "@/types/teams";
+} from '@/services/aiChatService';
+import { queryDemoData } from '@/services/aiDemoDataService';
+import { validateAiResponse } from '@/services/aiResponseValidator';
+import { clearDemoStorage } from '@/composables/useDemoStorage';
+import type { Team } from '@/types/teams';
 
 type PageProps = { currentTeam?: Team | null };
 
@@ -194,12 +189,7 @@ async function scrollToLatest(): Promise<void> {
 }
 
 async function send(): Promise<void> {
-    const raw = inputElement.value?.value ?? inputText.value;
-    if (raw && raw !== inputText.value) {
-        inputText.value = raw;
-    }
-    if (!canSend.value && !inputText.value.trim() && pendingAttachments.value.length === 0) return;
-    if (isSending.value) return;
+    if (!canSend.value) return;
     const text = compactAiPrompt(inputText.value);
     const attachments = [...pendingAttachments.value];
     const classification = classifyAiPrompt(text, attachments.length > 0);
@@ -218,41 +208,15 @@ async function send(): Promise<void> {
     const startedAt = performance.now();
     const localIntent =
         attachments.length === 0 &&
-        (classification.intent === "data" ||
-            classification.intent === "knowledge" ||
-            classification.intent === "out_of_scope");
+        (classification.intent === 'data' ||
+            classification.intent === 'out_of_scope');
     if (localIntent) isSending.value = true;
     inputText.value = "";
     pendingAttachments.value = [];
     voiceInputPending.value = false;
     void nextTick(autoResize);
 
-    if (classification.intent === "knowledge" && attachments.length === 0) {
-        let knowledgeAnswer = null;
-        try {
-            knowledgeAnswer = await queryKnowledge(text);
-        } catch {
-            knowledgeAnswer = null;
-        }
-        if (knowledgeAnswer) {
-            await showLocalAnswer(
-                text,
-                knowledgeAnswer.content,
-                requestMode === "voice" ? "voice" : "data",
-                "negative",
-                startedAt,
-                0,
-                voiceMetric,
-            );
-            isSending.value = false;
-            await scrollToLatest();
-            inputElement.value?.focus();
-            return;
-        }
-        isSending.value = false;
-    }
-
-    if (classification.intent === "data" && attachments.length === 0) {
+    if (classification.intent === 'data' && attachments.length === 0) {
         let demoAnswer = null;
         try {
             demoAnswer = await queryDemoData(text);
@@ -287,6 +251,22 @@ async function send(): Promise<void> {
             "negative",
             startedAt,
             420,
+            voiceMetric,
+        );
+        isSending.value = false;
+        await scrollToLatest();
+        inputElement.value?.focus();
+        return;
+    }
+
+    if (classification.needsClarification && attachments.length === 0) {
+        await showLocalAnswer(
+            text,
+            'Saya belum menangkap tujuan pertanyaannya. Anda ingin saya membantu yang mana?\n\n1. **Data kebun atau aktivitas** yang tersedia di aplikasi\n2. **Panduan perawatan tanaman**\n3. **Ringkasan visual atau infografis** pertanian\n\nSebutkan kebun, komoditas, periode, atau tujuan Anda agar jawabannya lebih tepat.',
+            requestMode === 'voice' ? 'voice' : 'text',
+            'negative',
+            startedAt,
+            300,
             voiceMetric,
         );
         isSending.value = false;
@@ -418,7 +398,8 @@ async function showLocalAnswer(
             content: safeAnswer,
             attachments: [],
             createdAt: new Date().toISOString(),
-            status: "complete",
+            status: 'complete',
+            presentation: 'text',
         },
     );
     if (delayMs > 0) {

@@ -75,9 +75,24 @@ jobs:
                         fi
                       fi
 
+                      # Keep production on the unique Postgres alias instead of
+                      # the shared "postgres" name from the Outline network.
+                      if grep -q '^DB_HOST=' .env.production; then
+                        sed -i 's/^DB_HOST=.*/DB_HOST=farmer-ic-postgres/' .env.production
+                      else
+                        printf 'DB_HOST=farmer-ic-postgres\n' >> .env.production
+                      fi
+
+                      # Laravel supports "phpredis" or "predis", not "redis".
+                      if grep -q '^REDIS_CLIENT=' .env.production; then
+                        sed -i 's/^REDIS_CLIENT=.*/REDIS_CLIENT=phpredis/' .env.production
+                      else
+                        printf 'REDIS_CLIENT=phpredis\n' >> .env.production
+                      fi
+
                       export APP_IMAGE=farmer-ic
                       export APP_TAG="$COMMIT_SHA"
-                      docker compose --env-file .env.production -f compose.production.yaml build --pull app
+                      docker compose --env-file .env.production -f compose.production.yaml --profile rag build --pull app
                       docker ps -aq --filter 'name=farmer-ic-app-1' | xargs -r docker rm -f
-                      docker compose --env-file .env.production -f compose.production.yaml up -d --no-build --remove-orphans app
+                      docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --no-build --remove-orphans app worker scheduler postgres redis qdrant
                       docker image prune --force

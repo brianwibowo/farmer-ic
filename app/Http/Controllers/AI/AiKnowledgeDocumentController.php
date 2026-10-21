@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\AI;
 
+use App\AI\Jobs\IndexKnowledgeDocument;
 use App\Enums\TeamPermission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\StoreAiKnowledgeDocumentRequest;
@@ -73,6 +74,10 @@ class AiKnowledgeDocumentController extends Controller
             'reviewed_by' => $request->user()->id,
             'published_at' => now(),
         ])->save();
+
+        if (config('ai.rag.vector_enabled')) {
+            IndexKnowledgeDocument::dispatch($document->id);
+        }
 
         return response()->json($this->payload($document->fresh()));
     }

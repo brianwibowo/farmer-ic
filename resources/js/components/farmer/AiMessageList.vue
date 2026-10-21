@@ -15,6 +15,7 @@ import {
     Volume2,
 } from '@lucide/vue';
 import AiInfographicCard from '@/components/farmer/AiInfographicCard.vue';
+import AiFinanceCard from '@/components/farmer/AiFinanceCard.vue';
 import type { ChatAttachment, ChatMessage } from '@/types/aiChat';
 
 const props = defineProps<{
@@ -174,10 +175,17 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                     </a>
                 </div>
                 <div v-if="message.content">
+                    <AiFinanceCard
+                        v-if="message.role === 'assistant' && message.metadata?.route && (message.metadata.route as Record<string, unknown>).domain === 'finance'"
+                        :content="message.content"
+                        :metadata="message.metadata"
+                    />
                     <AiInfographicCard
-                        v-if="message.role === 'assistant'"
+                        v-else-if="message.role === 'assistant'"
                         :content="message.content"
                         :is-streaming="message.status === 'streaming'"
+                        :force-visual="message.presentation === 'infographic'"
+                        :metadata="message.metadata"
                         @copied="emit('copied', message.id)"
                     />
                     <div
@@ -190,7 +198,7 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                 </div>
                 <div
                     v-if="message.status === 'streaming'"
-                    class="mt-2 flex items-center gap-2 rounded-lg bg-muted/60 px-2.5 py-2 text-xs text-muted-foreground"
+                    class="mt-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground"
                     aria-label="Jawaban sedang ditulis"
                     role="status"
                     aria-live="polite"
@@ -208,7 +216,7 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                         }}</span>
                         <span class="block text-[11px] leading-4">
                             Jawaban biasanya muncul dalam beberapa detik. Jika
-                            lebih dari 30 detik, Anda bisa menghentikannya.
+                            lebih dari 60 detik, Anda bisa menghentikannya.
                         </span>
                     </span>
                 </div>

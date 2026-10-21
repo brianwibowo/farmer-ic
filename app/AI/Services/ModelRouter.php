@@ -5,13 +5,21 @@ namespace App\AI\Services;
 class ModelRouter
 {
     /** @return array<int, string> */
-    public function candidates(bool $hasVision): array
+    public function candidates(bool $hasVision, bool $preferFast = false): array
     {
         $configured = $hasVision
             ? config('ai.models.vision_fallbacks', [])
             : config('ai.models.text_fallbacks', []);
 
-        $models = array_merge([
+        $models = [];
+        if (! $hasVision && $preferFast) {
+            $fast = trim((string) config('ai.models.fast_text_model', ''));
+            if ($fast !== '') {
+                $models[] = $fast;
+            }
+        }
+
+        $models = array_merge($models, [
             (string) config('ai.models.primary'),
         ], is_array($configured) ? $configured : []);
 

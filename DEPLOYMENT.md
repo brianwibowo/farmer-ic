@@ -26,17 +26,52 @@ The app is available at <http://localhost:8080>. Stop it with
 SQLite and storage volumes. For a stable local session across container
 recreation, add an `APP_KEY` value to `.env.docker`.
 
+### Run the local vector/RAG stack (PostgreSQL + Redis + Qdrant)
+
+The base Compose file keeps the app self-contained with SQLite. To match production with PostgreSQL 17, Redis 7 queue worker, and Qdrant vector retrieval, run:
+
+```sh
+docker compose --env-file .env.docker \
+  -f compose.yaml -f compose.rag.yaml up --build
+```
+
+The override starts:
+- **PostgreSQL 17** (`127.0.0.1:5432`) with database `farmer_ic`
+- **Redis 7** (`127.0.0.1:6379`) for queue and cache
+- **Qdrant** (`127.0.0.1:6333`) for vector embeddings
+- **Worker** running `queue:work` for `ai-index` background jobs
+- **App** configured to connect to PostgreSQL, Redis, and Qdrant
+
+The Laravel container enables vector retrieval by default in this override. Set
+`AI_RAG_VECTOR_ENABLED=false` in `.env.docker` to keep the in-memory retriever
+while retaining the services. Set `QDRANT_IMAGE` when testing a
+different pinned Qdrant image; avoid using an unpinned image for production.
+
+Vector retrieval also needs the server-side embedding key and model settings
+from `.env.docker`. The Qdrant data can be removed with:
+
+```sh
+docker compose -f compose.yaml -f compose.rag.yaml down -v
+```
+
+This deletes only the local index, which is designed to be rebuilt from the
+knowledge source.
+
 Add the OpenRouter key to `.env.docker` before starting the container. The
 file is ignored by Git and is read by Compose at runtime:
 
 ```dotenv
 OPENROUTER_API_KEY=your-server-side-key
 # Optional OpenRouter enterprise alias or model ID approved for this account.
-# Leave empty to use the built-in high-quality default.
+# AI_PRIMARY_MODEL wins when set; leave both empty to use the fast Flash default.
 AI_ENTERPRISE_MODEL=
 AI_PRIMARY_MODEL=google/gemini-3.8-flash
 AI_TEXT_FALLBACK_MODELS=google/gemini-3.7-flash,openai/gpt-6-luna
 AI_VISION_FALLBACK_MODELS=google/gemini-3.7-flash,inclusionai/ling-3.0-flash-vl
+# Optional low-latency text profile. Enable only after comparing answer
+# quality and retrieval citation integrity on the live golden prompts.
+AI_FAST_TEXT_MODEL=
+AI_PREFER_FAST_TEXT_MODEL=false
 AI_STT_MODEL=qwen/qwen3.8-omni-flash
 AI_STT_FALLBACK_MODELS=google/gemini-3.8-flash
 AI_TTS_MODEL=
@@ -80,12 +115,28 @@ nano .env.production
 
 At minimum it should contain `APP_URL`, `APP_KEY`,
 `OPENROUTER_API_KEY`, and the model settings from the local example above.
-For production, set `AI_ENTERPRISE_MODEL` to a model ID or enterprise alias
-that is enabled for the OpenRouter account. The legacy
-`AI_PRIMARY_MODEL=google/gemini-3.8-flash` value is automatically routed to
-that enterprise setting; an explicitly configured non-legacy primary model
-still takes precedence. Verify every fallback ID against the account's
-OpenRouter model list before deployment.
+Set `AI_PRIMARY_MODEL` explicitly to the model that passed the quality gate.
+Use `AI_ENTERPRISE_MODEL` only when you intentionally want that model or alias
+to be the default. There is no silent remapping of the Flash primary, so a
+latency regression remains visible in the trace. Verify every fallback ID
+against the account's OpenRouter model list before deployment.
+
+Run the P2 offline gate before a release and keep its JSON report as a build
+artifact:
+
+```sh
+php artisan ai:eval --retriever=in-memory \
+  --output=storage/app/private/ai-evals/eval-150.json
+
+# On subsequent changes, compare against the accepted baseline.
+php artisan ai:eval --retriever=in-memory \
+  --baseline=storage/app/private/ai-evals/baseline-v1.json \
+  --output=storage/app/private/ai-evals/eval-150.json
+```
+
+When Qdrant and embeddings are available, repeat with
+`--retriever=vector` and compare Hit@1 and p95 latency before switching the
+runtime flag.
 The workflow supplies `APP_KEY` from GitHub Secrets only when the file does
 not already contain one. When `OPENROUTER_API_KEY` is present as a GitHub
 Secret, the workflow writes it to `.env.production` without exposing it to the

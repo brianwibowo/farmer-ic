@@ -47,6 +47,7 @@ type ActiveRequest = {
     reconciled: boolean;
     assistantMessage: ChatMessage;
     cancelledByUser: boolean;
+    serverProgress?: string;
 };
 
 export { MAX_ATTACHMENT_COUNT, MAX_ATTACHMENT_SIZE, validateAttachments };
@@ -221,6 +222,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             attachments: [],
             createdAt: new Date().toISOString(),
             status: 'streaming',
+            presentation: isInfographic ? 'infographic' : 'text',
             progress: isInfographic
                 ? 'Menyiapkan infografis…'
                 : 'Menghubungkan ke AI…',
@@ -243,7 +245,8 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (
                     isActiveRequest(requestId) &&
                     assistantMessage.status === 'streaming' &&
-                    !assistantMessage.content
+                    !assistantMessage.content &&
+                    !request.serverProgress
                 ) {
                     assistantMessage.progress = isInfographic
                         ? 'Masih menyiapkan infografis…'
@@ -254,7 +257,8 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (
                     isActiveRequest(requestId) &&
                     assistantMessage.status === 'streaming' &&
-                    !assistantMessage.content
+                    !assistantMessage.content &&
+                    !request.serverProgress
                 ) {
                     assistantMessage.progress = 'Menganalisis data lapangan…';
                 }
@@ -263,12 +267,24 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (
                     isActiveRequest(requestId) &&
                     assistantMessage.status === 'streaming' &&
-                    !assistantMessage.content
+                    !assistantMessage.content &&
+                    !request.serverProgress
                 ) {
                     assistantMessage.progress =
                         'Menyusun kalkulasi & rekomendasi…';
                 }
             }, 15_000),
+            window.setTimeout(() => {
+                if (
+                    isActiveRequest(requestId) &&
+                    assistantMessage.status === 'streaming' &&
+                    !assistantMessage.content &&
+                    !request.serverProgress
+                ) {
+                    assistantMessage.progress =
+                        'Model sedang menyusun jawaban berbasis konteks…';
+                }
+            }, 20_000),
             window.setTimeout(() => {
                 if (
                     isActiveRequest(requestId) &&
@@ -288,13 +304,38 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     assistantMessage.progress =
                         'Menunggu finalisasi respon dari server…';
                 }
-            }, 55_000),
+            }, 45_000),
         ];
-        const AI_REQUEST_TIMEOUT_MS = 85_000;
+        // A slow model can keep the connection open for tens of seconds
+        // before its first token. Keep the status moving without claiming a
+        // fake percentage: once generation is underway, show elapsed time so
+        // the user can distinguish a working request from a stalled one.
+        const progressTicker = window.setInterval(() => {
+            if (
+                !isActiveRequest(requestId) ||
+                assistantMessage.status !== 'streaming'
+            ) {
+                return;
+            }
+            const elapsedSeconds = Math.floor(
+                (performance.now() - startedAt) / 1000,
+            );
+            if (
+                request.serverProgress &&
+                !assistantMessage.content &&
+                elapsedSeconds >= 30
+            ) {
+                assistantMessage.progress = `${request.serverProgress} · ${elapsedSeconds} detik`;
+            } else if (assistantMessage.content && elapsedSeconds >= 20) {
+                assistantMessage.progress = `AI sedang menulis… ${elapsedSeconds} detik`;
+            } else if (!assistantMessage.content && elapsedSeconds >= 30) {
+                assistantMessage.progress = `Masih menyusun jawaban… ${elapsedSeconds} detik`;
+            }
+        }, 2_000);
         const requestTimeout = window.setTimeout(() => {
             request.didTimeout = true;
             requestController.abort();
-        }, AI_REQUEST_TIMEOUT_MS);
+        }, 60_000);
         let reconciliationTimer: number | null = null;
 
         const reconcilePersistedReply = async (
@@ -438,12 +479,28 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 }
                 if (parsed.conversationId)
                     conversationId.value = parsed.conversationId;
+                // message.start is emitted after retrieval and before the
+                // provider call. Preserve its trace immediately and move the
+                // copy from retrieval to generation so a long model wait is
+                // explained accurately in the assistant bubble.
+                if (parsed.retrieval && !assistantMessage.content) {
+                    request.serverProgress = isInfographic
+                        ? 'Konteks siap. Menyiapkan infografis…'
+                        : 'Konteks siap. Model sedang menyusun jawaban…';
+                    assistantMessage.metadata = {
+                        ...assistantMessage.metadata,
+                        ...(parsed.route ? { route: parsed.route } : {}),
+                        retrieval: parsed.retrieval,
+                    };
+                    assistantMessage.progress = request.serverProgress;
+                }
                 if (parsed.message) {
                     const validation = validatedResponse(
                         parsed.message.content,
                     );
                     assistantMessage.content = validation.content;
                     assistantMessage.progress = undefined;
+                    assistantMessage.metadata = parsed.message.metadata;
                     if (!validation.ok) {
                         assistantMessage.status = 'error';
                         assistantMessage.error =
@@ -452,6 +509,11 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     if (parsed.message.attachments.length > 0) {
                         assistantMessage.attachments =
                             parsed.message.attachments;
+                    }
+                } else if (parsed.progress) {
+                    request.serverProgress = parsed.progress;
+                    if (!assistantMessage.content) {
+                        assistantMessage.progress = parsed.progress;
                     }
                 } else if (parsed.delta) {
                     // Image generation sends a synthetic progress sentence
@@ -652,6 +714,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         } finally {
             window.clearTimeout(requestTimeout);
             progressTimers.forEach((timer) => window.clearTimeout(timer));
+            window.clearInterval(progressTicker);
             if (reconciliationTimer !== null)
                 window.clearInterval(reconciliationTimer);
             if (isActiveRequest(requestId)) {

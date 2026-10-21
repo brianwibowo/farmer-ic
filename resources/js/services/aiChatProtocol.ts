@@ -14,7 +14,10 @@ const IMAGE_TYPES = new Set([
 export type StreamPayload = {
     delta?: string;
     deltaMode?: 'chunk' | 'snapshot';
+    progress?: string;
     done?: boolean;
+    route?: Record<string, unknown>;
+    retrieval?: Record<string, unknown>;
     conversationId?: string;
     message?: ChatMessage;
     error?: string;
@@ -89,6 +92,9 @@ export function parseMessage(value: unknown): ChatMessage | null {
     const attachments = Array.isArray(item.attachments)
         ? (item.attachments as ChatAttachment[])
         : [];
+    const hasGeneratedInfographic = attachments.some((attachment) =>
+        /\/storage\/ai\/infographics\//i.test(attachment.url ?? ''),
+    );
     if (typeof text !== 'string' && attachments.length === 0) return null;
     return {
         id: stringValue(item.id, id('message')),
@@ -105,6 +111,10 @@ export function parseMessage(value: unknown): ChatMessage | null {
                 ? item.created_at
                 : new Date().toISOString(),
         status: 'complete',
+        presentation: hasGeneratedInfographic ? 'infographic' : 'text',
+        ...(item.metadata && typeof item.metadata === 'object'
+            ? { metadata: item.metadata as Record<string, unknown> }
+            : {}),
     };
 }
 
@@ -136,6 +146,16 @@ export function extractDelta(payload: unknown): StreamPayload {
     const delta = data.delta ?? data.content ?? data.text ?? data.token;
     return {
         delta: typeof delta === 'string' ? delta : undefined,
+        progress:
+            typeof data.progress === 'string' ? data.progress : undefined,
+        route:
+            data.route && typeof data.route === 'object'
+                ? (data.route as Record<string, unknown>)
+                : undefined,
+        retrieval:
+            data.retrieval && typeof data.retrieval === 'object'
+                ? (data.retrieval as Record<string, unknown>)
+                : undefined,
         deltaMode:
             typeof delta === 'string' && !hasChunk ? 'snapshot' : 'chunk',
         done:
