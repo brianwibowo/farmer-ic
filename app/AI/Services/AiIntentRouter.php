@@ -40,12 +40,23 @@ class AiIntentRouter
         'javascript', 'python', 'html', 'css', 'sql', 'politik', 'crypto', 'sepak bola',
     ];
 
-    public function decide(string $value, bool $hasAttachments = false): AiRouteDecision
+    public function decide(string $value, bool $hasAttachments = false, ?string $contextDomain = null): AiRouteDecision
     {
         $prompt = $this->normalize($value);
         $domain = $this->domain($prompt);
         $period = $this->period($prompt);
         $topic = $this->firstTerm($prompt, [...self::AGRICULTURE_TERMS, ...self::FINANCE_TERMS]);
+
+        $isGreeting = (bool) preg_match('/^(halo|hai|hei|hi|pagi|siang|sore|malam|makasih|terima kasih)(?:[!.,\s]|$)/i', $prompt);
+
+        if ($domain === 'general' && ! $isGreeting && $contextDomain !== null && in_array($contextDomain, ['finance', 'agronomy', 'garden', 'activity'], true)) {
+            if ($this->hasAny($prompt, self::VISUAL_TERMS)
+                || $this->hasAny($prompt, self::DATA_TERMS)
+                || $period !== 'unspecified'
+                || mb_strlen($prompt) < 80) {
+                $domain = $contextDomain;
+            }
+        }
 
         if ($this->hasAny($prompt, self::OUT_OF_SCOPE_TERMS) && ! $hasAttachments) {
             return $this->decision('out_of_scope', 'general', $period, null, 0.98, 0.9, false, 'unsupported_topic');

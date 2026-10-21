@@ -218,13 +218,20 @@ function hasExplicitDataLookup(value: string, domain: AiDomain): boolean {
 export function routeAiPrompt(
     value: string,
     hasAttachments = false,
+    contextDomain?: AiDomain,
 ): AiIntentRoute {
     const prompt = normalize(value);
-    const domain = detectDomain(prompt);
+    let domain = detectDomain(prompt);
     const period = detectPeriod(prompt);
     const visualSignal = hasTerm(prompt, visualTerms);
     const topic =
         firstTerm(prompt, agricultureTerms) ?? firstTerm(prompt, financeTerms);
+
+    if (!domain && !isGreeting(prompt) && contextDomain) {
+        if (visualSignal || hasTerm(prompt, explicitDataTerms) || period !== 'unknown' || prompt.length < 80) {
+            domain = contextDomain;
+        }
+    }
 
     if (!prompt && hasAttachments) {
         return {

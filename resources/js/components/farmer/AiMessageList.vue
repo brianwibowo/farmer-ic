@@ -175,8 +175,16 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                     </a>
                 </div>
                 <div v-if="message.content">
+                    <AiInfographicCard
+                        v-if="message.role === 'assistant' && (message.metadata?.is_infographic || message.presentation === 'infographic' || (message.metadata?.route && (message.metadata.route as Record<string, unknown>).intent === 'infographic'))"
+                        :content="message.content"
+                        :is-streaming="message.status === 'streaming'"
+                        :force-visual="true"
+                        :metadata="message.metadata"
+                        @copied="emit('copied', message.id)"
+                    />
                     <AiFinanceCard
-                        v-if="message.role === 'assistant' && message.metadata?.route && (message.metadata.route as Record<string, unknown>).domain === 'finance'"
+                        v-else-if="message.role === 'assistant' && message.metadata?.route && (message.metadata.route as Record<string, unknown>).domain === 'finance'"
                         :content="message.content"
                         :metadata="message.metadata"
                     />
@@ -227,11 +235,11 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                     <Square :size="12" /> Jawaban dihentikan.
                 </div>
                 <div
-                    v-if="message.status === 'error'"
+                    v-if="message.status === 'error' || message.status === 'failed'"
                     class="mt-2 flex items-center gap-1.5 text-xs text-error"
                 >
                     <AlertCircle :size="14" />
-                    {{ message.error || 'Pesan gagal dikirim.' }}
+                    {{ message.error || (message as Record<string, any>).error_message || 'Pesan gagal diproses.' }}
                 </div>
             </div>
             <div

@@ -37,14 +37,26 @@ class OpenRouterGateway implements LlmGateway
      */
     protected function completeImage(array $messages, string $model, array $options): array
     {
-        $prompt = '';
+        $userText = '';
+        $recentContext = '';
         foreach (array_reverse($messages) as $message) {
-            if (($message['role'] ?? null) === 'user') {
-                $content = $message['content'] ?? '';
-                $prompt = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE);
-                break;
+            $role = $message['role'] ?? null;
+            $content = $message['content'] ?? '';
+            $text = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE);
+            if ($role === 'user' && $userText === '') {
+                $userText = trim($text);
+            } elseif ($role === 'assistant' && $recentContext === '' && trim($text) !== '') {
+                $clean = trim((string) preg_replace('/\s+/', ' ', strip_tags($text)));
+                $recentContext = mb_substr($clean, 0, 250);
             }
         }
+
+        $basePrompt = 'A professional vector infographic diagram for Farmer IC smart farming platform. ';
+        $contextPart = $recentContext !== '' ? 'Context: '.$recentContext.'. ' : '';
+        $userPart = 'Topic: '.$userText.'. ';
+        $styleDirectives = 'Style: Clean vector graphic, precision agriculture data visualization, distinct nodes, process flowchart, agricultural icons (crops, fields, finances, sensors), neat labels, high contrast, clean minimalist layout, strictly on-topic agricultural diagram. No random decorative elements, no calendar unless explicitly requested.';
+
+        $prompt = trim($basePrompt.$contextPart.$userPart.$styleDirectives);
 
         $payload = [
             'model' => $model,

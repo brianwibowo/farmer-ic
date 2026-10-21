@@ -98,7 +98,13 @@ class AiChatService
         $hasVision = $userMessage->attachments->contains(fn ($attachment): bool => $attachment->kind === 'image');
         $pipelineStartedAt = microtime(true);
         $routeStartedAt = microtime(true);
-        $decision = $this->router->decide($userText, $hasVision);
+        $previousAssistant = $conversation->messages()
+            ->where('role', 'assistant')
+            ->where('status', 'completed')
+            ->latest('id')
+            ->first();
+        $contextDomain = data_get($previousAssistant?->metadata, 'route.domain');
+        $decision = $this->router->decide($userText, $hasVision, is_string($contextDomain) ? $contextDomain : null);
         $routeMs = (int) round((microtime(true) - $routeStartedAt) * 1000);
         $traceId = (string) Str::uuid();
         $isInfographic = $forceInfographic || $decision->intent === 'infographic'
