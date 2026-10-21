@@ -17,12 +17,14 @@ import {
     X,
     ArrowLeft,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import KebunFilterDropdown from '@/components/farmer/KebunFilterDropdown.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
+    activityTypeOptions,
     collectActivityMonths,
     getActivityAttention,
     getActivitySearchText,
@@ -38,17 +40,47 @@ import { listActivityLogs } from '@/services/activityLogService';
 import { listKebun } from '@/services/kebunService';
 
 const page = usePage();
+const initialParams = new URL(page.url, 'http://localhost').searchParams;
+
+function initialType(value: string | null): '' | 'all' | ActivityType {
+    if (value === 'all') return 'all';
+
+    return activityTypeOptions.some((option) => option.value === value)
+        ? (value as ActivityType)
+        : '';
+}
+
+function initialStatus(value: string | null): ActivityStatusFilter {
+    return value === 'needs-check' || value === 'normal' ? value : 'all';
+}
+
+function initialTime(value: string | null): ActivityTimeFilter {
+    if (value === 'week' || value === 'month') return value;
+    if (value && /^month:\d{4}-\d{2}$/.test(value)) {
+        return value as ActivityTimeFilter;
+    }
+
+    return 'all';
+}
+
 const activities = ref<ActivityLog[]>([]);
 const kebunList = ref<Kebun[]>([]);
-const searchQuery = ref('');
-const selectedType = ref<'' | 'all' | ActivityType>('');
-const selectedStatus = ref<ActivityStatusFilter>('all');
+const searchQuery = ref(initialParams.get('q') ?? '');
+const selectedType = ref<'' | 'all' | ActivityType>(
+    initialType(initialParams.get('type')),
+);
+const selectedStatus = ref<ActivityStatusFilter>(
+    initialStatus(initialParams.get('status')),
+);
 const statusOptions: Array<{ value: ActivityStatusFilter; label: string }> = [
     { value: 'all', label: 'Semua' },
     { value: 'needs-check', label: 'Perlu cek' },
     { value: 'normal', label: 'Normal' },
 ];
-const selectedTimeFilter = ref<ActivityTimeFilter>('all');
+const selectedTimeFilter = ref<ActivityTimeFilter>(
+    initialTime(initialParams.get('time')),
+);
+const selectedKebun = ref(initialParams.get('kebunFilter') ?? '');
 // NOTE (merge resolution 2026-10-19): the date-range inputs and sort toggle were
 // removed from the UI (replaced by ActivityPeriodFilter dropdown + newest-first sorting
 // in listActivityLogs()). Kept commented per review; delete once confirmed unused.
@@ -65,6 +97,12 @@ let scrollContainer: HTMLElement | null = null;
 const BACK_TO_TOP_THRESHOLD = 160;
 
 const availableMonths = computed(() => collectActivityMonths(activities.value));
+
+/**
+ * Kebun options come from the registered kebun list, including kebun that have
+ * no activity yet; selecting one then shows the normal empty state.
+ */
+const availableKebun = computed(() => kebunList.value);
 
 const kebunParam = computed(() => {
     try {
@@ -121,6 +159,9 @@ const filteredByGeneralFilters = computed(() => {
             selectedTimeFilter.value,
         );
 
+        const matchesKebun =
+            !selectedKebun.value || item.kebunId === selectedKebun.value;
+
         // NOTE (merge resolution 2026-10-19): date-range matching is disabled — the
         // range UI was replaced by ActivityPeriodFilter chips. Kept commented per review.
         // let matchesDate = true;
@@ -148,7 +189,7 @@ const filteredByGeneralFilters = computed(() => {
         //     }
         // }
 
-        return matchesSearch && matchesType && matchesTime;
+        return matchesSearch && matchesType && matchesTime && matchesKebun;
     });
 
     // NOTE (merge resolution 2026-10-19): the manual newest/oldest sort is disabled —
@@ -173,11 +214,10 @@ const filteredActivities = computed(() =>
 const activeFilterCount = computed(
     () =>
         Number(Boolean(searchQuery.value.trim())) +
-        Number(
-            selectedType.value !== '' && selectedType.value !== 'all',
-        ) +
+        Number(selectedType.value !== '' && selectedType.value !== 'all') +
         Number(selectedStatus.value !== 'all') +
-        Number(selectedTimeFilter.value !== 'all'),
+        Number(selectedTimeFilter.value !== 'all') +
+        Number(Boolean(selectedKebun.value)),
 );
 
 // Counted from filteredActivities (not filteredByGeneralFilters) so the card
@@ -209,6 +249,7 @@ function clearFilters(): void {
     selectedType.value = '';
     selectedStatus.value = 'all';
     selectedTimeFilter.value = 'all';
+    selectedKebun.value = '';
     // NOTE (merge resolution 2026-10-19): date resets disabled with the range UI.
     // startDate.value = '';
     // endDate.value = '';
@@ -245,6 +286,63 @@ function kebunActivitiesHrefFor(item: ActivityLog): string {
     return `/kebun/aktivitas?kebun=${encodeURIComponent(item.kebunId)}`;
 }
 
+function buildListUrl(): string {
+    const params = new URLSearchParams();
+
+    if (kebunParam.value) params.set('kebun', kebunParam.value);
+    if (searchQuery.value.trim()) params.set('q', searchQuery.value.trim());
+    if (selectedType.value && selectedType.value !== 'all') {
+        params.set('type', selectedType.value);
+    }
+    if (selectedStatus.value !== 'all') {
+        params.set('status', selectedStatus.value);
+    }
+    if (selectedTimeFilter.value !== 'all') {
+        params.set('time', selectedTimeFilter.value);
+    }
+    if (selectedKebun.value) {
+        params.set('kebunFilter', selectedKebun.value);
+    }
+
+    const query = params.toString();
+    return `/aktivitas${query ? `?${query}` : ''}`;
+}
+
+function syncFiltersToUrl(): void {
+    const url = buildListUrl();
+    const state = window.history.state;
+
+    // Keep Inertia's history state in sync with the client-side URL update so
+    // browser back/forward restores the filtered list, not the bare route.
+    window.history.replaceState(
+        state && typeof state === 'object' ? { ...state, url } : state,
+        '',
+        url,
+    );
+}
+
+function detailHrefFor(item: ActivityLog): string {
+    const params = new URLSearchParams({
+        id: item.id,
+        back: buildListUrl(),
+    });
+
+    if (kebunParam.value) params.set('kebun', kebunParam.value);
+
+    return `/rincian-aktivitas?${params.toString()}`;
+}
+
+watch(
+    [
+        searchQuery,
+        selectedType,
+        selectedStatus,
+        selectedTimeFilter,
+        selectedKebun,
+    ],
+    syncFiltersToUrl,
+);
+
 async function loadActivities(): Promise<void> {
     isLoading.value = true;
     errorMessage.value = '';
@@ -256,6 +354,13 @@ async function loadActivities(): Promise<void> {
         ]);
         activities.value = activityData;
         kebunList.value = kebunData;
+
+        if (
+            selectedKebun.value &&
+            !kebunData.some((item) => item.id === selectedKebun.value)
+        ) {
+            selectedKebun.value = '';
+        }
     } catch {
         errorMessage.value = 'Data aktivitas belum dapat dimuat. Coba lagi.';
     } finally {
@@ -289,6 +394,7 @@ function scrollToTop(): void {
 }
 
 onMounted(() => {
+    syncFiltersToUrl();
     void loadActivities();
 
     // The page scrolls inside FarmerMobileShell's <main>, not the window.
@@ -400,28 +506,45 @@ onBeforeUnmount(() => {
                     <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ needsCheckCount }}
                     </p>
-                    <p class="min-w-0 text-[11px] leading-4 font-medium text-foreground">
+                    <p
+                        class="min-w-0 text-[11px] leading-4 font-medium text-foreground"
+                    >
                         Perlu cek
                     </p>
                 </div>
             </section>
 
             <div class="mt-4">
-                <label class="relative min-w-0 flex-1">
-                    <span class="sr-only">Cari aktivitas</span>
-                    <input
-                        v-model="searchQuery"
-                        type="search"
-                        placeholder="Cari kata kunci"
-                        class="h-[38px] w-full rounded-lg border border-primary bg-card px-3 pr-10 text-[14px] text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
+                <div
+                    :class="[
+                        'grid gap-2',
+                        kebunParam ? 'grid-cols-1' : 'grid-cols-2',
+                    ]"
+                >
+                    <label class="relative min-w-0">
+                        <span class="sr-only">Cari aktivitas</span>
+                        <input
+                            v-model="searchQuery"
+                            type="search"
+                            placeholder="Cari kata kunci"
+                            class="h-[38px] w-full rounded-lg border border-primary bg-card px-3 pr-10 text-[14px] text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
+                        />
+                        <Search
+                            :size="20"
+                            :stroke-width="1.8"
+                            class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary"
+                            aria-hidden="true"
+                        />
+                    </label>
+
+                    <!-- Hidden when the page is already scoped to one kebun via
+                         ?kebun=, so the filter cannot contradict the header. -->
+                    <KebunFilterDropdown
+                        v-if="!kebunParam"
+                        v-model="selectedKebun"
+                        :kebun-list="availableKebun"
                     />
-                    <Search
-                        :size="20"
-                        :stroke-width="1.8"
-                        class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary"
-                        aria-hidden="true"
-                    />
-                </label>
+                </div>
 
                 <div class="mt-2 grid grid-cols-2 gap-2">
                     <ActivityPeriodFilter
@@ -565,98 +688,105 @@ onBeforeUnmount(() => {
 
             <ul v-else class="mt-5 space-y-3" aria-label="Daftar aktivitas">
                 <li v-for="item in filteredActivities" :key="item.id">
-                    <div class="overflow-hidden rounded-2xl border border-border bg-card">
+                    <div
+                        class="overflow-hidden rounded-2xl border border-border bg-card"
+                    >
                         <Link
-                            :href="
-                                kebunParam
-                                    ? `/rincian-aktivitas?id=${item.id}&kebun=${encodeURIComponent(kebunParam)}`
-                                    : `/rincian-aktivitas?id=${item.id}`
-                            "
+                            :href="detailHrefFor(item)"
                             class="group flex gap-3 p-3 transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
-                        <div
-                            class="relative size-[120px] shrink-0 overflow-hidden rounded-xl bg-muted"
-                        >
-                            <img
-                                :src="thumbnailFor(item)"
-                                :alt="`Foto ${item.typeLabel} di ${item.kebunName}`"
-                                class="h-full w-full object-cover"
-                            />
-                            <span
-                                class="absolute right-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-md bg-foreground/75 px-1.5 py-1 text-[10px] font-semibold text-background"
-                            >
-                                <Camera :size="11" aria-hidden="true" />
-                                {{ item.photos.length }}
-                            </span>
-                        </div>
-                        <div class="min-w-0 flex-1 py-0.5">
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="min-w-0">
-                                    <span
-                                        class="inline-flex max-w-full truncate rounded-md bg-surface px-2 py-1 text-[10px] leading-3 font-semibold text-secondary"
-                                        >{{ activityTypeLabelFor(item) }}</span
-                                    >
-                                    <h2
-                                        class="mt-1 truncate text-[16px] leading-5 font-semibold text-foreground group-hover:text-secondary"
-                                    >
-                                        {{ item.kebunName }}
-                                    </h2>
-                                </div>
-                                <span
-                                    v-if="attentionFor(item).status === 'needs-check'"
-                                    :class="[
-                                        'inline-flex max-w-[130px] shrink-0 truncate rounded-full px-2 py-1 text-[10px] font-semibold',
-                                        attentionFor(item).priority === 'urgent'
-                                            ? 'bg-error/10 text-error'
-                                            : 'bg-warning/15 text-foreground',
-                                    ]"
-                                    :title="attentionLabelFor(item)"
-                                    >{{ attentionLabelFor(item) }}</span
-                                >
-                                <ChevronRight
-                                    v-else
-                                    :size="18"
-                                    class="mt-1 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
-                                    aria-hidden="true"
-                                />
-                            </div>
                             <div
-                                class="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground"
+                                class="relative size-[120px] shrink-0 overflow-hidden rounded-xl bg-muted"
                             >
-                                <p
-                                    class="flex min-w-0 items-center gap-1.5 truncate"
+                                <img
+                                    :src="thumbnailFor(item)"
+                                    :alt="`Foto ${item.typeLabel} di ${item.kebunName}`"
+                                    class="h-full w-full object-cover"
+                                />
+                                <span
+                                    class="absolute right-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-md bg-foreground/75 px-1.5 py-1 text-[10px] font-semibold text-background"
                                 >
-                                    <Clock3
-                                        :size="14"
-                                        class="shrink-0 text-primary"
-                                        aria-hidden="true"
-                                    /><span class="truncate">{{
-                                        item.timestamp
-                                    }} · HST {{ item.daysAfterPlanting }}</span>
-                                </p>
-                                <p
-                                    class="flex min-w-0 items-center gap-1.5 truncate"
+                                    <Camera :size="11" aria-hidden="true" />
+                                    {{ item.photos.length }}
+                                </span>
+                            </div>
+                            <div class="min-w-0 flex-1 py-0.5">
+                                <div
+                                    class="flex items-start justify-between gap-2"
                                 >
-                                    <MapPin
-                                        :size="14"
-                                        class="shrink-0 text-primary"
-                                        aria-hidden="true"
-                                    /><span class="truncate"
-                                        >{{ item.city }} ·
-                                        {{ item.officerName }}</span
+                                    <div class="min-w-0">
+                                        <span
+                                            class="inline-flex max-w-full truncate rounded-md bg-surface px-2 py-1 text-[10px] leading-3 font-semibold text-secondary"
+                                            >{{
+                                                activityTypeLabelFor(item)
+                                            }}</span
+                                        >
+                                        <h2
+                                            class="mt-1 truncate text-[16px] leading-5 font-semibold text-foreground group-hover:text-secondary"
+                                        >
+                                            {{ item.kebunName }}
+                                        </h2>
+                                    </div>
+                                    <span
+                                        v-if="
+                                            attentionFor(item).status ===
+                                            'needs-check'
+                                        "
+                                        :class="[
+                                            'inline-flex max-w-[130px] shrink-0 truncate rounded-full px-2 py-1 text-[10px] font-semibold',
+                                            attentionFor(item).priority ===
+                                            'urgent'
+                                                ? 'bg-error/10 text-error'
+                                                : 'bg-warning/15 text-foreground',
+                                        ]"
+                                        :title="attentionLabelFor(item)"
+                                        >{{ attentionLabelFor(item) }}</span
                                     >
+                                    <ChevronRight
+                                        v-else
+                                        :size="18"
+                                        class="mt-1 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                                        aria-hidden="true"
+                                    />
+                                </div>
+                                <div
+                                    class="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground"
+                                >
+                                    <p
+                                        class="flex min-w-0 items-center gap-1.5 truncate"
+                                    >
+                                        <Clock3
+                                            :size="14"
+                                            class="shrink-0 text-primary"
+                                            aria-hidden="true"
+                                        /><span class="truncate"
+                                            >{{ item.timestamp }} · HST
+                                            {{ item.daysAfterPlanting }}</span
+                                        >
+                                    </p>
+                                    <p
+                                        class="flex min-w-0 items-center gap-1.5 truncate"
+                                    >
+                                        <MapPin
+                                            :size="14"
+                                            class="shrink-0 text-primary"
+                                            aria-hidden="true"
+                                        /><span class="truncate"
+                                            >{{ item.city }} ·
+                                            {{ item.officerName }}</span
+                                        >
+                                    </p>
+                                </div>
+                                <p
+                                    class="mt-2 flex items-center gap-1.5 truncate text-xs font-medium text-secondary"
+                                >
+                                    <Leaf
+                                        :size="13"
+                                        class="shrink-0"
+                                        aria-hidden="true"
+                                    />{{ reportSummary(item) }}
                                 </p>
                             </div>
-                            <p
-                                class="mt-2 flex items-center gap-1.5 truncate text-xs font-medium text-secondary"
-                            >
-                                <Leaf
-                                    :size="13"
-                                    class="shrink-0"
-                                    aria-hidden="true"
-                                />{{ reportSummary(item) }}
-                            </p>
-                        </div>
                         </Link>
                         <!-- <div
                             v-if="attentionFor(item).status === 'needs-check'"
@@ -697,7 +827,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
-
 main:has(> [data-aktivitas-list]) {
     scrollbar-width: none;
     -ms-overflow-style: none;
