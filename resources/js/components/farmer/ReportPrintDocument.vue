@@ -2,30 +2,32 @@
 import { Activity, AlertTriangle, Bot, CalendarClock, CalendarDays, CheckCircle2, CircleDollarSign, Sprout, TrendingDown, TrendingUp, Wheat } from '@lucide/vue';
 import type { FarmReport } from '@/services/farmDemoService';
 
-const props = defineProps<{ report: FarmReport; formatMoney: (value: number) => string }>();
+const props = defineProps<{ report: FarmReport; formatMoney: (value: number) => string; exportMode?: boolean }>();
 
 // Palet warna persis mengambil dari style scoped (.status-healthy, .metric-blue, .metric-purple, .status-attention, .status-critical)
 const stageColors = ['#9a59b5', '#e84c3d', '#f1c40f', '#2dcc70', '#3598db'];
 
-const getDonutGradient = () => {
+const getDonutSegments = () => {
     const total = props.report.growthTimeline?.observedKebunCount || props.report.summary.totalKebun || 1;
-    let accumulatedPercent = 0;
+    const circumference = 251.2;
+    let accumulated = 0;
 
-    const stops = props.report.growthStages.map((stage, idx) => {
-        const percent = (stage.count / total) * 100;
-        const color = stageColors[idx % stageColors.length];
-        const start = accumulatedPercent;
-        accumulatedPercent += percent;
-        return `${color} ${start}% ${accumulatedPercent}%`;
+    return props.report.growthStages.map((stage, idx) => {
+        const length = (stage.count / total) * circumference;
+        const segment = {
+            color: stageColors[idx % stageColors.length],
+            dasharray: `${length} ${circumference - length}`,
+            dashoffset: -accumulated,
+        };
+        accumulated += length;
+        return segment;
     });
-
-    return `conic-gradient(${stops.join(', ')})`;
 };
 </script>
 
 <template>
     <Teleport to="body">
-        <article class="report-print-document" aria-label="Dokumen laporan kebun">
+        <article :class="['report-print-document', { 'export-mode': props.exportMode }]" aria-label="Dokumen laporan kebun">
             <header class="print-header">
                 <div>
                     <div class="print-identity">
@@ -87,7 +89,24 @@ const getDonutGradient = () => {
         <div class="donut-two-column">
             <!-- Kolom 1: Donut Chart Besar -->
             <div class="donut-chart-col">
-                <div class="donut-chart" :style="{ background: getDonutGradient() }">
+                <div class="donut-chart">
+                    <svg viewBox="0 0 100 100" aria-label="Diagram perkembangan tanaman">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#e8eee9" stroke-width="20" />
+                        <circle
+                            v-for="(segment, idx) in getDonutSegments()"
+                            :key="idx"
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="none"
+                            :stroke="segment.color"
+                            stroke-width="20"
+                            :stroke-dasharray="segment.dasharray"
+                            :stroke-dashoffset="segment.dashoffset"
+                            pathLength="251.2"
+                            transform="rotate(-90 50 50)"
+                        />
+                    </svg>
                     <div class="donut-hole">
                         <strong>{{ report.growthTimeline?.observedKebunCount || report.summary.totalKebun }}</strong>
                         <span>Kebun</span>
@@ -139,7 +158,8 @@ const getDonutGradient = () => {
 
 <style scoped>
 .report-print-document { display: none; }
-@media print {
+.report-print-document.export-mode { display: block; position: fixed; left: -10000px; top: 0; width: 794px; background: #fff; }
+@media print, screen {
  @page { size: A4 portrait; margin: 18mm 14mm 14mm 14mm; }
  .report-print-document { display:block !important; position:static; width:100%; color:#17221a; font-family:"Times New Roman", Times, serif; font-size:11pt; line-height:1.5; background:white; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
  .print-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c5e21; padding:4px 0 14px; margin-bottom:12px; }
@@ -147,7 +167,7 @@ const getDonutGradient = () => {
  .print-section { break-inside:avoid; page-break-inside:avoid; border-bottom:1px solid #d9d9d9; padding:14px 0; } .print-section-title { color:#1c5e21; font-size:15pt; font-weight:800; margin:0 0 10px; } .print-metrics,.print-finance-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; } .print-metrics div,.print-finance-grid div { border:1px solid #d9d9d9; border-radius:8px; padding:10px; } .print-metrics span,.print-finance-grid span { font-size:9pt; font-weight:700; } .print-metrics strong,.print-finance-grid strong { display:block; font-size:15pt; font-weight:800; margin-top:5px; } .print-highlight,.status-healthy strong { color:#1c5e21; } .status-attention strong { color:#a06b00; } .status-critical strong { color:#a52323; } .print-status-grid { display:flex; gap:18px; margin-top:12px; font-weight:700; }
  table { width:100%; border-collapse:collapse; margin-top:14px; } thead { display:table-header-group; } tr { break-inside:avoid; page-break-inside:avoid; } th,td { border-bottom:1px solid #d9d9d9; padding:8px 6px; text-align:left; } thead tr { border-top:2px solid #1c5e21; border-bottom:2px solid #93a99f; } th { color:#1c5e21; font-weight:800; }
 
- @media print {
+ @media print, screen {
  /* Layout 2 Kolom Terpusat (Center Center) */
  .donut-two-column { 
     display: grid; 
@@ -175,6 +195,8 @@ const getDonutGradient = () => {
     print-color-adjust: exact; 
     -webkit-print-color-adjust: exact; 
  }
+
+ .donut-chart svg { width: 100%; height: 100%; display: block; }
 
  .donut-hole { 
     position: absolute; 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { BanknoteArrowDown, Coins } from '@lucide/vue';
+import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
 
 defineProps<{
     title: string;
@@ -7,6 +8,8 @@ defineProps<{
     projectionTitle: string;
     projectionValue: string;
     type: 'income' | 'expense';
+    information: { description: string; period: string };
+    projectionInformation: { description: string; period: string };
 }>();
 </script>
 
@@ -28,9 +31,10 @@ defineProps<{
         <dl class="space-y-3 min-[390px]:space-y-3.5">
             <div>
                 <dt
-                    class="text-[11px] leading-4 font-normal min-[390px]:text-xs"
+                    class="flex items-start gap-1 text-[11px] leading-4 font-normal min-[390px]:text-xs"
                 >
-                    {{ title }}
+                    <span>{{ title }}</span>
+                    <MetricInfoTooltip :label="title" v-bind="information" />
                 </dt>
                 <dd
                     class="mt-0.5 text-sm leading-5 font-bold tabular-nums min-[390px]:text-base"
@@ -40,9 +44,13 @@ defineProps<{
             </div>
             <div>
                 <dt
-                    class="text-[11px] leading-4 font-normal min-[390px]:text-xs"
+                    class="flex items-start gap-1 text-[11px] leading-4 font-normal min-[390px]:text-xs"
                 >
-                    {{ projectionTitle }}
+                    <span>{{ projectionTitle }}</span>
+                    <MetricInfoTooltip
+                        :label="projectionTitle"
+                        v-bind="projectionInformation"
+                    />
                 </dt>
                 <dd
                     class="mt-0.5 text-sm leading-5 font-bold tabular-nums min-[390px]:text-base"

@@ -19,6 +19,8 @@
         "chart.js": "^4.5.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "html2canvas": "^1.4.1",
+        "jspdf": "^4.2.1",
         "laravel-vite-plugin": "^3.0.0",
         "leaflet": "^1.9.4",
         "reka-ui": "^2.9.8",

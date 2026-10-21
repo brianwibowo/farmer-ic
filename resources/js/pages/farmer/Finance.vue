@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { ChevronDown, Filter, Search, X } from '@lucide/vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { ChevronDown, FileText, Filter, Search, X } from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import RevenueChart from '@/components/farmer/RevenueChart.vue';
@@ -243,6 +243,46 @@ const hasActiveFilter = computed(
         selectedPeriod.value !== 'YTD',
 );
 
+const reportUrl = computed(() => {
+    const params = new URLSearchParams();
+    const periodIndex: Record<FinanceQuarter, number> = {
+        Q1: 1,
+        Q2: 2,
+        Q3: 3,
+        Q4: 4,
+    };
+
+    params.set('kebun', selectedKebunId.value);
+    params.set('year', '2026');
+
+    if (selectedPeriod.value === 'YTD') {
+        params.set('period', 'year');
+    } else {
+        params.set('period', 'quarter');
+        params.set('quarter', String(periodIndex[selectedPeriod.value]));
+    }
+
+    if (selectedCommodity.value !== 'all') {
+        params.set(
+            'commodity',
+            selectedCommodity.value === 'Rumput odot'
+                ? 'Rumput'
+                : selectedCommodity.value,
+        );
+    }
+
+    // Keep the transaction controls in the URL so a report opened from this
+    // screen retains the complete Finance filter context for future support.
+    if (selectedType.value !== 'all') {
+        params.set('finance_type', selectedType.value);
+    }
+    if (searchQuery.value.trim()) {
+        params.set('finance_search', searchQuery.value.trim());
+    }
+
+    return `/laporan?${params.toString()}`;
+});
+
 const filteredTransactions = computed(() => {
     const query = searchQuery.value.trim().toLowerCase();
 
@@ -323,6 +363,14 @@ const formatRupiah = (value: number): string =>
                             Financial Cashflow
                         </h1>
                     </div>
+                    <Link
+                        :href="reportUrl"
+                        class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        aria-label="Buka laporan dengan filter keuangan saat ini"
+                    >
+                        <FileText :size="15" aria-hidden="true" />
+                        <span>Laporan</span>
+                    </Link>
                 </div>
 
                 <!-- Kebun Filter Selector -->
