@@ -25,7 +25,7 @@ class AiIntentRouter
     /** @var array<int, string> */
     private const DATA_TERMS = [
         'data', 'laporan', 'riwayat', 'ringkasan', 'rincian', 'jumlah', 'total',
-        'status', 'terakhir', 'terbaru',
+        'kondisi', 'status', 'terakhir', 'terbaru',
     ];
 
     /** @var array<int, string> */
@@ -133,6 +133,9 @@ class AiIntentRouter
             return 'quarter';
         }
         if (preg_match('/\b(tahun lalu|bulan lalu|periode lalu|q[1-4]|quarter)\b/i', $value)) {
+            return 'historical';
+        }
+        if (preg_match('/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/i', $value)) {
             return 'historical';
         }
 

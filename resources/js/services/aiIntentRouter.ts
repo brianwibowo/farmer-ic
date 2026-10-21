@@ -155,6 +155,8 @@ const currentPeriodPattern =
 const quarterPattern = /\bq(?:uarter)?\s*[1-4]\b/i;
 const historicalPattern =
     /\b(?:tahun lalu|tahun ini|bulan lalu|periode lalu|q[1-4]|quarter)\b/i;
+const monthPattern =
+    /\b(?:januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/i;
 
 function normalize(value: string): string {
     return value
@@ -191,6 +193,7 @@ function detectPeriod(value: string): AiPeriod {
     if (currentPeriodPattern.test(value)) return 'current';
     if (quarterPattern.test(value)) return 'quarter';
     if (historicalPattern.test(value)) return 'historical';
+    if (monthPattern.test(value)) return 'historical';
     return 'unknown';
 }
 

@@ -88,6 +88,7 @@ return [
         'shadow_mode' => (bool) env('AI_RAG_SHADOW_MODE', false),
         'top_k' => (int) env('AI_RAG_TOP_K', 4),
         'min_score' => (float) env('AI_RAG_MIN_EVIDENCE_SCORE', 0.22),
+        'in_memory_min_score' => (float) env('AI_RAG_IN_MEMORY_MIN_SCORE', 1.0),
         'vector_min_score' => (float) env('AI_RAG_VECTOR_MIN_SCORE', 0.30),
         'vector_candidate_k' => (int) env('AI_RAG_VECTOR_CANDIDATE_K', 12),
         'vector_semantic_weight' => (float) env('AI_RAG_VECTOR_SEMANTIC_WEIGHT', 0.85),
@@ -112,14 +113,14 @@ return [
         'timeout' => (int) env('AI_EMBEDDING_TIMEOUT', 8),
         'connect_timeout' => (int) env('AI_EMBEDDING_CONNECT_TIMEOUT', 3),
         'cache_enabled' => (bool) env('AI_EMBEDDING_CACHE_ENABLED', true),
-        'cache_ttl' => (int) env('AI_EMBEDDING_CACHE_TTL', 600),
+        'cache_ttl' => (int) env('AI_EMBEDDING_CACHE_TTL', 3600),
     ],
 
     'qdrant' => [
         'url' => env('QDRANT_URL', 'http://qdrant:6333'),
         'api_key' => env('QDRANT_API_KEY'),
         'collection' => env('QDRANT_COLLECTION', 'farmer_ic_knowledge'),
-        'timeout' => (int) env('QDRANT_TIMEOUT', 3),
+        'timeout' => (int) env('QDRANT_TIMEOUT', 8),
         'connect_timeout' => (int) env('QDRANT_CONNECT_TIMEOUT', 3),
     ],
 

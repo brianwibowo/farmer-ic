@@ -32,6 +32,15 @@ class DemoDataKnowledgeSource
                 ['total_kebun' => count($allKebun), 'kebun' => $allKebun],
             );
         }
+        $allCommodities = (array) ($raw['commodityCatalog'] ?? []);
+        if ($allCommodities !== []) {
+            $docs[] = $this->doc(
+                'demo-commodity-summary',
+                'Daftar lengkap komoditas dan tanaman ('.count($allCommodities).' jenis)',
+                'commodity',
+                ['total_komoditas' => count($allCommodities), 'komoditas' => $allCommodities],
+            );
+        }
         foreach ((array) ($raw['kebunInsights'] ?? []) as $id => $item) {
             $docs[] = $this->doc("demo-insight-{$id}", 'Insight kebun '.$id, 'insight', ['id' => $id, ...$item]);
         }
@@ -39,7 +48,7 @@ class DemoDataKnowledgeSource
             $id = (string) ($item['id'] ?? uniqid('activity-', true));
             $docs[] = $this->doc("demo-activity-{$id}", 'Aktivitas kebun '.$id, 'activity', $item);
         }
-        foreach (['kebunLocations' => 'garden_location', 'commodityCatalog' => 'commodity', 'dashboardFinancialSummary' => 'dashboard'] as $key => $domain) {
+        foreach (['kebunLocations' => 'garden_location', 'commodityCatalog' => 'commodity', 'dashboardFinancialSummary' => 'finance'] as $key => $domain) {
             if (isset($raw[$key])) {
                 $docs[] = $this->doc('demo-'.$key.'-origin-dev', 'Demo '.$key.' origin/dev', $domain, $raw[$key]);
             }

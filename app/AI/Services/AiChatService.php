@@ -620,11 +620,11 @@ class AiChatService
             return [];
         }
 
-        if (! in_array($decision->intent, ['knowledge', 'llm', 'infographic'], true)) {
+        if (! in_array($decision->intent, ['knowledge', 'llm', 'infographic', 'data'], true)) {
             return [];
         }
 
-        if (in_array($decision->reason, ['unsupported_topic', 'explicit_data_lookup'], true)
+        if ($decision->reason === 'unsupported_topic'
             || ($decision->reason === 'general_question' && $decision->needsClarification)) {
             return [];
         }
@@ -757,7 +757,6 @@ class AiChatService
             'general_question' => $decision->needsClarification
                 ? 'Saya belum menangkap tujuan pertanyaannya. Sebutkan kebun, komoditas, periode, atau tujuan Anda agar saya dapat memilih data, panduan, atau infografis yang tepat.'
                 : null,
-            'explicit_data_lookup' => 'Permintaan ini membutuhkan data aplikasi yang terstruktur. Jalur data demo di browser dapat menampilkan seed yang tersedia, tetapi server AI belum menerima data tersebut sebagai sumber live.',
             default => null,
         };
     }

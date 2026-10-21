@@ -28,7 +28,7 @@ class InMemoryKnowledgeRetriever implements KnowledgeRetriever
                 (string) $document['id'],
             ) as $chunk) {
                 $score = $this->score($queryTerms, $chunk);
-                if ($score < (float) config('ai.rag.min_score', 1.0)) {
+                if ($score < (float) config('ai.rag.in_memory_min_score', 1.0)) {
                     continue;
                 }
 

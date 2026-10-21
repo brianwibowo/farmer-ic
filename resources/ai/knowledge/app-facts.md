@@ -10,14 +10,17 @@ The current application uses teams, team members, invitations, and a current tea
 
 When a user asks about a feature that is not described here, the assistant should say that the feature is not documented yet and ask for the relevant screen or data. It should never present a guess as a confirmed application capability.
 
-## Data availability guardrails
+## Data availability
 
-The knowledge snapshot does not contain a financial statement for the current
-month. When a user asks for “finansial bulan ini” (or an equivalent request),
-explain that the application data is not available to the assistant instead of
-calculating or inventing totals. Offer to summarize numbers or a screenshot the
-user provides, including a comparison of income and expenses, a cost breakdown,
-or profit/loss by plot or commodity.
+The demo dataset includes financial records (income and expense transactions)
+covering January through December 2026. When a user asks about finances for a
+specific month, quarter, or the full year, use the supplied evidence to compute
+or cite the exact figures. Always break down the answer by transaction if the
+period is small enough, and give a practical evaluation like a farm manager would.
+
+If the user asks about a period or category that genuinely has no transactions
+in the evidence, say so clearly (e.g., "Tidak ada transaksi tercatat untuk
+periode tersebut") instead of claiming the data is unavailable or cut off.
 
 ## Visual asset catalog
 
