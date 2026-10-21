@@ -247,7 +247,7 @@ class AiChatService
                             '/api/v1/chat/completions',
                             $model,
                             data_get($lastChunk, 'provider_request_id') ?: data_get($lastChunk, 'id'),
-                            'completed',
+                            $truncated ? 'failed' : 'completed',
                             $latency,
                             $evidence,
                         ),

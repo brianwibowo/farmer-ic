@@ -336,7 +336,6 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             request.didTimeout = true;
             requestController.abort();
         }, 60_000);
-        let reconciliationTimer: number | null = null;
 
         const reconcilePersistedReply = async (
             ignoreSignal = false,
@@ -428,11 +427,6 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 return false;
             }
         };
-        reconciliationTimer = window.setInterval(
-            () => void reconcilePersistedReply(),
-            2_000,
-        );
-
         const endpoint =
             endpoints.messages ??
             (conversationId.value
@@ -715,8 +709,6 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             window.clearTimeout(requestTimeout);
             progressTimers.forEach((timer) => window.clearTimeout(timer));
             window.clearInterval(progressTicker);
-            if (reconciliationTimer !== null)
-                window.clearInterval(reconciliationTimer);
             if (isActiveRequest(requestId)) {
                 if (request.assistantMessage.status === 'streaming') {
                     request.assistantMessage.status = request.cancelledByUser

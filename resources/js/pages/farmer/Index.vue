@@ -513,14 +513,11 @@ watch(() => messages.value.length, scrollToLatest);
 onMounted(() => {
     // Always enter the page in the idle state. Recording starts only from the mic button.
     voice.resetVoice();
-    void chat.loadConversations().then(() => {
-        // Reopen the most recently updated server conversation after refresh so
-        // a completed response is visible without requiring a manual reload.
-        const latest = conversations.value[0];
-        if (latest && messages.value.length === 0) {
-            void chat.loadConversation(latest.id).then(scrollToLatest);
-        }
-    });
+    // Opening the AI page starts a fresh draft. History remains available from
+    // the conversation drawer, so a stale conversation cannot receive a new
+    // prompt accidentally after a device or tab switch.
+    chat.newConversation();
+    void chat.loadConversations();
 });
 onUnmounted(() => {
     speech?.cancel();
