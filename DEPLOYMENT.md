@@ -47,6 +47,21 @@ The Laravel container enables vector retrieval by default in this override. Set
 while retaining the services. Set `QDRANT_IMAGE` when testing a
 different pinned Qdrant image; avoid using an unpinned image for production.
 
+The host VPS does not need PHP or Composer installed. Run Laravel commands through Docker. The `indexer` one-shot service performs the migration, full demo/knowledge sync, Qdrant rebuild, and preflight check:
+
+```sh
+docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm indexer
+```
+
+For an already-running app container, use:
+
+```sh
+docker compose --env-file .env.production -f compose.production.yaml exec app php artisan ai:health --json
+docker compose --env-file .env.production -f compose.production.yaml exec app php artisan ai:preflight --json
+```
+
+Do not run `php artisan` directly on the VPS host; PHP is inside the application image.
+
 Vector retrieval also needs the server-side embedding key and model settings
 from `.env.docker`. The Qdrant data can be removed with:
 

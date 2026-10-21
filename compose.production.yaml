@@ -102,6 +102,42 @@ services:
                 limits:
                     memory: 256M
 
+    indexer:
+        image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
+        profiles: ['rag']
+        command: >-
+            sh -lc "php artisan migrate --force --no-interaction &&
+            php artisan ai:knowledge:index-vector --force --rebuild &&
+            php artisan ai:preflight --json"
+        env_file:
+            - path: .env.production
+              required: false
+        environment:
+            APP_ENV: production
+            APP_DEBUG: 'false'
+            DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
+            DB_PORT: ${DB_PORT:-5432}
+            DB_DATABASE: ${DB_DATABASE:-farmer_ic}
+            DB_USERNAME: ${DB_USERNAME:-farmer_ic}
+            DB_PASSWORD: ${DB_PASSWORD:-}
+            AI_RAG_VECTOR_ENABLED: 'true'
+            QUEUE_CONNECTION: redis
+            REDIS_HOST: ${REDIS_HOST:-redis}
+            CACHE_STORE: redis
+            QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+        volumes:
+            - app_storage:/var/www/html/storage
+            - app_database:/var/lib/farmer-ic
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            qdrant:
+                condition: service_healthy
+        restart: 'no'
+
     scheduler:
         image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
         command: php artisan schedule:work --no-interaction
