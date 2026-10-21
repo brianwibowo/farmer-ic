@@ -587,6 +587,12 @@ class AiChatService
         if ($error instanceof LlmException && $error->getMessage() === 'AI provider is not configured.') {
             return 'Model gambar AI belum dikonfigurasi. Tidak ada gambar lokal yang digunakan.';
         }
+        if ($error instanceof LlmException && $error->status === 429) {
+            return 'Image generation sedang dibatasi provider (rate limit). Silakan coba lagi beberapa saat.';
+        }
+        if ($error instanceof LlmException && in_array($error->status, [408, 504], true)) {
+            return 'Image generation timeout. Request concurrent tetap terisolasi; silakan coba lagi.';
+        }
 
         return 'Image generation gagal: provider tidak mengembalikan gambar. Silakan coba lagi.';
     }

@@ -37,11 +37,18 @@ const emit = defineEmits<{
 const viewMode = ref<'infographic' | 'text'>('infographic');
 const isLightboxOpen = ref(false);
 const isCopied = ref(false);
+const showSources = ref(false);
 const imageGeneration = computed(() => {
     const value = props.metadata?.image_generation;
     return value && typeof value === 'object'
         ? (value as { status?: string; reason?: string | null })
         : null;
+});
+const sources = computed(() => {
+    const retrieval = props.metadata?.retrieval;
+    if (!retrieval || typeof retrieval !== 'object') return [] as string[];
+    const results = (retrieval as { results?: Array<{ id?: string }> }).results ?? [];
+    return results.map((item) => item.id).filter((id): id is string => Boolean(id));
 });
 
 interface MetricItem {
@@ -498,6 +505,16 @@ async function copyContent(): Promise<void> {
                         parsed.tip
                     }}</span>
                 </div>
+            </div>
+
+            <div v-if="sources.length" class="rounded-xl border border-border/70 bg-muted/40 p-3">
+                <button type="button" class="flex w-full items-center justify-between text-left text-xs font-semibold text-foreground" @click="showSources = !showSources">
+                    <span>Sumber dan konteks</span>
+                    <span class="text-muted-foreground">{{ showSources ? 'Sembunyikan' : `${sources.length} sumber` }}</span>
+                </button>
+                <ul v-if="showSources" class="mt-2 space-y-1 text-[11px] leading-4 text-muted-foreground">
+                    <li v-for="source in sources" :key="source">{{ source }}</li>
+                </ul>
             </div>
 
             <!-- ACTION FOOTER: QUICK COPY SUMMARY -->
