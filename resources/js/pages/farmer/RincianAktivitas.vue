@@ -36,14 +36,23 @@ async function loadActivityDetail(): Promise<void> {
     errorMessage.value = '';
 
     try {
-        const data = await listActivityLogs();
         const params = new URLSearchParams(window.location.search);
         const idParam = params.get('id');
         const typeParam = params.get('type');
         const kebunParam = params.get('kebun');
         const fromParam = params.get('from');
+        const backParam = params.get('back');
 
-        if (fromParam === 'kebun') {
+        if (
+            backParam &&
+            /^\/(?:aktivitas|kebun\/aktivitas)(?:\?|$)/.test(backParam)
+        ) {
+            backHref.value = backParam;
+            shellActiveKey.value =
+                backParam.startsWith('/kebun/aktivitas') || kebunParam
+                    ? 'garden'
+                    : 'activity';
+        } else if (fromParam === 'kebun') {
             shellActiveKey.value = 'garden';
             backHref.value = kebunParam
                 ? `/kebun/aktivitas?kebun=${encodeURIComponent(kebunParam)}`
@@ -54,6 +63,8 @@ async function loadActivityDetail(): Promise<void> {
                 ? `/aktivitas?kebun=${encodeURIComponent(kebunParam)}`
                 : '/aktivitas';
         }
+
+        const data = await listActivityLogs();
 
         if (idParam) {
             activeLog.value = data.find((item) => item.id === idParam);
@@ -285,7 +296,6 @@ onMounted(() => void loadActivityDetail());
 </template>
 
 <style>
-
 main:has(> [data-rincian-aktivitas]) {
     scrollbar-width: none;
     -ms-overflow-style: none;

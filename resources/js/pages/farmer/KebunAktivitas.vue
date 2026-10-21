@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, Clock, Search, SquareActivity, User } from '@lucide/vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import {
+    activityTypeOptions,
     collectActivityMonths,
     matchesActivityTimeFilter,
     type ActivityLog,
@@ -21,6 +22,23 @@ const selectedType = ref<'' | 'all' | ActivityType>('');
 const selectedTimeFilter = ref<ActivityTimeFilter>('all');
 const kebunParam = ref('');
 const kebunList = ref<Awaited<ReturnType<typeof listKebun>>>([]);
+
+function initialType(value: string | null): '' | 'all' | ActivityType {
+    if (value === 'all') return 'all';
+
+    return activityTypeOptions.some((option) => option.value === value)
+        ? (value as ActivityType)
+        : '';
+}
+
+function initialTime(value: string | null): ActivityTimeFilter {
+    if (value === 'week' || value === 'month') return value;
+    if (value && /^month:\d{4}-\d{2}$/.test(value)) {
+        return value as ActivityTimeFilter;
+    }
+
+    return 'all';
+}
 
 const isLoading = ref(true);
 const errorMessage = ref('');
@@ -80,10 +98,38 @@ const filteredActivities = computed(() => {
     });
 });
 
+function buildListUrl(): string {
+    const params = new URLSearchParams();
+
+    if (kebunParam.value) params.set('kebun', kebunParam.value);
+    if (searchQuery.value.trim()) params.set('q', searchQuery.value.trim());
+    if (selectedType.value && selectedType.value !== 'all') {
+        params.set('type', selectedType.value);
+    }
+    if (selectedTimeFilter.value !== 'all') {
+        params.set('time', selectedTimeFilter.value);
+    }
+
+    const query = params.toString();
+    return `/kebun/aktivitas${query ? `?${query}` : ''}`;
+}
+
+function syncFiltersToUrl(): void {
+    const url = buildListUrl();
+    const state = window.history.state;
+
+    window.history.replaceState(
+        state && typeof state === 'object' ? { ...state, url } : state,
+        '',
+        url,
+    );
+}
+
 function detailHrefFor(item: ActivityLog): string {
     const params = new URLSearchParams({
         id: item.id,
         from: 'kebun',
+        back: buildListUrl(),
     });
 
     if (kebunParam.value) {
@@ -92,6 +138,8 @@ function detailHrefFor(item: ActivityLog): string {
 
     return `/rincian-aktivitas?${params.toString()}`;
 }
+
+watch([searchQuery, selectedType, selectedTimeFilter], syncFiltersToUrl);
 
 function thumbnailFor(item: ActivityLog): string {
     return item.photos[0]?.image ?? '/images/kebun-placeholder.svg';
@@ -113,6 +161,10 @@ async function loadActivities(): Promise<void> {
 onMounted(async () => {
     const params = new URLSearchParams(window.location.search);
     kebunParam.value = params.get('kebun') ?? '';
+    searchQuery.value = params.get('q') ?? '';
+    selectedType.value = initialType(params.get('type'));
+    selectedTimeFilter.value = initialTime(params.get('time'));
+
     [kebunList.value] = await Promise.all([listKebun(), loadActivities()]);
 });
 </script>
