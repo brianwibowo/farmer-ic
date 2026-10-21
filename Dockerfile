@@ -51,8 +51,11 @@ ENV APP_ENV=production \
 
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
+# The upstream archive omits the liblzf submodule required by package.xml.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl git \
+    && git clone --depth 1 --single-branch --branch 6.1.0 --recurse-submodules \
+        https://github.com/phpredis/phpredis.git /tmp/phpredis \
     && install-php-extensions \
         bcmath \
         intl \
@@ -61,8 +64,9 @@ RUN apt-get update \
         pdo_pgsql \
         pdo_sqlite \
         pgsql \
-        https://pecl.php.net/get/redis-6.1.0.tgz \
+        /tmp/phpredis \
         zip \
+    && rm -rf /tmp/phpredis \
     && a2enmod expires headers rewrite \
     && rm -rf /var/lib/apt/lists/*
 
