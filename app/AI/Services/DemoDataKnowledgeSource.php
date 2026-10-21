@@ -30,6 +30,11 @@ class DemoDataKnowledgeSource
             $id = (string) ($item['id'] ?? uniqid('activity-', true));
             $docs[] = $this->doc("demo-activity-{$id}", 'Aktivitas kebun '.$id, 'activity', $item);
         }
+        foreach (['kebunLocations' => 'garden_location', 'commodityCatalog' => 'commodity', 'dashboardFinancialSummary' => 'dashboard'] as $key => $domain) {
+            if (isset($raw[$key])) {
+                $docs[] = $this->doc('demo-'.$key.'-origin-dev', 'Demo '.$key.' origin/dev', $domain, $raw[$key]);
+            }
+        }
         if (isset($raw['finance'])) {
             $docs[] = $this->doc('demo-finance-origin-dev', 'Finance demo origin/dev', 'finance', $raw['finance']);
         }

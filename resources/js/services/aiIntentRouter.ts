@@ -250,12 +250,12 @@ export function routeAiPrompt(
     // An explicit visual verb is a presentation request. “Gambarkan kondisi
     // lahan” must not silently become a data summary just because it contains
     // the word “kondisi”.
-    if (visualSignal && Boolean(domain)) {
+    if (visualSignal) {
         return {
             intent: 'infographic',
             confidence: 0.94,
             topic,
-            domain,
+            domain: domain ?? 'agronomy',
             period,
             needsClarification: false,
             reason: 'explicit_visual_request',

@@ -51,8 +51,8 @@ class AiIntentRouter
             return $this->decision('out_of_scope', 'general', $period, null, 0.98, 0.9, false, 'unsupported_topic');
         }
 
-        if ($this->hasAny($prompt, self::VISUAL_TERMS) && $domain !== 'general') {
-            return $this->decision('infographic', $domain, $period, $topic, 0.94, 0.75, false, 'explicit_visual_request');
+        if ($this->hasAny($prompt, self::VISUAL_TERMS)) {
+            return $this->decision('infographic', $domain === 'general' ? 'agronomy' : $domain, $period, $topic, 0.94, 0.75, false, 'explicit_visual_request');
         }
 
         if ($domain === 'finance') {

@@ -19,6 +19,6 @@ class FinanceSnapshotServiceTest extends TestCase
         $this->assertSame(60000000, $snapshot['expense']);
         $this->assertSame(110000000, $snapshot['net']);
         $this->assertSame(24, $snapshot['transaction_count']);
-        $this->assertSame('Farmer IC finance demo dataset (origin/dev)', $snapshot['source']);
+        $this->assertSame('farmDemoData.json origin/dev', $snapshot['source']);
     }
 }

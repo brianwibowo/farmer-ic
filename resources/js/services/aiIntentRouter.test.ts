@@ -39,6 +39,13 @@ describe('ai intent router', () => {
         expect(route.reason).toBe('explicit_visual_request');
     });
 
+    it('keeps a follow-up infographic request on the visual path', () => {
+        const route = routeAiPrompt('buatkan infografisnya');
+
+        expect(route.intent).toBe('infographic');
+        expect(route.domain).toBe('agronomy');
+    });
+
     it('routes agronomy guidance to the LLM path', () => {
         const route = routeAiPrompt('berapa dosis pupuk jagung yang sesuai?');
 
