@@ -108,7 +108,7 @@ services:
         command: >-
             sh -lc "php artisan migrate --force --no-interaction &&
             php artisan ai:knowledge:index-vector --force --rebuild &&
-            php artisan ai:preflight --json"
+            php artisan ai:health --json"
         env_file:
             - path: .env.production
               required: false
