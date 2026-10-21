@@ -21,6 +21,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import KebunFilterDropdown from '@/components/farmer/KebunFilterDropdown.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
     activityTypeOptions,
@@ -79,6 +80,7 @@ const statusOptions: Array<{ value: ActivityStatusFilter; label: string }> = [
 const selectedTimeFilter = ref<ActivityTimeFilter>(
     initialTime(initialParams.get('time')),
 );
+const selectedKebun = ref(initialParams.get('kebunFilter') ?? '');
 // NOTE (merge resolution 2026-10-19): the date-range inputs and sort toggle were
 // removed from the UI (replaced by ActivityPeriodFilter dropdown + newest-first sorting
 // in listActivityLogs()). Kept commented per review; delete once confirmed unused.
@@ -95,6 +97,12 @@ let scrollContainer: HTMLElement | null = null;
 const BACK_TO_TOP_THRESHOLD = 160;
 
 const availableMonths = computed(() => collectActivityMonths(activities.value));
+
+/**
+ * Kebun options come from the registered kebun list, including kebun that have
+ * no activity yet; selecting one then shows the normal empty state.
+ */
+const availableKebun = computed(() => kebunList.value);
 
 const kebunParam = computed(() => {
     try {
@@ -151,6 +159,9 @@ const filteredByGeneralFilters = computed(() => {
             selectedTimeFilter.value,
         );
 
+        const matchesKebun =
+            !selectedKebun.value || item.kebunId === selectedKebun.value;
+
         // NOTE (merge resolution 2026-10-19): date-range matching is disabled — the
         // range UI was replaced by ActivityPeriodFilter chips. Kept commented per review.
         // let matchesDate = true;
@@ -178,7 +189,7 @@ const filteredByGeneralFilters = computed(() => {
         //     }
         // }
 
-        return matchesSearch && matchesType && matchesTime;
+        return matchesSearch && matchesType && matchesTime && matchesKebun;
     });
 
     // NOTE (merge resolution 2026-10-19): the manual newest/oldest sort is disabled —
@@ -205,7 +216,8 @@ const activeFilterCount = computed(
         Number(Boolean(searchQuery.value.trim())) +
         Number(selectedType.value !== '' && selectedType.value !== 'all') +
         Number(selectedStatus.value !== 'all') +
-        Number(selectedTimeFilter.value !== 'all'),
+        Number(selectedTimeFilter.value !== 'all') +
+        Number(Boolean(selectedKebun.value)),
 );
 
 // Counted from filteredActivities (not filteredByGeneralFilters) so the card
@@ -237,6 +249,7 @@ function clearFilters(): void {
     selectedType.value = '';
     selectedStatus.value = 'all';
     selectedTimeFilter.value = 'all';
+    selectedKebun.value = '';
     // NOTE (merge resolution 2026-10-19): date resets disabled with the range UI.
     // startDate.value = '';
     // endDate.value = '';
@@ -287,6 +300,9 @@ function buildListUrl(): string {
     if (selectedTimeFilter.value !== 'all') {
         params.set('time', selectedTimeFilter.value);
     }
+    if (selectedKebun.value) {
+        params.set('kebunFilter', selectedKebun.value);
+    }
 
     const query = params.toString();
     return `/aktivitas${query ? `?${query}` : ''}`;
@@ -317,7 +333,13 @@ function detailHrefFor(item: ActivityLog): string {
 }
 
 watch(
-    [searchQuery, selectedType, selectedStatus, selectedTimeFilter],
+    [
+        searchQuery,
+        selectedType,
+        selectedStatus,
+        selectedTimeFilter,
+        selectedKebun,
+    ],
     syncFiltersToUrl,
 );
 
@@ -332,6 +354,13 @@ async function loadActivities(): Promise<void> {
         ]);
         activities.value = activityData;
         kebunList.value = kebunData;
+
+        if (
+            selectedKebun.value &&
+            !kebunData.some((item) => item.id === selectedKebun.value)
+        ) {
+            selectedKebun.value = '';
+        }
     } catch {
         errorMessage.value = 'Data aktivitas belum dapat dimuat. Coba lagi.';
     } finally {
@@ -486,21 +515,36 @@ onBeforeUnmount(() => {
             </section>
 
             <div class="mt-4">
-                <label class="relative min-w-0 flex-1">
-                    <span class="sr-only">Cari aktivitas</span>
-                    <input
-                        v-model="searchQuery"
-                        type="search"
-                        placeholder="Cari kata kunci"
-                        class="h-[38px] w-full rounded-lg border border-primary bg-card px-3 pr-10 text-[14px] text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
+                <div
+                    :class="[
+                        'grid gap-2',
+                        kebunParam ? 'grid-cols-1' : 'grid-cols-2',
+                    ]"
+                >
+                    <label class="relative min-w-0">
+                        <span class="sr-only">Cari aktivitas</span>
+                        <input
+                            v-model="searchQuery"
+                            type="search"
+                            placeholder="Cari kata kunci"
+                            class="h-[38px] w-full rounded-lg border border-primary bg-card px-3 pr-10 text-[14px] text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
+                        />
+                        <Search
+                            :size="20"
+                            :stroke-width="1.8"
+                            class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary"
+                            aria-hidden="true"
+                        />
+                    </label>
+
+                    <!-- Hidden when the page is already scoped to one kebun via
+                         ?kebun=, so the filter cannot contradict the header. -->
+                    <KebunFilterDropdown
+                        v-if="!kebunParam"
+                        v-model="selectedKebun"
+                        :kebun-list="availableKebun"
                     />
-                    <Search
-                        :size="20"
-                        :stroke-width="1.8"
-                        class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-primary"
-                        aria-hidden="true"
-                    />
-                </label>
+                </div>
 
                 <div class="mt-2 grid grid-cols-2 gap-2">
                     <ActivityPeriodFilter
