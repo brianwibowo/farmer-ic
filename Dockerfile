@@ -61,7 +61,7 @@ RUN apt-get update \
         pdo_pgsql \
         pdo_sqlite \
         pgsql \
-        phpredis/phpredis@6.1.0 \
+        redis-6.1.0 \
         zip \
     && a2enmod expires headers rewrite \
     && rm -rf /var/lib/apt/lists/*
