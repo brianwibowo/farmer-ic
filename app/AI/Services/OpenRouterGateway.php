@@ -54,10 +54,14 @@ class OpenRouterGateway implements LlmGateway
 
         $basePrompt = 'A professional vector infographic diagram for Farmer IC smart farming platform. ';
         $contextPart = $recentContext !== '' ? 'Context: '.$recentContext.'. ' : '';
+        $verifiedData = trim((string) ($options['image_prompt_context'] ?? ''));
+        $verifiedDataPart = $verifiedData !== ''
+            ? 'Verified data instructions: '.$verifiedData.' '
+            : '';
         $userPart = 'Topic: '.$userText.'. ';
         $styleDirectives = 'Style: Clean vector graphic, precision agriculture data visualization, distinct nodes, process flowchart, agricultural icons (crops, fields, finances, sensors), neat labels, high contrast, clean minimalist layout, strictly on-topic agricultural diagram. No random decorative elements, no calendar unless explicitly requested.';
 
-        $prompt = trim($basePrompt.$contextPart.$userPart.$styleDirectives);
+        $prompt = trim($basePrompt.$verifiedDataPart.$contextPart.$userPart.$styleDirectives);
 
         $payload = [
             'model' => $model,

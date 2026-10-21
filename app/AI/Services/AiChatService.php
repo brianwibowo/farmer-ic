@@ -109,6 +109,14 @@ class AiChatService
         $traceId = (string) Str::uuid();
         $isInfographic = $forceInfographic || $decision->intent === 'infographic'
             || (bool) preg_match('/\b(infografis|diagram visual|bagan alur|poster visual|diagram smart farming)\b/i', $userText);
+        $financeImagePeriod = null;
+        $financeImagePromptContext = null;
+        if ($isInfographic && $decision->domain === 'finance') {
+            $financeImagePeriod = $this->financeSnapshot->imagePeriod($conversation->team, $userText);
+            if ($financeImagePeriod['available']) {
+                $financeImagePromptContext = $this->financeSnapshot->imagePromptContext($financeImagePeriod);
+            }
+        }
 
         // Flush a visible progress event before embedding/Qdrant work starts.
         // This keeps the client informed during the first cold retrieval call.
@@ -117,6 +125,21 @@ class AiChatService
             'progress' => $isInfographic ? 'Menyiapkan konteks infografis…' : 'Mencari konteks yang relevan…',
             'route' => $decision->toArray(),
         ]];
+
+        if (is_array($financeImagePeriod) && ! $financeImagePeriod['available']) {
+            yield from $this->streamDeterministicReply(
+                $conversation,
+                $decision,
+                $this->financeSnapshot->unavailableImageMessage($financeImagePeriod),
+                [],
+                $traceId,
+                ['route_ms' => $routeMs, 'retrieval_ms' => 0],
+                $pipelineStartedAt,
+            );
+
+            return;
+        }
+
         $retrievalStartedAt = microtime(true);
         $evidence = $this->evidenceFor($decision, $conversation, $userText);
         $timings = [
@@ -131,7 +154,16 @@ class AiChatService
         }
 
         if ($isInfographic) {
-            yield from $this->streamInfographicReply($conversation, $userMessage, $evidence, $decision, $traceId, $timings, $pipelineStartedAt);
+            yield from $this->streamInfographicReply(
+                $conversation,
+                $userMessage,
+                $evidence,
+                $decision,
+                $traceId,
+                $timings,
+                $pipelineStartedAt,
+                $financeImagePromptContext,
+            );
 
             return;
         }
@@ -352,6 +384,7 @@ class AiChatService
         ?string $traceId = null,
         array $timings = [],
         ?float $pipelineStartedAt = null,
+        ?string $financeImagePromptContext = null,
     ): \Generator {
         $assistant = $conversation->messages()->create([
             'role' => 'assistant',
@@ -361,6 +394,7 @@ class AiChatService
                 ...$this->traceMetadata($decision, $evidence, $traceId, $timings),
                 ...$this->financeMetadata($decision, $evidence),
                 ...($decision?->domain === 'finance' ? ['finance_prompt' => $userMessage->content] : []),
+                ...($financeImagePromptContext !== null ? ['finance_image_prompt' => $financeImagePromptContext] : []),
             ],
         ]);
         $startedAt = microtime(true);
@@ -390,10 +424,14 @@ class AiChatService
             try {
                 $assistant->forceFill(['model' => $model, 'provider' => 'openrouter'])->save();
 
-                $response = $this->gateway->complete($prompt, $model, [
+                $imageOptions = [
                     'image_generation' => true,
                     'size' => '1024x1024',
-                ]);
+                ];
+                if ($financeImagePromptContext !== null) {
+                    $imageOptions['image_prompt_context'] = $financeImagePromptContext;
+                }
+                $response = $this->gateway->complete($prompt, $model, $imageOptions);
 
                 $rawImage = data_get($response, 'choices.0.message.images.0.image_url.url');
                 $textContent = trim((string) data_get($response, 'choices.0.message.content', ''));
