@@ -33,6 +33,10 @@ class PromptAssembler
         $activeId = $activeMessage?->getKey();
         $history = $conversation->messages()
             ->with('attachments')
+            // Failed/abandoned assistant generations are transport artifacts,
+            // not conversational context. Including them teaches the next
+            // request to repeat partial or invalid output.
+            ->where('status', 'completed')
             ->when($activeId !== null, fn ($query) => $query->where('id', '<=', $activeId))
             ->latest('id')
             ->limit(max(1, (int) config('ai.limits.max_history_messages', 12)))

@@ -690,7 +690,7 @@ class AiChatService
     }
 
     /**
-     * @param array<int, array<string, mixed>> $evidence
+     * @param  array<int, array<string, mixed>>  $evidence
      * @return array{finance_snapshot: array<string, mixed>}|array{}
      */
     protected function financeMetadata(?AiRouteDecision $decision, array $evidence): array
