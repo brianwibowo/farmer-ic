@@ -61,7 +61,7 @@ return [
         // AI_RAG_MAX_OUTPUT_TOKENS name as a deployment-friendly alias.
         'response_max_tokens' => (int) env(
             'AI_RESPONSE_MAX_OUTPUT_TOKENS',
-            env('AI_RAG_MAX_OUTPUT_TOKENS', 1024),
+            env('AI_RAG_MAX_OUTPUT_TOKENS', 4096),
         ),
         // OpenRouter only receives this option when explicitly configured;
         // unsupported models therefore retain their provider defaults.

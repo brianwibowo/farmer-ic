@@ -22,7 +22,7 @@ class PromptAssembler
         ?AiMessage $activeMessage = null,
         array $evidence = [],
     ): array {
-        $snapshot = $this->knowledge->snapshot();
+        $snapshot = $conversation->knowledge_snapshot ?: $this->knowledge->snapshot();
         $messages = [[
             'role' => 'system',
             'content' => $isInfographic

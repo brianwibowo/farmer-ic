@@ -229,7 +229,8 @@ class AiChatService
                 $timings['first_token_ms'] = $firstTokenAt === null
                     ? null
                     : (int) round(($firstTokenAt - $generationStartedAt) * 1000);
-                $cleanContent = $this->sanitizeAssistantReply($this->appendCitations($content, $evidence));
+                $cleanContent = $this->appendCitations($this->sanitizeAssistantReply($content), $evidence);
+                // $cleanContent = $this->sanitizeAssistantReply($this->appendCitations($content, $evidence));  previous implementation
                 $assistant->forceFill([
                     'content' => $cleanContent,
                     'status' => 'completed',
