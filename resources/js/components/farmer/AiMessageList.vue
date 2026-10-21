@@ -235,11 +235,11 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                     <Square :size="12" /> Jawaban dihentikan.
                 </div>
                 <div
-                    v-if="message.status === 'error' || message.status === 'failed'"
+                    v-if="message.status === 'error'"
                     class="mt-2 flex items-center gap-1.5 text-xs text-error"
                 >
                     <AlertCircle :size="14" />
-                    {{ message.error || (message as Record<string, any>).error_message || 'Pesan gagal diproses.' }}
+                    {{ message.error || 'Pesan gagal diproses.' }}
                 </div>
             </div>
             <div
