@@ -56,6 +56,8 @@ export function normalizeAiResponse(value: string): string {
         .replace(/^\s*```(?:markdown|text)?\s*/i, "")
         .replace(/\s*```\s*$/i, "")
         .replace(/\\([*_`~>#-])/g, "$1")
+        .replace(/\s*\[S\d+\]/gi, "")
+        .replace(/\n?Sumber:\s*[^\n]+/gi, "")
         .replace(/[ \t]+\n/g, "\n")
         .replace(/\n{3,}/g, "\n\n")
         .trim();

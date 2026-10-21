@@ -74,6 +74,7 @@ return [
         'facts_path' => env('AI_KNOWLEDGE_FACTS_PATH', resource_path('ai/knowledge/app-facts.md')),
         'policy_path' => env('AI_KNOWLEDGE_POLICY_PATH', resource_path('ai/knowledge/assistant-policy.md')),
         'demo_guides_path' => env('AI_KNOWLEDGE_DEMO_GUIDES_PATH', resource_path('ai/knowledge/demo-guides.md')),
+        'demo_data_path' => env('AI_KNOWLEDGE_DEMO_DATA_PATH', resource_path('js/data/farmDemoData.json')),
         'adaptive_enabled' => (bool) env('AI_ADAPTIVE_KNOWLEDGE_ENABLED', false),
     ],
 

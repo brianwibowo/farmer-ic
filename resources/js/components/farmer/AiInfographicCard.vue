@@ -507,16 +507,6 @@ async function copyContent(): Promise<void> {
                 </div>
             </div>
 
-            <div v-if="sources.length" class="rounded-xl border border-border/70 bg-muted/40 p-3">
-                <button type="button" class="flex w-full items-center justify-between text-left text-xs font-semibold text-foreground" @click="showSources = !showSources">
-                    <span>Sumber dan konteks</span>
-                    <span class="text-muted-foreground">{{ showSources ? 'Sembunyikan' : `${sources.length} sumber` }}</span>
-                </button>
-                <ul v-if="showSources" class="mt-2 space-y-1 text-[11px] leading-4 text-muted-foreground">
-                    <li v-for="source in sources" :key="source">{{ source }}</li>
-                </ul>
-            </div>
-
             <!-- ACTION FOOTER: QUICK COPY SUMMARY -->
             <div class="flex items-center justify-end pt-1">
                 <button

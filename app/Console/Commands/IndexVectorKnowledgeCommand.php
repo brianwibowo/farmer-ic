@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\AI\Services\DemoDataKnowledgeSource;
 use App\AI\Services\QdrantKnowledgeIndexer;
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Console\Command;
 
 class IndexVectorKnowledgeCommand extends Command
@@ -16,7 +18,7 @@ class IndexVectorKnowledgeCommand extends Command
 
     protected $description = 'Embed and upsert the team knowledge corpus into Qdrant';
 
-    public function handle(QdrantKnowledgeIndexer $indexer): int
+    public function handle(QdrantKnowledgeIndexer $indexer, DemoDataKnowledgeSource $demoData): int
     {
         if (! config('ai.rag.vector_enabled') && ! $this->option('force')) {
             $this->components->error('AI_RAG_VECTOR_ENABLED=false. Pass --force only when the vector services are configured.');
@@ -32,6 +34,10 @@ class IndexVectorKnowledgeCommand extends Command
         }
 
         try {
+            $owner = $team->members()->orderBy('users.id')->first() ?: User::query()->orderBy('id')->first();
+            if ($owner) {
+                $demoData->sync($team, $owner);
+            }
             if ($this->option('status')) {
                 $status = $indexer->status($team);
                 $this->line((string) json_encode($status, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));

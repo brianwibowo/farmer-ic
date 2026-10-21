@@ -8,6 +8,13 @@ use RuntimeException;
 
 class KnowledgeService
 {
+    private readonly DemoDataKnowledgeSource $demoData;
+
+    public function __construct(?DemoDataKnowledgeSource $demoData = null)
+    {
+        $this->demoData = $demoData ?? new DemoDataKnowledgeSource;
+    }
+
     /** @return array{facts: string, policy: string, adaptive: string, hashes: array{facts: string, policy: string, adaptive: array<int, string>}} */
     public function snapshot(?Team $team = null): array
     {
@@ -84,6 +91,16 @@ class KnowledgeService
                 'content' => $document->content,
                 'source' => $document->source ?: 'Knowledge team Farmer IC',
                 'version' => $document->version,
+            ];
+        }
+
+        foreach ($this->demoData->documents() as $document) {
+            $documents[] = [
+                'id' => $document['id'],
+                'title' => $document['title'],
+                'content' => $document['content'],
+                'source' => 'Knowledge base Farmer IC · farmDemoData.json origin/dev',
+                'version' => 'origin-dev-v2',
             ];
         }
 
