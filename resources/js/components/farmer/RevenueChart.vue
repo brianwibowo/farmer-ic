@@ -60,6 +60,31 @@ const formatRupiah = (value: number): string =>
         maximumFractionDigits: 0,
     }).format(value);
 
+function formatAxisValue(value: string | number): string {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount === 0) return 'Rp 0';
+
+    const absoluteAmount = Math.abs(amount);
+    if (absoluteAmount < 1_000) {
+        return `Rp ${amount.toLocaleString('id-ID', {
+            maximumFractionDigits: 0,
+        })}`;
+    }
+    if (absoluteAmount < 1_000_000) {
+        return `Rp ${(amount / 1_000).toLocaleString('id-ID', {
+            maximumFractionDigits: 1,
+        })} rb`;
+    }
+
+    return `Rp ${(amount / 1_000_000).toLocaleString('id-ID', {
+        maximumFractionDigits: 1,
+    })} jt`;
+}
+
+const hasData = computed(() =>
+    props.points.some((point) => point.revenue !== 0 || point.expense !== 0),
+);
+
 const selectPoint = (elements: ActiveElement[]): void => {
     const index = elements[0]?.index;
     const point = index === undefined ? undefined : props.points[index];
@@ -150,12 +175,15 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
         },
         y: {
             beginAtZero: true,
+            // Chart.js adds a very small epsilon when every point is zero.
+            // Give the empty chart a readable floor instead of scientific
+            // notation such as `9e-7 jt` on the axis.
+            ...(hasData.value ? {} : { max: 1_000_000 }),
             border: { display: false },
             grid: { color: isDark.value ? '#2d4538' : '#e6eee7' },
             ticks: {
                 color: isDark.value ? '#c6d6c8' : '#5e6b61',
-                callback: (value: string | number) =>
-                    `${Number(value) / 1_000_000} jt`,
+                callback: formatAxisValue,
             },
         },
     },
@@ -164,7 +192,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
 
 <template>
     <div
-        class="h-64 w-full"
+        class="relative h-64 w-full"
         role="img"
         aria-label="Grafik pendapatan dan pengeluaran per bulan"
     >
@@ -173,5 +201,15 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
             :options="chartOptions"
             aria-label="Grafik pendapatan dan pengeluaran per bulan. Pilih titik untuk melihat detail periode tersebut."
         />
+        <div
+            v-if="!hasData"
+            class="pointer-events-none absolute inset-x-0 top-1/3 flex justify-center px-4"
+        >
+            <span
+                class="rounded-full bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm"
+            >
+                Belum ada transaksi pada periode ini
+            </span>
+        </div>
     </div>
 </template>
