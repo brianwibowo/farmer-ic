@@ -64,7 +64,7 @@ class DemoDataKnowledgeSource
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array{id: string, title: string, domain: string, content: string}
      */
     private function doc(string $id, string $title, string $domain, array $data): array
