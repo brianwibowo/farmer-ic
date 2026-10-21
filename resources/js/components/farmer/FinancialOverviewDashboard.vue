@@ -6,17 +6,14 @@ import {
     type DashboardFinancialSummary,
 } from '@/services/farmDemoService';
 
-const financialSummary = ref<DashboardFinancialSummary>({
-    income: 0,
-    projectedIncome: 0,
-    expenses: 0,
-    projectedExpenses: 0,
-});
+const financialSummary = ref<DashboardFinancialSummary | null>(null);
 const loading = ref(true);
 
 onMounted(async () => {
     try {
         financialSummary.value = await getDashboardFinancialSummary();
+    } catch {
+        financialSummary.value = null;
     } finally {
         loading.value = false;
     }
@@ -37,7 +34,7 @@ const formatRupiah = (value: number): string =>
             <div class="h-32 animate-pulse rounded-2xl bg-muted" />
             <div class="h-32 animate-pulse rounded-2xl bg-muted" />
         </div>
-        <div v-else class="grid grid-cols-2 gap-3">
+        <div v-else-if="financialSummary" class="grid grid-cols-2 gap-3">
             <StatCard
                 title="Pendapatan Kebun"
                 :value="formatRupiah(financialSummary.income)"
@@ -46,6 +43,10 @@ const formatRupiah = (value: number): string =>
                     formatRupiah(financialSummary.projectedIncome)
                 "
                 type="income"
+                :information="financialSummary.information.income"
+                :projection-information="
+                    financialSummary.information.projectedIncome
+                "
             />
             <StatCard
                 title="Pengeluaran Kebun"
@@ -55,7 +56,15 @@ const formatRupiah = (value: number): string =>
                     formatRupiah(financialSummary.projectedExpenses)
                 "
                 type="expense"
+                :information="financialSummary.information.expenses"
+                :projection-information="
+                    financialSummary.information.projectedExpenses
+                "
             />
         </div>
+        <p v-else role="alert" class="text-sm text-muted-foreground">
+            Ringkasan keuangan belum dapat dimuat. Muat ulang halaman untuk
+            mencoba kembali.
+        </p>
     </section>
 </template>

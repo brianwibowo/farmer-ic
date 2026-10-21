@@ -21,6 +21,10 @@ export type DashboardFinancialSummary = {
     projectedIncome: number;
     expenses: number;
     projectedExpenses: number;
+    information: Record<
+        'income' | 'projectedIncome' | 'expenses' | 'projectedExpenses',
+        { description: string; period: string }
+    >;
 };
 
 export type CommoditySummary = {
@@ -225,13 +229,91 @@ export async function getDashboardFinancialSummary(): Promise<DashboardFinancial
         (total, item) => total + item.projectedRevenue,
         0,
     );
+    const transactionPeriod = (type: FinanceTransaction['type']): string =>
+        financialPeriodLabel(
+            state.finance.transactions
+                .filter((transaction) => transaction.type === type)
+                .map(({ date }) => ({
+                    year: Number(date.year),
+                    month: reportMonthNumber(date.month),
+                })),
+        );
+    const incomePeriod = transactionPeriod('income');
+    const expensePeriod = transactionPeriod('expense');
+    const harvestPeriod = financialPeriodLabel(
+        Object.values(state.kebunInsights).map(({ harvestAt }) => {
+            const date = reportDateNumber(harvestAt);
+            return {
+                year: Math.floor(date / 10000),
+                month: Math.floor((date % 10000) / 100),
+            };
+        }),
+    );
+    const includesPlans = (type: FinanceTransaction['type']): boolean =>
+        state.finance.transactions.some(
+            (transaction) =>
+                transaction.type === type && transaction.isProjected,
+        );
 
     return {
         income: state.finance.totalRevenue,
         projectedIncome,
         expenses: state.finance.totalExpense,
         projectedExpenses: state.finance.totalExpense,
+        information: {
+            income: {
+                description: `Total pendapatan kebun dalam data keuangan pada periode ini.${includesPlans('income') ? ' Data demo juga mencakup transaksi pendapatan yang masih direncanakan.' : ''}`,
+                period: incomePeriod,
+            },
+            projectedIncome: {
+                description:
+                    'Estimasi pendapatan dari panen seluruh kebun, mengikuti jadwal panen yang tersedia. Nilai ini dapat berubah sesuai hasil panen dan harga jual.',
+                period: harvestPeriod,
+            },
+            expenses: {
+                description: `Total biaya kebun dalam data keuangan pada periode ini.${includesPlans('expense') ? ' Data demo juga mencakup transaksi pengeluaran yang masih direncanakan.' : ''}`,
+                period: expensePeriod,
+            },
+            projectedExpenses: {
+                description:
+                    'Estimasi biaya kebun. Pada data demo saat ini, nilainya menggunakan total pengeluaran pada periode ini sebagai acuan.',
+                period: expensePeriod,
+            },
+        },
     };
+}
+
+function financialPeriodLabel(
+    dates: Array<{ year: number; month: number }>,
+): string {
+    const months = dates
+        .filter(
+            ({ year, month }) =>
+                Number.isInteger(year) &&
+                year > 0 &&
+                Number.isInteger(month) &&
+                month >= 1 &&
+                month <= 12,
+        )
+        .sort((a, b) => a.year - b.year || a.month - b.month);
+    if (!months.length) return 'Periode belum tersedia';
+
+    const first = months[0];
+    const last = months[months.length - 1];
+    const firstQuarter = Math.ceil(first.month / 3);
+    const lastQuarter = Math.ceil(last.month / 3);
+    if (first.year !== last.year) {
+        return `Q${firstQuarter} ${first.year}–Q${lastQuarter} ${last.year} · ${reportMonthLabels[first.month]} ${first.year}–${reportMonthLabels[last.month]} ${last.year}`;
+    }
+    const quarters =
+        firstQuarter === lastQuarter
+            ? `Q${firstQuarter}`
+            : `Q${firstQuarter}–Q${lastQuarter}`;
+    const range =
+        first.month === last.month
+            ? reportMonthLabels[first.month]
+            : `${reportMonthLabels[first.month]}–${reportMonthLabels[last.month]}`;
+    return `${quarters} ${first.year} · ${range} ${first.year}`;
 }
 
 export type FarmReportPeriod = 'month' | 'quarter' | 'year';
