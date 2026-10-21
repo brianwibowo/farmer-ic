@@ -173,9 +173,7 @@ const filteredActivities = computed(() =>
 const activeFilterCount = computed(
     () =>
         Number(Boolean(searchQuery.value.trim())) +
-        Number(
-            selectedType.value !== '' && selectedType.value !== 'all',
-        ) +
+        Number(selectedType.value !== '' && selectedType.value !== 'all') +
         Number(selectedStatus.value !== 'all') +
         Number(selectedTimeFilter.value !== 'all'),
 );
@@ -400,7 +398,9 @@ onBeforeUnmount(() => {
                     <p class="text-lg leading-5 font-semibold text-foreground">
                         {{ needsCheckCount }}
                     </p>
-                    <p class="min-w-0 text-[11px] leading-4 font-medium text-foreground">
+                    <p
+                        class="min-w-0 text-[11px] leading-4 font-medium text-foreground"
+                    >
                         Perlu cek
                     </p>
                 </div>
@@ -565,7 +565,9 @@ onBeforeUnmount(() => {
 
             <ul v-else class="mt-5 space-y-3" aria-label="Daftar aktivitas">
                 <li v-for="item in filteredActivities" :key="item.id">
-                    <div class="overflow-hidden rounded-2xl border border-border bg-card">
+                    <div
+                        class="overflow-hidden rounded-2xl border border-border bg-card"
+                    >
                         <Link
                             :href="
                                 kebunParam
@@ -574,89 +576,98 @@ onBeforeUnmount(() => {
                             "
                             class="group flex gap-3 p-3 transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
-                        <div
-                            class="relative size-[120px] shrink-0 overflow-hidden rounded-xl bg-muted"
-                        >
-                            <img
-                                :src="thumbnailFor(item)"
-                                :alt="`Foto ${item.typeLabel} di ${item.kebunName}`"
-                                class="h-full w-full object-cover"
-                            />
-                            <span
-                                class="absolute right-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-md bg-foreground/75 px-1.5 py-1 text-[10px] font-semibold text-background"
-                            >
-                                <Camera :size="11" aria-hidden="true" />
-                                {{ item.photos.length }}
-                            </span>
-                        </div>
-                        <div class="min-w-0 flex-1 py-0.5">
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="min-w-0">
-                                    <span
-                                        class="inline-flex max-w-full truncate rounded-md bg-surface px-2 py-1 text-[10px] leading-3 font-semibold text-secondary"
-                                        >{{ activityTypeLabelFor(item) }}</span
-                                    >
-                                    <h2
-                                        class="mt-1 truncate text-[16px] leading-5 font-semibold text-foreground group-hover:text-secondary"
-                                    >
-                                        {{ item.kebunName }}
-                                    </h2>
-                                </div>
-                                <span
-                                    v-if="attentionFor(item).status === 'needs-check'"
-                                    :class="[
-                                        'inline-flex max-w-[130px] shrink-0 truncate rounded-full px-2 py-1 text-[10px] font-semibold',
-                                        attentionFor(item).priority === 'urgent'
-                                            ? 'bg-error/10 text-error'
-                                            : 'bg-warning/15 text-foreground',
-                                    ]"
-                                    :title="attentionLabelFor(item)"
-                                    >{{ attentionLabelFor(item) }}</span
-                                >
-                                <ChevronRight
-                                    v-else
-                                    :size="18"
-                                    class="mt-1 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
-                                    aria-hidden="true"
-                                />
-                            </div>
                             <div
-                                class="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground"
+                                class="relative size-[120px] shrink-0 overflow-hidden rounded-xl bg-muted"
                             >
-                                <p
-                                    class="flex min-w-0 items-center gap-1.5 truncate"
+                                <img
+                                    :src="thumbnailFor(item)"
+                                    :alt="`Foto ${item.typeLabel} di ${item.kebunName}`"
+                                    class="h-full w-full object-cover"
+                                />
+                                <span
+                                    class="absolute right-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-md bg-foreground/75 px-1.5 py-1 text-[10px] font-semibold text-background"
                                 >
-                                    <Clock3
-                                        :size="14"
-                                        class="shrink-0 text-primary"
-                                        aria-hidden="true"
-                                    /><span class="truncate">{{
-                                        item.timestamp
-                                    }} · HST {{ item.daysAfterPlanting }}</span>
-                                </p>
-                                <p
-                                    class="flex min-w-0 items-center gap-1.5 truncate"
+                                    <Camera :size="11" aria-hidden="true" />
+                                    {{ item.photos.length }}
+                                </span>
+                            </div>
+                            <div class="min-w-0 flex-1 py-0.5">
+                                <div
+                                    class="flex items-start justify-between gap-2"
                                 >
-                                    <MapPin
-                                        :size="14"
-                                        class="shrink-0 text-primary"
-                                        aria-hidden="true"
-                                    /><span class="truncate"
-                                        >{{ item.city }} ·
-                                        {{ item.officerName }}</span
+                                    <div class="min-w-0">
+                                        <span
+                                            class="inline-flex max-w-full truncate rounded-md bg-surface px-2 py-1 text-[10px] leading-3 font-semibold text-secondary"
+                                            >{{
+                                                activityTypeLabelFor(item)
+                                            }}</span
+                                        >
+                                        <h2
+                                            class="mt-1 truncate text-[16px] leading-5 font-semibold text-foreground group-hover:text-secondary"
+                                        >
+                                            {{ item.kebunName }}
+                                        </h2>
+                                    </div>
+                                    <span
+                                        v-if="
+                                            attentionFor(item).status ===
+                                            'needs-check'
+                                        "
+                                        :class="[
+                                            'inline-flex max-w-[130px] shrink-0 truncate rounded-full px-2 py-1 text-[10px] font-semibold',
+                                            attentionFor(item).priority ===
+                                            'urgent'
+                                                ? 'bg-error/10 text-error'
+                                                : 'bg-warning/15 text-foreground',
+                                        ]"
+                                        :title="attentionLabelFor(item)"
+                                        >{{ attentionLabelFor(item) }}</span
                                     >
+                                    <ChevronRight
+                                        v-else
+                                        :size="18"
+                                        class="mt-1 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                                        aria-hidden="true"
+                                    />
+                                </div>
+                                <div
+                                    class="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground"
+                                >
+                                    <p
+                                        class="flex min-w-0 items-center gap-1.5 truncate"
+                                    >
+                                        <Clock3
+                                            :size="14"
+                                            class="shrink-0 text-primary"
+                                            aria-hidden="true"
+                                        /><span class="truncate"
+                                            >{{ item.timestamp }} · HST
+                                            {{ item.daysAfterPlanting }}</span
+                                        >
+                                    </p>
+                                    <p
+                                        class="flex min-w-0 items-center gap-1.5 truncate"
+                                    >
+                                        <MapPin
+                                            :size="14"
+                                            class="shrink-0 text-primary"
+                                            aria-hidden="true"
+                                        /><span class="truncate"
+                                            >{{ item.city }} ·
+                                            {{ item.officerName }}</span
+                                        >
+                                    </p>
+                                </div>
+                                <p
+                                    class="mt-2 flex items-center gap-1.5 truncate text-xs font-medium text-secondary"
+                                >
+                                    <Leaf
+                                        :size="13"
+                                        class="shrink-0"
+                                        aria-hidden="true"
+                                    />{{ reportSummary(item) }}
                                 </p>
                             </div>
-                            <p
-                                class="mt-2 flex items-center gap-1.5 truncate text-xs font-medium text-secondary"
-                            >
-                                <Leaf
-                                    :size="13"
-                                    class="shrink-0"
-                                    aria-hidden="true"
-                                />{{ reportSummary(item) }}
-                            </p>
-                        </div>
                         </Link>
                         <!-- <div
                             v-if="attentionFor(item).status === 'needs-check'"
@@ -697,7 +708,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
-
 main:has(> [data-aktivitas-list]) {
     scrollbar-width: none;
     -ms-overflow-style: none;

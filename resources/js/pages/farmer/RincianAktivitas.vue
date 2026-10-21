@@ -285,7 +285,6 @@ onMounted(() => void loadActivityDetail());
 </template>
 
 <style>
-
 main:has(> [data-rincian-aktivitas]) {
     scrollbar-width: none;
     -ms-overflow-style: none;
