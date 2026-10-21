@@ -184,6 +184,15 @@ const selectedData = computed<QuarterFinance>(() => {
 
 const selectedPoint = ref<RevenuePoint>(emptyPoint);
 
+const selectedPointTitle = computed(() => {
+    const hasAmount =
+        selectedPoint.value.revenue !== 0 || selectedPoint.value.expense !== 0;
+
+    return hasAmount
+        ? `Pendapatan bersih ${selectedPoint.value.label}`
+        : `Belum ada transaksi ${selectedPoint.value.label}`;
+});
+
 function updateSelectedPoint(): void {
     const points = selectedData.value.points;
     const activePoint = points.find((p) => p.revenue > 0 || p.expense > 0);
@@ -502,7 +511,7 @@ const formatRupiah = (value: number): string =>
                                 id="revenue-chart-title"
                                 class="font-semibold text-foreground"
                             >
-                                Pendapatan bersih {{ selectedPoint.label }}
+                                {{ selectedPointTitle }}
                             </h2>
                             <p class="mt-1 text-xs text-muted-foreground">
                                 {{ selectedData.label }}
