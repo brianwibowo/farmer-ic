@@ -168,7 +168,7 @@ class AiChatTest extends TestCase
             static fn (array $message): string => (string) ($message['content'] ?? ''),
             $gateway->capturedMessages,
         )));
-        $this->assertSame(1024, $gateway->capturedOptions['max_tokens']);
+        $this->assertSame((int) config('ai.models.response_max_tokens'), $gateway->capturedOptions['max_tokens']);
         $assistant = AiConversation::query()->latest('id')->firstOrFail()->messages()->where('role', 'assistant')->latest('id')->firstOrFail();
         $this->assertSame('assistant', $assistant->role);
         $this->assertStringContainsString('Panduan internal kedelai', (string) $assistant->content);
