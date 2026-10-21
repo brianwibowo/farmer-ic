@@ -6,8 +6,24 @@ import { normalizeAiResponse } from '@/services/aiChatService';
 const props = defineProps<{ content: string; metadata?: Record<string, unknown> }>();
 const text = computed(() => normalizeAiResponse(props.content || ''));
 
+const snapshotPoint = computed(() => {
+    const snapshot = props.metadata?.finance_snapshot;
+    const prompt = String(props.metadata?.finance_prompt ?? '').toLowerCase();
+    if (!snapshot || typeof snapshot !== 'object') return null;
+    const quarters = (snapshot as { quarters?: Record<string, { points?: Array<Record<string, unknown>> }> }).quarters ?? {};
+    const points = Object.values(quarters).flatMap((quarter) => quarter.points ?? []);
+    const month = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember']
+        .find((name) => prompt.includes(name));
+    return month ? points.find((item) => String(item.label ?? '').toLowerCase().includes(month)) ?? null : null;
+});
+
 function amount(label: string): string {
     const value = text.value.match(new RegExp(`(?:\\|\\s*${label}\\s*\\||\\*\\*${label}\\*\\*\\s*:)\\s*([^|\\n]+)`, 'i'))?.[1];
+    if (!value && snapshotPoint.value) {
+        const key = label === 'Pemasukan' ? 'revenue' : label === 'Pengeluaran' ? 'expense' : 'net';
+        const fallback = snapshotPoint.value[key];
+        if (typeof fallback === 'number') return `Rp${fallback.toLocaleString('id-ID')}`;
+    }
     return value?.replace(/\*\*/g, '').trim() ?? '—';
 }
 

@@ -142,7 +142,11 @@ class AiChatService
             'role' => 'assistant',
             'status' => 'streaming',
             'content' => '',
-            'metadata' => $this->traceMetadata($decision, $evidence, $traceId, $timings),
+            'metadata' => [
+                ...$this->traceMetadata($decision, $evidence, $traceId, $timings),
+                ...$this->financeMetadata($decision, $evidence),
+                ...($decision->domain === 'finance' ? ['finance_prompt' => $userMessage->content] : []),
+            ],
         ]);
         $startedAt = microtime(true);
         $models = $this->models->candidates(
@@ -347,7 +351,11 @@ class AiChatService
             'role' => 'assistant',
             'status' => 'streaming',
             'content' => '',
-            'metadata' => $this->traceMetadata($decision, $evidence, $traceId, $timings),
+            'metadata' => [
+                ...$this->traceMetadata($decision, $evidence, $traceId, $timings),
+                ...$this->financeMetadata($decision, $evidence),
+                ...($decision?->domain === 'finance' ? ['finance_prompt' => $userMessage->content] : []),
+            ],
         ]);
         $startedAt = microtime(true);
         $models = $this->models->infographicCandidates();
@@ -679,6 +687,22 @@ class AiChatService
             'prompt_version' => config('ai.rag.schema_version', 'grounded-v1'),
             'latency' => $timings,
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $evidence
+     * @return array{finance_snapshot: array<string, mixed>}|array{}
+     */
+    protected function financeMetadata(?AiRouteDecision $decision, array $evidence): array
+    {
+        if ($decision?->domain !== 'finance') {
+            return [];
+        }
+
+        $content = (string) ($evidence[0]['content'] ?? '');
+        $snapshot = json_decode($content, true);
+
+        return is_array($snapshot) ? ['finance_snapshot' => $snapshot] : [];
     }
 
     /**
