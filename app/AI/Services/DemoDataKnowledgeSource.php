@@ -19,9 +19,18 @@ class DemoDataKnowledgeSource
             return [];
         }
         $docs = [];
-        foreach ((array) ($raw['kebun'] ?? []) as $item) {
+        $allKebun = (array) ($raw['kebun'] ?? []);
+        foreach ($allKebun as $item) {
             $id = (string) ($item['id'] ?? uniqid('kebun-', true));
             $docs[] = $this->doc("demo-kebun-{$id}", 'Kebun '.$item['name'], 'garden', $item);
+        }
+        if ($allKebun !== []) {
+            $docs[] = $this->doc(
+                'demo-kebun-summary',
+                'Daftar lengkap semua kebun ('.count($allKebun).' kebun)',
+                'garden',
+                ['total_kebun' => count($allKebun), 'kebun' => $allKebun],
+            );
         }
         foreach ((array) ($raw['kebunInsights'] ?? []) as $id => $item) {
             $docs[] = $this->doc("demo-insight-{$id}", 'Insight kebun '.$id, 'insight', ['id' => $id, ...$item]);

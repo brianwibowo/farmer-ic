@@ -15,6 +15,7 @@ class FinanceSnapshotService
         $document = AiKnowledgeDocument::query()
             ->where('team_id', $team->id)
             ->where('source', 'farmDemoData.json origin/dev')
+            ->where('domain', 'finance')
             ->where('status', AiKnowledgeDocument::STATUS_PUBLISHED)
             ->latest('version')
             ->first();
@@ -44,6 +45,7 @@ class FinanceSnapshotService
             'net' => $net,
             'margin_percent' => $income > 0 ? round($net / $income * 100, 1) : 0,
             'quarters' => $raw['quarters'] ?? [],
+            'transactions' => $raw['transactions'] ?? [],
             'transaction_count' => count((array) ($raw['transactions'] ?? [])),
             'source' => 'farmDemoData.json origin/dev',
             'calculation' => 'laba bersih = pemasukan - pengeluaran; margin = laba bersih / pemasukan',
