@@ -42,7 +42,8 @@ class OpenRouterGateway implements LlmGateway
         foreach (array_reverse($messages) as $message) {
             $role = $message['role'] ?? null;
             $content = $message['content'] ?? '';
-            $text = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE);
+            $encoded = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE);
+            $text = is_string($encoded) ? $encoded : '';
             if ($role === 'user' && $userText === '') {
                 $userText = trim($text);
             } elseif ($role === 'assistant' && $recentContext === '' && trim($text) !== '') {
