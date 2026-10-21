@@ -62,6 +62,49 @@ const monthOptions = [
     { value: 12, label: 'Desember' },
 ];
 const yearOptions = [2026];
+const queryStateApplied = ref(false);
+
+function applyFinanceQuery(nextState: FarmDemoState): void {
+    if (queryStateApplied.value) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const kebunId = params.get('kebun');
+    const period = params.get('period');
+    const year = Number(params.get('year'));
+    const quarter = Number(params.get('quarter'));
+    const commodity = params.get('commodity');
+
+    if (
+        kebunId &&
+        (kebunId === 'all' || nextState.kebun.some((item) => item.id === kebunId))
+    ) {
+        filters.kebunId = kebunId;
+    }
+
+    if (period === 'month' || period === 'quarter' || period === 'year') {
+        filters.period = period;
+    }
+
+    if (Number.isInteger(year) && yearOptions.includes(year)) {
+        filters.year = year;
+    }
+
+    if (Number.isInteger(quarter) && quarter >= 1 && quarter <= 4) {
+        filters.quarter = quarter as 1 | 2 | 3 | 4;
+    }
+
+    if (
+        filters.kebunId === 'all' &&
+        (commodity === 'all' ||
+            commodity === 'Jagung' ||
+            commodity === 'Rumput' ||
+            commodity === 'Kedelai')
+    ) {
+        filters.commodity = commodity as FarmReportCommodity;
+    }
+
+    queryStateApplied.value = true;
+}
 
 watch(
     () => filters.kebunId,
@@ -92,6 +135,7 @@ async function loadReport(): Promise<void> {
 
     try {
         state.value = await loadFarmDemoState();
+        applyFinanceQuery(state.value);
     } catch {
         errorMessage.value = 'Data laporan belum dapat dimuat. Coba lagi.';
     } finally {
