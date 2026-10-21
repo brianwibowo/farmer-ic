@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerBottomNav, {
     type FarmerNavKey,
 } from '@/components/farmer/FarmerBottomNav.vue';
@@ -79,6 +80,13 @@ function select(key: FarmerNavKey): void {
         <section
             class="relative flex h-[min(874px,calc(100dvh-24px))] w-full max-w-[440px] flex-col overflow-hidden rounded-t-[24px] rounded-b-[20px] bg-card text-card-foreground max-[480px]:h-dvh max-[480px]:max-w-none max-[480px]:rounded-none"
         >
+            <div
+                v-if="props.activeKey !== 'ai'"
+                class="shrink-0 bg-card px-4 pt-4 pb-2"
+            >
+                <DashboardHeader />
+            </div>
+
             <main
                 class="min-h-0 flex-1 overscroll-y-contain"
                 :class="
@@ -97,6 +105,15 @@ function select(key: FarmerNavKey): void {
 </template>
 
 <style scoped>
+main {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+main::-webkit-scrollbar {
+    display: none;
+}
+
 [data-farmer-shell] {
     color-scheme: light;
     --background: #f9faf9;

@@ -1,9 +1,10 @@
 export {
+    routeAiPrompt,
     classifyAiPrompt,
     isDashboardDataPrompt,
-    routeAiPrompt,
     shouldRequestInfographic,
-} from '@/services/aiIntentRouter';
+    normalizeAiIntentPrompt,
+} from "@/services/aiIntentRouter";
 export type {
     AiDomain,
     AiIntent,
@@ -11,7 +12,7 @@ export type {
     AiPeriod,
     AiPromptClassification,
     AiPromptIntent,
-} from '@/services/aiIntentRouter';
+} from "@/services/aiIntentRouter";
 
 /** Keep a single user turn bounded before it reaches the model. */
 export const MAX_AI_PROMPT_CHARS = 6000;
@@ -24,12 +25,12 @@ export const MAX_AI_PROMPT_CHARS = 6000;
  */
 export function compactAiPrompt(value: string): string {
     const compact = value
-        .normalize('NFKC')
-        .replace(/\r\n?/g, '\n')
-        .split('\n')
-        .map((line) => line.replace(/[ \t]+/g, ' ').trim())
-        .join('\n')
-        .replace(/\n{3,}/g, '\n\n')
+        .normalize("NFKC")
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map((line) => line.replace(/[ \t]+/g, " ").trim())
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
         .trim();
 
     if (compact.length <= MAX_AI_PROMPT_CHARS) return compact;
@@ -42,21 +43,21 @@ function removeControlChars(value: string): string {
             const code = character.charCodeAt(0);
             return code === 9 || code === 10 || code === 13 || code > 31;
         })
-        .join('');
+        .join("");
 }
 
 /** Remove transport noise while keeping the markdown structure for the safe renderer. */
 export function normalizeAiResponse(value: string): string {
     const normalized = removeControlChars(value)
-        .replace(/^\uFEFF/, '')
-        .replace(/\r\n?/g, '\n')
-        .replace(/^(?:assistant|ai)\s*:\s*/i, '')
-        .replace(/\[DONE\]\s*$/i, '')
-        .replace(/^\s*```(?:markdown|text)?\s*/i, '')
-        .replace(/\s*```\s*$/i, '')
-        .replace(/\\([*_`~>#-])/g, '$1')
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
+        .replace(/^\uFEFF/, "")
+        .replace(/\r\n?/g, "\n")
+        .replace(/^(?:assistant|ai)\s*:\s*/i, "")
+        .replace(/\[DONE\]\s*$/i, "")
+        .replace(/^\s*```(?:markdown|text)?\s*/i, "")
+        .replace(/\s*```\s*$/i, "")
+        .replace(/\\([*_`~>#-])/g, "$1")
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
         .trim();
 
     return softenAiCopy(normalized);
@@ -68,28 +69,30 @@ export function hasUsableAiResponse(value: string): boolean {
     return normalized.length >= 2 && /[\p{L}\p{N}]/u.test(normalized);
 }
 
-/** Keep generated agronomy copy cautious until it is backed by a source. */
+/** Keep generated agronomy copy cautious and remove robotic disclaimer leakages. */
 export function softenAiCopy(value: string): string {
     return value
-        .replace(/\bhasil\s+maksimal\b/gi, 'hasil yang sesuai kondisi')
-        .replace(/\bdosis\s+maksimal\b/gi, 'dosis sesuai label')
-        .replace(/\b(?:paling\s+)?optimal(?:nya)?\b/gi, 'sesuai kondisi')
-        .replace(/\bterbaik\b/gi, 'yang dapat dipertimbangkan')
-        .replace(/\b(?:pasti|dijamin|terjamin)\b/gi, 'berpotensi')
-        .replace(/\bsempurna\b/gi, 'lebih baik');
+        .replace(/\bhasil\s+maksimal\b/gi, "hasil yang sesuai kondisi")
+        .replace(/\bdosis\s+maksimal\b/gi, "dosis sesuai label")
+        .replace(/\b(?:paling\s+)?optimal(?:nya)?\b/gi, "sesuai kondisi")
+        .replace(/\bterbaik\b/gi, "yang dapat dipertimbangkan")
+        .replace(/\b(?:pasti|dijamin|terjamin)\b/gi, "berpotensi")
+        .replace(/\bsempurna\b/gi, "lebih baik")
+        .replace(/\b(?:daftar\s+transaksi|data)\s+yang\s+saya\s+terima\s+terpotong[^\n.]*[.\n]?/gi, "")
+        .replace(/\bkalau\s+Anda\s+kirim\s+screenshot[^\n.]*[.\n]?/gi, "");
 }
 
 /** Convert a model response to plain Indonesian text for speech synthesis. */
 export function toSpeechText(value: string): string {
     return normalizeAiResponse(value)
-        .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-        .replace(/^#{1,6}\s*/gm, '')
-        .replace(/^>\s*/gm, '')
-        .replace(/^\s*[-*+]\s+/gm, '')
-        .replace(/^\s*\d+[.)]\s+/gm, '')
-        .replace(/[*_`~]/g, '')
-        .replace(/\s+/g, ' ')
+        .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/^#{1,6}\s*/gm, "")
+        .replace(/^>\s*/gm, "")
+        .replace(/^\s*[-*+]\s+/gm, "")
+        .replace(/^\s*\d+[.)]\s+/gm, "")
+        .replace(/[*_`~]/g, "")
+        .replace(/\s+/g, " ")
         .trim();
 }
 
@@ -98,9 +101,9 @@ export function estimateTokens(value: string): number {
         // Image URLs are transport metadata, not meaningful model text. They
         // can otherwise inflate the browser-side estimate by hundreds of
         // tokens when an infographic is attached to a response.
-        .replace(/!\[[^\]]*\]\((?:https?:\/\/|\/)[^)]+\)/gi, '[gambar]')
-        .replace(/https?:\/\/\S+/gi, '[tautan]')
-        .replace(/\s+/g, ' ')
+        .replace(/!\[[^\]]*\]\((?:https?:\/\/|\/)[^)]+\)/gi, "[gambar]")
+        .replace(/https?:\/\/\S+/gi, "[tautan]")
+        .replace(/\s+/g, " ")
         .trim();
     if (!text) return 0;
 
@@ -111,5 +114,5 @@ export function estimateTokens(value: string): number {
 }
 
 export function outOfScopeResponse(): string {
-    return 'Topik itu belum tersedia di Asisten Kebun. Saya fokus pada data dan aktivitas yang tersedia di aplikasi, perawatan tanaman, serta infografis pertanian. Coba tanyakan kondisi kebun, aktivitas terakhir, atau minta ringkasan visual.';
+    return "Topik itu belum tersedia di Asisten Kebun. Saya fokus pada data dan aktivitas yang tersedia di aplikasi, perawatan tanaman, serta infografis pertanian. Coba tanyakan kondisi kebun, aktivitas terakhir, atau minta ringkasan visual.";
 }

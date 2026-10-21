@@ -260,7 +260,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     !assistantMessage.content &&
                     !request.serverProgress
                 ) {
-                    assistantMessage.progress = 'Masih memproses…';
+                    assistantMessage.progress = 'Menganalisis data lapangan…';
                 }
             }, 6_000),
             window.setTimeout(() => {
@@ -271,9 +271,9 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     !request.serverProgress
                 ) {
                     assistantMessage.progress =
-                        'Responsnya memerlukan waktu lebih lama…';
+                        'Menyusun kalkulasi & rekomendasi…';
                 }
-            }, 12_000),
+            }, 15_000),
             window.setTimeout(() => {
                 if (
                     isActiveRequest(requestId) &&
@@ -285,6 +285,26 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                         'Model sedang menyusun jawaban berbasis konteks…';
                 }
             }, 20_000),
+            window.setTimeout(() => {
+                if (
+                    isActiveRequest(requestId) &&
+                    assistantMessage.status === 'streaming' &&
+                    !assistantMessage.content
+                ) {
+                    assistantMessage.progress =
+                        'Hampir selesai, memvalidasi respon…';
+                }
+            }, 30_000),
+            window.setTimeout(() => {
+                if (
+                    isActiveRequest(requestId) &&
+                    assistantMessage.status === 'streaming' &&
+                    !assistantMessage.content
+                ) {
+                    assistantMessage.progress =
+                        'Menunggu finalisasi respon dari server…';
+                }
+            }, 45_000),
         ];
         // A slow model can keep the connection open for tens of seconds
         // before its first token. Keep the status moving without claiming a
@@ -318,8 +338,10 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         }, 60_000);
         let reconciliationTimer: number | null = null;
 
-        const reconcilePersistedReply = async (): Promise<void> => {
-            if (!isActiveRequest(requestId)) return;
+        const reconcilePersistedReply = async (
+            ignoreSignal = false,
+        ): Promise<boolean> => {
+            if (!isActiveRequest(requestId)) return false;
             try {
                 let currentId = conversationId.value;
                 // Some reverse proxies buffer the first SSE event. In that
@@ -330,10 +352,12 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                         conversationsEndpoint.value,
                         {
                             headers: headers(),
-                            signal: requestController.signal,
+                            ...(ignoreSignal
+                                ? {}
+                                : { signal: requestController.signal }),
                         },
                     );
-                    if (!conversationsResponse.ok) return;
+                    if (!conversationsResponse.ok) return false;
                     const conversationPayload =
                         (await conversationsResponse.json()) as unknown;
                     const values = Array.isArray(conversationPayload)
@@ -352,12 +376,17 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     currentId = latest?.id ?? null;
                     if (currentId) conversationId.value = currentId;
                 }
-                if (!currentId || !isActiveRequest(requestId)) return;
+                if (!currentId || !isActiveRequest(requestId)) return false;
                 const persistedResponse = await fetch(
                     `${conversationsEndpoint.value}/${encodeURIComponent(currentId)}`,
-                    { headers: headers(), signal: requestController.signal },
+                    {
+                        headers: headers(),
+                        ...(ignoreSignal
+                            ? {}
+                            : { signal: requestController.signal }),
+                    },
                 );
-                if (!persistedResponse.ok) return;
+                if (!persistedResponse.ok) return false;
                 const payload = (await persistedResponse.json()) as Record<
                     string,
                     unknown
@@ -383,17 +412,20 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                             item.role === 'assistant' &&
                             item.content.trim() !== '',
                     );
-                if (!persistedReply || !isActiveRequest(requestId)) return;
+                if (!persistedReply || !isActiveRequest(requestId)) return false;
                 const validation = validatedResponse(persistedReply.content);
-                if (!validation.ok) return;
+                if (!validation.ok) return false;
                 assistantMessage.content = validation.content;
                 assistantMessage.attachments = persistedReply.attachments;
                 assistantMessage.status = 'complete';
                 assistantMessage.progress = undefined;
                 request.reconciled = true;
-                request.controller.abort();
+                if (!ignoreSignal) {
+                    request.controller.abort();
+                }
+                return true;
             } catch {
-                // The primary SSE stream remains the source of truth.
+                return false;
             }
         };
         reconciliationTimer = window.setInterval(
@@ -456,7 +488,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                         ? 'Konteks siap. Menyiapkan infografis…'
                         : 'Konteks siap. Model sedang menyusun jawaban…';
                     assistantMessage.metadata = {
-                        ...(assistantMessage.metadata ?? {}),
+                        ...assistantMessage.metadata,
                         ...(parsed.route ? { route: parsed.route } : {}),
                         retrieval: parsed.retrieval,
                     };
@@ -611,10 +643,19 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 if (isActiveRequest(requestId) && request.reconciled) {
                     assistantMessage.status = 'complete';
                 } else if (isActiveRequest(requestId) && request.didTimeout) {
+                    assistantMessage.progress =
+                        'Menyinkronkan jawaban dari server…';
+                    const recovered = await reconcilePersistedReply(true);
+                    if (recovered) {
+                        assistantMessage.status = 'complete';
+                        assistantMessage.progress = undefined;
+                        return assistantMessage;
+                    }
+
                     assistantMessage.status = 'error';
                     assistantMessage.progress = undefined;
                     assistantMessage.error =
-                        'Jawaban belum selesai setelah 60 detik. Coba lagi dengan pertanyaan yang lebih singkat.';
+                        'Jawaban memerlukan waktu lebih lama dari biasanya. Coba kirim ulang atau segarkan percakapan.';
                     error.value = assistantMessage.error;
                     lastRequestMetrics.value = {
                         latencyMs: Math.round(performance.now() - startedAt),

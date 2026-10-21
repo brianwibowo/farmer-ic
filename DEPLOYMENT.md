@@ -3,7 +3,7 @@
 The production image builds the Vue assets and PHP dependencies in separate
 stages, then runs Laravel from Apache with PHP 8.5. The app binds to
 `127.0.0.1:8080`; an existing reverse proxy can terminate HTTPS for
-`farmer-ic.duckdns.org`. The production Compose file also joins the app to the
+`farmer.icdigital.io`. The production Compose file also joins the app to the
 external `outline_default` network (override with `PROXY_NETWORK`) so a proxy
 running in the Outline Compose project can reach the app at
 `http://farmer-ic-app:80`. SQLite and uploaded files live in named volumes;
@@ -178,7 +178,7 @@ If the existing proxy is `https-portal`, add this route to its `DOMAINS`
 setting and recreate that service:
 
 ```text
-farmer-ic.duckdns.org -> http://farmer-ic-app:80
+farmer.icdigital.io -> http://farmer-ic-app:80
 ```
 
 The proxy and app must share the network named by `PROXY_NETWORK` (the default

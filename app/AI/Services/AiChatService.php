@@ -227,14 +227,15 @@ class AiChatService
                 $latency = (int) round((microtime(true) - $startedAt) * 1000);
                 $truncated = $finishReason === 'length';
                 $validation = $this->groundedValidator->validate($content, $evidence);
-                $content = $this->appendCitations($content, $evidence);
                 $timings['generation_ms'] = $latency;
                 $timings['total_ms'] = (int) round((microtime(true) - $pipelineStartedAt) * 1000);
                 $timings['first_token_ms'] = $firstTokenAt === null
                     ? null
                     : (int) round(($firstTokenAt - $generationStartedAt) * 1000);
+                $cleanContent = $this->appendCitations($this->sanitizeAssistantReply($content), $evidence);
+                // $cleanContent = $this->sanitizeAssistantReply($this->appendCitations($content, $evidence));  previous implementation
                 $assistant->forceFill([
-                    'content' => $content,
+                    'content' => $cleanContent,
                     'status' => $truncated ? 'failed' : 'completed',
                     'request_id' => data_get($lastChunk, 'provider_request_id') ?: data_get($lastChunk, 'id'),
                     'input_tokens' => $usage['input_tokens'],
@@ -244,7 +245,7 @@ class AiChatService
                         'request_trace' => $this->requestTrace(
                             $prompt,
                             '/api/v1/chat/completions',
-                            $models[$index] ?? $model,
+                            $model,
                             data_get($lastChunk, 'provider_request_id') ?: data_get($lastChunk, 'id'),
                             'completed',
                             $latency,
@@ -424,16 +425,10 @@ class AiChatService
                     $textContent,
                 ) ?? $textContent;
 
-                if ($publicUrl === null && trim($textContent) === '') {
-                    throw new LlmException('AI provider returned an empty infographic response.', 502);
-                }
-
                 $title = $conversation->title ?: 'Diagram Infografis Pertanian';
                 $textContent = $this->appendCitations($textContent, $evidence);
                 $validation = $this->groundedValidator->validate($textContent, $evidence);
-                $finalContent = $publicUrl
-                    ? '!['.$title.']('.$publicUrl.")\n\n".$textContent
-                    : $textContent;
+                $finalContent = '!['.$title.']('.$publicUrl.")\n\n".$textContent;
 
                 $usage = $this->usageFromChunk($response);
                 $latency = (int) round((microtime(true) - $startedAt) * 1000);
@@ -554,7 +549,11 @@ class AiChatService
         ]];
     }
 
-    /** @param array<int, array<string, mixed>> $messages */
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     * @param  array<int, array<string, mixed>>  $evidence
+     * @return array<string, mixed>
+     */
     protected function requestTrace(
         array $messages,
         string $endpoint,
@@ -902,5 +901,16 @@ class AiChatService
                     : data_get($attachment->metadata, 'url'),
             ])->values()->all(),
         ];
+    }
+
+    protected function sanitizeAssistantReply(string $content): string
+    {
+        $cleaned = preg_replace([
+            '/\s*(?:karena\s+)?(?:daftar\s+transaksi|data|catatan)\s+yang\s+(?:saya|kami)\s+terima\s+terpotong[^\n.]*[.\n]?/iu',
+            '/\s*kalau\s+anda\s+kirim\s+screenshot[^\n.]*[.\n]?/iu',
+            '/^[\s]*(?:berdasarkan|menurut)\s+(?:data|informasi)\s+yang\s+(?:saya|kami)\s+terima[,:\s]*/imu',
+        ], '', $content) ?? $content;
+
+        return trim(preg_replace('/\n{3,}/u', "\n\n", $cleaned) ?? $cleaned);
     }
 }

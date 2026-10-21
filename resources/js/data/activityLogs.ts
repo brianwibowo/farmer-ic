@@ -1,4 +1,4 @@
-import rawActivityLogs from '@/data/activityLogs.json';
+import farmDemoData from '@/data/farmDemoData.json';
 import type { SeedType } from '@/data/kebun';
 
 export type ActivityType =
@@ -201,7 +201,7 @@ export const activityTypeOptions: Array<{
 ];
 
 export const activityLogSeedData: ActivityLog[] =
-    rawActivityLogs as ActivityLog[];
+    farmDemoData.activityLogs as ActivityLog[];
 
 const INDONESIAN_MONTHS: Record<string, string> = {
     januari: '01',

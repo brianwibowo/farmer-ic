@@ -224,7 +224,7 @@ watch(kebunId, () => void loadDetail());
                 >Kembali ke daftar kebun</Link
             >
         </div>
-        <div v-else class="space-y-6 px-5 pt-8 pb-6">
+        <div v-else class="space-y-6 px-5 pt-4 pb-6">
             <header class="flex items-center gap-3">
                 <Link
                     href="/kebun"

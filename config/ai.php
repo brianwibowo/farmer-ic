@@ -61,7 +61,7 @@ return [
         // AI_RAG_MAX_OUTPUT_TOKENS name as a deployment-friendly alias.
         'response_max_tokens' => (int) env(
             'AI_RESPONSE_MAX_OUTPUT_TOKENS',
-            env('AI_RAG_MAX_OUTPUT_TOKENS', 1024),
+            env('AI_RAG_MAX_OUTPUT_TOKENS', 4096),
         ),
         // OpenRouter only receives this option when explicitly configured;
         // unsupported models therefore retain their provider defaults.
@@ -163,10 +163,10 @@ return [
         'max_history_chars' => (int) env('AI_MAX_HISTORY_CHARS', 18000),
         'max_attachment_prompt_bytes' => (int) env('AI_MAX_ATTACHMENT_PROMPT_BYTES', 4000000),
         'policy_chars' => (int) env('AI_POLICY_PROMPT_CHARS', 8000),
-        'facts_chars' => (int) env('AI_FACTS_PROMPT_CHARS', 8000),
+        'facts_chars' => (int) env('AI_FACTS_PROMPT_CHARS', 24000),
         'adaptive_chars' => (int) env('AI_ADAPTIVE_PROMPT_CHARS', 5000),
         'infographic_policy_chars' => (int) env('AI_INFOGRAPHIC_POLICY_CHARS', 4000),
-        'infographic_facts_chars' => (int) env('AI_INFOGRAPHIC_FACTS_CHARS', 5000),
+        'infographic_facts_chars' => (int) env('AI_INFOGRAPHIC_FACTS_CHARS', 16000),
         'infographic_adaptive_chars' => (int) env('AI_INFOGRAPHIC_ADAPTIVE_CHARS', 3000),
     ],
 

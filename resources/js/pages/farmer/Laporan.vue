@@ -15,6 +15,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { FarmDemoState } from '@/data/farmDemo';
+import ReportPrintDocument from '@/components/farmer/ReportPrintDocument.vue';
 import {
     buildFarmReport,
     loadFarmDemoState,
@@ -100,36 +101,36 @@ async function loadReport(): Promise<void> {
 
 function downloadReport(): void {
     if (!report.value) return;
-
-    const data = report.value;
-    const lines = [
-        `LAPORAN KEBUN · ${data.periodLabel}`,
-        `Cakupan: ${data.scopeLabel}`,
-        `Dibuat: ${data.generatedAt}`,
-        '',
-        'RINGKASAN',
-        `Kebun: ${data.summary.totalKebun}`,
-        `Sehat: ${data.summary.healthy} · Perlu perhatian: ${data.summary.attention} · Kritis: ${data.summary.critical}`,
-        `Pendapatan bersih: ${formatMoney(data.finance.net)}`,
-        `Total panen: ${formatNumber(data.harvest.totalWeight)} Ton`,
-        `Panen terdekat: ${data.harvest.nextKebun} · ${data.harvest.nextDate}`,
-        `Mulai tanam: ${data.growthTimeline.plantedAt}`,
-        `Update fase terakhir: ${data.growthTimeline.lastUpdatedAt}`,
-        `Proyeksi panen: ${data.growthTimeline.harvestAt}`,
-        '',
-        'ANALISA AI',
-        `Keuangan: ${data.ai.finance}`,
-        `Kebun: ${data.ai.farm}`,
-    ];
-    const blob = new Blob([lines.join('\n')], {
-        type: 'text/plain;charset=utf-8',
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `laporan-kebun-${new Date().toISOString().slice(0, 10)}.txt`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    window.print();
+    // const data = report.value;
+    // const lines = [
+    //     `LAPORAN KEBUN · ${data.periodLabel}`,
+    //     `Cakupan: ${data.scopeLabel}`,
+    //     `Dibuat: ${data.generatedAt}`,
+    //     '',
+    //     'RINGKASAN',
+    //     `Kebun: ${data.summary.totalKebun}`,
+    //     `Sehat: ${data.summary.healthy} · Perlu perhatian: ${data.summary.attention} · Kritis: ${data.summary.critical}`,
+    //     `Pendapatan bersih: ${formatMoney(data.finance.net)}`,
+    //     `Total panen: ${formatNumber(data.harvest.totalWeight)} Ton`,
+    //     `Panen terdekat: ${data.harvest.nextKebun} · ${data.harvest.nextDate}`,
+    //     `Mulai tanam: ${data.growthTimeline.plantedAt}`,
+    //     `Update fase terakhir: ${data.growthTimeline.lastUpdatedAt}`,
+    //     `Proyeksi panen: ${data.growthTimeline.harvestAt}`,
+    //     '',
+    //     'ANALISA AI',
+    //     `Keuangan: ${data.ai.finance}`,
+    //     `Kebun: ${data.ai.farm}`,
+    // ];
+    // const blob = new Blob([lines.join('\n')], {
+    //     type: 'text/plain;charset=utf-8',
+    // });
+    // const url = URL.createObjectURL(blob);
+    // const anchor = document.createElement('a');
+    // anchor.href = url;
+    // anchor.download = `laporan-kebun-${new Date().toISOString().slice(0, 10)}.txt`;
+    // anchor.click();
+    // URL.revokeObjectURL(url);
 }
 
 async function resetDemoData(): Promise<void> {
@@ -151,7 +152,7 @@ onMounted(() => void loadReport());
     <Head title="Laporan" />
 
     <FarmerMobileShell active-key="report">
-        <div data-report-page class="space-y-5 px-5 pt-7 pb-6">
+        <div data-report-page class="space-y-5 px-5 pt-4 pb-6">
             <header class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-sm font-medium text-secondary">
@@ -466,12 +467,19 @@ onMounted(() => void loadReport());
                 >
                     <div class="flex items-center justify-between gap-2">
                         <div>
-                            <h2
-                                id="finance-report-title"
-                                class="text-sm font-semibold"
-                            >
-                                Keuangan
-                            </h2>
+                            <div class="flex items-center gap-2">
+                                <h2
+                                    id="finance-report-title"
+                                    class="text-sm font-semibold"
+                                >
+                                    Keuangan
+                                </h2>
+                                <span
+                                    class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-secondary"
+                                >
+                                    {{ report.finance.farms.length }} kebun
+                                </span>
+                            </div>
                             <p class="mt-1 text-[11px] text-muted-foreground">
                                 Pendapatan vs pengeluaran
                             </p>
@@ -491,7 +499,13 @@ onMounted(() => void loadReport());
                             >
                         </div>
                     </div>
-                    <div class="mt-4 space-y-3">
+                    <div
+                        v-if="report.finance.farms.length === 0"
+                        class="mt-4 rounded-xl bg-muted p-3 text-center text-xs text-muted-foreground"
+                    >
+                        Tidak ada data kebun pada filter ini.
+                    </div>
+                    <div v-else class="mt-4 space-y-3">
                         <article
                             v-for="(farm, index) in report.finance.farms"
                             :key="farm.id"
@@ -499,7 +513,7 @@ onMounted(() => void loadReport());
                         >
                             <div class="min-w-0">
                                 <p class="truncate text-xs font-semibold">
-                                    {{ index + 1 }}. {{ farm.name }}
+                                    {{ farm.name }}
                                 </p>
                                 <p
                                     class="truncate text-[10px] text-muted-foreground"
@@ -568,6 +582,13 @@ onMounted(() => void loadReport());
                         {{ report.growthTimeline.lastUpdatedAt }} · Tanam
                         {{ report.growthTimeline.plantedAt }} · Proyeksi panen
                         {{ report.growthTimeline.harvestAt }}
+                    </p>
+                    <p class="mt-1 text-[11px] text-muted-foreground">
+                        Histori pertumbuhan tersedia untuk
+                        {{ report.growthTimeline.observedKebunCount }} dari
+                        {{ report.summary.totalKebun }} kebun ·
+                        {{ report.growthTimeline.observedUpdateCount }} update
+                        pada periode ini.
                     </p>
                     <div class="relative mt-5 px-2">
                         <div
@@ -723,6 +744,10 @@ onMounted(() => void loadReport());
                     <Download :size="17" aria-hidden="true" />
                     Unduh laporan
                 </button>
+                <ReportPrintDocument
+                    :report="report"
+                    :format-money="formatMoney"
+                />
             </template>
         </div>
     </FarmerMobileShell>
@@ -736,5 +761,42 @@ main:has(> [data-report-page]) {
 
 main:has(> [data-report-page])::-webkit-scrollbar {
     display: none;
+}
+@media print {
+    /* Tampilkan hanya dokumen export dan lepaskan batas container mobile. */
+    body * {
+        visibility: hidden;
+    }
+    /* The app shell is hidden for printing, but visibility:hidden would still
+       reserve its full layout height and create a blank first page. */
+    body:has(.report-print-document) > #app {
+        display: none !important;
+    }
+    .report-print-document,
+    .report-print-document * {
+        visibility: visible;
+    }
+    .report-print-document {
+        position: static !important;
+        width: auto !important;
+        max-width: none !important;
+        margin: 0 !important;
+        overflow: visible !important;
+        background: white !important;
+    }
+    html,
+    body,
+    body:has(.report-print-document) #app,
+    body:has(.report-print-document) main,
+    body:has(.report-print-document) main > section {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    @page {
+        size: A4 portrait;
+        margin: 14mm;
+    }
 }
 </style>

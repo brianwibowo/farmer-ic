@@ -12,9 +12,9 @@ import {
 import type { ActivityLog } from '@/data/activityLogs';
 import type { FinanceTransaction } from '@/data/farmerFinance';
 
-// Bump the demo snapshot version whenever the seed history changes so an
-// existing browser session receives the complete mock timeline.
-const storageKey = 'farm_state_v3';
+// Bump the demo snapshot version whenever the unified JSON seed changes so an
+// existing browser session receives the latest demo data.
+const storageKey = 'farm_state_v16';
 
 export type DashboardFinancialSummary = {
     income: number;
@@ -192,18 +192,22 @@ export async function getFarmCommoditySummaries(): Promise<CommoditySummary[]> {
         },
     );
 
+    const totalPlantedArea = state.kebun.reduce(
+        (total, item) => total + item.usedHectare,
+        0,
+    );
+    const totalFarmArea = state.kebun.reduce(
+        (total, item) => total + item.availableHectare,
+        0,
+    );
+
     const overall: CommoditySummary = {
         ...overallFarmSummary,
         statistics: [
             { label: 'Jumlah', value: `${state.kebun.length} Kebun` },
             {
-                label: 'Luas total',
-                value: formatHectare(
-                    state.kebun.reduce(
-                        (total, item) => total + item.availableHectare,
-                        0,
-                    ),
-                ),
+                label: 'Luas Total',
+                value: `${formatHectare(totalPlantedArea)} / ${formatHectare(totalFarmArea)}`,
             },
             {
                 label: 'Total tanam',
@@ -289,6 +293,8 @@ export type FarmReport = {
         plantedAt: string;
         harvestAt: string;
         lastUpdatedAt: string;
+        observedKebunCount: number;
+        observedUpdateCount: number;
     };
     growthStages: Array<{
         label: string;
@@ -672,6 +678,8 @@ export function buildFarmReport(
             plantedAt: earliestPlanting ?? '-',
             harvestAt: harvestItems[0]?.date ?? '-',
             lastUpdatedAt: growthUpdates[0]?.timestamp ?? '-',
+            observedKebunCount: growthSnapshots.length,
+            observedUpdateCount: growthUpdates.length,
         },
         growthStages,
         risks,
