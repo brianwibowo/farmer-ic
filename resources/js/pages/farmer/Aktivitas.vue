@@ -17,12 +17,13 @@ import {
     X,
     ArrowLeft,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import {
+    activityTypeOptions,
     collectActivityMonths,
     getActivityAttention,
     getActivitySearchText,
@@ -38,17 +39,46 @@ import { listActivityLogs } from '@/services/activityLogService';
 import { listKebun } from '@/services/kebunService';
 
 const page = usePage();
+const initialParams = new URL(page.url, 'http://localhost').searchParams;
+
+function initialType(value: string | null): '' | 'all' | ActivityType {
+    if (value === 'all') return 'all';
+
+    return activityTypeOptions.some((option) => option.value === value)
+        ? (value as ActivityType)
+        : '';
+}
+
+function initialStatus(value: string | null): ActivityStatusFilter {
+    return value === 'needs-check' || value === 'normal' ? value : 'all';
+}
+
+function initialTime(value: string | null): ActivityTimeFilter {
+    if (value === 'week' || value === 'month') return value;
+    if (value && /^month:\d{4}-\d{2}$/.test(value)) {
+        return value as ActivityTimeFilter;
+    }
+
+    return 'all';
+}
+
 const activities = ref<ActivityLog[]>([]);
 const kebunList = ref<Kebun[]>([]);
-const searchQuery = ref('');
-const selectedType = ref<'' | 'all' | ActivityType>('');
-const selectedStatus = ref<ActivityStatusFilter>('all');
+const searchQuery = ref(initialParams.get('q') ?? '');
+const selectedType = ref<'' | 'all' | ActivityType>(
+    initialType(initialParams.get('type')),
+);
+const selectedStatus = ref<ActivityStatusFilter>(
+    initialStatus(initialParams.get('status')),
+);
 const statusOptions: Array<{ value: ActivityStatusFilter; label: string }> = [
     { value: 'all', label: 'Semua' },
     { value: 'needs-check', label: 'Perlu cek' },
     { value: 'normal', label: 'Normal' },
 ];
-const selectedTimeFilter = ref<ActivityTimeFilter>('all');
+const selectedTimeFilter = ref<ActivityTimeFilter>(
+    initialTime(initialParams.get('time')),
+);
 // NOTE (merge resolution 2026-10-19): the date-range inputs and sort toggle were
 // removed from the UI (replaced by ActivityPeriodFilter dropdown + newest-first sorting
 // in listActivityLogs()). Kept commented per review; delete once confirmed unused.
@@ -243,6 +273,54 @@ function kebunActivitiesHrefFor(item: ActivityLog): string {
     return `/kebun/aktivitas?kebun=${encodeURIComponent(item.kebunId)}`;
 }
 
+function buildListUrl(): string {
+    const params = new URLSearchParams();
+
+    if (kebunParam.value) params.set('kebun', kebunParam.value);
+    if (searchQuery.value.trim()) params.set('q', searchQuery.value.trim());
+    if (selectedType.value && selectedType.value !== 'all') {
+        params.set('type', selectedType.value);
+    }
+    if (selectedStatus.value !== 'all') {
+        params.set('status', selectedStatus.value);
+    }
+    if (selectedTimeFilter.value !== 'all') {
+        params.set('time', selectedTimeFilter.value);
+    }
+
+    const query = params.toString();
+    return `/aktivitas${query ? `?${query}` : ''}`;
+}
+
+function syncFiltersToUrl(): void {
+    const url = buildListUrl();
+    const state = window.history.state;
+
+    // Keep Inertia's history state in sync with the client-side URL update so
+    // browser back/forward restores the filtered list, not the bare route.
+    window.history.replaceState(
+        state && typeof state === 'object' ? { ...state, url } : state,
+        '',
+        url,
+    );
+}
+
+function detailHrefFor(item: ActivityLog): string {
+    const params = new URLSearchParams({
+        id: item.id,
+        back: buildListUrl(),
+    });
+
+    if (kebunParam.value) params.set('kebun', kebunParam.value);
+
+    return `/rincian-aktivitas?${params.toString()}`;
+}
+
+watch(
+    [searchQuery, selectedType, selectedStatus, selectedTimeFilter],
+    syncFiltersToUrl,
+);
+
 async function loadActivities(): Promise<void> {
     isLoading.value = true;
     errorMessage.value = '';
@@ -287,6 +365,7 @@ function scrollToTop(): void {
 }
 
 onMounted(() => {
+    syncFiltersToUrl();
     void loadActivities();
 
     // The page scrolls inside FarmerMobileShell's <main>, not the window.
@@ -569,11 +648,7 @@ onBeforeUnmount(() => {
                         class="overflow-hidden rounded-2xl border border-border bg-card"
                     >
                         <Link
-                            :href="
-                                kebunParam
-                                    ? `/rincian-aktivitas?id=${item.id}&kebun=${encodeURIComponent(kebunParam)}`
-                                    : `/rincian-aktivitas?id=${item.id}`
-                            "
+                            :href="detailHrefFor(item)"
                             class="group flex gap-3 p-3 transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                             <div
