@@ -54,7 +54,7 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 # The upstream archive omits the liblzf submodule required by package.xml.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl git \
-    && git clone --depth 1 --single-branch --branch 6.1.0 --recurse-submodules \
+    && git clone --depth 1 --single-branch --branch 6.3.0 --recurse-submodules \
         https://github.com/phpredis/phpredis.git /tmp/phpredis \
     && install-php-extensions \
         bcmath \
