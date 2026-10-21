@@ -1,6 +1,7 @@
 import farmDemoData from '@/data/farmDemoData.json';
 
 export type FinanceQuarter = 'Q1' | 'Q2' | 'Q3' | 'Q4';
+export type FinancePeriod = FinanceQuarter | 'YTD';
 
 export type RevenuePoint = {
     label: string;
@@ -34,6 +35,8 @@ export type FinanceTransaction = {
     date: TransactionDate;
     amount: number;
     type: 'income' | 'expense';
+    isProjected?: boolean;
+    kebunId?: string;
 };
 
 export type FarmerFinance = {
