@@ -12,6 +12,8 @@ import {
     Wheat,
 } from '@lucide/vue';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { FarmDemoState } from '@/data/farmDemo';
@@ -27,6 +29,7 @@ const state = ref<FarmDemoState>();
 const isLoading = ref(true);
 const errorMessage = ref('');
 const statusMessage = ref('');
+const isExporting = ref(false);
 const filters = reactive<{
     period: FarmReportPeriod;
     month: number;
@@ -143,38 +146,53 @@ async function loadReport(): Promise<void> {
     }
 }
 
-function downloadReport(): void {
-    if (!report.value) return;
-    window.print();
-    // const data = report.value;
-    // const lines = [
-    //     `LAPORAN KEBUN · ${data.periodLabel}`,
-    //     `Cakupan: ${data.scopeLabel}`,
-    //     `Dibuat: ${data.generatedAt}`,
-    //     '',
-    //     'RINGKASAN',
-    //     `Kebun: ${data.summary.totalKebun}`,
-    //     `Sehat: ${data.summary.healthy} · Perlu perhatian: ${data.summary.attention} · Kritis: ${data.summary.critical}`,
-    //     `Pendapatan bersih: ${formatMoney(data.finance.net)}`,
-    //     `Total panen: ${formatNumber(data.harvest.totalWeight)} Ton`,
-    //     `Panen terdekat: ${data.harvest.nextKebun} · ${data.harvest.nextDate}`,
-    //     `Mulai tanam: ${data.growthTimeline.plantedAt}`,
-    //     `Update fase terakhir: ${data.growthTimeline.lastUpdatedAt}`,
-    //     `Proyeksi panen: ${data.growthTimeline.harvestAt}`,
-    //     '',
-    //     'ANALISA AI',
-    //     `Keuangan: ${data.ai.finance}`,
-    //     `Kebun: ${data.ai.farm}`,
-    // ];
-    // const blob = new Blob([lines.join('\n')], {
-    //     type: 'text/plain;charset=utf-8',
-    // });
-    // const url = URL.createObjectURL(blob);
-    // const anchor = document.createElement('a');
-    // anchor.href = url;
-    // anchor.download = `laporan-kebun-${new Date().toISOString().slice(0, 10)}.txt`;
-    // anchor.click();
-    // URL.revokeObjectURL(url);
+async function downloadReport(): Promise<void> {
+    const data = report.value;
+    if (!data || isExporting.value) return;
+    isExporting.value = true;
+    errorMessage.value = '';
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    try {
+        const element = document.querySelector<HTMLElement>('.report-print-document.export-mode');
+        if (!element) throw new Error('Template PDF belum siap.');
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const margin = 14;
+        const pageWidth = 210 - margin * 2;
+        const pageHeight = 297 - margin * 2;
+        let cursorY = margin;
+        let pageNumber = 0;
+        const blocks = Array.from(element.children) as HTMLElement[];
+
+        for (const block of blocks) {
+            const canvas = await html2canvas(block, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+            });
+            const imageHeight = (canvas.height * pageWidth) / canvas.width;
+            const fitsOnCurrentPage = cursorY + imageHeight <= 297 - margin;
+            if (!fitsOnCurrentPage && cursorY > margin) {
+                pdf.addPage();
+                pageNumber += 1;
+                cursorY = margin;
+            }
+
+            const availableHeight = 297 - margin - cursorY;
+            const scaleDown = imageHeight > availableHeight ? availableHeight / imageHeight : 1;
+            const renderWidth = pageWidth * scaleDown;
+            const renderHeight = imageHeight * scaleDown;
+            const renderX = margin + (pageWidth - renderWidth) / 2;
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', renderX, cursorY, renderWidth, renderHeight);
+            cursorY += renderHeight + 6;
+        }
+        if (pageNumber === 0 && cursorY === margin) throw new Error('Laporan kosong.');
+        pdf.save(`laporan-kebun-${new Date().toISOString().slice(0, 10)}.pdf`);
+        statusMessage.value = 'Laporan PDF berhasil diunduh.';
+    } catch {
+        errorMessage.value = 'PDF belum dapat dibuat. Silakan coba lagi.';
+    } finally {
+        isExporting.value = false;
+    }
 }
 
 async function resetDemoData(): Promise<void> {
@@ -783,14 +801,16 @@ onMounted(() => void loadReport());
                 <button
                     type="button"
                     class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    @click="downloadReport"
+                    :disabled="isExporting"
+                    @click="void downloadReport()"
                 >
                     <Download :size="17" aria-hidden="true" />
-                    Unduh laporan
+                    {{ isExporting ? 'Menyiapkan PDF...' : 'Unduh laporan' }}
                 </button>
                 <ReportPrintDocument
                     :report="report"
                     :format-money="formatMoney"
+                    export-mode
                 />
             </template>
         </div>
@@ -805,42 +825,5 @@ main:has(> [data-report-page]) {
 
 main:has(> [data-report-page])::-webkit-scrollbar {
     display: none;
-}
-@media print {
-    /* Tampilkan hanya dokumen export dan lepaskan batas container mobile. */
-    body * {
-        visibility: hidden;
-    }
-    /* The app shell is hidden for printing, but visibility:hidden would still
-       reserve its full layout height and create a blank first page. */
-    body:has(.report-print-document) > #app {
-        display: none !important;
-    }
-    .report-print-document,
-    .report-print-document * {
-        visibility: visible;
-    }
-    .report-print-document {
-        position: static !important;
-        width: auto !important;
-        max-width: none !important;
-        margin: 0 !important;
-        overflow: visible !important;
-        background: white !important;
-    }
-    html,
-    body,
-    body:has(.report-print-document) #app,
-    body:has(.report-print-document) main,
-    body:has(.report-print-document) main > section {
-        height: auto !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        overflow: visible !important;
-    }
-    @page {
-        size: A4 portrait;
-        margin: 14mm;
-    }
 }
 </style>
