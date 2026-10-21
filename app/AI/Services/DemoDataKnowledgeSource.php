@@ -63,7 +63,10 @@ class DemoDataKnowledgeSource
         return $count;
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * @param array<string, mixed> $data
+     * @return array{id: string, title: string, domain: string, content: string}
+     */
     private function doc(string $id, string $title, string $domain, array $data): array
     {
         return ['id' => $id, 'title' => $title, 'domain' => $domain, 'content' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)];
