@@ -3,6 +3,7 @@
 namespace App\AI\Services;
 
 use App\AI\Contracts\VectorStore;
+use App\AI\Contracts\VectorStoreFilterLifecycle;
 use App\AI\Contracts\VectorStoreLifecycle;
 use App\AI\Exceptions\VectorStoreException;
 use Illuminate\Http\Client\ConnectionException;
@@ -10,7 +11,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
-class QdrantClient implements VectorStore, VectorStoreLifecycle
+class QdrantClient implements VectorStore, VectorStoreFilterLifecycle, VectorStoreLifecycle
 {
     public function ensureCollection(int $dimensions): void
     {
@@ -66,9 +67,25 @@ class QdrantClient implements VectorStore, VectorStoreLifecycle
             return;
         }
 
+        $this->deleteSelection(['points' => $ids]);
+    }
+
+    /** @param array<string, mixed> $filter */
+    public function deleteByFilter(array $filter): void
+    {
+        if ($filter === []) {
+            return;
+        }
+
+        $this->deleteSelection(['filter' => $filter]);
+    }
+
+    /** @param array<string, mixed> $selection */
+    private function deleteSelection(array $selection): void
+    {
         $response = $this->send(fn (): Response => $this->request()->post(
             '/collections/'.rawurlencode($this->collection()).'/points/delete?wait=true',
-            ['points' => $ids],
+            $selection,
         ));
 
         if ($response->failed()) {

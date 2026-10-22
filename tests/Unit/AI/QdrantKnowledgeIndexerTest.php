@@ -4,6 +4,7 @@ namespace Tests\Unit\AI;
 
 use App\AI\Contracts\EmbeddingGateway;
 use App\AI\Contracts\VectorStore;
+use App\AI\Contracts\VectorStoreFilterLifecycle;
 use App\AI\Contracts\VectorStoreLifecycle;
 use App\AI\Services\IndexManifestStore;
 use App\AI\Services\KnowledgeChunker;
@@ -170,5 +171,91 @@ class QdrantKnowledgeIndexerTest extends TestCase
         $this->assertGreaterThan(0, $embedding->calls);
         $this->assertGreaterThan(0, $store->upserts);
         $this->assertTrue($indexer->status($team)['indexed']);
+    }
+
+    public function test_it_reconciles_stale_points_without_a_manifest(): void
+    {
+        config([
+            'ai.embeddings.dimensions' => 3,
+            'ai.embeddings.batch_size' => 32,
+            'ai.embeddings.model' => 'fake-embedding',
+            'ai.rag.manifest_path' => $this->manifestPath,
+        ]);
+        $embedding = new class implements EmbeddingGateway
+        {
+            public function embed(array $inputs): array
+            {
+                return [
+                    'vectors' => array_fill(0, count($inputs), [0.1, 0.2, 0.3]),
+                    'usage' => ['total_tokens' => count($inputs)],
+                    'model' => 'fake-embedding',
+                ];
+            }
+        };
+        $store = new class implements VectorStore, VectorStoreFilterLifecycle, VectorStoreLifecycle
+        {
+            /** @var array<string, mixed>|null */
+            public ?array $deletedFilter = null;
+
+            public int $counted = 4;
+
+            public function ensureCollection(int $dimensions): void {}
+
+            public function upsert(array $points): void {}
+
+            public function query(array $vector, int $limit, array $filter = []): array
+            {
+                return [];
+            }
+
+            public function deletePoints(array $ids): void {}
+
+            public function deleteByFilter(array $filter): void
+            {
+                $this->deletedFilter = $filter;
+            }
+
+            public function health(): array
+            {
+                return ['ok' => true, 'status' => 200];
+            }
+
+            public function collectionInfo(): array
+            {
+                return [];
+            }
+
+            public function count(array $filter = []): int
+            {
+                return $this->counted;
+            }
+        };
+        $team = Team::factory()->create();
+        $knowledge = new class extends KnowledgeService
+        {
+            public function retrievalDocuments(?Team $team = null): array
+            {
+                return [[
+                    'id' => 'application-document-1',
+                    'title' => 'Panduan irigasi',
+                    'content' => 'Siram pagi hari.',
+                    'source' => 'Manual',
+                    'version' => 1,
+                ]];
+            }
+        };
+
+        $summary = (new QdrantKnowledgeIndexer(
+            $knowledge,
+            new KnowledgeChunker,
+            $embedding,
+            $store,
+        ))->indexTeam($team);
+
+        $this->assertSame(4, $summary['removed']);
+        $this->assertSame($team->id, data_get($store->deletedFilter, 'must.0.match.value'));
+        $this->assertSame('published', data_get($store->deletedFilter, 'must.1.match.value'));
+        $this->assertSame('chunk_id', data_get($store->deletedFilter, 'must_not.0.key'));
+        $this->assertNotEmpty(data_get($store->deletedFilter, 'must_not.0.match.any'));
     }
 }

@@ -33,6 +33,14 @@ class AiIntentRouterTest extends TestCase
         $this->assertSame('current', $decision->period);
     }
 
+    public function test_english_finance_month_lookup_keeps_the_finance_domain(): void
+    {
+        $decision = $this->router->decide('finance report April 2026');
+
+        $this->assertSame('finance', $decision->domain);
+        $this->assertSame('historical', $decision->period);
+    }
+
     public function test_agronomy_guidance_is_eligible_for_retrieval(): void
     {
         $decision = $this->router->decide('bagaimana cara menanam kedelai');

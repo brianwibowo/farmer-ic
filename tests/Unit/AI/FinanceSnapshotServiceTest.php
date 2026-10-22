@@ -91,4 +91,40 @@ class FinanceSnapshotServiceTest extends TestCase
         $this->assertSame(170000000, $snapshot['income']);
         $this->assertSame(60000000, $snapshot['expense']);
     }
+
+    public function test_image_period_rejects_missing_year_and_returns_verified_month_values(): void
+    {
+        $service = new FinanceSnapshotService;
+        $team = Team::factory()->make(['id' => 1]);
+
+        $unavailable = $service->imagePeriod($team, 'buatkan gambar keuangan Januari 2025');
+        $this->assertTrue($unavailable['requested']);
+        $this->assertFalse($unavailable['available']);
+        $this->assertSame('Januari', $unavailable['month_label']);
+        $this->assertSame(2025, $unavailable['year']);
+
+        $available = $service->imagePeriod($team, 'buatkan gambar keuangan April 2026');
+        $this->assertTrue($available['available']);
+        $this->assertSame('April', $available['month_label']);
+        $this->assertSame(11000000, $available['income']);
+        $this->assertSame(4000000, $available['expense']);
+        $this->assertSame(7000000, $available['net']);
+        $this->assertStringContainsString('pemasukan Rp11.000.000', $service->imagePromptContext($available));
+        $this->assertStringContainsString('pengeluaran Rp4.000.000', $service->imagePromptContext($available));
+        $this->assertStringContainsString('laba bersih Rp7.000.000', $service->imagePromptContext($available));
+    }
+
+    public function test_period_for_prompt_uses_canonical_quarter_totals(): void
+    {
+        $period = (new FinanceSnapshotService)->periodForPrompt(
+            Team::factory()->make(['id' => 1]),
+            'laporkan keuangan Q2 2026',
+        );
+
+        $this->assertTrue($period['available']);
+        $this->assertSame('Q2', $period['month']);
+        $this->assertSame(38_000_000, $period['income']);
+        $this->assertSame(14_000_000, $period['expense']);
+        $this->assertSame(24_000_000, $period['net']);
+    }
 }

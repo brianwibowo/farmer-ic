@@ -3,6 +3,7 @@
 namespace Tests\Feature\AI;
 
 use App\AI\Contracts\EmbeddingGateway;
+use App\AI\Contracts\KnowledgeRetriever;
 use App\AI\Contracts\LlmGateway;
 use App\AI\Exceptions\EmbeddingException;
 use App\AI\Exceptions\LlmException;
@@ -13,6 +14,7 @@ use App\Models\AiAttachment;
 use App\Models\AiConversation;
 use App\Models\AiKnowledgeDocument;
 use App\Models\AiMessage;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -179,6 +181,9 @@ class AiChatTest extends TestCase
             'ai_message_id' => $assistant->id,
         ]);
 
+        $clientPayload = $this->app->make(AiChatService::class)->messagePayload($assistant->fresh('attachments'));
+        $this->assertArrayNotHasKey('request_trace', (array) ($clientPayload['metadata'] ?? []));
+
         $this->assertGreaterThan(0, $document->id);
     }
 
@@ -210,6 +215,49 @@ class AiChatTest extends TestCase
         $this->assertStringContainsString('170.000.000', $stream);
         $this->assertStringContainsString('Sumber:', $stream);
         $this->assertStringContainsString('finance-demo-snapshot', $stream);
+    }
+
+    public function test_finance_response_reconciles_wrong_provider_numbers_before_streaming(): void
+    {
+        $this->app->instance(LlmGateway::class, new class implements LlmGateway
+        {
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                return [];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield [
+                    'id' => 'finance-wrong-values',
+                    'choices' => [[
+                        'delta' => [
+                            'content' => 'Pemasukan Rp99.000.000, pengeluaran Rp1.000.000, laba bersih Rp98.000.000.',
+                        ],
+                    ]],
+                ];
+            }
+        });
+
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->post(
+            route('ai.messages.store', $user->currentTeam->slug),
+            ['message' => 'laporkan keuangan April 2026'],
+            ['Accept' => 'text/event-stream'],
+        );
+
+        $response->assertOk();
+        $stream = $response->streamedContent();
+        $this->assertStringNotContainsString('99.000.000', $stream);
+        $this->assertStringNotContainsString('98.000.000', $stream);
+        $this->assertStringContainsString('11.000.000', $stream);
+        $this->assertStringContainsString('4.000.000', $stream);
+        $this->assertStringContainsString('7.000.000', $stream);
+
+        $assistant = AiMessage::query()->where('role', 'assistant')->latest('id')->firstOrFail();
+        $this->assertStringNotContainsString('99.000.000', (string) $assistant->content);
+        $this->assertTrue((bool) data_get($assistant->metadata, 'finance_reconciled'));
+        $this->assertContains('finance_income_mismatch', (array) data_get($assistant->metadata, 'numeric.issues'));
     }
 
     public function test_vector_retrieval_failure_falls_back_to_in_memory_without_failing_chat(): void
@@ -253,6 +301,42 @@ class AiChatTest extends TestCase
         $this->assertStringContainsString('Jawaban berbasis panduan.', $stream);
         $this->assertStringContainsString('Sumber:', $stream);
         $this->assertStringContainsString('in-memory', $stream);
+    }
+
+    public function test_empty_vector_retrieval_falls_back_to_in_memory_without_dropping_evidence(): void
+    {
+        config(['ai.rag.vector_enabled' => true]);
+        $this->app->instance(KnowledgeRetriever::class, new class implements KnowledgeRetriever
+        {
+            public function retrieve(string $query, Team $team, int $limit = 4): array
+            {
+                return [];
+            }
+        });
+        $this->app->instance(LlmGateway::class, new class implements LlmGateway
+        {
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                return [];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield ['id' => 'empty-vector-fallback', 'choices' => [['delta' => ['content' => 'Gunakan panduan sumber [S1].']]]];
+            }
+        });
+
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->post(
+            route('ai.messages.store', $user->currentTeam->slug),
+            ['message' => 'bagaimana cara menanam kedelai'],
+            ['Accept' => 'text/event-stream'],
+        );
+
+        $response->assertOk();
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('Menyusun jawaban dari ', $stream);
+        $this->assertStringContainsString('Sumber:', $stream);
     }
 
     public function test_strict_grounding_abstains_when_provider_omits_citation(): void
@@ -504,6 +588,97 @@ class AiChatTest extends TestCase
         $assistant = AiMessage::query()->where('role', 'assistant')->latest('id')->firstOrFail();
         $this->assertSame('generated', data_get($assistant->metadata, 'image_generation.status'));
         $this->assertTrue((bool) data_get($assistant->metadata, 'has_image'));
+    }
+
+    public function test_finance_infographic_rejects_a_period_outside_the_demo_data(): void
+    {
+        Storage::fake('public');
+        $gateway = new class implements LlmGateway
+        {
+            public int $completeCalls = 0;
+
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                $this->completeCalls++;
+
+                return [];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield [];
+            }
+        };
+        $this->app->instance(LlmGateway::class, $gateway);
+
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->post(
+            route('ai.messages.store', $user->currentTeam->slug),
+            ['message' => 'Buatkan gambar keuangan Januari 2025'],
+            ['Accept' => 'text/event-stream'],
+        );
+
+        $response->assertOk();
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('Data keuangan untuk Januari 2025 tidak tersedia', $stream);
+        $this->assertStringContainsString('Saya tidak membuat gambar', $stream);
+        $this->assertSame(0, $gateway->completeCalls);
+        $this->assertSame(0, AiAttachment::query()->count());
+    }
+
+    public function test_finance_infographic_receives_the_selected_month_values_in_the_image_prompt(): void
+    {
+        Storage::fake('public');
+        $gateway = new class implements LlmGateway
+        {
+            /** @var array<string, mixed> */
+            public array $capturedOptions = [];
+
+            public int $completeCalls = 0;
+
+            public function complete(array $messages, string $model, array $options = []): array
+            {
+                $this->completeCalls++;
+                $this->capturedOptions = $options;
+                $fakePng = base64_encode('fake-png-data');
+
+                return [
+                    'id' => 'finance-infographic-req',
+                    'choices' => [[
+                        'message' => [
+                            'content' => 'Infografis keuangan April 2026.',
+                            'images' => [[
+                                'type' => 'image_url',
+                                'image_url' => ['url' => 'data:image/png;base64,'.$fakePng],
+                            ]],
+                        ],
+                    ]],
+                ];
+            }
+
+            public function stream(array $messages, string $model, array $options = []): iterable
+            {
+                yield [];
+            }
+        };
+        $this->app->instance(LlmGateway::class, $gateway);
+
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->post(
+            route('ai.messages.store', $user->currentTeam->slug),
+            ['message' => 'Buatkan infografis laporan keuangan April 2026'],
+            ['Accept' => 'text/event-stream'],
+        );
+
+        $response->assertOk();
+        $response->streamedContent();
+        $this->assertSame(0, $gateway->completeCalls, 'Finance image values must be rendered locally.');
+        $attachment = AiAttachment::query()->where('kind', 'image')->latest('id')->firstOrFail();
+        $this->assertSame('image/svg+xml', $attachment->mime_type);
+        $svg = Storage::disk('public')->get($attachment->path);
+        $this->assertStringContainsString('Rp11.000.000', $svg);
+        $this->assertStringContainsString('Rp4.000.000', $svg);
+        $this->assertStringContainsString('Rp7.000.000', $svg);
     }
 
     public function test_text_only_image_provider_response_is_failed_and_never_uses_local_asset(): void

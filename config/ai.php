@@ -45,7 +45,9 @@ return [
         // the stronger route.
         'fast_text_model' => env('AI_FAST_TEXT_MODEL'),
         'prefer_fast_text' => (bool) env('AI_PREFER_FAST_TEXT_MODEL', false),
-        'infographic_model' => env('AI_INFOGRAPHIC_MODEL', 'google/gemini-2.5-flash-image'),
+        // Use the currently listed Nano Banana 2 image model by default;
+        // deployments can override it with AI_INFOGRAPHIC_MODEL.
+        'infographic_model' => env('AI_INFOGRAPHIC_MODEL', 'google/gemini-3.1-flash-image'),
         'infographic_fallbacks' => array_values(array_filter(array_map(
             'trim',
             explode(',', (string) env('AI_INFOGRAPHIC_FALLBACK_MODELS', 'google/gemini-3.1-flash-image,google/gemini-3-pro-image')),

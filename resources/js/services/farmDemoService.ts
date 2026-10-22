@@ -577,6 +577,7 @@ export function buildFarmReport(
                     : filters.commodity);
         return (
             matchesCommodity &&
+            Number(transaction.date.year) === filters.year &&
             months.includes(reportMonthNumber(transaction.date.month))
         );
     });

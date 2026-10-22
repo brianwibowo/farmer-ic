@@ -73,8 +73,12 @@ const agricultureTerms = [
 const financeTerms = [
     'keuangan',
     'finansial',
+    'finance',
+    'financial',
     'pendapatan',
     'pemasukan',
+    'income',
+    'revenue',
     'omzet',
     'transaksi',
     'laba',
@@ -82,6 +86,8 @@ const financeTerms = [
     'saldo',
     'keuntungan',
     'pengeluaran',
+    'expense',
+    'expenses',
     'biaya',
 ];
 
@@ -116,6 +122,7 @@ const visualTerms = [
 const explicitDataTerms = [
     'data',
     'laporan',
+    'laporkan',
     'riwayat',
     'ringkasan',
     'rincian',
@@ -269,6 +276,34 @@ export function routeAiPrompt(
             period,
             needsClarification: false,
             reason: 'explicit_visual_request',
+        };
+    }
+
+    if (domain === 'finance' && period === 'current') {
+        return {
+            intent: 'knowledge',
+            confidence: 0.95,
+            topic,
+            domain,
+            period,
+            needsClarification: false,
+            reason: 'current_finance_unavailable',
+        };
+    }
+
+    // Finance lookups with an explicit data/report verb are deterministic
+    // dashboard reads. Keep open-ended comparisons and recommendations on the
+    // model path, but never send a concrete period lookup to a model that can
+    // invent a number when the bundled demo data is authoritative.
+    if (domain === 'finance' && hasExplicitDataLookup(prompt, domain)) {
+        return {
+            intent: 'data',
+            confidence: 0.94,
+            topic,
+            domain,
+            period,
+            needsClarification: false,
+            reason: 'explicit_data_lookup',
         };
     }
 

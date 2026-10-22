@@ -224,7 +224,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
             status: 'streaming',
             presentation: isInfographic ? 'infographic' : 'text',
             progress: isInfographic
-                ? 'Menyiapkan infografis…'
+                ? 'Menyiapkan gambar…'
                 : 'Menghubungkan ke AI…',
         });
         messages.value.push(userMessage, assistantMessage);
@@ -249,7 +249,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     !request.serverProgress
                 ) {
                     assistantMessage.progress = isInfographic
-                        ? 'Masih menyiapkan infografis…'
+                        ? 'Masih menyiapkan gambar…'
                         : 'Membaca konteks kebun…';
                 }
             }, 1_800),
@@ -479,7 +479,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 // explained accurately in the assistant bubble.
                 if (parsed.retrieval && !assistantMessage.content) {
                     request.serverProgress = isInfographic
-                        ? 'Konteks siap. Menyiapkan infografis…'
+                        ? 'Konteks siap. Menyiapkan gambar…'
                         : 'Konteks siap. Model sedang menyusun jawaban…';
                     assistantMessage.metadata = {
                         ...assistantMessage.metadata,
@@ -515,7 +515,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     // loading state instead of persisting it as answer text.
                     if (/^🎨\s*Sedang merancang/i.test(parsed.delta.trim())) {
                         assistantMessage.progress =
-                            'Sedang menyiapkan infografis…';
+                            'Sedang menyiapkan gambar…';
                         return;
                     }
                     if (request.firstDeltaAt === undefined)

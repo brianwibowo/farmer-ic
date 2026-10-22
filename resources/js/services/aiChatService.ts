@@ -116,5 +116,5 @@ export function estimateTokens(value: string): number {
 }
 
 export function outOfScopeResponse(): string {
-    return "Topik itu belum tersedia di Asisten Kebun. Saya fokus pada data dan aktivitas yang tersedia di aplikasi, perawatan tanaman, serta infografis pertanian. Coba tanyakan kondisi kebun, aktivitas terakhir, atau minta ringkasan visual.";
+    return "Topik itu belum tersedia di Asisten Kebun. Saya fokus pada data dan aktivitas yang tersedia di aplikasi, perawatan tanaman, serta gambar/ilustrasi pertanian. Coba tanyakan kondisi kebun, aktivitas terakhir, atau minta ringkasan visual.";
 }

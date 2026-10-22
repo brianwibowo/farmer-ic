@@ -6,6 +6,20 @@ import { normalizeAiResponse } from '@/services/aiChatService';
 const props = defineProps<{ content: string; metadata?: Record<string, unknown> }>();
 const text = computed(() => normalizeAiResponse(props.content || ''));
 
+// Model output is untrusted text.  This component builds a small HTML view
+// with v-html below, so escape the source before applying the intentional
+// markdown-to-HTML replacements.  Without this step a provider response (or
+// a poisoned knowledge document echoed by the model) could inject arbitrary
+// markup into the chat.
+function escapeHtml(value: string): string {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
 const snapshotPoint = computed(() => {
     const snapshot = props.metadata?.finance_snapshot;
     const prompt = String(props.metadata?.finance_prompt ?? '').toLowerCase();
@@ -62,7 +76,7 @@ const hasMetrics = computed(() => income.value !== 'â€”' || expense.value !== 'â
 
 const image = computed(() => {
     const match = text.value.match(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/);
-    return match ? { alt: match[1] || 'Infografis Keuangan', url: match[2] } : null;
+    return match ? { alt: match[1] || 'Gambar keuangan', url: match[2] } : null;
 });
 
 const source = computed(() => text.value.match(/Sumber:\s*(.+)$/im)?.[1]?.trim() ?? 'Data finance');
@@ -105,8 +119,12 @@ function formatMarkdownTable(tableMarkdown: string): string {
 }
 
 function formatBody(value: string): string {
+    // Escape first, then add only the fixed table/list/strong wrappers below.
+    // This keeps v-html safe while preserving the existing markdown layout.
+    let safeValue = escapeHtml(value);
+
     // 1. Convert markdown tables into HTML tables
-    let formatted = value.replace(/(\|.+?\|\n\|[-:| ]+\|\n(?:\|.+?\|\n?)+)/g, (match) => {
+    let formatted = safeValue.replace(/(\|.+?\|\n\|[-:| ]+\|\n(?:\|.+?\|\n?)+)/g, (match) => {
         return '\n' + formatMarkdownTable(match) + '\n';
     });
 

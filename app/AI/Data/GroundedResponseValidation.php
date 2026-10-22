@@ -14,20 +14,23 @@ final readonly class GroundedResponseValidation
     /**
      * @param  array<int, int>  $citations
      * @param  array<int, string>  $issues
+     * @param  array<string, mixed>  $numeric
      */
     public function __construct(
         public bool $ok,
         public array $citations = [],
         public array $issues = [],
+        public array $numeric = [],
     ) {}
 
-    /** @return array{ok: bool, citations: array<int, int>, issues: array<int, string>} */
+    /** @return array{ok: bool, citations: array<int, int>, issues: array<int, string>, numeric: array<string, mixed>} */
     public function toArray(): array
     {
         return [
             'ok' => $this->ok,
             'citations' => $this->citations,
             'issues' => $this->issues,
+            'numeric' => $this->numeric,
         ];
     }
 }

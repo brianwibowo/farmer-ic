@@ -4,6 +4,7 @@ namespace App\AI\Services;
 
 use App\AI\Contracts\EmbeddingGateway;
 use App\AI\Contracts\VectorStore;
+use App\AI\Contracts\VectorStoreFilterLifecycle;
 use App\AI\Contracts\VectorStoreLifecycle;
 use App\Models\AiKnowledgeChunk;
 use App\Models\Team;
@@ -56,6 +57,7 @@ class QdrantKnowledgeIndexer
         $fingerprint = $this->fingerprint($chunks, $indexVersion, $embeddingModel, $dimensions);
         $manifestPath = $manifestStore->path($team);
         $previous = $manifestStore->get($team);
+        $removedOnFastPath = 0;
         if (! $force && is_array($previous) && hash_equals(
             (string) ($previous['fingerprint'] ?? ''),
             $fingerprint,
@@ -72,8 +74,15 @@ class QdrantKnowledgeIndexer
                             ['key' => 'index_version', 'match' => ['value' => $indexVersion]],
                         ],
                     ]);
-                    if ($indexed < count((array) ($previous['point_ids'] ?? []))) {
+                    if ($indexed !== count((array) ($previous['point_ids'] ?? []))) {
                         $previous = null;
+                    } elseif ($this->vectors instanceof VectorStoreFilterLifecycle) {
+                        // A collection can contain a stale point with the
+                        // same total count (for example after a manual
+                        // restore). Reconcile by chunk identity before the
+                        // idempotent return; this also removes old index
+                        // versions that retrieval would otherwise see.
+                        $removedOnFastPath = $this->reconcileStalePoints($team, $chunks);
                     }
                 } catch (\RuntimeException) {
                     $previous = null;
@@ -90,7 +99,7 @@ class QdrantKnowledgeIndexer
                 'tokens' => 0,
                 'model' => (string) ($previous['model'] ?? $embeddingModel),
                 'skipped' => true,
-                'removed' => 0,
+                'removed' => $removedOnFastPath,
                 'index_version' => $indexVersion,
                 'fingerprint' => $fingerprint,
                 'manifest_path' => $manifestPath,
@@ -98,6 +107,8 @@ class QdrantKnowledgeIndexer
         }
 
         if ($chunks === []) {
+            $this->vectors->ensureCollection($dimensions);
+            $removed = $this->reconcileStalePoints($team, $chunks);
             $manifestStore->put($team, [
                 'schema_version' => 1,
                 'team_id' => (string) $team->getKey(),
@@ -117,7 +128,7 @@ class QdrantKnowledgeIndexer
                 'tokens' => 0,
                 'model' => $embeddingModel,
                 'skipped' => false,
-                'removed' => 0,
+                'removed' => $removed,
                 'index_version' => $indexVersion,
                 'fingerprint' => $fingerprint,
                 'manifest_path' => $manifestPath,
@@ -174,9 +185,7 @@ class QdrantKnowledgeIndexer
             array_map('strval', $previousPointIds),
             $pointIds,
         ));
-        if ($stalePointIds !== [] && $this->vectors instanceof VectorStoreLifecycle) {
-            $this->vectors->deletePoints($stalePointIds);
-        }
+        $removed = $this->reconcileStalePoints($team, $chunks, $stalePointIds);
 
         $manifestStore->put($team, [
             'schema_version' => 1,
@@ -197,7 +206,7 @@ class QdrantKnowledgeIndexer
             'tokens' => $totalTokens,
             'model' => $model,
             'skipped' => false,
-            'removed' => $this->vectors instanceof VectorStoreLifecycle ? count($stalePointIds) : 0,
+            'removed' => $removed,
             'index_version' => $indexVersion,
             'fingerprint' => $fingerprint,
             'manifest_path' => $manifestPath,
@@ -240,6 +249,56 @@ class QdrantKnowledgeIndexer
             'dimensions' => $dimensions,
             'chunks' => $canonical,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * Remove points for this team that are not part of the freshly embedded
+     * corpus. Qdrant's payload filter is the source of truth when available;
+     * the manifest point ids remain a safe fallback for simpler stores.
+     *
+     * @param  array<int, array<string, mixed>>  $chunks
+     * @param  array<int, string>  $fallbackIds
+     */
+    private function reconcileStalePoints(Team $team, array $chunks, array $fallbackIds = []): int
+    {
+        if ($this->vectors instanceof VectorStoreFilterLifecycle) {
+            $filter = [
+                'must' => [
+                    ['key' => 'team_id', 'match' => ['value' => $team->getKey()]],
+                    ['key' => 'status', 'match' => ['value' => 'published']],
+                ],
+            ];
+
+            $chunkIds = array_values(array_unique(array_map(
+                static fn (array $chunk): string => (string) ($chunk['id'] ?? ''),
+                $chunks,
+            )));
+            $chunkIds = array_values(array_filter($chunkIds, static fn (string $id): bool => $id !== ''));
+            if ($chunkIds !== []) {
+                $filter['must_not'] = [[
+                    'key' => 'chunk_id',
+                    'match' => ['any' => $chunkIds],
+                ]];
+            }
+
+            // Count before deletion so command output reports a useful
+            // reconciliation result. The delete itself is intentionally
+            // after every upsert has completed successfully.
+            $removed = $this->vectors instanceof VectorStoreLifecycle
+                ? $this->vectors->count($filter)
+                : 0;
+            $this->vectors->deleteByFilter($filter);
+
+            return $removed;
+        }
+
+        if ($fallbackIds !== [] && $this->vectors instanceof VectorStoreLifecycle) {
+            $this->vectors->deletePoints($fallbackIds);
+
+            return count($fallbackIds);
+        }
+
+        return 0;
     }
 
     /**

@@ -176,7 +176,7 @@ const parsed = computed<ParsedInfographic>(() => {
     );
     let image: { url: string; alt: string } | null = null;
     if (imageMatch) {
-        const alt = imageMatch[1]?.trim() || 'Visual Diagram Infografis';
+        const alt = imageMatch[1]?.trim() || 'Visual pertanian';
         const url = imageMatch[2];
         // Render the generated asset once in the Visual tab. Attachments are
         // filtered separately by AiMessageList, so the markdown image is the
@@ -332,7 +332,7 @@ async function copyContent(): Promise<void> {
             <div class="flex items-center gap-1.5 font-medium text-secondary">
                 <Sparkles :size="13" class="text-primary" />
                 <span>{{
-                    parsed.image ? 'Infografis AI' : 'Ringkasan visual'
+                    parsed.image ? 'Gambar AI' : 'Ringkasan visual'
                 }}</span>
                 <span
                     v-if="imageGeneration"
@@ -406,7 +406,7 @@ async function copyContent(): Promise<void> {
                     </p>
                     <button
                         type="button"
-                        aria-label="Perbesar infografis"
+                        aria-label="Perbesar gambar"
                         class="flex size-6 shrink-0 items-center justify-center rounded-md bg-white/20 text-white backdrop-blur transition hover:bg-white/30"
                         @click="isLightboxOpen = true"
                     >
@@ -520,7 +520,7 @@ async function copyContent(): Promise<void> {
                         isCopied
                             ? 'Tersalin'
                             : parsed.image
-                              ? 'Salin Infografis'
+                              ? 'Salin gambar'
                               : 'Salin Ringkasan'
                     }}</span>
                 </button>

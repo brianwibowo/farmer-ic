@@ -87,9 +87,9 @@ const metricIds = ref<Record<string, string>>({});
 let lastRecordedVoiceError: AiVoiceMetric | null = null;
 const speech = typeof window !== "undefined" ? window.speechSynthesis : null;
 const quickPrompts = [
-    "📊 Infografis: Panduan Pemupukan Jagung sesuai Fase",
-    "💧 Infografis: Jadwal & Kebutuhan Air Kebun",
-    "🐛 Infografis: Deteksi & Pengendalian Hama Daun",
+    "📊 Gambar: Panduan Pemupukan Jagung sesuai Fase",
+    "💧 Gambar: Jadwal & Kebutuhan Air Kebun",
+    "🐛 Gambar: Deteksi & Pengendalian Hama Daun",
     "Bagaimana kondisi kebun saya hari ini?",
 ];
 
@@ -262,7 +262,7 @@ async function send(): Promise<void> {
     if (classification.needsClarification && attachments.length === 0) {
         await showLocalAnswer(
             text,
-            'Saya belum menangkap tujuan pertanyaannya. Anda ingin saya membantu yang mana?\n\n1. **Data kebun atau aktivitas** yang tersedia di aplikasi\n2. **Panduan perawatan tanaman**\n3. **Ringkasan visual atau infografis** pertanian\n\nSebutkan kebun, komoditas, periode, atau tujuan Anda agar jawabannya lebih tepat.',
+            'Saya belum menangkap tujuan pertanyaannya. Anda ingin saya membantu yang mana?\n\n1. **Data kebun atau aktivitas** yang tersedia di aplikasi\n2. **Panduan perawatan tanaman**\n3. **Gambar atau ilustrasi** pertanian\n\nSebutkan kebun, komoditas, periode, atau tujuan Anda agar jawabannya lebih tepat.',
             requestMode === 'voice' ? 'voice' : 'text',
             'negative',
             startedAt,

@@ -25,6 +25,20 @@ describe('ai intent router', () => {
         expect(route.reason).toBe('explicit_data_lookup');
     });
 
+    it.each([
+        'laporkan keuangan bulan April 2026',
+        'laporan pendapatan Januari 2025',
+    ])(
+        'routes an explicit finance month lookup to deterministic data: %s',
+        (prompt) => {
+            const route = routeAiPrompt(prompt);
+
+            expect(route.intent).toBe('data');
+            expect(route.domain).toBe('finance');
+            expect(route.reason).toBe('explicit_data_lookup');
+        },
+    );
+
     it('does not turn a data display request into image generation', () => {
         const route = routeAiPrompt('tampilkan kondisi kebun saya');
 

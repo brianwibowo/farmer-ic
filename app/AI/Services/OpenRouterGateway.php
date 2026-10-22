@@ -42,8 +42,11 @@ class OpenRouterGateway implements LlmGateway
         foreach (array_reverse($messages) as $message) {
             $role = $message['role'] ?? null;
             $content = $message['content'] ?? '';
-            $encoded = is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE);
-            $text = is_string($encoded) ? $encoded : '';
+            // Image-generation prompts are text-only. A multimodal history
+            // message can contain a data URI under image_url; JSON-encoding
+            // the whole content would copy megabytes of base64 bytes into the
+            // provider prompt. Keep only explicit text parts.
+            $text = $this->textContent($content);
             if ($role === 'user' && $userText === '') {
                 $userText = trim($text);
             } elseif ($role === 'assistant' && $recentContext === '' && trim($text) !== '') {
@@ -52,14 +55,14 @@ class OpenRouterGateway implements LlmGateway
             }
         }
 
-        $basePrompt = 'A professional vector infographic diagram for Farmer IC smart farming platform. ';
+        $basePrompt = 'A professional agricultural image or illustration for the Farmer IC smart farming platform. ';
         $contextPart = $recentContext !== '' ? 'Context: '.$recentContext.'. ' : '';
         $verifiedData = trim((string) ($options['image_prompt_context'] ?? ''));
         $verifiedDataPart = $verifiedData !== ''
             ? 'Verified data instructions: '.$verifiedData.' '
             : '';
         $userPart = 'Topic: '.$userText.'. ';
-        $styleDirectives = 'Style: Clean vector graphic, precision agriculture data visualization, distinct nodes, process flowchart, agricultural icons (crops, fields, finances, sensors), neat labels, high contrast, clean minimalist layout, strictly on-topic agricultural diagram. No random decorative elements, no calendar unless explicitly requested.';
+        $styleDirectives = 'Style: Match the requested visual form. Use a clean, readable composition, relevant crops/fields/sensors when appropriate, high contrast, and a restrained professional palette. Use distinct nodes or a process flow only when the request asks for a diagram or flowchart. Keep labels short and legible, avoid invented facts or numbers, and stay strictly on topic. No random decorative elements and no calendar unless explicitly requested.';
 
         $prompt = trim($basePrompt.$verifiedDataPart.$contextPart.$userPart.$styleDirectives);
 
@@ -68,7 +71,6 @@ class OpenRouterGateway implements LlmGateway
             'prompt' => $prompt,
             'n' => (int) ($options['n'] ?? 1),
             'size' => (string) ($options['size'] ?? '1024x1024'),
-            'response_format' => 'b64_json',
         ];
         $response = $this->send($this->request(), '/images', $payload);
         $decoded = $this->decodeResponse($response);
@@ -79,7 +81,11 @@ class OpenRouterGateway implements LlmGateway
             }
             $url = $item['url'] ?? null;
             if (is_string($item['b64_json'] ?? null)) {
-                $url = 'data:image/png;base64,'.$item['b64_json'];
+                $mediaType = (string) ($item['media_type'] ?? 'image/png');
+                if (! preg_match('/^image\/[a-z0-9.+-]+$/i', $mediaType)) {
+                    $mediaType = 'image/png';
+                }
+                $url = 'data:'.$mediaType.';base64,'.$item['b64_json'];
             }
             if (is_string($url) && $url !== '') {
                 $images[] = ['type' => 'image_url', 'image_url' => ['url' => $url]];
@@ -95,6 +101,35 @@ class OpenRouterGateway implements LlmGateway
             ]]],
             'usage' => $decoded['usage'] ?? [],
         ];
+    }
+
+    /** Extract textual parts without serializing multimodal image bytes. */
+    protected function textContent(mixed $content): string
+    {
+        if (is_string($content)) {
+            return $content;
+        }
+
+        if (! is_array($content)) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($content as $part) {
+            if (is_string($part)) {
+                $parts[] = $part;
+
+                continue;
+            }
+
+            if (is_array($part)
+                && ($part['type'] ?? null) === 'text'
+                && is_string($part['text'] ?? null)) {
+                $parts[] = $part['text'];
+            }
+        }
+
+        return implode("\n", $parts);
     }
 
     /** @param array<string, mixed> $options */

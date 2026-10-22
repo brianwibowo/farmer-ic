@@ -97,4 +97,25 @@ class QdrantClientTest extends TestCase
             && str_ends_with($request->url(), '/points/count')
             && $request['exact'] === true);
     }
+
+    public function test_it_deletes_points_by_payload_filter(): void
+    {
+        config([
+            'ai.qdrant.url' => 'http://qdrant.test:6333',
+            'ai.qdrant.collection' => 'knowledge_test',
+        ]);
+        Http::fake(['*' => Http::response(['result' => ['operation_id' => 2]], 200)]);
+
+        (new QdrantClient)->deleteByFilter([
+            'must' => [
+                ['key' => 'team_id', 'match' => ['value' => 7]],
+                ['key' => 'document_id', 'match' => ['value' => '12']],
+            ],
+        ]);
+
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
+            && str_ends_with($request->url(), '/points/delete?wait=true')
+            && data_get($request->data(), 'filter.must.0.key') === 'team_id'
+            && data_get($request->data(), 'filter.must.1.match.value') === '12');
+    }
 }

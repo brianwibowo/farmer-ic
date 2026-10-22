@@ -66,4 +66,67 @@ class GroundedResponseValidatorTest extends TestCase
         $this->assertTrue($result->ok);
         $this->assertSame([], $result->issues);
     }
+
+    public function test_finance_numbers_must_match_the_canonical_period(): void
+    {
+        $result = app(GroundedResponseValidator::class)->validateFinance(
+            'April 2026: pemasukan Rp99.000.000, pengeluaran Rp1.000.000, laba bersih Rp98.000.000.',
+            [
+                'requested' => true,
+                'available' => true,
+                'year' => 2026,
+                'month' => 'Apr',
+                'month_label' => 'April',
+                'income' => 11_000_000,
+                'expense' => 4_000_000,
+                'net' => 7_000_000,
+            ],
+        );
+
+        $this->assertFalse($result->ok);
+        $this->assertContains('finance_income_mismatch', $result->issues);
+        $this->assertContains('finance_expense_mismatch', $result->issues);
+        $this->assertContains('finance_net_mismatch', $result->issues);
+        $this->assertSame(11_000_000, data_get($result->numeric, 'mismatches.income.expected'));
+    }
+
+    public function test_finance_amount_parser_accepts_rupiah_and_compact_juta_values(): void
+    {
+        $result = app(GroundedResponseValidator::class)->validateFinance(
+            'Pemasukan Rp11.000.000, pengeluaran 4 juta, laba bersih Rp7.000.000.',
+            [
+                'requested' => true,
+                'available' => true,
+                'year' => 2026,
+                'month' => 'Apr',
+                'month_label' => 'April',
+                'income' => 11_000_000,
+                'expense' => 4_000_000,
+                'net' => 7_000_000,
+            ],
+        );
+
+        $this->assertTrue($result->ok);
+        $this->assertTrue((bool) data_get($result->numeric, 'checked'));
+    }
+
+    public function test_finance_period_claim_is_checked_when_provider_mentions_another_month(): void
+    {
+        $result = app(GroundedResponseValidator::class)->validateFinance(
+            'Laporan Maret 2026: pemasukan Rp11.000.000, pengeluaran Rp4.000.000, laba bersih Rp7.000.000.',
+            [
+                'requested' => true,
+                'available' => true,
+                'year' => 2026,
+                'month' => 'Apr',
+                'month_label' => 'April',
+                'income' => 11_000_000,
+                'expense' => 4_000_000,
+                'net' => 7_000_000,
+            ],
+        );
+
+        $this->assertFalse($result->ok);
+        $this->assertContains('finance_period_mismatch', $result->issues);
+    }
 }

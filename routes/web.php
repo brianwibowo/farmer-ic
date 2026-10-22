@@ -101,6 +101,9 @@ Route::prefix('{current_team}')
             Route::patch('knowledge/{document}', [AiKnowledgeDocumentController::class, 'update'])
                 ->middleware('throttle:30,1')
                 ->name('knowledge.update');
+            Route::delete('knowledge/{document}', [AiKnowledgeDocumentController::class, 'destroy'])
+                ->middleware('throttle:30,1')
+                ->name('knowledge.destroy');
             Route::post('knowledge/{document}/publish', [AiKnowledgeDocumentController::class, 'publish'])
                 ->middleware('throttle:30,1')
                 ->name('knowledge.publish');

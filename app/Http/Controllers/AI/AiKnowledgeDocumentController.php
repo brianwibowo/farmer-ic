@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\AI;
 
 use App\AI\Jobs\IndexKnowledgeDocument;
+use App\AI\Jobs\RemoveKnowledgeDocumentFromIndex;
 use App\Enums\TeamPermission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\StoreAiKnowledgeDocumentRequest;
@@ -61,6 +62,8 @@ class AiKnowledgeDocumentController extends Controller
             'version' => $document->version + 1,
         ])->save();
 
+        $this->dispatchIndexRemoval($document);
+
         return response()->json($this->payload($document->fresh()));
     }
 
@@ -93,12 +96,40 @@ class AiKnowledgeDocumentController extends Controller
             'published_at' => null,
         ])->save();
 
+        $this->dispatchIndexRemoval($document);
+
         return response()->json($this->payload($document->fresh()));
+    }
+
+    public function destroy(Request $request, Team $current_team, AiKnowledgeDocument $document): JsonResponse
+    {
+        $this->authorizeManager($request, $current_team);
+        abort_unless($document->team_id === $current_team->id, 404);
+
+        // Capture the scoped identity before the database cascade removes the
+        // chunk rows; the queued cleanup can then use payload filtering even
+        // when no chunk point ids remain.
+        $documentId = (int) $document->getKey();
+        $teamId = (int) $current_team->getKey();
+        $document->delete();
+
+        if (config('ai.rag.vector_enabled')) {
+            RemoveKnowledgeDocumentFromIndex::dispatch($documentId, $teamId);
+        }
+
+        return response()->json(['deleted' => true]);
     }
 
     protected function authorizeManager(Request $request, Team $team): void
     {
         abort_unless($request->user()?->hasTeamPermission($team, TeamPermission::ManageKnowledge), 403);
+    }
+
+    private function dispatchIndexRemoval(AiKnowledgeDocument $document): void
+    {
+        if (config('ai.rag.vector_enabled')) {
+            RemoveKnowledgeDocumentFromIndex::dispatch((int) $document->getKey(), (int) $document->team_id);
+        }
     }
 
     /** @return array<string, mixed> */

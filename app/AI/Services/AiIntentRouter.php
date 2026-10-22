@@ -10,6 +10,7 @@ class AiIntentRouter
     private const FINANCE_TERMS = [
         'keuangan', 'finansial', 'pendapatan', 'pemasukan', 'omzet',
         'transaksi', 'laba', 'profit', 'saldo', 'keuntungan', 'pengeluaran', 'biaya',
+        'finance', 'financial', 'income', 'revenue', 'expense', 'expenses',
     ];
 
     /** @var array<int, string> */

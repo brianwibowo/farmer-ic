@@ -32,6 +32,7 @@ class AiChatService
         private readonly InMemoryKnowledgeRetriever $fallbackRetriever,
         private readonly GroundedResponseValidator $groundedValidator,
         private readonly FinanceSnapshotService $financeSnapshot,
+        private readonly FinanceImageRenderer $financeImageRenderer,
     ) {}
 
     public function createConversation(User $user, Team $team, ?string $title = null): AiConversation
@@ -111,10 +112,37 @@ class AiChatService
             || (bool) preg_match('/\b(infografis|diagram visual|bagan alur|poster visual|diagram smart farming)\b/i', $userText);
         $financeImagePeriod = null;
         $financeImagePromptContext = null;
+        $financeValidationPeriod = null;
         if ($isInfographic && $decision->domain === 'finance') {
-            $financeImagePeriod = $this->financeSnapshot->imagePeriod($conversation->team, $userText);
+            $financeImagePeriod = $this->financeSnapshot->periodForPrompt($conversation->team, $userText);
             if ($financeImagePeriod['available']) {
                 $financeImagePromptContext = $this->financeSnapshot->imagePromptContext($financeImagePeriod);
+            }
+        }
+        if (! $isInfographic && $decision->domain === 'finance') {
+            $candidate = $this->financeSnapshot->periodForPrompt($conversation->team, $userText);
+            if ($candidate['requested'] && ! $candidate['available']) {
+                yield from $this->streamDeterministicReply(
+                    $conversation,
+                    $decision,
+                    $this->financeSnapshot->unavailableDataMessage($candidate),
+                    [],
+                    $traceId,
+                    ['route_ms' => $routeMs, 'retrieval_ms' => 0],
+                    $pipelineStartedAt,
+                );
+
+                return;
+            }
+
+            // Quarter and free-form historical periods have a separate
+            // aggregation contract. Do not compare them with the annual
+            // snapshot until that aggregation has been resolved explicitly.
+            if ($candidate['available'] && (
+                $candidate['requested']
+                || in_array($decision->period, ['current', 'unknown'], true)
+            )) {
+                $financeValidationPeriod = $candidate;
             }
         }
 
@@ -122,7 +150,7 @@ class AiChatService
         // This keeps the client informed during the first cold retrieval call.
         yield ['event' => 'message.progress', 'data' => [
             'conversation_id' => (string) $conversation->id,
-            'progress' => $isInfographic ? 'Menyiapkan konteks infografis…' : 'Mencari konteks yang relevan…',
+            'progress' => $isInfographic ? 'Menyiapkan konteks gambar…' : 'Mencari konteks yang relevan…',
             'route' => $decision->toArray(),
         ]];
 
@@ -132,6 +160,24 @@ class AiChatService
                 $decision,
                 $this->financeSnapshot->unavailableImageMessage($financeImagePeriod),
                 [],
+                $traceId,
+                ['route_ms' => $routeMs, 'retrieval_ms' => 0],
+                $pipelineStartedAt,
+            );
+
+            return;
+        }
+
+        // Finance figures must remain exact. Render the selected period as a
+        // local SVG before retrieval/provider work so an image model cannot
+        // redraw a value incorrectly. Generic agriculture images continue
+        // through the provider path below.
+        if ($isInfographic
+            && $decision->domain === 'finance') {
+            yield from $this->streamDeterministicFinanceImageReply(
+                $conversation,
+                $decision,
+                $financeImagePeriod,
                 $traceId,
                 ['route_ms' => $routeMs, 'retrieval_ms' => 0],
                 $pipelineStartedAt,
@@ -241,20 +287,25 @@ class AiChatService
                     // checkpoint for reconnect/reconciliation and let the
                     // final save below remain the source of truth.
                     $now = microtime(true);
-                    if (
+                    if ($financeValidationPeriod === null && (
                         strlen($content) - $lastPersistedLength >= 512
                         || $now - $lastPersistedAt >= 0.5
-                    ) {
+                    )) {
                         $assistant->forceFill(['content' => $content])->saveQuietly();
                         $lastPersistedAt = $now;
                         $lastPersistedLength = strlen($content);
                     }
 
-                    yield ['event' => 'message.delta', 'data' => [
-                        'conversation_id' => (string) $conversation->id,
-                        'message_id' => (string) $assistant->id,
-                        'delta' => $delta,
-                    ]];
+                    // Finance answers are buffered until numeric claims have
+                    // been reconciled. Streaming a wrong amount for even one
+                    // frame would expose an unsafe answer before correction.
+                    if ($financeValidationPeriod === null) {
+                        yield ['event' => 'message.delta', 'data' => [
+                            'conversation_id' => (string) $conversation->id,
+                            'message_id' => (string) $assistant->id,
+                            'delta' => $delta,
+                        ]];
+                    }
                 }
 
                 if (trim($content) === '') {
@@ -269,12 +320,19 @@ class AiChatService
                 $latency = (int) round((microtime(true) - $startedAt) * 1000);
                 $truncated = $finishReason === 'length';
                 $validation = $this->groundedValidator->validate($content, $evidence);
+                $numericValidation = $financeValidationPeriod === null
+                    ? null
+                    : $this->groundedValidator->validateFinance($content, $financeValidationPeriod);
                 $timings['generation_ms'] = $latency;
                 $timings['total_ms'] = (int) round((microtime(true) - $pipelineStartedAt) * 1000);
                 $timings['first_token_ms'] = $firstTokenAt === null
                     ? null
                     : (int) round(($firstTokenAt - $generationStartedAt) * 1000);
-                $cleanContent = $this->appendCitations($this->sanitizeAssistantReply($content), $evidence);
+                $reconciled = $numericValidation !== null && ! $numericValidation->ok;
+                $cleanContent = $reconciled
+                    ? $this->financeSnapshot->deterministicSummary($financeValidationPeriod)
+                    : $this->sanitizeAssistantReply($content);
+                $cleanContent = $this->appendCitations($cleanContent, $evidence);
                 // $cleanContent = $this->sanitizeAssistantReply($this->appendCitations($content, $evidence));  previous implementation
                 $assistant->forceFill([
                     'content' => $cleanContent,
@@ -302,6 +360,10 @@ class AiChatService
                         ],
                         'latency' => $timings,
                         'citation' => $validation->toArray(),
+                        ...($numericValidation === null ? [] : [
+                            'numeric' => $numericValidation->toArray(),
+                            'finance_reconciled' => $reconciled,
+                        ]),
                         'generation' => [
                             'first_token_ms' => $firstTokenAt === null
                                 ? null
@@ -417,7 +479,7 @@ class AiChatService
         yield ['event' => 'message.delta', 'data' => [
             'conversation_id' => (string) $conversation->id,
             'message_id' => (string) $assistant->id,
-            'delta' => "🎨 Sedang merancang & membuat gambar infografis diagram dengan AI...\n\n",
+            'delta' => "🎨 Sedang merancang gambar/ilustrasi pertanian dengan AI...\n\n",
         ]];
 
         foreach ($models as $index => $model) {
@@ -437,8 +499,18 @@ class AiChatService
                 $textContent = trim((string) data_get($response, 'choices.0.message.content', ''));
                 $publicUrl = null;
 
-                if (is_string($rawImage) && preg_match('/^data:image\/(\w+);base64,(.+)$/', $rawImage, $matches)) {
-                    $ext = strtolower($matches[1]);
+                if (is_string($rawImage) && preg_match('/^data:image\/([\w.+-]+);base64,(.+)$/', $rawImage, $matches)) {
+                    $mediaType = strtolower($matches[1]);
+                    $ext = match ($mediaType) {
+                        'jpeg' => 'jpg',
+                        'svg+xml' => 'svg',
+                        default => preg_replace('/[^a-z0-9]/', '', $mediaType) ?: 'png',
+                    };
+                    $mimeType = match ($ext) {
+                        'jpg' => 'image/jpeg',
+                        'svg' => 'image/svg+xml',
+                        default => 'image/'.$ext,
+                    };
                     $binary = base64_decode($matches[2]);
                     $filename = 'infographic-'.Str::uuid().'.'.$ext;
                     $relativePath = 'ai/infographics/'.$filename;
@@ -452,7 +524,7 @@ class AiChatService
                         'disk' => 'public',
                         'path' => $relativePath,
                         'original_name' => 'infografis-'.date('Ymd-His').'.'.$ext,
-                        'mime_type' => 'image/'.($ext === 'jpg' ? 'jpeg' : $ext),
+                        'mime_type' => $mimeType,
                         'size' => strlen($binary),
                         'sha256' => hash('sha256', $binary),
                         'kind' => 'image',
@@ -477,7 +549,7 @@ class AiChatService
                     $textContent,
                 ) ?? $textContent;
 
-                $title = $conversation->title ?: 'Diagram Infografis Pertanian';
+                $title = $conversation->title ?: 'Visual Pertanian';
                 $textContent = $this->appendCitations($textContent, $evidence);
                 $validation = $this->groundedValidator->validate($textContent, $evidence);
                 $finalContent = '!['.$title.']('.$publicUrl.")\n\n".$textContent;
@@ -588,7 +660,7 @@ class AiChatService
                 ],
             ]),
         ])->save();
-        Log::warning('Infographic image generation failed.', [
+        Log::warning('Agricultural image generation failed.', [
             'conversation_id' => $conversation->id,
             'reason' => $failureReason,
             'attempts' => count($models),
@@ -599,6 +671,169 @@ class AiChatService
             'error' => $this->userFacingImageError($lastError),
             'image_generation' => data_get($assistant->fresh()->metadata, 'image_generation'),
         ]];
+    }
+
+    /**
+     * Render finance values locally so exact figures are never delegated to a
+     * generative image model. This uses the same attachment/message contract
+     * as provider generated images, allowing the frontend to render it with
+     * no special case.
+     *
+     * @param  array{requested: bool, available: bool, year: int|null, month: string|null, month_label: string|null, income: int|null, expense: int|null, net: int|null, transaction_count: int, period: string}  $period
+     * @param  array<string, int|null>  $timings
+     * @return \Generator<int, array{event: string, data: array<string, mixed>}, mixed, void>
+     */
+    protected function streamDeterministicFinanceImageReply(
+        AiConversation $conversation,
+        AiRouteDecision $decision,
+        array $period,
+        ?string $traceId,
+        array $timings,
+        ?float $pipelineStartedAt,
+    ): \Generator {
+        $assistant = $conversation->messages()->create([
+            'role' => 'assistant',
+            'status' => 'streaming',
+            'content' => '',
+            'provider' => 'local',
+            'model' => 'finance-svg-v1',
+            'metadata' => [
+                ...$this->traceMetadata($decision, [], $traceId, $timings),
+                'deterministic' => true,
+                'is_infographic' => true,
+                'finance_image_period' => $period,
+            ],
+        ]);
+        $startedAt = microtime(true);
+
+        yield ['event' => 'message.start', 'data' => [
+            'conversation_id' => (string) $conversation->id,
+            'message_id' => (string) $assistant->id,
+            'route' => $decision->toArray(),
+            'retrieval' => $this->retrievalMetadata([]),
+        ]];
+        yield ['event' => 'message.delta', 'data' => [
+            'conversation_id' => (string) $conversation->id,
+            'message_id' => (string) $assistant->id,
+            'delta' => "🎨 Menyiapkan gambar laporan keuangan dari data terverifikasi…\n\n",
+        ]];
+
+        try {
+            $binary = $this->financeImageRenderer->render($period);
+            $scope = ($period['month_label'] ?? null) !== null
+                ? (string) $period['month_label'].' '.(int) $period['year']
+                : (($period['year'] ?? null) !== null ? 'Tahun '.(int) $period['year'] : (string) $period['period']);
+            $safeScope = Str::slug($scope) ?: 'periode';
+            $filename = 'finance-'.$safeScope.'-'.Str::uuid().'.svg';
+            $relativePath = 'ai/infographics/'.$filename;
+            if (! Storage::disk('public')->put($relativePath, $binary)) {
+                throw new \RuntimeException('Finance SVG could not be persisted.');
+            }
+            $publicUrl = '/storage/'.$relativePath;
+            $size = strlen($binary);
+
+            AiAttachment::create([
+                'ai_conversation_id' => $conversation->id,
+                'ai_message_id' => $assistant->id,
+                'user_id' => $conversation->user_id,
+                'disk' => 'public',
+                'path' => $relativePath,
+                'original_name' => 'laporan-keuangan-'.$safeScope.'.svg',
+                'mime_type' => 'image/svg+xml',
+                'size' => $size,
+                'sha256' => hash('sha256', $binary),
+                'kind' => 'image',
+                'status' => 'ready',
+                'metadata' => [
+                    'is_generated' => true,
+                    'generator' => 'finance-svg-v1',
+                    'url' => $publicUrl,
+                    'exact_values' => [
+                        'income' => (int) $period['income'],
+                        'expense' => (int) $period['expense'],
+                        'net' => (int) $period['net'],
+                    ],
+                ],
+            ]);
+
+            $format = fn (int $value): string => ($value < 0 ? '-' : '').'Rp'.number_format(abs($value), 0, ',', '.');
+            $text = "### 📊 Laporan Keuangan {$scope}\n\n"
+                .'Pemasukan **'.$format((int) $period['income']).'** · '
+                .'Pengeluaran **'.$format((int) $period['expense']).'** · '
+                .'Laba bersih **'.$format((int) $period['net'])."**.\n\n"
+                .'Sumber: Data finance demo terverifikasi; angka pada gambar dihitung dari transaksi periode tersebut.';
+            $finalContent = '!['.'Laporan Keuangan '.$scope.']('.$publicUrl.")\n\n".$text;
+            $latency = (int) round((microtime(true) - $startedAt) * 1000);
+            $timings['generation_ms'] = $latency;
+            $timings['total_ms'] = $pipelineStartedAt === null
+                ? $latency
+                : (int) round((microtime(true) - $pipelineStartedAt) * 1000);
+
+            $assistant->forceFill([
+                'content' => $finalContent,
+                'status' => 'completed',
+                'latency_ms' => $latency,
+                'metadata' => $this->mergeMetadata($assistant, [
+                    'is_infographic' => true,
+                    'has_image' => true,
+                    'deterministic' => true,
+                    'image_generation' => [
+                        'status' => 'deterministic',
+                        'provider' => 'local',
+                        'model' => 'finance-svg-v1',
+                        'source' => 'farmDemoData.json',
+                        'exact_values' => [
+                            'income' => (int) $period['income'],
+                            'expense' => (int) $period['expense'],
+                            'net' => (int) $period['net'],
+                        ],
+                    ],
+                    'finance_image_period' => $period,
+                    'latency' => $timings,
+                ]),
+            ])->save();
+            $conversation->forceFill(['last_message_at' => now()])->save();
+            $this->recordUsage($conversation, $assistant, [], $latency, null, 'deterministic');
+
+            yield ['event' => 'message.delta', 'data' => [
+                'conversation_id' => (string) $conversation->id,
+                'message_id' => (string) $assistant->id,
+                'delta' => $finalContent,
+            ]];
+            yield ['event' => 'message.done', 'data' => [
+                'conversation_id' => (string) $conversation->id,
+                'message' => $this->messagePayload($assistant->fresh('attachments')),
+            ]];
+        } catch (\Throwable $exception) {
+            $latency = (int) round((microtime(true) - $startedAt) * 1000);
+            $assistant->forceFill([
+                'content' => '',
+                'status' => 'failed',
+                'error_message' => 'Laporan keuangan tidak dapat dirender.',
+                'latency_ms' => $latency,
+                'metadata' => $this->mergeMetadata($assistant, [
+                    'is_infographic' => true,
+                    'has_image' => false,
+                    'deterministic' => true,
+                    'image_generation' => [
+                        'status' => 'failed',
+                        'provider' => 'local',
+                        'model' => 'finance-svg-v1',
+                        'reason' => $exception::class,
+                    ],
+                ]),
+            ])->save();
+            Log::error('Deterministic finance image rendering failed.', [
+                'conversation_id' => $conversation->id,
+                'error_type' => $exception::class,
+                'error' => $exception->getMessage(),
+            ]);
+            yield ['event' => 'message.error', 'data' => [
+                'conversation_id' => (string) $conversation->id,
+                'message_id' => (string) $assistant->id,
+                'error' => 'Gambar laporan keuangan tidak dapat dibuat dari data terverifikasi.',
+            ]];
+        }
     }
 
     /**
@@ -617,10 +852,18 @@ class AiChatService
     ): array {
         $system = collect($messages)->firstWhere('role', 'system')['content'] ?? '';
         $user = collect($messages)->reverse()->firstWhere('role', 'user')['content'] ?? '';
+        $systemText = $this->traceText($system);
+        $userText = $this->traceText($user);
 
         return [
-            'user_prompt' => is_string($user) ? $user : json_encode($user, JSON_UNESCAPED_UNICODE),
-            'system_prompt' => is_string($system) ? $system : json_encode($system, JSON_UNESCAPED_UNICODE),
+            // Keep operational correlation data, but never persist or return
+            // the raw system/user prompts. The system prompt can contain
+            // private team knowledge and the message payload is exposed to
+            // the browser by AiConversationController.
+            'user_prompt_sha256' => hash('sha256', $userText),
+            'user_prompt_chars' => mb_strlen($userText),
+            'system_prompt_sha256' => hash('sha256', $systemText),
+            'system_prompt_chars' => mb_strlen($systemText),
             'endpoint' => $endpoint,
             'model' => $model,
             'evidence_ids' => array_values(array_map(
@@ -631,6 +874,24 @@ class AiChatService
             'status' => $status,
             'latency_ms' => $latencyMs,
         ];
+    }
+
+    /** Extract text for a trace hash without copying multimodal bytes. */
+    protected function traceText(mixed $content): string
+    {
+        if (is_string($content)) {
+            return $content;
+        }
+
+        if (! is_array($content)) {
+            return '';
+        }
+
+        return collect($content)
+            ->filter(static fn (mixed $part): bool => is_array($part) && ($part['type'] ?? null) === 'text')
+            ->map(static fn (array $part): string => (string) ($part['text'] ?? ''))
+            ->filter(static fn (string $text): bool => trim($text) !== '')
+            ->implode("\n");
     }
 
     protected function userFacingImageError(?\Throwable $error): string
@@ -691,7 +952,26 @@ class AiChatService
         }
 
         try {
-            return $this->retriever->retrieve($userText, $conversation->team, (int) config('ai.rag.top_k', 4));
+            $results = $this->retriever->retrieve($userText, $conversation->team, (int) config('ai.rag.top_k', 4));
+            if ($results !== [] || ! config('ai.rag.vector_enabled', false)) {
+                return $results;
+            }
+
+            // A healthy vector call can still produce no candidates (empty
+            // embeddings, stale index, or a score threshold). Treat that as
+            // a retrieval miss and use the deterministic in-memory corpus so
+            // the model does not silently answer without evidence.
+            $fallback = $this->fallbackRetriever->retrieve($userText, $conversation->team, (int) config('ai.rag.top_k', 4));
+
+            return array_map(static function (array $item): array {
+                $item['metadata'] = [
+                    ...$item['metadata'],
+                    'retrieval_fallback' => true,
+                    'retrieval_fallback_reason' => 'empty_vector_result',
+                ];
+
+                return $item;
+            }, $fallback);
         } catch (EmbeddingException|VectorStoreException $exception) {
             Log::warning('Vector knowledge retrieval failed; falling back to in-memory retrieval.', [
                 'conversation_id' => $conversation->id,
@@ -799,7 +1079,7 @@ class AiChatService
         return match ($decision->reason) {
             'unsupported_topic' => 'Topik itu belum tersedia di Asisten Kebun. Saya fokus pada data dan aktivitas Farmer IC, perawatan tanaman, serta panduan pertanian.',
             'general_question' => $decision->needsClarification
-                ? 'Saya belum menangkap tujuan pertanyaannya. Sebutkan kebun, komoditas, periode, atau tujuan Anda agar saya dapat memilih data, panduan, atau infografis yang tepat.'
+                ? 'Saya belum menangkap tujuan pertanyaannya. Sebutkan kebun, komoditas, periode, atau tujuan Anda agar saya dapat memilih data, panduan, atau gambar yang tepat.'
                 : null,
             default => null,
         };
@@ -876,6 +1156,7 @@ class AiChatService
             || $status === 409
             || $status === 425
             || $status === 429
+            || $status === 404
             || $status >= 500;
     }
 
@@ -951,12 +1232,22 @@ class AiChatService
     /** @return array<string, mixed> */
     public function messagePayload(AiMessage $message): array
     {
+        // Keep any legacy/raw provider traces server-side. New traces contain
+        // only hashes and lengths, but stripping this field here also protects
+        // old messages when a conversation is loaded by the browser.
+        $metadata = (array) $message->metadata;
+        unset($metadata['request_trace']);
+        // Numeric reconciliation telemetry can contain the provider's
+        // rejected claim. Keep it server-side so the browser only receives
+        // the canonical replacement content.
+        unset($metadata['numeric']);
+
         return [
             'id' => (string) $message->id,
             'role' => $message->role,
             'content' => $message->content ?? '',
             'status' => $message->status,
-            'metadata' => $message->metadata,
+            'metadata' => $metadata,
             'created_at' => $message->created_at?->toISOString(),
             'attachments' => $message->attachments->map(fn ($attachment): array => [
                 'id' => (string) $attachment->id,
