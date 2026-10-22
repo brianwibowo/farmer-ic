@@ -33,6 +33,8 @@ class AiChatService
         private readonly GroundedResponseValidator $groundedValidator,
         private readonly FinanceSnapshotService $financeSnapshot,
         private readonly FinanceImageRenderer $financeImageRenderer,
+        private readonly FarmSnapshotService $farmSnapshot,
+        private readonly FarmImageRenderer $farmImageRenderer,
     ) {}
 
     public function createConversation(User $user, Team $team, ?string $title = null): AiConversation
@@ -112,6 +114,7 @@ class AiChatService
             || (bool) preg_match('/\b(infografis|diagram visual|bagan alur|poster visual|diagram smart farming)\b/i', $userText);
         $financeImagePeriod = null;
         $financeImagePromptContext = null;
+        $farmImageSnapshot = null;
         $financeValidationPeriod = null;
         if ($isInfographic && $decision->domain === 'finance') {
             $financeImagePeriod = $this->financeSnapshot->periodForPrompt($conversation->team, $userText);
@@ -166,6 +169,26 @@ class AiChatService
             );
 
             return;
+        }
+
+        // A named garden visual must use the same canonical record as the
+        // garden detail page. Render it locally so a bitmap model cannot
+        // replace exact areas, crops, locations, or status with plausible
+        // but invented values.
+        if ($isInfographic && in_array($decision->domain, ['garden', 'agronomy', 'activity'], true)) {
+            $farmImageSnapshot = $this->farmSnapshot->resolve($userText);
+            if (is_array($farmImageSnapshot)) {
+                yield from $this->streamDeterministicFarmImageReply(
+                    $conversation,
+                    $decision,
+                    $farmImageSnapshot,
+                    $traceId,
+                    ['route_ms' => $routeMs, 'retrieval_ms' => 0],
+                    $pipelineStartedAt,
+                );
+
+                return;
+            }
         }
 
         // Finance figures must remain exact. Render the selected period as a
@@ -832,6 +855,186 @@ class AiChatService
                 'conversation_id' => (string) $conversation->id,
                 'message_id' => (string) $assistant->id,
                 'error' => 'Gambar laporan keuangan tidak dapat dibuat dari data terverifikasi.',
+            ]];
+        }
+    }
+
+    /**
+     * Render a named garden from the canonical farmDemoData.json snapshot.
+     * Exact labels stay in a local SVG so image generation cannot hallucinate
+     * a different location, crop, area, or status.
+     *
+     * @param array{
+     *     id: string,
+     *     name: string,
+     *     city: string,
+     *     district: string,
+     *     address: string,
+     *     used_hectare: int|float,
+     *     available_hectare: int|float,
+     *     seed_type: string,
+     *     seed_type_detail: string,
+     *     health_status: string,
+     *     image: string,
+     *     insight: array<string, mixed>
+     * } $snapshot
+     * @param  array<string, int|null>  $timings
+     * @return \Generator<int, array{event: string, data: array<string, mixed>}, mixed, void>
+     */
+    protected function streamDeterministicFarmImageReply(
+        AiConversation $conversation,
+        AiRouteDecision $decision,
+        array $snapshot,
+        ?string $traceId,
+        array $timings,
+        ?float $pipelineStartedAt,
+    ): \Generator {
+        $assistant = $conversation->messages()->create([
+            'role' => 'assistant',
+            'status' => 'streaming',
+            'content' => '',
+            'provider' => 'local',
+            'model' => 'farm-svg-v1',
+            'metadata' => [
+                ...$this->traceMetadata($decision, [], $traceId, $timings),
+                'deterministic' => true,
+                'is_infographic' => true,
+                'farm_snapshot' => $snapshot,
+            ],
+        ]);
+        $startedAt = microtime(true);
+
+        yield ['event' => 'message.start', 'data' => [
+            'conversation_id' => (string) $conversation->id,
+            'message_id' => (string) $assistant->id,
+            'route' => $decision->toArray(),
+            'retrieval' => $this->retrievalMetadata([]),
+        ]];
+        yield ['event' => 'message.delta', 'data' => [
+            'conversation_id' => (string) $conversation->id,
+            'message_id' => (string) $assistant->id,
+            'delta' => "🎨 Menyiapkan gambar kebun dari data terverifikasi…\n\n",
+        ]];
+
+        try {
+            $binary = $this->farmImageRenderer->render($snapshot);
+            $safeName = Str::slug($snapshot['name']) ?: 'kebun';
+            $filename = 'farm-'.$safeName.'-'.Str::uuid().'.svg';
+            $relativePath = 'ai/infographics/'.$filename;
+            if (! Storage::disk('public')->put($relativePath, $binary)) {
+                throw new \RuntimeException('Farm SVG could not be persisted.');
+            }
+            $publicUrl = '/storage/'.$relativePath;
+            $size = strlen($binary);
+
+            AiAttachment::create([
+                'ai_conversation_id' => $conversation->id,
+                'ai_message_id' => $assistant->id,
+                'user_id' => $conversation->user_id,
+                'disk' => 'public',
+                'path' => $relativePath,
+                'original_name' => 'kondisi-'.$safeName.'.svg',
+                'mime_type' => 'image/svg+xml',
+                'size' => $size,
+                'sha256' => hash('sha256', $binary),
+                'kind' => 'image',
+                'status' => 'ready',
+                'metadata' => [
+                    'is_generated' => true,
+                    'generator' => 'farm-svg-v1',
+                    'source' => 'farmDemoData.json',
+                    'url' => $publicUrl,
+                    'garden_id' => $snapshot['id'],
+                ],
+            ]);
+
+            $name = $snapshot['name'];
+            $location = trim(implode(', ', array_filter([
+                $snapshot['district'],
+                $snapshot['city'],
+            ])));
+            $crop = trim(implode(' ', array_filter([
+                $snapshot['seed_type'],
+                $snapshot['seed_type_detail'],
+            ])));
+            $formatArea = static fn (int|float $value): string => number_format((float) $value, 0, ',', '.').' ha';
+            $used = $formatArea($snapshot['used_hectare']);
+            $available = $formatArea($snapshot['available_hectare']);
+            $text = "### 🌽 Kondisi {$name}\n\n"
+                ."Data kebun terverifikasi dari farmDemoData.json.\n\n"
+                ."- **Komoditas:** {$crop}\n"
+                ."- **Lokasi:** {$location}\n"
+                ."- **Luas terpakai:** {$used}\n"
+                ."- **Lahan tersedia:** {$available}\n"
+                ."- **Status:** {$snapshot['health_status']}\n\n"
+                .'Sumber: Data kebun terverifikasi; atribut yang tidak tercatat tidak ditambahkan.';
+            $finalContent = '!['.'Kondisi '.$name.']('.$publicUrl.")\n\n".$text;
+            $latency = (int) round((microtime(true) - $startedAt) * 1000);
+            $timings['generation_ms'] = $latency;
+            $timings['total_ms'] = $pipelineStartedAt === null
+                ? $latency
+                : (int) round((microtime(true) - $pipelineStartedAt) * 1000);
+
+            $assistant->forceFill([
+                'content' => $finalContent,
+                'status' => 'completed',
+                'latency_ms' => $latency,
+                'metadata' => $this->mergeMetadata($assistant, [
+                    'is_infographic' => true,
+                    'has_image' => true,
+                    'deterministic' => true,
+                    'image_generation' => [
+                        'status' => 'deterministic',
+                        'provider' => 'local',
+                        'model' => 'farm-svg-v1',
+                        'source' => 'farmDemoData.json',
+                        'garden_id' => $snapshot['id'],
+                    ],
+                    'farm_snapshot' => $snapshot,
+                    'latency' => $timings,
+                ]),
+            ])->save();
+            $conversation->forceFill(['last_message_at' => now()])->save();
+            $this->recordUsage($conversation, $assistant, [], $latency, null, 'deterministic');
+
+            yield ['event' => 'message.delta', 'data' => [
+                'conversation_id' => (string) $conversation->id,
+                'message_id' => (string) $assistant->id,
+                'delta' => $finalContent,
+            ]];
+            yield ['event' => 'message.done', 'data' => [
+                'conversation_id' => (string) $conversation->id,
+                'message' => $this->messagePayload($assistant->fresh('attachments')),
+            ]];
+        } catch (\Throwable $exception) {
+            $latency = (int) round((microtime(true) - $startedAt) * 1000);
+            $assistant->forceFill([
+                'content' => '',
+                'status' => 'failed',
+                'error_message' => 'Gambar kebun tidak dapat dirender.',
+                'latency_ms' => $latency,
+                'metadata' => $this->mergeMetadata($assistant, [
+                    'is_infographic' => true,
+                    'has_image' => false,
+                    'deterministic' => true,
+                    'image_generation' => [
+                        'status' => 'failed',
+                        'provider' => 'local',
+                        'model' => 'farm-svg-v1',
+                        'reason' => $exception::class,
+                    ],
+                ]),
+            ])->save();
+            Log::error('Deterministic farm image rendering failed.', [
+                'conversation_id' => $conversation->id,
+                'garden_id' => $snapshot['id'],
+                'error_type' => $exception::class,
+                'error' => $exception->getMessage(),
+            ]);
+            yield ['event' => 'message.error', 'data' => [
+                'conversation_id' => (string) $conversation->id,
+                'message_id' => (string) $assistant->id,
+                'error' => 'Gambar kebun tidak dapat dibuat dari data terverifikasi.',
             ]];
         }
     }

@@ -51,4 +51,50 @@ class OpenRouterGatewayTest extends TestCase
             data_get($result, 'choices.0.message.images.0.image_url.url'),
         );
     }
+
+    public function test_image_prompt_carries_canonical_farm_evidence_from_system_context(): void
+    {
+        config([
+            'ai.openrouter.api_key' => 'test-key',
+            'ai.openrouter.base_url' => 'https://openrouter.test/api/v1',
+            'ai.openrouter.max_retries' => 0,
+        ]);
+        Http::fake(['*' => Http::response([
+            'id' => 'farm-image-request',
+            'data' => [[
+                'b64_json' => base64_encode('jpeg'),
+                'media_type' => 'image/jpeg',
+            ]],
+        ])]);
+
+        (new OpenRouterGateway)->complete([
+            [
+                'role' => 'system',
+                'content' => <<<'PROMPT'
+<retrieved-evidence-json>
+[{"citation":"[S1]","title":"Kebun Tani Lestari","source":"farmDemoData.json origin/dev","content":"{\"id\":\"kebun-002\",\"name\":\"Kebun Tani Lestari\",\"district\":\"Parakan\",\"city\":\"Temanggung\",\"usedHectare\":180,\"availableHectare\":750,\"seedType\":\"Jagung\",\"seedTypeDetail\":\"Hibrida BISI-18\",\"healthStatus\":\"Sehat\"}"}]
+</retrieved-evidence-json>
+PROMPT,
+            ],
+            [
+                'role' => 'user',
+                'content' => 'Buatkan gambar detail Kebun Tani Lestari.',
+            ],
+        ], 'image-model', ['image_generation' => true]);
+
+        Http::assertSent(function (Request $request): bool {
+            $prompt = (string) $request['prompt'];
+
+            return str_contains($prompt, 'Kebun Tani Lestari')
+                && str_contains($prompt, 'Parakan')
+                && str_contains($prompt, 'Temanggung')
+                && str_contains($prompt, '180')
+                && str_contains($prompt, '750')
+                && str_contains($prompt, 'Hibrida BISI-18')
+                && str_contains($prompt, 'never invent or alter')
+                && str_contains($prompt, 'If a field is absent, omit it.')
+                && ! str_contains($prompt, 'Sukamaju')
+                && ! str_contains($prompt, '2 hektar');
+        });
+    }
 }

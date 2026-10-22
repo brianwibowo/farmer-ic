@@ -39,6 +39,7 @@ class OpenRouterGateway implements LlmGateway
     {
         $userText = '';
         $recentContext = '';
+        $systemText = '';
         foreach (array_reverse($messages) as $message) {
             $role = $message['role'] ?? null;
             $content = $message['content'] ?? '';
@@ -47,7 +48,9 @@ class OpenRouterGateway implements LlmGateway
             // the whole content would copy megabytes of base64 bytes into the
             // provider prompt. Keep only explicit text parts.
             $text = $this->textContent($content);
-            if ($role === 'user' && $userText === '') {
+            if ($role === 'system' && $systemText === '') {
+                $systemText = $text;
+            } elseif ($role === 'user' && $userText === '') {
                 $userText = trim($text);
             } elseif ($role === 'assistant' && $recentContext === '' && trim($text) !== '') {
                 $clean = trim((string) preg_replace('/\s+/', ' ', strip_tags($text)));
@@ -58,11 +61,19 @@ class OpenRouterGateway implements LlmGateway
         $basePrompt = 'A professional agricultural image or illustration for the Farmer IC smart farming platform. ';
         $contextPart = $recentContext !== '' ? 'Context: '.$recentContext.'. ' : '';
         $verifiedData = trim((string) ($options['image_prompt_context'] ?? ''));
+        // PromptAssembler puts retrieved records in the system message. The
+        // Images API only accepts a flat prompt, so carry that evidence over
+        // explicitly. Without this bridge the image model sees the user's
+        // topic but none of the canonical farm fields and fills the gaps with
+        // invented acreage, crops, or locations.
+        if ($verifiedData === '') {
+            $verifiedData = $this->retrievedEvidenceContext($systemText);
+        }
         $verifiedDataPart = $verifiedData !== ''
-            ? 'Verified data instructions: '.$verifiedData.' '
+            ? 'Verified data instructions (reference only): '.$verifiedData.' '
             : '';
         $userPart = 'Topic: '.$userText.'. ';
-        $styleDirectives = 'Style: Match the requested visual form. Use a clean, readable composition, relevant crops/fields/sensors when appropriate, high contrast, and a restrained professional palette. Use distinct nodes or a process flow only when the request asks for a diagram or flowchart. Keep labels short and legible, avoid invented facts or numbers, and stay strictly on topic. No random decorative elements and no calendar unless explicitly requested.';
+        $styleDirectives = 'Style: Match the requested visual form. Use a clean, readable composition and relevant crops or fields when appropriate, with high contrast and a restrained professional palette. Use distinct nodes or a process flow only when the request asks for a diagram or flowchart. Keep labels short and legible. Use only verified values supplied above; never invent or alter a name, location, crop, acreage, date, sensor, technology, weather value, or other number. If a field is absent, omit it. No random decorative elements and no calendar unless explicitly requested.';
 
         $prompt = trim($basePrompt.$verifiedDataPart.$contextPart.$userPart.$styleDirectives);
 
@@ -101,6 +112,51 @@ class OpenRouterGateway implements LlmGateway
             ]]],
             'usage' => $decoded['usage'] ?? [],
         ];
+    }
+
+    /**
+     * Extract the bounded evidence block from PromptAssembler's system
+     * message for providers that expose only a single image prompt.
+     *
+     * The evidence is reference data, never provider instructions. Keep the
+     * original content intact enough for canonical JSON fields (for example,
+     * kebun-002's 180/750 ha values) to survive, but cap the prompt size.
+     */
+    protected function retrievedEvidenceContext(string $systemText): string
+    {
+        if ($systemText === '' || ! preg_match('/<retrieved-evidence-json>\s*(.*?)\s*<\/retrieved-evidence-json>/su', $systemText, $match)) {
+            return '';
+        }
+
+        $decoded = json_decode(trim((string) $match[1]), true);
+        if (! is_array($decoded)) {
+            return '';
+        }
+
+        $records = [];
+        foreach ($decoded as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $record = [
+                'title' => trim((string) ($item['title'] ?? '')),
+                'source' => trim((string) ($item['source'] ?? '')),
+                'content' => trim((string) ($item['content'] ?? '')),
+            ];
+            if ($record['title'] === '' && $record['content'] === '') {
+                continue;
+            }
+            $records[] = $record;
+        }
+
+        if ($records === []) {
+            return '';
+        }
+
+        $encoded = json_encode($records, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return is_string($encoded) ? mb_substr($encoded, 0, 5000) : '';
     }
 
     /** Extract textual parts without serializing multimodal image bytes. */
