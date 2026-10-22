@@ -40,9 +40,20 @@ const isCopied = ref(false);
 const showSources = ref(false);
 const imageGeneration = computed(() => {
     const value = props.metadata?.image_generation;
-    return value && typeof value === 'object'
-        ? (value as { status?: string; reason?: string | null })
-        : null;
+    if (!value || typeof value !== 'object') return null;
+    const status = (value as { status?: unknown }).status;
+    if (
+        status !== 'generated' &&
+        status !== 'fallback' &&
+        status !== 'deterministic' &&
+        status !== 'failed'
+    ) {
+        return null;
+    }
+    return {
+        status,
+        reason: (value as { reason?: string | null }).reason ?? null,
+    };
 });
 const sources = computed(() => {
     const retrieval = props.metadata?.retrieval;
@@ -337,10 +348,25 @@ async function copyContent(): Promise<void> {
                 <span
                     v-if="imageGeneration"
                     class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                    :class="imageGeneration.status === 'generated' ? 'bg-success/10 text-success' : imageGeneration.status === 'fallback' ? 'bg-warning/15 text-warning' : 'bg-error/10 text-error'"
+                    :class="
+                        imageGeneration.status === 'generated' ||
+                        imageGeneration.status === 'deterministic'
+                            ? 'bg-success/10 text-success'
+                            : imageGeneration.status === 'fallback'
+                              ? 'bg-warning/15 text-warning'
+                              : 'bg-error/10 text-error'
+                    "
                     :title="imageGeneration.reason || undefined"
                 >
-                    {{ imageGeneration.status === 'generated' ? 'Generated' : imageGeneration.status === 'fallback' ? 'Fallback' : 'Failed' }}
+                    {{
+                        imageGeneration.status === 'deterministic'
+                            ? 'Terverifikasi'
+                            : imageGeneration.status === 'generated'
+                              ? 'Selesai'
+                              : imageGeneration.status === 'fallback'
+                                ? 'Cadangan'
+                                : 'Gagal'
+                    }}
                 </span>
             </div>
             <span

@@ -46,16 +46,33 @@ function removeControlChars(value: string): string {
         .join("");
 }
 
+/**
+ * Providers sometimes return Markdown escaped for a transport layer, for
+ * example `\###`, `\|`, or `\(/image.jpg\)`. That text is valid as a string
+ * but invalid as Markdown, so history reloads cannot recognize headings,
+ * tables, or images. Only unescape punctuation that has Markdown meaning;
+ * ordinary paths such as `C:\\data` remain untouched.
+ */
+function normalizeMarkdownEscapes(value: string): string {
+    return value
+        // A lone slash before a newline is a transport line continuation, not
+        // the two-space Markdown hard-break syntax.
+        .replace(/\\+(?=[ \t]*(?:\r?\n|$))/g, "")
+        // Remove one or more repeated escapes before Markdown punctuation.
+        .replace(/\\+(?=[!*_`~>#|+\-()[\]])/g, "");
+}
+
 /** Remove transport noise while keeping the markdown structure for the safe renderer. */
 export function normalizeAiResponse(value: string): string {
-    const normalized = removeControlChars(value)
+    const normalized = normalizeMarkdownEscapes(
+        removeControlChars(value),
+    )
         .replace(/^\uFEFF/, "")
         .replace(/\r\n?/g, "\n")
         .replace(/^(?:assistant|ai)\s*:\s*/i, "")
         .replace(/\[DONE\]\s*$/i, "")
         .replace(/^\s*```(?:markdown|text)?\s*/i, "")
         .replace(/\s*```\s*$/i, "")
-        .replace(/\\([*_`~>#-])/g, "$1")
         .replace(/\s*\[S\d+\]/gi, "")
         .replace(/\n?Sumber:\s*[^\n]+/gi, "")
         .replace(/[ \t]+\n/g, "\n")

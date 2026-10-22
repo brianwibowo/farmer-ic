@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ChevronLeft, LoaderCircle, Plus } from '@lucide/vue';
+import { normalizeAiResponse } from '@/services/aiChatService';
 import type { Conversation } from '@/types/aiChat';
 
 defineProps<{
@@ -10,7 +11,7 @@ defineProps<{
 
 
 function cleanPreview(value: string | undefined): string {
-    return (value ?? 'Belum ada pesan')
+    return normalizeAiResponse(value ?? 'Belum ada pesan')
         .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
         .replace(/^#{1,6}\s*/gm, '')
         .replace(/\*\*([^*]+)\*\*/g, '$1')

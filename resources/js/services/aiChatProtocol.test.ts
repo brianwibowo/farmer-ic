@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractDelta, parseMessage } from './aiChatProtocol';
+import { extractDelta, parseMessage, sortChatMessages } from './aiChatProtocol';
 
 describe('chat message presentation', () => {
     it('keeps retrieval progress visible before the first response delta', () => {
@@ -70,5 +70,47 @@ describe('chat message presentation', () => {
         expect(message?.metadata).toMatchObject({
             route: { intent: 'llm', domain: 'agronomy' },
         });
+    });
+
+    it('removes repeated markdown escaping when loading persisted replies', () => {
+        const message = parseMessage({
+            id: 'escaped-1',
+            role: 'assistant',
+            content: [
+                '\\### 💰 Keuangan Maret 2026\\',
+                '\\',
+                '\\- \\*\\*Pemasukan: Rp16.000.000\\*\\*\\',
+                '\\| Tanggal \\| Transaksi \\| Nominal \\|\\',
+                '\\|---\\|---\\|---: \\|\\',
+                '\\| 14 Maret \\| Penjualan \\| +Rp16.000.000 \\|',
+                '',
+                '![Lahan dan tanaman jagung]\\(/images/farmer/corn-field.jpeg\\)\\',
+            ].join('\n'),
+        });
+
+        expect(message?.content).toContain('### 💰 Keuangan Maret 2026');
+        expect(message?.content).toContain('- **Pemasukan: Rp16.000.000**');
+        expect(message?.content).toContain('| Tanggal | Transaksi | Nominal |');
+        expect(message?.content).toContain('![Lahan dan tanaman jagung](/images/farmer/corn-field.jpeg)');
+        expect(message?.content).not.toContain('\\');
+    });
+
+    it('restores persisted messages to chronological order', () => {
+        const messages = [
+            parseMessage({
+                id: '2',
+                role: 'assistant',
+                content: 'jawaban',
+                created_at: '2026-03-10T10:01:00.000Z',
+            }),
+            parseMessage({
+                id: '1',
+                role: 'user',
+                content: 'pertanyaan',
+                created_at: '2026-03-10T10:00:00.000Z',
+            }),
+        ].filter((item): item is NonNullable<typeof item> => item !== null);
+
+        expect(sortChatMessages(messages).map((item) => item.id)).toEqual(['1', '2']);
     });
 });

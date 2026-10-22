@@ -70,9 +70,9 @@ export function parseConversation(value: unknown): Conversation | null {
                 : 'Percakapan baru',
         preview:
             typeof item.preview === 'string'
-                ? item.preview
+                ? normalizeAiResponse(item.preview)
                 : typeof item.last_message === 'string'
-                  ? item.last_message
+                  ? normalizeAiResponse(item.last_message)
                   : undefined,
         updatedAt:
             typeof item.updated_at === 'string'
@@ -116,6 +116,37 @@ export function parseMessage(value: unknown): ChatMessage | null {
             ? { metadata: item.metadata as Record<string, unknown> }
             : {}),
     };
+}
+
+/**
+ * Keep history in conversation order even when the API/database returns rows
+ * with an unspecified order or several messages share the same timestamp.
+ * The numeric message id is the stable tie-breaker for persisted messages.
+ */
+export function sortChatMessages(messages: ChatMessage[]): ChatMessage[] {
+    return [...messages].sort((left, right) => {
+        const leftTime = Date.parse(left.createdAt);
+        const rightTime = Date.parse(right.createdAt);
+        if (
+            Number.isFinite(leftTime) &&
+            Number.isFinite(rightTime) &&
+            leftTime !== rightTime
+        ) {
+            return leftTime - rightTime;
+        }
+
+        const leftId = Number(left.id);
+        const rightId = Number(right.id);
+        if (
+            Number.isFinite(leftId) &&
+            Number.isFinite(rightId) &&
+            leftId !== rightId
+        ) {
+            return leftId - rightId;
+        }
+
+        return 0;
+    });
 }
 
 export function headers(extra: Record<string, string> = {}): HeadersInit {

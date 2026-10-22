@@ -15,6 +15,7 @@ import {
     mergeResponseText,
     parseConversation,
     parseMessage,
+    sortChatMessages,
     readSse,
     validateAttachments,
     MAX_ATTACHMENT_COUNT,
@@ -163,9 +164,11 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                   ? payload.data
                   : [];
             if (loadId !== conversationLoadSequence) return;
-            messages.value = values
-                .map(parseMessage)
-                .filter((item): item is ChatMessage => item !== null);
+            messages.value = sortChatMessages(
+                values
+                    .map(parseMessage)
+                    .filter((item): item is ChatMessage => item !== null),
+            );
             conversationId.value = idValue;
         } catch (cause) {
             if (loadId !== conversationLoadSequence) return;
@@ -395,9 +398,11 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     : Array.isArray(payload.data)
                       ? payload.data
                       : [];
-                const persistedMessages = values
-                    .map(parseMessage)
-                    .filter((item): item is ChatMessage => item !== null);
+                const persistedMessages = sortChatMessages(
+                    values
+                        .map(parseMessage)
+                        .filter((item): item is ChatMessage => item !== null),
+                );
                 const persistedUserIndex = persistedMessages
                     .map(
                         (item) => item.role === 'user' && item.content === text,
