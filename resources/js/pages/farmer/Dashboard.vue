@@ -9,6 +9,7 @@ import type { DashboardInvitation, Team } from '@/types';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import FinancialOverviewDashboard from '@/components/farmer/FinancialOverviewDashboard.vue';
 import CommodityIncome from '@/components/farmer/CommodityIncome.vue';
+import RecapFarmCondition from '@/components/farmer/RecapFarmCondition.vue';
 
 const page = usePage();
 const userName = computed(
@@ -54,9 +55,11 @@ defineOptions({
                 </h1>
             </div>
 
-            <FinancialOverviewDashboard />
+            <RecapFarmCondition />
 
             <KebunMap />
+            
+            <FinancialOverviewDashboard />
 
             <CommodityIncome />
         </div>
