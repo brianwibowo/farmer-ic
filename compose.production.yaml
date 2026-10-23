@@ -38,9 +38,6 @@ services:
             QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
         networks:
             default: {}
-            proxy:
-                aliases:
-                    - farmer-ic-app
         volumes:
             - app_storage:/var/www/html/storage
             - app_database:/var/lib/farmer-ic
@@ -214,7 +211,6 @@ services:
             resources:
                 limits:
                     memory: 192M
-
     qdrant:
         image: ${QDRANT_IMAGE:-qdrant/qdrant:v1.14.1}
         profiles: ['rag']
@@ -232,6 +228,39 @@ services:
             resources:
                 limits:
                     memory: 512M
+    https-portal:
+        image: steveltn/https-portal:1
+        ports:
+            - '80:80'
+            - '443:443'
+        restart: always
+        volumes:
+            - https-portal-data:/var/lib/https-portal
+        # https-portal regenerates /etc/nginx/conf.d/*.conf on every start and
+        # deletes anything it finds there, so buffer tuning cannot be bind
+        # mounted into that directory (it fails with Errno::EBUSY and the
+        # container restart-loops). Inject it through the supported env hook
+        # instead.
+        #
+        # Laravel sends Vite preload Link headers that overflow nginx's 4k/8k
+        # default proxy buffer and surface as "upstream sent too big header"
+        # (HTTP 502).
+        healthcheck:
+            test: ["CMD", "service", "nginx", "status"]
+            interval: 30s
+            timeout: 20s
+            retries: 3
+        environment:
+            DOMAINS: 'farmer.icdigital.io -> http://farmer-ic-app-1:80'
+            STAGE: 'production'
+            WEBSOCKET: 'true'
+            CLIENT_MAX_BODY_SIZE: '0'
+            CUSTOM_NGINX_SERVER_CONFIG_BLOCK: |
+                proxy_buffer_size 128k;
+                proxy_buffers 4 256k;
+                proxy_busy_buffers_size 256k;
+                proxy_temp_file_write_size 256k;
+
 
 volumes:
     app_storage:
@@ -239,9 +268,4 @@ volumes:
     postgres_data:
     redis_data:
     qdrant_storage:
-
-networks:
-    default:
-    proxy:
-        external: true
-        name: ${PROXY_NETWORK:-outline_default}
+    https-portal-data:
