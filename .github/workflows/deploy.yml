@@ -94,5 +94,5 @@ jobs:
                       export APP_TAG="$COMMIT_SHA"
                       docker compose --env-file .env.production -f compose.production.yaml --profile rag build --pull app
                       docker ps -aq --filter 'name=farmer-ic-app-1' | xargs -r docker rm -f
-                      docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --no-build --remove-orphans app worker scheduler postgres redis qdrant
+                      docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --no-build --remove-orphans app worker scheduler postgres redis qdrant https-portal
                       docker image prune --force
