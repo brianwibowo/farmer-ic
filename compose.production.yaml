@@ -38,9 +38,6 @@ services:
             QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
         networks:
             default: {}
-            proxy:
-                aliases:
-                    - farmer-ic-app
         volumes:
             - app_storage:/var/www/html/storage
             - app_database:/var/lib/farmer-ic
@@ -214,7 +211,6 @@ services:
             resources:
                 limits:
                     memory: 192M
-
     qdrant:
         image: ${QDRANT_IMAGE:-qdrant/qdrant:v1.14.1}
         profiles: ['rag']
@@ -232,6 +228,25 @@ services:
             resources:
                 limits:
                     memory: 512M
+    https-portal:
+        image: steveltn/https-portal:1
+        ports:
+            - '80:80'
+            - '443:443'
+        restart: always
+        volumes:
+            - https-portal-data:/var/lib/https-portal
+        healthcheck:
+            test: ["CMD", "service", "nginx", "status"]
+            interval: 30s
+            timeout: 20s
+            retries: 3
+        environment:
+            DOMAINS: 'farmer.icdigital.io -> http://app:80'
+            STAGE: 'production'
+            WEBSOCKET: 'true'
+            CLIENT_MAX_BODY_SIZE: '0'
+
 
 volumes:
     app_storage:
@@ -239,9 +254,4 @@ volumes:
     postgres_data:
     redis_data:
     qdrant_storage:
-
-networks:
-    default:
-    proxy:
-        external: true
-        name: ${PROXY_NETWORK:-outline_default}
+    https-portal-data:
