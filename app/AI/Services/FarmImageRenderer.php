@@ -63,29 +63,32 @@ class FarmImageRenderer
         ])));
 
         $title = $this->escape($name);
+        $escapedHeading = $this->escape('Kondisi '.(stripos($name, 'kebun') === 0 ? $name : 'Kebun '.$name));
         $escapedLocation = $this->escape($location);
         $escapedCrop = $this->escape($crop);
         $escapedUsed = $this->escape($used);
         $escapedAvailable = $this->escape($available);
         $escapedStatus = $this->escape($status);
         $escapedAddress = $this->escape($address);
-        $escapedImage = $this->escape($image);
-        $escapedCondition = $this->escape($plantCondition);
+        $conditionMarkup = $this->wrappedText($plantCondition, 62, 94);
         $escapedGrowth = $this->escape($growth);
         $escapedPlantedAt = $this->escape($plantedAt);
         $escapedHarvestAt = $this->escape($harvestAt);
-        $escapedWeather = $this->escape($weatherLabel);
+        $weatherMarkup = $this->wrappedText($weatherLabel, 26, 860);
 
-        $imageMarkup = $image !== ''
-            ? '<image href="'.$escapedImage.'" x="70" y="208" width="635" height="470" preserveAspectRatio="xMidYMid slice" clip-path="url(#crop)"/> '
+        $imageUri = $this->imageDataUri($image);
+        $imageMarkup = $imageUri !== null
+            ? '<image href="'.$imageUri.'" x="70" y="208" width="635" height="470" preserveAspectRatio="xMidYMid slice" clip-path="url(#crop)"/> '
             : '<rect x="70" y="208" width="635" height="470" rx="20" fill="#d9eadc"/> ';
 
         return <<<SVG
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="860" viewBox="0 0 1200 860" role="img" aria-labelledby="title description">
-  <title id="title">Kondisi Kebun {$title}</title>
+  <title id="title">{$escapedHeading}</title>
   <desc id="description">Data terverifikasi {$title}: {$escapedCrop}, {$escapedLocation}, luas terpakai {$escapedUsed}, status {$escapedStatus}.</desc>
   <defs>
     <clipPath id="crop"><rect x="70" y="208" width="635" height="470" rx="20"/></clipPath>
+    <clipPath id="condition"><rect x="94" y="752" width="590" height="52"/></clipPath>
+    <clipPath id="weather"><rect x="860" y="752" width="220" height="52"/></clipPath>
     <linearGradient id="hero" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#e8f6ea"/><stop offset="1" stop-color="#f7fbf8"/></linearGradient>
   </defs>
   <rect width="1200" height="860" fill="#f5faf6"/>
@@ -94,7 +97,7 @@ class FarmImageRenderer
   <circle cx="92" cy="103" r="34" fill="#1d6b45"/>
   <path d="M77 112c12-22 22-27 32-34-1 17-9 30-27 38" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
   <path d="M81 120c11-7 20-14 27-24" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-  <text x="148" y="98" fill="#153f2b" font-family="Arial, sans-serif" font-size="35" font-weight="700">Kondisi Kebun {$title}</text>
+  <text x="148" y="98" fill="#153f2b" font-family="Arial, sans-serif" font-size="35" font-weight="700">{$escapedHeading}</text>
   <text x="148" y="134" fill="#587365" font-family="Arial, sans-serif" font-size="21">Data kebun terverifikasi · farmDemoData.json</text>
 
   {$imageMarkup}
@@ -118,15 +121,102 @@ class FarmImageRenderer
     <text x="28" y="426" fill="#146c43" font-family="Arial, sans-serif" font-size="25" font-weight="700">{$escapedStatus}</text>
   </g>
 
-  <rect x="70" y="710" width="1030" height="82" rx="18" fill="#eef7f0"/>
+  <rect x="70" y="710" width="1030" height="100" rx="18" fill="#eef7f0"/>
   <text x="94" y="744" fill="#587365" font-family="Arial, sans-serif" font-size="16">PEMANTAUAN TERCATAT</text>
-  <text x="94" y="774" fill="#173b29" font-family="Arial, sans-serif" font-size="18">{$escapedCondition}</text>
-  <text x="744" y="744" fill="#587365" font-family="Arial, sans-serif" font-size="16">PERTUMBUHAN</text>
-  <text x="744" y="774" fill="#173b29" font-family="Arial, sans-serif" font-size="18" font-weight="700">{$escapedGrowth}</text>
-  <text x="872" y="744" fill="#587365" font-family="Arial, sans-serif" font-size="16">CUACA</text>
-  <text x="872" y="774" fill="#173b29" font-family="Arial, sans-serif" font-size="18" font-weight="700">{$escapedWeather}</text>
+  <text x="94" y="772" fill="#173b29" font-family="Arial, sans-serif" font-size="17" clip-path="url(#condition)">{$conditionMarkup}</text>
+  <text x="710" y="744" fill="#587365" font-family="Arial, sans-serif" font-size="16">PERTUMBUHAN</text>
+  <text x="710" y="772" fill="#173b29" font-family="Arial, sans-serif" font-size="17" font-weight="700">{$escapedGrowth}</text>
+  <text x="860" y="744" fill="#587365" font-family="Arial, sans-serif" font-size="16">CUACA</text>
+  <text x="860" y="772" fill="#173b29" font-family="Arial, sans-serif" font-size="16" font-weight="700" clip-path="url(#weather)">{$weatherMarkup}</text>
 </svg>
 SVG;
+    }
+
+    private function imageDataUri(string $publicPath): ?string
+    {
+        if ($publicPath === '' || str_contains($publicPath, "\0")) {
+            return null;
+        }
+
+        $baseDir = realpath(public_path('images/farm_fields'));
+        $file = realpath(public_path(ltrim($publicPath, '/')));
+        if ($baseDir === false || $file === false
+            || ! str_starts_with($file, $baseDir.DIRECTORY_SEPARATOR)
+            || ! is_file($file) || ! is_readable($file)) {
+            return null;
+        }
+
+        $mime = mime_content_type($file);
+        if (! in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/avif'], true)) {
+            return null;
+        }
+
+        $bytes = @file_get_contents($file);
+        if ($bytes === false || $bytes === '') {
+            return null;
+        }
+
+        $bytes = $this->downscale($bytes, $mime) ?? $bytes;
+
+        return 'data:'.$mime.';base64,'.base64_encode($bytes);
+    }
+
+    private function downscale(string $bytes, string $mime, int $maxWidth = 1270): ?string
+    {
+        $encoder = match ($mime) {
+            'image/png' => 'imagepng',
+            'image/webp' => 'imagewebp',
+            'image/avif' => 'imageavif',
+            default => 'imagejpeg',
+        };
+        if (! function_exists('imagecreatefromstring') || ! function_exists($encoder)) {
+            return null;
+        }
+
+        $image = @imagecreatefromstring($bytes);
+        if ($image === false) {
+            return null;
+        }
+
+        try {
+            if (imagesx($image) <= $maxWidth) {
+                return null;
+            }
+
+            $scaled = imagescale($image, $maxWidth);
+            if ($scaled === false) {
+                return null;
+            }
+
+            imagedestroy($image);
+            $image = $scaled;
+            ob_start();
+            try {
+                $encoded = $encoder($image, null, $mime === 'image/png' ? 7 : 80);
+                $output = ob_get_contents();
+            } finally {
+                ob_end_clean();
+            }
+
+            return $encoded && is_string($output) && $output !== '' ? $output : null;
+        } finally {
+            imagedestroy($image);
+        }
+    }
+
+    private function wrappedText(string $text, int $width, int $x): string
+    {
+        $lines = explode("\n", wordwrap($text, $width, "\n", true));
+        if (count($lines) > 2) {
+            $lines[1] = rtrim(mb_substr($lines[1], 0, $width - 1)).'…';
+        }
+
+        $markup = '';
+        foreach (array_slice($lines, 0, 2) as $index => $line) {
+            $markup .= '<tspan x="'.$x.'" dy="'.($index === 0 ? 0 : 22).'">'.$this->escape($line).'</tspan>';
+        }
+
+        return $markup;
     }
 
     private function escape(string $value): string
