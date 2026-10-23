@@ -255,7 +255,15 @@ services:
             STAGE: 'production'
             WEBSOCKET: 'true'
             CLIENT_MAX_BODY_SIZE: '0'
+            # By default nginx resolves "farmer-ic-app-1" once, when the config
+            # is loaded. Every deploy recreates the app container, which can
+            # hand it a new IP, leaving nginx proxying to a dead address
+            # (HTTP 502 / ERR_CONNECTION_RESET for visitors). Resolve the name
+            # per request through Docker's embedded DNS instead, so the portal
+            # does not need to be restarted during a deploy.
+            DYNAMIC_UPSTREAM: 'true'
             CUSTOM_NGINX_SERVER_CONFIG_BLOCK: |
+                resolver 127.0.0.11 valid=10s ipv6=off;
                 proxy_buffer_size 128k;
                 proxy_buffers 4 256k;
                 proxy_busy_buffers_size 256k;
