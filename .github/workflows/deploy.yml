@@ -95,4 +95,22 @@ jobs:
                       docker compose --env-file .env.production -f compose.production.yaml --profile rag build --pull app
                       docker ps -aq --filter 'name=farmer-ic-app-1' | xargs -r docker rm -f
                       docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --no-build --remove-orphans app worker scheduler postgres redis qdrant https-portal
+                      # nginx resolves the "farmer-ic-app-1" upstream once, when
+                      # its configuration is loaded. Restart the portal so it
+                      # picks up the recreated app container's address instead
+                      # of proxying to a stale IP (which shows up as HTTP 502).
+                      docker restart farmer-ic-https-portal-1 >/dev/null
+                      for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+                        if curl -fsSk -o /dev/null --max-time 5 \
+                          --resolve farmer.icdigital.io:443:127.0.0.1 \
+                          https://farmer.icdigital.io/up; then
+                          break
+                        fi
+                        if [ "$attempt" = 15 ]; then
+                          echo 'https-portal did not become healthy after restart' >&2
+                          docker logs --tail 50 farmer-ic-https-portal-1 >&2
+                          exit 1
+                        fi
+                        sleep 2
+                      done
                       docker image prune --force
