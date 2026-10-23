@@ -236,6 +236,7 @@ services:
         restart: always
         volumes:
             - https-portal-data:/var/lib/https-portal
+            - ./nginx-buffers.conf:/etc/nginx/conf.d/buffers.conf:ro
         healthcheck:
             test: ["CMD", "service", "nginx", "status"]
             interval: 30s
