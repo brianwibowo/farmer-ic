@@ -242,7 +242,7 @@ services:
             timeout: 20s
             retries: 3
         environment:
-            DOMAINS: 'farmer.icdigital.io -> http://app:80'
+            DOMAINS: 'farmer.icdigital.io -> http://farmer-ic-app-1:80'
             STAGE: 'production'
             WEBSOCKET: 'true'
             CLIENT_MAX_BODY_SIZE: '0'
