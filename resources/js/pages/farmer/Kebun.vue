@@ -52,12 +52,6 @@ const filteredKebun = computed(() => {
     });
 });
 
-// Summary counts follow the active search/commodity filter so they always match
-// the list below.
-const healthyCount = computed(() => filteredKebun.value.filter((item) => item.healthStatus === 'Sehat').length);
-const attentionCount = computed(() => filteredKebun.value.filter((item) => item.healthStatus === 'Perlu Perhatian').length);
-const criticalCount = computed(() => filteredKebun.value.filter((item) => item.healthStatus === 'Kritis').length);
-
 function formatHectare(value: number): string {
     return new Intl.NumberFormat('id-ID').format(value);
 }
@@ -144,41 +138,6 @@ onBeforeUnmount(() => {
                     Reset demo
                 </button>
             </header>
-
-            <section class="mt-5" aria-label="Ringkasan kondisi kebun">
-                <div class="flex items-center justify-between rounded-2xl border border-primary/20 bg-surface/35 p-4">
-                    <div>
-                        <p class="text-xs text-muted-foreground">Total kebun terdaftar</p>
-                        <p class="mt-1 text-3xl leading-9 font-semibold text-secondary">{{ filteredKebun.length }}</p>
-                    </div>
-                    <span class="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                        <LandPlot :size="22" aria-hidden="true" />
-                    </span>
-                </div>
-                <div class="mt-3 grid grid-cols-3 gap-2">
-                    <article class="flex items-center gap-1.5 rounded-2xl border border-success/25 bg-success/10 px-2 py-2.5">
-                        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-success/15 text-success">
-                            <component :is="healthMeta('Sehat').icon" :size="15" aria-hidden="true" />
-                        </span>
-                        <p class="text-lg leading-6 font-semibold text-success">{{ healthyCount }}</p>
-                        <p class="truncate text-[10px] font-medium text-success/80">Sehat</p>
-                    </article>
-                    <article class="flex items-center gap-1.5 rounded-2xl border border-warning/45 bg-warning/20 px-2 py-2.5">
-                        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-warning/30 text-warning-foreground">
-                            <component :is="healthMeta('Perlu Perhatian').icon" :size="15" aria-hidden="true" />
-                        </span>
-                        <p class="text-lg leading-6 font-semibold text-warning-foreground">{{ attentionCount }}</p>
-                        <p class="truncate text-[10px] font-medium text-warning-foreground">Perhatian</p>
-                    </article>
-                    <article class="flex items-center gap-1.5 rounded-2xl border border-error/25 bg-error/10 px-2 py-2.5">
-                        <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-error/10 text-error">
-                            <component :is="healthMeta('Kritis').icon" :size="15" aria-hidden="true" />
-                        </span>
-                        <p class="text-lg leading-6 font-semibold text-error">{{ criticalCount }}</p>
-                        <p class="truncate text-[10px] font-medium text-error">Kritis</p>
-                    </article>
-                </div>
-            </section>
 
             <div class="mt-5 flex gap-2">
                 <label class="relative min-w-0 flex-1">
