@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

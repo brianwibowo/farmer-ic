@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         if (DB::connection()->getDriverName() !== 'pgsql') {
-            throw new LogicException('Farmer IC integrity constraints require PostgreSQL.');
+            throw new LogicException('Farmer IC requires PostgreSQL. Run php artisan migrate --database=pgsql.');
         }
 
         // PostgreSQL requires these candidate keys for the composite FKs below.

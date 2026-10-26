@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
-use App\Models\Farm;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -56,9 +55,9 @@ class FinancialTransaction extends FarmerModel
         return $this->belongsTo(FinancialCategory::class, 'category_id');
     }
 
-    /** @return BelongsTo<User, $this> */
+    /** @return BelongsTo<FarmUser, $this> */
     public function recorder(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'recorded_by');
+        return $this->belongsTo(FarmUser::class, 'recorded_by');
     }
 }

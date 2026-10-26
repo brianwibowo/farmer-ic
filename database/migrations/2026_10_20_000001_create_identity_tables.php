@@ -10,14 +10,13 @@ return new class extends Migration
     public function up(): void
     {
         if (DB::connection()->getDriverName() !== 'pgsql') {
-            throw new LogicException('Farmer IC requires a separate PostgreSQL database. Run with --database=pgsql --path=database/migrations/farmer_ic.');
+            throw new LogicException('Farmer IC requires PostgreSQL. Run php artisan migrate --database=pgsql.');
         }
 
         Schema::create('roles', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('name', 30)->unique();
             $table->text('description')->nullable();
-
         });
         DB::statement('ALTER TABLE roles ADD CONSTRAINT roles_name_allowed CHECK (name IN (\'owner\', \'admin\', \'petugas\'))');
 
@@ -35,6 +34,7 @@ return new class extends Migration
             $table->foreign('role_id')->references('id')->on('roles')->restrictOnDelete();
             $table->index('role_id');
         });
+
     }
 
     public function down(): void

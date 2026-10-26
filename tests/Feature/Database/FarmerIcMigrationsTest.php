@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Database;
 
+use App\Models\FarmUser;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +12,9 @@ use Tests\TestCase;
 
 class FarmerIcMigrationsTest extends TestCase
 {
-    private const PATH = 'database/migrations/farmer_ic';
+    private const PATH = 'database/migrations';
+
+    private const RUNTIME_TABLES = ['cache', 'cache_locks', 'failed_jobs', 'job_batches', 'jobs', 'password_reset_tokens', 'sessions'];
 
     private Connection $database;
 
@@ -58,8 +62,11 @@ class FarmerIcMigrationsTest extends TestCase
             $this->assertDbmlContract();
             // A repeated migrate must neither duplicate tables nor change schema.
             $this->artisan('migrate', $options)->assertSuccessful();
-            $this->assertSame(9, $this->database->table('migrations')->count());
+            $this->assertSame(14, $this->database->table('migrations')->count());
+            $this->assertRuntimeTablesPreserveExistingRecords();
             $this->seedFixtures();
+            $this->assertUserColumnUpgradePreservesData();
+            $this->assertTeamSupport();
             $this->assertNumericAndEnumChecks();
             $this->assertActivityIntegrity();
             $this->assertCrossTableIntegrity();
@@ -82,12 +89,112 @@ class FarmerIcMigrationsTest extends TestCase
         $this->assertSame(['migrations'], $this->tableNames());
     }
 
+    private function assertRuntimeTablesPreserveExistingRecords(): void
+    {
+        $this->assertSame('uuid', $this->database->scalar("SELECT udt_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'sessions' AND column_name = 'user_id'"));
+        $this->database->table('cache')->insert(['key' => 'migration-check', 'value' => 'preserve-me', 'expiration' => 2147483000]);
+        $this->database->table('sessions')->insert(['id' => 'migration-session', 'payload' => '', 'last_activity' => 0]);
+        $this->database->table('password_reset_tokens')->insert(['email' => 'migration@example.test', 'token' => 'preserve-token']);
+        $this->database->table('jobs')->insert(['queue' => 'default', 'payload' => 'preserve-job', 'attempts' => 0, 'available_at' => 0, 'created_at' => 0]);
+
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('farmer_ic_test');
+        try {
+            foreach ([
+                '0001_01_01_000001_create_cache_table.php',
+                '0001_01_01_000002_create_jobs_table.php',
+                '2026_10_20_000010_create_laravel_runtime_tables.php',
+            ] as $file) {
+                $migration = require database_path('migrations/'.$file);
+                $migration->up();
+            }
+        } finally {
+            DB::setDefaultConnection($original);
+        }
+        $this->assertSame('preserve-me', $this->database->table('cache')->where('key', 'migration-check')->value('value'));
+        $this->assertTrue($this->database->table('sessions')->where('id', 'migration-session')->exists());
+        $this->assertSame('preserve-token', $this->database->table('password_reset_tokens')->value('token'));
+        $this->assertSame('preserve-job', $this->database->table('jobs')->value('payload'));
+    }
+
+    private function assertUserColumnUpgradePreservesData(): void
+    {
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('farmer_ic_test');
+        $this->database->beginTransaction();
+        try {
+            $userId = $this->ids['users'];
+            $originalHash = $this->database->table('users')->where('id', $userId)->value('password_hash');
+            $this->database->table('users')->where('id', $userId)->update([
+                'remember_token' => 'preserved-token', 'two_factor_secret' => 'preserved-secret',
+                'email_verified_at' => '2026-10-26 09:00:00',
+            ]);
+            $this->database->statement('ALTER TABLE users DROP COLUMN two_factor_recovery_codes');
+            $this->database->statement('ALTER TABLE users ALTER COLUMN password_hash TYPE varchar(255)');
+            $this->database->statement('ALTER TABLE sessions ALTER COLUMN user_id TYPE bigint USING NULL::bigint');
+            $this->database->table('sessions')->where('id', 'migration-session')->update(['user_id' => 1]);
+            $migration = require database_path('migrations/2026_10_26_000002_add_user_account_columns_and_fix_session_type.php');
+            try {
+                $migration->up();
+                $this->fail('A non-null numeric session identity must not be discarded.');
+            } catch (\LogicException $error) {
+                $this->assertStringContainsString('explicit mapping', $error->getMessage());
+            }
+            $this->assertSame(1, $this->database->table('sessions')->where('id', 'migration-session')->value('user_id'));
+            $this->database->table('sessions')->where('id', 'migration-session')->update(['user_id' => null]);
+            $migration->up();
+            $migration->up();
+
+            $schema = $this->database->getSchemaBuilder();
+            $this->assertSame('uuid', $schema->getColumnType('sessions', 'user_id'));
+            $this->assertSame('text', $schema->getColumnType('users', 'password_hash'));
+            $this->assertTrue($schema->hasColumn('users', 'two_factor_recovery_codes'));
+            $row = $this->database->table('users')->where('id', $userId)->first();
+            $this->assertSame($originalHash, $row->password_hash);
+            $this->assertSame('preserved-token', $row->remember_token);
+            $this->assertSame('preserved-secret', $row->two_factor_secret);
+            $user = FarmUser::on('farmer_ic_test')->findOrFail($userId);
+            $this->assertInstanceOf(CarbonImmutable::class, $user->email_verified_at);
+            foreach (['password_hash', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'] as $secret) {
+                $this->assertArrayNotHasKey($secret, $user->toArray());
+            }
+        } finally {
+            $this->database->rollBack();
+            DB::setDefaultConnection($original);
+        }
+    }
+
+    private function assertTeamSupport(): void
+    {
+        $teamId = $this->database->table('teams')->insertGetId([
+            'name' => 'Kebun Petani', 'slug' => 'kebun-petani', 'is_personal' => true,
+        ]);
+        $membership = ['team_id' => $teamId, 'user_id' => $this->ids['users'], 'role' => 'owner'];
+        $this->database->table('team_members')->insert($membership);
+        $this->database->table('team_invitations')->insert([
+            'team_id' => $teamId, 'code' => 'undangan-petugas', 'email' => 'petugas@example.test',
+            'role' => 'member', 'invited_by' => $this->ids['users'],
+        ]);
+        $this->database->table('users')->where('id', $this->ids['users'])->update(['current_team_id' => $teamId]);
+        $this->assertSame($teamId, $this->database->table('users')->where('id', $this->ids['users'])->value('current_team_id'));
+        $this->assertSame($this->ids['users'], $this->database->table('team_members')->value('user_id'));
+        $this->reject(fn () => $this->database->table('team_members')->insert($membership), '23505');
+        $this->reject(fn () => $this->database->table('team_members')->insert([
+            ...$membership, 'user_id' => (string) Str::uuid(),
+        ]), '23503');
+        $this->database->table('teams')->where('id', $teamId)->delete();
+        $this->assertSame(0, $this->database->table('team_members')->count());
+        $this->assertSame(0, $this->database->table('team_invitations')->count());
+        $this->assertNull($this->database->table('users')->where('id', $this->ids['users'])->value('current_team_id'));
+        $this->assertTrue($this->database->table('users')->where('id', $this->ids['users'])->exists());
+    }
+
     private function readDefinition(): void
     {
-        $source = file_get_contents(base_path(self::PATH.'/schema.dbml'));
+        $source = file_get_contents(database_path('schema.dbml'));
         preg_match_all('/^Table\s+(\w+)\s*\{([\s\S]*?)^\}/m', $source, $tables, PREG_SET_ORDER);
         foreach ($tables as $table) {
-            preg_match_all('/^  (\w+)\s+(uuid|varchar\(\d+\)|text|boolean|timestamptz|date|decimal\(\d+,\d+\)|int|jsonb)(?:\s+\[(.*)\])?\s*$/m', $table[2], $columns, PREG_SET_ORDER);
+            preg_match_all('/^  (\w+)\s+(uuid|bigint|varchar\(\d+\)|text|boolean|timestamptz|timestamp|date|decimal\(\d+,\d+\)|int|jsonb)(?:\s+\[(.*)\])?\s*$/m', $table[2], $columns, PREG_SET_ORDER);
             $this->definition[$table[1]] = array_map(fn (array $column) => [
                 'name' => $column[1], 'type' => $column[2], 'settings' => $column[3] ?? '',
             ], $columns);
@@ -102,7 +209,7 @@ class FarmerIcMigrationsTest extends TestCase
                 $this->uniqueKeys[$table[1]][] = preg_split('/,\s*/', $uniqueKey[1]);
             }
         }
-        $this->assertCount(31, $this->definition);
+        $this->assertCount(34, $this->definition);
     }
 
     /** @return list<string> */
@@ -113,7 +220,7 @@ class FarmerIcMigrationsTest extends TestCase
 
     private function assertDbmlContract(): void
     {
-        $expectedTables = [...array_keys($this->definition), 'migrations'];
+        $expectedTables = [...array_keys($this->definition), ...self::RUNTIME_TABLES, 'migrations'];
         sort($expectedTables);
         $this->assertSame($expectedTables, $this->tableNames());
         foreach ($this->definition as $table => $columns) {
@@ -128,6 +235,7 @@ class FarmerIcMigrationsTest extends TestCase
                     str_starts_with($type, 'decimal') => 'numeric',
                     $type === 'boolean' => 'bool',
                     $type === 'int' => 'int4',
+                    $type === 'bigint' => 'int8',
                     default => $type,
                 };
                 $this->assertSame($nativeType, $field->udt_name, $table.'.'.$column['name']);
@@ -171,7 +279,7 @@ SQL, [$table]), 'columns');
                 $this->assertContains(implode(',', $uniqueKey), $uniqueKeys, $table.' unique constraint');
             }
         }
-        $this->assertSame(45, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
+        $this->assertSame(50, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
         $this->assertSame(8, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
     }
 

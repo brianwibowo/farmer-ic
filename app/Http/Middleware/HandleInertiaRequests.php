@@ -35,7 +35,8 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
+        $guestPage = $request->route()?->defaults['farmer_guest'] ?? false;
+        $user = $guestPage ? null : $request->user();
 
         return [
             ...parent::share($request),

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -36,9 +36,9 @@ class Notification extends FarmerModel
         ];
     }
 
-    /** @return BelongsTo<User, $this> */
+    /** @return BelongsTo<FarmUser, $this> */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(FarmUser::class, 'user_id');
     }
 }

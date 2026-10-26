@@ -2,15 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Farmer\FarmActivity;
-use App\Models\Farmer\FarmerModel;
-use App\Models\Farmer\FinancialBudget;
-use App\Models\Farmer\FinancialProjection;
-use App\Models\Farmer\FinancialTransaction;
-use App\Models\Farmer\OperationalTarget;
-use App\Models\Farmer\PlantingCycle;
-use App\Models\Farmer\User as FarmerUser;
-use App\Models\Farmer\WeatherRecord;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,16 +42,16 @@ class Farm extends FarmerModel
         ];
     }
 
-    /** @return BelongsTo<FarmerUser, $this> */
+    /** @return BelongsTo<FarmUser, $this> */
     public function owner(): BelongsTo
     {
-        return $this->belongsTo(FarmerUser::class, 'owner_id');
+        return $this->belongsTo(FarmUser::class, 'owner_id');
     }
 
-    /** @return BelongsTo<FarmerUser, $this> */
+    /** @return BelongsTo<FarmUser, $this> */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(FarmerUser::class, 'created_by');
+        return $this->belongsTo(FarmUser::class, 'created_by');
     }
 
     /** @return HasMany<PlantingCycle, $this> */

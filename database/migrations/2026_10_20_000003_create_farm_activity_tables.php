@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         if (DB::connection()->getDriverName() !== 'pgsql') {
-            throw new LogicException('Farmer IC requires a separate PostgreSQL database. Run with --database=pgsql --path=database/migrations/farmer_ic.');
+            throw new LogicException('Farmer IC requires PostgreSQL. Run php artisan migrate --database=pgsql.');
         }
 
         Schema::create('activity_types', function (Blueprint $table): void {

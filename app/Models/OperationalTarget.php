@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
-use App\Models\Farm;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -48,9 +47,9 @@ class OperationalTarget extends FarmerModel
         return $this->belongsTo(PlantingCycle::class, 'planting_cycle_id');
     }
 
-    /** @return BelongsTo<User, $this> */
+    /** @return BelongsTo<FarmUser, $this> */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(FarmUser::class, 'created_by');
     }
 }

@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
-use App\Models\Farm;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,15 +17,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $email_verified_at
+ * @property string|null $two_factor_secret
+ * @property string|null $two_factor_recovery_codes
+ * @property CarbonImmutable|null $two_factor_confirmed_at
+ * @property string|null $remember_token
  */
 #[Fillable(['name', 'email', 'password_hash', 'avatar_url'])]
-class User extends FarmerModel
+class FarmUser extends FarmerModel
 {
     protected $table = 'users';
 
     public $timestamps = true;
 
-    protected $hidden = ['password_hash'];
+    protected $hidden = ['password_hash', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'];
 
     protected $attributes = ['is_active' => true];
 
@@ -37,6 +41,8 @@ class User extends FarmerModel
             'is_active' => 'boolean',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
+            'email_verified_at' => 'immutable_datetime',
+            'two_factor_confirmed_at' => 'immutable_datetime',
             'password_hash' => 'hashed',
         ];
     }

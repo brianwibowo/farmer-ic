@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,9 +15,9 @@ class Role extends FarmerModel
 {
     protected $table = 'roles';
 
-    /** @return HasMany<User, $this> */
+    /** @return HasMany<FarmUser, $this> */
     public function users(): HasMany
     {
-        return $this->hasMany(User::class, 'role_id');
+        return $this->hasMany(FarmUser::class, 'role_id');
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;

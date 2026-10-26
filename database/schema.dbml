@@ -1,6 +1,6 @@
 Project FarmerIC {
   database_type: 'PostgreSQL'
-  Note: 'Master ERD Farmer IC. Tanpa teams dan farm_plots. Role owner read-only, admin full access, petugas CRUD operasional.'
+  Note: 'Master ERD Farmer IC dengan dukungan teams untuk integrasi RAG. Tanpa farm_plots. Role aplikasi terpisah dari role anggota team.'
 }
 
 Table roles {
@@ -18,6 +18,48 @@ Table users {
   avatar_url text
   is_active boolean [not null, default: true]
   created_at timestamptz [not null]
+  updated_at timestamptz
+  current_team_id bigint [ref: > teams.id]
+  email_verified_at timestamp
+  two_factor_secret text
+  two_factor_recovery_codes text
+  two_factor_confirmed_at timestamp
+  remember_token varchar(100)
+}
+
+Table teams {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  slug varchar(255) [not null, unique]
+  is_personal boolean [not null, default: false]
+  created_at timestamptz
+  updated_at timestamptz
+  deleted_at timestamptz
+}
+
+Table team_members {
+  id bigint [pk, increment]
+  team_id bigint [not null, ref: > teams.id]
+  user_id uuid [not null, ref: > users.id]
+  role varchar(255) [not null, note: 'Role anggota team; terpisah dari users.role_id']
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (team_id, user_id) [unique]
+  }
+}
+
+Table team_invitations {
+  id bigint [pk, increment]
+  code varchar(64) [not null, unique]
+  team_id bigint [not null, ref: > teams.id]
+  email varchar(255) [not null]
+  role varchar(255) [not null]
+  invited_by uuid [not null, ref: > users.id]
+  expires_at timestamptz
+  accepted_at timestamptz
+  created_at timestamptz
   updated_at timestamptz
 }
 

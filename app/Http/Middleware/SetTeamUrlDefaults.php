@@ -16,6 +16,10 @@ class SetTeamUrlDefaults
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->route()?->defaults['farmer_guest'] ?? false) {
+            return $next($request);
+        }
+
         if ($currentTeam = $request->user()?->currentTeam) {
             URL::defaults([
                 'current_team' => $currentTeam->slug,

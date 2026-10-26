@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
-use App\Models\Farm;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -56,10 +55,10 @@ class FarmActivity extends FarmerModel
         return $this->belongsTo(ActivityType::class, 'activity_type_id');
     }
 
-    /** @return BelongsTo<User, $this> */
+    /** @return BelongsTo<FarmUser, $this> */
     public function performer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'performed_by');
+        return $this->belongsTo(FarmUser::class, 'performed_by');
     }
 
     /** @return HasMany<ActivityPhoto, $this> */

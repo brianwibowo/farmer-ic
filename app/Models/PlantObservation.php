@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -49,10 +49,10 @@ class PlantObservation extends FarmerModel
         return $this->belongsTo(FarmActivity::class, 'activity_id');
     }
 
-    /** @return BelongsTo<User, $this> */
+    /** @return BelongsTo<FarmUser, $this> */
     public function observer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'observed_by');
+        return $this->belongsTo(FarmUser::class, 'observed_by');
     }
 
     /** @return HasMany<FarmRisk, $this> */
