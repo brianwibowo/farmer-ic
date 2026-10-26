@@ -53,6 +53,24 @@
             "Composer\\Config::disableProcessTimeout",
             "@php artisan dev"
         ],
+        "dev:local": [
+            "Composer\\Config::disableProcessTimeout",
+            "@putenv APP_ENV=local",
+            "@php artisan dev"
+        ],
+        "artisan:local": [
+            "@putenv APP_ENV=local",
+            "@php artisan"
+        ],
+        "migrate:farmer": [
+            "@putenv APP_ENV=local",
+            "@putenv DB_DATABASE=farmer_ic_dev",
+            "@php artisan migrate --env=local --database=pgsql --path=database/migrations/farmer_ic"
+        ],
+        "migrate:farmer:reset": [
+            "@putenv APP_ENV=local",
+            "@php artisan --env=local tinker --execute=\"DB::connection('pgsql')->unprepared('DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO farmer_ic_dev; GRANT ALL ON SCHEMA public TO public;'); echo 'Database farmer_ic_dev schema has been reset.' . PHP_EOL;\""
+        ],
         "lint": [
             "pint --parallel"
         ],
@@ -97,8 +115,7 @@
         "laravel": {
             "dont-discover": [],
             "installer": {
-                "post-create-project": [
-                ]
+                "post-create-project": []
             }
         }
     },
