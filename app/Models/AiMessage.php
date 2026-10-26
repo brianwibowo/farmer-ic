@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Database\Factories\AiMessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -48,6 +49,8 @@ class AiMessage extends Model
 {
     /** @use HasFactory<AiMessageFactory> */
     use HasFactory;
+
+    use HasVisibleScope;
 
     protected function casts(): array
     {

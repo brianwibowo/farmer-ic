@@ -12,10 +12,10 @@ class TeamMemberTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_team_member_roles_can_be_updated_by_owners()
+    public function test_team_member_roles_can_be_updated_by_application_superadmins()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -37,9 +37,9 @@ class TeamMemberTest extends TestCase
 
     public function test_team_member_roles_cannot_be_updated_by_non_owners()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $admin = User::factory()->create();
-        $member = User::factory()->create();
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -55,10 +55,10 @@ class TeamMemberTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_team_members_can_be_removed_by_owners()
+    public function test_team_members_can_be_removed_by_application_superadmins()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -75,9 +75,9 @@ class TeamMemberTest extends TestCase
 
     public function test_team_members_cannot_be_removed_by_non_owners()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $admin = User::factory()->create();
-        $member = User::factory()->create();
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -93,7 +93,7 @@ class TeamMemberTest extends TestCase
 
     public function test_team_owner_cannot_be_removed()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -109,8 +109,8 @@ class TeamMemberTest extends TestCase
 
     public function test_team_member_role_cannot_be_set_to_owner()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -132,8 +132,8 @@ class TeamMemberTest extends TestCase
 
     public function test_removed_member_current_team_is_set_to_personal_team()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
         $personalTeam = $member->personalTeam();
         $team = Team::factory()->create();
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use App\Enums\TeamRole;
 use Database\Factories\TeamInvitationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -30,6 +31,8 @@ class TeamInvitation extends Model
 {
     /** @use HasFactory<TeamInvitationFactory> */
     use HasFactory;
+
+    use HasVisibleScope;
 
     /**
      * Bootstrap the model and its traits.

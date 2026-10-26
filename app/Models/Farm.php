@@ -2,15 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Farmer\FarmActivity;
-use App\Models\Farmer\FarmerModel;
-use App\Models\Farmer\FinancialBudget;
-use App\Models\Farmer\FinancialProjection;
-use App\Models\Farmer\FinancialTransaction;
-use App\Models\Farmer\OperationalTarget;
-use App\Models\Farmer\PlantingCycle;
 use App\Models\Farmer\User as FarmerUser;
-use App\Models\Farmer\WeatherRecord;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property string $id
  * @property string|null $owner_id
+ * @property int|null $team_id
+ * @property-read Team|null $team
  * @property string $created_by
  * @property string $name
  * @property string|null $address
@@ -35,6 +29,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['owner_id', 'name', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url'])]
 class Farm extends FarmerModel
 {
+    /** @return BelongsTo<Team, $this> */
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
+
     protected $table = 'farms';
 
     public $timestamps = true;

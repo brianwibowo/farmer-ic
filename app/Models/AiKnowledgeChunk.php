@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -40,6 +41,8 @@ use Illuminate\Support\Carbon;
 ])]
 class AiKnowledgeChunk extends Model
 {
+    use HasVisibleScope;
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_INDEXED = 'indexed';

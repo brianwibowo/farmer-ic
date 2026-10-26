@@ -473,7 +473,7 @@ class AiChatTest extends TestCase
 
     public function test_published_team_knowledge_is_snapshotted_for_new_conversations(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'owner']);
         $team = $user->currentTeam;
 
         $created = $this->actingAs($user)

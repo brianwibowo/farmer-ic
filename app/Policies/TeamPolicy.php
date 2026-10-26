@@ -2,99 +2,58 @@
 
 namespace App\Policies;
 
-use App\Enums\TeamPermission;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
-class TeamPolicy
+class TeamPolicy extends ResourcePolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    protected string $resource = 'teams';
+
+    protected ?string $teamPath = '';
+
+    public function delete(User $user, Model $record): bool
     {
-        return true;
+        return $record instanceof Team && ! $record->is_personal && parent::delete($user, $record);
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, Team $team): bool
-    {
-        return $user->belongsToTeam($team);
-    }
-
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
-    {
-        return true;
-    }
-
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Team $team): bool
-    {
-        return $user->hasTeamPermission($team, TeamPermission::UpdateTeam);
-    }
-
-    /**
-     * Determine whether the user can leave the team.
-     */
-    public function leave(User $user, Team $team): bool
-    {
-        return ! $team->is_personal
-            && $user->belongsToTeam($team)
-            && ! $user->ownsTeam($team);
-    }
-
-    /**
-     * Determine whether the user can add a member to the team.
-     */
     public function addMember(User $user, Team $team): bool
     {
-        return $user->hasTeamPermission($team, TeamPermission::AddMember);
+        return $this->permissions->scope($user, 'memberships.create') === 'any'
+            && $this->permissions->withinTeam($user, $team);
     }
 
-    /**
-     * Determine whether the user can update a member's role in the team.
-     */
     public function updateMember(User $user, Team $team): bool
     {
-        return $user->hasTeamPermission($team, TeamPermission::UpdateMember);
+        return $this->permissions->scope($user, 'memberships.update') === 'any'
+            && $this->permissions->scope($user, 'memberships.view') === 'any'
+            && $this->permissions->withinTeam($user, $team);
     }
 
-    /**
-     * Determine whether the user can remove a member from the team.
-     */
     public function removeMember(User $user, Team $team): bool
     {
-        return $user->hasTeamPermission($team, TeamPermission::RemoveMember);
+        return $this->permissions->scope($user, 'memberships.delete') === 'any'
+            && $this->permissions->scope($user, 'memberships.view') === 'any'
+            && $this->permissions->withinTeam($user, $team);
     }
 
-    /**
-     * Determine whether the user can invite members to the team.
-     */
     public function inviteMember(User $user, Team $team): bool
     {
-        return $user->hasTeamPermission($team, TeamPermission::CreateInvitation);
+        return $this->permissions->scope($user, 'team_invitations.create') === 'any'
+            && $this->permissions->withinTeam($user, $team);
     }
 
-    /**
-     * Determine whether the user can cancel invitations.
-     */
     public function cancelInvitation(User $user, Team $team): bool
     {
-        return $user->hasTeamPermission($team, TeamPermission::CancelInvitation);
+        return $this->permissions->scope($user, 'team_invitations.delete') === 'any'
+            && $this->permissions->scope($user, 'team_invitations.view') === 'any'
+            && $this->permissions->withinTeam($user, $team);
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Team $team): bool
+    public function leave(User $user, Team $team): bool
     {
-        return ! $team->is_personal && $user->hasTeamPermission($team, TeamPermission::DeleteTeam);
+        return $this->permissions->scope($user, 'teams.leave') === 'any'
+            && ! $team->is_personal && ! $user->ownsTeam($team)
+            && $this->permissions->withinTeam($user, $team);
     }
 }

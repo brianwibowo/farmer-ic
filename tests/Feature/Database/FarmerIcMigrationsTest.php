@@ -30,7 +30,7 @@ class FarmerIcMigrationsTest extends TestCase
     {
         $database = getenv('FARMER_IC_TEST_DATABASE');
         if (! $database) {
-            $this->markTestSkipped('Set FARMER_IC_TEST_DATABASE to a dedicated local PostgreSQL test database.');
+            $this->markTestSkipped('FARMER_IC_TEST_DATABASE is unset. This migration/rollback test requires a dedicated empty farmer_ic_schema_test_* PostgreSQL database; never use farmer_ic_dev or another existing database.');
         }
         $this->assertStringStartsWith('farmer_ic_schema_test_', $database);
 

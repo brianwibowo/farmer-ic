@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 abstract class FarmerModel extends Model
 {
     use HasUuids;
+    use HasVisibleScope;
 
     public $timestamps = false;
 }

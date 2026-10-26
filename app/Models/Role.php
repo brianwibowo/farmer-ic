@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
+use App\Models\Farmer\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 

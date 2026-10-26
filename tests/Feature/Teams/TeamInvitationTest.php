@@ -19,7 +19,7 @@ class TeamInvitationTest extends TestCase
     {
         Notification::fake();
 
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -42,7 +42,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_invitation_email_for_existing_users_uses_login_route()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
         $team = Team::factory()->create();
 
@@ -62,7 +62,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_invitation_email_for_unknown_users_uses_login_route()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -79,12 +79,12 @@ class TeamInvitationTest extends TestCase
         $this->assertStringContainsString('log in', strtolower(implode(' ', $mail->introLines)));
     }
 
-    public function test_team_invitations_can_be_created_by_admins()
+    public function test_team_invitations_can_be_created_by_application_superadmins_with_team_admin_membership()
     {
         Notification::fake();
 
-        $owner = User::factory()->create();
-        $admin = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $admin = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -104,7 +104,7 @@ class TeamInvitationTest extends TestCase
     {
         Notification::fake();
 
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $member = User::factory()->create(['email' => 'member@example.com']);
         $team = Team::factory()->create();
 
@@ -125,7 +125,7 @@ class TeamInvitationTest extends TestCase
     {
         Notification::fake();
 
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
 
@@ -147,8 +147,8 @@ class TeamInvitationTest extends TestCase
 
     public function test_team_invitations_cannot_be_created_by_members()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -164,9 +164,9 @@ class TeamInvitationTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_team_invitations_can_be_cancelled_by_owners()
+    public function test_team_invitations_can_be_cancelled_by_application_superadmins()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -189,7 +189,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_team_invitations_can_be_accepted()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
         $team = Team::factory()->create();
 
@@ -215,7 +215,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_team_invitations_can_be_declined_by_the_invited_user()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
         $team = Team::factory()->create();
 
@@ -240,7 +240,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_team_invitations_cannot_be_declined_by_uninvited_user()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $uninvitedUser = User::factory()->create(['email' => 'uninvited@example.com']);
         $team = Team::factory()->create();
 
@@ -265,7 +265,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_accepted_team_invitations_cannot_be_declined()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
         $team = Team::factory()->create();
 
@@ -290,7 +290,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_team_invitations_cannot_be_accepted_by_uninvited_user()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $uninvitedUser = User::factory()->create(['email' => 'uninvited@example.com']);
         $team = Team::factory()->create();
 
@@ -313,7 +313,7 @@ class TeamInvitationTest extends TestCase
 
     public function test_expired_invitations_cannot_be_accepted()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
         $team = Team::factory()->create();
 

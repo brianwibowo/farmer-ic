@@ -17,7 +17,7 @@ class AiKnowledgeDocumentIndexLifecycleTest extends TestCase
     {
         config(['ai.rag.vector_enabled' => true]);
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'owner']);
         $team = $user->currentTeam;
         $document = $this->document($team->id, $user->id);
 
@@ -37,7 +37,7 @@ class AiKnowledgeDocumentIndexLifecycleTest extends TestCase
     {
         config(['ai.rag.vector_enabled' => true]);
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'owner']);
         $team = $user->currentTeam;
         $document = $this->document($team->id, $user->id);
 
@@ -53,7 +53,7 @@ class AiKnowledgeDocumentIndexLifecycleTest extends TestCase
     {
         config(['ai.rag.vector_enabled' => true]);
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'owner']);
         $team = $user->currentTeam;
         $document = $this->document($team->id, $user->id);
 

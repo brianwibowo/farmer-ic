@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Database\Factories\AiAttachmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -41,6 +42,8 @@ class AiAttachment extends Model
 {
     /** @use HasFactory<AiAttachmentFactory> */
     use HasFactory;
+
+    use HasVisibleScope;
 
     protected function casts(): array
     {

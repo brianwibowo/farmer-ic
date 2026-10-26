@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Database\Factories\AiConversationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,6 +32,8 @@ class AiConversation extends Model
 {
     /** @use HasFactory<AiConversationFactory> */
     use HasFactory;
+
+    use HasVisibleScope;
 
     protected function casts(): array
     {

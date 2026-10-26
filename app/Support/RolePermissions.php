@@ -7,12 +7,25 @@ use App\Models\User;
 
 final class RolePermissions
 {
+    /** @return array<string, mixed> */
+    public function roles(): array
+    {
+        $roles = config('access.roles', []);
+
+        return is_array($roles) ? $roles : [];
+    }
+
+    public function isKnownRole(string $role): bool
+    {
+        return isset($this->roles()[$role]) && is_array($this->roles()[$role]);
+    }
+
     public function scope(User $user, string $permission): ?string
     {
         $role = $user->getAttribute('role');
-        $roles = config('access.roles', []);
+        $roles = $this->roles();
 
-        if (! is_string($role) || $role === '' || ! is_array($roles)) {
+        if (! is_string($role) || $role === '') {
             return null;
         }
 
@@ -32,7 +45,7 @@ final class RolePermissions
 
     public function withinAssignmentLimit(User $user, int $count): bool
     {
-        $limits = config('access.kebun_assignment_limits', []);
+        $limits = config('access.farm_assignment_limits', []);
 
         if (! is_array($limits) || ! is_string($user->role)) {
             return false;

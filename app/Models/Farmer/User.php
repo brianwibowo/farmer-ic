@@ -2,9 +2,20 @@
 
 namespace App\Models\Farmer;
 
+use App\Models\AuditLog;
 use App\Models\Farm;
+use App\Models\FarmActivity;
+use App\Models\FarmerModel;
+use App\Models\FinancialBudget;
+use App\Models\FinancialTransaction;
+use App\Models\Notification;
+use App\Models\OperationalTarget;
+use App\Models\PlantObservation;
+use App\Models\Role;
+use App\Policies\Farmer\UserPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -19,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
+#[UsePolicy(UserPolicy::class)]
 #[Fillable(['name', 'email', 'password_hash', 'avatar_url'])]
 class User extends FarmerModel
 {

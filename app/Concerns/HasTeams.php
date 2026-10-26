@@ -6,6 +6,7 @@ use App\Data\TeamPermissions;
 use App\Data\UserTeam;
 use App\Enums\TeamPermission;
 use App\Enums\TeamRole;
+use App\Models\AiKnowledgeDocument;
 use App\Models\Membership;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 
 trait HasTeams
@@ -165,17 +167,15 @@ trait HasTeams
      */
     public function toTeamPermissions(Team $team): TeamPermissions
     {
-        $role = $this->teamRole($team);
-
         return new TeamPermissions(
-            canUpdateTeam: $role?->hasPermission(TeamPermission::UpdateTeam) ?? false,
-            canDeleteTeam: $role?->hasPermission(TeamPermission::DeleteTeam) ?? false,
-            canAddMember: $role?->hasPermission(TeamPermission::AddMember) ?? false,
-            canUpdateMember: $role?->hasPermission(TeamPermission::UpdateMember) ?? false,
-            canRemoveMember: $role?->hasPermission(TeamPermission::RemoveMember) ?? false,
-            canCreateInvitation: $role?->hasPermission(TeamPermission::CreateInvitation) ?? false,
-            canCancelInvitation: $role?->hasPermission(TeamPermission::CancelInvitation) ?? false,
-            canManageKnowledge: $role?->hasPermission(TeamPermission::ManageKnowledge) ?? false,
+            canUpdateTeam: $this->hasTeamPermission($team, TeamPermission::UpdateTeam),
+            canDeleteTeam: $this->hasTeamPermission($team, TeamPermission::DeleteTeam),
+            canAddMember: $this->hasTeamPermission($team, TeamPermission::AddMember),
+            canUpdateMember: $this->hasTeamPermission($team, TeamPermission::UpdateMember),
+            canRemoveMember: $this->hasTeamPermission($team, TeamPermission::RemoveMember),
+            canCreateInvitation: $this->hasTeamPermission($team, TeamPermission::CreateInvitation),
+            canCancelInvitation: $this->hasTeamPermission($team, TeamPermission::CancelInvitation),
+            canManageKnowledge: $this->hasTeamPermission($team, TeamPermission::ManageKnowledge),
         );
     }
 
@@ -192,6 +192,17 @@ trait HasTeams
      */
     public function hasTeamPermission(Team $team, TeamPermission $permission): bool
     {
-        return $this->teamRole($team)?->hasPermission($permission) ?? false;
+        $gate = Gate::forUser($this);
+
+        return match ($permission) {
+            TeamPermission::UpdateTeam => $gate->allows('update', $team),
+            TeamPermission::DeleteTeam => $gate->allows('delete', $team),
+            TeamPermission::AddMember => $gate->allows('addMember', $team),
+            TeamPermission::UpdateMember => $gate->allows('updateMember', $team),
+            TeamPermission::RemoveMember => $gate->allows('removeMember', $team),
+            TeamPermission::CreateInvitation => $gate->allows('inviteMember', $team),
+            TeamPermission::CancelInvitation => $gate->allows('cancelInvitation', $team),
+            TeamPermission::ManageKnowledge => $gate->allows('create', [AiKnowledgeDocument::class, $team]),
+        };
     }
 }

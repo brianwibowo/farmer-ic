@@ -15,7 +15,7 @@ class TeamTest extends TestCase
 
     public function test_the_teams_index_page_can_be_rendered()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
 
         $response = $this
             ->actingAs($user)
@@ -26,7 +26,7 @@ class TeamTest extends TestCase
 
     public function test_teams_can_be_created()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
 
         $response = $this
             ->actingAs($user)
@@ -44,7 +44,7 @@ class TeamTest extends TestCase
 
     public function test_team_slug_uses_next_available_suffix()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
 
         Team::factory()->create(['name' => 'Acme', 'slug' => 'acme']);
         Team::factory()->create(['name' => 'Acme One', 'slug' => 'acme-1']);
@@ -64,7 +64,7 @@ class TeamTest extends TestCase
 
     public function test_the_team_edit_page_can_be_rendered()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
@@ -82,9 +82,9 @@ class TeamTest extends TestCase
             );
     }
 
-    public function test_teams_can_be_updated_by_owners()
+    public function test_teams_can_be_updated_by_application_superadmins()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create(['name' => 'Original Name']);
 
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
@@ -105,8 +105,8 @@ class TeamTest extends TestCase
 
     public function test_teams_cannot_be_updated_by_members()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -121,9 +121,9 @@ class TeamTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_teams_can_be_deleted_by_owners()
+    public function test_teams_can_be_deleted_by_application_superadmins()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
@@ -143,7 +143,7 @@ class TeamTest extends TestCase
 
     public function test_team_deletion_requires_name_confirmation()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
@@ -164,7 +164,7 @@ class TeamTest extends TestCase
 
     public function test_deleting_current_team_switches_to_alphabetically_first_remaining_team()
     {
-        $user = User::factory()->create(['name' => 'Mike']);
+        $user = User::factory()->create(['name' => 'Mike', 'role' => 'superadmin']);
 
         $zuluTeam = Team::factory()->create(['name' => 'Zulu Team']);
         $zuluTeam->members()->attach($user, ['role' => TeamRole::Owner->value]);
@@ -194,7 +194,7 @@ class TeamTest extends TestCase
 
     public function test_deleting_current_team_falls_back_to_personal_team_when_alphabetically_first()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $personalTeam = $user->personalTeam();
         $team = Team::factory()->create(['name' => 'Zulu Team']);
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
@@ -218,7 +218,7 @@ class TeamTest extends TestCase
 
     public function test_deleting_non_current_team_leaves_current_team_unchanged()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $personalTeam = $user->personalTeam();
         $team = Team::factory()->create();
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
@@ -242,8 +242,8 @@ class TeamTest extends TestCase
 
     public function test_members_can_leave_non_personal_teams()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -261,8 +261,8 @@ class TeamTest extends TestCase
 
     public function test_leaving_current_team_switches_to_alphabetically_first_remaining_team()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create(['name' => 'Mike']);
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['name' => 'Mike', 'role' => 'petugas']);
 
         $zuluTeam = Team::factory()->create(['name' => 'Zulu Team']);
         $zuluTeam->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -288,7 +288,7 @@ class TeamTest extends TestCase
 
     public function test_personal_teams_cannot_be_left()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $personalTeam = $user->personalTeam();
 
         $response = $this
@@ -302,7 +302,7 @@ class TeamTest extends TestCase
 
     public function test_team_owners_cannot_leave_their_team()
     {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -318,7 +318,7 @@ class TeamTest extends TestCase
 
     public function test_users_cannot_leave_teams_they_dont_belong_to()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $response = $this
@@ -330,8 +330,8 @@ class TeamTest extends TestCase
 
     public function test_deleting_team_switches_other_affected_users_to_their_personal_team()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
 
         $team = Team::factory()->create();
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -353,7 +353,7 @@ class TeamTest extends TestCase
 
     public function test_personal_teams_cannot_be_deleted()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
 
         $personalTeam = $user->personalTeam();
 
@@ -373,8 +373,8 @@ class TeamTest extends TestCase
 
     public function test_teams_cannot_be_deleted_by_non_owners()
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'superadmin']);
+        $member = User::factory()->create(['role' => 'petugas']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -391,7 +391,7 @@ class TeamTest extends TestCase
 
     public function test_users_can_switch_teams()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($user, ['role' => TeamRole::Member->value]);
@@ -407,7 +407,7 @@ class TeamTest extends TestCase
 
     public function test_users_cannot_switch_to_team_they_dont_belong_to()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'superadmin']);
         $team = Team::factory()->create();
 
         $response = $this

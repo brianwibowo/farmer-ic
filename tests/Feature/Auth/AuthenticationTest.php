@@ -61,7 +61,7 @@ class AuthenticationTest extends TestCase
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
     {
         if (! Features::canManageTwoFactorAuthentication()) {
-            $this->markTestSkipped('Two-factor authentication is not enabled.');
+            $this->markTestSkipped('Fortify two-factor authentication is disabled in config/fortify.php, so challenge routes are not registered. This test requires an enabled two-factor test configuration.');
         }
 
         Features::twoFactorAuthentication([

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models\Farmer;
+namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 abstract class ActivityDetail extends Model
 {
+    use HasVisibleScope;
+
     protected $primaryKey = 'activity_id';
 
     protected $keyType = 'string';
