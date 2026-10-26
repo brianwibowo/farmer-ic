@@ -19,15 +19,18 @@ Repository interfaces; use Eloquent models and query builders directly from
 services where appropriate.
 
 - Models in `app/Models/` represent persisted domain data and relationships.
-- Controllers in `app/Http/Controllers/` handle requests, invoke authorization,
-  call services, and return Inertia pages, redirects, or responses. Keep business
-  rules out of controllers.
-- Form Requests in `app/Http/Requests/` handle validation and may enforce
-  request-level authorization; do not rely on client-side validation alone.
+- Controllers in `app/Http/Controllers/` handle requests, invoke authorization
+  (Gate/Policy) before calling services, and return Inertia pages, redirects,
+  or responses. Keep business rules out of controllers.
+- Form Requests in `app/Http/Requests/` handle validation. They may check
+  authorization only by delegating to the same Policy/Gate (never by
+  re-implementing rules); do not rely on client-side validation alone.
 - Services in `app/Services/` contain use-case/business logic, coordinate
-  Eloquent persistence, and manage transactions when necessary.
+  Eloquent persistence, and manage transactions when necessary. Services do not
+  contain role or permission rules.
 - Policies and Gates enforce authorization; authorization rules must not be
-  buried in Vue components or scattered through service implementations.
+  buried in Vue components or scattered through controllers and services.
+  See STATIC RBAC AND AUTHORIZATION below.
 - Migrations, seeders, models, controllers, routes, and backend tests may be
   added or changed as needed for the prototype. Keep changes focused.
 - Use Laravel routes and Inertia `<Link>` navigation. Server actions should
@@ -61,40 +64,177 @@ keeping data and integrations within the agreed demo scope.
 
 ## STATIC RBAC AND AUTHORIZATION
 
-Use Laravel's native Gates and Policies with a small, static role-permission
-matrix defined in `config/access.php`. Role names, permission keys, and scopes
-are defined in code, not through dynamic role/permission management tables or
-runtime permission editors.
+Use Laravel's native Gates and Policies, in their idiomatic form, with a small,
+static role-permission matrix defined in `config/access.php`. Role names,
+permission keys, and scopes are defined in code, not through dynamic
+role/permission management tables or runtime permission editors. No permission
+package (for example Spatie) is used.
+
+### Source of truth
 
 - The fixed roles are `owner`, `superadmin`, `admin`, and `petugas`.
 - Define the permitted actions and their scopes in `config/access.php` under
   `roles`, for example `'harvests.view' => 'any'` or
-  `'harvests.update' => 'own'`. Absence of a permission means deny.
-- Interpret `any` as access to all records permitted by the application's
-  tenant/team boundary, and `own` as access only to the user's assigned
-  kebun/lahan or another explicitly defined ownership scope. Do not equate
-  `own` with `created_by` without checking the domain relationship.
-- Centralize reading and resolving `config/access.php` permissions for use by
-  Gates and Policies. Use Policies for resource-level decisions (including
-  record ownership and kebun/team scoping), and Gates for non-resource actions.
-- Authorize actions on the backend before service execution and scope read
-  queries as well as writes. Frontend visibility rules are only for UX; hidden
-  buttons and routes are not security controls.
-- Do not implement implicit role inheritance or superadmin bypasses. A role
-  gets only the permissions explicitly listed in the matrix.
+  `'harvests.update' => 'own'`. Absence of a role, a permission, or a valid
+  scope means deny.
+- `App\Support\RolePermissions` is the single reader of `config/access.php`
+  (grant lookup, scope lookup, team-membership check). Nothing else reads the
+  matrix directly.
+- To change role permissions, edit `config/access.php` and the corresponding
+  authorization tests. Do not add a dynamic admin UI to manage roles.
+
+### Idiomatic structure (required)
+
+- **One Policy per Eloquent model**, in `app/Policies/`, named `{Model}Policy`
+  (for example `Planting` -> `PlantingPolicy`) so Laravel auto-discovers it. Do
+  not add `Gate::policy()` lines for models that follow the naming convention.
+  If a name cannot match, use the `#[UsePolicy]` attribute on the model.
+- **Do not create stand-in subject classes or catch-all policies.** There must
+  be no `ResourceAccess`, no `ResourceAccessPolicy`, and no policy registered
+  against a non-model class. If this scaffolding already exists in the
+  repository, migrate its callers and tests to per-model policies, then delete
+  it. Do this per model as each model becomes available; do not invent
+  placeholder models.
+- **Share logic through inheritance, not through a fake subject.** Put the
+  matrix-checking logic in an abstract `App\Policies\ResourcePolicy` (or a
+  trait). Each concrete policy declares only its resource prefix (for example
+  `'plantings'`) and how to resolve the trusted team and kebun from the model
+  through persisted relationships (for example
+  `$planting->lahan->kebun`).
+- **Gates are only for non-resource decisions**, such as `ai.access` and
+  composite navigation gates (for example "can this user see any farm
+  section?", built by calling the model policies' `viewAny`). Define them in
+  `AuthorizationServiceProvider`. Resolve services lazily inside the closure;
+  do not inject them into `boot()`.
+- A resource that truly has no model gets a named `Gate::define`, never a
+  stand-in class.
+- **No extra abstraction layers for assignments.** Do not create contracts,
+  interfaces, adapters, or placeholder classes (for example
+  `KebunAssignments` or `UnconfiguredKebunAssignments`) for reading a user's
+  kebun assignments. Policies read them directly from the `User` model's
+  Eloquent relationship (see Scope semantics). If that scaffolding already
+  exists, remove it and its container binding.
+- **Provider layout:** `AuthorizationServiceProvider` (Gates only),
+  `AiServiceProvider` (AI/RAG bindings), and `AppServiceProvider` (framework
+  defaults only). Create providers with `php artisan make:provider` so they are
+  added to `bootstrap/providers.php`.
+- Authentication stays on the existing Laravel authentication flow and is kept
+  separate from authorization code.
+
+### Resources and abilities
+
+The matrix covers eleven resource prefixes: `kebun`, `lahan`, `activities`,
+`plantings`, `plantings.progress`, `harvests`, `finance.sales`,
+`finance.purchases`, `users`, `sops`, and `forms`. Each maps to one Eloquent
+model and one policy. Follow the real model names in the repository; if the
+mapping for a prefix is unclear, ask before creating anything.
+
+Policy abilities are `viewAny`, `view`, `create`, `update`, `delete`, and
+`configure`. A matrix key is `{prefix}.{ability}` (for example
+`plantings.update`); keys are consumed by the policies and are not registered
+as individual Gates.
+
+Standard call shapes:
+
+```php
+Gate::authorize('update', $planting);                       // existing record
+Gate::authorize('viewAny', [Planting::class, $team]);       // listing; needs a team
+Gate::authorize('create', [Planting::class, $lahan]);       // trusted parent record
+Gate::authorize('ai.access', $team);                        // non-resource Gate
+```
+
+### Scope semantics
+
+- `any` means every record permitted by the team boundary: every kebun in a
+  team the user belongs to, including kebun without an individual assignment.
+  It never bypasses team membership.
+- `own` means the target record belongs to a kebun assigned to the user. It
+  does not mean `created_by`, `owner_id`, the current team alone, or any
+  browser-supplied ID.
+- For lahan, activities, plantings, progress, harvests, and finance, resolve
+  the parent kebun, and then the team, through trusted persisted relationships
+  of the record itself. Never take kebun, team, role, or user ID from request
+  input as proof of authority.
+- `create` requires an already resolved target (a persisted parent record).
+  A grant alone cannot authorize creation in an unspecified kebun. For child
+  records, derive the kebun from the persisted parent (for example the lahan)
+  instead of accepting a separate `kebun_id` field.
+- `update`, `delete`, and `configure` also require visibility of the target
+  record. For example, `update = any` with `view = own` still prevents editing
+  records outside the visible kebun.
+- `viewAny` only admits a listing. It does not grant visibility of every record
+  and does not grant create.
+- Kebun assignments come from a persisted many-to-many relationship on the
+  `User` model (for example `$user->kebuns()` backed by a `kebun_user` pivot
+  table with a unique `(user_id, kebun_id)` constraint). Policies and query
+  scopes compare the record's resolved kebun against that relationship, across
+  all teams. Do not infer assignments from the starter team's membership-role
+  field, `created_by`, or request input. Until the relationship and its
+  migration exist, `own` checks deny (fail closed); `any` checks still work.
+  Do not run new migrations against a non-demo database.
+- Within one request, avoid repeated assignment queries: load the user's
+  assigned kebun IDs once (for example memoized on the `User` instance or
+  eager loaded) and reuse them.
+- `petugas` may have at most one assigned kebun; deny if more than one distinct
+  kebun is assigned. `admin` may have several.
+- Application roles are separate from the starter's team roles. Owning a team
+  does not grant application-owner access.
+
+### Enforcement layers
+
+1. **Controllers** call `Gate::authorize(...)` (or `$this->authorize(...)`)
+   with the model or trusted parent record before invoking a service.
+2. **Non-HTTP entry points** (queued jobs, commands, AI tools) have no
+   controller. Use `Gate::forUser($actor)->authorize(...)` there before
+   acting.
+3. **Read queries** must be scoped, not just guarded. Provide a reusable
+   `visibleTo(User $user, Team $team)` query scope per model that applies the
+   team filter and, for `own`, the assigned-kebun filter. Apply it before
+   pagination, counts, totals, exports, serialization, and AI/RAG retrieval.
+   A missing or invalid grant yields an empty result, never all rows.
+4. **Inertia and Vue:** the backend computes booleans with `Gate::allows(...)`
+   and passes them as props (for example `can: { update, delete }`). Vue only
+   renders them. Hidden buttons and routes are UX, not security. Compute
+   navigation gates once per request (shared props), not once per component.
+5. **Routes:** use `auth`/`verified` middleware, and `can:` middleware only
+   where the target is already a bound model or team (for example
+   `can:ai.access,team`). Record-level scope checks happen in controllers
+   through policies, not in route middleware, because middleware cannot safely
+   resolve kebun from raw request data.
+6. Return proper `403 Forbidden` for denied actions.
+
+### Hard prohibitions
+
+- No `Gate::before` and no superadmin bypass.
+- No implicit role inheritance, wildcards, or "allow everything" overrides. A
+  role gets only the permissions explicitly listed in the matrix.
 - The `owner` role can view all aspects of Kebun, Aktivitas, Finance, and User
   data (and other read-only features defined in the matrix), but must not
   create, update, or delete operational data. Only `owner` can access AI/RAG
   features. Other roles must not gain `ai.access` through a wildcard override.
-- Keep authentication based on the existing Laravel authentication flow.
-  Associate users with their assigned role and relevant kebun/team scope in
-  backend data. Do not trust role, user ID, or scope values supplied by the
-  browser as proof of authority.
-- Return proper `403 Forbidden` behavior for denied actions. Add tests covering
-  each role's allowed/denied actions and cross-kebun/team access; default deny
-  for undefined actions.
-- To change role permissions, edit `config/access.php` and the corresponding
-  authorization tests rather than adding dynamic admin UI to manage roles.
+- `users.role` is never mass-assignable and is never copied from registration
+  or profile input. Roles are set only by a trusted backend process that
+  validates against the roles in `config/access.php`.
+- Do not modify or migrate the isolated `database/migrations/farmer_ic`
+  baseline; it is not used by the running Eloquent user model.
+
+### Tests and maintenance
+
+- Add tests covering each role's allowed and denied actions per model policy,
+  cross-team and cross-kebun denial, the `own` scope, multiple admin
+  assignments, the `petugas` single-kebun limit, missing or invalid grants,
+  default deny for undefined actions, and that a client-supplied `kebun_id` or
+  `team_id` cannot change a decision.
+- Add HTTP tests asserting real 403 responses on protected routes, and tests
+  that paginator totals, counts, and exports never include records outside the
+  user's scope.
+- Add a test that validates `config/access.php` (known roles, known
+  `{prefix}.{ability}` keys, scopes only `any` or `own`).
+- After deployment, rebuild cached configuration with
+  `php artisan config:cache` if used, and restart long-running workers.
+  Genuinely new ownership rules or abilities require code as well as grants.
+- After each authorization task, report which routes and queries are still
+  unprotected. Installing policies alone does not protect any route.
 
 ## DUMMY DATA RULES
 
