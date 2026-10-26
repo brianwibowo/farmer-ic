@@ -20,6 +20,11 @@ import {
 } from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import {
+    getGrowthProfile,
+    getGrowthStageAtPercent,
+    type GrowthStage,
+} from '@/data/growthStages';
 import { getKebunDetail, type MappedKebun } from '@/services/kebunService';
 
 const page = usePage();
@@ -33,17 +38,30 @@ const loading = ref(true);
 const error = ref('');
 let requestId = 0;
 
+const growthProfile = computed(() => {
+    const item = selectedKebun.value;
+    if (!item) return undefined;
+
+    return getGrowthProfile(item.seedType, item.seedTypeDetail);
+});
+
+const currentGrowthStage = computed(() => {
+    const item = selectedKebun.value;
+    const profile = growthProfile.value;
+    if (!item || !profile) return undefined;
+
+    return getGrowthStageAtPercent(profile, item.growth);
+});
+
 const detail = computed(() => {
     const item = selectedKebun.value;
     if (!item) return undefined;
 
-    const growthCategory = item.growth >= 80 ? 4 : item.growth >= 60 ? 3 : 2;
-    const growthCategoryLabel =
-        growthCategory === 4
-            ? 'Pembungaan'
-            : growthCategory === 3
-              ? 'Vegetatif aktif'
-              : 'Bibit awal';
+    const stage = currentGrowthStage.value;
+    const profile = growthProfile.value;
+    const growthCategory = stage?.number ?? 1;
+    const growthCategoryLabel = stage?.label ?? 'Belum terdeteksi';
+    const growthCategoryShort = stage?.shortLabel ?? 'Belum terdeteksi';
 
     return {
         ...item,
@@ -52,11 +70,14 @@ const detail = computed(() => {
         address: item.address,
         crop: item.seedType,
         seed: `${item.seedType} ${item.seedTypeDetail}`,
+        growthProfileLabel: `${item.seedType}${item.seedTypeDetail ? ` ${item.seedTypeDetail}` : ''}`,
+        growthCycle: profile?.cycleLabel ?? '',
         totalArea: `${new Intl.NumberFormat('id-ID').format(item.availableHectare)} ha`,
         plantedArea: `${new Intl.NumberFormat('id-ID').format(item.usedHectare)} ha`,
         weight: `${new Intl.NumberFormat('id-ID').format(Math.round(item.usedHectare * 0.14))} ton`,
         growthCategory,
         growthCategoryLabel,
+        growthCategoryShort,
         aiConfidence: 92,
         harvestStatus: item.healthStatus,
         weather: {
@@ -69,7 +90,8 @@ const detail = computed(() => {
 
 function healthTone(status: string): string {
     if (status === 'Kritis') return 'border-error/25 bg-error/10 text-error';
-    if (status === 'Perlu Perhatian') return 'border-warning/45 bg-warning/20 text-warning-foreground';
+    if (status === 'Perlu Perhatian')
+        return 'border-warning/45 bg-warning/20 text-warning-foreground';
     return 'border-success/25 bg-success/10 text-success';
 }
 
@@ -99,43 +121,9 @@ async function loadDetail(): Promise<void> {
     }
 }
 
-const growthStages = [
-    {
-        number: 1,
-        label: 'Kecambah',
-        range: '0–9 HST',
-        percent: 20,
-        image: '/images/farmer/jagung-berkecambah.jpg',
-    },
-    {
-        number: 2,
-        label: 'Bibit awal',
-        range: '10–29 HST',
-        percent: 40,
-        image: '/images/farmer/jagung-tumbuh-fase-2.jpg',
-    },
-    {
-        number: 3,
-        label: 'Vegetatif aktif',
-        range: '30–59 HST',
-        percent: 60,
-        image: '/images/farmer/corn-field.jpeg',
-    },
-    {
-        number: 4,
-        label: 'Pembungaan',
-        range: '60–79 HST',
-        percent: 80,
-        image: '/images/farmer/jagung-tunas.jpeg',
-    },
-    {
-        number: 5,
-        label: 'Pengisian & panen',
-        range: '80–99 HST',
-        percent: 100,
-        image: '/images/farmer/jagung-panen.jpg',
-    },
-] as const;
+const growthStages = computed<GrowthStage[]>(
+    () => growthProfile.value?.stages ?? [],
+);
 
 type ImagePreview = {
     src: string;
@@ -143,19 +131,19 @@ type ImagePreview = {
     title: string;
     caption: string;
 };
-const selectedStageNumber = ref(3);
+const selectedStageNumber = ref(1);
 const selectedImage = ref<ImagePreview | null>(null);
 const selectedGrowthStage = computed(
     () =>
-        growthStages.find(
+        growthStages.value.find(
             (stage) => stage.number === selectedStageNumber.value,
-        ) ?? growthStages[0],
+        ) ?? growthStages.value[0],
 );
 
 watch(
     detail,
     (value) => {
-        selectedStageNumber.value = value?.growthCategory ?? 3;
+        selectedStageNumber.value = value?.growthCategory ?? 1;
     },
     { immediate: true },
 );
@@ -171,11 +159,13 @@ function selectGrowthStage(stageNumber: number): void {
 }
 function openGrowthStageImage(): void {
     const stage = selectedGrowthStage.value;
+    if (!stage) return;
+
     openImage({
         src: stage.image,
-        alt: `Referensi tanaman ${detail.value?.crop ?? 'kebun'} fase ${stage.label}`,
+        alt: stage.imageAlt,
         title: `Fase ${stage.number}: ${stage.label}`,
-        caption: `${stage.range}. Referensi untuk mencocokkan fase pertumbuhan tanaman.`,
+        caption: `${stage.description}${stage.credit ? ` Foto: ${stage.credit}.` : ''}`,
     });
 }
 function formatRupiah(value: number): string {
@@ -320,7 +310,10 @@ watch(kebunId, () => void loadDetail());
                             ></span
                         >
                         <span
-                            :class="['inline-flex w-fit items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold', healthTone(detail.harvestStatus)]"
+                            :class="[
+                                'inline-flex w-fit items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold',
+                                healthTone(detail.harvestStatus),
+                            ]"
                             ><component
                                 :is="healthIcon(detail.harvestStatus)"
                                 :size="17"
@@ -438,7 +431,7 @@ watch(kebunId, () => void loadDetail());
                                 aria-hidden="true"
                             />Fase pertumbuhan</span
                         ><span class="font-medium text-secondary">{{
-                            detail.growthCategoryLabel
+                            detail.growthCategoryShort
                         }}</span>
                     </div>
                     <div
@@ -450,10 +443,8 @@ watch(kebunId, () => void loadDetail());
                             :style="{ width: `${detail.growth}%` }"
                         />
                     </div>
-                    <div
-                        class="mt-3 flex items-center gap-2 text-xs text-muted-foreground"
-                    >
-                        <span>Proyeksi Panen: {{ detail.harvestAt }}</span>
+                    <div class="mt-3 space-y-1 text-xs text-muted-foreground">
+                        <p>Proyeksi Panen: {{ detail.harvestAt }}</p>
                     </div>
                 </div>
                 <div class="rounded-2xl bg-muted p-4">
@@ -465,12 +456,22 @@ watch(kebunId, () => void loadDetail());
                                 Kategori pertumbuhan
                             </h3>
                             <p class="mt-1 text-xs text-muted-foreground">
-                                Berdasarkan analisis foto terakhir
+                                {{ detail.growthProfileLabel }} ·
+                                {{ detail.growthCycle }}
+                            </p>
+                            <p class="mt-0.5 text-[11px] text-muted-foreground">
+                                Terdeteksi dari foto terakhir · ketuk fase untuk
+                                membandingkan
                             </p>
                         </div>
                         <span
                             class="shrink-0 rounded-full bg-card px-2.5 py-1 text-xs font-semibold text-secondary"
-                            >Tahap {{ selectedGrowthStage.number }} dari 5</span
+                            >Fase
+                            {{
+                                selectedGrowthStage?.number ??
+                                detail.growthCategory
+                            }}
+                            dari {{ growthStages.length }}</span
                         >
                     </div>
                     <div
@@ -482,12 +483,12 @@ watch(kebunId, () => void loadDetail());
                             :key="stage.number"
                             type="button"
                             :class="[
-                                'min-w-0 rounded-lg px-1 py-2 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                                'min-w-0 rounded-lg px-0.5 py-2 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                                 stage.number === selectedStageNumber
                                     ? 'bg-secondary text-secondary-foreground'
                                     : 'bg-card text-muted-foreground',
                             ]"
-                            :aria-label="`Pilih fase ${stage.number}, ${stage.label}`"
+                            :aria-label="`Pilih fase ${stage.number}, ${stage.label}, ${stage.range}`"
                             :aria-pressed="selectedStageNumber === stage.number"
                             @click="selectGrowthStage(stage.number)"
                         >
@@ -495,49 +496,126 @@ watch(kebunId, () => void loadDetail());
                                 class="relative mb-1.5 block h-12 overflow-hidden rounded-md bg-muted"
                                 ><img
                                     :src="stage.image"
-                                    :alt="`Gambar fase ${stage.label}`"
+                                    :alt="stage.imageAlt"
                                     class="h-full w-full object-cover"
-                            /></span>
-                            <p class="text-sm font-semibold">
-                                {{ stage.number }}
+                                    loading="lazy"
+                                /><span
+                                    class="absolute top-1 left-1 flex h-4 min-w-4 items-center justify-center rounded bg-card/90 px-1 text-[9px] font-bold text-secondary"
+                                    >{{ stage.number }}</span
+                                ></span
+                            >
+                            <p
+                                class="text-[9px] leading-tight font-semibold tracking-tight min-[390px]:text-[10px]"
+                            >
+                                {{ stage.shortLabel }}
                             </p>
-                            <p class="mt-0.5 text-[10px] font-semibold">
-                                {{ stage.percent }}%
-                            </p>
-                            <p class="mt-1 text-[10px] leading-tight">
+                            <p
+                                class="mt-0.5 text-[8px] leading-tight tracking-tight opacity-80 min-[390px]:text-[9px]"
+                            >
                                 {{ stage.range }}
                             </p>
                         </button>
                     </div>
-                    <button
-                        type="button"
-                        class="group mt-4 block w-full overflow-hidden rounded-xl bg-card text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        aria-label="Buka gambar fase pertumbuhan terpilih"
-                        @click="openGrowthStageImage"
-                    >
-                        <span
-                            class="relative block h-40 overflow-hidden rounded-xl bg-muted"
-                            ><img
-                                :key="selectedGrowthStage.number"
-                                :src="selectedGrowthStage.image"
-                                :alt="`Referensi fase ${selectedGrowthStage.label}`"
-                                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            /><span
-                                class="absolute right-2 bottom-2 rounded-lg bg-card/95 px-2.5 py-1.5 text-xs font-semibold text-secondary shadow-sm"
-                                >Lihat gambar fase</span
-                            ></span
-                        >
-                    </button>
-                    <p class="mt-4 text-sm leading-5 text-card-foreground">
-                        Fase dipilih:
-                        <strong>{{ selectedGrowthStage.label }}</strong> ({{
-                            selectedGrowthStage.range
-                        }}).<span
-                            class="mt-1 block text-xs text-muted-foreground"
-                            >Hasil AI: {{ detail.growthCategoryLabel }} ·
-                            confidence {{ detail.aiConfidence }}%</span
-                        >
+                    <p class="mt-2 text-[11px] text-muted-foreground">
+                        Ketuk salah satu fase untuk melihat ciri dan tindakan
+                        yang disarankan.
                     </p>
+                    <template v-if="selectedGrowthStage">
+                        <button
+                            type="button"
+                            class="group mt-4 block w-full overflow-hidden rounded-xl bg-card text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            aria-label="Buka gambar fase pertumbuhan terpilih"
+                            @click="openGrowthStageImage"
+                        >
+                            <span
+                                class="relative block h-40 overflow-hidden rounded-xl bg-muted"
+                                ><img
+                                    :key="selectedGrowthStage.number"
+                                    :src="selectedGrowthStage.image"
+                                    :alt="selectedGrowthStage.imageAlt"
+                                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                /><span
+                                    class="absolute right-2 bottom-2 rounded-lg bg-card/95 px-2.5 py-1.5 text-xs font-semibold text-secondary shadow-sm"
+                                    >Lihat gambar fase</span
+                                ></span
+                            >
+                        </button>
+                        <div
+                            class="mt-4 rounded-xl border border-border bg-card p-3.5"
+                        >
+                            <p
+                                class="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase"
+                            >
+                                Fase dipilih
+                            </p>
+                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                <span
+                                    class="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-secondary-foreground"
+                                    >{{ selectedGrowthStage.code }}</span
+                                >
+                                <p
+                                    class="text-sm font-semibold text-card-foreground"
+                                >
+                                    {{ selectedGrowthStage.label }} ·
+                                    {{ selectedGrowthStage.range }}
+                                </p>
+                            </div>
+                            <p
+                                class="mt-2 text-sm leading-5 text-card-foreground"
+                            >
+                                {{ selectedGrowthStage.description }}
+                            </p>
+                            <div class="mt-3">
+                                <p class="text-xs font-semibold text-secondary">
+                                    Ciri fase
+                                </p>
+                                <ul class="mt-1.5 space-y-1">
+                                    <li
+                                        v-for="indicator in selectedGrowthStage.indicators"
+                                        :key="indicator"
+                                        class="flex gap-2 text-xs leading-4 text-muted-foreground"
+                                    >
+                                        <CircleCheck
+                                            :size="13"
+                                            class="mt-0.5 shrink-0 text-primary"
+                                            aria-hidden="true"
+                                        />
+                                        <span>{{ indicator }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="mt-3 rounded-lg bg-muted p-2.5">
+                                <p class="text-xs font-semibold text-secondary">
+                                    Tindakan disarankan
+                                </p>
+                                <p
+                                    class="mt-1 text-xs leading-4 text-card-foreground"
+                                >
+                                    {{ selectedGrowthStage.care }}
+                                </p>
+                            </div>
+                            <p
+                                class="mt-3 flex gap-2 text-xs leading-4 text-muted-foreground"
+                            >
+                                <CircleAlert
+                                    :size="13"
+                                    class="mt-0.5 shrink-0 text-warning"
+                                    aria-hidden="true"
+                                />
+                                <span
+                                    ><strong
+                                        class="font-semibold text-card-foreground"
+                                        >Risiko fase:</strong
+                                    >
+                                    {{ selectedGrowthStage.risk }}</span
+                                >
+                            </p>
+                            <p class="mt-3 text-[11px] text-muted-foreground">
+                                Hasil AI: {{ detail.growthCategoryLabel }} ·
+                                confidence {{ detail.aiConfidence }}%
+                            </p>
+                        </div>
+                    </template>
                 </div>
             </section>
 
@@ -582,7 +660,9 @@ watch(kebunId, () => void loadDetail());
                                 <strong>{{
                                     detail.growthCategoryLabel
                                 }}</strong>
-                                dan diproyeksikan siap panen pada
+                                ({{ currentGrowthStage?.code }},
+                                {{ currentGrowthStage?.range }}) dan
+                                diproyeksikan siap panen pada
                                 <strong>{{ detail.harvestAt }}</strong> jika
                                 perawatan berjalan konsisten.
                             </p>
@@ -596,18 +676,19 @@ watch(kebunId, () => void loadDetail());
                             ><Activity :size="18" aria-hidden="true"
                         /></span>
                         <div>
-                            <h3 class="text-sm font-semibold text-warning-foreground">
+                            <h3
+                                class="text-sm font-semibold text-warning-foreground"
+                            >
                                 Next step
                             </h3>
                             <p
                                 class="mt-1.5 text-sm leading-5 text-card-foreground"
                             >
-                                Jadwalkan penyiraman rutin,
-                                <strong
-                                    >cek kondisi daun setiap 2–3 hari, dan
-                                    tambahkan nutrisi</strong
+                                {{ detail.nextStep }}
+                                <span
+                                    class="mt-1 block text-xs leading-4 text-muted-foreground"
+                                    >{{ currentGrowthStage?.care }}</span
                                 >
-                                sesuai rekomendasi petugas lapangan.
                             </p>
                         </div>
                     </div>
@@ -627,13 +708,11 @@ watch(kebunId, () => void loadDetail());
                             <p
                                 class="mt-1.5 text-sm leading-5 text-card-foreground"
                             >
-                                <strong>{{
-                                    detail.healthStatus === 'Sehat'
-                                        ? 'Tetap pantau perubahan kondisi kebun.'
-                                        : 'Waspadai perubahan kondisi tanaman.'
-                                }}</strong>
-                                Periksa genangan air dan perubahan warna daun
-                                agar pertumbuhan tetap terjaga.
+                                <strong>{{ detail.risk }}</strong>
+                                <span
+                                    class="mt-1 block text-xs leading-4 text-muted-foreground"
+                                    >{{ currentGrowthStage?.risk }}</span
+                                >
                             </p>
                         </div>
                     </div>
@@ -649,7 +728,7 @@ watch(kebunId, () => void loadDetail());
 
         <div
             v-if="selectedImage"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-foreground/75 p-4"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
             role="dialog"
             aria-modal="true"
             :aria-label="selectedImage.title"
