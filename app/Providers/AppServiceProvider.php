@@ -11,9 +11,17 @@ use App\AI\Services\OpenRouterEmbeddingGateway;
 use App\AI\Services\OpenRouterGateway;
 use App\AI\Services\QdrantClient;
 use App\AI\Services\VectorKnowledgeRetriever;
+use App\Contracts\KebunAssignments;
+use App\Models\Team;
+use App\Models\User;
+use App\Policies\ResourceAccessPolicy;
+use App\Support\Access\ResourceAccess;
+use App\Support\Access\UnconfiguredKebunAssignments;
+use App\Support\RolePermissions;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -24,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(KebunAssignments::class, UnconfiguredKebunAssignments::class);
+
         $this->app->bind(LlmGateway::class, OpenRouterGateway::class);
         $this->app->bind(EmbeddingGateway::class, OpenRouterEmbeddingGateway::class);
         $this->app->bind(VectorStore::class, QdrantClient::class);
@@ -37,9 +47,15 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot(RolePermissions $permissions): void
     {
         $this->configureDefaults();
+
+        Gate::policy(ResourceAccess::class, ResourceAccessPolicy::class);
+
+        Gate::define('ai.access', fn (User $user, ?Team $team = null): bool => $team !== null
+            && $permissions->scope($user, 'ai.access') === 'any'
+            && $permissions->withinTeam($user, $team));
     }
 
     /**
