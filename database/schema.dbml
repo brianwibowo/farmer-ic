@@ -111,7 +111,7 @@ Table planting_cycles {
 
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'planting, fertilization, irrigation, growth_check, pesticide, incident, harvest']
+  code varchar(50) [not null, unique, note: 'planting, fertilization, irrigation, growth_check, pesticide, incident, harvest, block_mapping']
   name varchar(100) [not null]
   description text
 }
@@ -127,7 +127,43 @@ Table farm_activities {
   status varchar(30)
   created_at timestamptz [not null]
   updated_at timestamptz
+  daily_activity_log_id uuid [note: 'Composite FK with farm_id to daily_activity_logs; nullable for earlier activities']
+  position int
+  obstacle_status varchar(30) [not null, default: 'not_recorded', note: 'not_recorded | none | reported']
+  obstacles text
+  proposed_solution text
+  action_taken text
   Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Tipe aktivitas menentukan satu detail yang tepat.'
+}
+
+Table daily_activity_logs {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  recorded_by uuid [not null, ref: > users.id]
+  work_date date [not null]
+  start_time time [not null]
+  end_time time [not null]
+  worker_count int [not null]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (id, farm_id) [unique]
+  }
+}
+
+Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id, farm_id)
+
+Table block_mapping_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  form_version int [not null, default: 1]
+  block_name varchar(100) [not null]
+  length_m decimal(10,3) [not null]
+  width_m decimal(10,3) [not null]
+  row_spacing_cm decimal(8,2)
+  plant_spacing_cm decimal(8,2)
+  rows_per_bed int
 }
 
 Table activity_photos {
