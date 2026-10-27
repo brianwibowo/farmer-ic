@@ -6,8 +6,8 @@ use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
-use App\Models\Role;
 use App\Models\User;
+use App\Models\Role;
 use App\Services\Activity\DailyActivityLogService;
 use Database\Seeders\BlockMappingActivityTypeSeeder;
 use Illuminate\Database\Connection;
@@ -43,7 +43,9 @@ class DailyActivityLogTest extends TestCase
         $this->seed(BlockMappingActivityTypeSeeder::class);
         $role = Role::create(['name' => 'petugas']);
         $this->recorder = new User([
-            'name' => 'Budi Santoso', 'email' => 'budi@example.test', 'password' => 'Daily-log-test-password',
+            'name' => 'Budi Santoso',
+            'email' => 'budi@example.test',
+            'password' => 'Daily-log-test-password',
         ]);
         $this->recorder->role()->associate($role);
         $this->recorder->save();
@@ -83,7 +85,7 @@ class DailyActivityLogTest extends TestCase
         $activity = $log->activities->firstOrFail();
         $this->assertSame($activity->id, $activity->blockMappingDetail->getKey());
         $this->assertSame('2026-10-27 01:00', $activity->activity_date->utc()->format('Y-m-d H:i'));
-        $this->getJson($this->url().'/'.$id)->assertOk()->assertJsonPath('data.work_date', '2026-10-27')
+        $this->getJson($this->url() . '/' . $id)->assertOk()->assertJsonPath('data.work_date', '2026-10-27')
             ->assertJsonPath('data.activities.1.block_mapping.block_name', 'Blok 2');
         $this->assertStringNotContainsString('password_hash', $response->getContent());
         $this->assertStringNotContainsString('"password"', $response->getContent());
@@ -97,25 +99,31 @@ class DailyActivityLogTest extends TestCase
         $this->postJson($this->url(), $older)->assertCreated();
         $other = $this->makeFarm('Kebun Cariu');
         $foreign = $this->postJson($this->url($other), $this->payload())->assertCreated()->json('data.id');
-        $this->getJson($this->url().'?per_page=1')->assertOk()->assertJsonPath('meta.total', 2)
+        $this->getJson($this->url() . '?per_page=1')->assertOk()->assertJsonPath('meta.total', 2)
             ->assertJsonPath('data.0.id', $first)->assertJsonPath('meta.last_page', 2);
-        $this->getJson($this->url().'?from_date=2026-10-20&to_date=2026-10-27&recorded_by='.$this->recorder->id)
+        $this->getJson($this->url() . '?from_date=2026-10-20&to_date=2026-10-27&recorded_by=' . $this->recorder->id)
             ->assertOk()->assertJsonPath('meta.total', 1);
-        $this->getJson($this->url().'?from_date=2027-01-01')->assertOk()->assertJsonCount(0, 'data');
-        $this->getJson($this->url().'/'.$foreign)->assertNotFound();
+        $this->getJson($this->url() . '?from_date=2027-01-01')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson($this->url() . '/' . $foreign)->assertNotFound();
     }
 
     public function test_invalid_header_and_mapping_fields_do_not_create_partial_records(): void
     {
-        foreach ([
-            'work_date' => '2026-02-30', 'start_time' => '25:00', 'end_time' => '07:00',
-            'worker_count' => 0, 'recorded_by' => (string) Str::uuid(), 'activities' => [],
-            'activities.0.type' => 'soil_measurement',
-            'activities.0.block_mapping.block_name' => ' ',
-            'activities.0.block_mapping.length_m' => -1,
-            'activities.0.block_mapping.width_m' => '1.1234',
-            'activities.0.block_mapping.rows_per_bed' => 0,
-        ] as $field => $value) {
+        foreach (
+            [
+                'work_date' => '2026-02-30',
+                'start_time' => '25:00',
+                'end_time' => '07:00',
+                'worker_count' => 0,
+                'recorded_by' => (string) Str::uuid(),
+                'activities' => [],
+                'activities.0.type' => 'soil_measurement',
+                'activities.0.block_mapping.block_name' => ' ',
+                'activities.0.block_mapping.length_m' => -1,
+                'activities.0.block_mapping.width_m' => '1.1234',
+                'activities.0.block_mapping.rows_per_bed' => 0,
+            ] as $field => $value
+        ) {
             $payload = $this->payload();
             data_set($payload, $field, $value);
             $this->postJson($this->url(), $payload)->assertUnprocessable()->assertJsonValidationErrors($field);
@@ -165,7 +173,7 @@ class DailyActivityLogTest extends TestCase
         $this->recorder->is_active = false;
         $this->recorder->save();
         $this->postJson($this->url(), $this->payload())->assertUnprocessable()->assertJsonValidationErrors('recorded_by');
-        $this->getJson($this->url().'/'.$id)->assertOk();
+        $this->getJson($this->url() . '/' . $id)->assertOk();
         try {
             app(DailyActivityLogService::class)->create($this->farm, $this->payload());
             $this->fail('An inactive recorder must also be rejected outside HTTP.');
@@ -201,15 +209,17 @@ class DailyActivityLogTest extends TestCase
     {
         $this->rejectDatabaseOperation(function (): void {
             FarmActivity::create([
-                'farm_id' => $this->farm->id, 'activity_type_id' => ActivityType::firstOrFail()->id,
-                'performed_by' => $this->recorder->id, 'activity_date' => now(),
+                'farm_id' => $this->farm->id,
+                'activity_type_id' => ActivityType::firstOrFail()->id,
+                'performed_by' => $this->recorder->id,
+                'activity_date' => now(),
             ]);
         }, '23514');
         $id = $this->postJson($this->url(), $this->payload())->assertCreated()->json('data.id');
         $this->database->statement('SET CONSTRAINTS ALL IMMEDIATE');
         $this->database->statement('SET CONSTRAINTS ALL DEFERRED');
         $activity = DailyActivityLog::findOrFail($id)->activities->firstOrFail();
-        $this->rejectDatabaseOperation(fn () => $activity->blockMappingDetail()->delete(), '23514');
+        $this->rejectDatabaseOperation(fn() => $activity->blockMappingDetail()->delete(), '23514');
         $this->assertTrue($activity->blockMappingDetail()->exists());
     }
 
@@ -218,18 +228,18 @@ class DailyActivityLogTest extends TestCase
         $id = $this->postJson($this->url(), $this->payload())->assertCreated()->json('data.id');
         $other = $this->makeFarm('Kebun Cariu');
         $activity = DailyActivityLog::findOrFail($id)->activities->firstOrFail();
-        $this->rejectDatabaseOperation(fn () => $activity->update(['farm_id' => $other->id]), '23503');
+        $this->rejectDatabaseOperation(fn() => $activity->update(['farm_id' => $other->id]), '23503');
         $this->assertSame($this->farm->id, $activity->fresh()->farm_id);
     }
 
     public function test_list_validation_and_unknown_ids(): void
     {
         foreach (['per_page=101', 'page=0', 'from_date=invalid', 'from_date=2026-10-27&to_date=2026-10-01', 'recorded_by=invalid'] as $query) {
-            $this->getJson($this->url().'?'.$query)->assertUnprocessable();
+            $this->getJson($this->url() . '?' . $query)->assertUnprocessable();
         }
-        $this->getJson($this->url().'/not-a-uuid')->assertNotFound();
-        $this->getJson($this->url().'/'.Str::uuid())->assertNotFound();
-        $this->getJson('/api/kebun/'.Str::uuid().'/daily-logs')->assertNotFound();
+        $this->getJson($this->url() . '/not-a-uuid')->assertNotFound();
+        $this->getJson($this->url() . '/' . Str::uuid())->assertNotFound();
+        $this->getJson('/api/kebun/' . Str::uuid() . '/daily-logs')->assertNotFound();
     }
 
     public function test_endpoints_are_unavailable_in_production_before_database_binding(): void
@@ -238,7 +248,7 @@ class DailyActivityLogTest extends TestCase
         DB::shouldReceive('connection')->never();
         $this->getJson($this->url())->assertNotFound();
         $this->postJson($this->url(), $this->payload())->assertNotFound();
-        $this->getJson($this->url().'/'.Str::uuid())->assertNotFound();
+        $this->getJson($this->url() . '/' . Str::uuid())->assertNotFound();
     }
 
     public function test_endpoints_require_postgresql_before_binding(): void
@@ -255,7 +265,7 @@ class DailyActivityLogTest extends TestCase
                 $operation();
                 $this->database->statement('SET CONSTRAINTS ALL IMMEDIATE');
             });
-            $this->fail('Expected SQLSTATE '.$sqlState);
+            $this->fail('Expected SQLSTATE ' . $sqlState);
         } catch (QueryException $exception) {
             $this->assertSame($sqlState, (string) $exception->getCode());
         }
@@ -272,20 +282,28 @@ class DailyActivityLogTest extends TestCase
 
     private function url(?Farm $farm = null): string
     {
-        return '/api/kebun/'.($farm ?? $this->farm)->id.'/daily-logs';
+        return '/api/kebun/' . ($farm ?? $this->farm)->id . '/daily-logs';
     }
 
     /** @return array<string, mixed> */
     private function payload(): array
     {
         return [
-            'work_date' => '2026-10-27', 'start_time' => '08:00', 'end_time' => '16:00',
-            'worker_count' => 6, 'recorded_by' => $this->recorder->id,
+            'work_date' => '2026-10-27',
+            'start_time' => '08:00',
+            'end_time' => '16:00',
+            'worker_count' => 6,
+            'recorded_by' => $this->recorder->id,
             'activities' => [[
-                'type' => 'block_mapping', 'obstacle_status' => 'none',
+                'type' => 'block_mapping',
+                'obstacle_status' => 'none',
                 'block_mapping' => [
-                    'block_name' => 'Blok 1', 'length_m' => 35, 'width_m' => 50,
-                    'row_spacing_cm' => 40, 'plant_spacing_cm' => 20, 'rows_per_bed' => 2,
+                    'block_name' => 'Blok 1',
+                    'length_m' => 35,
+                    'width_m' => 50,
+                    'row_spacing_cm' => 40,
+                    'plant_spacing_cm' => 20,
+                    'rows_per_bed' => 2,
                 ],
             ]],
         ];
