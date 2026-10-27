@@ -25,7 +25,7 @@ return new class extends Migration
             $table->uuid('role_id');
             $table->string('name', 150);
             $table->string('email', 255)->unique();
-            $table->text('password_hash');
+            $table->string('password_hash');
             $table->text('avatar_url')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestampTz('created_at');
@@ -34,7 +34,6 @@ return new class extends Migration
             $table->foreign('role_id')->references('id')->on('roles')->restrictOnDelete();
             $table->index('role_id');
         });
-
     }
 
     public function down(): void

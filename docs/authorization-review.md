@@ -1,6 +1,10 @@
 # Native authorization review - 26 October 2026
 
-Initial inspection was reported before code edits. Live PostgreSQL metadata was
+Initial inspection was reported before code edits. This document is a historical
+review record; the current implementation supersedes its pre-refactor references
+to `farm_user`, `User::farms()`, and `assignedFarmIds()` with
+`users.assigned_farm_id`, `User::assignedFarm()`, and `assignedFarmId()`.
+Live PostgreSQL metadata was
 read inside a READ ONLY transaction, rolled back afterward. No row data or
 credentials were read. No live migration or schema integration is authorized here.
 

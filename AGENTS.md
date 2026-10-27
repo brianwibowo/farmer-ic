@@ -70,6 +70,11 @@ permission keys, and scopes are defined in code, not through dynamic
 role/permission management tables or runtime permission editors. No permission
 package (for example Spatie) is used.
 
+For concrete backend/frontend call examples, read
+[`docs/rbac-authentication-guide.md`](docs/rbac-authentication-guide.md). The
+current handoff status is recorded in
+[`docs/rbac-scaffolding-checkpoint.md`](docs/rbac-scaffolding-checkpoint.md).
+
 ### Source of truth
 
 - The fixed roles are `owner`, `superadmin`, `admin`, and `petugas`.
@@ -180,34 +185,28 @@ keep it current.
   records outside the visible farm.
 - `viewAny` only admits a listing. It does not grant visibility of every record
   and does not grant create.
-- Farm assignments come from a persisted many-to-many relationship on the
-  `User` model (`$user->farms()` backed by a `farm_user` pivot table with a
-  unique `(user_id, farm_id)` constraint). The pivot's column types must match
-  the real key types of the users and farms tables; verify them, do not assume.
-  Policies and query scopes compare the record's resolved farm against that
-  relationship, across all teams. Do not infer assignments from the starter
-  team's membership-role field, `created_by`, or request input. Until the
-  relationship and its migration exist, `own` checks deny (fail closed); `any`
-  checks still work.
-- Within one request, load the user's assigned farm IDs once (memoized on the
-  `User` instance or eager loaded) and reuse them. Assignment workflows must
-  validate the configured limit and clear or reload the relation after a
-  change.
-- `petugas` may have at most one assigned farm; deny if more than one distinct
-  farm is assigned. `admin` may have several.
+- Farm assignments use the direct nullable `users.assigned_farm_id` foreign key
+  and `User::assignedFarm()`. This is a one-to-one assignment for `petugas`, not
+  a `farm_user` pivot. Owner/admin visibility comes from the persisted
+  `farms.team_id` boundary and does not use an individual assignment. Do not
+  infer authority from `created_by`, `owner_id`, membership role, or request
+  input.
+- `petugas` may have at most one assigned farm. Assignment writes must validate
+  that limit and reload the `assignedFarm` relation after a change.
+- `owner` may belong to many non-personal teams. `admin` and `petugas` are
+  limited to one non-personal team by `RolePermissions`; personal teams do not
+  count toward that application-role limit.
 - Application roles are separate from the starter's team roles. Owning a team
   does not grant application-owner access.
 
 ### Schema prerequisite
 
-- The domain tables (the isolated UUID PostgreSQL baseline in
-  `database/migrations/farmer_ic`) and the running authentication tables
-  (integer users and teams) are not integrated. Do not claim that authorization
-  works on real domain data until they are, and do not choose an integration
-  approach silently: report the options and ask.
-- Do not modify or migrate the isolated baseline. Authorization migrations live
-  in `database/migrations/authorization`, are not applied by default, and are
-  never run against a non-demo database.
+- The current migrated PostgreSQL schema uses UUID `users` and domain records,
+  integer `teams`, `farms.team_id`, and `users.assigned_farm_id`. The earlier
+  split-schema review is historical; keep the isolated `database/migrations/farmer_ic`
+  baseline unchanged.
+- Authorization relationship migrations are additive migrations in the normal
+  migration path. Never run destructive migrations against a non-demo database.
 
 ### Enforcement layers
 
@@ -235,14 +234,17 @@ keep it current.
 
 ### Hard prohibitions
 
-- No `Gate::before` and no superadmin bypass.
+- `Gate::before` is reserved for the developer `superadmin` role. It must return
+  `true` only for that role and `null` for every other actor. Do not add a
+  detailed `superadmin` grant list to `config/access.php` or create another
+  wildcard bypass.
 - No implicit role inheritance, wildcards, or "allow everything" overrides. A
   role gets only the permissions explicitly listed in the matrix.
 - The `owner` role can view all aspects of Farm, Activity, Finance, and User
   data (and other read-only features defined in the matrix), but must not
   create, update, or delete operational data. Only `owner` can access AI/RAG
   features. Other roles must not gain `ai.access` through a wildcard override.
-- `users.role` is never mass-assignable and is never copied from registration
+- `users.role_id` is never mass-assignable and is never copied from registration
   or profile input. Roles are set only by a trusted backend process that
   validates the string with `RolePermissions::isKnownRole()` before saving.
 - Do not modify or migrate the isolated `database/migrations/farmer_ic`

@@ -7,6 +7,8 @@ use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -20,7 +22,12 @@ Route::inertia('/kebun', 'farmer/Kebun')->defaults('farmer_guest', true)->name('
 Route::inertia('/aktivitas', 'farmer/Aktivitas')->defaults('farmer_guest', true)->name('aktivitas');
 Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->defaults('farmer_guest', true)->name('rincian-aktivitas');
 Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->name('laporan');
-Route::inertia('/bypass', 'farmer/Index')->defaults('farmer_guest', true)->name('bypass');
+Route::get('/bypass', function (Request $request) {
+    $team = $request->user()->currentTeam;
+    Gate::authorize('ai.access', $team);
+
+    return redirect()->route('ai.page', ['current_team' => $team->slug]);
+})->middleware(['auth', 'verified'])->name('bypass');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])

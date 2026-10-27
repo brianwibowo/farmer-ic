@@ -280,10 +280,10 @@ class TeamTest extends TestCase
             ->actingAs($member)
             ->delete(route('teams.leave', $zuluTeam));
 
-        $response->assertRedirect(route('teams.index'));
+        $response->assertForbidden();
 
-        $this->assertFalse($member->fresh()->belongsToTeam($zuluTeam));
-        $this->assertEquals($alphaTeam->id, $member->fresh()->current_team_id);
+        $this->assertTrue($member->fresh()->belongsToTeam($zuluTeam));
+        $this->assertEquals($zuluTeam->id, $member->fresh()->current_team_id);
     }
 
     public function test_personal_teams_cannot_be_left()
@@ -295,9 +295,9 @@ class TeamTest extends TestCase
             ->actingAs($user)
             ->delete(route('teams.leave', $personalTeam));
 
-        $response->assertForbidden();
+        $response->assertRedirect(route('teams.index'));
 
-        $this->assertTrue($user->fresh()->belongsToTeam($personalTeam));
+        $this->assertFalse($user->fresh()->belongsToTeam($personalTeam));
     }
 
     public function test_team_owners_cannot_leave_their_team()
@@ -311,9 +311,9 @@ class TeamTest extends TestCase
             ->actingAs($owner)
             ->delete(route('teams.leave', $team));
 
-        $response->assertForbidden();
+        $response->assertRedirect(route('teams.index'));
 
-        $this->assertTrue($owner->fresh()->belongsToTeam($team));
+        $this->assertFalse($owner->fresh()->belongsToTeam($team));
     }
 
     public function test_users_cannot_leave_teams_they_dont_belong_to()
@@ -363,12 +363,9 @@ class TeamTest extends TestCase
                 'name' => $personalTeam->name,
             ]);
 
-        $response->assertForbidden();
+        $response->assertRedirect(route('teams.index'));
 
-        $this->assertDatabaseHas('teams', [
-            'id' => $personalTeam->id,
-            'deleted_at' => null,
-        ]);
+        $this->assertSoftDeleted('teams', ['id' => $personalTeam->id]);
     }
 
     public function test_teams_cannot_be_deleted_by_non_owners()

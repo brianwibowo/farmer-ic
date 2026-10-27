@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Farms;
 
+use App\Enums\TeamRole;
 use App\Models\Farm;
+use App\Models\Team;
+use App\Models\User;
 use App\Services\FarmService;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +21,10 @@ class FarmManagementTest extends TestCase
     private string $creatorId;
 
     private string $ownerId;
+
+    private string $adminId;
+
+    private int $teamId;
 
     protected function setUp(): void
     {
@@ -37,6 +44,16 @@ class FarmManagementTest extends TestCase
         $this->transactionStarted = true;
         $this->creatorId = $this->createUser('petugas');
         $this->ownerId = $this->createUser('owner');
+        $this->adminId = $this->createUser('admin');
+        $team = Team::query()->create(['name' => 'Farm Test Tenant', 'is_personal' => false]);
+        $this->teamId = $team->getKey();
+        DB::table('team_members')->insert([
+            ['team_id' => $this->teamId, 'user_id' => $this->creatorId, 'role' => TeamRole::Member->value, 'created_at' => now(), 'updated_at' => now()],
+            ['team_id' => $this->teamId, 'user_id' => $this->ownerId, 'role' => TeamRole::Owner->value, 'created_at' => now(), 'updated_at' => now()],
+            ['team_id' => $this->teamId, 'user_id' => $this->adminId, 'role' => TeamRole::Admin->value, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+        DB::table('users')->whereIn('id', [$this->ownerId, $this->adminId])->update(['current_team_id' => $this->teamId]);
+        $this->actingAs(User::query()->findOrFail($this->adminId));
     }
 
     protected function tearDown(): void
@@ -49,11 +66,11 @@ class FarmManagementTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_local_crud_works_without_login_and_uses_uuid_records(): void
+    public function test_authenticated_local_crud_uses_uuid_records(): void
     {
-        $this->assertGuest();
+        $this->assertAuthenticated();
         $created = $this->postJson('/api/kebun', $this->payload())->assertCreated()
-            ->assertJsonPath('data.created_by', $this->creatorId)
+            ->assertJsonPath('data.created_by', $this->adminId)
             ->assertJsonPath('data.total_area_ha', '12.5000');
         $id = $created->json('data.id');
         $this->assertTrue(Str::isUuid($id));
@@ -93,20 +110,21 @@ class FarmManagementTest extends TestCase
         $this->assertDatabaseCount('farms', 0);
     }
 
-    public function test_recorder_is_required_and_must_be_an_existing_active_user(): void
+    public function test_creator_is_server_owned_and_forged_metadata_is_rejected(): void
     {
-        $this->postJson('/api/kebun', ['name' => 'Kebun Baru', 'total_area_ha' => '1'])->assertUnprocessable()->assertJsonValidationErrors('created_by');
+        $this->postJson('/api/kebun', ['name' => 'Kebun Baru', 'total_area_ha' => '1', 'owner_id' => $this->ownerId])
+            ->assertCreated()->assertJsonPath('data.created_by', $this->adminId);
         $this->postJson('/api/kebun', $this->payload(['created_by' => 'not-a-uuid']))->assertUnprocessable()->assertJsonValidationErrors('created_by');
         $this->postJson('/api/kebun', $this->payload(['created_by' => Str::uuid()->toString()]))->assertUnprocessable()->assertJsonValidationErrors('created_by');
         DB::table('users')->where('id', $this->creatorId)->update(['is_active' => false]);
-        $this->postJson('/api/kebun', $this->payload())->assertUnprocessable()->assertJsonValidationErrors('created_by');
+        $this->postJson('/api/kebun', $this->payload())->assertCreated()->assertJsonPath('data.created_by', $this->adminId);
     }
 
     public function test_creator_cannot_be_changed_on_update(): void
     {
         $farm = $this->farm();
         $this->patchJson('/api/kebun/'.$farm->id, ['created_by' => $this->ownerId])->assertUnprocessable()->assertJsonValidationErrors('created_by');
-        $this->assertSame($this->creatorId, $farm->fresh()->created_by);
+        $this->assertSame($this->adminId, $farm->fresh()->created_by);
     }
 
     public function test_coordinates_must_remain_a_pair_on_partial_updates(): void
@@ -167,7 +185,7 @@ class FarmManagementTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_replace([
-            'name' => 'Kebun Sumber Makmur', 'created_by' => $this->creatorId, 'owner_id' => $this->ownerId,
+            'name' => 'Kebun Sumber Makmur', 'owner_id' => $this->ownerId,
             'address' => 'Desa Kejajar', 'city' => 'Wonosobo', 'district' => 'Kejajar', 'province' => 'Jawa Tengah',
             'total_area_ha' => '12.5000', 'latitude' => '-7.2000000', 'longitude' => '109.9000000',
         ], $overrides);
@@ -179,7 +197,7 @@ class FarmManagementTest extends TestCase
         $data = $this->payload($overrides);
         unset($data['created_by']);
 
-        return app(FarmService::class)->create($data, $this->creatorId);
+        return app(FarmService::class)->create($data, User::query()->findOrFail($this->adminId), Team::query()->findOrFail($this->teamId));
     }
 
     private function createUser(string $role): string

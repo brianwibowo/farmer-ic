@@ -503,8 +503,8 @@ class AiChatTest extends TestCase
 
     public function test_team_members_cannot_manage_adaptive_knowledge(): void
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'owner']);
+        $member = User::factory()->create(['role' => 'admin']);
         $team = $owner->currentTeam;
         $team->members()->attach($member, ['role' => TeamRole::Member->value]);
 

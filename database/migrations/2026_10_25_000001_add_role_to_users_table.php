@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('users', 'role_id')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table): void {
             // Existing and newly registered users stay unassigned by default.
             $table->string('role', 32)->nullable();
@@ -16,6 +20,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (! Schema::hasColumn('users', 'role')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table): void {
             $table->dropColumn('role');
         });

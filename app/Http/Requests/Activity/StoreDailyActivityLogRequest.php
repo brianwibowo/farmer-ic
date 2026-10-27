@@ -2,16 +2,21 @@
 
 namespace App\Http\Requests\Activity;
 
+use App\Models\DailyActivityLog;
+use App\Models\Farm;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class StoreDailyActivityLogRequest extends FormRequest
 {
-    // Temporary local/testing contract, matching the existing farm API.
-    // recorded_by is a selected record reference, not authenticated authority.
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        $farm = $this->route('farm');
+
+        return $user !== null && $farm instanceof Farm
+            && Gate::forUser($user)->allows('create', [DailyActivityLog::class, $farm]);
     }
 
     /** @return array<string, array<mixed>> */

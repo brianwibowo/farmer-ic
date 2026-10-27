@@ -3,17 +3,17 @@
 Laravel's existing session guard and Fortify login/password flow are unchanged.
 Authorization uses automatically discovered model policies, native Gates, and
 `config/access.php`. There is no permission package, stand-in subject, assignment
-adapter, or manual policy registration. The explicitly approved developer
-exception is a `Gate::before` bypass for `superadmin`.
+adapter, or manual policy registration. Superadmin is handled by the explicit
+`Gate::before` bypass requested for the developer role; the matrix remains the
+source of truth for every other role.
 
 ## Providers and grant source
 
 - `AppServiceProvider`: framework defaults only.
 - `AiServiceProvider`: existing AI/RAG container bindings, preserved as before.
-- `AuthorizationServiceProvider`: defines `ai.access` and the explicitly approved
-  developer bypass. `superadmin` returns `true` from `Gate::before`, so it bypasses
-  team membership, scopes, and undefined abilities. Other roles use the explicit
-  matrix and `ai.access` still requires membership in the supplied team.
+- `AuthorizationServiceProvider`: defines `ai.access` and the superadmin
+  `Gate::before` bypass. Other roles remain subject to the matrix and persisted
+  team boundary.
 - `RolePermissions`: the single reader of access configuration, including grant
   scopes, recognized role validation, team membership, and assignment limits.
 - `ResourcePolicy`: an abstract parent sharing policy predicates and query
@@ -31,32 +31,27 @@ The four application roles retain their intended responsibilities:
 | Role | Grants in the revised matrix |
 | --- | --- |
 | owner | View every modeled resource; full interactive AI access for conversations, messages, attachments, and knowledge documents. |
-| superadmin | Developer-level unrestricted access through `Gate::before`, including all model actions, AI, cross-team records, and undefined abilities. |
+| superadmin | Gate::before bypass for every policy, team boundary, assignment, and ability. |
 | admin | CRUD for all non-AI modeled resources within teams using `any`; no AI access. |
-| petugas | View farms and CRUD farm-operation records within assigned farms using `own`; no team, finance, catalog, or AI grants. |
+| petugas | View farms and CRUD farm-operation records within assigned farms using `own`; may leave eligible teams; no finance, catalog, or AI grants. |
 
-Admin/petugas may update their own notifications and leave non-personal teams
-that they do not own. These are explicit matrix grants. The `Role` model is
-covered for read access; it is not a dynamic permission editor. Known native
-abilities without a grant deny by default, including configure and operational
-deletes not expressly listed in the matrix.
+Admin/petugas may leave non-personal teams that they do not own. Owner views
+notifications, while admin and superadmin have notification CRUD grants. Reference
+record writes are application-wide because those tables have no team boundary;
+they still require a grant and team membership. Abilities without grants deny,
+including `configure` and `forceDelete`.
 
 ## Model coverage
 
-There are now 35 concrete policy classes for 35 concrete Eloquent model classes.
-`App\Models\Farmer\User` is a distinct domain target, never an actor. It uses
-`#[UsePolicy(App\Policies\Farmer\UserPolicy::class)]`; native `App\Models\User`
-uses its own convention-discovered policy. No persisted domain-to-native identity
-link exists yet: domain-user reads, listings, creates, and mutations deny, and
-its `visibleTo` query is empty. Neither equal IDs nor equal emails prove identity.
-Notifications also deny because their persisted recipient is that unlinked
-domain user. Native-user targets still resolve through actual native team
-memberships. Shared policy signatures distinguish actor and target with fully
-qualified native/domain user types. Pint preserves these explicit type hints.
+There are now 36 concrete policy classes for the 36 concrete Eloquent models.
+There is one authentication and authorization actor: `App\Models\User`. The merged
+backend no longer exposes a second `Farmer\User` projection. User targets use the
+convention-discovered `UserPolicy`, and notifications use the persisted native
+recipient as their personal scope. Native-user targets resolve through actual team
+memberships.
 
-Merged flat model files were aligned to their `App\Models` namespace so
-Composer and Laravel can actually discover them. Domain-user relationships
-still point to the original domain projection.
+Merged flat model files use the `App\Models` namespace so Composer and Laravel
+discover the persisted domain relationships directly.
 
 | Model | Permission prefix | Trusted boundary |
 | --- | --- | --- |
@@ -69,8 +64,10 @@ still point to the original domain projection.
 | `AiMessage` | `ai_messages` | conversation.team |
 | `AiUsageEvent` | `ai_usage_events` | team |
 | `AuditLog` | `audit_logs` | Application-wide reference/system record |
+| `BlockMappingDetail` | `block_mapping_details` | activity.farm -> team |
 | `Commodity` | `commodities` | Application-wide reference/system record |
 | `CropVariety` | `crop_varieties` | Application-wide reference/system record |
+| `DailyActivityLog` | `daily_activity_logs` | farm -> team |
 | `FarmActivity` | `farm_activities` | farm -> team |
 | `Farm` | `farms` | Farm itself -> team |
 | `FarmRisk` | `farm_risks` | plantingCycle.farm -> team |
@@ -83,7 +80,7 @@ still point to the original domain projection.
 | `IncidentDetail` | `incident_details` | activity.farm -> team |
 | `IrrigationDetail` | `irrigation_details` | activity.farm -> team |
 | `Membership` | `memberships` | team |
-| `Notification` | `notifications` | Domain recipient needs an explicit native identity link; currently denies |
+| `Notification` | `notifications` | Persisted recipient's team membership; `own` additionally requires the actor to be the recipient |
 | `OperationalTarget` | `operational_targets` | farm -> team |
 | `PesticideDetail` | `pesticide_details` | activity.farm -> team |
 | `PlantingCycle` | `planting_cycles` | farm -> team |
@@ -93,7 +90,6 @@ still point to the original domain projection.
 | `TeamInvitation` | `team_invitations` | team |
 | `Team` | `teams` | Team itself |
 | `User` (native actor/target) | `users` | Shared native team membership |
-| `Farmer\User` (domain target) | `users` | Requires an explicit native identity link; currently denies |
 | `WeatherRecord` | `weather_records` | farm -> team |
 
 Reference/system single-record `view` checks require an explicit `any` view
@@ -112,9 +108,9 @@ The exact model rules are:
 
 Their listings still use `viewAny` and `visibleTo` with an authorized team.
 These shared-record grants never authorize farm/team-owned records. Those
-records resolve and check their own persisted team. Notification recipient
-ownership remains the intended personal scope after identity integration;
-today the absence of that link denies instead of joining IDs across models.
+records resolve and check their own persisted team. Notification creation receives
+a persisted `User` recipient who shares a team with the actor. Notification
+listings use the supplied team and the same recipient relationship.
 AI messages/attachments resolve the conversation's team; knowledge chunks
 resolve their document's team.
 
@@ -143,55 +139,41 @@ grants yield empty results. Listing admission alone never authorizes all rows.
 Never pass browser-supplied role, team, user, or farm IDs as proof of authority.
 Resolve the model/parent server-side before authorizing it.
 
-`User::farms()` is a native many-to-many relationship through `farm_user`.
-Assigned IDs are loaded once on that User instance and reused across policies
-and query scopes, across all teams. Petugas access denies when more than one
-distinct farm is assigned; admin can have several. Assignment workflows must
-validate the configured limit and clear/reload the `farms` relation after a
-change. No assignment management endpoint has been added.
+`User::assignedFarm()` is a direct `belongsTo` relation through
+`users.assigned_farm_id`. The nullable foreign key keeps the scaffolding explicit:
+one petugas can have one assigned Farm. Owner/admin visibility does not use this
+foreign key; it comes from the Farm's `team_id`. No assignment management endpoint
+has been added.
 
 ## Database prerequisite
 
-A read-only check of the configured local `farmer_ic_dev` PostgreSQL database
-confirmed UUID `users.id` and `farms.id`, with no teams or native memberships.
-The integer user/team design is also present in the read-only verified legacy
-SQLite database, as well as the starter migrations and SQLite policy fixtures; it is not integrated into that live database. Normalization
-(3NF) is independent of this identity/key mismatch.
+The merged backend uses one UUID `users` table for domain records and native
+authentication, with integer team IDs. The earlier split-user review is historical.
 
-The chosen direction for a **later** integration is to preserve UUID domain
-users and add an explicit persisted link to native authentication users. No
-link table, schema conversion, identity backfill, connection split, or migration
-was implemented/applied in this review. Duplicate users/AI table names and
-native password/role attributes still need a reviewed integration design.
-See [the full review](authorization-review.md) for every user FK and trade-offs.
-
-The deferred migration at
-`database/migrations/authorization/2026_10_26_000001_add_farm_authorization_relationships.php`
+The authorization migration at
+`database/migrations/2026_10_26_000003_add_farm_authorization_relationships.php`
 now reads the physical `id` column types for users/farms/teams **before** any
 DDL, then defines matching referencing columns and constraints. UUID, bigint,
 integer, and smallint keys are supported; unsupported types fail before DDL.
-Absent users, farms, or teams also fail before DDL. Matching physical FK types
-does not create or validate the missing native/domain identity link.
+Absent users, farms, or teams also fail before DDL. It runs after team support
+has been restored. The superadmin role constraint is extended in a separate
+authorization migration, preserving the team's identity baseline.
 
-Do not run this migration against the current local baseline. No runnable
-integration is claimed. Its tests capture Blueprints and compile PostgreSQL
-SQL without PDO or SQL execution. Policy tests build independent SQLite
-fixtures instead of invoking this deferred migration.
-
-No migration or backfill has been run against a working database here. Existing
-farms must deliberately be assigned a team before access is authorized. A record
+The local PostgreSQL schema has been verified with `php artisan migrate:fresh`.
+Farms must deliberately be assigned a team before access is authorized. A record
 with no provable team boundary denies even for `any`. Until the assignment table
 exists, `own` access denies; `any` still works for team-linked records. Nullable
 farm records, such as an unallocated financial transaction, need an authoritative
 team/parent before they can be authorized; a caller cannot supply a scope to
 bypass that requirement.
 
-`users.role` stays nullable and guarded. In a trusted backend assignment process,
-validate the proposed string using `RolePermissions::isKnownRole()` before
-explicitly assigning and saving it. Do not copy role input during registration
-or profile updates. Existing and newly created accounts receive no automatic
-application privileges. Owning a starter team does not grant application owner access. A trusted developer
-account with `role = superadmin` is the explicit global authorization exception.
+Application roles resolve through `User::role()` and `roles.name`, cached on the
+actor instance. `RolePermissions` is the only matrix reader. The old authorization
+migration skips `users.role` when `role_id` exists, so it cannot shadow the Eloquent
+relationship. `role_id` remains guarded; trusted assignment must validate the role
+name with `RolePermissions::isKnownRole()` before associating the persisted role.
+The test factory accepts the existing `['role' => 'admin']` fixture shorthand and
+converts it into a role association. Team ownership alone grants no application role.
 
 ## Enforcement coverage and remaining integration
 
@@ -205,7 +187,7 @@ native policy ability. The index uses `visibleTo`, and config revocations are
 honored independently for reads, creates, updates, and deletes.
 
 This remains authorization scaffolding for the rest of the app. Existing
-home/demo/bypass, farm/activity/finance/report pages, team index/store/edit/switch,
+home/demo, farm/activity/finance/report pages, team index/store/edit/switch,
 settings/profile flows, other AI conversation/message/voice routes, background
 jobs/commands, and AI/RAG retrieval queries have not been migrated to these
 application-role checks/scopes. They retain their existing authentication,
@@ -213,19 +195,28 @@ validation, membership, and business checks, where present. In particular,
 installing `ai.access` does not make every existing AI route owner-only yet.
 Future controllers and non-HTTP entry points must invoke Gate before acting;
 queries must use `visibleTo` before returning data. No claim is made that every
-route or query now enforces application RBAC.
+route or query now enforces application RBAC. `/bypass` requires authentication and
+authorizes `ai.access` before redirecting. The local-only `/api/kebun` Farm CRUD
+and `/api/kebun/{farm}/daily-logs` endpoints now require authentication and invoke
+their native policies; Farm listing and daily-log pagination use their model
+`visibleTo` scopes before returning records. Other application controllers and
+services remain outside this scaffolding rollout.
 
 After changing the file grants, rebuild config cache when used and restart
 long-running workers. New ownership semantics or abilities still require code
 and corresponding tests.
 
+## Handoff checkpoint
+
+See [`rbac-authentication-guide.md`](rbac-authentication-guide.md) for the
+backend/frontend usage guide and [`rbac-scaffolding-checkpoint.md`](rbac-scaffolding-checkpoint.md)
+for the current implementation boundary and validation snapshot.
+
 ## Verification
 
-The authorization tests use real persisted SQLite records, native Gate/policy
-discovery, and independent relational fixtures. The deferred migration is
-validated through SQL compilation only. Fixture tests exercise native policies
-and assert denial of unlinked domain targets; they do not pretend to execute or validate
-the separate PostgreSQL schema. Coverage includes every role/model action,
+The authorization tests use real persisted PostgreSQL records and native Gate/policy
+discovery. Migration tests additionally capture Blueprints and compile SQL for key
+type combinations. Coverage includes every role/model action,
 query/record agreement, team and assignment boundaries, counts/paginator totals/
 export selections, guarded roles, invalid grants, assignment caching and unique
 constraints, configuration validation, real HTTP 403s, and forged input.
@@ -241,6 +232,10 @@ code changes, every grant (139 rows), the complete prior model-file inventory,
 the chosen future integration direction, skip reasons/resolutions, and files
 changed during the seven-item review. This review did not add or change route
 or controller enforcement. Authorization names now use `farms`,
-`assignedFarmIds`, and `farm_assignment_limits`; only real Indonesian fixture
-names/titles retain the domain word. Fixture-based tests establish policy logic,
-not compatibility with the separately migrated PostgreSQL domain schema.
+`assignedFarmId`, and `farm_assignment_limits`; only real Indonesian fixture
+names/titles retain the domain word. The review describes the older schema split;
+the current PostgreSQL migration and model tests now validate the unified schema.
+
+Latest validation: `php artisan migrate:fresh --force` passed on the local demo
+database. `php artisan test --compact` runs against dedicated PostgreSQL test
+databases; Fortify's disabled two-factor challenge test is explicitly skipped.

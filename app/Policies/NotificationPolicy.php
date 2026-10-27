@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class NotificationPolicy extends ResourcePolicy
@@ -13,14 +14,19 @@ class NotificationPolicy extends ResourcePolicy
 
     protected bool $personal = true;
 
-    public function viewAny(\App\Models\User $actor, ?Team $team = null): bool
-    {
-        // Recipients are Farmer\User records with no persisted link to native users.
-        return false;
-    }
-
     public function create(\App\Models\User $actor, ?Model $parent = null): bool
     {
-        return false;
+        if (! $parent instanceof User || ! $parent->exists || $parent->getKey() === null) {
+            return false;
+        }
+
+        $team = $actor->teams()
+            ->whereHas('members', fn ($members) => $members->whereKey($parent->getKey()))
+            ->first();
+
+        return $team instanceof Team
+            && ($this->permissions->scope($actor, 'notifications.create') === 'any'
+                || ($this->permissions->scope($actor, 'notifications.create') === 'own' && $parent->is($actor)))
+            && $this->permissions->withinTeam($actor, $team);
     }
 }

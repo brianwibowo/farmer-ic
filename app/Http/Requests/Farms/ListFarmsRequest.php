@@ -2,14 +2,20 @@
 
 namespace App\Http\Requests\Farms;
 
+use App\Models\Farm;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class ListFarmsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        $team = $user?->currentTeam;
+
+        return $user !== null && $team !== null
+            && Gate::forUser($user)->allows('viewAny', [Farm::class, $team]);
     }
 
     /** @return array<string, array<mixed>> */

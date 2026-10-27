@@ -3,17 +3,22 @@
 namespace App\Http\Requests\Farms;
 
 use App\Models\Farm;
+use App\Models\Team;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class SaveFarmRequest extends FormRequest
 {
-    // Authentication and role permissions will be added in a later stage.
-    // EnsureLocalFarmApi limits these temporary endpoints to local/testing.
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        $team = $user?->currentTeam;
+        $farm = $this->route('farm');
+
+        return $user !== null && (($farm instanceof Farm && Gate::forUser($user)->allows($this->isMethod('patch') ? 'update' : 'view', $farm))
+            || ($team instanceof Team && $this->isMethod('post') && Gate::forUser($user)->allows('create', [Farm::class, $team])));
     }
 
     /** @return array<string, array<mixed>> */
@@ -27,9 +32,7 @@ class SaveFarmRequest extends FormRequest
             'owner_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'id')->where(fn ($query) => $query
                 ->where('is_active', true)
                 ->whereIn('role_id', fn ($roles) => $roles->select('id')->from('roles')->where('name', 'owner')))],
-            'created_by' => $this->isMethod('post')
-                ? ['required', 'uuid', Rule::exists('users', 'id')->where('is_active', true)]
-                : ['prohibited'],
+            'created_by' => ['prohibited'],
             'address' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'city' => ['sometimes', 'nullable', 'string', 'max:100'],
             'district' => ['sometimes', 'nullable', 'string', 'max:100'],

@@ -10,8 +10,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -36,15 +34,15 @@ use Illuminate\Notifications\Notifiable;
  * @property-read Collection<int, Team> $ownedTeams
  * @property-read Collection<int, Membership> $teamMemberships
  * @property-read Collection<int, Team> $teams
- * @property-read Collection<int, Farm> $farms
+ * @property-read Farm|null $assignedFarm
  * @property string|null $remember_token
  */
 #[Fillable(['name', 'email', 'password', 'avatar_url'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasTeams, HasUuids, Notifiable, HasVisibleScope;
-    
+    use HasFactory, HasTeams, HasUuids, HasVisibleScope, Notifiable;
+
     protected $table = 'users';
 
     public $timestamps = true;
@@ -73,24 +71,17 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class, 'role_id');
     }
 
-    /** @return BelongsToMany<Farm, $this> */
-    public function farms(): BelongsToMany
+    /** @return BelongsTo<Farm, $this> */
+    public function assignedFarm(): BelongsTo
     {
-        return $this->belongsToMany(Farm::class, 'farm_user', 'user_id', 'farm_id');
+        return $this->belongsTo(Farm::class, 'assigned_farm_id');
     }
 
-    /** @return list<string> */
-    public function assignedFarmIds(): array
+    public function assignedFarmId(): ?string
     {
-        if (! $this->relationLoaded('farms')) {
-            if (! Schema::hasTable('farm_user') || ! Schema::hasTable('farms')) {
-                $this->setRelation('farms', new Collection);
-            } else {
-                $this->load(['farms' => fn ($farms) => $farms->select('farms.id')]);
-            }
-        }
+        $farmId = $this->getAttribute('assigned_farm_id');
 
-        return array_values(array_unique(array_map(strval(...), $this->farms->modelKeys())));
+        return $farmId === null ? null : (string) $farmId;
     }
 
     /** @return HasMany<Farm, $this> */

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
 
@@ -17,12 +18,13 @@ final class RolePermissions
 
     public function isKnownRole(string $role): bool
     {
-        return isset($this->roles()[$role]) && is_array($this->roles()[$role]);
+        return $role === 'superadmin'
+            || (isset($this->roles()[$role]) && is_array($this->roles()[$role]));
     }
 
     public function scope(User $user, string $permission): ?string
     {
-        $role = $user->getAttribute('role');
+        $role = $this->roleName($user);
         $roles = $this->roles();
 
         if (! is_string($role) || $role === '') {
@@ -35,27 +37,63 @@ final class RolePermissions
         return in_array($scope, ['own', 'any'], true) ? $scope : null;
     }
 
+    public function roleName(User $user): ?string
+    {
+        $user->loadMissing('role');
+        $role = $user->getRelation('role');
+
+        if ($role instanceof Role) {
+            return $role->name;
+        }
+
+        return null;
+    }
+
     public function withinTeam(User $user, Team $team): bool
     {
         return $user->exists && $team->exists
             && $user->getKey() !== null && $team->getKey() !== null
             && ! $team->trashed()
+            && $this->withinTeamMembershipLimit($user)
             && $user->belongsToTeam($team);
+    }
+
+    public function withinTeamMembershipLimit(User $user): bool
+    {
+        $role = $this->roleName($user);
+        if ($role === null || ! $this->isKnownRole($role)) {
+            return false;
+        }
+
+        if ($role === 'owner' || $role === 'superadmin') {
+            return true;
+        }
+
+        $count = $user->relationLoaded('teams')
+            ? $user->getRelation('teams')->where('is_personal', false)->unique('id')->count()
+            : $user->teams()->where('teams.is_personal', false)->distinct('teams.id')->count('teams.id');
+
+        return $count <= 1;
     }
 
     public function withinAssignmentLimit(User $user, int $count): bool
     {
         $limits = config('access.farm_assignment_limits', []);
 
-        if (! is_array($limits) || ! is_string($user->role)) {
+        if (! is_array($limits)) {
             return false;
         }
 
-        if (! array_key_exists($user->role, $limits)) {
+        $role = $this->roleName($user);
+        if ($role === null || ! $this->isKnownRole($role)) {
+            return false;
+        }
+
+        if (! array_key_exists($role, $limits)) {
             return true;
         }
 
-        $limit = $limits[$user->role];
+        $limit = $limits[$role];
 
         return is_int($limit) && $limit > 0 && $count <= $limit;
     }

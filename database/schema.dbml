@@ -5,7 +5,7 @@ Project FarmerIC {
 
 Table roles {
   id uuid [pk]
-  name varchar(30) [not null, unique, note: 'owner | admin | petugas']
+  name varchar(30) [not null, unique, note: 'owner | superadmin | admin | petugas; superadmin is the developer Gate::before role']
   description text
 }
 
@@ -25,6 +25,7 @@ Table users {
   two_factor_recovery_codes text
   two_factor_confirmed_at timestamp
   remember_token varchar(100)
+  assigned_farm_id uuid [ref: > farms.id, note: 'Direct one-farm assignment for petugas; nullable for owner/admin']
 }
 
 Table teams {
@@ -78,6 +79,7 @@ Table farms {
   image_url text
   created_at timestamptz [not null]
   updated_at timestamptz
+  team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
   Note: 'Tanpa farm_plots. Jika semua owner memantau semua kebun, owner_id boleh dihilangkan.'
 }
 

@@ -146,7 +146,7 @@ abstract class ResourcePolicy
 
         if ($this->userPath !== null) {
             $target = $this->userPath === '' ? $record : data_get($record, $this->userPath);
-            if ((! $target instanceof \App\Models\User && ! $target instanceof \App\Models\Farmer\User) || ! $target->exists) {
+            if (! $target instanceof \App\Models\User || ! $target->exists) {
                 return null;
             }
 
@@ -159,23 +159,18 @@ abstract class ResourcePolicy
 
     private function teamForUserTarget(
         \App\Models\User $actor,
-        \App\Models\User|\App\Models\Farmer\User $target,
+        \App\Models\User $target,
     ): ?Team {
-        // No persisted domain-to-native identity link exists. Never join by coincident IDs/email.
-        if ($target instanceof \App\Models\Farmer\User) {
-            return null;
-        }
-
         return $actor->teams()->whereHas('members', fn ($members) => $members->whereKey($target->getKey()))->first();
     }
 
     private function assigned(\App\Models\User $user, Farm $farm): bool
     {
-        $ids = $user->assignedFarmIds();
+        $assignedFarmId = $user->assignedFarmId();
 
         return $farm->exists && $farm->getKey() !== null
-            && $this->permissions->withinAssignmentLimit($user, count($ids))
-            && in_array((string) $farm->getKey(), $ids, true);
+            && $this->permissions->withinAssignmentLimit($user, $assignedFarmId === null ? 0 : 1)
+            && $assignedFarmId === (string) $farm->getKey();
     }
 
     /**
@@ -185,6 +180,10 @@ abstract class ResourcePolicy
      */
     public function applyVisibility(Builder $query, \App\Models\User $user, Team $team): void
     {
+        if ($this->permissions->roleName($user) === 'superadmin') {
+            return;
+        }
+
         if (! $this->admitted($user, $team, 'view')) {
             $query->whereRaw('1 = 0');
 
@@ -192,20 +191,21 @@ abstract class ResourcePolicy
         }
 
         $own = $this->permissions->scope($user, $this->resource.'.view') === 'own';
-        $ids = $own && ! $this->personal ? $user->assignedFarmIds() : [];
+        $assignedFarmId = $own && ! $this->personal ? $user->assignedFarmId() : null;
 
         if ($own && ! $this->personal && ($this->farmPath === null
-            || ! $this->permissions->withinAssignmentLimit($user, count($ids)) || $ids === [])) {
+            || ! $this->permissions->withinAssignmentLimit($user, $assignedFarmId === null ? 0 : 1)
+            || $assignedFarmId === null)) {
             $query->whereRaw('1 = 0');
 
             return;
         }
 
         if ($this->farmPath !== null) {
-            $filter = function ($farms) use ($team, $own, $ids): void {
+            $filter = function ($farms) use ($team, $own, $assignedFarmId): void {
                 $farms->whereHas('team', fn ($teams) => $teams->whereKey($team->getKey()));
                 if ($own) {
-                    $farms->whereKey($ids);
+                    $farms->whereKey($assignedFarmId);
                 }
             };
 

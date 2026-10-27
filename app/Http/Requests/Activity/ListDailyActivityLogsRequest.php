@@ -2,14 +2,20 @@
 
 namespace App\Http\Requests\Activity;
 
+use App\Models\Farm;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 class ListDailyActivityLogsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        $farm = $this->route('farm');
+
+        return $user !== null && $farm instanceof Farm
+            && Gate::forUser($user)->allows('view', $farm);
     }
 
     /** @return array<string, array<mixed>> */

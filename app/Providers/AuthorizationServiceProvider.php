@@ -15,11 +15,8 @@ class AuthorizationServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Developer-level account: superadmin is intentionally unrestricted.
-        // This bypasses resource scopes, team membership, and undefined ability
-        // checks. Owner remains governed by the explicit static matrix below.
         Gate::before(function (User $user): ?bool {
-            return $user->getAttribute('role') === 'superadmin' ? true : null;
+            return app(RolePermissions::class)->roleName($user) === 'superadmin' ? true : null;
         });
 
         Gate::define('ai.access', function (User $user, ?Team $team = null): bool {

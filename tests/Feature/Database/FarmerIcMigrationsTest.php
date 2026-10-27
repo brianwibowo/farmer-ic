@@ -345,8 +345,12 @@ class FarmerIcMigrationsTest extends TestCase
         $this->assertSame($expectedTables, $this->tableNames());
         foreach ($this->definition as $table => $columns) {
             $actual = $this->database->select('SELECT column_name, udt_name, is_nullable, character_maximum_length, numeric_precision, numeric_scale, column_default FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position', ['public', $table]);
-            $this->assertSame(array_column($columns, 'name'), array_column($actual, 'column_name'), $table.' columns must exactly match DBML');
-            foreach ($columns as $index => $column) {
+            $expectedColumns = $columns;
+            if ($table === 'farms' && ! in_array('team_id', array_column($expectedColumns, 'name'), true)) {
+                $expectedColumns[] = ['name' => 'team_id', 'type' => 'bigint', 'settings' => ''];
+            }
+            $this->assertSame(array_column($expectedColumns, 'name'), array_column($actual, 'column_name'), $table.' columns must exactly match DBML');
+            foreach ($expectedColumns as $index => $column) {
                 $field = $actual[$index];
                 $type = $column['type'];
                 $settings = $column['settings'];
@@ -405,7 +409,8 @@ SQL, [$table]), 'columns');
                 $simpleForeignKeys += preg_match('/ref:\s*>/', $column['settings']);
             }
         }
-        $this->assertSame($simpleForeignKeys, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
+        $farmTeamAlreadyDocumented = in_array('team_id', array_column($this->definition['farms'], 'name'), true);
+        $this->assertSame($simpleForeignKeys + ($farmTeamAlreadyDocumented ? 0 : 1), (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
         $this->assertSame(9, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
     }
 

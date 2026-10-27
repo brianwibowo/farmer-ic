@@ -45,7 +45,16 @@ class UserFactory extends Factory
      */
     public function configure(): static
     {
-        return $this->afterCreating(function ($user) {
+        return $this->afterMaking(function (User $user): void {
+            $legacyRole = $user->getAttribute('role');
+            if (! is_string($legacyRole)) {
+                return;
+            }
+
+            $role = Role::query()->firstOrCreate(['name' => $legacyRole]);
+            $user->setAttribute('role_id', $role->getKey());
+            $user->offsetUnset('role');
+        })->afterCreating(function ($user) {
             $team = Team::factory()->personal()->create([
                 'name' => $user->name."'s Team",
             ]);

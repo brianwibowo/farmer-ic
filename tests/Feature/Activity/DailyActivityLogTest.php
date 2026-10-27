@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Activity;
 
+use App\Enums\TeamRole;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\Team;
+use App\Models\User;
 use App\Services\Activity\DailyActivityLogService;
 use Database\Seeders\BlockMappingActivityTypeSeeder;
 use Illuminate\Database\Connection;
@@ -50,6 +52,19 @@ class DailyActivityLogTest extends TestCase
         $this->recorder->role()->associate($role);
         $this->recorder->save();
         $this->farm = $this->makeFarm('Kebun Cileuksa');
+        $team = Team::query()->create(['name' => 'Daily Log Tenant', 'is_personal' => false]);
+        $this->farm->team()->associate($team);
+        $this->farm->save();
+        DB::table('team_members')->insert([
+            'team_id' => $team->id,
+            'user_id' => $this->recorder->id,
+            'role' => TeamRole::Member->value,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->recorder->forceFill(['current_team_id' => $team->id, 'assigned_farm_id' => $this->farm->id])->save();
+        $this->recorder->refresh();
+        $this->actingAs($this->recorder);
     }
 
     protected function tearDown(): void
@@ -67,7 +82,7 @@ class DailyActivityLogTest extends TestCase
         $payload = $this->payload();
         $payload['activities'][] = $payload['activities'][0];
         $payload['activities'][1]['block_mapping']['block_name'] = 'Blok 2';
-        $this->assertGuest();
+        $this->assertAuthenticated();
         $response = $this->postJson($this->url(), $payload)->assertCreated()
             ->assertJsonPath('data.worker_count', 6)->assertJsonPath('data.recorded_by', $this->recorder->id)
             ->assertJsonPath('data.recorder_name', 'Budi Santoso')->assertJsonPath('data.start_time', '08:00')
@@ -85,7 +100,7 @@ class DailyActivityLogTest extends TestCase
         $activity = $log->activities->firstOrFail();
         $this->assertSame($activity->id, $activity->blockMappingDetail->getKey());
         $this->assertSame('2026-10-27 01:00', $activity->activity_date->utc()->format('Y-m-d H:i'));
-        $this->getJson($this->url() . '/' . $id)->assertOk()->assertJsonPath('data.work_date', '2026-10-27')
+        $this->getJson($this->url().'/'.$id)->assertOk()->assertJsonPath('data.work_date', '2026-10-27')
             ->assertJsonPath('data.activities.1.block_mapping.block_name', 'Blok 2');
         $this->assertStringNotContainsString('password_hash', $response->getContent());
         $this->assertStringNotContainsString('"password"', $response->getContent());
@@ -98,13 +113,13 @@ class DailyActivityLogTest extends TestCase
         $older['work_date'] = '2026-10-12';
         $this->postJson($this->url(), $older)->assertCreated();
         $other = $this->makeFarm('Kebun Cariu');
-        $foreign = $this->postJson($this->url($other), $this->payload())->assertCreated()->json('data.id');
-        $this->getJson($this->url() . '?per_page=1')->assertOk()->assertJsonPath('meta.total', 2)
+        $this->postJson($this->url($other), $this->payload())->assertForbidden();
+        $this->getJson($this->url().'?per_page=1')->assertOk()->assertJsonPath('meta.total', 2)
             ->assertJsonPath('data.0.id', $first)->assertJsonPath('meta.last_page', 2);
-        $this->getJson($this->url() . '?from_date=2026-10-20&to_date=2026-10-27&recorded_by=' . $this->recorder->id)
+        $this->getJson($this->url().'?from_date=2026-10-20&to_date=2026-10-27&recorded_by='.$this->recorder->id)
             ->assertOk()->assertJsonPath('meta.total', 1);
-        $this->getJson($this->url() . '?from_date=2027-01-01')->assertOk()->assertJsonCount(0, 'data');
-        $this->getJson($this->url() . '/' . $foreign)->assertNotFound();
+        $this->getJson($this->url().'?from_date=2027-01-01')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson($this->url($other))->assertForbidden();
     }
 
     public function test_invalid_header_and_mapping_fields_do_not_create_partial_records(): void
@@ -173,7 +188,7 @@ class DailyActivityLogTest extends TestCase
         $this->recorder->is_active = false;
         $this->recorder->save();
         $this->postJson($this->url(), $this->payload())->assertUnprocessable()->assertJsonValidationErrors('recorded_by');
-        $this->getJson($this->url() . '/' . $id)->assertOk();
+        $this->getJson($this->url().'/'.$id)->assertOk();
         try {
             app(DailyActivityLogService::class)->create($this->farm, $this->payload());
             $this->fail('An inactive recorder must also be rejected outside HTTP.');
@@ -219,7 +234,7 @@ class DailyActivityLogTest extends TestCase
         $this->database->statement('SET CONSTRAINTS ALL IMMEDIATE');
         $this->database->statement('SET CONSTRAINTS ALL DEFERRED');
         $activity = DailyActivityLog::findOrFail($id)->activities->firstOrFail();
-        $this->rejectDatabaseOperation(fn() => $activity->blockMappingDetail()->delete(), '23514');
+        $this->rejectDatabaseOperation(fn () => $activity->blockMappingDetail()->delete(), '23514');
         $this->assertTrue($activity->blockMappingDetail()->exists());
     }
 
@@ -228,18 +243,18 @@ class DailyActivityLogTest extends TestCase
         $id = $this->postJson($this->url(), $this->payload())->assertCreated()->json('data.id');
         $other = $this->makeFarm('Kebun Cariu');
         $activity = DailyActivityLog::findOrFail($id)->activities->firstOrFail();
-        $this->rejectDatabaseOperation(fn() => $activity->update(['farm_id' => $other->id]), '23503');
+        $this->rejectDatabaseOperation(fn () => $activity->update(['farm_id' => $other->id]), '23503');
         $this->assertSame($this->farm->id, $activity->fresh()->farm_id);
     }
 
     public function test_list_validation_and_unknown_ids(): void
     {
         foreach (['per_page=101', 'page=0', 'from_date=invalid', 'from_date=2026-10-27&to_date=2026-10-01', 'recorded_by=invalid'] as $query) {
-            $this->getJson($this->url() . '?' . $query)->assertUnprocessable();
+            $this->getJson($this->url().'?'.$query)->assertUnprocessable();
         }
-        $this->getJson($this->url() . '/not-a-uuid')->assertNotFound();
-        $this->getJson($this->url() . '/' . Str::uuid())->assertNotFound();
-        $this->getJson('/api/kebun/' . Str::uuid() . '/daily-logs')->assertNotFound();
+        $this->getJson($this->url().'/not-a-uuid')->assertNotFound();
+        $this->getJson($this->url().'/'.Str::uuid())->assertNotFound();
+        $this->getJson('/api/kebun/'.Str::uuid().'/daily-logs')->assertNotFound();
     }
 
     public function test_endpoints_are_unavailable_in_production_before_database_binding(): void
@@ -248,7 +263,7 @@ class DailyActivityLogTest extends TestCase
         DB::shouldReceive('connection')->never();
         $this->getJson($this->url())->assertNotFound();
         $this->postJson($this->url(), $this->payload())->assertNotFound();
-        $this->getJson($this->url() . '/' . Str::uuid())->assertNotFound();
+        $this->getJson($this->url().'/'.Str::uuid())->assertNotFound();
     }
 
     public function test_endpoints_require_postgresql_before_binding(): void
@@ -265,7 +280,7 @@ class DailyActivityLogTest extends TestCase
                 $operation();
                 $this->database->statement('SET CONSTRAINTS ALL IMMEDIATE');
             });
-            $this->fail('Expected SQLSTATE ' . $sqlState);
+            $this->fail('Expected SQLSTATE '.$sqlState);
         } catch (QueryException $exception) {
             $this->assertSame($sqlState, (string) $exception->getCode());
         }
@@ -275,6 +290,7 @@ class DailyActivityLogTest extends TestCase
     {
         $farm = new Farm(['name' => $name, 'total_area_ha' => '12.5000']);
         $farm->creator()->associate($this->recorder);
+        $farm->team()->associate(Team::query()->where('name', 'Daily Log Tenant')->first());
         $farm->save();
 
         return $farm;
@@ -282,7 +298,7 @@ class DailyActivityLogTest extends TestCase
 
     private function url(?Farm $farm = null): string
     {
-        return '/api/kebun/' . ($farm ?? $this->farm)->id . '/daily-logs';
+        return '/api/kebun/'.($farm ?? $this->farm)->id.'/daily-logs';
     }
 
     /** @return array<string, mixed> */

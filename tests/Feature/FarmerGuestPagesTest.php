@@ -29,6 +29,12 @@ class FarmerGuestPagesTest extends TestCase
     #[DataProvider('pages')]
     public function test_pages_open_without_provisioning_users_or_teams(string $url, string $component): void
     {
+        if ($url === '/bypass') {
+            $this->get($url)->assertRedirect(route('login'));
+
+            return;
+        }
+
         // No migrations: any legacy user/team lookup or insert makes this fail.
         DB::connection()->enableQueryLog();
 

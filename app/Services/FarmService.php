@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Farm;
+use App\Models\Team;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +17,9 @@ class FarmService
      * @param  array<string, mixed>  $filters  Validated list parameters.
      * @return LengthAwarePaginator<int, Farm>
      */
-    public function paginate(array $filters): LengthAwarePaginator
+    public function paginate(User $user, Team $team, array $filters): LengthAwarePaginator
     {
-        $query = Farm::query();
+        $query = Farm::visibleTo($user, $team);
         $search = trim($filters['search'] ?? '');
         if ($search !== '') {
             $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
@@ -39,10 +41,14 @@ class FarmService
     }
 
     /** @param array<string, mixed> $data Validated farm attributes. */
-    public function create(array $data, string $createdBy): Farm
+    public function create(array $data, User|string $user, ?Team $team = null): Farm
     {
+        $actor = is_string($user) ? User::query()->findOrFail($user) : $user;
         $farm = new Farm($data);
-        $farm->created_by = $createdBy;
+        if ($team instanceof Team) {
+            $farm->team()->associate($team);
+        }
+        $farm->created_by = $actor->getKey();
         $farm->save();
 
         return $farm->refresh();

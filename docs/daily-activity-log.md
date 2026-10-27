@@ -32,7 +32,9 @@ record if absent. It does not create logbook or user records.
 These JSON endpoints are covered by the existing `EnsureLocalFarmApi`
 middleware. They return 404 outside `local`/`testing`, and 503 when the default
 connection is not PostgreSQL. They deliberately follow the current local farm
-API's guest-accessible pattern. They are not an operational petugas API.
+API's authenticated pattern and enforce the farm/team policy before reading or
+writing. They are still a local prototype endpoint, not a complete operational
+petugas workflow.
 
 | Method | URL | Result |
 | --- | --- | --- |
@@ -96,45 +98,35 @@ application/json`.
 - List filters: `from_date`, `to_date` (inclusive, YYYY-MM-DD), `recorded_by`,
   `page`, `per_page` (1–100). Results sort by work date then creation time,
   newest first. Counts and pagination are scoped to the route's farm.
-- Validation failures return 422. Unknown farm/report UUIDs and cross-farm
-  report URLs return 404. Active-recorder validation is a data consistency
-  check, not proof that the caller is that user.
+- Validation failures return 422. Unknown farm/report UUIDs return 404; a farm
+  outside the caller's team or assignment returns 403. Active-recorder
+  validation is a data consistency check, not proof that the caller is that user.
 
-## Policy and authentication discussion (not implemented)
+## Policy and authentication boundary
 
-`recorded_by` currently comes from a selected active user reference. It is not
-authenticated identity. Any caller with access to this local API can select a
-different active user and read/create records under any known farm URL. Farm
-scoping prevents accidental cross-parent reads; it does not implement RBAC or
-assignment checks. Do not enable these endpoints in a shared/production
-environment without addressing the following:
+The authenticated caller is authorized against the route farm through the native
+Gate/policy before the service runs. Farm/team scope and the petugas assignment
+are resolved from persisted relationships; a caller cannot gain access by changing
+the farm URL or by supplying a different browser ID. `recorded_by` remains a
+validated active-user reference for this first report contract and is not used as
+proof of authorization.
 
-1. Adapt the existing authenticated `User` model/provider to the UUID and
-   `password_hash` schema. Then derive the recorder from the authenticated
-   account and stop accepting it from request input. Do not use `FarmUser`
-   (a plain Eloquent model) as a fake authentication guard.
-2. Decide the persisted farm-to-team relationship and add real user-to-farm
-   assignments. The current schema has team membership but neither a farm team
-   foreign key nor `kebun_user`. `created_by`, `owner_id`, and browser IDs are
-   not substitutes for assignment. `own` must deny until these relationships
-   exist; petugas must have no more than one assigned farm.
-3. Agree how the daily parent and individual `FarmActivity` map to the
+1. The current schema uses `farms.team_id` for tenant ownership and
+   `users.assigned_farm_id` for the one-farm petugas assignment. `created_by`,
+   `owner_id`, and browser IDs are not substitutes for either boundary.
+2. The daily parent and individual `FarmActivity` map to the
    `activities` permission resource. Use per-model policies and a shared
    resource-policy base; do not invent a catch-all subject. Put explicit grants
-   in `config/access.php`, with one `RolePermissions` reader. The fixed matrix
-   includes `superadmin`, while the current DB role check still permits only
-   owner/admin/petugas; that mismatch needs a deliberate follow-up migration.
-4. Add backend authorization before service execution and authorized query
-   scopes before counts/pagination. Owner stays read-only, only owner gets AI
-   access, and no role inherits permissions or bypasses the matrix.
-5. Add actual role/assignment and cross-team HTTP tests that assert 403, trusted
-   recorder identity, and correctly scoped totals. Replace the temporary local
-   gate with normal authenticated application routes only after those checks
-   are present. Never rely on UI visibility for access control.
+   in `config/access.php`, with one `RolePermissions` reader. Superadmin is
+   reserved for the provider's `Gate::before` bypass.
+3. Add the remaining cross-team HTTP tests that assert 403, trusted recorder
+   identity, and correctly scoped totals. Never rely on UI visibility for access
+   control.
 
-No existing farm or AI route has been secured by this work. The new daily-log
-routes remain guest-accessible only in local/testing; existing authorization
-gaps elsewhere remain unchanged, as requested.
+The Farm CRUD and daily-log routes now require authentication and invoke their
+model policies. Farm listing and daily-log pagination both apply the model
+visibility scope before returning records. Other application routes still require
+a separate authorization rollout.
 
 ## Verification
 

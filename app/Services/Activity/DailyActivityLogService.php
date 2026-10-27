@@ -5,6 +5,7 @@ namespace App\Services\Activity;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
+use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -19,9 +20,11 @@ class DailyActivityLogService
      * @param  array<string, mixed>  $filters  Validated list filters.
      * @return LengthAwarePaginator<int, DailyActivityLog>
      */
-    public function paginate(Farm $farm, array $filters): LengthAwarePaginator
+    public function paginate(Farm $farm, User $user, Team $team, array $filters): LengthAwarePaginator
     {
-        $query = DailyActivityLog::query()->where('farm_id', $farm->id)->with(self::RELATIONS);
+        $query = DailyActivityLog::visibleTo($user, $team)
+            ->where('farm_id', $farm->id)
+            ->with(self::RELATIONS);
         foreach (['from_date' => '>=', 'to_date' => '<='] as $field => $operator) {
             if (! empty($filters[$field])) {
                 $query->where('work_date', $operator, $filters[$field]);
