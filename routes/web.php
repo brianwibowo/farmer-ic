@@ -1,6 +1,5 @@
 <?php
 
-use App\Actions\Teams\CreateTeam;
 use App\Http\Controllers\AI\AiConversationController;
 use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
@@ -8,67 +7,20 @@ use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    if (! Auth::check()) {
-        /** @var User $user */
-        $user = User::firstOrCreate(
-            ['email' => 'petani@farmer-ic.local'],
-            [
-                'name' => 'Petani IC',
-                'password' => bcrypt('farmer-ic-secret'),
-                'email_verified_at' => now(),
-            ]
-        );
-
-        if (! $user->currentTeam) {
-            $team = $user->personalTeam() ?? (new CreateTeam)->handle($user, 'Kebun Petani', isPersonal: true);
-            $user->switchTeam($team);
-        }
-
-        Auth::login($user);
-    }
-
-    $team = Auth::user()?->currentTeam;
-
-    return Inertia::render('farmer/Dashboard', [
-        'currentTeam' => $team,
-    ]);
-})->name('home');
-
-Route::inertia('finance', 'farmer/Finance')->name('finance');
-Route::inertia('kebun/detail', 'farmer/KebunDetail')->name('kebun.detail');
-Route::inertia('kebun/aktivitas', 'farmer/KebunAktivitas')->name('kebun.aktivitas');
-Route::inertia('/kebun', 'farmer/Kebun')->name('kebun');
-Route::inertia('/aktivitas', 'farmer/Aktivitas')->name('aktivitas');
-Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->name('rincian-aktivitas');
-Route::inertia('/laporan', 'farmer/Laporan')->name('laporan');
-Route::get('/bypass', function () {
-    /** @var User $user */
-    $user = User::firstOrCreate(
-        ['email' => 'petani@farmer-ic.local'],
-        [
-            'name' => 'Petani IC',
-            'password' => bcrypt('farmer-ic-secret'),
-            'email_verified_at' => now(),
-        ]
-    );
-
-    if (! $user->currentTeam) {
-        $team = $user->personalTeam() ?? (new CreateTeam)->handle($user, 'Kebun Petani', isPersonal: true);
-        $user->switchTeam($team);
-    }
-
-    Auth::login($user);
-
-    $teamSlug = $user->currentTeam->slug;
-
-    return redirect()->route('ai.page', ['current_team' => $teamSlug]);
-})->name('bypass');
+// Public pages do not provision users or resolve the legacy team-based session.
+// AI API routes below keep their existing authentication and team middleware.
+Route::inertia('/', 'farmer/Dashboard')->defaults('farmer_guest', true)->name('home');
+Route::inertia('finance', 'farmer/Finance')->defaults('farmer_guest', true)->name('finance');
+Route::inertia('kebun/detail', 'farmer/KebunDetail')->defaults('farmer_guest', true)->name('kebun.detail');
+Route::inertia('kebun/aktivitas', 'farmer/KebunAktivitas')->defaults('farmer_guest', true)->name('kebun.aktivitas');
+Route::inertia('/kebun', 'farmer/Kebun')->defaults('farmer_guest', true)->name('kebun');
+Route::inertia('/aktivitas', 'farmer/Aktivitas')->defaults('farmer_guest', true)->name('aktivitas');
+Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->defaults('farmer_guest', true)->name('rincian-aktivitas');
+Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->name('laporan');
+Route::inertia('/bypass', 'farmer/Index')->defaults('farmer_guest', true)->name('bypass');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])

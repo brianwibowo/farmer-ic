@@ -28,7 +28,7 @@ class AiMessageController extends Controller
             $conversation = $this->conversations->ownedConversation($current_team, $conversation);
         } elseif ($request->filled('conversation_id')) {
             $conversation = AiConversation::query()
-                ->whereKey($request->integer('conversation_id'))
+                ->whereKey($request->input('conversation_id'))
                 ->where('team_id', $current_team->id)
                 ->where('user_id', $request->user()->id)
                 ->firstOrFail();

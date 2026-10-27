@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Farmer\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,13 +19,21 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $status
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property string|null $daily_activity_log_id
+ * @property int|null $position
+ * @property string $obstacle_status
+ * @property string|null $obstacles
+ * @property string|null $proposed_solution
+ * @property string|null $action_taken
  */
-#[Fillable(['farm_id', 'planting_cycle_id', 'activity_type_id', 'performed_by', 'activity_date', 'description', 'status'])]
+#[Fillable(['farm_id', 'planting_cycle_id', 'activity_type_id', 'performed_by', 'activity_date', 'description', 'status', 'daily_activity_log_id', 'position', 'obstacle_status', 'obstacles', 'proposed_solution', 'action_taken'])]
 class FarmActivity extends FarmerModel
 {
     protected $table = 'farm_activities';
 
     public $timestamps = true;
+
+    protected $dateFormat = 'Y-m-d H:i:sP';
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -35,6 +42,7 @@ class FarmActivity extends FarmerModel
             'activity_date' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
+            'position' => 'integer',
         ];
     }
 
@@ -60,6 +68,18 @@ class FarmActivity extends FarmerModel
     public function performer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'performed_by');
+    }
+
+    /** @return BelongsTo<DailyActivityLog, $this> */
+    public function dailyActivityLog(): BelongsTo
+    {
+        return $this->belongsTo(DailyActivityLog::class);
+    }
+
+    /** @return HasOne<BlockMappingDetail, $this> */
+    public function blockMappingDetail(): HasOne
+    {
+        return $this->hasOne(BlockMappingDetail::class, 'activity_id');
     }
 
     /** @return HasMany<ActivityPhoto, $this> */

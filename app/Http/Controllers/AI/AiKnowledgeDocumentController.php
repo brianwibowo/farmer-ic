@@ -109,7 +109,7 @@ class AiKnowledgeDocumentController extends Controller
         // Capture the scoped identity before the database cascade removes the
         // chunk rows; the queued cleanup can then use payload filtering even
         // when no chunk point ids remain.
-        $documentId = (int) $document->getKey();
+        $documentId = (string) $document->getKey();
         $teamId = (int) $current_team->getKey();
         $document->delete();
 
@@ -123,7 +123,7 @@ class AiKnowledgeDocumentController extends Controller
     private function dispatchIndexRemoval(AiKnowledgeDocument $document): void
     {
         if (config('ai.rag.vector_enabled')) {
-            RemoveKnowledgeDocumentFromIndex::dispatch((int) $document->getKey(), (int) $document->team_id);
+            RemoveKnowledgeDocumentFromIndex::dispatch((string) $document->getKey(), (int) $document->team_id);
         }
     }
 

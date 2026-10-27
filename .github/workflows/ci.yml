@@ -16,6 +16,26 @@ jobs:
   quality:
     name: PHP and frontend checks
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: farmer_ic_crud_test_suite
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DB_HOST: 127.0.0.1
+      TEST_DB_PORT: 5432
+      TEST_DB_USERNAME: postgres
+      TEST_DB_PASSWORD: postgres
+      TEST_DB_DATABASE: farmer_ic_crud_test_suite
 
     steps:
       - name: Check out source
@@ -25,7 +45,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, intl, pdo_sqlite
+          extensions: mbstring, intl, pdo_pgsql
           coverage: none
           tools: composer:v2
 
@@ -44,9 +64,7 @@ jobs:
       - name: Prepare test application
         run: |
           cp .env.example .env
-          touch database/database.sqlite
           php artisan key:generate --force --no-interaction
-          php artisan migrate --force --no-interaction
 
       - name: Build frontend assets
         run: npm run build
