@@ -19,9 +19,10 @@ return new class extends Migration
         }
 
         // Keep hashes intact when an installation used varchar instead of text.
-        if (Schema::getColumnType('users', 'password_hash') !== 'text') {
-            Schema::table('users', function (Blueprint $table): void {
-                $table->text('password_hash')->change();
+        $passwordColumn = Schema::hasColumn('users', 'password') ? 'password' : 'password_hash';
+        if (Schema::getColumnType('users', $passwordColumn) !== 'text') {
+            Schema::table('users', function (Blueprint $table) use ($passwordColumn): void {
+                $table->text($passwordColumn)->change();
             });
         }
 

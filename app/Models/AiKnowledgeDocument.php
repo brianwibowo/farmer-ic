@@ -11,8 +11,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $team_id
- * @property int $created_by
- * @property int|null $reviewed_by
+ * @property string $created_by
+ * @property string|null $reviewed_by
  * @property string $title
  * @property string $content
  * @property string $status

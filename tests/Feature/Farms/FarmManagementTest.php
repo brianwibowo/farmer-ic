@@ -78,7 +78,7 @@ class FarmManagementTest extends TestCase
             ->assertJsonCount(1, 'data')->assertJsonPath('data.0.name', 'Kedelai')->assertJsonPath('meta.last_page', 2);
         $this->getJson('/api/kebun?search=TidakAda')->assertOk()->assertJsonCount(0, 'data');
         $this->getJson('/api/kebun?per_page=101')->assertUnprocessable();
-        $this->getJson('/api/kebun?sort=password_hash')->assertUnprocessable();
+        $this->getJson('/api/kebun?sort=password')->assertUnprocessable();
         $this->getJson('/api/kebun?page=0')->assertUnprocessable();
     }
 
@@ -192,7 +192,7 @@ class FarmManagementTest extends TestCase
         $id = Str::uuid()->toString();
         DB::table('users')->insert([
             'id' => $id, 'role_id' => $roleId, 'name' => ucfirst($role), 'email' => $id.'@farmer.test',
-            'password_hash' => 'not-used-in-these-tests', 'is_active' => true, 'created_at' => now(),
+            'password' => 'not-used-in-these-tests', 'is_active' => true, 'created_at' => now(),
         ]);
 
         return $id;

@@ -48,9 +48,9 @@ class FinancialBudget extends FarmerModel
         return $this->belongsTo(FinancialCategory::class, 'category_id');
     }
 
-    /** @return BelongsTo<FarmUser, $this> */
+    /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(FarmUser::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

@@ -47,9 +47,9 @@ class OperationalTarget extends FarmerModel
         return $this->belongsTo(PlantingCycle::class, 'planting_cycle_id');
     }
 
-    /** @return BelongsTo<FarmUser, $this> */
+    /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(FarmUser::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

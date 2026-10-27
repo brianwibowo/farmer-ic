@@ -14,7 +14,7 @@ Table users {
   role_id uuid [not null, ref: > roles.id]
   name varchar(150) [not null]
   email varchar(255) [not null, unique]
-  password_hash text [not null]
+  password text [not null]
   avatar_url text
   is_active boolean [not null, default: true]
   created_at timestamptz [not null]

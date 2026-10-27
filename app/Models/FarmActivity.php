@@ -64,10 +64,10 @@ class FarmActivity extends FarmerModel
         return $this->belongsTo(ActivityType::class, 'activity_type_id');
     }
 
-    /** @return BelongsTo<FarmUser, $this> */
+    /** @return BelongsTo<User, $this> */
     public function performer(): BelongsTo
     {
-        return $this->belongsTo(FarmUser::class, 'performed_by');
+        return $this->belongsTo(User::class, 'performed_by');
     }
 
     /** @return BelongsTo<DailyActivityLog, $this> */

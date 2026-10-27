@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Database;
 
-use App\Models\FarmUser;
+use App\Models\Farm;
+use App\Models\Team;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -66,6 +69,8 @@ class FarmerIcMigrationsTest extends TestCase
             $this->assertRuntimeTablesPreserveExistingRecords();
             $this->seedFixtures();
             $this->assertUserColumnUpgradePreservesData();
+            $this->assertPasswordRenamePreservesHash();
+            $this->assertUnifiedUserSupportsDomainAndTeams();
             $this->assertTeamSupport();
             $this->assertNumericAndEnumChecks();
             $this->assertActivityIntegrity();
@@ -124,13 +129,13 @@ class FarmerIcMigrationsTest extends TestCase
         $this->database->beginTransaction();
         try {
             $userId = $this->ids['users'];
-            $originalHash = $this->database->table('users')->where('id', $userId)->value('password_hash');
+            $originalHash = $this->database->table('users')->where('id', $userId)->value('password');
             $this->database->table('users')->where('id', $userId)->update([
                 'remember_token' => 'preserved-token', 'two_factor_secret' => 'preserved-secret',
                 'email_verified_at' => '2026-10-26 09:00:00',
             ]);
             $this->database->statement('ALTER TABLE users DROP COLUMN two_factor_recovery_codes');
-            $this->database->statement('ALTER TABLE users ALTER COLUMN password_hash TYPE varchar(255)');
+            $this->database->statement('ALTER TABLE users ALTER COLUMN password TYPE varchar(255)');
             $this->database->statement('ALTER TABLE sessions ALTER COLUMN user_id TYPE bigint USING NULL::bigint');
             $this->database->table('sessions')->where('id', 'migration-session')->update(['user_id' => 1]);
             $migration = require database_path('migrations/2026_10_26_000002_add_user_account_columns_and_fix_session_type.php');
@@ -147,17 +152,94 @@ class FarmerIcMigrationsTest extends TestCase
 
             $schema = $this->database->getSchemaBuilder();
             $this->assertSame('uuid', $schema->getColumnType('sessions', 'user_id'));
-            $this->assertSame('text', $schema->getColumnType('users', 'password_hash'));
+            $this->assertSame('text', $schema->getColumnType('users', 'password'));
             $this->assertTrue($schema->hasColumn('users', 'two_factor_recovery_codes'));
             $row = $this->database->table('users')->where('id', $userId)->first();
-            $this->assertSame($originalHash, $row->password_hash);
+            $this->assertSame($originalHash, $row->password);
             $this->assertSame('preserved-token', $row->remember_token);
             $this->assertSame('preserved-secret', $row->two_factor_secret);
-            $user = FarmUser::on('farmer_ic_test')->findOrFail($userId);
+            $user = User::on('farmer_ic_test')->findOrFail($userId);
             $this->assertInstanceOf(CarbonImmutable::class, $user->email_verified_at);
-            foreach (['password_hash', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'] as $secret) {
+            foreach (['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'] as $secret) {
                 $this->assertArrayNotHasKey($secret, $user->toArray());
             }
+        } finally {
+            $this->database->rollBack();
+            DB::setDefaultConnection($original);
+        }
+    }
+
+    private function assertPasswordRenamePreservesHash(): void
+    {
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('farmer_ic_test');
+        $this->database->beginTransaction();
+        try {
+            $id = $this->ids['users'];
+            $before = $this->database->table('users')->where('id', $id)->value('password');
+            $migration = require database_path('migrations/2026_10_27_000001_rename_user_password_column.php');
+            $migration->down();
+            $this->assertSame($before, $this->database->table('users')->where('id', $id)->value('password_hash'));
+            $migration->up();
+            $migration->up();
+            $this->assertSame($before, $this->database->table('users')->where('id', $id)->value('password'));
+            $this->assertFalse($this->database->getSchemaBuilder()->hasColumn('users', 'password_hash'));
+            $this->database->statement('ALTER TABLE users ADD COLUMN password_hash text');
+            try {
+                $migration->up();
+                $this->fail('Two password columns must require explicit reconciliation.');
+            } catch (\LogicException $error) {
+                $this->assertStringContainsString('Both users.password', $error->getMessage());
+            }
+            $this->assertSame($before, $this->database->table('users')->where('id', $id)->value('password'));
+        } finally {
+            $this->database->rollBack();
+            DB::setDefaultConnection($original);
+        }
+    }
+
+    private function assertUnifiedUserSupportsDomainAndTeams(): void
+    {
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('farmer_ic_test');
+        $this->database->beginTransaction();
+        try {
+            $user = User::factory()->create()->fresh();
+            $this->assertTrue(Str::isUuid($user->id));
+            $this->assertSame($user->id, $user->getAuthIdentifier());
+            $this->assertSame('password', $user->getAuthPasswordName());
+            $this->assertTrue(Hash::check('password', $user->getAuthPassword()));
+            $this->assertSame('owner', $user->role->name);
+            $this->assertTrue($user->is_active);
+            $this->assertFalse($user->isFillable('role_id'));
+            $this->assertFalse($user->isFillable('is_active'));
+            $this->assertFalse($user->isFillable('current_team_id'));
+            $this->assertArrayNotHasKey('password_hash', $user->getAttributes());
+            $this->assertArrayNotHasKey('password', $user->toArray());
+
+            $team = $user->currentTeam;
+            $this->assertNotNull($team);
+            $this->assertTrue($user->belongsToTeam($team));
+            $this->assertTrue($user->ownsTeam($team));
+            $this->assertSame($user->id, $team->owner()->getKey());
+            $this->assertSame($team->id, $user->personalTeam()->id);
+            $this->assertSame($user->id, $team->memberships->sole()->user->id);
+            $outside = Team::create(['name' => 'Kebun Lain']);
+            $this->assertFalse($user->switchTeam($outside));
+            $this->assertSame($team->id, $user->fresh()->current_team_id);
+
+            $farm = new Farm(['name' => 'Kebun User Terpadu', 'total_area_ha' => '1.0000']);
+            $farm->owner()->associate($user);
+            $farm->creator()->associate($user);
+            $farm->save();
+            $this->assertSame($user->id, $farm->fresh()->owner->id);
+            $this->assertSame($farm->id, $user->ownedFarms->sole()->id);
+            $this->assertSame($farm->id, $user->createdFarms->sole()->id);
+            $user->notifications()->create(['title' => 'Jadwal penyiraman']);
+            $user->notifications()->create(['title' => 'Laporan dibaca', 'is_read' => true]);
+            $this->assertSame(1, $user->unreadNotifications()->count());
+            $this->assertSame(1, $user->readNotifications()->count());
+            $this->assertSame($user->id, $user->notifications->first()->user->id);
         } finally {
             $this->database->rollBack();
             DB::setDefaultConnection($original);

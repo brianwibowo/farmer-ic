@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property int $ai_conversation_id
- * @property int|null $user_id
+ * @property string|null $user_id
  * @property string $role
  * @property string|null $content
  * @property string $status

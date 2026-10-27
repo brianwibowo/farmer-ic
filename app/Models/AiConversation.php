@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $team_id
- * @property int $user_id
+ * @property string $user_id
  * @property string|null $title
  * @property string $status
  * @property array<string, mixed>|null $knowledge_snapshot

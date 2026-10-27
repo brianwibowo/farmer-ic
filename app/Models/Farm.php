@@ -42,16 +42,16 @@ class Farm extends FarmerModel
         ];
     }
 
-    /** @return BelongsTo<FarmUser, $this> */
+    /** @return BelongsTo<User, $this> */
     public function owner(): BelongsTo
     {
-        return $this->belongsTo(FarmUser::class, 'owner_id');
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
-    /** @return BelongsTo<FarmUser, $this> */
+    /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(FarmUser::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /** @return HasMany<PlantingCycle, $this> */

@@ -49,10 +49,10 @@ class PlantObservation extends FarmerModel
         return $this->belongsTo(FarmActivity::class, 'activity_id');
     }
 
-    /** @return BelongsTo<FarmUser, $this> */
+    /** @return BelongsTo<User, $this> */
     public function observer(): BelongsTo
     {
-        return $this->belongsTo(FarmUser::class, 'observed_by');
+        return $this->belongsTo(User::class, 'observed_by');
     }
 
     /** @return HasMany<FarmRisk, $this> */

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $ai_conversation_id
  * @property int|null $ai_message_id
- * @property int $user_id
+ * @property string $user_id
  * @property string $disk
  * @property string $path
  * @property string $original_name

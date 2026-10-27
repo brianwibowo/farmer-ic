@@ -55,9 +55,9 @@ class FinancialTransaction extends FarmerModel
         return $this->belongsTo(FinancialCategory::class, 'category_id');
     }
 
-    /** @return BelongsTo<FarmUser, $this> */
+    /** @return BelongsTo<User, $this> */
     public function recorder(): BelongsTo
     {
-        return $this->belongsTo(FarmUser::class, 'recorded_by');
+        return $this->belongsTo(User::class, 'recorded_by');
     }
 }

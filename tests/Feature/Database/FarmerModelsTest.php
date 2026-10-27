@@ -10,7 +10,6 @@ use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmRisk;
-use App\Models\FarmUser;
 use App\Models\FertilizationDetail;
 use App\Models\FinancialBudget;
 use App\Models\FinancialCategory;
@@ -25,6 +24,7 @@ use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingDetail;
 use App\Models\Role;
+use App\Models\User;
 use App\Models\WeatherRecord;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
@@ -37,7 +37,7 @@ class FarmerModelsTest extends TestCase
 {
     private ?Connection $database = null;
 
-    private FarmUser $user;
+    private User $user;
 
     private Farm $farm;
 
@@ -60,7 +60,7 @@ class FarmerModelsTest extends TestCase
         $this->database->beginTransaction();
 
         $role = Role::create(['name' => 'petugas']);
-        $this->user = new FarmUser(['name' => 'Petugas Kebun', 'email' => Str::uuid().'@farmer-ic.local', 'password_hash' => 'Model-test-password']);
+        $this->user = new User(['name' => 'Petugas Kebun', 'email' => Str::uuid().'@farmer-ic.local', 'password' => 'Model-test-password']);
         $this->user->role()->associate($role);
         $this->user->save();
         $this->farm = new Farm(['name' => 'Kebun Sumber Makmur', 'total_area_ha' => '12.5000']);
@@ -186,8 +186,8 @@ class FarmerModelsTest extends TestCase
     {
         $user = $this->user->fresh();
         $this->assertTrue($user->is_active);
-        $this->assertTrue(Hash::check('Model-test-password', $user->password_hash));
-        $this->assertArrayNotHasKey('password_hash', $user->toArray());
+        $this->assertTrue(Hash::check('Model-test-password', $user->password));
+        $this->assertArrayNotHasKey('password', $user->toArray());
         $this->assertFalse($user->isFillable('role_id'));
         $this->assertFalse($user->isFillable('is_active'));
         $notification = Notification::create(['user_id' => $user->id, 'title' => 'Jadwal panen']);

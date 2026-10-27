@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
  * @property int $team_id
  * @property string $email
  * @property TeamRole $role
- * @property int $invited_by
+ * @property string $invited_by
  * @property Carbon|null $expires_at
  * @property Carbon|null $accepted_at
  * @property Carbon|null $created_at

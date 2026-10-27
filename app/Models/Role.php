@@ -15,9 +15,9 @@ class Role extends FarmerModel
 {
     protected $table = 'roles';
 
-    /** @return HasMany<FarmUser, $this> */
+    /** @return HasMany<User, $this> */
     public function users(): HasMany
     {
-        return $this->hasMany(FarmUser::class, 'role_id');
+        return $this->hasMany(User::class, 'role_id');
     }
 }
