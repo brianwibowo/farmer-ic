@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\AiConversationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
+ * @property string $id
  * @property int $team_id
  * @property string $user_id
  * @property string|null $title
@@ -30,7 +31,7 @@ use Illuminate\Support\Carbon;
 class AiConversation extends Model
 {
     /** @use HasFactory<AiConversationFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected function casts(): array
     {

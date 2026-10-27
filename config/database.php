@@ -99,6 +99,21 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        'pgsql_testing' => [
+            'driver' => 'pgsql',
+            'url' => null,
+            'host' => env('TEST_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('TEST_DB_PORT', env('DB_PORT', '5432')),
+            'database' => env('TEST_DB_DATABASE', env('FARMER_CRUD_TEST_DATABASE', 'farmer_ic_crud_test_suite')),
+            'username' => env('TEST_DB_USERNAME', env('DB_USERNAME', 'postgres')),
+            'password' => env('TEST_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'search_path' => 'public',
+            'sslmode' => env('TEST_DB_SSLMODE', 'prefer'),
+            'timezone' => 'UTC',
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

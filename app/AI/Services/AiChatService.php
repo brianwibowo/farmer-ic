@@ -93,7 +93,7 @@ class AiChatService
         // A caller can pass a message loaded before refreshing the
         // conversation. Refuse a message from another conversation rather
         // than accidentally routing the wrong prompt.
-        if ((int) $userMessage->ai_conversation_id !== (int) $conversation->getKey()) {
+        if ((string) $userMessage->ai_conversation_id !== (string) $conversation->getKey()) {
             return;
         }
 

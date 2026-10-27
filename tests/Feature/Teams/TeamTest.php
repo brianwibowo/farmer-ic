@@ -175,7 +175,7 @@ class TeamTest extends TestCase
         $betaTeam = Team::factory()->create(['name' => 'Beta Team']);
         $betaTeam->members()->attach($user, ['role' => TeamRole::Owner->value]);
 
-        $user->update(['current_team_id' => $zuluTeam->id]);
+        $this->assertTrue($user->switchTeam($zuluTeam));
 
         $response = $this
             ->actingAs($user)
@@ -199,7 +199,7 @@ class TeamTest extends TestCase
         $team = Team::factory()->create(['name' => 'Zulu Team']);
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
 
-        $user->update(['current_team_id' => $team->id]);
+        $this->assertTrue($user->switchTeam($team));
 
         $response = $this
             ->actingAs($user)
@@ -223,7 +223,7 @@ class TeamTest extends TestCase
         $team = Team::factory()->create();
         $team->members()->attach($user, ['role' => TeamRole::Owner->value]);
 
-        $user->update(['current_team_id' => $personalTeam->id]);
+        $this->assertTrue($user->switchTeam($personalTeam));
 
         $response = $this
             ->actingAs($user)
@@ -274,7 +274,7 @@ class TeamTest extends TestCase
         $betaTeam = Team::factory()->create(['name' => 'Beta Team']);
         $betaTeam->members()->attach($member, ['role' => TeamRole::Member->value]);
 
-        $member->update(['current_team_id' => $zuluTeam->id]);
+        $this->assertTrue($member->switchTeam($zuluTeam));
 
         $response = $this
             ->actingAs($member)
@@ -337,8 +337,8 @@ class TeamTest extends TestCase
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
         $team->members()->attach($member, ['role' => TeamRole::Member->value]);
 
-        $owner->update(['current_team_id' => $team->id]);
-        $member->update(['current_team_id' => $team->id]);
+        $this->assertTrue($owner->switchTeam($team));
+        $this->assertTrue($member->switchTeam($team));
 
         $response = $this
             ->actingAs($owner)

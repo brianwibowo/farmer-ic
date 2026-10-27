@@ -5,7 +5,7 @@ namespace App\Services\Activity;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
-use App\Models\FarmUser;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -45,7 +45,7 @@ class DailyActivityLogService
     {
         return DB::transaction(function () use ($farm, $data): DailyActivityLog {
             Farm::query()->sharedLock()->findOrFail($farm->id);
-            $recorder = FarmUser::query()->where('is_active', true)->whereKey($data['recorded_by'])->sharedLock()->first();
+            $recorder = User::query()->where('is_active', true)->whereKey($data['recorded_by'])->sharedLock()->first();
             if (! $recorder) {
                 throw ValidationException::withMessages(['recorded_by' => 'Pelapor harus merupakan pengguna aktif.']);
             }

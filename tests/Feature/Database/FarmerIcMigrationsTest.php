@@ -11,6 +11,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Tests\Support\TestDatabase;
 use Tests\TestCase;
 
 class FarmerIcMigrationsTest extends TestCase
@@ -35,39 +36,36 @@ class FarmerIcMigrationsTest extends TestCase
 
     public function test_postgresql_dbml_contract_constraints_and_migration_round_trip(): void
     {
-        $database = getenv('FARMER_IC_TEST_DATABASE');
-        if (! $database) {
-            $this->markTestSkipped('Set FARMER_IC_TEST_DATABASE to a dedicated local PostgreSQL test database.');
-        }
+        $database = getenv('FARMER_IC_TEST_DATABASE') ?: 'farmer_ic_schema_test_suite';
         $this->assertStringStartsWith('farmer_ic_schema_test_', $database);
-
-        config(['database.connections.farmer_ic_test' => [
-            'driver' => 'pgsql',
-            'host' => '127.0.0.1',
-            'port' => getenv('FARMER_IC_TEST_PORT') ?: '55439',
-            'database' => $database,
-            'username' => 'farmer_ic_schema_test',
-            'password' => '',
-            'charset' => 'utf8',
-            'prefix' => '',
-            'search_path' => 'public',
-            'sslmode' => 'disable',
-            'timezone' => 'UTC',
-        ]]);
+        $settings = config('database.connections.pgsql_testing');
+        $settings['database'] = $database;
+        if ($port = getenv('FARMER_IC_TEST_PORT')) {
+            $settings['port'] = $port;
+            $settings['username'] = getenv('FARMER_IC_TEST_USERNAME') ?: 'farmer_ic_schema_test';
+            $settings['password'] = getenv('FARMER_IC_TEST_PASSWORD') ?: '';
+        }
+        TestDatabase::ensureExists($settings);
+        config(['database.connections.farmer_ic_test' => $settings]);
         $this->database = DB::connection('farmer_ic_test');
-        $this->assertSame('farmer_ic_schema_test', $this->database->scalar('SELECT current_user'));
+        $this->assertSame($settings['username'], $this->database->scalar('SELECT current_user'));
         $this->assertSame($database, $this->database->scalar('SELECT current_database()'));
         $this->readDefinition();
 
         $options = ['--database' => 'farmer_ic_test', '--path' => self::PATH, '--force' => true];
-        $this->artisan('migrate', $options)->assertSuccessful();
+        TestDatabase::resetConnection('farmer_ic_test');
         try {
+            // Laravel's table wipe leaves PostgreSQL functions behind. Rebuild
+            // without manually removing them to reproduce repeated fresh runs.
+            $this->assertSame(3, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname LIKE 'farmer_ic_%'"));
+            $this->artisan('migrate:fresh', $options)->assertSuccessful();
             $this->assertDbmlContract();
             // A repeated migrate must neither duplicate tables nor change schema.
             $this->artisan('migrate', $options)->assertSuccessful();
-            $this->assertSame(15, $this->database->table('migrations')->count());
+            $this->assertSame(count(app('migrator')->getMigrationFiles([database_path('migrations')])), $this->database->table('migrations')->count());
             $this->assertRuntimeTablesPreserveExistingRecords();
             $this->seedFixtures();
+            $this->assertAiUpgradePreservesExistingRecords();
             $this->assertUserColumnUpgradePreservesData();
             $this->assertPasswordRenamePreservesHash();
             $this->assertUnifiedUserSupportsDomainAndTeams();
@@ -92,6 +90,46 @@ class FarmerIcMigrationsTest extends TestCase
             $this->artisan('migrate:rollback', $options)->assertSuccessful();
         }
         $this->assertSame(['migrations'], $this->tableNames());
+    }
+
+    private function assertAiUpgradePreservesExistingRecords(): void
+    {
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('farmer_ic_test');
+        $this->database->beginTransaction();
+        try {
+            $migration = require database_path('migrations/2026_10_27_000002_align_ai_runtime_with_uuid_schema.php');
+            $migration->down();
+            $document = (string) Str::uuid();
+            $attachment = (string) Str::uuid();
+            $this->database->table('ai_knowledge_documents')->insert([
+                'id' => $document, 'title' => 'Panduan budidaya', 'content' => 'Isi pengetahuan tetap utuh.',
+                'file_url' => '/documents/panduan.pdf', 'uploaded_by' => $this->ids['users'], 'created_at' => now(),
+            ]);
+            $this->database->table('ai_attachments')->insert([
+                'id' => $attachment, 'message_id' => $this->ids['ai_messages'],
+                'file_type' => 'image/jpeg', 'file_url' => 'ai/photos/kebun.jpg', 'created_at' => now(),
+            ]);
+            $migration->up();
+            $record = $this->database->table('ai_knowledge_documents')->where('id', $document)->first();
+            $this->assertSame('Isi pengetahuan tetap utuh.', $record->content);
+            $this->assertSame('/documents/panduan.pdf', $record->file_url);
+            $this->assertSame($this->ids['users'], $record->created_by);
+            $this->assertSame(hash('sha256', $record->content), $record->content_hash);
+            // Existing knowledge is not assigned to an arbitrary tenant or published.
+            $this->assertNull($record->team_id);
+            $this->assertSame('draft', $record->status);
+            $photo = $this->database->table('ai_attachments')->where('id', $attachment)->first();
+            $this->assertSame('ai/photos/kebun.jpg', $photo->path);
+            $this->assertSame('image/jpeg', $photo->mime_type);
+            $this->assertSame($this->ids['ai_messages'], $photo->ai_message_id);
+            $this->assertSame($this->ids['ai_conversations'], $photo->ai_conversation_id);
+            $this->assertSame($this->ids['users'], $photo->user_id);
+            $this->assertTrue($this->database->table('ai_messages')->where('id', $this->ids['ai_messages'])->exists());
+        } finally {
+            $this->database->rollBack();
+            DB::setDefaultConnection($original);
+        }
     }
 
     private function assertRuntimeTablesPreserveExistingRecords(): void
@@ -291,7 +329,7 @@ class FarmerIcMigrationsTest extends TestCase
                 $this->uniqueKeys[$table[1]][] = preg_split('/,\s*/', $uniqueKey[1]);
             }
         }
-        $this->assertCount(36, $this->definition);
+        $this->assertCount(count($tables), $this->definition);
     }
 
     /** @return list<string> */
@@ -361,7 +399,13 @@ SQL, [$table]), 'columns');
                 $this->assertContains(implode(',', $uniqueKey), $uniqueKeys, $table.' unique constraint');
             }
         }
-        $this->assertSame(53, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
+        $simpleForeignKeys = 0;
+        foreach ($this->definition as $columns) {
+            foreach ($columns as $column) {
+                $simpleForeignKeys += preg_match('/ref:\s*>/', $column['settings']);
+            }
+        }
+        $this->assertSame($simpleForeignKeys, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
         $this->assertSame(9, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
     }
 
@@ -422,7 +466,7 @@ SQL, [$table]), 'columns');
         $this->ids['financial_categories'] = $this->insert('financial_categories', ['name' => 'Sales', 'transaction_type' => 'income']);
         $this->ids['expense_category'] = $this->insert('financial_categories', ['name' => 'Fertilizer', 'transaction_type' => 'expense']);
         $this->ids['ai_conversations'] = $this->insert('ai_conversations');
-        $this->ids['ai_messages'] = $this->insert('ai_messages', ['sender' => 'user']);
+        $this->ids['ai_messages'] = $this->insert('ai_messages', ['role' => 'user']);
     }
 
     /** @param array<string, mixed> $overrides */
@@ -483,7 +527,7 @@ SQL, [$table]), 'columns');
             ['financial_budgets', ['period_end' => '2026-08-01']],
             ['operational_targets', ['target_value' => -1]],
             ['operational_targets', ['completed_value' => -1]],
-            ['ai_messages', ['sender' => 'invalid']],
+            ['ai_messages', ['role' => 'invalid']],
             ['ai_usage_logs', ['input_tokens' => -1]],
             ['ai_usage_logs', ['estimated_cost' => -1]],
         ] as [$table, $row]) {
@@ -573,10 +617,12 @@ SQL, [$table]), 'columns');
         $this->assertNull($this->database->table('audit_logs')->where('id', $audit)->value('user_id'));
         $this->assertSame('{"after": 2}', $this->database->table('audit_logs')->where('id', $audit)->value('new_values'));
 
-        $attachment = $this->insert('ai_attachments');
+        $attachment = $this->insert('ai_attachments', ['ai_message_id' => $this->ids['ai_messages'], 'ai_conversation_id' => $this->ids['ai_conversations']]);
         $usage = $this->insert('ai_usage_logs', ['message_id' => $this->ids['ai_messages']]);
         $this->database->table('ai_messages')->where('id', $this->ids['ai_messages'])->delete();
-        $this->assertFalse($this->database->table('ai_attachments')->where('id', $attachment)->exists());
+        $this->assertNull($this->database->table('ai_attachments')->where('id', $attachment)->value('ai_message_id'));
         $this->assertNull($this->database->table('ai_usage_logs')->where('id', $usage)->value('message_id'));
+        $this->database->table('ai_conversations')->where('id', $this->ids['ai_conversations'])->delete();
+        $this->assertFalse($this->database->table('ai_attachments')->where('id', $attachment)->exists());
     }
 }

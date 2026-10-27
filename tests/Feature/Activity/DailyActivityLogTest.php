@@ -6,8 +6,8 @@ use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
-use App\Models\FarmUser;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\Activity\DailyActivityLogService;
 use Database\Seeders\BlockMappingActivityTypeSeeder;
 use Illuminate\Database\Connection;
@@ -21,7 +21,7 @@ class DailyActivityLogTest extends TestCase
 {
     private ?Connection $database = null;
 
-    private FarmUser $recorder;
+    private User $recorder;
 
     private Farm $farm;
 
@@ -33,7 +33,7 @@ class DailyActivityLogTest extends TestCase
             $this->markTestSkipped('Set FARMER_CRUD_TEST_DATABASE to a separate migrated PostgreSQL database.');
         }
         $this->assertStringStartsWith('farmer_ic_crud_test_', $name);
-        $connection = config('database.connections.pgsql');
+        $connection = config('database.connections.pgsql_testing');
         $connection['url'] = null;
         $connection['database'] = $name;
         config(['database.default' => 'daily_logs_test', 'database.connections.daily_logs_test' => $connection]);
@@ -42,8 +42,8 @@ class DailyActivityLogTest extends TestCase
         $this->database->beginTransaction();
         $this->seed(BlockMappingActivityTypeSeeder::class);
         $role = Role::create(['name' => 'petugas']);
-        $this->recorder = new FarmUser([
-            'name' => 'Budi Santoso', 'email' => 'budi@example.test', 'password_hash' => 'Daily-log-test-password',
+        $this->recorder = new User([
+            'name' => 'Budi Santoso', 'email' => 'budi@example.test', 'password' => 'Daily-log-test-password',
         ]);
         $this->recorder->role()->associate($role);
         $this->recorder->save();
@@ -86,6 +86,7 @@ class DailyActivityLogTest extends TestCase
         $this->getJson($this->url().'/'.$id)->assertOk()->assertJsonPath('data.work_date', '2026-10-27')
             ->assertJsonPath('data.activities.1.block_mapping.block_name', 'Blok 2');
         $this->assertStringNotContainsString('password_hash', $response->getContent());
+        $this->assertStringNotContainsString('"password"', $response->getContent());
     }
 
     public function test_list_filters_pagination_and_parent_farm_boundary(): void

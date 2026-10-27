@@ -27,7 +27,7 @@ class FarmManagementTest extends TestCase
             $this->markTestSkipped('Set FARMER_CRUD_TEST_DATABASE to a separate migrated PostgreSQL database.');
         }
         $this->assertStringStartsWith('farmer_ic_crud_test_', $database);
-        $connection = config('database.connections.pgsql');
+        $connection = config('database.connections.pgsql_testing');
         $connection['url'] = null;
         $connection['database'] = $database;
         config(['database.default' => 'farms_test', 'database.connections.farms_test' => $connection]);

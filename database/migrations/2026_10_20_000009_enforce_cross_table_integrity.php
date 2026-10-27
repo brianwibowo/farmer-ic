@@ -37,8 +37,10 @@ return new class extends Migration
             ));
         }
 
+        // migrate:fresh drops tables and triggers, but PostgreSQL functions remain.
+        // Replace the same signatures so rebuilding the schema works repeatedly.
         DB::unprepared(<<<'SQL'
-CREATE FUNCTION farmer_ic_check_activity_detail(activity_uuid uuid)
+CREATE OR REPLACE FUNCTION farmer_ic_check_activity_detail(activity_uuid uuid)
 RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     activity_record record;
@@ -91,7 +93,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION farmer_ic_validate_activity_details()
+CREATE OR REPLACE FUNCTION farmer_ic_validate_activity_details()
 RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     related_activity uuid;
@@ -125,7 +127,7 @@ $$;
 SQL);
 
         DB::unprepared(<<<'SQL'
-CREATE FUNCTION farmer_ic_validate_active_area()
+CREATE OR REPLACE FUNCTION farmer_ic_validate_active_area()
 RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     farm_ids uuid[];

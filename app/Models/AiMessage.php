@@ -5,14 +5,15 @@ namespace App\Models;
 use Database\Factories\AiMessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * @property int $id
- * @property int $ai_conversation_id
+ * @property string $id
+ * @property string $ai_conversation_id
  * @property string|null $user_id
  * @property string $role
  * @property string|null $content
@@ -47,7 +48,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AiMessage extends Model
 {
     /** @use HasFactory<AiMessageFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected function casts(): array
     {

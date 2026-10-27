@@ -38,10 +38,10 @@ class DailyActivityLog extends FarmerModel
         return $this->belongsTo(Farm::class);
     }
 
-    /** @return BelongsTo<FarmUser, $this> */
+    /** @return BelongsTo<User, $this> */
     public function recorder(): BelongsTo
     {
-        return $this->belongsTo(FarmUser::class, 'recorded_by');
+        return $this->belongsTo(User::class, 'recorded_by');
     }
 
     /** @return HasMany<FarmActivity, $this> */

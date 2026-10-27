@@ -340,24 +340,47 @@ Table ai_conversations {
   title varchar(200)
   created_at timestamptz [not null]
   updated_at timestamptz
+  team_id bigint [ref: > teams.id]
+  status varchar(32) [not null, default: 'active']
+  knowledge_snapshot jsonb
+  last_message_at timestamptz
 }
 
 Table ai_messages {
   id uuid [pk]
-  conversation_id uuid [not null, ref: > ai_conversations.id]
-  sender varchar(20) [not null, note: 'user | assistant | system']
+  ai_conversation_id uuid [not null, ref: > ai_conversations.id]
+  role varchar(20) [not null, note: 'user | assistant | system']
   content text
-  model_name varchar(100)
-  response_status varchar(30)
+  model varchar(128)
+  status varchar(32) [not null, default: 'completed']
   created_at timestamptz [not null]
+  user_id uuid [ref: > users.id]
+  provider varchar(64)
+  request_id varchar(255)
+  input_tokens int
+  output_tokens int
+  latency_ms int
+  error_message text
+  metadata jsonb
+  updated_at timestamptz
 }
 
 Table ai_attachments {
   id uuid [pk]
-  message_id uuid [not null, ref: > ai_messages.id]
-  file_type varchar(50)
-  file_url text [not null]
+  ai_message_id uuid [ref: > ai_messages.id]
+  mime_type varchar(128)
+  path text [not null]
   created_at timestamptz [not null]
+  ai_conversation_id uuid [ref: > ai_conversations.id]
+  user_id uuid [ref: > users.id]
+  disk varchar(64) [not null, default: 'public']
+  original_name varchar(255)
+  size bigint
+  sha256 varchar(64)
+  kind varchar(32) [not null, default: 'image']
+  status varchar(32) [not null, default: 'ready']
+  metadata jsonb
+  updated_at timestamptz
 }
 
 Table ai_knowledge_documents {
@@ -365,9 +388,22 @@ Table ai_knowledge_documents {
   title varchar(200) [not null]
   content text
   file_url text
-  uploaded_by uuid [ref: > users.id]
+  created_by uuid [ref: > users.id]
   created_at timestamptz [not null]
   updated_at timestamptz
+  team_id bigint [ref: > teams.id]
+  reviewed_by uuid [ref: > users.id]
+  status varchar(32) [not null, default: 'draft']
+  source varchar(255)
+  content_hash varchar(64)
+  version int [not null, default: 1]
+  published_at timestamptz
+  locale varchar(16) [not null, default: 'id-ID']
+  domain varchar(64)
+  index_status varchar(32) [not null, default: 'pending']
+  index_version varchar(64)
+  indexed_at timestamptz
+  index_error text
 }
 
 Table ai_usage_logs {
@@ -400,4 +436,43 @@ Table audit_logs {
   old_values jsonb
   new_values jsonb
   created_at timestamptz [not null]
+}
+
+Table ai_knowledge_chunks {
+  id uuid [pk]
+  ai_knowledge_document_id uuid [not null, ref: > ai_knowledge_documents.id]
+  team_id bigint [not null, ref: > teams.id]
+  chunk_index int [not null]
+  content text [not null]
+  content_hash varchar(64) [not null]
+  chunking_version varchar(32) [not null]
+  embedding_model varchar(128)
+  qdrant_point_id varchar(128)
+  token_count int
+  metadata jsonb
+  status varchar(32) [not null, default: 'pending']
+  indexed_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+  indexes {
+    (ai_knowledge_document_id, chunk_index, content_hash) [unique]
+  }
+}
+
+Table ai_usage_events {
+  id uuid [pk]
+  team_id bigint [ref: > teams.id]
+  user_id uuid [ref: > users.id]
+  ai_conversation_id uuid [ref: > ai_conversations.id]
+  ai_message_id uuid [ref: > ai_messages.id]
+  provider varchar(64)
+  model varchar(128)
+  event_type varchar(64) [not null]
+  request_id varchar(255)
+  input_tokens int
+  output_tokens int
+  latency_ms int
+  metadata jsonb
+  created_at timestamptz
+  updated_at timestamptz
 }

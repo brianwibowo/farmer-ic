@@ -140,7 +140,7 @@ class TeamMemberTest extends TestCase
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
         $team->members()->attach($member, ['role' => TeamRole::Member->value]);
 
-        $member->update(['current_team_id' => $team->id]);
+        $this->assertTrue($member->switchTeam($team));
 
         $this
             ->actingAs($owner)
