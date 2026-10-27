@@ -65,7 +65,7 @@
         "migrate:farmer": [
             "@putenv APP_ENV=local",
             "@putenv DB_DATABASE=farmer_ic_dev",
-            "@php artisan migrate --env=local --database=pgsql --path=database/migrations/farmer_ic"
+            "@php artisan migrate --env=local --database=pgsql"
         ],
         "migrate:farmer:reset": [
             "@putenv APP_ENV=local",
