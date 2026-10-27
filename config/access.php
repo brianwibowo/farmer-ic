@@ -1,239 +1,231 @@
 <?php
 
 return [
-    // Model/table prefixes are explicit; no inheritance, wildcards, or bypass.
     'roles' => [
         'owner' => [
             'activity_photos.view' => 'any',
-
             'activity_types.view' => 'any',
-
             'ai_attachments.view' => 'any',
-
             'ai_conversations.view' => 'any',
-
             'ai_knowledge_chunks.view' => 'any',
-
             'ai_knowledge_documents.view' => 'any',
-
             'ai_messages.view' => 'any',
-
             'ai_usage_events.view' => 'any',
-
             'audit_logs.view' => 'any',
-
             'commodities.view' => 'any',
-
             'crop_varieties.view' => 'any',
-
             'farms.view' => 'any',
-
             'farm_activities.view' => 'any',
-
             'farm_risks.view' => 'any',
-
             'fertilization_details.view' => 'any',
-
             'financial_budgets.view' => 'any',
-
             'financial_categories.view' => 'any',
-
             'financial_projections.view' => 'any',
-
             'financial_transactions.view' => 'any',
-
             'harvest_details.view' => 'any',
-
             'incident_details.view' => 'any',
-
             'irrigation_details.view' => 'any',
-
             'memberships.view' => 'any',
-
             'notifications.view' => 'any',
-
             'operational_targets.view' => 'any',
-
             'pesticide_details.view' => 'any',
-
             'planting_cycles.view' => 'any',
-
             'planting_details.view' => 'any',
-
             'plant_observations.view' => 'any',
-
             'roles.view' => 'any',
-
             'teams.view' => 'any',
-
             'team_invitations.view' => 'any',
-
             'users.view' => 'any',
-
             'weather_records.view' => 'any',
 
-            'ai_conversations.create' => 'any',
-            'ai_conversations.update' => 'any',
-            'ai_conversations.delete' => 'any',
-
-            'ai_messages.create' => 'any',
-            'ai_messages.update' => 'any',
-            'ai_messages.delete' => 'any',
-
+            // Owners can use the AI conversation, chat, attachment, and knowledge features.
+            'ai.access' => 'any',
             'ai_attachments.create' => 'any',
             'ai_attachments.update' => 'any',
             'ai_attachments.delete' => 'any',
-
+            'ai_conversations.create' => 'any',
+            'ai_conversations.update' => 'any',
+            'ai_conversations.delete' => 'any',
+            'ai_messages.create' => 'any',
+            'ai_messages.update' => 'any',
+            'ai_messages.delete' => 'any',
             'ai_knowledge_documents.create' => 'any',
             'ai_knowledge_documents.update' => 'any',
             'ai_knowledge_documents.delete' => 'any',
 
-            'ai.access' => 'any',
         ],
 
-        'superadmin' => [
-            'farms.view' => 'any',
-            'farms.create' => 'any',
-            'farms.update' => 'any',
-            'farms.delete' => 'any',
-
+        'admin' => [
+            'activity_photos.view' => 'any',
+            'activity_photos.create' => 'any',
+            'activity_photos.update' => 'any',
+            'activity_photos.delete' => 'any',
             'activity_types.view' => 'any',
             'activity_types.create' => 'any',
             'activity_types.update' => 'any',
             'activity_types.delete' => 'any',
-
+            'audit_logs.view' => 'any',
+            'audit_logs.create' => 'any',
+            'audit_logs.update' => 'any',
+            'audit_logs.delete' => 'any',
             'commodities.view' => 'any',
             'commodities.create' => 'any',
             'commodities.update' => 'any',
             'commodities.delete' => 'any',
-
             'crop_varieties.view' => 'any',
             'crop_varieties.create' => 'any',
             'crop_varieties.update' => 'any',
             'crop_varieties.delete' => 'any',
-
+            'farms.view' => 'any',
+            'farms.create' => 'any',
+            'farms.update' => 'any',
+            'farms.delete' => 'any',
+            'farm_activities.view' => 'any',
+            'farm_activities.create' => 'any',
+            'farm_activities.update' => 'any',
+            'farm_activities.delete' => 'any',
+            'farm_risks.view' => 'any',
+            'farm_risks.create' => 'any',
+            'farm_risks.update' => 'any',
+            'farm_risks.delete' => 'any',
+            'fertilization_details.view' => 'any',
+            'fertilization_details.create' => 'any',
+            'fertilization_details.update' => 'any',
+            'fertilization_details.delete' => 'any',
+            'financial_budgets.view' => 'any',
+            'financial_budgets.create' => 'any',
+            'financial_budgets.update' => 'any',
+            'financial_budgets.delete' => 'any',
             'financial_categories.view' => 'any',
             'financial_categories.create' => 'any',
             'financial_categories.update' => 'any',
             'financial_categories.delete' => 'any',
-
-            'users.view' => 'any',
-            'users.create' => 'any',
-            'users.update' => 'any',
-            'users.delete' => 'any',
-
-            'teams.view' => 'any',
-            'teams.create' => 'any',
-            'teams.update' => 'any',
-            'teams.delete' => 'any',
-
+            'financial_projections.view' => 'any',
+            'financial_projections.create' => 'any',
+            'financial_projections.update' => 'any',
+            'financial_projections.delete' => 'any',
+            'financial_transactions.view' => 'any',
+            'financial_transactions.create' => 'any',
+            'financial_transactions.update' => 'any',
+            'financial_transactions.delete' => 'any',
+            'harvest_details.view' => 'any',
+            'harvest_details.create' => 'any',
+            'harvest_details.update' => 'any',
+            'harvest_details.delete' => 'any',
+            'incident_details.view' => 'any',
+            'incident_details.create' => 'any',
+            'incident_details.update' => 'any',
+            'incident_details.delete' => 'any',
+            'irrigation_details.view' => 'any',
+            'irrigation_details.create' => 'any',
+            'irrigation_details.update' => 'any',
+            'irrigation_details.delete' => 'any',
             'memberships.view' => 'any',
             'memberships.create' => 'any',
             'memberships.update' => 'any',
             'memberships.delete' => 'any',
-
+            'notifications.view' => 'any',
+            'notifications.create' => 'any',
+            'notifications.update' => 'any',
+            'notifications.delete' => 'any',
+            'operational_targets.view' => 'any',
+            'operational_targets.create' => 'any',
+            'operational_targets.update' => 'any',
+            'operational_targets.delete' => 'any',
+            'pesticide_details.view' => 'any',
+            'pesticide_details.create' => 'any',
+            'pesticide_details.update' => 'any',
+            'pesticide_details.delete' => 'any',
+            'planting_cycles.view' => 'any',
+            'planting_cycles.create' => 'any',
+            'planting_cycles.update' => 'any',
+            'planting_cycles.delete' => 'any',
+            'planting_details.view' => 'any',
+            'planting_details.create' => 'any',
+            'planting_details.update' => 'any',
+            'planting_details.delete' => 'any',
+            'plant_observations.view' => 'any',
+            'plant_observations.create' => 'any',
+            'plant_observations.update' => 'any',
+            'plant_observations.delete' => 'any',
+            'roles.view' => 'any',
+            'roles.create' => 'any',
+            'roles.update' => 'any',
+            'roles.delete' => 'any',
+            'teams.view' => 'any',
+            'teams.create' => 'any',
+            'teams.update' => 'any',
+            'teams.delete' => 'any',
             'team_invitations.view' => 'any',
             'team_invitations.create' => 'any',
             'team_invitations.update' => 'any',
             'team_invitations.delete' => 'any',
-
-            'roles.view' => 'any',
-
-            'audit_logs.view' => 'any',
-
-            'notifications.view' => 'any',
-        ],
-
-        'admin' => [
-            'farms.view' => 'own',
-
-            'activity_types.view' => 'any',
-
-            'commodities.view' => 'any',
-
-            'crop_varieties.view' => 'any',
-
-            'financial_categories.view' => 'any',
-
-            'teams.view' => 'any',
-
-            'notifications.view' => 'own',
-            'notifications.update' => 'own',
-
+            'users.view' => 'any',
+            'users.create' => 'any',
+            'users.update' => 'any',
+            'users.delete' => 'any',
+            'weather_records.view' => 'any',
+            'weather_records.create' => 'any',
+            'weather_records.update' => 'any',
+            'weather_records.delete' => 'any',
             'teams.leave' => 'any',
-
-            'financial_transactions.view' => 'own',
-            'financial_transactions.create' => 'own',
-
-            'financial_projections.view' => 'own',
-            'financial_projections.create' => 'own',
-
-            'financial_budgets.view' => 'own',
-            'financial_budgets.create' => 'own',
         ],
 
         'petugas' => [
             'farms.view' => 'own',
-
-            'activity_types.view' => 'any',
-
-            'commodities.view' => 'any',
-
-            'crop_varieties.view' => 'any',
-
-            'financial_categories.view' => 'any',
-
-            'teams.view' => 'any',
-
-            'notifications.view' => 'own',
-            'notifications.update' => 'own',
-
-            'teams.leave' => 'any',
-
-            'farm_activities.view' => 'own',
-            'farm_activities.create' => 'own',
-
             'activity_photos.view' => 'own',
             'activity_photos.create' => 'own',
-
-            'planting_cycles.view' => 'own',
-            'planting_cycles.create' => 'own',
-
-            'planting_details.view' => 'own',
-            'planting_details.create' => 'own',
-
-            'fertilization_details.view' => 'own',
-            'fertilization_details.create' => 'own',
-
-            'irrigation_details.view' => 'own',
-            'irrigation_details.create' => 'own',
-
-            'pesticide_details.view' => 'own',
-            'pesticide_details.create' => 'own',
-
-            'incident_details.view' => 'own',
-            'incident_details.create' => 'own',
-
-            'harvest_details.view' => 'own',
-            'harvest_details.create' => 'own',
-
-            'plant_observations.view' => 'own',
-            'plant_observations.create' => 'own',
-
-            'weather_records.view' => 'own',
-            'weather_records.create' => 'own',
-
+            'activity_photos.update' => 'own',
+            'activity_photos.delete' => 'own',
+            'farm_activities.view' => 'own',
+            'farm_activities.create' => 'own',
+            'farm_activities.update' => 'own',
+            'farm_activities.delete' => 'own',
             'farm_risks.view' => 'own',
             'farm_risks.create' => 'own',
-
+            'farm_risks.update' => 'own',
+            'farm_risks.delete' => 'own',
+            'fertilization_details.view' => 'own',
+            'fertilization_details.create' => 'own',
+            'fertilization_details.update' => 'own',
+            'fertilization_details.delete' => 'own',
+            'irrigation_details.view' => 'own',
+            'irrigation_details.create' => 'own',
+            'irrigation_details.update' => 'own',
+            'irrigation_details.delete' => 'own',
+            'pesticide_details.view' => 'own',
+            'pesticide_details.create' => 'own',
+            'pesticide_details.update' => 'own',
+            'pesticide_details.delete' => 'own',
+            'incident_details.view' => 'own',
+            'incident_details.create' => 'own',
+            'incident_details.update' => 'own',
+            'incident_details.delete' => 'own',
+            'harvest_details.view' => 'own',
+            'harvest_details.create' => 'own',
+            'harvest_details.update' => 'own',
+            'harvest_details.delete' => 'own',
+            'planting_cycles.view' => 'own',
+            'planting_cycles.create' => 'own',
+            'planting_cycles.update' => 'own',
+            'planting_cycles.delete' => 'own',
+            'planting_details.view' => 'own',
+            'planting_details.create' => 'own',
+            'planting_details.update' => 'own',
+            'planting_details.delete' => 'own',
+            'plant_observations.view' => 'own',
+            'plant_observations.create' => 'own',
+            'plant_observations.update' => 'own',
+            'plant_observations.delete' => 'own',
+            'weather_records.view' => 'own',
+            'weather_records.create' => 'own',
+            'weather_records.update' => 'own',
+            'weather_records.delete' => 'own',
             'operational_targets.view' => 'own',
             'operational_targets.create' => 'own',
+            'operational_targets.update' => 'own',
+            'operational_targets.delete' => 'own',
 
-            'planting_cycles.update' => 'own',
-
-            'plant_observations.update' => 'own',
-
-            'planting_details.update' => 'own',
         ],
 
     ],

@@ -3,14 +3,17 @@
 Laravel's existing session guard and Fortify login/password flow are unchanged.
 Authorization uses automatically discovered model policies, native Gates, and
 `config/access.php`. There is no permission package, stand-in subject, assignment
-adapter, manual policy registration, or global role bypass.
+adapter, or manual policy registration. The explicitly approved developer
+exception is a `Gate::before` bypass for `superadmin`.
 
 ## Providers and grant source
 
 - `AppServiceProvider`: framework defaults only.
 - `AiServiceProvider`: existing AI/RAG container bindings, preserved as before.
-- `AuthorizationServiceProvider`: non-resource Gates only. `ai.access` resolves
-  `RolePermissions` inside its closure and requires membership in the supplied team.
+- `AuthorizationServiceProvider`: defines `ai.access` and the explicitly approved
+  developer bypass. `superadmin` returns `true` from `Gate::before`, so it bypasses
+  team membership, scopes, and undefined abilities. Other roles use the explicit
+  matrix and `ai.access` still requires membership in the supplied team.
 - `RolePermissions`: the single reader of access configuration, including grant
   scopes, recognized role validation, team membership, and assignment limits.
 - `ResourcePolicy`: an abstract parent sharing policy predicates and query
@@ -27,10 +30,10 @@ The four application roles retain their intended responsibilities:
 
 | Role | Grants in the revised matrix |
 | --- | --- |
-| owner | Read every modeled resource; exclusive AI access and conversation/attachment/knowledge actions needed to use it. No operational writes. |
-| superadmin | Manage farms, users, teams, memberships, invitations, and reference catalogs. Read role metadata, audit logs, and notifications. No AI access. |
-| admin | Read assigned farms, reference catalogs, teams, and own notifications; create/read financial transactions, budgets, and projections in assigned farms. |
-| petugas | Read assigned farms, reference catalogs, teams, and own notifications; create/read operational records; update planting cycles, planting details, and observations in the assigned farm. |
+| owner | View every modeled resource; full interactive AI access for conversations, messages, attachments, and knowledge documents. |
+| superadmin | Developer-level unrestricted access through `Gate::before`, including all model actions, AI, cross-team records, and undefined abilities. |
+| admin | CRUD for all non-AI modeled resources within teams using `any`; no AI access. |
+| petugas | View farms and CRUD farm-operation records within assigned farms using `own`; no team, finance, catalog, or AI grants. |
 
 Admin/petugas may update their own notifications and leave non-personal teams
 that they do not own. These are explicit matrix grants. The `Role` model is
@@ -187,8 +190,8 @@ bypass that requirement.
 validate the proposed string using `RolePermissions::isKnownRole()` before
 explicitly assigning and saving it. Do not copy role input during registration
 or profile updates. Existing and newly created accounts receive no automatic
-application privileges. Owning a starter team does not grant application owner
-or superadmin access.
+application privileges. Owning a starter team does not grant application owner access. A trusted developer
+account with `role = superadmin` is the explicit global authorization exception.
 
 ## Enforcement coverage and remaining integration
 
