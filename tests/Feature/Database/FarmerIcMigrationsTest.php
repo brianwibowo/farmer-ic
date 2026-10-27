@@ -62,7 +62,7 @@ class FarmerIcMigrationsTest extends TestCase
             $this->assertDbmlContract();
             // A repeated migrate must neither duplicate tables nor change schema.
             $this->artisan('migrate', $options)->assertSuccessful();
-            $this->assertSame(14, $this->database->table('migrations')->count());
+            $this->assertSame(15, $this->database->table('migrations')->count());
             $this->assertRuntimeTablesPreserveExistingRecords();
             $this->seedFixtures();
             $this->assertUserColumnUpgradePreservesData();
@@ -194,7 +194,7 @@ class FarmerIcMigrationsTest extends TestCase
         $source = file_get_contents(database_path('schema.dbml'));
         preg_match_all('/^Table\s+(\w+)\s*\{([\s\S]*?)^\}/m', $source, $tables, PREG_SET_ORDER);
         foreach ($tables as $table) {
-            preg_match_all('/^  (\w+)\s+(uuid|bigint|varchar\(\d+\)|text|boolean|timestamptz|timestamp|date|decimal\(\d+,\d+\)|int|jsonb)(?:\s+\[(.*)\])?\s*$/m', $table[2], $columns, PREG_SET_ORDER);
+            preg_match_all('/^  (\w+)\s+(uuid|bigint|varchar\(\d+\)|text|boolean|timestamptz|timestamp|date|time|decimal\(\d+,\d+\)|int|jsonb)(?:\s+\[(.*)\])?\s*$/m', $table[2], $columns, PREG_SET_ORDER);
             $this->definition[$table[1]] = array_map(fn (array $column) => [
                 'name' => $column[1], 'type' => $column[2], 'settings' => $column[3] ?? '',
             ], $columns);
@@ -209,7 +209,7 @@ class FarmerIcMigrationsTest extends TestCase
                 $this->uniqueKeys[$table[1]][] = preg_split('/,\s*/', $uniqueKey[1]);
             }
         }
-        $this->assertCount(34, $this->definition);
+        $this->assertCount(36, $this->definition);
     }
 
     /** @return list<string> */
@@ -279,8 +279,8 @@ SQL, [$table]), 'columns');
                 $this->assertContains(implode(',', $uniqueKey), $uniqueKeys, $table.' unique constraint');
             }
         }
-        $this->assertSame(50, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
-        $this->assertSame(8, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
+        $this->assertSame(53, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
+        $this->assertSame(9, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
     }
 
     /** @param array<string, mixed> $overrides
@@ -361,15 +361,17 @@ SQL, [$table]), 'columns');
         });
     }
 
-    private function reject(callable $operation, string $sqlState): void
+    /** @param string|list<string> $sqlState */
+    private function reject(callable $operation, string|array $sqlState): void
     {
+        $expectedStates = (array) $sqlState;
         $this->database->beginTransaction();
         try {
             $operation();
             $this->database->statement('SET CONSTRAINTS ALL IMMEDIATE');
-            $this->fail('Expected PostgreSQL SQLSTATE '.$sqlState);
+            $this->fail('Expected PostgreSQL SQLSTATE '.implode(' or ', $expectedStates));
         } catch (QueryException $error) {
-            $this->assertSame($sqlState, (string) $error->getCode(), $error->getMessage());
+            $this->assertContains((string) $error->getCode(), $expectedStates, $error->getMessage());
         } finally {
             $this->database->rollBack();
         }
@@ -476,8 +478,10 @@ SQL, [$table]), 'columns');
         $this->database->table('farm_activities')->where('id', $growthActivity)->delete();
         $this->assertNull($this->database->table('plant_observations')->where('id', $observation)->value('activity_id'));
         $this->assertTrue($this->database->table('plant_observations')->where('id', $observation)->exists());
-        $this->reject(fn () => $this->database->table('planting_cycles')->where('id', $this->ids['planting_cycles'])->delete(), '23001');
-        $this->reject(fn () => $this->database->table('users')->where('id', $this->ids['users'])->delete(), '23001');
+        // Both codes represent the intended blocked deletion; PostgreSQL 17
+        // reports the referencing foreign key before a restrict violation.
+        $this->reject(fn () => $this->database->table('planting_cycles')->where('id', $this->ids['planting_cycles'])->delete(), ['23001', '23503']);
+        $this->reject(fn () => $this->database->table('users')->where('id', $this->ids['users'])->delete(), ['23001', '23503']);
 
         $user = $this->insert('users', ['email' => 'optional@example.test']);
         $notification = $this->insert('notifications', ['user_id' => $user]);
