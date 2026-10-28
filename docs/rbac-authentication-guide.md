@@ -127,6 +127,16 @@ mengizinkan konteks Team jika `teams.manageAll` lolos; aksi switch Team tetap
 memerlukan keanggotaan tersimpan. Properti `teams` yang dipakai pemilih Team
 tetap hanya berisi Team yang benar-benar diikuti pengguna.
 
+Operasi Team untuk role aplikasi lain tetap mengikuti `teams.view`,
+`teams.create`, `teams.update`, dan `teams.delete` di `config/access.php`.
+Grant `memberships.*` hanya mengatur data keanggotaan; grant tersebut bukan izin
+untuk membuat, mengubah, atau menghapus Team. Saat ini `owner` hanya memiliki
+`teams.view`, sedangkan `admin` dan `petugas` tidak memiliki grant `teams.*`.
+Karena itu, role-role tersebut tidak boleh membuat, mengubah, atau menghapus
+Team. Admin dapat menjalankan tindakan keanggotaan yang memang tersedia dan
+diizinkan oleh `memberships.*`; undangan adalah resource terpisah dan mengikuti
+`team_invitations.*`.
+
 ## Cara memakai RBAC berdasarkan jenis berkas
 
 ### 1. Router
@@ -354,6 +364,11 @@ defineProps<{
 Router/Controller tetap harus memeriksa izin ketika pengguna membuka halaman
 atau mengirim tindakan. Menyembunyikan tombol hanya mengatur tampilan dan tidak
 melindungi akses.
+
+Untuk kontrol global seperti tombol **Team baru** di `TeamSwitcher.vue`, hitung
+izin di `HandleInertiaRequests` dan kirim sebagai shared prop, misalnya
+`canCreateTeam: Gate::forUser($user)->allows('create', Team::class)`. Form
+Request pada endpoint tetap memeriksa Policy yang sama sebelum membuat Team.
 
 ## Contoh pemanggilan Policy dan Gate lainnya
 

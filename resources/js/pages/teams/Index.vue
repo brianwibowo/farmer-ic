@@ -18,6 +18,7 @@ import type { Team } from '@/types';
 
 type Props = {
     teams: Team[];
+    canCreateTeam: boolean;
     canManageAllTeams: boolean;
 };
 
@@ -60,9 +61,9 @@ defineOptions({
                     : 'Manage your teams and team memberships'"
             />
 
-            <CreateTeamModal>
+            <CreateTeamModal v-if="canCreateTeam">
                 <Button data-test="teams-new-team-button">
-                    <Plus /> New team
+                    <Plus /> New tenant
                 </Button>
             </CreateTeamModal>
         </div>
@@ -106,7 +107,7 @@ defineOptions({
                             </TooltipContent>
                         </Tooltip>
 
-                        <Tooltip v-if="team.role === 'member'">
+                        <Tooltip v-if="team.canOpen && !team.canUpdate">
                             <TooltipTrigger as-child>
                                 <Button
                                     data-test="team-view-button"
@@ -124,7 +125,7 @@ defineOptions({
                             </TooltipContent>
                         </Tooltip>
 
-                        <Tooltip v-else>
+                        <Tooltip v-else-if="team.canUpdate">
                             <TooltipTrigger as-child>
                                 <Button
                                     data-test="team-edit-button"
@@ -149,7 +150,9 @@ defineOptions({
                 v-if="teams.length === 0"
                 class="py-8 text-center text-muted-foreground"
             >
-                {{ canManageAllTeams ? 'No teams have been created yet.' : "You don't belong to any teams yet." }}
+                {{ canManageAllTeams
+                    ? 'No teams have been created yet.'
+                    : 'No teams are available to view with your current access.' }}
             </p>
         </div>
     </div>

@@ -9,6 +9,7 @@ use App\Http\Requests\Teams\DeleteTeamRequest;
 use App\Http\Requests\Teams\SaveTeamRequest;
 use App\Models\Membership;
 use App\Models\Team;
+use App\Models\TeamInvitation;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,12 +27,31 @@ class TeamController extends Controller
     {
         $user = $request->user();
         $gate = Gate::forUser($user);
+        $manageAllTeams = $gate->allows('teams.manageAll');
+        $teams = $manageAllTeams ? Team::query()->get() : $user->teams()->get();
 
         return Inertia::render('teams/Index', [
-            'teams' => $gate->allows('teams.manageAll')
-                ? Team::query()->get()->map(fn (Team $team) => $user->toUserTeam($team))
-                : $user->toUserTeams(includeCurrent: true),
-            'canManageAllTeams' => $gate->allows('teams.manageAll'),
+            'teams' => $teams
+                ->filter(fn (Team $team) => $gate->allows('viewAny', [Team::class, $team])
+                    || $gate->allows('viewAny', [Membership::class, $team]))
+                ->map(function (Team $team) use ($gate, $user) {
+                    $summary = $user->toUserTeam($team);
+
+                    return [
+                        'id' => $summary->id,
+                        'name' => $summary->name,
+                        'slug' => $summary->slug,
+                        'isPersonal' => $summary->isPersonal,
+                        'role' => $summary->role,
+                        'roleLabel' => $summary->roleLabel,
+                        'isCurrent' => $summary->isCurrent,
+                        'canOpen' => true,
+                        'canUpdate' => $gate->allows('update', $team),
+                    ];
+                })
+                ->values(),
+            'canCreateTeam' => $gate->allows('create', Team::class),
+            'canManageAllTeams' => $manageAllTeams,
         ]);
     }
 
@@ -53,15 +73,14 @@ class TeamController extends Controller
     public function edit(Request $request, Team $team): Response
     {
         $user = $request->user();
+        $gate = Gate::forUser($user);
 
-        return Inertia::render('teams/Edit', [
-            'team' => [
-                'id' => $team->id,
-                'name' => $team->name,
-                'slug' => $team->slug,
-                'isPersonal' => $team->is_personal,
-            ],
-            'members' => $team->members()->get()->map(function (User $member) {
+        if (! $gate->allows('view', $team)) {
+            $gate->authorize('viewAny', [Membership::class, $team]);
+        }
+
+        $members = $gate->allows('viewAny', [Membership::class, $team])
+            ? $team->members()->get()->map(function (User $member) {
                 /** @var Membership $membership */
                 $membership = $member->getRelation('pivot');
 
@@ -73,8 +92,11 @@ class TeamController extends Controller
                     'role' => $membership->role->value,
                     'role_label' => $membership->role->label(),
                 ];
-            }),
-            'invitations' => $team->invitations()
+            })
+            : [];
+
+        $invitations = $gate->allows('viewAny', [TeamInvitation::class, $team])
+            ? $team->invitations()
                 ->whereNull('accepted_at')
                 ->get()
                 ->map(fn ($invitation) => [
@@ -83,7 +105,18 @@ class TeamController extends Controller
                     'role' => $invitation->role->value,
                     'role_label' => $invitation->role->label(),
                     'created_at' => $invitation->created_at->toISOString(),
-                ]),
+                ])
+            : [];
+
+        return Inertia::render('teams/Edit', [
+            'team' => [
+                'id' => $team->id,
+                'name' => $team->name,
+                'slug' => $team->slug,
+                'isPersonal' => $team->is_personal,
+            ],
+            'members' => $members,
+            'invitations' => $invitations,
             'permissions' => $user->toTeamPermissions($team),
             'availableRoles' => TeamRole::assignable(),
         ]);
@@ -94,8 +127,6 @@ class TeamController extends Controller
      */
     public function update(SaveTeamRequest $request, Team $team): RedirectResponse
     {
-        Gate::authorize('update', $team);
-
         $team = DB::transaction(function () use ($request, $team) {
             $team = Team::whereKey($team->id)->lockForUpdate()->firstOrFail();
 

@@ -1,11 +1,12 @@
 import inertia from '@inertiajs/vite';
-import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
+// Wayfinder TypeScript output is checked in. Regenerate it explicitly with
+// `php artisan wayfinder:generate` after route/controller changes.
 export default defineConfig({
     plugins: lazyPlugins(() => [
         laravel({
@@ -29,15 +30,6 @@ export default defineConfig({
                     includeAbsolute: false,
                 },
             },
-        }),
-        wayfinder({
-            formVariants: true,
-            // Docker generates Wayfinder output in its PHP build stage. The
-            // command can be overridden there while local and CI builds keep
-            // using the normal Artisan generator.
-            command:
-                process.env.WAYFINDER_COMMAND ??
-                'php artisan wayfinder:generate',
         }),
     ]),
     server: {

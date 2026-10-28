@@ -26,6 +26,7 @@ declare module '@inertiajs/core' {
             navigation?: { admin: boolean; farms: boolean };
             currentTeam: Team | null;
             teams: Team[];
+            canCreateTeam: boolean;
             [key: string]: unknown;
         };
     }

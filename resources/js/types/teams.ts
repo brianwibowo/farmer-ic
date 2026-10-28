@@ -8,6 +8,8 @@ export type Team = {
     role?: TeamRole | null;
     roleLabel?: string | null;
     isCurrent?: boolean;
+    canOpen?: boolean;
+    canUpdate?: boolean;
 };
 
 export type TeamMember = {
