@@ -320,9 +320,12 @@ keep it current.
 - Keep components small and readable.
 - Use the existing Tailwind, Vue, Inertia, and UI primitives. Do not install a
   new npm package without asking.
-- Before any frontend UI work, read and follow the project design guidance in
-  [`design.md`](design.md), including its tokens, typography, component
-  patterns, and mobile layout conventions.
+- Before implementing or changing any frontend page, component, or layout,
+  read and follow [`design.md`](design.md) as the single design reference for
+  mobile and desktop. Apply its shared component rules and the relevant
+  Farmer/mobile or desktop admin profile, including tokens, typography,
+  responsive layout, accessibility, themes, and UI states. Keep future design
+  guidance in `design.md`; do not create separate viewport-specific guides.
 - Use the existing semantic theme utilities for all UI colors, such as
   `text-primary`, `text-foreground`, `text-muted-foreground`, `bg-card`,
   `bg-muted`, `border-border`, `text-success`, `text-warning`, and
