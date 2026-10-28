@@ -99,7 +99,7 @@
       "growth": 78,
       "plantedAt": "11 September 2026",
       "harvestAt": "10 Desember 2026",
-      "summary": "Pertahankan penyiraman teratur dan pantau daun kedelai setiap minggu menjelang fase pembungaan.",
+      "summary": "Jaga kelembapan tanah dan pantau polong kedelai selama fase pengisian biji.",
       "weightTon": 42,
       "aiConfidence": 94,
       "weather": {
@@ -107,8 +107,8 @@
         "temperature": "26°C",
         "humidity": "78%"
       },
-      "nextStep": "Jadwalkan penyiraman rutin dan pantau daun kedelai setiap 2–3 hari.",
-      "risk": "Perubahan warna daun dapat menandakan serangan hama menjelang fase pembungaan."
+      "nextStep": "Jadwalkan penyiraman rutin dan pantau polong serta daun kedelai setiap 2–3 hari.",
+      "risk": "Kekeringan atau serangan pengisap polong dapat membuat biji keriput dan menurunkan mutu."
     },
     "kebun-002": {
       "plantCondition": "Batang jagung kokoh dan warna daun baik. Kelembapan tanah masih mendukung pertumbuhan.",
@@ -117,8 +117,8 @@
       "expenses": 16000000,
       "growth": 65,
       "plantedAt": "20 Agustus 2026",
-      "harvestAt": "20 November 2026",
-      "summary": "Jaga ketersediaan air dan lakukan pemupukan susulan sesuai fase pertumbuhan jagung.",
+      "harvestAt": "28 November 2026",
+      "summary": "Jaga ketersediaan air dan pantau penggerek tongkol selama fase pengisian biji.",
       "weightTon": 31,
       "aiConfidence": 92,
       "weather": {
@@ -126,8 +126,8 @@
         "temperature": "27°C",
         "humidity": "74%"
       },
-      "nextStep": "Lakukan pemupukan susulan dan cek kelembapan tanah di setiap petak.",
-      "risk": "Kekurangan air dapat memperlambat pembentukan tongkol jagung."
+      "nextStep": "Pantau kelembapan tanah dan lakukan pengendalian penggerek tongkol di setiap petak.",
+      "risk": "Kekurangan air pada fase pengisian membuat biji keriput dan menurunkan bobot panen."
     },
     "kebun-003": {
       "plantCondition": "Sebagian rumput mulai menguning di petak timur. Perlu pemeriksaan kelembapan dan pemerataan irigasi.",
@@ -155,7 +155,7 @@
       "expenses": 8500000,
       "growth": 82,
       "plantedAt": "15 Agustus 2026",
-      "harvestAt": "15 November 2026",
+      "harvestAt": "1 November 2026",
       "summary": "Pantau kematangan polong dan siapkan tenaga panen untuk mempertahankan kualitas hasil.",
       "weightTon": 18,
       "aiConfidence": 95,
@@ -201,7 +201,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 71,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -228,7 +228,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 116,
         "diseaseIndication": "Aman",
         "pestIndication": "Berat"
@@ -292,7 +292,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 34,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -406,7 +406,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 65,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -433,7 +433,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 93,
         "diseaseIndication": "Aman",
         "pestIndication": "Ringan"
@@ -460,7 +460,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 24,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -493,7 +493,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Pembungaan",
         "averageHeightCm": 149,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -624,7 +624,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 58,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -657,7 +657,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 68,
         "diseaseIndication": "Aman",
         "pestIndication": "Ringan"
@@ -684,7 +684,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 15,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -711,7 +711,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 127,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -771,7 +771,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan & Pembentukan Polong",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 68,
         "diseaseIndication": "Aman",
         "pestIndication": "Ringan"
@@ -793,7 +793,7 @@
           "id": "photo-tumbuh-3",
           "label": "Foto buah",
           "caption": "Polong kedelai mulai terisi padat pada buku batang utama",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -810,7 +810,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 49,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -837,7 +837,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 44,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -864,7 +864,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 7,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -891,7 +891,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 101,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -978,7 +978,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Pembungaan",
         "averageHeightCm": 40,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1005,7 +1005,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 24,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1032,7 +1032,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Kecambah",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 4,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1065,7 +1065,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 75,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1125,7 +1125,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 30,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1158,7 +1158,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Kecambah",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 9,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1224,7 +1224,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 49,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1317,7 +1317,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 20,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1344,7 +1344,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 26,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1371,7 +1371,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 12,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1431,7 +1431,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Kecambah",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 6,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1722,7 +1722,7 @@
           "id": "photo-pertumbuhan-hist-kebun-003-11",
           "label": "Foto buah",
           "caption": "Memantau pertumbuhan kembali setelah potong; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -1749,7 +1749,7 @@
           "id": "photo-pertumbuhan-hist-kebun-003-10",
           "label": "Foto buah",
           "caption": "Memantau pertumbuhan kembali setelah potong; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -1776,7 +1776,7 @@
           "id": "photo-pertumbuhan-hist-kebun-003-9",
           "label": "Foto buah",
           "caption": "Memantau pertumbuhan kembali setelah potong; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -1867,7 +1867,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
+        "growthPhase": "Panen",
         "averageHeightCm": 226,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1877,7 +1877,7 @@
           "id": "photo-pertumbuhan-hist-kebun-002-7",
           "label": "Foto buah",
           "caption": "Memantau pengisian tongkol; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -1935,7 +1935,7 @@
           "id": "photo-panen-hist-005a",
           "label": "Foto buah",
           "caption": "Polong kedelai Grobogan masak penuh",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         },
         {
           "id": "photo-panen-hist-005b",
@@ -1958,7 +1958,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 213,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -1968,7 +1968,7 @@
           "id": "photo-pertumbuhan-hist-kebun-002-6",
           "label": "Foto buah",
           "caption": "Memantau pengisian tongkol; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -2036,7 +2036,7 @@
           "id": "photo-panen-hist-001a",
           "label": "Foto buah",
           "caption": "Polong kedelai masak penuh pada panen musim sebelumnya",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         },
         {
           "id": "photo-panen-hist-001b",
@@ -2092,7 +2092,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
+        "growthPhase": "Panen",
         "averageHeightCm": 83,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2102,7 +2102,7 @@
           "id": "photo-pertumbuhan-hist-kebun-004-6",
           "label": "Foto buah",
           "caption": "Memantau pengisian polong; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -2119,7 +2119,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
+        "growthPhase": "Panen",
         "averageHeightCm": 203,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2129,7 +2129,7 @@
           "id": "photo-pertumbuhan-hist-kebun-005-7",
           "label": "Foto buah",
           "caption": "Memantau pengisian tongkol; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -2146,7 +2146,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 190,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2173,7 +2173,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
+        "growthPhase": "Panen",
         "averageHeightCm": 76,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2183,7 +2183,7 @@
           "id": "photo-pertumbuhan-hist-kebun-001-6",
           "label": "Foto buah",
           "caption": "Memantau pengisian polong; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -2227,7 +2227,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
+        "growthPhase": "Panen",
         "averageHeightCm": 75,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2254,7 +2254,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 189,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2264,7 +2264,7 @@
           "id": "photo-pertumbuhan-hist-kebun-005-6",
           "label": "Foto buah",
           "caption": "Memantau pengisian tongkol; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -2314,7 +2314,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pengisian & panen",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 70,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2324,7 +2324,7 @@
           "id": "photo-pertumbuhan-hist-kebun-001-5",
           "label": "Foto buah",
           "caption": "Memantau pengisian polong; keseragaman dan kadar air dijaga menjelang panen.",
-          "image": "/images/activities/tumbuh-buah.webp"
+          "image": "/images/farmer/growth/kedelai-panen.webp"
         }
       ]
     },
@@ -2368,7 +2368,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 63,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2401,7 +2401,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 167,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2428,7 +2428,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 118,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2455,7 +2455,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Pembungaan",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 60,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2558,7 +2558,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Reproduktif",
         "averageHeightCm": 48,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2585,7 +2585,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Pembungaan",
         "averageHeightCm": 139,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2618,7 +2618,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 68,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2645,7 +2645,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Pembungaan",
         "averageHeightCm": 46,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2699,7 +2699,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 28,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2726,7 +2726,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 101,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2753,7 +2753,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 24,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2786,7 +2786,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 27,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2813,7 +2813,7 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif awal",
         "averageHeightCm": 19,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2840,7 +2840,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 11,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2873,7 +2873,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Vegetatif aktif",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 57,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2933,7 +2933,7 @@
       "seedType": "Kedelai",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 8,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -2966,7 +2966,7 @@
       "seedType": "Rumput",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif awal",
         "averageHeightCm": 7,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
@@ -3032,7 +3032,7 @@
       "seedType": "Jagung",
       "report": {
         "kind": "pengecekan-pertumbuhan",
-        "growthPhase": "Bibit awal",
+        "growthPhase": "Vegetatif",
         "averageHeightCm": 20,
         "diseaseIndication": "Aman",
         "pestIndication": "Aman"
