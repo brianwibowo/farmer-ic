@@ -21,13 +21,27 @@ services where appropriate.
 - Models in `app/Models/` represent persisted domain data and relationships.
 - Controllers in `app/Http/Controllers/` handle requests, invoke authorization
   (Gate/Policy) before calling services, and return Inertia pages, redirects,
-  or responses. Keep business rules out of controllers.
+  or responses. For HTTP actions, the Controller is the default single point
+  that calls `Gate::authorize(...)`; derive the actor from the authenticated
+  request and pass persisted models or trusted parents. Keep business rules out
+  of controllers.
 - Form Requests in `app/Http/Requests/` handle validation. They may check
   authorization only by delegating to the same Policy/Gate (never by
-  re-implementing rules); do not rely on client-side validation alone.
+  re-implementing rules); do not rely on client-side validation alone. By
+  default, keep `authorize()` for early rejection only when useful; do not check
+  the same ability in both FormRequest and Controller without a specific reason.
 - Services in `app/Services/` contain use-case/business logic, coordinate
   Eloquent persistence, and manage transactions when necessary. Services do not
-  contain role or permission rules.
+  contain role or permission rules. For every read path, apply the model's
+  `visibleTo($user, $team)` scope before pagination, counts, totals, exports, or
+  serialization. The HTTP Controller authorizes the action; non-HTTP callers
+  such as jobs and commands must authorize explicitly with
+  `Gate::forUser($actor)` before invoking protected work.
+- API Resources in `app/Http/Resources/` define the JSON shape returned by API
+  endpoints. Use `new ModelResource($model)` for one model and
+  `ModelResource::collection($paginatorOrCollection)` for lists. Resources only
+  shape response data; they do not query, authorize, or contain business rules.
+  Inertia pages normally receive props through `Inertia::render()`.
 - Policies and Gates enforce authorization; authorization rules must not be
   buried in Vue components or scattered through controllers and services.
   See STATIC RBAC AND AUTHORIZATION below.
@@ -225,11 +239,15 @@ keep it current.
    and passes them as props (for example `can: { update, delete }`). Vue only
    renders them. Hidden buttons and routes are UX, not security. Compute
    navigation gates once per request (shared props), not once per component.
-5. **Routes:** use `auth`/`verified` middleware, and `can:` middleware only
-   where the target is already a bound model or team (for example
-   `can:ai.access,team`). Record-level scope checks happen in controllers
-   through policies, not in route middleware, because middleware cannot safely
-   resolve a farm from raw request data.
+   Vue may hide or show controls from these booleans, but must not read the role
+   matrix or decide authorization. The server checks the action when requested.
+5. **Routes:** use `auth`/`verified` middleware for authentication. `can:`
+   middleware is optional when the target is already a bound model or team (for
+   example `can:ai.access,team`). Prefer one authorization check per HTTP action:
+   if the Controller calls the ability, do not also call the same ability in
+   route middleware or FormRequest without a specific reason. Record-level scope
+   checks belong in Policies and query scopes, since route middleware cannot
+   safely resolve a farm from raw request data.
 6. Return proper `403 Forbidden` for denied actions.
 
 ### Hard prohibitions
