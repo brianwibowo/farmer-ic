@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import { Bell } from '@lucide/vue';
 import { computed } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,7 +11,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getInitials } from '@/composables/useInitials';
-import { edit } from '@/routes/profile';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
@@ -66,24 +65,31 @@ const name = computed(() => user.value?.name?.trim() || 'Petani IC');
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Link
-                    :href="edit()"
-                    aria-label="Buka profil"
-                    class="rounded-full transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
-                >
-                    <Avatar class="size-11 rounded-full">
-                        <AvatarImage
-                            v-if="user?.avatar"
-                            :src="user.avatar"
-                            :alt="name"
-                        />
-                        <AvatarFallback
-                            class="bg-primary/15 text-sm font-semibold text-secondary dark:text-primary"
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <button
+                            type="button"
+                            aria-label="Buka profil"
+                            class="rounded-full transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
                         >
-                            {{ getInitials(name) }}
-                        </AvatarFallback>
-                    </Avatar>
-                </Link>
+                            <Avatar class="size-11 rounded-full">
+                                <AvatarImage v-if="user?.avatar" :src="user.avatar" :alt="name" />
+                                <AvatarFallback class="bg-primary/15 text-sm font-semibold text-secondary dark:text-primary">
+                                    {{ getInitials(name) }}
+                                </AvatarFallback>
+                            </Avatar>
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" :side-offset="8" class="w-64 max-w-[calc(100vw-2rem)] rounded-xl p-2">
+                        <DropdownMenuLabel>Profil</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <div class="space-y-1 px-3 py-3">
+                            <p class="text-sm font-semibold text-foreground">{{ name }}</p>
+                            <p v-if="user?.email" class="break-all text-xs text-muted-foreground">{{ user.email }}</p>
+                            <p v-else class="text-xs text-muted-foreground">Profil tampilan demo</p>
+                        </div>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     </header>

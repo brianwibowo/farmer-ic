@@ -52,7 +52,7 @@ const auth = computed(() => page.props.auth);
 const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 
 const dashboardUrl = computed(() =>
-    page.props.currentTeam ? dashboard(page.props.currentTeam.slug).url : '/',
+    page.props.navigation?.admin ? dashboard().url : '/',
 );
 
 const activeItemStyles =
@@ -60,7 +60,7 @@ const activeItemStyles =
 
 const mainNavItems = computed<NavItem[]>(() => [
     {
-        title: 'Dashboard',
+        title: page.props.navigation?.admin ? 'Dashboard' : 'Beranda',
         href: dashboardUrl.value,
         icon: LayoutGrid,
     },

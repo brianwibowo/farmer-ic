@@ -3,9 +3,7 @@
 namespace App\Http\Requests\Farms;
 
 use App\Models\Farm;
-use App\Models\Team;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -13,17 +11,14 @@ class SaveFarmRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-        $team = $user?->currentTeam;
-        $farm = $this->route('farm');
-
-        return $user !== null && (($farm instanceof Farm && Gate::forUser($user)->allows($this->isMethod('patch') ? 'update' : 'view', $farm))
-            || ($team instanceof Team && $this->isMethod('post') && Gate::forUser($user)->allows('create', [Farm::class, $team])));
+        return true; // The controller is the HTTP authorization boundary.
     }
 
     /** @return array<string, array<mixed>> */
     public function rules(): array
     {
+        $farm = $this->route('farm');
+        $teamId = $farm instanceof Farm ? $farm->team_id : $this->user()?->current_team_id;
         $presence = $this->isMethod('patch') ? ['sometimes', 'required'] : ['required'];
 
         return [
@@ -31,8 +26,11 @@ class SaveFarmRequest extends FormRequest
             'total_area_ha' => [...$presence, 'numeric', 'decimal:0,4', 'min:0.0001', 'max:99999999.9999'],
             'owner_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'id')->where(fn ($query) => $query
                 ->where('is_active', true)
+                ->whereIn('id', fn ($members) => $members->select('user_id')->from('team_members')->where('team_id', $teamId))
                 ->whereIn('role_id', fn ($roles) => $roles->select('id')->from('roles')->where('name', 'owner')))],
             'created_by' => ['prohibited'],
+            'team_id' => ['prohibited'],
+            'assigned_farm_id' => ['prohibited'],
             'address' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'city' => ['sometimes', 'nullable', 'string', 'max:100'],
             'district' => ['sometimes', 'nullable', 'string', 'max:100'],

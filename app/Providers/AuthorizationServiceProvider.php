@@ -22,6 +22,16 @@ class AuthorizationServiceProvider extends ServiceProvider
         // Superadmin dont reach this point, so we can safely deny all permissions for other users
         Gate::define('teams.manageAll', fn (User $user): bool => false);
 
+        // Entering the admin portal is separate from viewing a resource as Owner.
+        // Gate::define('admin.access', function (User $user): bool {
+        //     $permissions = app(RolePermissions::class);
+        //     $team = $user->currentTeam;
+
+        //     return $permissions->roleName($user) === 'admin'
+        //         && $team instanceof Team
+        //         && $permissions->withinTeam($user, $team);
+        // });
+
         Gate::define('ai.access', function (User $user, ?Team $team = null): bool {
             $permissions = app(RolePermissions::class);
 

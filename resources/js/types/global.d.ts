@@ -21,6 +21,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            navigation?: { admin: boolean; farms: boolean };
             currentTeam: Team | null;
             teams: Team[];
             [key: string]: unknown;

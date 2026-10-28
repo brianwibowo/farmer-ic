@@ -70,6 +70,22 @@ melalui relasi model yang tersimpan.
 
 ## Arti peran dan cakupan
 
+### Area admin dan izin data
+
+`/admin/dashboard` dan `/admin/farm-management` memakai `auth`, `verified`, dan
+Gate `admin.access`. Gate ini hanya menerima peran aplikasi `admin` dengan
+keanggotaan tim aktif yang valid; `superadmin` tetap melalui bypass pengembang
+yang sudah ada. Peran Team owner/admin tidak menjadi bukti akses area admin.
+Owner dan Petugas menerima 403 pada area ini, termasuk saat membuka URL langsung.
+Izin baca Farm mereka tetap berlaku di jalur yang sesuai; Policy resource tidak
+diubah untuk membatasi portal. Controller tetap memeriksa Policy Farm dan
+Service tetap memakai `visibleTo()`.
+
+Navigasi menerima boolean `navigation.admin` dan `navigation.farms` dari server.
+Login mengarahkan Admin/SuperAdmin ke `/admin/dashboard`, serta Owner/Petugas ke
+`/`. Ikon profil di antarmuka Farmer/Owner membuka ringkasan profil tanpa tautan
+ke area admin. Route admin lama tanpa prefix sudah dihapus.
+
 Nilai `any` berarti semua data yang berada dalam batas tim yang diikuti
 pengguna. Cakupan ini tetap memerlukan keanggotaan tim. Nilai `own` berarti data
 terkait dengan farm yang ditugaskan kepada pengguna melalui

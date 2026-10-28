@@ -3,10 +3,11 @@
 namespace App\Services;
 
 use App\Models\Farm;
+use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -38,6 +39,47 @@ class FarmService
 
         return $query->orderBy($sort, $direction)->orderBy('id')
             ->paginate($filters['per_page'] ?? 15)->appends($filters);
+    }
+
+    /** @return array{count: int, area_ha: string, cities: int} */
+    public function summary(User $user, Team $team): array
+    {
+        $query = Farm::visibleTo($user, $team);
+
+        return [
+            'count' => (clone $query)->count(),
+            'area_ha' => (string) (clone $query)->sum('total_area_ha'),
+            'cities' => (clone $query)->whereNotNull('city')->where('city', '<>', '')->distinct()->count('city'),
+        ];
+    }
+
+    /** @return \Illuminate\Support\Collection<int, array{id: string, name: string}> */
+    public function owners(User $user, Team $team): \Illuminate\Support\Collection
+    {
+        return User::visibleTo($user, $team)
+            ->whereHas('teams', fn ($teams) => $teams->whereKey($team->id))
+            ->whereHas('role', fn ($roles) => $roles->where('name', 'owner'))
+            ->where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            ->map(fn (User $owner): array => ['id' => $owner->id, 'name' => $owner->name]);
+    }
+
+    /** @return array<string, mixed> */
+    public function detail(Farm $farm, User $user): array
+    {
+        $team = $farm->team;
+        abort_unless($team instanceof Team, 403);
+        $visible = Farm::visibleTo($user, $team)->findOrFail($farm->id);
+        $cycles = PlantingCycle::visibleTo($user, $team)->where('farm_id', $visible->id)->where('status', 'active');
+        $owner = User::visibleTo($user, $team)->whereKey($visible->owner_id)->first(['id', 'name']);
+
+        return [
+            ...$visible->only(['id', 'name', 'owner_id', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
+            'owner_name' => $owner?->name,
+            'team_name' => $team->name,
+            'active_cycles' => (clone $cycles)->count(),
+            'active_area_ha' => (string) (clone $cycles)->sum('planted_area_ha'),
+            'created_at' => $visible->created_at?->toISOString(),
+        ];
     }
 
     /** @param array<string, mixed> $data Validated farm attributes. */
@@ -84,7 +126,7 @@ class FarmService
         try {
             DB::transaction(function () use ($farm): void {
                 $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
-                foreach (['planting_cycles', 'farm_activities', 'weather_records', 'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets'] as $table) {
+                foreach (['planting_cycles', 'daily_activity_logs', 'farm_activities', 'weather_records', 'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets'] as $table) {
                     if (DB::table($table)->where('farm_id', $locked->id)->exists()) {
                         throw new ConflictHttpException('Kebun masih memiliki data terkait dan tidak dapat dihapus.');
                     }

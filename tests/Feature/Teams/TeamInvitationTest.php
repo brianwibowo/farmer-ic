@@ -206,7 +206,7 @@ class TeamInvitationTest extends TestCase
             ->actingAs($invitedUser)
             ->post(route('invitations.accept', $invitation));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('home'));
         $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Invitation accepted.']);
 
         $this->assertTrue($invitedUser->fresh()->belongsToTeam($team));
@@ -231,7 +231,7 @@ class TeamInvitationTest extends TestCase
             ->actingAs($invitedUser)
             ->delete(route('invitations.decline', $invitation));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('home'));
 
         $this->assertDatabaseMissing('team_invitations', [
             'id' => $invitation->id,

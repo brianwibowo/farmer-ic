@@ -6,6 +6,7 @@ use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
 use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FarmManagementController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Http\Request;
@@ -38,10 +39,17 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
         ->name('daily-logs.show');
 });
 
+Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
+    Route::redirect('/', '/admin/dashboard')->name('admin.home');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::resource('farm-management', FarmManagementController::class)
+        ->parameters(['farm-management' => 'farm'])
+        ->whereUuid('farm');
+});
+
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
     ->group(function () {
-        Route::get('dashboard', DashboardController::class)->name('dashboard');
         Route::get('ai', fn () => Inertia::render('farmer/Index'))->name('ai.page');
 
         Route::prefix('ai')->name('ai.')->group(function () {

@@ -16,16 +16,16 @@ class DashboardTest extends TestCase
 
     public function test_guests_are_redirected_to_the_login_page()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
         $team = $user->currentTeam;
 
         $response = $this->get(route('dashboard'));
         $response->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_users_can_visit_the_dashboard()
+    public function test_admins_can_visit_the_dashboard()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
         $team = $user->currentTeam;
 
         $response = $this
@@ -38,7 +38,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_includes_pending_invitations_for_the_authenticated_user()
     {
         $owner = User::factory()->create(['name' => 'Taylor Otwell']);
-        $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $invitedUser = User::factory()->create(['email' => 'invited@example.com', 'role' => 'admin']);
         $team = Team::factory()->create(['name' => 'Laravel Team']);
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -68,7 +68,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_does_not_include_accepted_invitations()
     {
         $owner = User::factory()->create();
-        $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $invitedUser = User::factory()->create(['email' => 'invited@example.com', 'role' => 'admin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -93,7 +93,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_excludes_expired_invitations_without_deleting_them()
     {
         $owner = User::factory()->create();
-        $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $invitedUser = User::factory()->create(['email' => 'invited@example.com', 'role' => 'admin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -122,7 +122,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_does_not_include_or_delete_other_users_invitations()
     {
         $owner = User::factory()->create();
-        $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $invitedUser = User::factory()->create(['email' => 'invited@example.com', 'role' => 'admin']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);

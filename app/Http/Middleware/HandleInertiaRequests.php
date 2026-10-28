@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Farm;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -37,10 +39,16 @@ class HandleInertiaRequests extends Middleware
     {
         $guestPage = $request->route()?->defaults['farmer_guest'] ?? false;
         $user = $guestPage ? null : $request->user();
+        $adminAccess = $user !== null && Gate::forUser($user)->allows('admin.access');
 
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'navigation' => [
+                'admin' => $adminAccess,
+                'farms' => $adminAccess && $user->currentTeam !== null
+                    && Gate::forUser($user)->allows('viewAny', [Farm::class, $user->currentTeam]),
+            ],
             'auth' => [
                 'user' => $user,
             ],

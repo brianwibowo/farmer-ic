@@ -1,4 +1,4 @@
-import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults, validateParameters } from './../wayfinder'
+import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../wayfinder'
 /**
 * @see \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::login
 * @see vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php:47
@@ -623,7 +623,7 @@ laporanForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => 
 laporan.form = laporanForm
 
 /**
-* @see routes/web.php:26
+* @see routes/web.php:27
 * @route '/bypass'
 */
 export const bypass = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -637,7 +637,7 @@ bypass.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:26
+* @see routes/web.php:27
 * @route '/bypass'
 */
 bypass.url = (options?: RouteQueryOptions) => {
@@ -645,7 +645,7 @@ bypass.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/web.php:26
+* @see routes/web.php:27
 * @route '/bypass'
 */
 bypass.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -654,7 +654,7 @@ bypass.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:26
+* @see routes/web.php:27
 * @route '/bypass'
 */
 bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -663,7 +663,7 @@ bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
-* @see routes/web.php:26
+* @see routes/web.php:27
 * @route '/bypass'
 */
 const bypassForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -672,7 +672,7 @@ const bypassForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => 
 })
 
 /**
-* @see routes/web.php:26
+* @see routes/web.php:27
 * @route '/bypass'
 */
 bypassForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -681,7 +681,7 @@ bypassForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:26
+* @see routes/web.php:27
 * @route '/bypass'
 */
 bypassForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -699,103 +699,74 @@ bypass.form = bypassForm
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
 * @see app/Http/Controllers/DashboardController.php:12
-* @param current_team - Default: '$currentTeam'
-* @route '/{current_team?}/dashboard'
+* @route '/admin/dashboard'
 */
-export const dashboard = (args?: { current_team?: string | number } | [current_team: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: dashboard.url(args, options),
+export const dashboard = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: dashboard.url(options),
     method: 'get',
 })
 
 dashboard.definition = {
     methods: ["get","head"],
-    url: '/{current_team?}/dashboard',
+    url: '/admin/dashboard',
 } satisfies RouteDefinition<["get","head"]>
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
 * @see app/Http/Controllers/DashboardController.php:12
-* @param current_team - Default: '$currentTeam'
-* @route '/{current_team?}/dashboard'
+* @route '/admin/dashboard'
 */
-dashboard.url = (args?: { current_team?: string | number } | [current_team: string | number ] | string | number, options?: RouteQueryOptions) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { current_team: args }
-    }
-
-    if (Array.isArray(args)) {
-        args = {
-            current_team: args[0],
-        }
-    }
-
-    args = applyUrlDefaults(args)
-
-    validateParameters(args, [
-        "current_team",
-    ])
-
-    const parsedArgs = {
-        current_team: args?.current_team ?? '$currentTeam',
-    }
-
-    return dashboard.definition.url
-            .replace('{current_team?}', parsedArgs.current_team?.toString() ?? '')
-            .replace(/\/+$/, '') + queryParams(options)
+dashboard.url = (options?: RouteQueryOptions) => {
+    return dashboard.definition.url + queryParams(options)
 }
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
 * @see app/Http/Controllers/DashboardController.php:12
-* @param current_team - Default: '$currentTeam'
-* @route '/{current_team?}/dashboard'
+* @route '/admin/dashboard'
 */
-dashboard.get = (args?: { current_team?: string | number } | [current_team: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: dashboard.url(args, options),
+dashboard.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: dashboard.url(options),
     method: 'get',
 })
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
 * @see app/Http/Controllers/DashboardController.php:12
-* @param current_team - Default: '$currentTeam'
-* @route '/{current_team?}/dashboard'
+* @route '/admin/dashboard'
 */
-dashboard.head = (args?: { current_team?: string | number } | [current_team: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: dashboard.url(args, options),
+dashboard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: dashboard.url(options),
     method: 'head',
 })
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
 * @see app/Http/Controllers/DashboardController.php:12
-* @param current_team - Default: '$currentTeam'
-* @route '/{current_team?}/dashboard'
+* @route '/admin/dashboard'
 */
-const dashboardForm = (args?: { current_team?: string | number } | [current_team: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: dashboard.url(args, options),
+const dashboardForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: dashboard.url(options),
     method: 'get',
 })
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
 * @see app/Http/Controllers/DashboardController.php:12
-* @param current_team - Default: '$currentTeam'
-* @route '/{current_team?}/dashboard'
+* @route '/admin/dashboard'
 */
-dashboardForm.get = (args?: { current_team?: string | number } | [current_team: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: dashboard.url(args, options),
+dashboardForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: dashboard.url(options),
     method: 'get',
 })
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
 * @see app/Http/Controllers/DashboardController.php:12
-* @param current_team - Default: '$currentTeam'
-* @route '/{current_team?}/dashboard'
+* @route '/admin/dashboard'
 */
-dashboardForm.head = (args?: { current_team?: string | number } | [current_team: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-    action: dashboard.url(args, {
+dashboardForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+    action: dashboard.url({
         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
             _method: 'HEAD',
             ...(options?.query ?? options?.mergeQuery ?? {}),
