@@ -1,11 +1,12 @@
 # Daily activity log: block mapping
 
-This first backend slice stores a complete daily report with one or more block
-mapping activities in PostgreSQL. It exposes create, list, and detail endpoints.
-There are no UI, Policy, role-matrix, draft/approval, edit, delete, or attachment
-changes. The other four agreed form types are not accepted yet. AI/RAG does not
-consume these new reports yet; indexing and authoritative AI retrieval need a
-separate integration step.
+This slice stores a complete daily report with one or more block mapping
+activities in PostgreSQL. The primary user flow is a server-backed Inertia page:
+the controller renders the page and redirects form submissions while the service
+owns persistence and transactions. A JSON compatibility route remains for the
+existing backend tests and integrations, but the Vue page does not call it. The
+other four agreed form types are not accepted yet. AI/RAG does not consume these
+new reports yet; indexing and authoritative AI retrieval need a separate step.
 
 ## Apply the feature
 
@@ -15,6 +16,10 @@ From the project directory, use the private local profile:
 php artisan --env=local migrate --database=pgsql
 php artisan --env=local db:seed --class=BlockMappingActivityTypeSeeder
 ```
+
+For a complete local dataset covering identity, farms, activities, monitoring,
+finance, operations, and daily-log examples, use the full demo seeder and see
+[demo-seed-credentials.md](demo-seed-credentials.md).
 
 Only pending migrations are applied; do not reset the database. The additive
 migration adds `daily_activity_logs` and `block_mapping_details`, links existing
@@ -27,24 +32,26 @@ records exist so history is not silently discarded.
 The type seeder is repeatable and only inserts the `block_mapping` catalog
 record if absent. It does not create logbook or user records.
 
-## Local request contract
+## Inertia request flow
 
-These JSON endpoints are covered by the existing `EnsureLocalFarmApi`
-middleware. They return 404 outside `local`/`testing`, and 503 when the default
-connection is not PostgreSQL. They deliberately follow the current local farm
-API's authenticated pattern and enforce the farm/team policy before reading or
-writing. They are still a local prototype endpoint, not a complete operational
-petugas workflow.
+The page requires the normal authenticated and verified web session. The
+controller authorizes the farm, passes the paginated logbook as Inertia props,
+and derives `recorded_by` from the authenticated user before calling the service.
+The Vue form submits with Inertia and receives validation errors or a flash
+success message through the normal web response.
 
 | Method | URL | Result |
 | --- | --- | --- |
-| POST | `/api/kebun/{farm}/daily-logs` | 201 and the persisted report |
-| GET | `/api/kebun/{farm}/daily-logs` | 200 and paginated reports for that farm |
-| GET | `/api/kebun/{farm}/daily-logs/{dailyLog}` | 200, or 404 if not in that farm |
+| GET | `/kebun/{farm}/daily-logs` | Inertia page with form, filters, and paginated reports |
+| POST | `/kebun/{farm}/daily-logs` | Redirect back with a flash message |
+| GET | `/kebun/{farm}/daily-logs/{dailyLog}` | Inertia detail page, or 404 if not in that farm |
 
-Replace `{farm}` with an existing farm UUID and `recorded_by` with an existing
-active user UUID. Send `Accept: application/json` and `Content-Type:
-application/json`.
+The existing JSON compatibility routes remain under `/api/kebun/...` for the
+current backend test harness. They require authentication and are not used by
+the Inertia page.
+
+For the compatibility request, replace `{farm}` with an existing farm UUID and
+send `Accept: application/json` and `Content-Type: application/json`.
 
 ```json
 {
@@ -52,7 +59,6 @@ application/json`.
   "start_time": "08:00",
   "end_time": "16:00",
   "worker_count": 6,
-  "recorded_by": "<existing-active-user-uuid>",
   "notes": "Pemetaan awal untuk persiapan bedengan.",
   "activities": [
     {
@@ -89,7 +95,8 @@ application/json`.
 - Choose `obstacle_status: "none"` with obstacles omitted/null, or `"reported"`
   with a nonempty explanation. Solutions, actions, and activity notes are
   optional. No numeric zero is invented for missing optional measurements.
-- IDs, farm association, timestamps, order, and form version are server-owned.
+- The authenticated user is the recorder. IDs, farm association, timestamps,
+  order, and form version are server-owned.
   Nested keys are allowlisted. `farm_id` comes from the resolved route parent.
   One transaction saves the header and every activity/detail, or none of them.
 - Decimal values are returned as fixed-scale strings to preserve precision.
@@ -107,9 +114,9 @@ application/json`.
 The authenticated caller is authorized against the route farm through the native
 Gate/policy before the service runs. Farm/team scope and the petugas assignment
 are resolved from persisted relationships; a caller cannot gain access by changing
-the farm URL or by supplying a different browser ID. `recorded_by` remains a
-validated active-user reference for this first report contract and is not used as
-proof of authorization.
+the farm URL or by supplying a different browser ID. Any optional `recorded_by`
+input is validated for compatibility and then overwritten with the authenticated
+user's ID by the controller.
 
 1. The current schema uses `farms.team_id` for tenant ownership and
    `users.assigned_farm_id` for the one-farm petugas assignment. `created_by`,

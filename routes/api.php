@@ -10,10 +10,10 @@ Route::apiResource('kebun', FarmController::class)
     ->whereUuid('farm')
     ->middleware('auth');
 
-// The existing EnsureLocalFarmApi middleware covers every /api/kebun/* route;
-// authentication and model-policy checks are enforced by the requests/controllers.
+// JSON compatibility routes remain for the backend test harness. The Vue page
+// uses the authenticated Inertia routes in routes/web.php instead.
 Route::prefix('kebun/{farm}/daily-logs')->whereUuid('farm')->middleware('auth')->group(function (): void {
-    Route::get('/', [DailyActivityLogController::class, 'index'])->name('daily-logs.index');
-    Route::post('/', [DailyActivityLogController::class, 'store'])->name('daily-logs.store');
-    Route::get('{dailyLog}', [DailyActivityLogController::class, 'show'])->whereUuid('dailyLog')->name('daily-logs.show');
+    Route::get('/', [DailyActivityLogController::class, 'index'])->name('api.daily-logs.index');
+    Route::post('/', [DailyActivityLogController::class, 'store'])->name('api.daily-logs.store');
+    Route::get('{dailyLog}', [DailyActivityLogController::class, 'show'])->whereUuid('dailyLog')->name('api.daily-logs.show');
 });

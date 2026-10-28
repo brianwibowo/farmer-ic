@@ -137,7 +137,8 @@ logoutForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 logout.form = logoutForm
 
 /**
-* @see routes/web.php:16
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
 * @route '/'
 */
 export const home = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -151,7 +152,8 @@ home.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:16
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
 * @route '/'
 */
 home.url = (options?: RouteQueryOptions) => {
@@ -159,7 +161,8 @@ home.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/web.php:16
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
 * @route '/'
 */
 home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -168,7 +171,8 @@ home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:16
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
 * @route '/'
 */
 home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -177,7 +181,8 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
-* @see routes/web.php:16
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
 * @route '/'
 */
 const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -186,7 +191,8 @@ const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:16
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
 * @route '/'
 */
 homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -195,7 +201,8 @@ homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:16
+* @see \Inertia\Controller::__invoke
+* @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
 * @route '/'
 */
 homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -616,7 +623,7 @@ laporanForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => 
 laporan.form = laporanForm
 
 /**
-* @see routes/web.php:50
+* @see routes/web.php:26
 * @route '/bypass'
 */
 export const bypass = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -630,7 +637,7 @@ bypass.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see routes/web.php:50
+* @see routes/web.php:26
 * @route '/bypass'
 */
 bypass.url = (options?: RouteQueryOptions) => {
@@ -638,7 +645,7 @@ bypass.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see routes/web.php:50
+* @see routes/web.php:26
 * @route '/bypass'
 */
 bypass.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -647,7 +654,7 @@ bypass.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:50
+* @see routes/web.php:26
 * @route '/bypass'
 */
 bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -656,7 +663,7 @@ bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
-* @see routes/web.php:50
+* @see routes/web.php:26
 * @route '/bypass'
 */
 const bypassForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -665,7 +672,7 @@ const bypassForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => 
 })
 
 /**
-* @see routes/web.php:50
+* @see routes/web.php:26
 * @route '/bypass'
 */
 bypassForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -674,7 +681,7 @@ bypassForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 })
 
 /**
-* @see routes/web.php:50
+* @see routes/web.php:26
 * @route '/bypass'
 */
 bypassForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({

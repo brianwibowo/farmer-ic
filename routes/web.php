@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Activity\DailyActivityLogController;
 use App\Http\Controllers\AI\AiConversationController;
 use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
@@ -28,6 +29,14 @@ Route::get('/bypass', function (Request $request) {
 
     return redirect()->route('ai.page', ['current_team' => $team->slug]);
 })->middleware(['auth', 'verified'])->name('bypass');
+
+Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->whereUuid('farm')->group(function (): void {
+    Route::get('/', [DailyActivityLogController::class, 'index'])->name('daily-logs.index');
+    Route::post('/', [DailyActivityLogController::class, 'store'])->name('daily-logs.store');
+    Route::get('{dailyLog}', [DailyActivityLogController::class, 'show'])
+        ->whereUuid('dailyLog')
+        ->name('daily-logs.show');
+});
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
