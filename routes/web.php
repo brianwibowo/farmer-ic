@@ -38,7 +38,6 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
         ->whereUuid('dailyLog')
         ->name('daily-logs.show');
 });
-
 Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
     Route::get('dashboard', DashboardController::class)->name('dashboard');

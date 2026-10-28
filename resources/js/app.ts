@@ -15,6 +15,7 @@ void createInertiaApp({
         switch (true) {
             case name === 'Welcome':
             case name.startsWith('farmer/'):
+            case name.startsWith('errors/'):
                 return null;
             case name.startsWith('farms/'):
                 return FarmManagementLayout;

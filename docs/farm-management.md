@@ -65,9 +65,23 @@ longer registered. The named `dashboard` route now points to `/admin/dashboard`.
 Login and authenticated `/login` visits land Admin/Superadmin on the admin
 dashboard and Owner/Petugas on `/`. Inaccessible admin intended URLs are cleared
 for non-admin logins. Team invitation responses use the same portal decision.
-The Farmer/Owner profile icon opens an inline profile menu, with no link to
-settings, the admin dashboard, or farm management. Settings navigation outside
+The Farmer/Owner profile icon opens an inline profile menu with account identity
+and a session logout action, with no link to settings, the admin dashboard, or
+farm management. Logout uses the existing CSRF-protected POST `/logout`, clears
+Inertia's client cache, and returns to the public home page. Settings navigation outside
 the admin portal also suppresses admin links for Owner/Petugas.
+
+Browser permission denials render `errors/Forbidden` with HTTP status 403, both
+for a direct visit and Inertia navigation. The standalone page offers a safe
+home link and logout for signed-in users; guests can open login. It does not
+resolve team navigation or display internal exception details. JSON requests
+and `/api/*` retain their original error bodies and status codes. Authentication
+redirects, validation responses, and other error statuses are unchanged.
+
+Public demo pages still omit tenant data from `auth.user`, `currentTeam`, and
+`teams`. The optional shared `account` prop only contains the current session's
+name and email for the profile/logout menu. Anonymous and legacy integer
+sessions do not query the UUID user table just to render a public demo page.
 
 Admin and Petugas retain the existing one-nonpersonal-team limit. Membership in
 two nonpersonal teams makes the current policy deny farm access, even when the
