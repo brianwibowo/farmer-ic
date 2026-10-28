@@ -18,6 +18,7 @@ import type { Team } from '@/types';
 
 type Props = {
     teams: Team[];
+    canManageAllTeams: boolean;
 };
 
 defineProps<Props>();
@@ -25,7 +26,7 @@ defineProps<Props>();
 const leaveTeamDialogOpen = ref(false);
 const teamLeaving = ref<Team | null>(null);
 
-const canLeaveTeam = (team: Team) => !team.isPersonal && team.role !== 'owner';
+const canLeaveTeam = (team: Team) => !team.isPersonal && team.role != null && team.role !== 'owner';
 
 const openLeaveTeamDialog = (team: Team) => {
     teamLeaving.value = team;
@@ -54,7 +55,9 @@ defineOptions({
             <Heading
                 variant="small"
                 title="Teams"
-                description="Manage your teams and team memberships"
+                :description="canManageAllTeams
+                    ? 'Manage all teams and team memberships'
+                    : 'Manage your teams and team memberships'"
             />
 
             <CreateTeamModal>
@@ -80,7 +83,7 @@ defineOptions({
                             </Badge>
                         </div>
                         <span class="text-sm text-muted-foreground">
-                            {{ team.roleLabel }}
+                            {{ team.roleLabel ?? (canManageAllTeams ? 'Global administrator' : '') }}
                         </span>
                     </div>
                 </div>
@@ -146,7 +149,7 @@ defineOptions({
                 v-if="teams.length === 0"
                 class="py-8 text-center text-muted-foreground"
             >
-                You don't belong to any teams yet.
+                {{ canManageAllTeams ? 'No teams have been created yet.' : "You don't belong to any teams yet." }}
             </p>
         </div>
     </div>

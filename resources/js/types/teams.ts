@@ -5,8 +5,8 @@ export type Team = {
     name: string;
     slug: string;
     isPersonal: boolean;
-    role?: TeamRole;
-    roleLabel?: string;
+    role?: TeamRole | null;
+    roleLabel?: string | null;
     isCurrent?: boolean;
 };
 

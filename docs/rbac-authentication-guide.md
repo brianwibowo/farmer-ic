@@ -60,7 +60,9 @@ melalui relasi model yang tersimpan.
 - `app/Policies/{Model}Policy.php` menentukan awalan izin dan relasi tepercaya
   untuk model tertentu. Laravel menemukan Policy berdasarkan nama model.
 - `app/Providers/AuthorizationServiceProvider.php` mendefinisikan Gate untuk
-  keputusan non-resource. `ai.access` adalah Gate bernama. `Gate::before`
+  keputusan non-resource. `ai.access` dan `teams.manageAll` adalah Gate bernama.
+  `teams.manageAll` ditolak untuk peran biasa dan hanya lolos untuk superadmin
+  melalui `Gate::before`. `Gate::before`
   mengembalikan `true` hanya untuk peran pengembang `superadmin`; peran ini tidak
   memiliki daftar izin terperinci di `config/access.php`.
 - Model yang mengikuti kontrak pencarian Policy menyediakan `visibleTo()` melalui
@@ -98,6 +100,13 @@ Peran aplikasi saat ini adalah:
   (`own`).
 - `superadmin` adalah peran pengembang yang ditangani oleh
   `AuthorizationServiceProvider::boot()` melalui `Gate::before`.
+
+Superadmin dapat membuka daftar seluruh Team dan mengelola Team, anggota, serta
+undangan tanpa baris keanggotaan pada `team_members`. Akses ini tidak menambah
+keanggotaan dan tidak mengganti Team aktif superadmin. `EnsureTeamMembership`
+mengizinkan konteks Team jika `teams.manageAll` lolos; aksi switch Team tetap
+memerlukan keanggotaan tersimpan. Properti `teams` yang dipakai pemilih Team
+tetap hanya berisi Team yang benar-benar diikuti pengguna.
 
 ## Cara memakai RBAC berdasarkan jenis berkas
 

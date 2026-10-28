@@ -256,6 +256,12 @@ keep it current.
   `true` only for that role and `null` for every other actor. Do not add a
   detailed `superadmin` grant list to `config/access.php` or create another
   wildcard bypass.
+- The developer `superadmin` can manage every Team without a `team_members`
+  row. Team management uses the named `teams.manageAll` Gate (denied by its
+  normal definition); the existing `Gate::before` grants it only to
+  `superadmin`. `EnsureTeamMembership` may honor that Gate for team context and
+  management routes, but must not add a membership or switch the user's active
+  team. The regular team switch action still requires persisted membership.
 - No implicit role inheritance, wildcards, or "allow everything" overrides. A
   role gets only the permissions explicitly listed in the matrix.
 - The `owner` role can view all aspects of Farm, Activity, Finance, and User

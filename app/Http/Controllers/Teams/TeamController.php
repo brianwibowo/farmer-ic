@@ -25,9 +25,13 @@ class TeamController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $gate = Gate::forUser($user);
 
         return Inertia::render('teams/Index', [
-            'teams' => $user->toUserTeams(includeCurrent: true),
+            'teams' => $gate->allows('teams.manageAll')
+                ? Team::query()->get()->map(fn (Team $team) => $user->toUserTeam($team))
+                : $user->toUserTeams(includeCurrent: true),
+            'canManageAllTeams' => $gate->allows('teams.manageAll'),
         ]);
     }
 
@@ -122,6 +126,8 @@ class TeamController extends Controller
      */
     public function leave(Request $request, Team $team): RedirectResponse
     {
+        abort_unless($request->user()->belongsToTeam($team), 403);
+
         Gate::authorize('leave', $team);
 
         $user = $request->user();
