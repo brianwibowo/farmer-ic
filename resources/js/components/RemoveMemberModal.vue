@@ -27,12 +27,19 @@ const emit = defineEmits<{
 
 const processing = ref(false);
 
+function memberRouteArgs(memberId: string): Parameters<typeof destroyMember>[0] {
+    return {
+        team: props.team.slug,
+        user: memberId,
+    } as unknown as Parameters<typeof destroyMember>[0];
+}
+
 const removeMember = () => {
     if (!props.member) {
         return;
     }
 
-    router.visit(destroyMember([props.team.slug, props.member.id]), {
+    router.visit(destroyMember(memberRouteArgs(props.member.id)), {
         onStart: () => (processing.value = true),
         onFinish: () => (processing.value = false),
         onSuccess: () => emit('update:open', false),

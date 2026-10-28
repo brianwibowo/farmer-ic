@@ -70,6 +70,13 @@ const memberToRemove = ref<TeamMember | null>(null);
 const cancelInvitationDialogOpen = ref(false);
 const invitationToCancel = ref<TeamInvitation | null>(null);
 
+function memberRouteArgs(memberId: string): Parameters<typeof updateMember>[0] {
+    return {
+        team: props.team.slug,
+        user: memberId,
+    } as unknown as Parameters<typeof updateMember>[0];
+}
+
 const pageTitle = computed(() =>
     props.permissions.canUpdateTeam
         ? `Edit ${props.team.name}`
@@ -77,7 +84,7 @@ const pageTitle = computed(() =>
 );
 
 const updateMemberRole = (member: TeamMember, newRole: string) => {
-    router.visit(updateMember([props.team.slug, member.id]), {
+    router.visit(updateMember(memberRouteArgs(member.id)), {
         data: { role: newRole },
         preserveScroll: true,
     });
