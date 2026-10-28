@@ -12,3 +12,5 @@ export type User = {
 export type Auth = {
     user: User;
 };
+
+export type AccountProfile = Pick<User, 'name' | 'email'> & { avatar?: string };

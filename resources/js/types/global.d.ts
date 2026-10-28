@@ -1,5 +1,6 @@
 import type { Directive } from 'vue';
 import type { Auth } from '@/types/auth';
+import type { AccountProfile } from '@/types/auth';
 import type { Team } from '@/types/teams';
 
 // Extend ImportMeta interface for Vite...
@@ -20,6 +21,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            account?: AccountProfile | null;
             sidebarOpen: boolean;
             navigation?: { admin: boolean; farms: boolean };
             currentTeam: Team | null;

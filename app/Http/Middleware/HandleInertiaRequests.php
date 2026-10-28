@@ -3,8 +3,11 @@
 namespace App\Http\Middleware;
 
 use App\Models\Farm;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -52,9 +55,26 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
+            'account' => fn () => $this->account($request, $guestPage, $user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],
         ];
+    }
+
+    /** @return array{name: string, email: string}|null */
+    private function account(Request $request, bool $guestPage, ?User $user): ?array
+    {
+        if ($guestPage) {
+            $guard = Auth::guard('web');
+            // Old integer sessions must not query the current UUID user table on public demo pages.
+            if (! $guard->hasUser()
+                && ! Str::isUuid((string) $request->session()->get($guard->getName(), ''))) {
+                return null;
+            }
+            $user = $guard->user();
+        }
+
+        return $user instanceof User ? ['name' => $user->name, 'email' => $user->email] : null;
     }
 }
