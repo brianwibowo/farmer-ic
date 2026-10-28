@@ -199,8 +199,17 @@ route or query now enforces application RBAC. `/bypass` requires authentication 
 authorizes `ai.access` before redirecting. The local-only `/api/kebun` Farm CRUD
 and `/api/kebun/{farm}/daily-logs` endpoints now require authentication and invoke
 their native policies; Farm listing and daily-log pagination use their model
-`visibleTo` scopes before returning records. Other application controllers and
-services remain outside this scaffolding rollout.
+`visibleTo` scopes before returning records.
+
+The team-scoped web JSON endpoints under `/{current_team}/finance` now authorize
+all category, transaction, budget, and projection CRUD actions. Record reads,
+list pagination, transaction summaries, and CSV exports apply `visibleTo` before
+serialization or aggregation. Creation derives its farm from the persisted route
+parent and recorder metadata from the authenticated user. Categories retain their
+explicit application-wide reference scope. See [finance-backend.md](finance-backend.md)
+for routes, payloads, and PostgreSQL integration coverage. The public `/finance`
+page and AI finance snapshots still use labeled demo sources; other application
+controllers and services remain outside this scaffolding rollout.
 
 After changing the file grants, rebuild config cache when used and restart
 long-running workers. New ownership semantics or abilities still require code

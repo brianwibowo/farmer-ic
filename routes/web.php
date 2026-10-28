@@ -50,6 +50,9 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
     ->group(function () {
+        Route::get('dashboard', DashboardController::class)->name('dashboard');
+        require __DIR__.'/finance.php';
+
         Route::get('ai', fn () => Inertia::render('farmer/Index'))->name('ai.page');
 
         Route::prefix('ai')->name('ai.')->group(function () {

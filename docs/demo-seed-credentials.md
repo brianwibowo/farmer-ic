@@ -47,3 +47,50 @@ accounts.
   budget.
 - `DemoOperationsSeeder`: operational targets, a petugas notification, and an
   audit-log entry.
+
+## Finance dummy data
+
+`DemoFinanceSeeder` now provides 10 shared financial categories, 24 transactions
+across August–October 2026, 6 category budgets for October–December, and 3
+projections. Transactions cover seed, fertilizer, labor, pest control, irrigation,
+transport, equipment rental, maintenance, harvest sales, and seedling sales.
+All operational records belong to `Kebun Cileuksa Demo` in `farm-ic-demo`.
+October expenses link to its October planting cycle; historical transactions
+and harvest sales remain farm-level records rather than claiming that cycle's
+future harvest. Projection periods are August, September, and October–January.
+
+On a fresh dataset, totals for the 24 transactions are:
+
+| Item | Amount |
+| --- | ---: |
+| Income | Rp51.425.000,00 |
+| Expense | Rp29.075.000,00 |
+| Net | Rp22.350.000,00 |
+
+To add only finance fixtures after the demo identity and farm are available:
+
+```powershell
+php artisan --env=local db:seed --database=pgsql --class=DemoFinanceSeeder
+```
+
+For a fresh installation, apply migrations and seed the complete demo in order:
+
+```powershell
+php artisan --env=local migrate --database=pgsql
+php artisan --env=local db:seed --database=pgsql
+```
+
+The finance seeder requires `local` or `testing`, resolves the persisted demo
+admin and its team/farm, and authorizes the financial model policies before
+writing. Missing prerequisites produce a message naming the required seeder;
+finance-only seeding does not reset demo passwords or create a new farm.
+The complete finance batch is transactional. It does not truncate tables or
+overwrite existing matching rows. Reruns reuse transaction keys (farm, category,
+date, description), budget keys (farm, category, period), and projection keys
+(farm, cycle, period), preserving edits to amounts and unrelated transactions.
+Changing one of those identifying fields can cause a new fixture to be inserted.
+
+Data can be checked through the authenticated `/farm-ic-demo/finance/transactions`
+and `/farm-ic-demo/finance/summary` endpoints. The public `/finance` page and AI
+finance snapshot still use their separately labeled frontend/knowledge demo data;
+running this seeder alone does not connect those screens to the database.

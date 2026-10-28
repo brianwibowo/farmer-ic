@@ -25,9 +25,12 @@ izin yang sama di FormRequest dan Controller sekaligus kecuali ada manfaat
 khusus dari pemeriksaan awal. Pemeriksaan ganda menambah pemanggilan Policy dan
 membuat alur lebih sulit diikuti.
 
-Saat ini titik akhir CRUD Farm dan Catatan Aktivitas Harian sudah menggunakan
-pemeriksaan izin. Controller lain dan layanan contoh antarmuka masih berada di
-luar cakupan kerangka ini.
+Saat ini titik akhir CRUD Farm, Catatan Aktivitas Harian, dan backend finance
+sudah menggunakan pemeriksaan izin. Finance mencakup transaksi, kategori,
+anggaran, proyeksi, ringkasan, dan ekspor terbatasi cakupan; lihat
+[kontrak backend finance](finance-backend.md). Halaman finance publik dan layanan
+contoh antarmuka masih memakai data demo. Controller lain tetap mengikuti batas
+integrasi yang didokumentasikan dalam kerangka ini.
 
 ## Berkas autentikasi
 
