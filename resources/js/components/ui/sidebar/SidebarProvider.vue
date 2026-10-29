@@ -2,7 +2,7 @@
 import type { HTMLAttributes, Ref } from "vue"
 import { defaultDocument, useEventListener, useMediaQuery, useVModel } from "@vueuse/core"
 import { TooltipProvider } from "reka-ui"
-import { computed, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { cn } from "@/lib/utils"
 import { provideSidebarContext, SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME, SIDEBAR_KEYBOARD_SHORTCUT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from "./utils"
 
@@ -21,7 +21,11 @@ const emits = defineEmits<{
   "update:open": [open: boolean]
 }>()
 
-const isMobile = useMediaQuery(computed(() => `(max-width: ${props.mobileBreakpoint}px)`))
+const viewportIsMobile = useMediaQuery(computed(() => `(max-width: ${props.mobileBreakpoint}px)`))
+// Keep the server and initial client tree identical; choose the drawer after hydration.
+const mounted = ref(false)
+onMounted(() => { mounted.value = true })
+const isMobile = computed(() => mounted.value && viewportIsMobile.value)
 const openMobile = ref(false)
 
 const open = useVModel(props, "open", emits, {

@@ -95,6 +95,10 @@ explicit dialog confirmation and rejects farms with cycles, daily logs,
 activities, weather history, finance records, or operational targets. Related
 records are not silently removed.
 
+The shared SidebarProvider defers its viewport-dependent drawer until after
+hydration so the server and first browser render have the same structure,
+including component-generated accessibility IDs on smaller screens.
+
 ## Verification
 
 ```sh
