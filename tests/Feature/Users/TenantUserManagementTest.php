@@ -324,7 +324,7 @@ class TenantUserManagementTest extends TestCase
     {
         $this->actingAs($this->owner);
         $this->get('/admin/user-management')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('summary.total', 4)->where('users.total', 4)
+            ->where('summary.total', 4)->where('summary.superadmin', 0)->where('users.total', 4)
             ->has('options.roles', 3)
             ->where('options.roles', fn ($roles) => collect($roles)->every(fn ($role) => $role['value'] !== 'superadmin'))
             ->where('users.data', fn ($rows) => collect($rows)->every(fn ($row) => $row['id'] !== $this->developer->id)));

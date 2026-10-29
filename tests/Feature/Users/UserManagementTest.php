@@ -68,7 +68,7 @@ class UserManagementTest extends TestCase
 
         $this->get('/admin/user-management')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('users/Index')->where('users.total', 18)->has('users.data', 15)
-            ->where('summary.total', 18)->where('summary.petugas', 16)->where('navigation.users', true)
+            ->where('summary.total', 18)->where('summary.superadmin', 1)->where('summary.petugas', 16)->where('navigation.users', true)
             ->where('currentTeam', null)->where('userManagementScope.multiTenant', true)->where('can.create', true)
             ->missing('users.data.0.password')->missing('users.data.0.two_factor_secret'));
         $this->get('/admin/user-management?search=%25')->assertOk()->assertInertia(fn (Assert $page) => $page

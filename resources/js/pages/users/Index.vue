@@ -26,7 +26,13 @@ import {
 
 const props = defineProps<{
     users: UserPage;
-    summary: { total: number; owner: number; admin: number; petugas: number };
+    summary: {
+        total: number;
+        superadmin: number;
+        owner: number;
+        admin: number;
+        petugas: number;
+    };
     filters: UserFilters;
     options: UserOptions;
     can: { create: boolean; viewDeleted: boolean };
@@ -72,7 +78,9 @@ watch(
     },
 );
 const metrics = computed(() => [
-    { label: 'Total user', value: props.summary.total, icon: Users },
+    props.userManagementScope.global
+        ? { label: 'Superadmin', value: props.summary.superadmin, icon: Users }
+        : { label: 'Total user', value: props.summary.total, icon: Users },
     ...(props.userManagementScope.multiTenant
         ? [{ label: 'Owner', value: props.summary.owner, icon: Users }]
         : []),

@@ -54,7 +54,7 @@ class UserManagementService
     {
         $query = $this->profiles($actor, $tenant);
         $result = ['total' => (clone $query)->count()];
-        foreach (['owner', 'admin', 'petugas'] as $role) {
+        foreach (['superadmin', 'owner', 'admin', 'petugas'] as $role) {
             $result[$role] = (clone $query)->whereHas('role', fn ($roles) => $roles->where('name', $role))->count();
         }
 
