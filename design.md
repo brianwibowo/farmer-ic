@@ -188,6 +188,29 @@ The bottom bar has four menu destinations:
 
 The Figma page includes both full-color and LoFi variants. Use the active state for the current route, provide an accessible label for every icon, and keep the bar usable on standard, Plus, and Pro Max phone widths.
 
+## Login and password recovery pages
+
+- Use the Farmer IC palette for the shared login entry point, regardless of the
+  role that will sign in. Retain the same profile on desktop and mobile.
+- On desktop, use two columns: brand, login form, and footer on the left; a
+  rounded illustration panel on the right using `/images/login-page.jpg`.
+- Keep the form width readable, align the brand and footer with its left edge,
+  and use 48px-high fields and the primary form action with 12px corners.
+- On mobile and tablet, show a single-column form and hide the decorative image.
+  Allow vertical scrolling on short viewports; do not fix the form height.
+- Use a contrasting green from the shared palette for the submit button, visible
+  labels, leading field icons, a keyboard-accessible password visibility toggle,
+  remember-me control, and the existing password-reset route when enabled.
+- Preserve Laravel/Inertia authentication, invitation context, validation errors,
+  status feedback, and the submitting state. Only show alternate sign-in methods
+  or legal navigation when those capabilities and destinations exist.
+- Verify both explicit light and dark themes. The illustration retains its own
+  colors while form surfaces and controls follow semantic theme tokens.
+- The forgot-password page reuses the same split layout and illustration, with
+  one email field, a submit/loading state, inline validation, a reset-link sent
+  confirmation, and an Inertia link back to login. Keep delivery and throttling
+  on the existing Laravel password broker; do not simulate successful delivery.
+
 ## Desktop admin profile
 
 The following desktop guidance complements the shared components above.
