@@ -6,7 +6,7 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 // Wayfinder TypeScript output is checked in. Regenerate it explicitly with
-// `php artisan wayfinder:generate` after route/controller changes.
+// `npm run routes:generate` (includes --with-form) after route/controller changes.
 export default defineConfig({
     plugins: lazyPlugins(() => [
         laravel({

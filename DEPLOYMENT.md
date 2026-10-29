@@ -14,6 +14,22 @@ routes those responses with buffering disabled so generated text can reach the
 browser incrementally. If another reverse proxy is used, configure its
 equivalent streaming/flush behavior for `/{team}/ai/messages`.
 
+## Wayfinder helpers for native local development
+
+The Vite config does not automatically regenerate Wayfinder. After changing
+Laravel routes or controller signatures, run this on the local development host:
+
+```sh
+npm run routes:generate
+```
+
+This runs `php artisan wayfinder:generate --with-form`. The `--with-form` option
+is required because login, password reset, settings, and team forms call the
+generated `.form()` helpers. Running the generator without that option removes
+those helpers and prevents Vue from rendering the affected pages. Then start
+the normal development server with `npm run dev`, or reload it if already running.
+The Docker PHP build stage already uses `--with-form`.
+
 ## Run with Docker locally
 
 ```sh
