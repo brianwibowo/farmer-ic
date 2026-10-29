@@ -5,7 +5,9 @@ import { ArrowUpRight, Building2, ChevronLeft, ChevronRight, LandPlot, LoaderCir
 import { Button } from '@/components/ui/button';
 import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
 import FarmField from '@/components/farms/FarmField.vue';
-import { hectares, type FarmFilters, type FarmPage, type FarmRow } from '@/types/farms';
+import { hectares, landTenureLabel, type FarmFilters, type FarmPage, type FarmRow } from '@/types/farms';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
     farms: FarmPage;
@@ -85,10 +87,11 @@ function reset(): void {
             <template v-else>
                 <div class="hidden overflow-x-auto md:block" role="region" aria-label="Tabel daftar kebun" tabindex="0">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-muted/50 text-xs text-muted-foreground"><tr><th scope="col" class="px-5 py-3 font-semibold">Nama kebun</th><th scope="col" class="px-5 py-3 font-semibold">Lokasi</th><th scope="col" class="px-5 py-3 font-semibold">Luas</th><th scope="col" class="px-5 py-3 text-right font-semibold">Tindakan</th></tr></thead>
+                        <thead class="bg-muted/50 text-xs text-muted-foreground"><tr><th scope="col" class="px-5 py-3 font-semibold">Nama kebun</th><th scope="col" class="px-5 py-3 font-semibold">Status lahan</th><th scope="col" class="px-5 py-3 font-semibold">Lokasi</th><th scope="col" class="px-5 py-3 font-semibold">Luas</th><th scope="col" class="px-5 py-3 text-right font-semibold">Tindakan</th></tr></thead>
                         <tbody class="divide-y divide-border">
                             <tr v-for="farm in farms.data" :key="farm.id" class="hover:bg-muted/40">
                                 <td class="px-5 py-4"><Link :href="`/admin/farm-management/${farm.id}`" class="font-semibold hover:text-primary focus-visible:outline-2 focus-visible:outline-ring">{{ farm.name }}</Link><p class="mt-1 text-xs text-muted-foreground">{{ farm.district ?? 'Kecamatan belum diisi' }}</p></td>
+                                <td class="px-5 py-4"><span class="inline-flex whitespace-nowrap rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{{ landTenureLabel(farm.land_tenure) }}</span></td>
                                 <td class="px-5 py-4"><p>{{ farm.city ?? '—' }}</p><p class="mt-1 text-xs text-muted-foreground">{{ farm.province ?? '—' }}</p></td>
                                 <td class="px-5 py-4 whitespace-nowrap">{{ hectares(farm.total_area_ha) }} ha</td>
                                 <td class="px-5 py-4"><div class="flex justify-end gap-1"><Button as-child variant="ghost" size="icon" :aria-label="`Detail ${farm.name}`"><Link :href="`/admin/farm-management/${farm.id}`"><ArrowUpRight /></Link></Button><Button v-if="farm.can.update" as-child variant="ghost" size="icon" :aria-label="`Ubah ${farm.name}`"><Link :href="`/admin/farm-management/${farm.id}/edit`"><Pencil /></Link></Button><Button v-if="farm.can.delete" variant="ghost" size="icon" class="text-error" :aria-label="`Hapus ${farm.name}`" @click="selectedFarm = farm"><Trash2 /></Button></div></td>
@@ -99,6 +102,7 @@ function reset(): void {
                 <ul class="divide-y divide-border md:hidden" aria-label="Daftar kebun">
                     <li v-for="farm in farms.data" :key="farm.id" class="p-4">
                         <Link :href="`/admin/farm-management/${farm.id}`" class="flex items-start justify-between gap-3 font-semibold"><span>{{ farm.name }}</span><ArrowUpRight class="size-4 shrink-0 text-primary" /></Link>
+                        <span class="mt-2 inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{{ landTenureLabel(farm.land_tenure) }}</span>
                         <p class="mt-2 text-xs text-muted-foreground">{{ [farm.district, farm.city, farm.province].filter(Boolean).join(', ') || 'Lokasi belum diisi' }}</p>
                         <div class="mt-3 flex flex-wrap items-center justify-between gap-2"><span class="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">{{ hectares(farm.total_area_ha) }} ha</span><div class="flex gap-2"><Button v-if="farm.can.update" as-child variant="outline" size="sm"><Link :href="`/admin/farm-management/${farm.id}/edit`"><Pencil />Ubah</Link></Button><Button v-if="farm.can.delete" variant="ghost" size="sm" class="text-error" @click="selectedFarm = farm"><Trash2 />Hapus</Button></div></div>
                     </li>

@@ -39,9 +39,33 @@ and treats SQL wildcard characters literally. Pagination retains filters.
 ## Data and boundaries
 
 The form stores name, total area in hectares, optional owner, address,
-province/city/district, paired coordinates, and an optional HTTP/HTTPS photo
+province/city/district, land tenure, paired coordinates, and an optional HTTP/HTTPS photo
 reference. The photo reference is a link; this feature does not upload files or
-load remote images. Coordinates are numeric references, not a polygon editor.
+load remote images.
+
+Land tenure (`farms.land_tenure`) is required for create and full update: `owned`
+(Milik sendiri) or `rented` (Sewa). It describes land use/possession and is separate
+from the application Owner role. The additive migration leaves older records
+null (Belum diisi); partial updates may preserve that unknown state. PostgreSQL
+also rejects other non-null values. Fresh demo seed data explicitly uses owned;
+this migration never guesses the status of existing farms. Rental periods and
+costs are outside this change.
+
+`FarmLocationMap` replaces the numeric inputs. Users click the map or drag the
+pin; keyboard users can pan with arrow keys and select the map center. Removing
+the pin clears both coordinates. Only a confirmed selection is submitted; the
+initial Indonesia view is not saved as a location. Coordinates remain optional
+and validated as a pair, at seven decimal places. The same component displays
+the saved pin and a Google Maps link in farm details. A pin does not define land
+boundaries or calculate area. Map loading/retry states handle tile failures;
+the existing Leaflet dependency and OpenStreetMap tiles are used, with visible
+attribution. Maps require an internet connection; there is no geocoding/search
+service or new package in this change.
+
+Farm pages explicitly disable attribute fallthrough for shared Inertia props.
+The shared SidebarProvider defers its viewport-dependent drawer until after
+hydration so the server and first browser render have the same structure,
+including component-generated accessibility IDs on smaller screens.
 
 Creator and team come from the authenticated session on creation. The browser
 cannot change `created_by`, `team_id`, or assignments. Owner selection is limited
@@ -94,10 +118,6 @@ An area reduction below active planted area is rejected. Deletion requires an
 explicit dialog confirmation and rejects farms with cycles, daily logs,
 activities, weather history, finance records, or operational targets. Related
 records are not silently removed.
-
-The shared SidebarProvider defers its viewport-dependent drawer until after
-hydration so the server and first browser render have the same structure,
-including component-generated accessibility IDs on smaller screens.
 
 ## Verification
 

@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -157,6 +158,82 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
     }
 
+    public function test_tenure_and_selected_pin_are_persisted_and_returned_on_all_farm_pages(): void
+    {
+        foreach (['owned', 'rented'] as $tenure) {
+            $response = $this->post('/admin/farm-management', $this->payload([
+                'name' => 'Kebun '.$tenure, 'land_tenure' => $tenure,
+                'latitude' => '-6.5965123', 'longitude' => '106.9502123',
+            ]))->assertRedirect();
+            $farm = Farm::query()->where('name', 'Kebun '.$tenure)->firstOrFail();
+            $response->assertRedirect('/admin/farm-management/'.$farm->id);
+            $this->assertSame($tenure, $farm->land_tenure);
+            foreach (['', '/edit'] as $suffix) {
+                $this->get('/admin/farm-management/'.$farm->id.$suffix)->assertInertia(fn (Assert $page) => $page
+                    ->where('farm.land_tenure', $tenure)->where('farm.latitude', '-6.5965123')->where('farm.longitude', '106.9502123'));
+            }
+        }
+        $this->get('/admin/farm-management')->assertInertia(fn (Assert $page) => $page
+            ->where('farms.data.0.land_tenure', 'owned')->where('farms.data.1.land_tenure', 'rented'));
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload([
+            'land_tenure' => 'owned', 'latitude' => null, 'longitude' => null,
+        ]))->assertRedirect();
+        $this->assertSame('owned', $farm->fresh()->land_tenure);
+        $this->assertNull($farm->fresh()->latitude);
+        $this->assertNull($farm->fresh()->longitude);
+    }
+
+    public function test_new_farms_require_a_recognized_tenure_and_invalid_changes_preserve_data(): void
+    {
+        foreach ([null, '', 'freehold', ['owned']] as $invalid) {
+            $this->post('/admin/farm-management', $this->payload(['land_tenure' => $invalid]))
+                ->assertSessionHasErrors('land_tenure');
+        }
+        $missing = $this->payload();
+        unset($missing['land_tenure']);
+        $this->post('/admin/farm-management', $missing)->assertSessionHasErrors('land_tenure');
+        $this->assertDatabaseCount('farms', 0);
+        $farm = $this->farm();
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload([
+            'land_tenure' => 'invalid', 'latitude' => 91, 'longitude' => 181,
+        ]))->assertSessionHasErrors(['land_tenure', 'latitude', 'longitude']);
+        $this->assertSame('owned', $farm->fresh()->land_tenure);
+        $this->assertNull($farm->fresh()->latitude);
+    }
+
+    public function test_legacy_tenure_is_not_guessed_and_can_be_completed_later(): void
+    {
+        $data = $this->payload();
+        unset($data['land_tenure']);
+        $farm = app(FarmService::class)->create($data, $this->admin, $this->team);
+        $this->assertNull($farm->land_tenure);
+        $this->get('/admin/farm-management/'.$farm->id)->assertInertia(fn (Assert $page) => $page->where('farm.land_tenure', null));
+        $this->patch('/admin/farm-management/'.$farm->id, ['name' => 'Kebun historis'])->assertRedirect();
+        $this->assertNull($farm->fresh()->land_tenure);
+        $this->patch('/admin/farm-management/'.$farm->id, ['land_tenure' => 'rented'])->assertRedirect();
+        $this->assertSame('rented', $farm->fresh()->land_tenure);
+    }
+
+    public function test_additive_tenure_migration_preserves_existing_farms_and_enforces_values(): void
+    {
+        $farm = $this->farm(['latitude' => '-6.5965000', 'longitude' => '106.9502000']);
+        $migration = require database_path('migrations/2026_10_29_130000_add_land_tenure_to_farms_table.php');
+        $migration->down();
+        $migration->up();
+        $farm->refresh();
+        $this->assertNull($farm->land_tenure);
+        $this->assertSame('Kebun Pertiwi', $farm->name);
+        $this->assertSame('-6.5965000', $farm->latitude);
+        $this->assertSame('106.9502000', $farm->longitude);
+        try {
+            DB::transaction(fn () => DB::table('farms')->where('id', $farm->id)->update(['land_tenure' => 'invalid']));
+            $this->fail('PostgreSQL must reject an unrecognized tenure.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23514', (string) $exception->getCode());
+        }
+        $this->assertNull($farm->fresh()->land_tenure);
+    }
+
     private function actor(string $role, Team $team): User
     {
         $record = Role::query()->firstOrCreate(['name' => $role]);
@@ -176,6 +253,6 @@ class FarmManagementInertiaTest extends TestCase
     /** @param array<string, mixed> $overrides @return array<string, mixed> */
     private function payload(array $overrides = []): array
     {
-        return array_replace(['name' => 'Kebun Pertiwi', 'total_area_ha' => '12.5000', 'city' => 'Bogor', 'province' => 'Jawa Barat'], $overrides);
+        return array_replace(['name' => 'Kebun Pertiwi', 'land_tenure' => 'owned', 'total_area_ha' => '12.5000', 'city' => 'Bogor', 'province' => 'Jawa Barat'], $overrides);
     }
 }

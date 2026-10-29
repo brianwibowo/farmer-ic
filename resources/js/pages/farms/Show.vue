@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { ArrowLeft, ClipboardList, ExternalLink, LandPlot, MapPin, Pencil, Sprout, Trash2 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
-import { hectares, type ManagedFarm, type FarmPermissions } from '@/types/farms';
+import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
+import { hectares, landTenureLabel, type ManagedFarm, type FarmPermissions } from '@/types/farms';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{ farm: ManagedFarm; can: FarmPermissions & { dailyLogs: boolean } }>();
 const deleting = ref(false);
-const coordinates = props.farm.latitude !== null && props.farm.longitude !== null;
+const coordinates = computed<[number, number] | null>(() => props.farm.latitude !== null && props.farm.longitude !== null
+    ? [Number(props.farm.latitude), Number(props.farm.longitude)] : null);
 </script>
 
 <template>
@@ -32,6 +36,7 @@ const coordinates = props.farm.latitude !== null && props.farm.longitude !== nul
                 <dl class="mt-6 grid gap-6 sm:grid-cols-2">
                     <div><dt class="text-xs text-muted-foreground">Nama kebun</dt><dd class="mt-1.5 font-medium">{{ farm.name }}</dd></div>
                     <div><dt class="text-xs text-muted-foreground">Tim</dt><dd class="mt-1.5 font-medium">{{ farm.team_name }}</dd></div>
+                    <div><dt class="text-xs text-muted-foreground">Status penguasaan lahan</dt><dd class="mt-1.5 font-medium">{{ landTenureLabel(farm.land_tenure) }}</dd></div>
                     <div><dt class="text-xs text-muted-foreground">Pemilik</dt><dd class="mt-1.5 font-medium">{{ farm.owner_name ?? 'Belum ditentukan / akses terbatas' }}</dd></div>
                     <div><dt class="text-xs text-muted-foreground">Provinsi</dt><dd class="mt-1.5 font-medium">{{ farm.province ?? '—' }}</dd></div>
                     <div><dt class="text-xs text-muted-foreground">Kota / kabupaten</dt><dd class="mt-1.5 font-medium">{{ farm.city ?? '—' }}</dd></div>
@@ -41,7 +46,11 @@ const coordinates = props.farm.latitude !== null && props.farm.longitude !== nul
                 </dl>
             </section>
             <div class="space-y-5">
-                <section class="rounded-xl border border-border bg-card p-5"><div class="mb-3 flex items-center gap-2"><MapPin class="size-5 text-primary" /><h2 class="admin-section-title">Koordinat lahan</h2></div><dl v-if="coordinates" class="space-y-3"><div><dt class="text-xs text-muted-foreground">Latitude</dt><dd class="mt-1 font-medium tabular-nums">{{ farm.latitude }}</dd></div><div><dt class="text-xs text-muted-foreground">Longitude</dt><dd class="mt-1 font-medium tabular-nums">{{ farm.longitude }}</dd></div></dl><p v-else class="text-sm leading-6 text-muted-foreground">Koordinat belum dicatat. Lengkapi pada halaman ubah kebun.</p></section>
+                <section class="rounded-xl border border-border bg-card p-5">
+                    <div class="mb-3 flex items-center gap-2"><MapPin class="size-5 text-primary" /><h2 class="admin-section-title">Lokasi kebun</h2></div>
+                    <FarmLocationMap v-if="coordinates" :model-value="coordinates" />
+                    <p v-else class="text-sm leading-6 text-muted-foreground">Lokasi kebun belum dipilih. Lengkapi pada halaman ubah kebun.</p>
+                </section>
                 <section v-if="can.dailyLogs" class="rounded-xl border border-border bg-accent p-5 text-accent-foreground"><ClipboardList class="mb-3 size-6" /><h2 class="admin-section-title">Logbook harian</h2><p class="mt-2 text-sm leading-6">Lihat laporan dan hasil kegiatan yang dicatat untuk kebun ini.</p><Button as-child class="mt-4 h-10 w-full rounded-xl"><Link :href="`/kebun/${farm.id}/daily-logs`">Buka logbook</Link></Button></section>
             </div>
         </div>

@@ -17,6 +17,7 @@ class FarmResource extends JsonResource
             'owner_id' => $this->owner_id,
             'created_by' => $this->created_by,
             'name' => $this->name,
+            'land_tenure' => $this->land_tenure,
             'address' => $this->address,
             'city' => $this->city,
             'district' => $this->district,

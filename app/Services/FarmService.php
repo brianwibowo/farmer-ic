@@ -73,7 +73,7 @@ class FarmService
         $owner = User::visibleTo($user, $team)->whereKey($visible->owner_id)->first(['id', 'name']);
 
         return [
-            ...$visible->only(['id', 'name', 'owner_id', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
+            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
             'owner_name' => $owner?->name,
             'team_name' => $team->name,
             'active_cycles' => (clone $cycles)->count(),

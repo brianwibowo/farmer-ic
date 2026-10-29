@@ -431,7 +431,7 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | `teams` | Tetap | `id`, `name`, `slug`, `is_personal`, `created_at`, `updated_at`, `deleted_at` |
 | `team_members` | Tetap | `id`, `team_id`, `user_id`, `role`, `created_at`, `updated_at` |
 | `team_invitations` | Tetap | `id`, `code`, `team_id`, `email`, `role`, `invited_by`, `expires_at`, `accepted_at`, `created_at`, `updated_at` |
-| `farms` | Tetap | `id`, `owner_id`, `created_by`, `name`, `address`, `city`, `district`, `province`, `total_area_ha`, `latitude`, `longitude`, `image_url`, `created_at`, `updated_at`, `team_id` |
+| `farms` | Tetap | `id`, `owner_id`, `created_by`, `name`, `address`, `city`, `district`, `province`, `total_area_ha`, `latitude`, `longitude`, `image_url`, `created_at`, `updated_at`, `team_id`, `land_tenure` |
 | `farm_blocks` | Baru | `id`, `farm_id`, `code`, `name`, `area_ha`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `commodities` | Tetap | `id`, `name`, `description`, `image_url` |
 | `crop_varieties` | Tetap | `id`, `commodity_id`, `name`, `description` |
@@ -524,7 +524,7 @@ Validasi dokumen memeriksa jumlah/nama tabel, kolom target FK, keberadaan unique
 key parent untuk FK komposit, serta ketercakupan semua tabel schema existing.
 Pemeriksaan tersebut bukan pengujian migration atau simulasi aturan bisnis.
 Hasil pemeriksaan struktur revisi: **56 tabel**, **93 referensi FK inline**, dan
-**11 referensi FK komposit**. Seluruh **38 tabel dan 344 kolom** schema aktif
+**11 referensi FK komposit**. Seluruh **38 tabel dan 345 kolom** schema aktif
 tercakup, termasuk `users.deleted_at` dari remote. Nama dan urutan kolom pada inventaris Markdown
 cocok dengan DBML; seluruh target FK, tipe kolom relasi, serta unique key parent
 untuk FK komposit ditemukan. Pemeriksaan ini memvalidasi struktur dan konsistensi

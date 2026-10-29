@@ -1,8 +1,15 @@
 export type FarmPermissions = { update: boolean; delete: boolean };
 
+export type LandTenure = 'owned' | 'rented';
+
+export function landTenureLabel(value: LandTenure | null): string {
+    return value === 'owned' ? 'Milik sendiri' : value === 'rented' ? 'Sewa' : 'Belum diisi';
+}
+
 export type FarmRow = {
     id: string;
     name: string;
+    land_tenure: LandTenure | null;
     city: string | null;
     district: string | null;
     province: string | null;

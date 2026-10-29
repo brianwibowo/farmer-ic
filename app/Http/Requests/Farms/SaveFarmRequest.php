@@ -23,6 +23,7 @@ class SaveFarmRequest extends FormRequest
 
         return [
             'name' => [...$presence, 'string', 'max:150'],
+            'land_tenure' => [...$presence, Rule::in(['owned', 'rented'])],
             'total_area_ha' => [...$presence, 'numeric', 'decimal:0,4', 'min:0.0001', 'max:99999999.9999'],
             'owner_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'id')->where(fn ($query) => $query
                 ->where('is_active', true)
@@ -56,5 +57,14 @@ class SaveFarmRequest extends FormRequest
                 $validator->errors()->add('latitude', 'Latitude dan longitude harus diisi atau dikosongkan bersamaan.');
             }
         }];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'land_tenure.required' => 'Pilih status penguasaan lahan.',
+            'land_tenure.in' => 'Status lahan harus Milik sendiri atau Sewa.',
+        ];
     }
 }

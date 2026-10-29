@@ -28,6 +28,7 @@ class DemoFarmSeeder extends Seeder
             'district' => 'Sukamakmur',
             'province' => 'Jawa Barat',
             'total_area_ha' => 12.5000,
+            'land_tenure' => 'owned',
             'latitude' => -6.5965000,
             'longitude' => 106.9502000,
         ])->save();

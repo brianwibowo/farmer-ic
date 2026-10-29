@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Team|null $team
  * @property string $created_by
  * @property string $name
+ * @property string|null $land_tenure
  * @property string|null $address
  * @property string|null $city
  * @property string|null $district
@@ -25,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['owner_id', 'name', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url'])]
+#[Fillable(['owner_id', 'name', 'land_tenure', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url'])]
 class Farm extends FarmerModel
 {
     /** @return BelongsTo<Team, $this> */

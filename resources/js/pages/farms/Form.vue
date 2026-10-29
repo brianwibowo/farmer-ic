@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Info, LandPlot, LoaderCircle, Save } from '@lucide/vue';
+import { ArrowLeft, LandPlot, LoaderCircle, Save } from '@lucide/vue';
+import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import FarmField from '@/components/farms/FarmField.vue';
-import type { ManagedFarm } from '@/types/farms';
+import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
+import type { LandTenure, ManagedFarm } from '@/types/farms';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
     farm: ManagedFarm | null;
@@ -12,6 +16,7 @@ const props = defineProps<{
 }>();
 const form = useForm({
     name: props.farm?.name ?? '',
+    land_tenure: (props.farm?.land_tenure ?? '') as LandTenure | '',
     owner_id: props.farm?.owner_id ?? '',
     total_area_ha: props.farm?.total_area_ha ?? '',
     address: props.farm?.address ?? '',
@@ -21,6 +26,15 @@ const form = useForm({
     latitude: props.farm?.latitude ?? '',
     longitude: props.farm?.longitude ?? '',
     image_url: props.farm?.image_url ?? '',
+});
+const location = computed<[number, number] | null>({
+    get: (): [number, number] | null => form.latitude !== '' && form.longitude !== ''
+        ? [Number(form.latitude), Number(form.longitude)] : null,
+    set: (point: [number, number] | null) => {
+        form.latitude = point ? point[0].toFixed(7) : '';
+        form.longitude = point ? point[1].toFixed(7) : '';
+        form.clearErrors('latitude', 'longitude');
+    },
 });
 const backUrl = props.farm ? `/admin/farm-management/${props.farm.id}` : '/admin/farm-management';
 function submit(): void {
@@ -44,19 +58,27 @@ function submit(): void {
                     <div class="grid gap-5 sm:grid-cols-2">
                         <FarmField id="farm-name" label="Nama kebun" required :error="form.errors.name" class="sm:col-span-2" v-slot="field"><input :id="field.id" v-model="form.name" class="admin-field" required maxlength="150" placeholder="Contoh: Kebun Cileuksa" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
                         <FarmField id="farm-area" label="Luas lahan (ha)" required :error="form.errors.total_area_ha" :hint="farm ? `Luas tanam aktif: ${farm.active_area_ha} ha. Luas kebun harus mencukupinya.` : 'Gunakan hektare, maksimal 4 angka desimal.'" v-slot="field"><input :id="field.id" v-model="form.total_area_ha" class="admin-field" type="number" inputmode="decimal" required min="0.0001" max="99999999.9999" step="0.0001" placeholder="12.5" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
+                        <FarmField id="farm-tenure" label="Status penguasaan lahan" required :error="form.errors.land_tenure" v-slot="field">
+                            <select :id="field.id" v-model="form.land_tenure" class="admin-field" required :aria-invalid="field.invalid" :aria-describedby="field.description">
+                                <option value="" disabled>Pilih status lahan</option>
+                                <option value="owned">Milik sendiri</option>
+                                <option value="rented">Sewa</option>
+                            </select>
+                        </FarmField>
                         <FarmField id="farm-owner" label="Pemilik kebun" :error="form.errors.owner_id" hint="Opsional. Pilih Owner aktif yang menjadi anggota tim kebun." v-slot="field"><select :id="field.id" v-model="form.owner_id" class="admin-field" :aria-invalid="field.invalid" :aria-describedby="field.description"><option value="">Belum ditentukan</option><option v-for="owner in owners" :key="owner.id" :value="owner.id">{{ owner.name }}</option></select></FarmField>
                     </div>
                 </section>
                 <section class="rounded-xl border border-border bg-card p-5 md:p-6">
-                    <h2 class="admin-section-title">Lokasi dan koordinat</h2><p class="mt-1 mb-6 text-xs text-muted-foreground">Detail alamat membantu petugas mengenali lokasi kebun.</p>
+                    <h2 class="admin-section-title">Lokasi kebun</h2><p class="mt-1 mb-6 text-xs text-muted-foreground">Detail alamat membantu petugas mengenali lokasi kebun.</p>
                     <div class="grid gap-5 sm:grid-cols-2">
                         <FarmField id="farm-address" label="Alamat lengkap" :error="form.errors.address" class="sm:col-span-2" v-slot="field"><textarea :id="field.id" v-model="form.address" class="admin-field resize-y" rows="3" maxlength="5000" placeholder="Desa, jalan, atau petunjuk menuju lahan" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
                         <FarmField v-for="item in [{ key: 'district', label: 'Kecamatan' }, { key: 'city', label: 'Kota / kabupaten' }, { key: 'province', label: 'Provinsi' }] as const" :id="`farm-${item.key}`" :key="item.key" :label="item.label" :error="form.errors[item.key]" v-slot="field"><input :id="field.id" v-model="form[item.key]" class="admin-field" maxlength="100" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
-                        <div class="hidden sm:block" />
-                        <FarmField id="farm-latitude" label="Latitude" :error="form.errors.latitude" hint="Rentang -90 sampai 90." v-slot="field"><input :id="field.id" v-model="form.latitude" class="admin-field" type="number" inputmode="decimal" min="-90" max="90" step="0.0000001" placeholder="-6.5965000" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
-                        <FarmField id="farm-longitude" label="Longitude" :error="form.errors.longitude" hint="Rentang -180 sampai 180." v-slot="field"><input :id="field.id" v-model="form.longitude" class="admin-field" type="number" inputmode="decimal" min="-180" max="180" step="0.0000001" placeholder="106.9502000" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
                     </div>
-                    <p class="mt-4 flex items-start gap-2 rounded-xl bg-muted p-3 text-xs leading-5 text-muted-foreground"><Info class="mt-0.5 size-4 shrink-0" />Koordinat opsional. Isi latitude dan longitude bersamaan, atau kosongkan keduanya.</p>
+                    <div class="mt-6 space-y-3">
+                        <h3 class="text-sm font-medium">Titik lokasi kebun <span class="font-normal text-muted-foreground">(opsional)</span></h3>
+                        <FarmLocationMap v-model="location" editable :disabled="form.processing" :error="form.errors.latitude || form.errors.longitude" />
+                        <p class="text-xs text-muted-foreground">Pin menandai satu titik lokasi. Luas lahan tetap diisi pada informasi kebun.</p>
+                    </div>
                 </section>
                 <section class="rounded-xl border border-border bg-card p-5 md:p-6"><h2 class="admin-section-title mb-5">Dokumentasi kebun</h2><FarmField id="farm-image" label="Tautan foto (opsional)" :error="form.errors.image_url" hint="Tautan HTTP/HTTPS. Field ini menyimpan referensi foto, bukan mengunggah file." v-slot="field"><input :id="field.id" v-model="form.image_url" type="url" class="admin-field" maxlength="2048" placeholder="https://…" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField></section>
             </fieldset>

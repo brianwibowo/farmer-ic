@@ -79,7 +79,7 @@ class FarmManagementTest extends TestCase
         $this->patchJson('/api/kebun/'.$id, ['name' => 'Kebun Baru'])->assertOk()
             ->assertJsonPath('data.total_area_ha', '12.5000');
         $this->putJson('/api/kebun/'.$id, ['name' => 'Kebun Baru'])->assertUnprocessable()->assertJsonValidationErrors('total_area_ha');
-        $this->putJson('/api/kebun/'.$id, ['name' => 'Kebun Pengganti', 'total_area_ha' => '20.0000'])->assertOk();
+        $this->putJson('/api/kebun/'.$id, ['name' => 'Kebun Pengganti', 'land_tenure' => 'rented', 'total_area_ha' => '20.0000'])->assertOk()->assertJsonPath('data.land_tenure', 'rented');
         $this->deleteJson('/api/kebun/'.$id)->assertNoContent();
         $this->getJson('/api/kebun/'.$id)->assertNotFound();
         $this->assertDatabaseMissing('farms', ['id' => $id]);
@@ -112,7 +112,7 @@ class FarmManagementTest extends TestCase
 
     public function test_creator_is_server_owned_and_forged_metadata_is_rejected(): void
     {
-        $this->postJson('/api/kebun', ['name' => 'Kebun Baru', 'total_area_ha' => '1', 'owner_id' => $this->ownerId])
+        $this->postJson('/api/kebun', ['name' => 'Kebun Baru', 'land_tenure' => 'owned', 'total_area_ha' => '1', 'owner_id' => $this->ownerId])
             ->assertCreated()->assertJsonPath('data.created_by', $this->adminId);
         $this->postJson('/api/kebun', $this->payload(['created_by' => 'not-a-uuid']))->assertUnprocessable()->assertJsonValidationErrors('created_by');
         $this->postJson('/api/kebun', $this->payload(['created_by' => Str::uuid()->toString()]))->assertUnprocessable()->assertJsonValidationErrors('created_by');
@@ -185,7 +185,7 @@ class FarmManagementTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_replace([
-            'name' => 'Kebun Sumber Makmur', 'owner_id' => $this->ownerId,
+            'name' => 'Kebun Sumber Makmur', 'land_tenure' => 'owned', 'owner_id' => $this->ownerId,
             'address' => 'Desa Kejajar', 'city' => 'Wonosobo', 'district' => 'Kejajar', 'province' => 'Jawa Tengah',
             'total_area_ha' => '12.5000', 'latitude' => '-7.2000000', 'longitude' => '109.9000000',
         ], $overrides);
