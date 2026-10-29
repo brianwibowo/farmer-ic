@@ -119,6 +119,20 @@ explicit dialog confirmation and rejects farms with cycles, daily logs,
 activities, weather history, finance records, or operational targets. Related
 records are not silently removed.
 
+The same deletion guard also rejects any persisted `users.assigned_farm_id`
+reference, including inactive and soft-deleted accounts. Move or explicitly
+clear those assignments first; soft-deleted accounts may need restoration
+through User Management before reassignment. A completed planting cycle still
+counts as history. Superadmin does not bypass these integrity rules. The guard
+reports the blocking categories without exposing user identities or record
+counts. These checks inspect physical references inside the farm's existing
+delete transaction, after controller authorization; they are not listing or
+serialization queries. They include records hidden by soft deletion so account
+restoration cannot silently lose an assignment. The parent farm lock and FK
+checks coordinate concurrent assignment/operational writes. The controller
+returns the existing Inertia `delete` form error; development JSON deletes
+return HTTP 409. No new route, archive feature, or migration is introduced.
+
 ## Verification
 
 ```sh

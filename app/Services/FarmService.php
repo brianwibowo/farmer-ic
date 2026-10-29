@@ -126,10 +126,36 @@ class FarmService
         try {
             DB::transaction(function () use ($farm): void {
                 $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
-                foreach (['planting_cycles', 'daily_activity_logs', 'farm_activities', 'weather_records', 'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets'] as $table) {
+                $blockers = [];
+                // Integrity checks include inactive/soft-deleted assignments. They must
+                // not disappear through user visibility or soft-delete scopes.
+                $hasAssignments = DB::table('users')->where('assigned_farm_id', $locked->id)->exists();
+                if ($hasAssignments) {
+                    $blockers[] = 'penugasan Petugas';
+                }
+                foreach ([
+                    'planting_cycles' => 'siklus tanam',
+                    'daily_activity_logs' => 'logbook harian',
+                    'farm_activities' => 'aktivitas kebun',
+                    'weather_records' => 'riwayat cuaca',
+                    'financial_transactions' => 'transaksi keuangan',
+                    'financial_projections' => 'proyeksi keuangan',
+                    'financial_budgets' => 'anggaran keuangan',
+                    'operational_targets' => 'target operasional',
+                ] as $table => $label) {
                     if (DB::table($table)->where('farm_id', $locked->id)->exists()) {
-                        throw new ConflictHttpException('Kebun masih memiliki data terkait dan tidak dapat dihapus.');
+                        $blockers[] = $label;
                     }
+                }
+                if ($blockers !== []) {
+                    $message = 'Kebun tidak dapat dihapus karena masih memiliki: '.implode(', ', $blockers).'.';
+                    if ($hasAssignments) {
+                        $message .= ' Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.';
+                    }
+                    if (count($blockers) > ($hasAssignments ? 1 : 0)) {
+                        $message .= ' Histori operasional tetap dipertahankan.';
+                    }
+                    throw new ConflictHttpException($message);
                 }
                 $locked->delete();
             });

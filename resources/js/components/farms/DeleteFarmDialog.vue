@@ -24,7 +24,7 @@ function remove(): void {
         <DialogContent class="admin-dashboard-theme rounded-xl bg-card text-foreground" :show-close-button="!form.processing" @escape-key-down="(event) => { if (form.processing) event.preventDefault(); }" @interact-outside="(event) => { if (form.processing) event.preventDefault(); }">
             <div class="flex size-12 items-center justify-center rounded-xl bg-error/10 text-error"><AlertTriangle class="size-6" /></div>
             <DialogTitle>Hapus kebun?</DialogTitle>
-            <DialogDescription class="text-muted-foreground">Kebun <strong>{{ farm?.name }}</strong> akan dihapus permanen. Kebun yang memiliki histori operasional tidak dapat dihapus.</DialogDescription>
+            <DialogDescription class="text-muted-foreground">Kebun <strong>{{ farm?.name }}</strong> akan dihapus permanen. Penghapusan hanya diperbolehkan jika belum ada histori operasional dan semua penugasan Petugas sudah dilepas atau dipindahkan.</DialogDescription>
             <p v-if="deleteError" role="alert" class="rounded-xl bg-error/10 p-3 text-sm text-error">{{ deleteError }}</p>
             <DialogFooter>
                 <Button type="button" variant="outline" class="rounded-xl" :disabled="form.processing" @click="emit('close')">Batal</Button>

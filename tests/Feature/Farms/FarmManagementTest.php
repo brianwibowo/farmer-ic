@@ -162,6 +162,34 @@ class FarmManagementTest extends TestCase
         $this->assertDatabaseCount('weather_records', 1);
     }
 
+    public function test_api_preserves_assignment_until_worker_is_explicitly_moved(): void
+    {
+        $farm = $this->farm();
+        DB::table('users')->where('id', $this->creatorId)->update(['assigned_farm_id' => $farm->id]);
+        $this->deleteJson('/api/kebun/'.$farm->id)->assertConflict()->assertJsonPath('message',
+            'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.');
+        $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+        $this->assertDatabaseHas('users', ['id' => $this->creatorId, 'assigned_farm_id' => $farm->id]);
+        $destination = $this->farm(['name' => 'Kebun Tujuan']);
+        DB::table('users')->where('id', $this->creatorId)->update(['assigned_farm_id' => $destination->id]);
+        $this->deleteJson('/api/kebun/'.$farm->id)->assertNoContent();
+        $this->assertDatabaseHas('users', ['id' => $this->creatorId, 'assigned_farm_id' => $destination->id]);
+    }
+
+    public function test_budget_reference_is_not_silently_cleared_on_farm_deletion(): void
+    {
+        $farm = $this->farm();
+        $budgetId = (string) Str::uuid();
+        DB::table('financial_budgets')->insert([
+            'id' => $budgetId, 'farm_id' => $farm->id, 'period_start' => '2026-10-01', 'period_end' => '2026-10-31',
+            'budget_amount' => '1500000', 'created_by' => $this->adminId, 'created_at' => now(),
+        ]);
+        $this->deleteJson('/api/kebun/'.$farm->id)->assertConflict()->assertJsonPath('message',
+            'Kebun tidak dapat dihapus karena masih memiliki: anggaran keuangan. Histori operasional tetap dipertahankan.');
+        $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+        $this->assertDatabaseHas('financial_budgets', ['id' => $budgetId, 'farm_id' => $farm->id]);
+    }
+
     public function test_invalid_and_unknown_ids_return_not_found(): void
     {
         $this->getJson('/api/kebun/not-a-uuid')->assertNotFound();

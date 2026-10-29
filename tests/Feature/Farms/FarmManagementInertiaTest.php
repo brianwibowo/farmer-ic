@@ -158,6 +158,82 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
     }
 
+    public function test_assigned_active_inactive_and_soft_deleted_workers_block_deletion_until_released(): void
+    {
+        $farm = $this->farm();
+        $workers = [];
+        foreach (['active', 'inactive', 'deleted'] as $state) {
+            $worker = $this->actor('petugas', $this->team);
+            $worker->forceFill(['assigned_farm_id' => $farm->id, 'is_active' => $state !== 'inactive'])->save();
+            if ($state === 'deleted') {
+                $worker->delete();
+            }
+            $workers[] = $worker->id;
+            $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)
+                ->assertRedirect('/admin/farm-management')->assertSessionHasErrors([
+                    'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.',
+                ]);
+            $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+            $this->assertSame($farm->id, DB::table('users')->where('id', $worker->id)->value('assigned_farm_id'));
+            // Isolate each state so a previous active account cannot hide a missing check.
+            DB::table('users')->where('id', $worker->id)->update(['assigned_farm_id' => null]);
+        }
+        $this->delete('/admin/farm-management/'.$farm->id)->assertRedirect('/admin/farm-management');
+        $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
+        $this->assertSame(3, DB::table('users')->whereIn('id', $workers)->count());
+    }
+
+    public function test_all_blocking_categories_are_reported_and_completed_history_remains_protected(): void
+    {
+        $farm = $this->farm();
+        // A previously opened page does not authorize deleting newly added records.
+        $this->get('/admin/farm-management/'.$farm->id)->assertOk();
+        $worker = $this->actor('petugas', $this->team);
+        $worker->forceFill(['assigned_farm_id' => $farm->id])->save();
+        $commodity = (string) Str::uuid();
+        $variety = (string) Str::uuid();
+        DB::table('commodities')->insert(['id' => $commodity, 'name' => 'Jagung']);
+        DB::table('crop_varieties')->insert(['id' => $variety, 'commodity_id' => $commodity, 'name' => 'Bisi 18']);
+        DB::table('planting_cycles')->insert([
+            'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'variety_id' => $variety,
+            'planted_at' => '2026-06-01', 'planted_area_ha' => 3, 'status' => 'harvested', 'created_at' => now(),
+        ]);
+        DB::table('daily_activity_logs')->insert([
+            'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $worker->id,
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 1, 'created_at' => now(),
+        ]);
+        $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
+            'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',
+        ]);
+        $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+        $this->assertDatabaseHas('planting_cycles', ['farm_id' => $farm->id, 'status' => 'harvested']);
+        $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $farm->id]);
+        $worker->forceFill(['assigned_farm_id' => null])->save();
+        $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
+            'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: siklus tanam, logbook harian. Histori operasional tetap dipertahankan.',
+        ]);
+    }
+
+    public function test_superadmin_cannot_bypass_assignment_integrity_guard(): void
+    {
+        $farm = $this->farm();
+        $worker = $this->actor('petugas', $this->team);
+        $worker->forceFill(['assigned_farm_id' => $farm->id])->save();
+        $this->actingAs($this->actor('superadmin', $this->team));
+        $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors('delete');
+        $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+        $this->assertSame($farm->id, $worker->fresh()->assigned_farm_id);
+    }
+
+    public function test_empty_farms_can_be_deleted_regardless_of_land_tenure(): void
+    {
+        foreach ([null, 'owned', 'rented'] as $tenure) {
+            $farm = $this->farm(['land_tenure' => $tenure]);
+            $this->delete('/admin/farm-management/'.$farm->id)->assertRedirect('/admin/farm-management');
+            $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
+        }
+    }
+
     public function test_tenure_and_selected_pin_are_persisted_and_returned_on_all_farm_pages(): void
     {
         foreach (['owned', 'rented'] as $tenure) {
