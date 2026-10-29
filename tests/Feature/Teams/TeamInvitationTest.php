@@ -76,7 +76,7 @@ class TeamInvitationTest extends TestCase
         $mail = (new TeamInvitationNotification($invitation))->toMail((object) []);
 
         $this->assertSame(route('login', ['invitation' => $invitation->code]), $mail->actionUrl);
-        $this->assertStringContainsString('log in', strtolower(implode(' ', $mail->introLines)));
+        $this->assertStringContainsString('bergabung', strtolower(implode(' ', $mail->introLines)));
     }
 
     public function test_team_invitations_can_be_created_by_application_superadmins_with_team_admin_membership()

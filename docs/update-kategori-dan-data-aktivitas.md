@@ -10,7 +10,7 @@ Dokumen ini adalah acuan untuk field input form aktivitas, aturan blok/sub-blok,
 - Beberapa aktivitas pada tanggal yang sama boleh memakai **header harian yang sama** agar pekerja tidak mengisi tanggal dan waktu berulang kali.
 - Scheduled tasks **tidak dibagi daily/weekly/monthly**. Task dibuat dari langkah **SOP modular** pada offset **HST** tertentu.
 - Field dibagi menjadi **blok**. Jika penanaman hanya mencakup sebagian blok, bagian yang ditanami menjadi **sub-blok**.
-- Blok/sub-blok yang ditanam dalam **window 3 hari** dianggap satu **cycle** dan memakai **HST yang sama**. Penanaman setelah window tersebut membentuk sub-blok dan cycle/HST baru.
+- Blok/sub-blok yang ditanam dalam **window 3 hari dari tanggal tanam pertama pada cycle tersebut** dianggap satu **cycle** dan memakai **HST yang sama**. Penanaman setelah window tersebut membentuk sub-blok dan cycle/HST baru.
 - **Jumlah pekerja dicatat per aktivitas** dan boleh berbeda antar aktivitas.
 - **Catatan harian dihapus** karena akan berlaku untuk semua aktivitas pada hari itu; catatan hanya disimpan per aktivitas.
 - Aktivitas **tidak mencatat kendala, solusi, atau tindakan**. Pengecualian: form insiden memiliki `Tindakan segera` yang opsional.
@@ -19,6 +19,7 @@ Dokumen ini adalah acuan untuk field input form aktivitas, aturan blok/sub-blok,
 - Paraf/approval adalah **post-activity**, bukan input pekerja.
 - Setiap pekerja bisa memiliki akun sendiri, tetapi biasanya **satu petugas ditunjuk untuk menginput log tim**. Header terikat pada akun inputter, farm, dan tanggal.
 - Block/sub-blok adalah unit field management. Block mapping mencatat dimensi dan layout; master blok/sub-blok perlu tersedia.
+- Block mapping tidak lagi menjadi kategori aktivitas; block mapping tetap menjadi form field management terpisah.
 - Form harus ringan. Field yang jarang dipakai disembunyikan di bagian "Detail tambahan".
 
 ## Status implementasi saat ini
@@ -36,7 +37,7 @@ Belum ada:
 
 - endpoint append aktivitas ke header yang sudah ada
 - reuse header otomatis di frontend
-- kategori/subkategori selain block mapping
+- kategori/subkategori aktivitas selain block mapping (block mapping tetap form terpisah)
 - upload foto
 - approval/paraf
 - tabel master blok/sub-blok
@@ -87,15 +88,15 @@ Yang **tidak** perlu masuk header:
 Header tidak dipilih manual dari daftar. Sistem mencarinya otomatis.
 
 1. Saat pekerja membuka form aktivitas, cari header untuk:
-   - tanggal kerja yang sama
-   - farm yang sama
-   - akun inputter yang sama
-   - header yang masih terbuka
+    - tanggal kerja yang sama
+    - farm yang sama
+    - akun inputter yang sama
+    - header yang masih terbuka
 
 2. Jika ditemukan, tampilkan banner ringan:
 
-   > **Melanjutkan log hari ini** — 28 Okt 2026, 08:00–16:00.
-   > [Lanjutkan] [Ubah info] [Sesi baru]
+    > **Melanjutkan log hari ini** — 28 Okt 2026, 08:00–16:00.
+    > [Lanjutkan] [Ubah info] [Sesi baru]
 
 3. Jika pekerja menekan **Lanjutkan**, aktivitas baru otomatis masuk ke header tersebut.
 4. Jika aktivitas dilakukan di luar rentang waktu header, tampilkan pilihan:
@@ -118,7 +119,7 @@ Catatan: untuk MVP, waktu header adalah rentang kerja harian. Jika aktivitas ber
 - **Field/kebun** adalah unit lokasi.
 - Field dibagi menjadi **blok**.
 - Jika hanya sebagian blok yang ditanami, bagian yang ditanami menjadi **sub-blok**.
-- Blok/sub-blok yang ditanam dalam **window 3 hari** dianggap satu **cycle** dan memakai **HST yang sama**.
+- Blok/sub-blok yang ditanam dalam **window 3 hari dari tanggal tanam pertama pada cycle tersebut** dianggap satu **cycle** dan memakai **HST yang sama**.
 - Penanaman setelah window 3 hari membentuk **sub-blok baru** dan **cycle/HST baru**.
 - Blok/sub-blok adalah unit **spasial**; cycle adalah unit **waktu**.
 - Satu cycle dapat mencakup beberapa blok/sub-blok.
@@ -128,14 +129,14 @@ Contoh:
 
 ```text
 Field
-├── Block A
-│   ├── Sub-block A1 → Cycle 1 → HST 0
-│   └── Sub-block A2 → Cycle 2 → HST 0
-└── Block B
-    └── Sub-block B1 → Cycle 1 → HST 0
+├── Blok A
+│   ├── Sub-blok A1 → Cycle 1 → HST 0
+│   └── Sub-blok A2 → Cycle 2 → HST 0
+└── Blok B
+    └── Sub-blok B1 → Cycle 1 → HST 0
 ```
 
-Jika Block B dan sebagian Block A ditanam dalam 3 hari yang sama, keduanya masuk **Cycle 1** dan memiliki HST yang sama. Jika sisa Block A ditanam 2 minggu kemudian, bagian itu menjadi **Sub-block A2** dengan **Cycle 2** dan HST baru.
+Jika Blok B dan sebagian Blok A ditanam dalam 3 hari yang sama, keduanya masuk **Cycle 1** dan memiliki HST yang sama. Jika sisa Block A ditanam 2 minggu kemudian, bagian itu menjadi **Sub-blok A2** dengan **Cycle 2** dan HST baru.
 
 ## Scheduled Tasks Berbasis SOP
 
@@ -209,6 +210,7 @@ Catatan implementasi:
 - Jika aktivitas baru berada di luar `start_time`/`end_time`, perbarui `end_time` atau buat header baru.
 - Jumlah pekerja disimpan per aktivitas, bukan di header.
 - Untuk export logbook, group `farm_activities` berdasarkan `daily_activity_log_id`.
+- Block mapping tetap form terpisah dan tidak termasuk kategori aktivitas.
 - Scheduled task/SOP belum termasuk implementasi minimal ini.
 - Jika aktivitas berasal dari scheduled task, simpan relasi task → activity log saat completion.
 
@@ -221,8 +223,8 @@ Field ini muncul untuk semua aktivitas. `Subkategori` hanya wajib jika kategori 
 | Field             | Type    | Unit  | Wajib       | Catatan                                                                                |
 | ----------------- | ------- | ----- | ----------- | -------------------------------------------------------------------------------------- |
 | Kategori          | select  |       | Ya          | Dari daftar kategori di bawah                                                          |
-| Subkategori       | select  |       | Kondisional | Wajib jika kategori punya subkategori; untuk Penanaman/Panen/Insiden tidak ditampilkan |
-| Blok / sub-blok   | select  |       | Ya          | Pilih master blok/sub-blok; belum tersedia di backend                                  |
+| Subkategori       | select  |       | Kondisional | Wajib jika kategori punya subkategori; untuk kategori tanpa subkategori tidak ditampilkan |
+| Blok / sub-blok   | select  |       | Kondisional | Wajib untuk aktivitas berbasis blok; opsional untuk Lainnya; master blok belum tersedia |
 | Jumlah pekerja    | integer | orang | Ya          | Dapat berbeda antar aktivitas                                                          |
 | Foto aktivitas    | file    |       | Ya          | Minimal 1 foto; bisa lebih dari satu                                                   |
 | Catatan aktivitas | text    |       | Tidak       | Untuk detail yang tidak masuk field baku                                               |
@@ -239,72 +241,16 @@ Catatan:
 
 ---
 
-# 0. Pemetaan dan Pengukuran
-
-## 0.1 Pemetaan Blok
-
-| Field                   | Type           | Unit  | Wajib    | Catatan                                                                                                      |
-| ----------------------- | -------------- | ----- | -------- | ------------------------------------------------------------------------------------------------------------ |
-| Nama blok               | text           |       | Ya       | Label blok, bukan master data baru. Field `Blok/Sub-blok` di field umum tidak dipakai untuk subkategori ini. |
-| Panjang                 | number (float) | m     | Ya       |                                                                                                              |
-| Lebar                   | number (float) | m     | Ya       |                                                                                                              |
-| Luas                    | number (float) | m²    | Otomatis | Panjang × lebar; bisa dikoreksi                                                                              |
-| Jarak antar baris       | number (float) | cm    | Tidak    | Row spacing. Contoh logbook: 40 cm atau 75 cm                                                                |
-| Jarak dalam baris       | number (float) | cm    | Tidak    | Plant spacing. Contoh logbook: 20 cm                                                                         |
-| Jumlah baris per bedeng | integer        | baris | Tidak    | Logbook mencatat 2 atau 3 baris per bedeng                                                                   |
-
-Catatan: logbook menulis jarak tanam sebagai `40 x 20 cm` dan `75 x 20 cm`. Perlu dikonfirmasi apakah urutannya `jarak antar baris x jarak dalam baris`.
-
-## 0.2 Pengukuran Tanah
-
-| Field               | Type           | Unit  | Wajib | Catatan                 |
-| ------------------- | -------------- | ----- | ----- | ----------------------- |
-| Jumlah titik sampel | integer        | titik | Tidak |                         |
-| pH                  | number (float) |       | Tidak | 0–14                    |
-| Kelembapan tanah    | number (float) | %     | Tidak | 0–100                   |
-| Fertilitas / EC     | number (float) | µS/cm | Tidak |                         |
-| Suhu tanah          | number (float) | °C    | Tidak |                         |
-| Intensitas cahaya   | number (float) | lux   | Tidak | Opsional, alat spesifik |
-| Kelembapan udara    | number (float) | %     | Tidak | 0–100                   |
-
-Catatan: field ini hanya muncul jika pekerja memilih subkategori **Pengukuran Tanah**. Parameter lanjutan seperti cahaya dan kelembapan udara bisa dilipat, tetapi pH, kelembapan, dan EC sebaiknya terlihat karena itu inti pengukurannya.
-
-## 0.3 Pemetaan Drainase
-
-| Field                 | Type           | Unit | Wajib | Catatan          |
-| --------------------- | -------------- | ---- | ----- | ---------------- |
-| Panjang saluran       | number (float) | m    | Tidak |                  |
-| Lebar saluran         | number (float) | m    | Tidak |                  |
-| Kedalaman saluran     | number (float) | m    | Tidak |                  |
-| Titik outlet          | text           |      | Tidak | Deskripsi lokasi |
-| Kebutuhan pipa/selang | number (float) | m    | Tidak |                  |
-
----
-
 # 1. Pembersihan Lahan
 
-## 1.1 Penyemprotan Herbisida
-
-| Field            | Type           | Unit    | Wajib | Catatan                   |
-| ---------------- | -------------- | ------- | ----- | ------------------------- |
-| Luas area        | number (float) | m² / Ha | Ya    | Pilih satuan              |
-| Nama produk      | text / select  |         | Ya    | Dari master data saprotan |
-| Bahan aktif      | text           |         | Tidak |                           |
-| Dosis per tangki | number (float) | ml/L    | Ya    |                           |
-| Volume air       | number (float) | liter   | Ya    |                           |
-| Jumlah tangki    | integer        | tangki  | Ya    |                           |
-| Metode           | select         |         | Ya    | Merata / spot / lainnya   |
-| Target gulma     | text           |         | Tidak |                           |
-
-## 1.2 Pembersihan Manual
-
-| Field          | Type           | Unit    | Wajib | Catatan                   |
-| -------------- | -------------- | ------- | ----- | ------------------------- |
-| Luas area      | number (float) | m² / Ha | Ya    |                           |
-| Metode         | select         |         | Ya    | Babat / cangkul / lainnya |
-| Jenis vegetasi | text           |         | Tidak |                           |
-
----
+| Field            | Type           | Unit    | Wajib       | Catatan                        |
+| ---------------- | -------------- | ------- | ----------- | ------------------------------ |
+| Luas area        | number (float) | m² / Ha | Ya          | Pilih satuan                   |
+| Metode           | select         |         | Ya          | Manual / Herbisida / Lainnya   |
+| Nama produk      | text / select  |         | Kondisional | Muncul jika metode = Herbisida |
+| Dosis per tangki | number (float) | ml/L    | Kondisional | Muncul jika metode = Herbisida |
+| Volume air       | number (float) | liter   | Kondisional | Muncul jika metode = Herbisida |
+| Jumlah tangki    | integer        | tangki  | Kondisional | Muncul jika metode = Herbisida |
 
 # 2. Pengolahan Tanah
 
@@ -315,7 +261,6 @@ Catatan: field ini hanya muncul jika pekerja memilih subkategori **Pengukuran Ta
 | Luas area   | number (float) | m² / Ha | Ya          |                                       |
 | Metode      | select         |         | Ya          | Manual / cultivator / lainnya         |
 | Kedalaman   | number (float) | cm      | Ya          | Contoh: 10 cm                         |
-| Bahan bakar | number (float) | liter   | Kondisional | Muncul jika metode = mesin/cultivator |
 
 ## 2.2 Pembuatan Bedengan
 
@@ -350,18 +295,6 @@ Catatan: field ini hanya muncul jika pekerja memilih subkategori **Pengukuran Ta
 | Ukuran sak  | number (float) | kg             | Kondisional | Muncul jika satuan = sak   |
 | Metode      | select         |                | Ya          | Tabur / benam / lainnya    |
 
-## 2.5 Pemasangan Mulsa
-
-| Field         | Type           | Unit    | Wajib | Catatan                     |
-| ------------- | -------------- | ------- | ----- | --------------------------- |
-| Luas area     | number (float) | m² / Ha | Ya    |                             |
-| Jenis mulsa   | select         |         | Ya    | Plastik / organik / lainnya |
-| Lebar         | number (float) | m       | Ya    |                             |
-| Panjang total | number (float) | m       | Ya    |                             |
-| Metode        | select         |         | Ya    | Manual / mesin / lainnya    |
-
----
-
 # 3. Penanaman
 
 | Field           | Type           | Unit             | Wajib       | Catatan                                                              |
@@ -372,7 +305,6 @@ Catatan: field ini hanya muncul jika pekerja memilih subkategori **Pengukuran Ta
 | Pola tanam      | text / select  |                  | Otomatis    | Ambil dari pemetaan blok: jarak tanam, jarak baris, baris per bedeng |
 | Luas area       | number (float) | m² / Ha          | Ya          |                                                                      |
 | Kedalaman tanam | number (float) | cm               | Tidak       |                                                                      |
-| Perlakuan benih | text           |                  | Tidak       | Contoh: seed treatment                                               |
 
 Catatan:
 
@@ -392,8 +324,6 @@ Catatan:
 | Metode      | select         |            | Ya          | Irigasi parit / sprinkler / pompa / lainnya |
 | Mesin pompa | select / text  |            | Kondisional | Muncul jika memakai pompa                   |
 | Durasi      | number (float) | jam        | Ya          |                                             |
-| Volume air  | number (float) | m³ / liter | Tidak       | Jika diukur                                 |
-| Bahan bakar | number (float) | liter      | Kondisional | Muncul jika memakai mesin                   |
 
 ## 4.2 Pendangiran
 
@@ -402,14 +332,12 @@ Catatan:
 | Luas area   | number (float) | m² / Ha | Ya          |                                    |
 | Kedalaman   | number (float) | cm      | Tidak       |                                    |
 | Metode      | select         |         | Ya          | Manual / cangkul / mesin / lainnya |
-| Bahan bakar | number (float) | liter   | Kondisional | Muncul jika metode = mesin         |
 
 ## 4.3 Pemupukan Susulan
 
 | Field            | Type           | Unit             | Wajib       | Catatan                                      |
 | ---------------- | -------------- | ---------------- | ----------- | -------------------------------------------- |
 | Luas area        | number (float) | m² / Ha          | Ya          |                                              |
-| Fase pertumbuhan | select         |                  | Otomatis    | Dari HST sub-blok; boleh override jika perlu |
 | Jenis pupuk      | select         |                  | Ya          | Urea / NPK / KCl / lainnya                   |
 | Merek            | text           |                  | Tidak       |                                              |
 | Jumlah           | number (float) | kg / sak / liter | Ya          |                                              |
@@ -439,7 +367,6 @@ Catatan:
 | Jenis            | select         |         | Ya    | Insektisida / fungisida / pestisida / lainnya |
 | Target           | select / text  |         | Ya    | Hama / penyakit / gulma / lainnya             |
 | Nama produk      | text / select  |         | Ya    |                                               |
-| Bahan aktif      | text           |         | Tidak |                                               |
 | Dosis per tangki | number (float) | ml/L    | Ya    |                                               |
 | Volume air       | number (float) | liter   | Ya    |                                               |
 | Jumlah tangki    | integer        | tangki  | Ya    |                                               |
@@ -454,13 +381,12 @@ Catatan:
 | Luas area         | number (float) | m² / Ha  | Ya    |                                                         |
 | Berat hasil panen | number (float) | kg / ton | Ya    | Seluruh tanaman, termasuk jagung/kelobot; tidak dipisah |
 | Kadar air         | number (float) | %        | Tidak | Jika diukur                                             |
-| Catatan kualitas  | text           |          | Tidak | Warna, kematangan, kebersihan, atau catatan lain        |
 | Metode panen      | select         |          | Tidak | Manual / mesin / lainnya                                |
 
 Catatan:
 
 - Sudah dikonfirmasi: panen jagung untuk pakan ternak dilakukan sebagai **seluruh tanaman**, termasuk jagung, dan tidak dipisah. `Berat hasil panen` adalah berat seluruh tanaman.
-- Untuk komoditas lain, field kualitas panen bisa berbeda. Jangan hardcode field jagung ke semua komoditas.
+- Kualitas panen dapat dicatat di `Catatan aktivitas`; jangan hardcode field jagung ke semua komoditas.
 - Harga jual dan biaya panen tidak masuk form pekerja; masuk ke modul keuangan/admin.
 
 ---
@@ -475,57 +401,19 @@ Catatan:
 | Tingkat kedaruratan | select         |         | Ya    | Ringan / Sedang / Berat / Darurat                                      |
 | Tindakan segera     | text           |         | Tidak | Penanganan awal, khusus insiden                                        |
 | Status              | select         |         | Tidak | Open / In Progress / Resolved                                          |
-| Foto                | file           |         | Ya    | Bukti visual insiden                                                   |
 
 Catatan: `Tindakan segera` adalah field opsional khusus insiden, bukan field umum aktivitas. `Deskripsi` **bukan** field dengan satuan Ton. Ini kesalahan yang harus dihapus.
 
 ---
 
-# 7. Infrastruktur dan Logistik
-
-## 7.1 Pengangkutan Saprotan
-
-| Field          | Type           | Unit                  | Wajib       | Catatan                                 |
-| -------------- | -------------- | --------------------- | ----------- | --------------------------------------- |
-| Jenis material | select / text  |                       | Ya          | Pupuk kandang / kapur / benih / lainnya |
-| Jumlah         | number (float) | kg / sak / ton / unit | Ya          |                                         |
-| Ukuran sak     | number (float) | kg                    | Kondisional | Jika satuan = sak                       |
-| Dari           | text           |                       | Tidak       | Lokasi asal                             |
-| Ke             | text           |                       | Ya          | Blok/lokasi tujuan                      |
-| Kendaraan      | text / select  |                       | Tidak       | Truk / motor / lainnya                  |
-
-## 7.2 Lainnya
-
-Untuk pekerjaan jarang seperti drainase, embung, toren, atau tenda. Jika pekerjaan ini sering muncul, jadikan kategori tersendiri.
+# 7. Lainnya
 
 | Field     | Type           | Unit    | Wajib | Catatan      |
 | --------- | -------------- | ------- | ----- | ------------ |
 | Deskripsi | text           |         | Ya    | Wajib diisi  |
 | Luas area | number (float) | m² / Ha | Tidak | Jika relevan |
 
----
-
-## Aktivitas Tidak Rutin dan Penggunaan "Lainnya"
-
-Tidak semua aktivitas perlu menjadi kategori baru. Bedakan:
-
-| Aktivitas             | Frekuensi                     | Tempat yang disarankan           |
-| --------------------- | ----------------------------- | -------------------------------- |
-| Pemetaan blok         | Sekali per blok/siklus baru   | 0.1 Pemetaan Blok                |
-| Pengukuran tanah      | Periodik atau sekali per blok | 0.2 Pengukuran Tanah             |
-| Pemetaan drainase     | Sekali saat perencanaan       | 0.3 Pemetaan Drainase            |
-| Pembuatan tenda       | Sekali/proyek                 | 7.2 Lainnya                      |
-| Embung/toren          | Sekali/proyek                 | 7.2 Lainnya                      |
-| Pengangkutan saprotan | Per siklus/logistik           | 7.1 Pengangkutan Saprotan        |
-| Insiden               | Ad hoc                        | 6. Pelaporan Insiden             |
-| Pekerjaan tak terduga | Ad hoc                        | 7.2 Lainnya                      |
-
-Prinsipnya:
-
-- **Jangan masukkan pemetaan dan pengukuran ke "Lainnya"** karena datanya spesifik dan perlu field terstruktur.
-- **"Lainnya" hanya untuk pekerjaan yang benar-benar tidak terduga** dan tidak punya kategori yang cocok.
-- **Jangan pakai "Lainnya" untuk aktivitas rutin** hanya karena malas menambah kategori; itu akan merusak rekap.
-- Jika suatu aktivitas sering muncul di "Lainnya", itu tanda perlu dijadikan kategori/subkategori baru.
+Aktivitas yang tidak cocok dengan kategori di atas dicatat di sini.
 
 ---
 
@@ -538,9 +426,9 @@ Prinsipnya:
 - Jumlah pekerja per aktivitas minimal 1.
 - Jika satuan = sak, ukuran sak wajib diisi dan > 0.
 - Jika metode pengairan = pompa, mesin pompa wajib diisi.
-- Jika bahan bakar diisi, satuannya liter.
 - Jika insiden, deskripsi wajib diisi; `Tindakan segera` opsional.
 - Jika panen, berat hasil panen wajib diisi.
 - Foto minimal 1 per aktivitas.
 - Subkategori wajib hanya jika kategori memiliki subkategori.
+- Blok/sub-blok wajib untuk aktivitas berbasis blok; `Lainnya` boleh tanpa blok.
 - Tanggal kerja tidak boleh di masa depan.
