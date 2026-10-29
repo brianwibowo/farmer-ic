@@ -16,6 +16,7 @@ use Database\Seeders\DemoFinanceSeeder;
 use Database\Seeders\DemoIdentitySeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -39,13 +40,13 @@ class DemoFinanceSeederTest extends TestCase
 
         $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
         $this->actingAs($admin);
-        $this->getJson('/farm-ic-demo/finance/transactions?per_page=10')->assertOk()
-            ->assertJsonCount(10, 'data')->assertJsonPath('meta.total', 24)->assertJsonPath('meta.last_page', 3);
-        $this->getJson('/farm-ic-demo/finance/summary')->assertOk()->assertJsonPath('data.income', '51425000.00')
-            ->assertJsonPath('data.expense', '29075000.00')->assertJsonPath('data.net', '22350000.00')
-            ->assertJsonCount(3, 'data.monthly');
-        $this->getJson('/farm-ic-demo/finance/summary?from_date=2026-10-01&to_date=2026-10-31')
-            ->assertOk()->assertJsonPath('data.transaction_count', 8)->assertJsonPath('data.income', '7250000.00');
+        $this->get('/finance/transactions?per_page=10')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farmer/FinanceRecords')->has('records.data', 10)->where('records.total', 24)->where('records.last_page', 3));
+        $this->get('/finance?year=2026&period=YTD')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farmer/Finance')->where('summary.income', '51425000.00')->where('summary.expense', '29075000.00')
+            ->where('summary.net', '22350000.00')->has('summary.monthly', 3));
+        $this->get('/finance?year=2026&period=Q4')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('summary.transaction_count', 8)->where('summary.income', '7250000.00'));
         $this->assertSame(7, FinancialTransaction::query()->whereNotNull('planting_cycle_id')->count());
         $this->assertSame(0, FinancialTransaction::query()->whereNotNull('planting_cycle_id')->where('transaction_date', '<', '2026-10-01')->count());
         foreach (FinancialTransaction::with('category')->get() as $transaction) {

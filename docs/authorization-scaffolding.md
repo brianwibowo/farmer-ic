@@ -187,7 +187,7 @@ native policy ability. The index uses `visibleTo`, and config revocations are
 honored independently for reads, creates, updates, and deletes.
 
 This remains authorization scaffolding for the rest of the app. Existing
-home/demo, farm/activity/finance/report pages, team index/store/edit/switch,
+home/demo, farm/activity/report demo pages, team index/store/edit/switch,
 settings/profile flows, other AI conversation/message/voice routes, background
 jobs/commands, and AI/RAG retrieval queries have not been migrated to these
 application-role checks/scopes. They retain their existing authentication,
@@ -201,14 +201,15 @@ and `/api/kebun/{farm}/daily-logs` endpoints now require authentication and invo
 their native policies; Farm listing and daily-log pagination use their model
 `visibleTo` scopes before returning records.
 
-The team-scoped web JSON endpoints under `/{current_team}/finance` now authorize
+The authenticated Inertia pages and web form routes under `/finance` now authorize
 all category, transaction, budget, and projection CRUD actions. Record reads,
 list pagination, transaction summaries, and CSV exports apply `visibleTo` before
-serialization or aggregation. Creation derives its farm from the persisted route
+serialization or aggregation. Team context comes from the authenticated user's
+persisted current team. Creation derives its farm from the persisted route
 parent and recorder metadata from the authenticated user. Categories retain their
 explicit application-wide reference scope. See [finance-backend.md](finance-backend.md)
-for routes, payloads, and PostgreSQL integration coverage. The public `/finance`
-page and AI finance snapshots still use labeled demo sources; other application
+for routes, form payloads, and PostgreSQL integration coverage. Finance pages use
+database-backed Inertia props; AI finance snapshots still use labeled demo sources. Other application
 controllers and services remain outside this scaffolding rollout.
 
 After changing the file grants, rebuild config cache when used and restart

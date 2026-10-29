@@ -16,7 +16,7 @@ class AdminPortalTest extends TestCase
 
     public function test_admin_urls_and_guests(): void
     {
-        $this->assertSame('/admin/dashboard', route('dashboard', absolute: false));
+        $this->assertSame('/admin/dashboard', route('admin.dashboard', absolute: false));
         $this->assertSame('/admin/farm-management', route('farm-management.index', absolute: false));
         foreach (['/admin', '/admin/dashboard', '/admin/farm-management', '/admin/farm-management/create'] as $url) {
             $this->get($url)->assertRedirect('/login');

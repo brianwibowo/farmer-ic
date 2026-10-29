@@ -28,8 +28,9 @@ membuat alur lebih sulit diikuti.
 Saat ini titik akhir CRUD Farm, Catatan Aktivitas Harian, dan backend finance
 sudah menggunakan pemeriksaan izin. Finance mencakup transaksi, kategori,
 anggaran, proyeksi, ringkasan, dan ekspor terbatasi cakupan; lihat
-[kontrak backend finance](finance-backend.md). Halaman finance publik dan layanan
-contoh antarmuka masih memakai data demo. Controller lain tetap mengikuti batas
+[kontrak backend finance](finance-backend.md). Halaman `/finance` beserta CRUD
+menggunakan sesi login, tim aktif, dan props Inertia dari database. Controller
+lain tetap mengikuti batas
 integrasi yang didokumentasikan dalam kerangka ini.
 
 ## Berkas autentikasi

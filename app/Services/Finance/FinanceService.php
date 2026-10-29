@@ -2,6 +2,8 @@
 
 namespace App\Services\Finance;
 
+use App\Models\Commodity;
+use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FinancialBudget;
 use App\Models\FinancialCategory;
@@ -10,10 +12,12 @@ use App\Models\FinancialTransaction;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -31,6 +35,12 @@ class FinanceService
             if (! empty($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }
+        }
+        if (! empty($filters['commodity'])) {
+            $query->whereHas('plantingCycle', fn ($cycles) => $cycles->visibleTo($user, $team)
+                ->whereHas('variety', fn ($varieties) => $varieties->visibleTo($user, $team)
+                    ->whereHas('commodity', fn ($commodities) => $commodities->visibleTo($user, $team)
+                        ->where('name', $filters['commodity']))));
         }
         if (! empty($filters['from_date'])) {
             $query->where('transaction_date', '>=', $filters['from_date']);
@@ -56,6 +66,92 @@ class FinanceService
     public function transaction(User $user, Team $team, FinancialTransaction $transaction): FinancialTransaction
     {
         return $this->transactions($user, $team, [])->findOrFail($transaction->id);
+    }
+
+    /** @return Collection<int, Farm> */
+    public function farms(User $user, Team $team): Collection
+    {
+        return Farm::visibleTo($user, $team)->where('team_id', $team->id)->orderBy('name')->get();
+    }
+
+    /** @return array<string, mixed> */
+    public function formOptions(User $user, Team $team): array
+    {
+        return [
+            'categories' => FinancialCategory::visibleTo($user, $team)->orderBy('name')->get(['id', 'name', 'transaction_type']),
+            'cycles' => PlantingCycle::visibleTo($user, $team)->whereHas('farm', fn ($farms) => $farms->where('team_id', $team->id))
+                ->with(['variety' => fn ($varieties) => $varieties->visibleTo($user, $team)])
+                ->orderByDesc('planted_at')->get()->map(function (PlantingCycle $cycle): array {
+                    $variety = $cycle->getRelation('variety');
+
+                    return [
+                        'id' => $cycle->id, 'farm_id' => $cycle->farm_id,
+                        'label' => ($variety instanceof CropVariety ? $variety->name : 'Siklus tanam').' · '.$cycle->planted_at->toDateString(),
+                    ];
+                }),
+        ];
+    }
+
+    /** @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function cashflow(User $user, Team $team, array $filters): array
+    {
+        $today = CarbonImmutable::now('Asia/Jakarta');
+        $year = (int) ($filters['year'] ?? $today->year);
+        $period = $filters['period'] ?? 'YTD';
+        $start = CarbonImmutable::create($year, 1, 1, 0, 0, 0, 'Asia/Jakarta');
+        $end = $start->endOfYear();
+        if ($period !== 'YTD') {
+            $start = $start->addMonths(((int) substr($period, 1) - 1) * 3);
+            $end = $start->endOfQuarter();
+        } elseif ($year === $today->year) {
+            $end = $today;
+        }
+        $filters = array_replace($filters, [
+            'year' => $year, 'period' => $period,
+            'from_date' => $start->toDateString(), 'to_date' => $end->toDateString(),
+            'tab' => $filters['tab'] ?? 'chart',
+        ]);
+
+        $transactions = $this->ordered($this->transactions($user, $team, $filters), $filters,
+            ['transaction_date', 'amount', 'created_at'], 'transaction_date')
+            ->with([
+                'farm' => fn ($farms) => $farms->visibleTo($user, $team),
+                'category' => fn ($categories) => $categories->visibleTo($user, $team),
+                'plantingCycle' => fn ($cycles) => $cycles->visibleTo($user, $team),
+                'plantingCycle.variety' => fn ($varieties) => $varieties->visibleTo($user, $team),
+                'plantingCycle.variety.commodity' => fn ($commodities) => $commodities->visibleTo($user, $team),
+            ])->paginate($filters['per_page'] ?? 15)->appends($filters)
+            ->through(fn (FinancialTransaction $transaction): array => [
+                'id' => $transaction->id,
+                'description' => $transaction->description ?? '',
+                'category' => $transaction->getRelation('category') instanceof FinancialCategory ? $transaction->getRelation('category')->name : 'Kategori tidak tersedia',
+                'commodity' => $transaction->plantingCycle?->variety?->commodity?->name,
+                'farm_id' => $transaction->farm_id,
+                'farm_name' => $transaction->farm?->name,
+                'transaction_date' => $transaction->transaction_date->toDateString(),
+                'date' => [
+                    'day' => $transaction->transaction_date->format('d'),
+                    'month' => $transaction->transaction_date->settings(['locale' => 'id'])->translatedFormat('M'),
+                    'year' => $transaction->transaction_date->format('Y'),
+                ],
+                'amount' => $transaction->amount,
+                'type' => $transaction->transaction_type,
+            ]);
+
+        return [
+            'summary' => $this->summary($user, $team, $filters),
+            'transactions' => $transactions,
+            'farms' => $this->farms($user, $team)->map(fn (Farm $farm): array => $farm->only(['id', 'name', 'city'])),
+            'commodities' => Commodity::visibleTo($user, $team)->whereHas('varieties', fn ($varieties) => $varieties
+                ->visibleTo($user, $team)->whereHas('plantingCycles', fn ($cycles) => $cycles
+                ->visibleTo($user, $team)->whereHas('farm', fn ($farms) => $farms->where('team_id', $team->id))))
+                ->orderBy('name')->pluck('name'),
+            'filters' => $filters,
+            'periodLabel' => $start->settings(['locale' => 'id'])->translatedFormat('j F').'–'.$end->settings(['locale' => 'id'])->translatedFormat('j F Y'),
+            'exportUrl' => route('finance.transactions.export', $filters),
+        ];
     }
 
     /** @param array<string, mixed> $data */
@@ -277,7 +373,8 @@ class FinanceService
         $monthly = (clone $query)->selectRaw("TO_CHAR(transaction_date, 'YYYY-MM') AS month,
             COUNT(*) AS transaction_count,
             COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END), 0)::numeric(38,2)::text AS income,
-            COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0)::numeric(38,2)::text AS expense")
+            COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0)::numeric(38,2)::text AS expense,
+            COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE -amount END), 0)::numeric(38,2)::text AS net")
             ->groupByRaw("TO_CHAR(transaction_date, 'YYYY-MM')")->orderBy('month')->get();
 
         return [
@@ -292,6 +389,7 @@ class FinanceService
                 'transaction_count' => (int) $row->getAttribute('transaction_count'),
                 'income' => $row->getAttribute('income'),
                 'expense' => $row->getAttribute('expense'),
+                'net' => $row->getAttribute('net'),
             ])->all(),
         ];
     }

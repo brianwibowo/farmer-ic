@@ -5,6 +5,10 @@ namespace App\Http\Middleware;
 use App\Models\Farm;
 use App\Models\User;
 use App\Models\Team;
+use App\Models\FinancialBudget;
+use App\Models\FinancialCategory;
+use App\Models\FinancialProjection;
+use App\Models\FinancialTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -50,6 +54,13 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'navigation' => [
                 'admin' => $adminAccess,
+                'finance' => collect([
+                    'transactions' => FinancialTransaction::class,
+                    'categories' => FinancialCategory::class,
+                    'budgets' => FinancialBudget::class,
+                    'projections' => FinancialProjection::class,
+                ])->map(fn (string $model): bool => $user !== null && $user->currentTeam !== null
+                    && Gate::forUser($user)->allows('viewAny', [$model, $user->currentTeam]))->all(),
                 'farms' => $adminAccess && $user->currentTeam !== null
                     && Gate::forUser($user)->allows('viewAny', [Farm::class, $user->currentTeam]),
             ],

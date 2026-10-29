@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\ListFinanceRequest;
 use App\Models\FinancialTransaction;
-use App\Models\Team;
 use App\Services\Finance\FinanceService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -15,17 +13,11 @@ class FinanceSummaryController extends Controller
 {
     public function __construct(private readonly FinanceService $finance) {}
 
-    public function summary(ListFinanceRequest $request, Team $current_team): JsonResponse
+    public function export(ListFinanceRequest $request): StreamedResponse
     {
-        Gate::authorize('viewAny', [FinancialTransaction::class, $current_team]);
-
-        return response()->json(['data' => $this->finance->summary($request->user(), $current_team, $request->validated())]);
-    }
-
-    public function export(ListFinanceRequest $request, Team $current_team): StreamedResponse
-    {
-        Gate::authorize('viewAny', [FinancialTransaction::class, $current_team]);
-        $rows = $this->finance->transactionExport($request->user(), $current_team, $request->validated());
+        $team = $request->team();
+        Gate::authorize('viewAny', [FinancialTransaction::class, $team]);
+        $rows = $this->finance->transactionExport($request->user(), $team, $request->validated());
 
         return response()->streamDownload(function () use ($rows): void {
             $output = fopen('php://output', 'w');

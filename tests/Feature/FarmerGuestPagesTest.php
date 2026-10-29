@@ -15,7 +15,6 @@ class FarmerGuestPagesTest extends TestCase
     {
         return [
             'home' => ['/', 'farmer/Dashboard'],
-            'finance' => ['/finance', 'farmer/Finance'],
             'farms' => ['/kebun', 'farmer/Kebun'],
             'farm detail' => ['/kebun/detail', 'farmer/KebunDetail'],
             'farm activities' => ['/kebun/aktivitas', 'farmer/KebunAktivitas'],
@@ -68,5 +67,10 @@ class FarmerGuestPagesTest extends TestCase
     {
         $this->postJson('/kebun-petani/ai/messages', ['message' => 'Kondisi kebun'])
             ->assertUnauthorized();
+    }
+
+    public function test_finance_database_page_requires_authentication(): void
+    {
+        $this->get('/finance')->assertRedirect(route('login'));
     }
 }

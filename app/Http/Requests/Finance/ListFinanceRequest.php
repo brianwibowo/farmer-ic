@@ -17,6 +17,7 @@ class ListFinanceRequest extends FinanceRequest
             'from_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'to_date' => ['sometimes', 'nullable', 'date_format:Y-m-d', Rule::when($this->filled('from_date'), 'after_or_equal:from_date')],
             'search' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'commodity' => ['sometimes', 'nullable', 'string', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'between:1,100'],
             'sort' => ['sometimes', Rule::in($this->sortColumns())],

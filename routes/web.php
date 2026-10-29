@@ -7,6 +7,12 @@ use App\Http\Controllers\AI\AiMessageController;
 use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FarmManagementController;
+use App\Http\Controllers\Finance\FinanceController;
+use App\Http\Controllers\Finance\FinanceSummaryController;
+use App\Http\Controllers\Finance\FinancialBudgetController;
+use App\Http\Controllers\Finance\FinancialCategoryController;
+use App\Http\Controllers\Finance\FinancialProjectionController;
+use App\Http\Controllers\Finance\FinancialTransactionController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Http\Request;
@@ -17,13 +23,24 @@ use Inertia\Inertia;
 // Public pages do not provision users or resolve the legacy team-based session.
 // AI API routes below keep their existing authentication and team middleware.
 Route::inertia('/', 'farmer/Dashboard')->defaults('farmer_guest', true)->name('home');
-Route::inertia('finance', 'farmer/Finance')->defaults('farmer_guest', true)->name('finance');
 Route::inertia('kebun/detail', 'farmer/KebunDetail')->defaults('farmer_guest', true)->name('kebun.detail');
 Route::inertia('kebun/aktivitas', 'farmer/KebunAktivitas')->defaults('farmer_guest', true)->name('kebun.aktivitas');
 Route::inertia('/kebun', 'farmer/Kebun')->defaults('farmer_guest', true)->name('kebun');
 Route::inertia('/aktivitas', 'farmer/Aktivitas')->defaults('farmer_guest', true)->name('aktivitas');
 Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->defaults('farmer_guest', true)->name('rincian-aktivitas');
 Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->name('laporan');
+
+Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('finance', [FinanceController::class, 'index'])->name('finance');
+    Route::get('finance/transactions/export', [FinanceSummaryController::class, 'export'])->name('finance.transactions.export');
+    Route::resource('finance/transactions', FinancialTransactionController::class)->only(['index', 'show', 'update', 'destroy'])->names('finance.transactions')->whereUuid('transaction');
+    Route::resource('finance/categories', FinancialCategoryController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->names('finance.categories')->whereUuid('category');
+    Route::resource('finance/budgets', FinancialBudgetController::class)->only(['index', 'show', 'update', 'destroy'])->names('finance.budgets')->whereUuid('budget');
+    Route::resource('finance/projections', FinancialProjectionController::class)->only(['index', 'show', 'update', 'destroy'])->names('finance.projections')->whereUuid('projection');
+    Route::post('finance/farms/{farm}/transactions', [FinancialTransactionController::class, 'store'])->whereUuid('farm')->name('finance.transactions.store');
+    Route::post('finance/farms/{farm}/budgets', [FinancialBudgetController::class, 'store'])->whereUuid('farm')->name('finance.budgets.store');
+    Route::post('finance/farms/{farm}/projections', [FinancialProjectionController::class, 'store'])->whereUuid('farm')->name('finance.projections.store');
+});
 Route::get('/bypass', function (Request $request) {
     $team = $request->user()->currentTeam;
     Gate::authorize('ai.access', $team);
@@ -40,7 +57,7 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
 });
 Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
-    Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('admin.dashboard');
     Route::resource('farm-management', FarmManagementController::class)
         ->parameters(['farm-management' => 'farm'])
         ->whereUuid('farm');
@@ -50,7 +67,6 @@ Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
-        require __DIR__.'/finance.php';
 
         Route::get('ai', fn () => Inertia::render('farmer/Index'))->name('ai.page');
 

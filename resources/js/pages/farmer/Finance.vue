@@ -1,345 +1,236 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ChevronDown, FileText, Filter, Search, X } from '@lucide/vue';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import FinanceNavigation from '@/components/farmer/FinanceNavigation.vue';
 import RevenueChart from '@/components/farmer/RevenueChart.vue';
-import { useFarmerNavigation } from '@/composables/useFarmerNavigation';
-import {
-    type FinanceCommodity,
-    type FinancePeriod,
-    type FinanceQuarter,
-    type FinanceTransaction,
-    type QuarterFinance,
-    type RevenuePoint,
-} from '@/data/farmerFinance';
-import { type Kebun } from '@/data/kebun';
-import { getFarmFinance } from '@/services/farmDemoService';
-import { listKebun } from '@/services/kebunService';
+import { formatFinanceMoney as formatRupiah } from '@/lib/finance';
+import type { RevenuePoint } from '@/data/farmerFinance';
+import type {
+    FinancePaginator,
+    FinancePeriod,
+    FinanceSummary,
+} from '@/types/finance';
 
 type FinanceTab = 'chart' | 'transactions';
-
-const { navigate } = useFarmerNavigation();
-const activeTab = ref<FinanceTab>('chart');
-const selectedPeriod = ref<FinancePeriod>('Q1');
-const selectedKebunId = ref<string>('all');
-const kebunList = ref<Kebun[]>([]);
-const showAnalysis = ref(false);
-const searchQuery = ref('');
-const selectedCommodity = ref<FinanceCommodity | 'all'>('all');
-const selectedType = ref<FinanceTransaction['type'] | 'all'>('all');
-const isFilterOpen = ref(false);
-const isLoading = ref(true);
-
-type FinanceData = Awaited<ReturnType<typeof getFarmFinance>>;
-const financeData = ref<FinanceData>();
-
-const kebunMap = computed(
-    () => new Map(kebunList.value.map((kebun) => [kebun.id, kebun])),
+type Transaction = {
+    id: string;
+    description: string;
+    category: string;
+    commodity: string | null;
+    farm_id: string;
+    farm_name: string | null;
+    transaction_date: string;
+    date: { day: string; month: string; year: string };
+    amount: string;
+    type: 'income' | 'expense';
+};
+type Filters = {
+    year: number;
+    period: FinancePeriod;
+    farm_id?: string | null;
+    commodity?: string | null;
+    transaction_type?: 'income' | 'expense' | null;
+    search?: string;
+    tab: FinanceTab;
+};
+const props = defineProps<{
+    summary: FinanceSummary;
+    transactions: FinancePaginator<Transaction>;
+    farms: Array<{ id: string; name: string; city: string | null }>;
+    commodities: string[];
+    filters: Filters;
+    periodLabel: string;
+    exportUrl: string;
+}>();
+const activeTab = ref<FinanceTab>(props.filters.tab);
+const selectedPeriod = ref<FinancePeriod>(props.filters.period);
+const selectedYear = ref(props.filters.year);
+const selectedKebunId = ref(props.filters.farm_id ?? 'all');
+const selectedCommodity = ref(props.filters.commodity ?? 'all');
+const selectedType = ref<'income' | 'expense' | 'all'>(
+    props.filters.transaction_type ?? 'all',
 );
+const searchQuery = ref(props.filters.search ?? '');
+const isFilterOpen = ref(false);
+const showAnalysis = ref(false);
+const isLoading = ref(false);
+const requestError = ref('');
+const kebunList = computed(() => props.farms);
+const filteredTransactions = computed(() => props.transactions.data);
+const kebunMap = computed(
+    () => new Map(props.farms.map((farm) => [farm.id, farm])),
+);
+let syncingFilters = false;
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
-const periodMonthsMap: Record<FinancePeriod, string[]> = {
-    Q1: ['Jan', 'Feb', 'Mar'],
-    Q2: ['Apr', 'Mei', 'Jun'],
-    Q3: ['Jul', 'Agu', 'Sep'],
-    Q4: ['Okt', 'Nov', 'Des'],
-    YTD: [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'Mei',
-        'Jun',
-        'Jul',
-        'Agu',
-        'Sep',
-        'Okt',
-        'Nov',
-        'Des',
-    ],
-};
-
-const periodLabels: Record<FinancePeriod, string> = {
-    Q1: 'Januari–Maret 2026',
-    Q2: 'April–Juni 2026',
-    Q3: 'Juli–September 2026',
-    Q4: 'Oktober–Desember 2026',
-    YTD: 'Januari–Desember 2026 (YTD)',
-};
-
-const transactionKebunFallback: Record<number, string> = {
-    1: 'kebun-002',
-    2: 'kebun-002',
-    3: 'kebun-003',
-    4: 'kebun-003',
-    5: 'kebun-001',
-    6: 'kebun-001',
-    7: 'kebun-005',
-    8: 'kebun-005',
-    9: 'kebun-003',
-    10: 'kebun-003',
-    11: 'kebun-004',
-    12: 'kebun-004',
-    13: 'kebun-002',
-    14: 'kebun-002',
-    15: 'kebun-003',
-    16: 'kebun-003',
-    17: 'kebun-001',
-    18: 'kebun-001',
-    19: 'kebun-005',
-    20: 'kebun-005',
-    21: 'kebun-003',
-    22: 'kebun-003',
-    23: 'kebun-004',
-    24: 'kebun-004',
-};
-
-function getTransactionKebunId(tx: FinanceTransaction): string {
-    return tx.kebunId ?? transactionKebunFallback[tx.id] ?? '';
+function getTransactionKebunId(transaction: Transaction): string {
+    return transaction.farm_id;
+}
+function getKebunName(id?: string): string {
+    return id ? (kebunMap.value.get(id)?.name ?? '') : '';
 }
 
-function getKebunName(kebunId?: string): string {
-    if (!kebunId) return '';
-    return kebunMap.value.get(kebunId)?.name ?? '';
-}
-
-const emptyPoint: RevenuePoint = {
+const chartMonths = computed(() => {
+    const first =
+        props.filters.period === 'YTD'
+            ? 1
+            : (Number(props.filters.period.slice(1)) - 1) * 3 + 1;
+    const count = props.filters.period === 'YTD' ? 12 : 3;
+    return Array.from({ length: count }, (_, index) => {
+        const key = `${props.filters.year}-${String(first + index).padStart(2, '0')}`;
+        const row = props.summary.monthly.find((item) => item.month === key);
+        return {
+            label: new Intl.DateTimeFormat('id-ID', {
+                month: 'short',
+                timeZone: 'UTC',
+            }).format(new Date(`${key}-01T00:00:00Z`)),
+            revenue: Number(row?.income ?? '0'),
+            expense: Number(row?.expense ?? '0'),
+            net: Number(row?.net ?? '0'),
+            exactNet: row?.net ?? '0.00',
+        };
+    });
+});
+const selectedData = computed(() => ({
+    label: props.periodLabel,
+    totalRevenue: props.summary.income,
+    totalExpense: props.summary.expense,
+    netTotal: props.summary.net,
+    points: chartMonths.value,
+    analysis:
+        props.summary.transaction_count === 0
+            ? 'Belum ada transaksi pada periode dan filter yang dipilih.'
+            : `Tercatat ${props.summary.transaction_count} transaksi dengan pemasukan ${formatRupiah(props.summary.income)}, pengeluaran ${formatRupiah(props.summary.expense)}, dan selisih ${formatRupiah(props.summary.net)}. Ringkasan dihitung dari transaksi database sesuai filter.`,
+}));
+const selectedPoint = ref<RevenuePoint>({
     label: '-',
     revenue: 0,
     expense: 0,
     net: 0,
-};
-
-const emptyQuarter: QuarterFinance = {
-    label: 'Memuat data keuangan',
-    totalRevenue: 0,
-    totalExpense: 0,
-    netTotal: 0,
-    points: [emptyPoint],
-    analysis: '',
-};
-
-const selectedData = computed<QuarterFinance>(() => {
-    if (!financeData.value) return emptyQuarter;
-
-    const months = periodMonthsMap[selectedPeriod.value];
-    const label = periodLabels[selectedPeriod.value];
-    const selectedKebun = kebunMap.value.get(selectedKebunId.value);
-
-    // Filter transactions by kebun
-    const baseTransactions = financeData.value.transactions.filter((tx) => {
-        if (selectedKebunId.value === 'all') return true;
-        return getTransactionKebunId(tx) === selectedKebunId.value;
-    });
-
-    const points: RevenuePoint[] = months.map((month) => {
-        const monthTxs = baseTransactions.filter((tx) => tx.date.month === month);
-        const revenue = monthTxs
-            .filter((tx) => tx.type === 'income')
-            .reduce((sum, tx) => sum + tx.amount, 0);
-        const expense = monthTxs
-            .filter((tx) => tx.type === 'expense')
-            .reduce((sum, tx) => sum + tx.amount, 0);
-        const net = revenue - expense;
-
-        return { label: month, revenue, expense, net };
-    });
-
-    const totalRevenue = points.reduce((sum, p) => sum + p.revenue, 0);
-    const totalExpense = points.reduce((sum, p) => sum + p.expense, 0);
-    const netTotal = totalRevenue - totalExpense;
-
-    let analysis = '';
-    if (selectedKebunId.value === 'all') {
-        if (selectedPeriod.value === 'YTD') {
-            analysis =
-                'Secara kumulatif tahun berjalan (YTD 2026), performa keuangan seluruh kebun menunjukkan tren yang sangat positif dengan total pendapatan bersih mencapai ' +
-                formatRupiah(netTotal) +
-                '. Kuartal 3 mencatatkan margin tertinggi didorong oleh optimalisasi panen jagung dan kontrak rumput odot, sementara pengeluaran operasional dan pemeliharaan terkendali di bawah 36% dari total penerimaan kotor.';
-        } else {
-            const quarterKey = selectedPeriod.value as FinanceQuarter;
-            analysis =
-                financeData.value.quarters[quarterKey]?.analysis ??
-                'Laporan kuartal konsolidasi seluruh kebun berjalan stabil sesuai target perencanaan tahunan.';
-        }
-    } else if (selectedKebun) {
-        if (selectedPeriod.value === 'YTD') {
-            analysis = `Laporan tahun berjalan (YTD 2026) untuk ${selectedKebun.name} (${selectedKebun.city}) mencatatkan total pendapatan kotor ${formatRupiah(totalRevenue)} dan pengeluaran ${formatRupiah(totalExpense)}, menghasilkan laba bersih ${formatRupiah(netTotal)} dari komoditas ${selectedKebun.seedType}.`;
-        } else if (totalRevenue > 0) {
-            analysis = `Pada periode ${label}, ${selectedKebun.name} membukukan pendapatan kotor ${formatRupiah(totalRevenue)} dan beban biaya ${formatRupiah(totalExpense)}, menghasilkan laba bersih ${formatRupiah(netTotal)} dari komoditas ${selectedKebun.seedType}.`;
-        } else {
-            analysis = `Tidak ada transaksi penjualan panen maupun operasional tercatat untuk ${selectedKebun.name} pada ${label}. Siklus panen aktif untuk kebun ini terjadwal pada kuartal lain tahun berjalan.`;
-        }
-    }
-
-    return {
-        label,
-        totalRevenue,
-        totalExpense,
-        netTotal,
-        points,
-        analysis,
-    };
 });
-
-const selectedPoint = ref<RevenuePoint>(emptyPoint);
-
-const selectedPointTitle = computed(() => {
-    const hasAmount =
-        selectedPoint.value.revenue !== 0 || selectedPoint.value.expense !== 0;
-
-    return hasAmount
+watch(
+    chartMonths,
+    (points) => {
+        selectedPoint.value =
+            points.find(
+                (point) => point.revenue !== 0 || point.expense !== 0,
+            ) ?? points[0];
+    },
+    { immediate: true },
+);
+const selectedPointTitle = computed(() =>
+    selectedPoint.value.revenue !== 0 || selectedPoint.value.expense !== 0
         ? `Pendapatan bersih ${selectedPoint.value.label}`
-        : `Belum ada transaksi ${selectedPoint.value.label}`;
-});
-
-function updateSelectedPoint(): void {
-    const points = selectedData.value.points;
-    const activePoint = points.find((p) => p.revenue > 0 || p.expense > 0);
-    selectedPoint.value = activePoint ?? points[0] ?? emptyPoint;
-}
-
-onMounted(async () => {
-    try {
-        const [finance, kebun] = await Promise.all([
-            getFarmFinance(),
-            listKebun(),
-        ]);
-        financeData.value = finance;
-        kebunList.value = kebun;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const kebunParam = urlParams.get('kebun');
-        if (
-            kebunParam &&
-            (kebun.some((k) => k.id === kebunParam) || kebunParam === 'all')
-        ) {
-            selectedKebunId.value = kebunParam;
-        }
-
-        const periodParam = urlParams.get('period') as FinancePeriod | null;
-        if (
-            periodParam &&
-            ['Q1', 'Q2', 'Q3', 'Q4', 'YTD'].includes(periodParam)
-        ) {
-            selectedPeriod.value = periodParam;
-        }
-
-        updateSelectedPoint();
-    } finally {
-        isLoading.value = false;
-    }
-});
-
-function selectPeriod(period: FinancePeriod): void {
-    selectedPeriod.value = period;
-    updateSelectedPoint();
-}
-
+        : `Belum ada transaksi ${selectedPoint.value.label}`,
+);
+const selectedPointAmount = computed(
+    () =>
+        chartMonths.value.find(
+            (point) => point.label === selectedPoint.value.label,
+        )?.exactNet ?? '0.00',
+);
 function selectPoint(point: RevenuePoint): void {
     selectedPoint.value = point;
 }
-
-watch(selectedKebunId, () => {
-    updateSelectedPoint();
-});
-
+function selectPeriod(period: FinancePeriod): void {
+    selectedPeriod.value = period;
+}
 const hasActiveFilter = computed(
     () =>
         selectedKebunId.value !== 'all' ||
         selectedCommodity.value !== 'all' ||
         selectedType.value !== 'all' ||
-        selectedPeriod.value !== 'YTD',
+        selectedPeriod.value !== 'YTD' ||
+        searchQuery.value.trim() !== '',
 );
 
-const reportUrl = computed(() => {
-    const params = new URLSearchParams();
-    const periodIndex: Record<FinanceQuarter, number> = {
-        Q1: 1,
-        Q2: 2,
-        Q3: 3,
-        Q4: 4,
-    };
-
-    params.set('kebun', selectedKebunId.value);
-    params.set('year', '2026');
-
-    if (selectedPeriod.value === 'YTD') {
-        params.set('period', 'year');
-    } else {
-        params.set('period', 'quarter');
-        params.set('quarter', String(periodIndex[selectedPeriod.value]));
+function visitFilters(page = 1): void {
+    requestError.value = '';
+    if (
+        !Number.isInteger(selectedYear.value) ||
+        selectedYear.value < 2000 ||
+        selectedYear.value > 2100
+    ) {
+        requestError.value = 'Tahun harus di antara 2000 dan 2100.';
+        return;
     }
-
-    if (selectedCommodity.value !== 'all') {
-        params.set(
-            'commodity',
-            selectedCommodity.value === 'Rumput odot'
-                ? 'Rumput'
-                : selectedCommodity.value,
-        );
-    }
-
-    // Keep the transaction controls in the URL so a report opened from this
-    // screen retains the complete Finance filter context for future support.
-    if (selectedType.value !== 'all') {
-        params.set('finance_type', selectedType.value);
-    }
-    if (searchQuery.value.trim()) {
-        params.set('finance_search', searchQuery.value.trim());
-    }
-
-    return `/laporan?${params.toString()}`;
+    router.get(
+        '/finance',
+        {
+            year: selectedYear.value,
+            period: selectedPeriod.value,
+            farm_id:
+                selectedKebunId.value === 'all'
+                    ? undefined
+                    : selectedKebunId.value,
+            commodity:
+                selectedCommodity.value === 'all'
+                    ? undefined
+                    : selectedCommodity.value,
+            transaction_type:
+                selectedType.value === 'all' ? undefined : selectedType.value,
+            search: searchQuery.value.trim() || undefined,
+            tab: activeTab.value,
+            page,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onStart: () => {
+                isLoading.value = true;
+            },
+            onError: () => {
+                requestError.value =
+                    'Data gagal dimuat. Periksa filter lalu coba lagi.';
+            },
+            onFinish: () => {
+                isLoading.value = false;
+            },
+        },
+    );
+}
+watch(
+    [
+        selectedPeriod,
+        selectedYear,
+        selectedKebunId,
+        selectedCommodity,
+        selectedType,
+    ],
+    () => {
+        if (syncingFilters) return;
+        clearTimeout(searchTimer);
+        visitFilters();
+    },
+);
+watch(searchQuery, () => {
+    if (syncingFilters) return;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => visitFilters(), 300);
 });
-
-const filteredTransactions = computed(() => {
-    const query = searchQuery.value.trim().toLowerCase();
-
-    return (financeData.value?.transactions ?? []).filter((transaction) => {
-        const kebunId = getTransactionKebunId(transaction);
-        const kebunName = getKebunName(kebunId);
-
-        const matchesQuery =
-            !query ||
-            [
-                transaction.description,
-                transaction.category,
-                transaction.commodity,
-                kebunName,
-            ].some((value) => value.toLowerCase().includes(query));
-
-        const matchesKebun =
-            selectedKebunId.value === 'all' ||
-            kebunId === selectedKebunId.value;
-
-        const matchesCommodity =
-            selectedCommodity.value === 'all' ||
-            transaction.commodity === selectedCommodity.value;
-
-        const matchesType =
-            selectedType.value === 'all' ||
-            transaction.type === selectedType.value;
-
-        const matchesPeriod =
-            selectedPeriod.value === 'YTD' ||
-            periodMonthsMap[selectedPeriod.value].includes(
-                transaction.date.month,
-            );
-
-        return (
-            matchesQuery &&
-            matchesKebun &&
-            matchesCommodity &&
-            matchesType &&
-            matchesPeriod
-        );
-    });
-});
-
+watch(
+    () => props.filters,
+    (filters) => {
+        syncingFilters = true;
+        selectedPeriod.value = filters.period;
+        selectedYear.value = filters.year;
+        selectedKebunId.value = filters.farm_id ?? 'all';
+        selectedCommodity.value = filters.commodity ?? 'all';
+        selectedType.value = filters.transaction_type ?? 'all';
+        searchQuery.value = filters.search ?? '';
+        activeTab.value = filters.tab;
+        void nextTick(() => {
+            syncingFilters = false;
+        });
+    },
+);
+onBeforeUnmount(() => clearTimeout(searchTimer));
 function toggleFilter(): void {
     isFilterOpen.value = !isFilterOpen.value;
 }
-
 function clearTransactionFilters(): void {
     searchQuery.value = '';
     selectedCommodity.value = 'all';
@@ -347,39 +238,56 @@ function clearTransactionFilters(): void {
     selectedKebunId.value = 'all';
     selectedPeriod.value = 'YTD';
 }
-
-const formatRupiah = (value: number): string =>
-    new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-    }).format(value);
 </script>
 
 <template>
     <Head title="Keuangan" />
 
-    <FarmerMobileShell active-key="finance" @select="navigate">
+    <FarmerMobileShell active-key="finance">
         <div data-finance-page class="space-y-5 px-4 pt-4 pb-6">
+            <FinanceNavigation active="overview" />
+            <p
+                v-if="requestError"
+                role="alert"
+                class="rounded-xl border border-error bg-error/10 p-3 text-sm text-error"
+            >
+                {{ requestError }}
+                <button
+                    type="button"
+                    class="ml-2 underline"
+                    @click="visitFilters()"
+                >
+                    Coba lagi
+                </button>
+            </p>
+            <label class="flex items-center gap-3 text-sm text-muted-foreground"
+                >Tahun
+                <input
+                    v-model.number="selectedYear"
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    class="h-9 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-foreground"
+            /></label>
             <!-- Header with Kebun Filter -->
             <header class="space-y-3">
                 <div class="flex items-start justify-between">
                     <div>
-                        <p class="text-sm font-medium text-[#1c5e21] dark:text-[#8fe697]">
-                            Keuangan
-                        </p>
-                        <h1 class="mt-0.5 text-2xl font-semibold tracking-tight text-foreground">
+                        <p class="text-sm font-medium text-success">Keuangan</p>
+                        <h1
+                            class="mt-0.5 text-2xl font-semibold tracking-tight text-foreground"
+                        >
                             Financial Cashflow
                         </h1>
                     </div>
-                    <Link
-                        :href="reportUrl"
+                    <a
+                        :href="exportUrl"
                         class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        aria-label="Buka laporan dengan filter keuangan saat ini"
+                        aria-label="Unduh transaksi sesuai filter sebagai CSV"
                     >
                         <FileText :size="15" aria-hidden="true" />
-                        <span>Laporan</span>
-                    </Link>
+                        <span>Ekspor CSV</span>
+                    </a>
                 </div>
 
                 <!-- Kebun Filter Selector -->
@@ -390,7 +298,7 @@ const formatRupiah = (value: number): string =>
                     <select
                         id="kebun-filter-select"
                         v-model="selectedKebunId"
-                        class="h-10.5 w-full appearance-none rounded-xl border border-border bg-card px-3.5 pr-10 text-xs font-medium text-foreground shadow-xs outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+                        class="h-10.5 w-full appearance-none rounded-xl border border-border bg-card px-3.5 pr-10 text-xs font-medium text-foreground shadow-xs transition-colors outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
                         <option value="all">Semua Kebun (Konsolidasi)</option>
                         <option
@@ -398,7 +306,8 @@ const formatRupiah = (value: number): string =>
                             :key="item.id"
                             :value="item.id"
                         >
-                            {{ item.name }} · {{ item.city }} ({{ item.seedType }})
+                            {{ item.name
+                            }}{{ item.city ? ` · ${item.city}` : '' }}
                         </option>
                     </select>
                     <div
@@ -485,15 +394,17 @@ const formatRupiah = (value: number): string =>
                             {{ getKebunName(selectedKebunId) }}
                         </span>
                     </div>
-                    <p class="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+                    <p
+                        class="mt-1 text-3xl font-semibold tracking-tight text-foreground"
+                    >
                         {{ formatRupiah(selectedData.netTotal) }}
                     </p>
                     <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                        <span class="font-medium text-[#1c5e21] dark:text-[#8fe697]">
+                        <span class="font-medium text-success">
                             Pendapatan kotor
                             {{ formatRupiah(selectedData.totalRevenue) }}
                         </span>
-                        <span class="font-medium text-[#bc0202] dark:text-[#ff8585]">
+                        <span class="font-medium text-error">
                             Pengeluaran
                             {{ formatRupiah(selectedData.totalExpense) }}
                         </span>
@@ -519,9 +430,9 @@ const formatRupiah = (value: number): string =>
                         </div>
                         <!-- Badge Revenue Value -->
                         <span
-                            class="text-md px-2.5 py-1 font-semibold text-[#1c5e21] dark:text-[#8fe697]"
+                            class="text-md px-2.5 py-1 font-semibold text-success"
                         >
-                            {{ formatRupiah(selectedPoint.net) }}
+                            {{ formatRupiah(selectedPointAmount) }}
                         </span>
                     </div>
                     <RevenueChart
@@ -550,8 +461,8 @@ const formatRupiah = (value: number): string =>
                         :class="[
                             'rounded-full border py-2 text-center text-xs font-semibold transition-colors',
                             selectedPeriod === period
-                                ? 'border-[#1c5e21] bg-[#1c5e21] text-white shadow-xs'
-                                : 'border-[#4a943e] text-[#1c5e21] hover:bg-[#d9d9d9]/60 dark:border-[#2d4538] dark:text-[#8fe697] dark:hover:bg-muted',
+                                ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                                : 'border-primary text-primary hover:bg-muted',
                         ]"
                         @click="selectPeriod(period)"
                     >
@@ -570,11 +481,11 @@ const formatRupiah = (value: number): string =>
                         </h2>
                         <button
                             type="button"
-                            class="rounded-full border border-[#4a943e] px-3 py-1.5 text-xs font-semibold text-[#1c5e21] transition-colors hover:bg-[#d9d9d9]/60 dark:border-[#2d4538] dark:text-[#8fe697] dark:hover:bg-muted"
+                            class="rounded-full border border-primary px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-muted"
                             :aria-expanded="showAnalysis"
                             @click="showAnalysis = !showAnalysis"
                         >
-                            Analisis AI
+                            Ringkasan
                         </button>
                     </div>
                     <div
@@ -600,11 +511,7 @@ const formatRupiah = (value: number): string =>
                             Riwayat Transaksi
                         </h2>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            {{
-                                selectedPeriod === 'YTD'
-                                    ? 'Semua transaksi tahun 2026 (YTD)'
-                                    : `Transaksi periode ${selectedPeriod} (2026)`
-                            }}
+                            {{ `Transaksi ${periodLabel}` }}
                             {{
                                 selectedKebunId !== 'all'
                                     ? `· ${getKebunName(selectedKebunId)}`
@@ -612,8 +519,8 @@ const formatRupiah = (value: number): string =>
                             }}
                         </p>
                     </div>
-                    <span class="text-xs font-medium text-[#1c5e21] dark:text-[#8fe697]">
-                        {{ filteredTransactions.length }} transaksi
+                    <span class="text-xs font-medium text-success">
+                        {{ transactions.total }} transaksi
                     </span>
                 </div>
 
@@ -695,7 +602,9 @@ const formatRupiah = (value: number): string =>
                                 v-model="selectedPeriod"
                                 class="h-9.5 w-full rounded-lg border border-border bg-card px-2 text-xs text-foreground outline-none focus:border-primary"
                             >
-                                <option value="YTD">YTD (Tahun Berjalan)</option>
+                                <option value="YTD">
+                                    YTD (Tahun Berjalan)
+                                </option>
                                 <option value="Q1">Q1 (Jan–Mar)</option>
                                 <option value="Q2">Q2 (Apr–Jun)</option>
                                 <option value="Q3">Q3 (Jul–Sep)</option>
@@ -716,9 +625,13 @@ const formatRupiah = (value: number): string =>
                                 class="h-9.5 w-full rounded-lg border border-border bg-card px-2 text-xs text-foreground outline-none focus:border-primary"
                             >
                                 <option value="all">Semua komoditas</option>
-                                <option value="Jagung">Jagung</option>
-                                <option value="Rumput odot">Rumput odot</option>
-                                <option value="Kedelai">Kedelai</option>
+                                <option
+                                    v-for="commodity in commodities"
+                                    :key="commodity"
+                                    :value="commodity"
+                                >
+                                    {{ commodity }}
+                                </option>
                             </select>
                         </label>
                         <label class="min-w-0">
@@ -752,13 +665,11 @@ const formatRupiah = (value: number): string =>
                 </div>
 
                 <p class="mt-4 text-xs text-muted-foreground">
-                    Menampilkan {{ filteredTransactions.length }} transaksi
+                    Menampilkan {{ transactions.total }} transaksi
                 </p>
 
                 <!-- Transactions List -->
-                <ul
-                    class="mt-1 divide-y divide-border border-y border-border"
-                >
+                <ul class="mt-1 divide-y divide-border border-y border-border">
                     <li
                         v-for="transaction in filteredTransactions"
                         :key="transaction.id"
@@ -766,9 +677,11 @@ const formatRupiah = (value: number): string =>
                     >
                         <time
                             class="text-center text-muted-foreground"
-                            :datetime="`${transaction.date.year}-${transaction.date.month}-${transaction.date.day}`"
+                            :datetime="transaction.transaction_date"
                         >
-                            <span class="block text-lg leading-5 font-medium text-foreground">
+                            <span
+                                class="block text-lg leading-5 font-medium text-foreground"
+                            >
                                 {{ transaction.date.day }}
                             </span>
                             <span class="block text-sm leading-5">
@@ -784,14 +697,26 @@ const formatRupiah = (value: number): string =>
                             >
                                 {{ transaction.description }}
                             </p>
-                            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                            <div
+                                class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+                            >
                                 <span
-                                    v-if="getKebunName(getTransactionKebunId(transaction))"
-                                    class="inline-flex items-center rounded bg-[#1c5e21]/10 px-1.5 py-0.5 text-[11px] font-medium text-[#1c5e21] dark:bg-[#1c5e21]/20 dark:text-[#8fe697]"
+                                    v-if="
+                                        getKebunName(
+                                            getTransactionKebunId(transaction),
+                                        )
+                                    "
+                                    class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
                                 >
-                                    {{ getKebunName(getTransactionKebunId(transaction)) }}
+                                    {{
+                                        getKebunName(
+                                            getTransactionKebunId(transaction),
+                                        )
+                                    }}
                                 </span>
-                                <span>{{ transaction.commodity }}</span>
+                                <span>{{
+                                    transaction.commodity ?? 'Tanpa komoditas'
+                                }}</span>
                                 <span>·</span>
                                 <span>{{ transaction.category }}</span>
                             </div>
@@ -799,8 +724,8 @@ const formatRupiah = (value: number): string =>
                                 :class="[
                                     'mt-1 text-xl leading-6 font-semibold',
                                     transaction.type === 'income'
-                                        ? 'text-[#1c5e21] dark:text-[#8fe697]'
-                                        : 'text-[#bc0202] dark:text-[#ff8585]',
+                                        ? 'text-success'
+                                        : 'text-error',
                                 ]"
                             >
                                 {{ transaction.type === 'income' ? '+' : '-' }}
@@ -815,6 +740,35 @@ const formatRupiah = (value: number): string =>
                         Transaksi tidak ditemukan untuk filter ini.
                     </li>
                 </ul>
+                <nav
+                    v-if="transactions.last_page > 1"
+                    aria-label="Halaman transaksi"
+                    class="mt-4 flex items-center justify-between gap-2 text-xs"
+                >
+                    <button
+                        type="button"
+                        :disabled="transactions.current_page === 1 || isLoading"
+                        class="rounded-xl border border-border px-3 py-2 disabled:opacity-50"
+                        @click="visitFilters(transactions.current_page - 1)"
+                    >
+                        Sebelumnya
+                    </button>
+                    <span aria-current="page"
+                        >Halaman {{ transactions.current_page }} /
+                        {{ transactions.last_page }}</span
+                    >
+                    <button
+                        type="button"
+                        :disabled="
+                            transactions.current_page ===
+                                transactions.last_page || isLoading
+                        "
+                        class="rounded-xl border border-border px-3 py-2 disabled:opacity-50"
+                        @click="visitFilters(transactions.current_page + 1)"
+                    >
+                        Berikutnya
+                    </button>
+                </nav>
             </section>
         </div>
     </FarmerMobileShell>

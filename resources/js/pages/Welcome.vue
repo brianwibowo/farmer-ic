@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { dashboard, login } from '@/routes';
+import { login } from '@/routes';
+import { dashboard } from '@/routes/admin';
 
 const page = usePage();
 const dashboardUrl = computed(() =>

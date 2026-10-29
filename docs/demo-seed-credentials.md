@@ -90,7 +90,8 @@ date, description), budget keys (farm, category, period), and projection keys
 (farm, cycle, period), preserving edits to amounts and unrelated transactions.
 Changing one of those identifying fields can cause a new fixture to be inserted.
 
-Data can be checked through the authenticated `/farm-ic-demo/finance/transactions`
-and `/farm-ic-demo/finance/summary` endpoints. The public `/finance` page and AI
-finance snapshot still use their separately labeled frontend/knowledge demo data;
-running this seeder alone does not connect those screens to the database.
+Data can be checked through the authenticated `/finance` and
+`/finance/transactions` Inertia pages using the active team. These pages read
+database records directly, including the seeded categories, budgets, and
+projections. The AI finance snapshot retains its separately labeled knowledge
+demo data and is not connected to these database transactions.

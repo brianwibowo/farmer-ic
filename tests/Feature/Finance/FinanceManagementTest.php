@@ -16,10 +16,11 @@ use App\Models\User;
 use App\Support\RolePermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
-/** Integration tests against the guarded, dedicated PostgreSQL test database. */
+/** Inertia HTTP integration against the guarded, separate PostgreSQL test schema. */
 class FinanceManagementTest extends TestCase
 {
     use RefreshDatabase;
@@ -61,13 +62,8 @@ class FinanceManagementTest extends TestCase
         return $farm;
     }
 
-    private function url(string $path, ?Team $team = null): string
-    {
-        return '/'.($team ?? $this->team)->slug.'/finance/'.$path;
-    }
-
     /** @return array<string, mixed> */
-    private function transactionPayload(): array
+    private function payload(): array
     {
         return ['category_id' => $this->income->id, 'transaction_date' => '2026-10-28',
             'transaction_type' => 'income', 'amount' => '7250000.15', 'description' => 'Penjualan jagung'];
@@ -75,35 +71,53 @@ class FinanceManagementTest extends TestCase
 
     private function transaction(?Farm $farm = null, string $amount = '7250000.15'): FinancialTransaction
     {
-        return FinancialTransaction::create([...$this->transactionPayload(), 'farm_id' => ($farm ?? $this->farm)->id,
+        return FinancialTransaction::create([...$this->payload(), 'farm_id' => ($farm ?? $this->farm)->id,
             'recorded_by' => $this->admin->id, 'amount' => $amount]);
     }
 
     private function cycle(Farm $farm): PlantingCycle
     {
-        $commodity = Commodity::create(['name' => 'Jagung '.Str::random(6)]);
+        $commodity = Commodity::create(['name' => 'Jagung']);
         $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
 
         return PlantingCycle::create(['farm_id' => $farm->id, 'variety_id' => $variety->id,
             'planted_at' => '2026-10-01', 'planted_area_ha' => '1.0000', 'status' => 'active']);
     }
 
-    public function test_admin_transaction_crud_persists_exact_decimals_and_trusted_parent(): void
+    public function test_cashflow_is_an_inertia_page_with_scoped_database_props(): void
+    {
+        $transaction = $this->transaction();
+        $this->get('/finance?year=2026&period=Q4')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farmer/Finance')
+            ->where('summary.source', 'database')->where('summary.income', '7250000.15')
+            ->where('summary.monthly.0.net', '7250000.15')
+            ->where('transactions.total', 1)->where('transactions.data.0.id', $transaction->id)
+            ->where('farms.0.id', $this->farm->id)->where('filters.period', 'Q4')
+            ->where('navigation.finance.transactions', true)
+            ->missing('transactions.data.0.password'));
+        $this->get('/'.$this->team->slug.'/finance/summary')->assertNotFound();
+        $this->get('/'.$this->team->slug.'/finance/transactions')->assertNotFound();
+    }
+
+    public function test_transaction_form_redirects_and_persists_exact_decimals_with_server_identity(): void
     {
         $cycle = $this->cycle($this->farm);
-        $payload = [...$this->transactionPayload(), 'planting_cycle_id' => $cycle->id, 'amount' => '9999999999999999.99'];
-        $created = $this->postJson($this->url('farms/'.$this->farm->id.'/transactions'), $payload)->assertCreated()
-            ->assertJsonPath('data.farm_id', $this->farm->id)->assertJsonPath('data.recorded_by', $this->admin->id)
-            ->assertJsonPath('data.amount', '9999999999999999.99');
-        $id = $created->json('data.id');
-        $this->getJson($this->url('transactions/'.$id))->assertOk()->assertJsonPath('can.update', true);
-        $this->patchJson($this->url('transactions/'.$id), ['amount' => '0.01', 'planting_cycle_id' => null])
-            ->assertOk()->assertJsonPath('data.planting_cycle_id', null)->assertJsonPath('data.amount', '0.01');
-        $this->assertDatabaseHas('financial_transactions', ['id' => $id, 'amount' => '0.01', 'recorded_by' => $this->admin->id]);
-        $this->putJson($this->url('transactions/'.$id), ['amount' => '12'])->assertUnprocessable();
-        $this->putJson($this->url('transactions/'.$id), $this->transactionPayload())->assertOk();
-        $this->deleteJson($this->url('transactions/'.$id))->assertNoContent();
-        $this->assertDatabaseMissing('financial_transactions', ['id' => $id]);
+        $this->post('/finance/farms/'.$this->farm->id.'/transactions', [
+            ...$this->payload(), 'planting_cycle_id' => $cycle->id, 'amount' => '9999999999999999.99',
+        ])->assertRedirect('/finance/transactions');
+        $transaction = FinancialTransaction::query()->firstOrFail();
+        $this->assertSame($this->admin->id, $transaction->recorded_by);
+        $this->assertSame($this->farm->id, $transaction->farm_id);
+        $this->get('/finance/transactions/'.$transaction->id)->assertInertia(fn (Assert $page) => $page
+            ->component('farmer/FinanceRecordDetail')->where('record.amount', '9999999999999999.99'));
+        $this->patch('/finance/transactions/'.$transaction->id, ['amount' => '0.01', 'planting_cycle_id' => null])
+            ->assertRedirect('/finance/transactions');
+        $this->assertSame('0.01', $transaction->refresh()->amount);
+        $this->assertNull($transaction->planting_cycle_id);
+        $this->put('/finance/transactions/'.$transaction->id, ['amount' => '12'])->assertSessionHasErrors('category_id');
+        $this->put('/finance/transactions/'.$transaction->id, $this->payload())->assertRedirect('/finance/transactions');
+        $this->delete('/finance/transactions/'.$transaction->id)->assertRedirect('/finance/transactions');
+        $this->assertDatabaseMissing('financial_transactions', ['id' => $transaction->id]);
     }
 
     /** @return array<string, array{string, string, array<string, mixed>}> */
@@ -116,41 +130,39 @@ class FinanceManagementTest extends TestCase
     }
 
     #[DataProvider('plans')]
-    public function test_plan_crud_partial_period_validation_and_decimal_precision(string $resource, string $amountField, array $values): void
+    public function test_plan_forms_validate_partial_periods_and_preserve_optional_links(string $resource, string $money, array $values): void
     {
         $payload = ['period_start' => '2026-10-01', 'period_end' => '2026-12-31', ...$values];
-        $created = $this->postJson($this->url('farms/'.$this->farm->id.'/'.$resource), $payload)->assertCreated();
-        $id = $created->json('data.id');
-        $this->getJson($this->url($resource.'/'.$id))->assertOk()->assertJsonPath('data.'.$amountField, $values[$amountField]);
-        $this->getJson($this->url($resource.'?from_date=2026-11-01&to_date=2026-11-30'))->assertOk()->assertJsonPath('meta.total', 1);
-        $this->getJson($this->url($resource.'?from_date=2027-01-01'))->assertOk()->assertJsonPath('meta.total', 0);
-        $this->patchJson($this->url($resource.'/'.$id), ['period_start' => '2027-01-01'])->assertUnprocessable()->assertJsonValidationErrors('period_end');
-        $this->patchJson($this->url($resource.'/'.$id), ['period_end' => '2026-09-30'])->assertUnprocessable();
-        $this->patchJson($this->url($resource.'/'.$id), [$amountField => '0'])->assertOk()->assertJsonPath('data.'.$amountField, '0.00');
-        $this->putJson($this->url($resource.'/'.$id), $payload)->assertOk();
-        $this->deleteJson($this->url($resource.'/'.$id))->assertNoContent();
-        $this->getJson($this->url($resource.'/'.$id))->assertNotFound();
+        $this->post('/finance/farms/'.$this->farm->id.'/'.$resource, $payload)->assertRedirect('/finance/'.$resource);
+        $model = $resource === 'budgets' ? FinancialBudget::class : FinancialProjection::class;
+        $id = $model::query()->firstOrFail()->getKey();
+        $this->get('/finance/'.$resource.'?from_date=2026-11-01&to_date=2026-11-30')->assertInertia(fn (Assert $page) => $page
+            ->component('farmer/FinanceRecords')->where('records.total', 1)->where('records.data.0.'.$money, $values[$money])
+            ->where('can.create', true));
+        $this->patch('/finance/'.$resource.'/'.$id, ['period_start' => '2027-01-01'])->assertSessionHasErrors('period_end');
+        $this->assertSame('2026-10-01', $model::findOrFail($id)->period_start->toDateString());
+        $this->patch('/finance/'.$resource.'/'.$id, [$money => '0'])->assertRedirect('/finance/'.$resource);
+        $this->assertSame('0.00', $model::findOrFail($id)->getAttribute($money));
+        $this->put('/finance/'.$resource.'/'.$id, $payload)->assertRedirect('/finance/'.$resource);
+        $this->delete('/finance/'.$resource.'/'.$id)->assertRedirect('/finance/'.$resource);
+        $this->assertDatabaseMissing((new $model)->getTable(), ['id' => $id]);
     }
 
-    public function test_category_crud_duplicate_validation_and_history_protection(): void
+    public function test_category_forms_validate_duplicates_and_reject_deleting_referenced_categories(): void
     {
-        $created = $this->postJson($this->url('categories'), ['name' => '  Sewa alat  ', 'transaction_type' => 'expense'])->assertCreated()
-            ->assertJsonPath('data.name', 'Sewa alat');
-        $id = $created->json('data.id');
-        $this->getJson($this->url('categories/'.$id))->assertOk();
-        $this->patchJson($this->url('categories/'.$id), ['name' => 'Sewa traktor'])->assertOk();
-        $this->postJson($this->url('categories'), ['name' => 'Sewa traktor', 'transaction_type' => 'expense'])
-            ->assertUnprocessable()->assertJsonValidationErrors('name');
-        $this->getJson($this->url('categories?transaction_type=expense&search=traktor'))->assertOk()->assertJsonPath('meta.total', 1);
-        $this->deleteJson($this->url('categories/'.$id))->assertNoContent();
-
+        $this->post('/finance/categories', ['name' => '  Sewa alat  ', 'transaction_type' => 'expense'])->assertRedirect('/finance/categories');
+        $category = FinancialCategory::query()->where('name', 'Sewa alat')->firstOrFail();
+        $this->patch('/finance/categories/'.$category->id, ['name' => 'Sewa traktor'])->assertRedirect('/finance/categories');
+        $this->post('/finance/categories', ['name' => 'Sewa traktor', 'transaction_type' => 'expense'])->assertSessionHasErrors('name');
+        $this->get('/finance/categories?search=traktor&transaction_type=expense')->assertInertia(fn (Assert $page) => $page
+            ->component('farmer/FinanceRecords')->where('records.total', 1));
+        $this->delete('/finance/categories/'.$category->id)->assertRedirect('/finance/categories');
         $this->transaction();
-        $this->patchJson($this->url('categories/'.$this->income->id), ['transaction_type' => 'expense'])
-            ->assertUnprocessable()->assertJsonValidationErrors('transaction_type');
-        $this->deleteJson($this->url('categories/'.$this->income->id))->assertConflict();
-        FinancialBudget::create(['farm_id' => $this->farm->id, 'category_id' => $this->expense->id,
-            'created_by' => $this->admin->id, 'period_start' => '2026-10-01', 'period_end' => '2026-12-31', 'budget_amount' => '100']);
-        $this->deleteJson($this->url('categories/'.$this->expense->id))->assertConflict();
+        $this->patch('/finance/categories/'.$this->income->id, ['transaction_type' => 'expense'])->assertSessionHasErrors('transaction_type');
+        $this->from('/finance/categories')->delete('/finance/categories/'.$this->income->id)->assertRedirect('/finance/categories')->assertSessionHasErrors('delete');
+        FinancialBudget::create(['farm_id' => $this->farm->id, 'category_id' => $this->expense->id, 'created_by' => $this->admin->id,
+            'period_start' => '2026-10-01', 'period_end' => '2026-12-31', 'budget_amount' => '100']);
+        $this->delete('/finance/categories/'.$this->expense->id)->assertSessionHasErrors('delete');
         $this->assertDatabaseHas('financial_categories', ['id' => $this->expense->id]);
     }
 
@@ -162,13 +174,13 @@ class FinanceManagementTest extends TestCase
     }
 
     #[DataProvider('roles')]
-    public function test_real_http_role_matrix_for_every_financial_resource(string $role, bool $read, bool $write): void
+    public function test_inertia_role_matrix_for_every_resource_and_mutation(string $role, bool $read, bool $write): void
     {
         $actor = User::factory()->create(['role' => $role]);
         $this->join($actor, $this->team);
         $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $records = [
-            'transactions' => [$this->transaction()->id, $this->transactionPayload()],
+            'transactions' => [$this->transaction()->id, $this->payload()],
             'categories' => [$this->expense->id, ['name' => 'Biaya tenaga kerja', 'transaction_type' => 'expense']],
             'budgets' => [FinancialBudget::create(['farm_id' => $this->farm->id, 'created_by' => $this->admin->id,
                 'period_start' => '2026-10-01', 'period_end' => '2026-12-31', 'budget_amount' => '100'])->id,
@@ -179,186 +191,141 @@ class FinanceManagementTest extends TestCase
         ];
         $this->actingAs($actor);
         foreach ($records as $resource => [$id, $payload]) {
-            $this->getJson($this->url($resource))->assertStatus($read ? 200 : 403);
-            $this->getJson($this->url($resource.'/'.$id))->assertStatus($read ? 200 : 403);
-            $createPath = $resource === 'categories' ? $resource : 'farms/'.$this->farm->id.'/'.$resource;
-            $this->postJson($this->url($createPath), $payload)->assertStatus($write ? 201 : 403);
-            $update = $resource === 'categories' ? [...$payload, 'name' => 'Biaya tenaga kerja diperbarui'] : $payload;
-            $this->patchJson($this->url($resource.'/'.$id), $update)->assertStatus($write ? 200 : 403);
-            $this->deleteJson($this->url($resource.'/'.$id))->assertStatus($write ? 204 : 403);
+            $response = $this->get('/finance/'.$resource)->assertStatus($read ? 200 : 403);
+            if ($read) {
+                $response->assertInertia(fn (Assert $page) => $page->component('farmer/FinanceRecords')->where('can.create', $write));
+            }
+            $this->get('/finance/'.$resource.'/'.$id)->assertStatus($read ? 200 : 403);
+            $path = $resource === 'categories' ? 'categories' : 'farms/'.$this->farm->id.'/'.$resource;
+            $this->post('/finance/'.$path, $payload)->assertStatus($write ? 302 : 403);
+            $update = $resource === 'categories' ? [...$payload, 'name' => 'Biaya diperbarui'] : $payload;
+            $this->patch('/finance/'.$resource.'/'.$id, $update)->assertStatus($write ? 302 : 403);
+            $this->delete('/finance/'.$resource.'/'.$id)->assertStatus($write ? 302 : 403);
         }
-        $this->getJson($this->url('summary'))->assertStatus($read ? 200 : 403);
-        $this->getJson($this->url('transactions/export'))->assertStatus($read ? 200 : 403);
+        $this->get('/finance')->assertStatus($read ? 200 : 403);
+        $this->get('/finance/transactions/export')->assertStatus($read ? 200 : 403);
     }
 
-    public function test_cross_team_records_and_forged_parent_are_denied_without_leaking_totals(): void
+    public function test_cross_team_records_and_forged_parents_do_not_leak_counts_or_exports(): void
     {
-        $otherTeam = Team::factory()->create();
-        $otherFarm = $this->farm($otherTeam);
-        $transaction = $this->transaction($otherFarm, '999999.99');
-        $this->transaction();
-        $budget = FinancialBudget::create(['farm_id' => $otherFarm->id, 'created_by' => $this->admin->id,
-            'period_start' => '2026-10-01', 'period_end' => '2026-12-31', 'budget_amount' => '100']);
-        $projection = FinancialProjection::create(['farm_id' => $otherFarm->id, 'period_start' => '2026-10-01',
-            'period_end' => '2026-12-31', 'projected_income' => '100', 'calculated_at' => now()]);
-        foreach (['transactions' => $transaction, 'budgets' => $budget, 'projections' => $projection] as $resource => $record) {
-            $this->getJson($this->url($resource.'/'.$record->id))->assertForbidden();
-            $this->patchJson($this->url($resource.'/'.$record->id), [])->assertForbidden();
-            $this->deleteJson($this->url($resource.'/'.$record->id))->assertForbidden();
-            $this->getJson($this->url($resource.'?farm_id='.$otherFarm->id))->assertOk()->assertJsonPath('meta.total', 0);
-        }
-        $this->getJson($this->url('transactions'))->assertOk()->assertJsonPath('meta.total', 1);
-        $this->getJson($this->url('summary'))->assertOk()->assertJsonPath('data.income', '7250000.15');
-        $csv = $this->getJson($this->url('transactions/export'))->assertOk()->streamedContent();
-        $this->assertStringContainsString('7250000.15', $csv);
-        $this->assertStringNotContainsString($transaction->id, $csv);
-        $this->getJson($this->url('transactions', $otherTeam))->assertForbidden();
-        $this->postJson($this->url('farms/'.$otherFarm->id.'/transactions'), $this->transactionPayload())->assertForbidden();
-        $this->postJson($this->url('farms/'.$this->farm->id.'/transactions'), [...$this->transactionPayload(), 'farm_id' => $otherFarm->id])->assertUnprocessable();
+        $other = $this->farm(Team::factory()->create());
+        $hidden = $this->transaction($other, '999999.99');
+        $local = $this->transaction();
+        $this->get('/finance/transactions/'.$hidden->id)->assertForbidden();
+        $this->patch('/finance/transactions/'.$hidden->id, ['amount' => '1'])->assertForbidden();
+        $this->delete('/finance/transactions/'.$hidden->id)->assertForbidden();
+        $this->post('/finance/farms/'.$other->id.'/transactions', $this->payload())->assertForbidden();
+        $this->get('/finance?year=2026&period=Q4')->assertInertia(fn (Assert $page) => $page
+            ->where('summary.income', '7250000.15')->where('transactions.total', 1)->where('transactions.data.0.id', $local->id)->has('farms', 1));
+        $this->get('/finance/transactions?farm_id='.$other->id)->assertInertia(fn (Assert $page) => $page->where('records.total', 0));
+        $this->assertStringNotContainsString($hidden->id, $this->get('/finance/transactions/export')->streamedContent());
+        $this->post('/finance/farms/'.$this->farm->id.'/transactions', [...$this->payload(), 'farm_id' => $other->id])->assertSessionHasErrors('farm_id');
     }
 
-    public function test_scopes_limit_counts_summary_and_export_even_with_team_wide_update_grant(): void
+    public function test_query_scopes_and_revoked_grants_protect_pages_totals_and_mutations(): void
     {
-        $visible = $this->transaction();
+        $local = $this->transaction();
         $hidden = $this->transaction($this->farm($this->team), '1000');
         $this->admin->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $roles = app(RolePermissions::class)->roles();
         $roles['admin']['financial_transactions.view'] = 'own';
         config(['access.roles' => $roles]);
-        $this->getJson($this->url('transactions?per_page=1'))->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $visible->id);
-        $this->getJson($this->url('summary'))->assertOk()->assertJsonPath('data.income', '7250000.15');
-        $this->assertStringNotContainsString($hidden->id, $this->getJson($this->url('transactions/export'))->streamedContent());
-        $this->patchJson($this->url('transactions/'.$hidden->id), ['amount' => '1'])->assertForbidden();
+        $this->get('/finance?year=2026&period=Q4&per_page=1')->assertInertia(fn (Assert $page) => $page->where('transactions.total', 1)->where('summary.income', '7250000.15'));
+        $this->get('/finance/transactions')->assertInertia(fn (Assert $page) => $page->where('records.total', 1)->where('records.data.0.id', $local->id));
+        $this->assertStringNotContainsString($hidden->id, $this->get('/finance/transactions/export')->streamedContent());
+        $this->patch('/finance/transactions/'.$hidden->id, ['amount' => '1'])->assertForbidden();
         $roles['admin']['financial_transactions.view'] = 'invalid';
         config(['access.roles' => $roles]);
-        $this->getJson($this->url('transactions'))->assertForbidden();
-        $this->getJson($this->url('summary'))->assertForbidden();
-        $this->getJson($this->url('transactions/export'))->assertForbidden();
+        $this->get('/finance')->assertForbidden();
+        $this->get('/finance/transactions')->assertForbidden();
+        $this->get('/finance/transactions/export')->assertForbidden();
         unset($roles['admin']['financial_transactions.view']);
         config(['access.roles' => $roles]);
-        $this->getJson($this->url('transactions/'.$visible->id))->assertForbidden();
+        $this->get('/finance/transactions/'.$local->id)->assertForbidden();
     }
 
-    public function test_related_cycle_and_category_must_match_and_failed_changes_roll_back(): void
+    public function test_relations_validation_rolls_back_invalid_changes_and_projection_requires_a_value(): void
     {
-        $otherCycle = $this->cycle($this->farm($this->team));
-        $base = $this->url('farms/'.$this->farm->id.'/transactions');
-        $this->postJson($base, [...$this->transactionPayload(), 'planting_cycle_id' => $otherCycle->id])
-            ->assertUnprocessable()->assertJsonValidationErrors('planting_cycle_id');
-        $this->postJson($base, [...$this->transactionPayload(), 'category_id' => $this->expense->id])
-            ->assertUnprocessable()->assertJsonValidationErrors('category_id');
-        $this->postJson($base, [...$this->transactionPayload(), 'category_id' => (string) Str::uuid()])->assertUnprocessable();
+        $cycle = $this->cycle($this->farm($this->team));
+        $path = '/finance/farms/'.$this->farm->id.'/transactions';
+        $this->post($path, [...$this->payload(), 'planting_cycle_id' => $cycle->id])->assertSessionHasErrors('planting_cycle_id');
+        $this->post($path, [...$this->payload(), 'category_id' => $this->expense->id])->assertSessionHasErrors('category_id');
         $transaction = $this->transaction();
-        $this->patchJson($this->url('transactions/'.$transaction->id), ['transaction_type' => 'expense', 'amount' => '1'])->assertUnprocessable();
+        $this->patch('/finance/transactions/'.$transaction->id, ['transaction_type' => 'expense', 'amount' => '1'])->assertSessionHasErrors('category_id');
         $this->assertSame('7250000.15', $transaction->refresh()->amount);
-        $this->assertSame('income', $transaction->transaction_type);
-        $this->postJson($this->url('farms/'.$this->farm->id.'/projections'), [
-            'period_start' => '2026-10-01', 'period_end' => '2026-12-31', 'projected_income' => '1', 'planting_cycle_id' => $otherCycle->id,
-        ])->assertUnprocessable();
+        $period = ['period_start' => '2026-10-01', 'period_end' => '2026-12-31'];
+        $this->post('/finance/farms/'.$this->farm->id.'/projections', $period)->assertSessionHasErrors('projected_income');
+        $this->post('/finance/farms/'.$this->farm->id.'/projections', [...$period, 'projected_income' => '1', 'planting_cycle_id' => $cycle->id])->assertSessionHasErrors('planting_cycle_id');
+        $this->post('/finance/farms/'.$this->farm->id.'/budgets', [...$period, 'budget_amount' => '1', 'category_id' => (string) Str::uuid()])->assertSessionHasErrors('category_id');
+        $this->assertDatabaseCount('financial_projections', 0);
     }
 
-    public function test_summary_uses_exact_database_arithmetic_and_filtered_csv_is_safe(): void
+    public function test_database_totals_are_exact_and_commodity_filters_do_not_invent_links(): void
     {
+        $cycle = $this->cycle($this->farm);
         $first = $this->transaction(null, '9999999999999999.99');
+        $first->update(['planting_cycle_id' => $cycle->id]);
         $second = $this->transaction(null, '0.01');
         $second->update(['description' => '=HYPERLINK("malicious")', 'transaction_date' => '2026-11-01']);
-        FinancialTransaction::create([...$this->transactionPayload(), 'farm_id' => $this->farm->id,
-            'recorded_by' => $this->admin->id, 'category_id' => $this->expense->id, 'transaction_type' => 'expense', 'amount' => '0.02']);
-        $this->getJson($this->url('summary'))->assertOk()->assertJsonPath('data.income', '10000000000000000.00')
-            ->assertJsonPath('data.expense', '0.02')->assertJsonPath('data.net', '9999999999999999.98')
-            ->assertJsonPath('data.transaction_count', 3)->assertJsonCount(2, 'data.monthly')->assertJsonPath('data.source', 'database');
-        $this->getJson($this->url('summary?from_date=2026-11-01&transaction_type=income'))->assertOk()
-            ->assertJsonPath('data.income', '0.01')->assertJsonPath('data.transaction_count', 1);
-        $this->getJson($this->url('summary?to_date=2026-01-01'))->assertOk()->assertJsonPath('data.income', '0.00');
-        $csv = $this->getJson($this->url('transactions/export?from_date=2026-11-01'))->assertOk()->streamedContent();
+        FinancialTransaction::create([...$this->payload(), 'farm_id' => $this->farm->id, 'recorded_by' => $this->admin->id,
+            'category_id' => $this->expense->id, 'transaction_type' => 'expense', 'amount' => '0.02']);
+        $this->get('/finance?year=2026&period=Q4')->assertInertia(fn (Assert $page) => $page
+            ->where('summary.income', '10000000000000000.00')->where('summary.expense', '0.02')->where('summary.net', '9999999999999999.98')->has('summary.monthly', 2));
+        $this->get('/finance?year=2026&period=Q4&commodity=Jagung')->assertInertia(fn (Assert $page) => $page
+            ->where('summary.income', '9999999999999999.99')->where('transactions.total', 1)->where('transactions.data.0.commodity', 'Jagung'));
+        $csv = $this->get('/finance/transactions/export?from_date=2026-11-01')->streamedContent();
         $this->assertStringNotContainsString($first->id, $csv);
         $this->assertStringContainsString("'=HYPERLINK", $csv);
-        $this->getJson($this->url('transactions?sort=amount&direction=desc&per_page=1'))->assertOk()->assertJsonPath('data.0.id', $first->id);
+        $this->get('/finance?year=2000')->assertInertia(fn (Assert $page) => $page->where('summary.income', '0.00')->where('transactions.total', 0));
+        $roles = app(RolePermissions::class)->roles();
+        unset($roles['admin']['crop_varieties.view']);
+        config(['access.roles' => $roles]);
+        $this->get('/finance?year=2026&period=Q4&commodity=Jagung')->assertInertia(fn (Assert $page) => $page
+            ->where('summary.income', '0.00')->where('transactions.total', 0)->has('commodities', 0));
+        $this->get('/finance?year=2026&period=Q4')->assertInertia(fn (Assert $page) => $page
+            ->where('transactions.data.1.commodity', null));
     }
 
-    public function test_server_owned_fields_bad_amounts_and_invalid_filters_are_rejected(): void
+    public function test_form_errors_return_to_the_page_and_server_owned_fields_cannot_be_changed(): void
     {
-        $base = $this->url('farms/'.$this->farm->id.'/transactions');
-        foreach (['0', '-1', '1.001', '10000000000000000', '1e3', 'NaN'] as $amount) {
-            $this->postJson($base, [...$this->transactionPayload(), 'amount' => $amount])->assertUnprocessable()->assertJsonValidationErrors('amount');
+        $path = '/finance/farms/'.$this->farm->id.'/transactions';
+        foreach (['0', '-1', '1.001', '10000000000000000', '1e3'] as $amount) {
+            $this->from('/finance/transactions')->post($path, [...$this->payload(), 'amount' => $amount])->assertRedirect('/finance/transactions')->assertSessionHasErrors('amount');
         }
         foreach (['farm_id', 'team_id', 'recorded_by', 'created_by', 'id', 'created_at'] as $field) {
-            $this->postJson($base, [...$this->transactionPayload(), $field => (string) Str::uuid()])->assertUnprocessable()->assertJsonValidationErrors($field);
+            $this->post($path, [...$this->payload(), $field => (string) Str::uuid()])->assertSessionHasErrors($field);
         }
-        foreach (['sort=password', 'per_page=101', 'page=0', 'from_date=2026-11-01&to_date=2026-10-01', 'transaction_type=refund', 'farm_id=invalid'] as $query) {
-            $this->getJson($this->url('transactions?'.$query))->assertUnprocessable();
-        }
-        $this->getJson($this->url('transactions/not-a-uuid'))->assertNotFound();
-        $this->getJson($this->url('transactions/'.Str::uuid()))->assertNotFound();
+        $this->get('/finance?year=2200')->assertSessionHasErrors('year');
+        $this->get('/finance/transactions?sort=password')->assertSessionHasErrors('sort');
+        $this->get('/finance/transactions?per_page=101')->assertSessionHasErrors('per_page');
+        $this->get('/finance/transactions/not-a-uuid')->assertNotFound();
+        $this->get('/finance/transactions/'.Str::uuid())->assertNotFound();
         $this->assertDatabaseCount('financial_transactions', 0);
     }
 
-    public function test_projection_requires_a_value_and_budget_references_are_validated(): void
-    {
-        $period = ['period_start' => '2026-10-01', 'period_end' => '2026-12-31'];
-        $this->postJson($this->url('farms/'.$this->farm->id.'/projections'), $period)->assertUnprocessable();
-        $this->postJson($this->url('farms/'.$this->farm->id.'/projections'), [...$period, 'projected_income' => '-1'])->assertUnprocessable();
-        $created = $this->postJson($this->url('farms/'.$this->farm->id.'/projections'), [...$period, 'projected_income' => '0'])->assertCreated();
-        $this->patchJson($this->url('projections/'.$created->json('data.id')), ['projected_income' => null])->assertUnprocessable();
-        $this->postJson($this->url('farms/'.$this->farm->id.'/budgets'), [...$period, 'budget_amount' => '100', 'category_id' => (string) Str::uuid()])->assertUnprocessable();
-        $this->postJson($this->url('farms/'.$this->farm->id.'/budgets'), [...$period, 'budget_amount' => '100', 'created_by' => $this->admin->id])->assertUnprocessable();
-    }
-
-    public function test_optional_plan_links_can_be_cleared_and_server_metadata_cannot_be_replaced(): void
-    {
-        $period = ['period_start' => '2026-10-01', 'period_end' => '2026-12-31'];
-        $budget = $this->postJson($this->url('farms/'.$this->farm->id.'/budgets'), [
-            ...$period, 'budget_amount' => '100', 'category_id' => $this->expense->id,
-        ])->assertCreated()->assertJsonPath('data.created_by', $this->admin->id)->json('data.id');
-        $this->patchJson($this->url('budgets/'.$budget), ['category_id' => null])->assertOk()->assertJsonPath('data.category_id', null);
-        $this->patchJson($this->url('budgets/'.$budget), ['created_by' => $this->admin->id])->assertUnprocessable();
-        $cycle = $this->cycle($this->farm);
-        $projection = $this->postJson($this->url('farms/'.$this->farm->id.'/projections'), [
-            ...$period, 'projected_income' => '100', 'planting_cycle_id' => $cycle->id,
-        ])->assertCreated()->json('data.id');
-        $this->patchJson($this->url('projections/'.$projection), ['planting_cycle_id' => null])->assertOk()->assertJsonPath('data.planting_cycle_id', null);
-        $this->patchJson($this->url('projections/'.$projection), ['calculated_at' => '2020-01-01'])->assertUnprocessable();
-        $transaction = $this->transaction();
-        $this->patchJson($this->url('transactions/'.$transaction->id), ['recorded_by' => $this->admin->id])->assertUnprocessable();
-    }
-
-    public function test_literal_search_filters_and_unallocated_records_never_appear_in_totals(): void
+    public function test_unallocated_transactions_are_invisible_and_team_membership_cannot_be_forged(): void
     {
         $transaction = $this->transaction();
-        $transaction->update(['description' => 'Pembayaran 100% hasil panen']);
-        $unallocated = $this->transaction(null, '1000000');
-        $unallocated->update(['farm_id' => null]);
-        $this->getJson($this->url('transactions?search=%25'))->assertOk()->assertJsonPath('meta.total', 1);
-        $this->getJson($this->url('transactions?search=tidaktersedia'))->assertOk()->assertJsonPath('meta.total', 0);
-        $this->getJson($this->url('transactions?category_id='.$this->income->id))->assertOk()->assertJsonPath('meta.total', 1);
-        $this->getJson($this->url('transactions/'.$unallocated->id))->assertForbidden();
-        $this->getJson($this->url('summary'))->assertOk()->assertJsonPath('data.transaction_count', 1);
-        $this->getJson($this->url('transactions?team_id='.$this->team->id))->assertUnprocessable();
+        $transaction->update(['farm_id' => null]);
+        $this->get('/finance/transactions/'.$transaction->id)->assertForbidden();
+        $this->get('/finance?year=2026&period=Q4')->assertInertia(fn (Assert $page) => $page->where('transactions.total', 0));
+        $this->team->members()->detach($this->admin);
+        $this->admin->unsetRelation('teams')->unsetRelation('currentTeam');
+        $this->get('/finance')->assertForbidden();
     }
 
-    public function test_owner_in_multiple_teams_and_superadmin_still_get_route_specific_lists(): void
-    {
-        $owner = User::factory()->create(['role' => 'owner']);
-        $otherTeam = Team::factory()->create();
-        $this->join($owner, $this->team);
-        $this->join($owner, $otherTeam);
-        $local = $this->transaction();
-        $remote = $this->transaction($this->farm($otherTeam), '1000');
-        $this->actingAs($owner);
-        $this->getJson($this->url('transactions'))->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $local->id);
-        $this->getJson($this->url('transactions', $otherTeam))->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $remote->id);
-        $this->getJson($this->url('transactions/'.$remote->id))->assertForbidden();
-        $superadmin = User::factory()->create(['role' => 'superadmin']);
-        $this->join($superadmin, $this->team);
-        $this->actingAs($superadmin);
-        $this->getJson($this->url('transactions'))->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $local->id);
-    }
-
-    public function test_guests_cannot_read_or_write_finance(): void
+    public function test_guests_are_redirected_and_web_mutations_require_csrf(): void
     {
         auth()->logout();
-        $this->getJson($this->url('transactions'))->assertUnauthorized();
-        $this->getJson($this->url('summary'))->assertUnauthorized();
-        $this->postJson($this->url('categories'), ['name' => 'Benih', 'transaction_type' => 'expense'])->assertUnauthorized();
+        $this->get('/finance')->assertRedirect(route('login'));
+        $this->get('/finance/categories')->assertRedirect(route('login'));
+        $this->post('/finance/categories', ['name' => 'Benih', 'transaction_type' => 'expense'])->assertRedirect(route('login'));
+        $this->actingAs($this->admin);
+        $this->app->instance('env', 'local');
+        try {
+            $this->post('/finance/categories', ['name' => 'Benih', 'transaction_type' => 'expense'])->assertStatus(419);
+        } finally {
+            $this->app->instance('env', 'testing');
+        }
     }
 }

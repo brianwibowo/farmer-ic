@@ -19,7 +19,7 @@ trait RedirectsToCurrentTeam
                 $request->session()->forget('url.intended');
             }
 
-            return route($adminAccess ? 'dashboard' : 'home', absolute: false);
+            return route($adminAccess ? 'admin.dashboard' : 'home', absolute: false);
         }
 
         $team = $this->currentTeam($request);

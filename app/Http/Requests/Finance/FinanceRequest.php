@@ -2,10 +2,19 @@
 
 namespace App\Http\Requests\Finance;
 
+use App\Models\Team;
 use Illuminate\Foundation\Http\FormRequest;
 
-abstract class FinanceRequest extends FormRequest
+class FinanceRequest extends FormRequest
 {
+    public function team(): Team
+    {
+        $team = $this->user()?->currentTeam;
+        abort_unless($team instanceof Team, 403, 'Pilih tim aktif untuk mengakses keuangan.');
+
+        return $team;
+    }
+
     public function authorize(): bool
     {
         // Controllers authorize the resolved resource or persisted parent.
