@@ -29,6 +29,16 @@ class DashboardTest extends TestCase
             ->get(route('admin.dashboard'));
 
         $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard')
+            ->has('dashboard.metrics', 4)
+            ->has('dashboard.activity.days', 7)
+            ->has('dashboard.financial')
+            ->has('dashboard.landMap.farms')
+            ->has('dashboard.activities')
+            ->has('dashboard.officers')
+            ->has('dashboard.tasks')
+        );
     }
 
     public function test_dashboard_includes_pending_invitations_for_the_authenticated_user()

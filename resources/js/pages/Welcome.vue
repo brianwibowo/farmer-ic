@@ -2,11 +2,11 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { login } from '@/routes';
-import { dashboard } from '@/routes/admin';
+import admin from '@/routes/admin';
 
 const page = usePage();
 const dashboardUrl = computed(() =>
-    page.props.navigation?.admin ? dashboard().url : '/',
+    page.props.navigation?.admin ? admin.home().url : '/',
 );
 </script>
 

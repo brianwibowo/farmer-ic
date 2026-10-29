@@ -16,7 +16,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes/admin';
+import admin from '@/routes/admin';
 import type { NavItem } from '@/types';
 
 defineProps<{ adminTheme?: boolean }>();
@@ -24,7 +24,7 @@ defineProps<{ adminTheme?: boolean }>();
 const page = usePage();
 
 const dashboardUrl = computed(() =>
-    page.props.navigation?.admin ? dashboard().url : '/',
+    page.props.navigation?.admin ? admin.home().url : '/',
 );
 
 const mainNavItems = computed<NavItem[]>(() => [
