@@ -86,7 +86,7 @@ Table farms {
   created_at timestamptz [not null]
   updated_at timestamptz
   team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
-  land_tenure varchar(20) [note: 'owned | rented; null for legacy farms until confirmed']
+  land_tenure varchar(20) [note: 'owned | rented | partnership; null for legacy farms until confirmed']
   Note: 'Master lahan. Memiliki blok permanen; pembagian subblok disimpan sebagai batch pada planting_cycles.'
 }
 

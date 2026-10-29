@@ -5,10 +5,10 @@ export type FarmDeletionSummary = {
     blockers: string[];
     token: string;
 };
-export type LandTenure = 'owned' | 'rented';
+export type LandTenure = 'owned' | 'rented' | 'partnership';
 
 export function landTenureLabel(value: LandTenure | null): string {
-    return value === 'owned' ? 'Milik sendiri' : value === 'rented' ? 'Sewa' : 'Belum diisi';
+    return value === 'owned' ? 'Milik sendiri' : value === 'rented' ? 'Sewa' : value === 'partnership' ? 'Kerja sama' : 'Belum diisi';
 }
 
 export type FarmRow = {

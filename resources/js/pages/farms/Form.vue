@@ -63,6 +63,7 @@ function submit(): void {
                                 <option value="" disabled>Pilih status lahan</option>
                                 <option value="owned">Milik sendiri</option>
                                 <option value="rented">Sewa</option>
+                                <option value="partnership">Kerja sama</option>
                             </select>
                         </FarmField>
                         <FarmField id="farm-owner" label="Pemilik kebun" :error="form.errors.owner_id" hint="Opsional. Pilih Owner aktif yang menjadi anggota tim kebun." v-slot="field"><select :id="field.id" v-model="form.owner_id" class="admin-field" :aria-invalid="field.invalid" :aria-describedby="field.description"><option value="">Belum ditentukan</option><option v-for="owner in owners" :key="owner.id" :value="owner.id">{{ owner.name }}</option></select></FarmField>

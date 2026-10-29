@@ -79,7 +79,7 @@ class FarmManagementTest extends TestCase
         $this->patchJson('/api/kebun/'.$id, ['name' => 'Kebun Baru'])->assertOk()
             ->assertJsonPath('data.total_area_ha', '12.5000');
         $this->putJson('/api/kebun/'.$id, ['name' => 'Kebun Baru'])->assertUnprocessable()->assertJsonValidationErrors('total_area_ha');
-        $this->putJson('/api/kebun/'.$id, ['name' => 'Kebun Pengganti', 'land_tenure' => 'rented', 'total_area_ha' => '20.0000'])->assertOk()->assertJsonPath('data.land_tenure', 'rented');
+        $this->putJson('/api/kebun/'.$id, ['name' => 'Kebun Pengganti', 'land_tenure' => 'partnership', 'total_area_ha' => '20.0000'])->assertOk()->assertJsonPath('data.land_tenure', 'partnership');
         $this->deleteJson('/api/kebun/'.$id)->assertNoContent();
         $this->getJson('/api/kebun/'.$id)->assertNotFound();
         $this->assertDatabaseMissing('farms', ['id' => $id]);

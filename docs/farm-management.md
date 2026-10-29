@@ -44,12 +44,17 @@ reference. The photo reference is a link; this feature does not upload files or
 load remote images.
 
 Land tenure (`farms.land_tenure`) is required for create and full update: `owned`
-(Milik sendiri) or `rented` (Sewa). It describes land use/possession and is separate
+(Milik sendiri), `rented` (Sewa), or `partnership` (Kerja sama). It describes land use/possession and is separate
 from the application Owner role. The additive migration leaves older records
 null (Belum diisi); partial updates may preserve that unknown state. PostgreSQL
 also rejects other non-null values. Fresh demo seed data explicitly uses owned;
 this migration never guesses the status of existing farms. Rental periods and
 costs are outside this change.
+
+The follow-up `2026_10_29_140000` migration expands the existing check constraint
+without changing stored values. Rolling it back is rejected by PostgreSQL while
+any farm uses `partnership`; it never silently converts or clears that status.
+Contract terms and profit sharing for cooperative land are outside this field.
 
 `FarmLocationMap` replaces the numeric inputs. Users click the map or drag the
 pin; keyboard users can pan with arrow keys and select the map center. Removing

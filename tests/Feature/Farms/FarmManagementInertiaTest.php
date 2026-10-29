@@ -227,7 +227,7 @@ class FarmManagementInertiaTest extends TestCase
 
     public function test_empty_farms_can_be_deleted_regardless_of_land_tenure(): void
     {
-        foreach ([null, 'owned', 'rented'] as $tenure) {
+        foreach ([null, 'owned', 'rented', 'partnership'] as $tenure) {
             $farm = $this->farm(['land_tenure' => $tenure]);
             $this->delete('/admin/farm-management/'.$farm->id)->assertRedirect('/admin/farm-management');
             $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
@@ -236,7 +236,7 @@ class FarmManagementInertiaTest extends TestCase
 
     public function test_tenure_and_selected_pin_are_persisted_and_returned_on_all_farm_pages(): void
     {
-        foreach (['owned', 'rented'] as $tenure) {
+        foreach (['owned', 'rented', 'partnership'] as $tenure) {
             $response = $this->post('/admin/farm-management', $this->payload([
                 'name' => 'Kebun '.$tenure, 'land_tenure' => $tenure,
                 'latitude' => '-6.5965123', 'longitude' => '106.9502123',
@@ -250,7 +250,7 @@ class FarmManagementInertiaTest extends TestCase
             }
         }
         $this->get('/admin/farm-management')->assertInertia(fn (Assert $page) => $page
-            ->where('farms.data.0.land_tenure', 'owned')->where('farms.data.1.land_tenure', 'rented'));
+            ->where('farms.data.0.land_tenure', 'owned')->where('farms.data.1.land_tenure', 'partnership')->where('farms.data.2.land_tenure', 'rented'));
         $this->put('/admin/farm-management/'.$farm->id, $this->payload([
             'land_tenure' => 'owned', 'latitude' => null, 'longitude' => null,
         ]))->assertRedirect();
@@ -286,8 +286,8 @@ class FarmManagementInertiaTest extends TestCase
         $this->get('/admin/farm-management/'.$farm->id)->assertInertia(fn (Assert $page) => $page->where('farm.land_tenure', null));
         $this->patch('/admin/farm-management/'.$farm->id, ['name' => 'Kebun historis'])->assertRedirect();
         $this->assertNull($farm->fresh()->land_tenure);
-        $this->patch('/admin/farm-management/'.$farm->id, ['land_tenure' => 'rented'])->assertRedirect();
-        $this->assertSame('rented', $farm->fresh()->land_tenure);
+        $this->patch('/admin/farm-management/'.$farm->id, ['land_tenure' => 'partnership'])->assertRedirect();
+        $this->assertSame('partnership', $farm->fresh()->land_tenure);
     }
 
     public function test_additive_tenure_migration_preserves_existing_farms_and_enforces_values(): void
@@ -308,6 +308,43 @@ class FarmManagementInertiaTest extends TestCase
             $this->assertSame('23514', (string) $exception->getCode());
         }
         $this->assertNull($farm->fresh()->land_tenure);
+    }
+
+    public function test_partnership_upgrade_preserves_tenures_and_rollback_does_not_relabel_farms(): void
+    {
+        $migration = require database_path('migrations/2026_10_29_140000_allow_partnership_land_tenure_on_farms.php');
+        $legacy = $this->farm(['land_tenure' => null]);
+        $owned = $this->farm(['land_tenure' => 'owned']);
+        $rented = $this->farm(['land_tenure' => 'rented']);
+        $migration->down();
+        try {
+            DB::transaction(fn () => DB::table('farms')->where('id', $owned->id)->update(['land_tenure' => 'partnership']));
+            $this->fail('The previous constraint must reject partnership.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23514', (string) $exception->getCode());
+        }
+        $migration->up();
+        $this->assertNull($legacy->fresh()->land_tenure);
+        $this->assertSame('owned', $owned->fresh()->land_tenure);
+        $this->assertSame('rented', $rented->fresh()->land_tenure);
+        $partnership = $this->farm(['land_tenure' => 'partnership']);
+        foreach (['invalid', 'cooperative'] as $invalid) {
+            try {
+                DB::transaction(fn () => DB::table('farms')->where('id', $partnership->id)->update(['land_tenure' => $invalid]));
+                $this->fail('The expanded constraint must reject unknown values.');
+            } catch (QueryException $exception) {
+                $this->assertSame('23514', (string) $exception->getCode());
+            }
+        }
+        try {
+            DB::transaction(fn () => $migration->down());
+            $this->fail('Rollback must refuse existing partnership farms.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23514', (string) $exception->getCode());
+        }
+        $this->assertSame('partnership', $partnership->fresh()->land_tenure);
+        // Failed rollback keeps the expanded constraint available for new records.
+        $this->assertSame('partnership', $this->farm(['land_tenure' => 'partnership'])->fresh()->land_tenure);
     }
 
     private function actor(string $role, Team $team): User
