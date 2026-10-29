@@ -21,7 +21,7 @@ function remove(): void {
 
 <template>
     <Dialog :open="!!farm" @update:open="(open) => { if (!open && !form.processing) emit('close'); }">
-        <DialogContent class="farm-management-theme rounded-xl bg-card text-foreground" :show-close-button="!form.processing" @escape-key-down="(event) => { if (form.processing) event.preventDefault(); }" @interact-outside="(event) => { if (form.processing) event.preventDefault(); }">
+        <DialogContent class="admin-dashboard-theme rounded-xl bg-card text-foreground" :show-close-button="!form.processing" @escape-key-down="(event) => { if (form.processing) event.preventDefault(); }" @interact-outside="(event) => { if (form.processing) event.preventDefault(); }">
             <div class="flex size-12 items-center justify-center rounded-xl bg-error/10 text-error"><AlertTriangle class="size-6" /></div>
             <DialogTitle>Hapus kebun?</DialogTitle>
             <DialogDescription class="text-muted-foreground">Kebun <strong>{{ farm?.name }}</strong> akan dihapus permanen. Kebun yang memiliki histori operasional tidak dapat dihapus.</DialogDescription>

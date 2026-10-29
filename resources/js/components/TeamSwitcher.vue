@@ -18,6 +18,7 @@ import type { Team } from '@/types';
 const props = withDefaults(
     defineProps<{
         inHeader?: boolean;
+        adminTheme?: boolean;
     }>(),
     {
         inHeader: false,
@@ -134,7 +135,10 @@ onUnmounted(() => {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
-            :class="menuContentClass"
+            :class="[
+                menuContentClass,
+                props.adminTheme ? 'admin-dashboard-theme' : undefined,
+            ]"
             :side="props.inHeader ? undefined : isMobile ? 'bottom' : 'right'"
             :align="props.inHeader ? 'end' : 'start'"
             :side-offset="props.inHeader ? undefined : 4"
@@ -157,7 +161,7 @@ onUnmounted(() => {
             </DropdownMenuItem>
             <template v-if="canCreateTeam">
                 <DropdownMenuSeparator />
-                <CreateTeamModal>
+                <CreateTeamModal :admin-theme="props.adminTheme">
                     <DropdownMenuItem
                         data-test="team-switcher-new-team"
                         :class="teamItemClass"

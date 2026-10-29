@@ -17,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { store } from '@/routes/teams';
 
+defineProps<{ adminTheme?: boolean }>();
+
 const open = ref(false);
 const formKey = ref(0);
 
@@ -34,7 +36,9 @@ function handleOpenChange(value: boolean) {
         <DialogTrigger as-child>
             <slot />
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent
+            :class="adminTheme ? 'admin-dashboard-theme' : undefined"
+        >
             <Form
                 :key="formKey"
                 v-bind="store.form()"

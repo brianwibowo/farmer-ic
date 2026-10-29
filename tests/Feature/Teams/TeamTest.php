@@ -240,7 +240,7 @@ class TeamTest extends TestCase
         $this->assertEquals($personalTeam->id, $user->fresh()->current_team_id);
     }
 
-    public function test_members_can_leave_non_personal_teams()
+    public function test_members_without_leave_grant_cannot_leave_non_personal_teams()
     {
         $owner = User::factory()->create(['role' => 'superadmin']);
         $member = User::factory()->create(['role' => 'petugas']);
@@ -253,10 +253,8 @@ class TeamTest extends TestCase
             ->actingAs($member)
             ->delete(route('teams.leave', $team));
 
-        $response->assertRedirect(route('teams.index'));
-        $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => "You left the team \"{$team->name}\""]);
-
-        $this->assertFalse($member->fresh()->belongsToTeam($team));
+        $response->assertForbidden();
+        $this->assertTrue($member->fresh()->belongsToTeam($team));
     }
 
     public function test_leaving_current_team_switches_to_alphabetically_first_remaining_team()

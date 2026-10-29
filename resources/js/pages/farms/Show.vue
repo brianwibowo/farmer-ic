@@ -16,7 +16,7 @@ const coordinates = props.farm.latitude !== null && props.farm.longitude !== nul
     <div class="space-y-6">
         <Link href="/admin/farm-management" class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"><ArrowLeft class="size-4" />Daftar kebun</Link>
         <header class="flex flex-wrap items-start justify-between gap-4">
-            <div><p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Detail kebun</p><h1 class="text-2xl font-bold tracking-tight md:text-3xl">{{ farm.name }}</h1><p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground"><MapPin class="size-4 shrink-0" />{{ [farm.city, farm.province].filter(Boolean).join(', ') || 'Lokasi belum diisi' }}</p></div>
+            <div><p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Detail kebun</p><h1 class="admin-page-title tracking-tight">{{ farm.name }}</h1><p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground"><MapPin class="size-4 shrink-0" />{{ [farm.city, farm.province].filter(Boolean).join(', ') || 'Lokasi belum diisi' }}</p></div>
             <div class="flex flex-wrap gap-2"><Button v-if="can.delete" variant="outline" class="h-10 rounded-xl text-error" @click="deleting = true"><Trash2 />Hapus</Button><Button v-if="can.update" as-child class="h-10 rounded-xl"><Link :href="`/admin/farm-management/${farm.id}/edit`"><Pencil />Ubah kebun</Link></Button></div>
         </header>
         <div class="grid gap-4 sm:grid-cols-3">
@@ -24,11 +24,11 @@ const coordinates = props.farm.latitude !== null && props.farm.longitude !== nul
                 { label: 'Luas terdaftar', value: hectares(farm.total_area_ha), unit: 'ha', icon: LandPlot },
                 { label: 'Luas tanam aktif', value: hectares(farm.active_area_ha), unit: 'ha', icon: Sprout },
                 { label: 'Siklus tanam aktif', value: farm.active_cycles, unit: 'siklus', icon: ClipboardList },
-            ]" :key="metric.label" class="rounded-xl border border-border bg-card p-5"><div class="flex items-center justify-between"><h2 class="text-sm text-muted-foreground">{{ metric.label }}</h2><component :is="metric.icon" class="size-5 text-primary" /></div><p class="mt-4 text-3xl font-bold">{{ metric.value }} <span class="text-xs font-medium text-muted-foreground">{{ metric.unit }}</span></p></section>
+            ]" :key="metric.label" class="rounded-xl border border-border bg-card p-5"><div class="flex items-center justify-between"><h2 class="text-sm text-muted-foreground">{{ metric.label }}</h2><component :is="metric.icon" class="size-5 text-primary" /></div><p class="admin-metric-value mt-4">{{ metric.value }} <span class="text-xs font-medium text-muted-foreground">{{ metric.unit }}</span></p></section>
         </div>
         <div class="grid items-start gap-5 lg:grid-cols-3">
             <section class="rounded-xl border border-border bg-card p-5 md:p-6 lg:col-span-2">
-                <h2 class="text-base font-semibold">Informasi lahan</h2><p class="mt-1 text-xs text-muted-foreground">Identitas dan alamat yang tercatat di sistem.</p>
+                <h2 class="admin-section-title">Informasi lahan</h2><p class="mt-1 text-xs text-muted-foreground">Identitas dan alamat yang tercatat di sistem.</p>
                 <dl class="mt-6 grid gap-6 sm:grid-cols-2">
                     <div><dt class="text-xs text-muted-foreground">Nama kebun</dt><dd class="mt-1.5 font-medium">{{ farm.name }}</dd></div>
                     <div><dt class="text-xs text-muted-foreground">Tim</dt><dd class="mt-1.5 font-medium">{{ farm.team_name }}</dd></div>
@@ -41,8 +41,8 @@ const coordinates = props.farm.latitude !== null && props.farm.longitude !== nul
                 </dl>
             </section>
             <div class="space-y-5">
-                <section class="rounded-xl border border-border bg-card p-5"><div class="mb-3 flex items-center gap-2"><MapPin class="size-5 text-primary" /><h2 class="font-semibold">Koordinat lahan</h2></div><dl v-if="coordinates" class="space-y-3"><div><dt class="text-xs text-muted-foreground">Latitude</dt><dd class="mt-1 font-medium tabular-nums">{{ farm.latitude }}</dd></div><div><dt class="text-xs text-muted-foreground">Longitude</dt><dd class="mt-1 font-medium tabular-nums">{{ farm.longitude }}</dd></div></dl><p v-else class="text-sm leading-6 text-muted-foreground">Koordinat belum dicatat. Lengkapi pada halaman ubah kebun.</p></section>
-                <section v-if="can.dailyLogs" class="rounded-xl border border-border bg-accent p-5 text-accent-foreground"><ClipboardList class="mb-3 size-6" /><h2 class="font-semibold">Logbook harian</h2><p class="mt-2 text-sm leading-6">Lihat laporan dan hasil kegiatan yang dicatat untuk kebun ini.</p><Button as-child class="mt-4 h-10 w-full rounded-xl"><Link :href="`/kebun/${farm.id}/daily-logs`">Buka logbook</Link></Button></section>
+                <section class="rounded-xl border border-border bg-card p-5"><div class="mb-3 flex items-center gap-2"><MapPin class="size-5 text-primary" /><h2 class="admin-section-title">Koordinat lahan</h2></div><dl v-if="coordinates" class="space-y-3"><div><dt class="text-xs text-muted-foreground">Latitude</dt><dd class="mt-1 font-medium tabular-nums">{{ farm.latitude }}</dd></div><div><dt class="text-xs text-muted-foreground">Longitude</dt><dd class="mt-1 font-medium tabular-nums">{{ farm.longitude }}</dd></div></dl><p v-else class="text-sm leading-6 text-muted-foreground">Koordinat belum dicatat. Lengkapi pada halaman ubah kebun.</p></section>
+                <section v-if="can.dailyLogs" class="rounded-xl border border-border bg-accent p-5 text-accent-foreground"><ClipboardList class="mb-3 size-6" /><h2 class="admin-section-title">Logbook harian</h2><p class="mt-2 text-sm leading-6">Lihat laporan dan hasil kegiatan yang dicatat untuk kebun ini.</p><Button as-child class="mt-4 h-10 w-full rounded-xl"><Link :href="`/kebun/${farm.id}/daily-logs`">Buka logbook</Link></Button></section>
             </div>
         </div>
     </div>

@@ -14,6 +14,7 @@ import type { DashboardInvitation } from '@/types';
 
 type Props = {
     invitations: DashboardInvitation[];
+    adminTheme?: boolean;
 };
 
 const props = defineProps<Props>();
@@ -43,7 +44,10 @@ const declineInvitation = (invitation: DashboardInvitation) => {
 
 <template>
     <Dialog v-model:open="open">
-        <DialogContent data-test="pending-invitations-modal">
+        <DialogContent
+            :class="adminTheme ? 'admin-dashboard-theme' : undefined"
+            data-test="pending-invitations-modal"
+        >
             <DialogHeader>
                 <DialogTitle>Pending team invitations</DialogTitle>
                 <DialogDescription>

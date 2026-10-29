@@ -373,6 +373,17 @@ its main content `min-h-0 overflow-y-auto` so long pages remain reachable.
 
 ## Implementation rules for Farmer IC
 
+Admin dashboard screens share `resources/css/admin-dashboard-styling.css` for
+their light/dark tokens, typography, and field states. Apply the
+`admin-dashboard-theme` class to admin layouts and portal content. Use
+`admin-page-title` for the main page title, `admin-navbar-title` for the navbar,
+`admin-section-title` for section headings, `admin-metric-value` for metric
+values, and `admin-field` for admin inputs. `admin-field--large` provides the
+large input size; `data-status="success"`, `"warning"`, or `"info"` adds a
+semantic border, while `aria-invalid="true"` marks an error. This stylesheet
+implements the design rules in this document; farmer/mobile screens keep their
+separate theme.
+
 - Use Laravel + Inertia + Vue 3 with `<script setup>` and the Composition API.
   Follow the MVC + Service architecture and authorization rules in `AGENTS.md`.
 - Persist operational records in the database and load them through controllers

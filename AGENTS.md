@@ -111,6 +111,25 @@ current handoff status is recorded in
   change their behavior without reporting it first.
 - To change role permissions, edit `config/access.php` and the corresponding
   authorization tests. Do not add a dynamic admin UI to manage roles.
+- Superadmin User Management at `/admin/user-management` may assign an existing
+  fixed application role, tenant memberships, and a petugas farm. It must not
+  edit role definitions or grants. See `docs/user-management.md` for assignment
+  invariants, account deletion, and password behavior.
+- Tenant Admins can enter the same page with exactly one persisted non-personal
+  tenant. UserPolicy limits their targets to Admin/Petugas in that tenant.
+  They may create Admin/Petugas, but cannot change an existing account's role
+  or tenant. Only Petugas farm assignment within that tenant may be configured.
+  Use users.manage for page admission and users.configure for assignment edits;
+  users.manageAll and access.global remain exclusive to Gate::before Superadmin.
+- Deleted users can be listed and restored only by Superadmin or tenant Admins
+  with users.view and users.restore. Admins may restore only Admin/Petugas in
+  their single tenant. Soft deletion retains membership and referenced records;
+  physical deletion still follows database foreign keys.
+- Owners may read User Management across their associated non-personal tenants.
+  Combine the existing `visibleTo($owner, $team)` queries for those teams;
+  scope filters, totals, related teams, and farms to the same memberships.
+  The `users.view` grant is required and all mutation actions remain denied by
+  the matrix. This is not a global bypass and must not expose other tenants.
 
 ### Idiomatic structure (required)
 
@@ -151,8 +170,8 @@ current handoff status is recorded in
 
 ### Resources and abilities
 
-Policy abilities are `viewAny`, `view`, `create`, `update`, `delete`, and
-`configure`. A matrix key is `{prefix}.{ability}` (for example
+Policy abilities include `viewAny`, `view`, `create`, `update`, `delete`,
+`configure`, and the User-specific `restore` and `viewDeletedAny`. A matrix key is `{prefix}.{ability}` (for example
 `planting_cycles.update`); keys are consumed by the policies and are not
 registered as individual Gates. Abilities without a grant deny.
 
@@ -235,6 +254,10 @@ keep it current.
    before pagination, counts, totals, exports, serialization, and AI/RAG
    retrieval. A missing or invalid grant yields an empty result, never all
    rows.
+   Global Superadmin User Management can call visibleTo($actor) without a Team.
+   ResourcePolicy allows this only through the access.global Gate: its normal
+   definition denies and only the existing superadmin Gate::before grants it.
+   Other actors querying without a Team receive no rows.
 4. **Inertia and Vue:** the backend computes booleans with `Gate::allows(...)`
    and passes them as props (for example `can: { update, delete }`). Vue only
    renders them. Hidden buttons and routes are UX, not security. Compute
@@ -338,6 +361,10 @@ keep it current.
   `text-error`. Do not hardcode hex, RGB, or RGBA colors in page or component
   classes. If a needed color, shadow, and related does not exist, then a
   hardcoding of style is allowed/necessary.
+- Admin dashboard, Farm Management, and User Management share
+  `resources/css/admin-dashboard-styling.css` and the `admin-dashboard-theme`
+  class. Define shared admin tokens and input states there; use `admin-field`
+  for admin form controls. Keep Farmer/mobile theme tokens separate.
 - Ensure light mode is default mode, ignoring system dark mode
 - Check every new screen in both light and dark themes. Avoid fixed widths;
   support small, medium, and large phone viewports, including standard,

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Gate;
 trait HasVisibleScope
 {
     /** @param Builder<static> $query */
-    public function scopeVisibleTo(Builder $query, User $user, Team $team): void
+    public function scopeVisibleTo(Builder $query, User $user, ?Team $team = null): void
     {
         $policy = Gate::getPolicyFor($this);
 

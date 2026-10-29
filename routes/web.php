@@ -14,6 +14,7 @@ use App\Http\Controllers\Finance\FinancialCategoryController;
 use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
 use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -61,6 +62,15 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::resource('farm-management', FarmManagementController::class)
         ->parameters(['farm-management' => 'farm'])
         ->whereUuid('farm');
+});
+
+Route::prefix('admin')->middleware(['auth', 'verified', 'can:users.manage'])->group(function (): void {
+    Route::get('user-management/deleted', [UserManagementController::class, 'deleted'])->name('user-management.deleted');
+    Route::patch('user-management/{managedUser}/restore', [UserManagementController::class, 'restore'])
+        ->whereUuid('managedUser')->withTrashed()->name('user-management.restore');
+    Route::resource('user-management', UserManagementController::class)
+        ->parameters(['user-management' => 'managedUser'])
+        ->whereUuid('managedUser');
 });
 
 Route::prefix('{current_team}')

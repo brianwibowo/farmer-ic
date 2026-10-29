@@ -17,6 +17,8 @@ import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import type { Team } from '@/types';
 
+defineProps<{ adminTheme?: boolean }>();
+
 const page = usePage();
 const user = page.props.auth.user;
 const { isMobile, state } = useSidebar();
@@ -40,6 +42,7 @@ const currentTeam = computed(() => page.props.currentTeam as Team | null);
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                     class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                    :class="adminTheme ? 'admin-dashboard-theme' : undefined"
                     :side="
                         isMobile
                             ? 'bottom'

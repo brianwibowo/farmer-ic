@@ -26,6 +26,7 @@ Table users {
   two_factor_confirmed_at timestamp
   remember_token varchar(100)
   assigned_farm_id uuid [ref: > farms.id, note: 'Direct one-farm assignment for petugas; nullable for owner/admin']
+  deleted_at timestamp
 }
 
 Table teams {

@@ -108,9 +108,10 @@ class FarmManagementInertiaTest extends TestCase
             ->assertSessionHasErrors(['team_id', 'created_by']);
         $foreignOwner = $this->actor('owner', $otherTeam);
         $this->post('/admin/farm-management', $this->payload(['owner_id' => $foreignOwner->id]))->assertSessionHasErrors('owner_id');
-        $localOwner = $this->actor('owner', $this->team);
+        $this->actor('owner', $this->team);
         $this->get('/admin/farm-management/create')->assertInertia(fn (Assert $page) => $page
-            ->has('owners', 1)->where('owners.0.id', $localOwner->id));
+            // Admin user visibility intentionally excludes Owner and Superadmin records.
+            ->has('owners', 0));
     }
 
     public function test_web_validation_uses_session_errors_and_preserves_records(): void

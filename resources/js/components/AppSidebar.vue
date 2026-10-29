@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LandPlot, LayoutGrid } from '@lucide/vue';
+import { BookOpen, FolderGit2, LandPlot, LayoutGrid, Users } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -19,6 +19,8 @@ import {
 import { dashboard } from '@/routes/admin';
 import type { NavItem } from '@/types';
 
+defineProps<{ adminTheme?: boolean }>();
+
 const page = usePage();
 
 const dashboardUrl = computed(() =>
@@ -31,7 +33,24 @@ const mainNavItems = computed<NavItem[]>(() => [
         href: dashboardUrl.value,
         icon: LayoutGrid,
     },
-    ...(page.props.navigation?.farms ? [{ title: 'Farm Management', href: '/admin/farm-management', icon: LandPlot }] : []),
+    ...(page.props.navigation?.farms
+        ? [
+              {
+                  title: 'Farm Management',
+                  href: '/admin/farm-management',
+                  icon: LandPlot,
+              },
+          ]
+        : []),
+    ...(page.props.navigation?.users
+        ? [
+              {
+                  title: 'User Management',
+                  href: '/admin/user-management',
+                  icon: Users,
+              },
+          ]
+        : []),
 ]);
 
 const footerNavItems: NavItem[] = [
@@ -49,7 +68,11 @@ const footerNavItems: NavItem[] = [
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar
+        :class="adminTheme ? 'admin-dashboard-theme' : undefined"
+        collapsible="icon"
+        variant="inset"
+    >
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
@@ -60,9 +83,9 @@ const footerNavItems: NavItem[] = [
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
-            <SidebarMenu>
+            <SidebarMenu v-if="page.props.navigation?.teamSwitcher">
                 <SidebarMenuItem>
-                    <TeamSwitcher />
+                    <TeamSwitcher :admin-theme="adminTheme" />
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarHeader>
@@ -73,7 +96,7 @@ const footerNavItems: NavItem[] = [
 
         <SidebarFooter>
             <NavFooter :items="footerNavItems" />
-            <NavUser />
+            <NavUser :admin-theme="adminTheme" />
         </SidebarFooter>
     </Sidebar>
     <slot />

@@ -163,10 +163,12 @@ return [
             'users.create' => 'any',
             'users.update' => 'any',
             'users.delete' => 'any',
+            'users.restore' => 'any',
+            'users.configure' => 'any',
             'weather_records.view' => 'any',
             'weather_records.create' => 'any',
             'weather_records.update' => 'any',
-            'weather_records.delete' => 'any'
+            'weather_records.delete' => 'any',
         ],
 
         'petugas' => [

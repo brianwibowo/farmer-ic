@@ -14,6 +14,16 @@ class AdminPortalTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_team_switcher_sidebar_visibility_follows_application_role(): void
+    {
+        foreach (['owner' => true, 'superadmin' => true, 'admin' => false, 'petugas' => false] as $role => $visible) {
+            $user = $this->actor($role);
+            $this->assertSame($visible, Gate::forUser($user)->allows('navigation.teamSwitcher'));
+            $this->actingAs($user)->get('/settings/profile')->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('navigation.teamSwitcher', $visible));
+        }
+    }
+
     public function test_admin_urls_and_guests(): void
     {
         $this->assertSame('/admin/dashboard', route('admin.dashboard', absolute: false));
@@ -26,7 +36,7 @@ class AdminPortalTest extends TestCase
     public function test_admin_and_superadmin_can_enter_and_get_admin_navigation(): void
     {
         foreach (['admin', 'superadmin'] as $role) {
-            $user = User::factory()->create(['role' => $role]);
+            $user = $this->actor($role);
             $this->actingAs($user)->get('/admin')->assertRedirect('/admin/dashboard');
             $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')->where('navigation.admin', true)->where('navigation.farms', true));
@@ -55,7 +65,7 @@ class AdminPortalTest extends TestCase
 
     public function test_admin_still_needs_valid_persisted_team_membership(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = $this->actor('admin');
         $team = $admin->currentTeam;
         $team->members()->updateExistingPivot($admin->id, ['role' => TeamRole::Member->value]);
         $this->actingAs($admin)->get('/admin/dashboard')->assertOk();
@@ -70,29 +80,29 @@ class AdminPortalTest extends TestCase
         $this->get('/admin/dashboard')->assertForbidden();
     }
 
-    public function test_missing_application_role_and_current_team_deny(): void
+    public function test_missing_role_denies_but_current_team_pointer_is_not_membership_authority(): void
     {
-        $user = User::factory()->create(['role' => 'admin']);
+        $user = $this->actor('admin');
         $user->forceFill(['current_team_id' => null])->save();
         $user->unsetRelation('currentTeam');
-        $this->actingAs($user)->get('/admin/dashboard')->assertForbidden();
+        $this->actingAs($user)->get('/admin/dashboard')->assertOk();
         // Missing relations must deny without inserting an invalid NULL role_id into the integrated schema.
         $user->setRelation('role', null);
         $this->assertFalse(Gate::forUser($user)->allows('admin.access'));
     }
 
-    public function test_unprefixed_admin_pages_are_no_longer_registered(): void
+    public function test_admin_farm_management_is_prefixed_and_team_dashboard_remains_available(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin)->get('/farm-management')->assertNotFound();
-        $this->get('/'.$admin->currentTeam->slug.'/dashboard')->assertNotFound();
+        $this->get('/'.$admin->currentTeam->slug.'/dashboard')->assertOk();
     }
 
     public function test_login_and_authenticated_guest_routes_use_the_correct_landing_page(): void
     {
         foreach (['owner', 'petugas', 'admin', 'superadmin'] as $role) {
             auth()->logout();
-            $user = User::factory()->create(['role' => $role]);
+            $user = $this->actor($role);
             $destination = in_array($role, ['admin', 'superadmin'], true) ? '/admin/dashboard' : '/';
             $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect($destination);
             $this->get('/login')->assertRedirect($destination);
@@ -107,5 +117,17 @@ class AdminPortalTest extends TestCase
         auth()->logout();
         $this->withSession(['url.intended' => url('/kebun')])
             ->post('/login', ['email' => $owner->email, 'password' => 'password'])->assertRedirect('/kebun');
+    }
+
+    private function actor(string $role): User
+    {
+        $user = User::factory()->create(['role' => $role]);
+        if ($role === 'admin') {
+            $team = Team::factory()->create(['is_personal' => false]);
+            $team->members()->attach($user, ['role' => TeamRole::Member->value]);
+            $user->switchTeam($team);
+        }
+
+        return $user;
     }
 }

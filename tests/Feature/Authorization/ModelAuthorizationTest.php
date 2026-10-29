@@ -193,7 +193,7 @@ class ModelAuthorizationTest extends TestCase
             $view = match ($role) {
                 'owner' => true,
                 'superadmin' => true,
-                'admin' => ! str_starts_with($prefix, 'ai_'),
+                'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['teams', 'team_invitations'], true),
                 'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'block_mapping_details', 'daily_activity_logs'], true),
             };
             $unlinked = false;
@@ -207,7 +207,7 @@ class ModelAuthorizationTest extends TestCase
             $create = match ($role) {
                 'owner' => in_array($prefix, ['ai_conversations', 'ai_messages', 'ai_attachments', 'ai_knowledge_documents'], true),
                 'superadmin' => true,
-                'admin' => ! str_starts_with($prefix, 'ai_'),
+                'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations'], true),
                 'petugas' => in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true),
             };
             $create = $create && ! $unlinked;
@@ -227,15 +227,15 @@ class ModelAuthorizationTest extends TestCase
             $update = ($role === 'superadmin')
                 || ($role === 'owner' && $create)
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true))
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_'));
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations'], true));
             $delete = ($role === 'superadmin') || ($role === 'owner' && $create)
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_'))
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations'], true))
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true));
             $update = $update && ! $unlinked;
             $delete = $delete && ! $unlinked;
             $this->assertSame($update, Gate::forUser($user)->allows('update', $record), $role.' '.$prefix.'.update');
             $this->assertSame($delete, Gate::forUser($user)->allows('delete', $record), $role.' '.$prefix.'.delete');
-            $this->assertSame($role === 'superadmin', Gate::forUser($user)->allows('configure', $record));
+            $this->assertSame($role === 'superadmin' || ($role === 'admin' && $prefix === 'users'), Gate::forUser($user)->allows('configure', $record));
             $this->assertSame($role === 'superadmin', Gate::forUser($user)->allows('forceDelete', $record));
         }
         $this->assertSame(in_array($role, ['owner', 'superadmin'], true), Gate::forUser($user)->allows('ai.access', $team));
@@ -255,7 +255,7 @@ class ModelAuthorizationTest extends TestCase
                 if ($permission !== 'ai.access') {
                     [$prefix, $ability] = explode('.', $permission);
                     $this->assertContains($prefix, $prefixes);
-                    $this->assertContains($ability, ['view', 'create', 'update', 'delete', 'configure', 'leave']);
+                    $this->assertContains($ability, ['view', 'create', 'update', 'delete', 'configure', 'leave', 'restore']);
                 } else {
                     $this->assertSame('owner', $role);
                 }

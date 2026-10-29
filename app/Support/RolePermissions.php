@@ -58,6 +58,14 @@ final class RolePermissions
             && $user->belongsToTeam($team);
     }
 
+    public function singleTenant(User $user): ?Team
+    {
+        $teams = $user->teams()->where('teams.is_personal', false)->limit(2)->get();
+        $team = $teams->count() === 1 ? $teams->first() : null;
+
+        return $team instanceof Team && $this->withinTeam($user, $team) ? $team : null;
+    }
+
     public function withinTeamMembershipLimit(User $user): bool
     {
         $role = $this->roleName($user);

@@ -2,6 +2,7 @@ import type { Directive } from 'vue';
 import type { Auth } from '@/types/auth';
 import type { AccountProfile } from '@/types/auth';
 import type { Team } from '@/types/teams';
+import type { UserManagementScope } from '@/types/user-management';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -23,10 +24,16 @@ declare module '@inertiajs/core' {
             auth: Auth;
             account?: AccountProfile | null;
             sidebarOpen: boolean;
-            navigation?: { admin: boolean; farms: boolean };
+            navigation?: {
+                admin: boolean;
+                farms: boolean;
+                users: boolean;
+                teamSwitcher: boolean;
+            };
             currentTeam: Team | null;
             teams: Team[];
             canCreateTeam: boolean;
+            userManagementScope?: UserManagementScope;
             [key: string]: unknown;
         };
     }

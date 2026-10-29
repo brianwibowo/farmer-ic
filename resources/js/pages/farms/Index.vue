@@ -39,7 +39,7 @@ function reset(): void {
         <header class="flex flex-wrap items-center justify-between gap-4">
             <div>
                 <p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Operasional / Kebun</p>
-                <h1 class="text-2xl font-bold tracking-tight md:text-3xl">Kelola kebun</h1>
+                <h1 class="admin-page-title tracking-tight">Kelola kebun</h1>
                 <p class="mt-2 text-sm leading-6 text-muted-foreground">Pantau dan kelola lahan yang dapat kamu akses.</p>
             </div>
             <Button v-if="can.create" as-child class="h-10 rounded-xl"><Link href="/admin/farm-management/create"><Plus /> Tambah kebun</Link></Button>
@@ -52,23 +52,23 @@ function reset(): void {
                 { label: 'Wilayah kota/kabupaten', value: summary.cities, icon: Building2, unit: 'wilayah' },
             ]" :key="item.label" class="rounded-xl border border-border bg-card p-5">
                 <div class="flex items-center justify-between gap-3"><p class="text-sm text-muted-foreground">{{ item.label }}</p><component :is="item.icon" class="size-5 text-primary" aria-hidden="true" /></div>
-                <p class="mt-4 text-3xl font-bold tracking-tight">{{ item.value }} <span class="text-xs font-medium text-muted-foreground">{{ item.unit }}</span></p>
+                <p class="admin-metric-value mt-4 tracking-tight">{{ item.value }} <span class="text-lg font-medium text-muted-foreground ml-2">{{ item.unit }}</span></p>
             </div>
         </div>
 
         <section class="overflow-hidden rounded-xl border border-border bg-card">
             <div class="border-b border-border p-4 md:p-5">
-                <div class="mb-4 flex items-center gap-2"><h2 class="text-base font-semibold">Daftar kebun</h2><span class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">{{ farms.total }}</span></div>
+                <div class="mb-4 flex items-center gap-2"><h2 class="admin-section-title">Daftar kebun</h2><span class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">{{ farms.total }}</span></div>
                 <form class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-4" @submit.prevent="apply">
                     <FarmField id="farm-search" label="Cari kebun" :error="filters.errors.search" v-slot="field">
-                        <div class="relative"><Search class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" aria-hidden="true" /><input :id="field.id" v-model="filters.search" class="farm-field pl-9!" type="search" placeholder="Nama atau lokasi kebun" maxlength="150" :aria-invalid="field.invalid" :aria-describedby="field.description" /></div>
+                        <div class="relative"><Search class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" aria-hidden="true" /><input :id="field.id" v-model="filters.search" class="admin-field pl-9!" type="search" placeholder="Nama atau lokasi kebun" maxlength="150" :aria-invalid="field.invalid" :aria-describedby="field.description" /></div>
                     </FarmField>
-                    <FarmField id="farm-city" label="Kota / kabupaten" :error="filters.errors.city" v-slot="field"><input :id="field.id" v-model="filters.city" class="farm-field" placeholder="Semua kota" maxlength="100" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
-                    <FarmField id="farm-province" label="Provinsi" :error="filters.errors.province" v-slot="field"><input :id="field.id" v-model="filters.province" class="farm-field" placeholder="Semua provinsi" maxlength="100" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
-                    <FarmField id="farm-sort" label="Urutkan" :error="filters.errors.sort" v-slot="field"><select :id="field.id" v-model="filters.sort" class="farm-field"><option value="name">Nama kebun</option><option value="total_area_ha">Luas lahan</option><option value="created_at">Waktu dibuat</option></select></FarmField>
+                    <FarmField id="farm-city" label="Kota / kabupaten" :error="filters.errors.city" v-slot="field"><input :id="field.id" v-model="filters.city" class="admin-field" placeholder="Semua kota" maxlength="100" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
+                    <FarmField id="farm-province" label="Provinsi" :error="filters.errors.province" v-slot="field"><input :id="field.id" v-model="filters.province" class="admin-field" placeholder="Semua provinsi" maxlength="100" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
+                    <FarmField id="farm-sort" label="Urutkan" :error="filters.errors.sort" v-slot="field"><select :id="field.id" v-model="filters.sort" class="admin-field"><option value="name">Nama kebun</option><option value="total_area_ha">Luas lahan</option><option value="created_at">Waktu dibuat</option></select></FarmField>
                     <div class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-4">
-                        <select v-model="filters.direction" class="farm-field w-auto!" aria-label="Arah urutan"><option value="asc">Naik</option><option value="desc">Turun</option></select>
-                        <select v-model.number="filters.per_page" class="farm-field w-auto!" aria-label="Jumlah kebun per halaman"><option :value="15">15 / halaman</option><option :value="30">30 / halaman</option><option :value="50">50 / halaman</option></select>
+                        <select v-model="filters.direction" class="admin-field w-auto!" aria-label="Arah urutan"><option value="asc">Naik</option><option value="desc">Turun</option></select>
+                        <select v-model.number="filters.per_page" class="admin-field w-auto!" aria-label="Jumlah kebun per halaman"><option :value="15">15 / halaman</option><option :value="30">30 / halaman</option><option :value="50">50 / halaman</option></select>
                         <Button type="submit" class="h-10 rounded-xl" :disabled="filters.processing"><LoaderCircle v-if="filters.processing" class="animate-spin" /><Search v-else />Terapkan</Button>
                         <Button v-if="hasFilters" type="button" variant="ghost" :disabled="filters.processing" @click="reset">Reset filter</Button>
                     </div>

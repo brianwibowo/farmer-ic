@@ -10,16 +10,18 @@ const props = withDefaults(defineProps<{
   defaultOpen?: boolean
   open?: boolean
   class?: HTMLAttributes["class"]
+  mobileBreakpoint?: number
 }>(), {
   defaultOpen: !defaultDocument?.cookie.includes(`${SIDEBAR_COOKIE_NAME}=false`),
   open: undefined,
+  mobileBreakpoint: 768,
 })
 
 const emits = defineEmits<{
   "update:open": [open: boolean]
 }>()
 
-const isMobile = useMediaQuery("(max-width: 768px)")
+const isMobile = useMediaQuery(computed(() => `(max-width: ${props.mobileBreakpoint}px)`))
 const openMobile = ref(false)
 
 const open = useVModel(props, "open", emits, {

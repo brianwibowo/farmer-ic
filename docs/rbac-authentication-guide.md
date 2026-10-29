@@ -5,6 +5,18 @@ Laravel 13 ini. Matriks peran dan izin yang menjadi sumber utama berada
 di [`config/access.php`](../config/access.php). Dokumen ini menjelaskan alur
 serta cara memakai RBAC di Router, Controller, FormRequest, Service, dan Vue.
 
+Fitur CRUD akun dan assignment untuk Superadmin serta Admin tenant, dan akses
+baca Owner pada tenant yang terasosiasi,
+dijelaskan di [panduan User Management](user-management.md). Aksesnya melalui
+Gate `users.manage`; `users.manageAll` tetap khusus Superadmin. Admin hanya
+mengelola akun Admin/Petugas di tenant-nya, tidak dapat mengganti role akun lama,
+dan hanya dapat menugaskan Petugas ke farm tenant tersebut.
+Owner dapat melihat, mencari, dan memfilter user di tenant non-personal yang
+terasosiasi dengannya tanpa akses create, update, delete, atau assignment.
+Query `visibleTo($actor)` tanpa Team hanya
+lolos melalui `access.global` dan `Gate::before` superadmin. User biasa tetap
+memerlukan konteks Team pada query yang dilindungi.
+
 ## Alur permintaan
 
 1. Middleware Router memastikan pengguna sudah masuk.
@@ -370,6 +382,11 @@ Untuk kontrol global seperti tombol **Team baru** di `TeamSwitcher.vue`, hitung
 izin di `HandleInertiaRequests` dan kirim sebagai shared prop, misalnya
 `canCreateTeam: Gate::forUser($user)->allows('create', Team::class)`. Form
 Request pada endpoint tetap memeriksa Policy yang sama sebelum membuat Team.
+
+Dropdown pemilihan Team di sidebar memakai shared prop
+`navigation.teamSwitcher` dari Gate `navigation.teamSwitcher`: ditampilkan
+untuk Owner dan Superadmin, disembunyikan untuk Admin dan Petugas. Gate ini
+hanya mengatur tampilan sidebar; endpoint pindah Team tetap memeriksa membership.
 
 ## Contoh pemanggilan Policy dan Gate lainnya
 

@@ -89,7 +89,7 @@ discover the persisted domain relationships directly.
 | `Role` | `roles` | Application-wide reference/system record |
 | `TeamInvitation` | `team_invitations` | team |
 | `Team` | `teams` | Team itself |
-| `User` (native actor/target) | `users` | Shared native team membership |
+| `User` (native actor/target) | `users` | Shared native team membership; Admin targets are Admin/Petugas with exactly one matching non-personal tenant |
 | `WeatherRecord` | `weather_records` | farm -> team |
 
 Reference/system single-record `view` checks require an explicit `any` view
@@ -132,18 +132,35 @@ FarmActivity for a HarvestDetail. A missing parent or an unrelated model denies.
 An `own` creation must resolve to an assigned farm. Update/delete/configure
 require visibility in addition to their specific mutation grant.
 
-Every concrete model exposes the native `visibleTo(User, Team)` Eloquent scope
+Every concrete model exposes the native `visibleTo(User, ?Team = null)` Eloquent scope
 through an inherited model concern. It reuses its actual model policy's query
 constraints, so predicates are shared with record checks. Missing/invalid
 grants yield empty results. Listing admission alone never authorizes all rows.
 Never pass browser-supplied role, team, user, or farm IDs as proof of authority.
 Resolve the model/parent server-side before authorizing it.
 
+Global Superadmin User Management may omit the Team argument. Query bypass is
+resolved by the `access.global` Gate, whose ordinary definition denies; the
+existing superadmin `Gate::before` is the sole grant. All other actors without
+a Team receive an empty query. See [User Management](user-management.md).
+
+Tenant Admin User Management resolves its Team from the actor's sole persisted
+non-personal membership, not `current_team_id` or request input. `UserPolicy`
+applies the same Admin/Petugas restriction to record checks and `visibleTo`
+queries. Admin may create either role, but may not change an existing role or
+tenant association. `users.configure` permits Petugas farm assignment changes
+within that tenant; it does not permit role changes. Only Superadmin may change
+existing roles or move accounts between tenants. The `users.manage` Gate admits
+tenant Admin and read-only Owner to the page; `users.manageAll` remains
+Superadmin-only. Owner User Management combines policy-scoped queries across
+the Owner's persisted non-personal teams, including for filters and serialized
+relationships. It does not grant global query access or reveal foreign teams.
+
 `User::assignedFarm()` is a direct `belongsTo` relation through
 `users.assigned_farm_id`. The nullable foreign key keeps the scaffolding explicit:
 one petugas can have one assigned Farm. Owner/admin visibility does not use this
-foreign key; it comes from the Farm's `team_id`. No assignment management endpoint
-has been added.
+foreign key; it comes from the Farm's `team_id`. User Management's protected
+create/update actions persist these assignments.
 
 ## Database prerequisite
 

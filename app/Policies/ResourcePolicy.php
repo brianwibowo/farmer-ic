@@ -12,6 +12,7 @@ use App\Models\Team;
 use App\Support\RolePermissions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 
 abstract class ResourcePolicy
 {
@@ -178,13 +179,13 @@ abstract class ResourcePolicy
      *
      * @param  Builder<TModel>  $query
      */
-    public function applyVisibility(Builder $query, \App\Models\User $user, Team $team): void
+    public function applyVisibility(Builder $query, \App\Models\User $user, ?Team $team = null): void
     {
-        if ($this->permissions->roleName($user) === 'superadmin') {
+        if (Gate::forUser($user)->allows('access.global')) {
             return;
         }
 
-        if (! $this->admitted($user, $team, 'view')) {
+        if ($team === null || ! $this->admitted($user, $team, 'view')) {
             $query->whereRaw('1 = 0');
 
             return;
