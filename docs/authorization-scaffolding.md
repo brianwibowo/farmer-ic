@@ -266,3 +266,20 @@ the current PostgreSQL migration and model tests now validate the unified schema
 Latest validation: `php artisan migrate:fresh --force` passed on the local demo
 database. `php artisan test --compact` runs against dedicated PostgreSQL test
 databases; Fortify's disabled two-factor challenge test is explicitly skipped.
+
+## Farm force deletion
+
+`FarmPolicy::forceDelete(User, Farm)` is a Farm-specific ability reserved for
+the existing developer bypass. Its normal implementation returns false for
+every actor; `Gate::before` is the only SuperAdmin grant. Do not add a
+`farms.forceDelete` matrix grant, a global wildcard, or a separate role check in
+the controller/service. Normal `delete` remains guarded by history/assignment
+integrity rules, including for SuperAdmin.
+
+The GET preview and DELETE confirmation at
+`/admin/farm-management/{farm}/force-delete` are protected by auth/verified,
+portal admission, and the Farm ability. Preview queries use `visibleTo` before
+collecting IDs/counts; raw integrity checks inspect outside references only to
+block the operation. No new unprotected route is introduced. Existing public
+demo routes and the previously unaudited AI conversation/message/voice query
+paths keep their existing checks; this task does not claim to secure them.

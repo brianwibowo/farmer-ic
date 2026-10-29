@@ -451,3 +451,13 @@ Pengujian integrasi PostgreSQL dan migrasi memeriksa relasi skema saat ini:
 `users` dan data domain memakai UUID, `teams` memakai integer,
 `farms.team_id`, serta `users.assigned_farm_id`. Jangan menjalankan migrasi
 destruktif pada basis data non-demo.
+
+### Force delete kebun
+
+SuperAdmin may open the scoped impact preview and confirm permanent deletion
+of one farm and its operational graph. Admin, Owner, and Petugas receive HTTP
+403 even with a forged force flag or direct request. Use
+`Gate::authorize('forceDelete', $farm)` in HTTP controllers; non-HTTP entrypoints
+must use `Gate::forUser($actor)->authorize('forceDelete', $farm)` before calling
+`FarmDeletionService`. The permission uses the existing developer `Gate::before`
+only, without a static grant for other roles. The normal delete guard is kept.

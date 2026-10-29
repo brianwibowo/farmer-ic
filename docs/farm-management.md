@@ -133,10 +133,67 @@ checks coordinate concurrent assignment/operational writes. The controller
 returns the existing Inertia `delete` form error; development JSON deletes
 return HTTP 409. No new route, archive feature, or migration is introduced.
 
+## Force delete khusus SuperAdmin
+
+`GET /admin/farm-management/{farm}/force-delete` renders `farms/ForceDelete` with
+an authoritative summary; `DELETE` on the same path confirms it. Both are normal
+session/CSRF-protected Laravel routes. `FarmPolicy::forceDelete` always denies
+normal actors; only the existing Superadmin `Gate::before` grants it. No grant
+or wildcard is added to the static matrix. The controller supplies
+`can.forceDelete`; Vue only renders the link. The Form Request delegates the
+same Policy for early 403 rejection before validation, and the controller
+checks the ability again at its HTTP boundary. There is no new JSON API route.
+
+`FarmDeletionService` selects the persisted farm through `visibleTo`, locks the
+farm and selected parent/child rows, and computes counts from scoped IDs. It
+includes inactive/soft-deleted user assignments. `ai_insights` has no Eloquent
+model, so its internal rows are selected only through already-scoped, locked
+cycle IDs. Physical cross-boundary references are checked in both directions;
+any ambiguous outside-farm finance/activity/observation link blocks the action,
+without absorbing another farm's rows into the deletion set.
+
+The confirmation requires the exact farm name, a 5–2,000-character reason, and
+a server-signed summary token. The token covers farm identity/name/team and the
+ordered IDs of records in the preview. Added, removed, or reassigned records
+invalidate the preview, even if counts happen to match. It is not a full content
+snapshot: edits inside an existing row do not invalidate an unchanged record
+set. Names and relationships are checked again under locks; the UI can reload
+the summary and requires name confirmation again when the token changes.
+
+Deletion removes operational data and details, photos' database references,
+cycle observations/risks/insights, cycles, weather, finance, targets, and finally
+the farm. Assigned users are detached, never deleted or reactivated. The service
+keeps the database's existing FK constraints and deferred integrity triggers
+enabled; it does not enable schema-wide cascades. Legacy local `farm_admin`
+pivot rows, if still present from earlier experiments, follow their existing
+farm FK cascade and confer no runtime authority. Shared tenants, memberships,
+users, roles, commodities, varieties, activity types, financial categories,
+notifications, AI chat/attachments/knowledge, and previous audit logs remain.
+File URLs are removed from affected records; physical files, including external
+files and unrelated AI attachments, are not deleted without proven ownership.
+
+The same transaction writes `audit_logs.action = force_delete`, the actor,
+original farm identity, reason, time, and deletion counts. Audit/database failure
+rolls back deletion and detachment. Existing hard-delete guards remain on the
+ordinary action, including for SuperAdmin. No restore action is provided for
+force-deleted farms. No migration, production reset, new dependency, permission
+editor, or automatic execution against local demo farms is part of this feature.
+SuperAdmin may use a known farm URL without membership/current team; this does
+not create membership or switch teams, and a missing current team returns to the
+admin dashboard after success.
+
+Database-backed queries and summaries naturally reflect deletion. Public/mobile
+demo fixtures and the legacy JSON-based AI image demo are unchanged; they are
+not live views of deleted PostgreSQL farms. Old AI chats remain historical; this
+feature does not rewrite their messages or generic reference knowledge.
+Before implementing the phase-1 block/SOP/batch proposal or any new farm-owned
+table, extend the deletion graph, shared-reference checks, preview, and tests.
+Those draft-only entities do not exist in the current runtime schema.
+
 ## Verification
 
 ```sh
-php artisan test tests/Feature/Farms/FarmManagementInertiaTest.php tests/Feature/Farms/FarmManagementTest.php
+php artisan test tests/Feature/Farms
 npm run types:check
 npm run build
 ```

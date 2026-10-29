@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Farms\ForceDeleteFarmRequest;
 use App\Http\Requests\Farms\ListFarmsRequest;
 use App\Http\Requests\Farms\SaveFarmRequest;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\Team;
+use App\Services\FarmDeletionService;
 use App\Services\FarmService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,6 +35,7 @@ class FarmManagementController extends Controller
                 'can' => [
                     'update' => Gate::allows('update', $farm),
                     'delete' => Gate::allows('delete', $farm),
+                    'forceDelete' => Gate::allows('forceDelete', $farm),
                 ],
             ]),
             'summary' => $this->farms->summary($request->user(), $team),
@@ -78,6 +81,7 @@ class FarmManagementController extends Controller
             'can' => [
                 'update' => Gate::allows('update', $farm),
                 'delete' => Gate::allows('delete', $farm),
+                'forceDelete' => Gate::allows('forceDelete', $farm),
                 'dailyLogs' => Gate::allows('viewAny', [DailyActivityLog::class, $farm->team]),
             ],
         ]);
@@ -116,5 +120,31 @@ class FarmManagementController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun berhasil dihapus.']);
 
         return to_route('farm-management.index');
+    }
+
+    public function confirmForceDelete(Request $request, Farm $farm, FarmDeletionService $deletion): Response
+    {
+        Gate::authorize('forceDelete', $farm);
+
+        return Inertia::render('farms/ForceDelete', [
+            'farm' => $farm->only(['id', 'name']),
+            'summary' => $deletion->summary($request->user(), $farm),
+            'backUrl' => $farm->team_id !== null ? route('farm-management.show', $farm, false) : route('admin.dashboard', absolute: false),
+        ]);
+    }
+
+    public function forceDestroy(ForceDeleteFarmRequest $request, Farm $farm, FarmDeletionService $deletion): RedirectResponse
+    {
+        // The request's early Policy check rejects forbidden actors before validation;
+        // the controller remains the explicit authorization boundary for this action.
+        Gate::authorize('forceDelete', $farm);
+        try {
+            $deletion->forceDelete($request->user(), $farm, $request->validated('confirmation_name'), $request->validated('reason'), $request->validated('summary_token'));
+        } catch (ConflictHttpException $exception) {
+            throw ValidationException::withMessages(['force_delete' => $exception->getMessage()]);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun dan data operasionalnya dihapus permanen. Akun pengguna tetap disimpan.']);
+
+        return to_route($request->user()->currentTeam instanceof Team ? 'farm-management.index' : 'admin.dashboard');
     }
 }

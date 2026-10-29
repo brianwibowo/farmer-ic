@@ -59,6 +59,10 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
 Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
     Route::get('dashboard', DashboardController::class)->name('admin.dashboard');
+    Route::get('farm-management/{farm}/force-delete', [FarmManagementController::class, 'confirmForceDelete'])
+        ->whereUuid('farm')->name('farm-management.force-delete');
+    Route::delete('farm-management/{farm}/force-delete', [FarmManagementController::class, 'forceDestroy'])
+        ->whereUuid('farm')->name('farm-management.force-destroy');
     Route::resource('farm-management', FarmManagementController::class)
         ->parameters(['farm-management' => 'farm'])
         ->whereUuid('farm');

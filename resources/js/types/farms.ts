@@ -1,5 +1,10 @@
-export type FarmPermissions = { update: boolean; delete: boolean };
+export type FarmPermissions = { update: boolean; delete: boolean; forceDelete: boolean };
 
+export type FarmDeletionSummary = {
+    groups: { key: string; label: string; count: number; effect: 'delete' | 'detach' }[];
+    blockers: string[];
+    token: string;
+};
 export type LandTenure = 'owned' | 'rented';
 
 export function landTenureLabel(value: LandTenure | null): string {
