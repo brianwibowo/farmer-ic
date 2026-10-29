@@ -1,10 +1,11 @@
-// USULAN, belum diimplementasikan. Seluruh tabel existing dipertahankan.
+// USULAN phase 1, belum diimplementasikan; RBAC mengikuti remote e994d7c.
+// Seluruh tabel existing termasuk soft delete users dipertahankan; Admin dibatasi tenant.
 // PK/FK dan nullability merupakan target akhir setelah backfill data lama.
 // Lihat phase-1-erd.md untuk aturan, keputusan terbuka, dan transisi.
 
 Project FarmerICPhase1Proposal {
   database_type: 'PostgreSQL'
-  Note: 'DRAFT DISKUSI phase 1. Batch adalah subblok dinamis per periode tanam. Bukan schema aktif atau migration. Penomoran per lahan dan batch sebelum tanam masih asumsi.'
+  Note: 'DRAFT DISKUSI phase 1, diselaraskan dengan RBAC 29 Oktober 2026. Admin satu tenant tanpa pivot PIC; SOP per kebun dan komoditas; task selesai setelah approval. Bukan schema aktif atau migration. Penomoran per lahan dan batch sebelum tanam masih asumsi.'
 }
 
 Table roles {
@@ -30,6 +31,7 @@ Table users {
   two_factor_confirmed_at timestamp
   remember_token varchar(100)
   assigned_farm_id uuid [ref: > farms.id, note: 'Direct one-farm assignment for petugas; nullable for owner/admin']
+  deleted_at timestamp
 }
 
 Table teams {
@@ -128,7 +130,7 @@ Table planting_cycles {
     (planting_round_id, sub_block_code) [unique]
     (farm_id, status)
   }
-  Note: 'Satu record = satu batch/subblok. round.block.farm harus sama dengan farm_id; versi SOP harus milik tim lahan. Stage berjalan diturunkan dari planting_cycle_stages.'
+  Note: 'Satu record = satu batch/subblok. round.block.farm harus sama dengan farm_id; versi SOP harus milik kebun yang sama dan komoditas varietas batch. Stage berjalan diturunkan dari planting_cycle_stages.'
 }
 
 Table activity_types {
@@ -554,15 +556,20 @@ Table planting_rounds {
 
 Table sop_templates {
   id uuid [pk]
-  team_id bigint [not null, ref: > teams.id]
-  commodity_id uuid [ref: > commodities.id]
+  farm_id uuid [not null, ref: > farms.id]
+  commodity_id uuid [not null, ref: > commodities.id]
+  copied_from_version_id uuid [ref: > sop_template_versions.id, note: 'Asal salinan jika ada; tidak membuat isi template mengikuti sumber']
   name varchar(150) [not null]
   description text
   is_active boolean [not null, default: true]
   created_by uuid [not null, ref: > users.id]
   created_at timestamptz [not null]
   updated_at timestamptz
-  Note: 'ASUMSI: template dimiliki tim; commodity_id kosong berarti dapat dipakai lintas komoditas dalam tim. Hak akses tetap melalui Policy.'
+  indexes {
+    (farm_id, commodity_id)
+    copied_from_version_id
+  }
+  Note: 'SOP wajib per kebun dan komoditas; tenant diturunkan dari farm.team_id, tidak disimpan ulang. Admin mengelola SOP kebun dalam tenantnya. Salin versi published menjadi template dan versi draft baru di kebun tujuan, dengan ID task baru; sumber tetap dan target independen. Salinan hanya dalam tenant yang sama serta komoditas yang sama; aktor harus berwenang membaca sumber dan membuat di tujuan.'
 }
 
 Table sop_template_versions {
@@ -580,7 +587,7 @@ Table sop_template_versions {
   indexes {
     (sop_template_id, version) [unique]
   }
-  Note: 'Versi yang sudah published beserta task-nya tidak diedit. Revisi menghasilkan versi baru; retired tetap dapat dibaca oleh batch yang memakainya.'
+  Note: 'Versi yang sudah published beserta task-nya tidak diedit. Revisi menghasilkan versi baru dan hanya dipakai batch berikutnya; retired tetap dapat dibaca oleh batch yang memakainya. Kebun dan komoditas template tidak boleh diganti setelah dipakai versi published atau batch.'
 }
 
 Table sop_template_tasks {
@@ -641,8 +648,8 @@ Table planting_cycle_tasks {
   due_date date
   position int [not null]
   is_required boolean [not null, default: true]
-  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | completed | skipped | cancelled']
-  completed_at timestamptz
+  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | submitted | completed | skipped | cancelled; completed hanya setelah approval']
+  completed_at timestamptz [note: 'Waktu approval, sama dengan reviewed_at pengajuan approved; bukan waktu checklist Petugas']
   skip_reason text
   created_at timestamptz [not null]
   updated_at timestamptz
@@ -653,7 +660,32 @@ Table planting_cycle_tasks {
     (planting_cycle_id, position) [unique]
     (planting_cycle_id, scheduled_date, status)
   }
-  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage, versi SOP, dan jenis aktivitas harus konsisten. Histori realisasi ada pada farm_activities.'
+  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage, versi SOP, dan jenis aktivitas harus konsisten. Histori realisasi ada pada farm_activities; pengajuan dan keputusan ada pada planting_cycle_task_submissions. Status task dan keputusan review diperbarui atomik; satu pengajuan submitted aktif dan maksimal satu approved per task. Task rejected kembali in_progress; riwayat penolakan tidak ditimpa.'
+}
+
+Table planting_cycle_task_submissions {
+  id uuid [pk]
+  planting_cycle_task_id uuid [not null, ref: > planting_cycle_tasks.id]
+  attempt_number int [not null, note: 'Nomor percobaan per task, mulai 1; dibuat server di bawah lock task']
+  submitted_by uuid [not null, ref: > users.id]
+  submitted_at timestamptz [not null]
+  reported_completed_at timestamptz [note: 'Waktu selesai menurut Petugas, opsional dan tidak setelah submitted_at']
+  submission_note text
+  evidence_snapshot jsonb [not null, note: 'Snapshot server dari task, checklist, dan aktivitas terkait yang dipakai saat submit; daftar aktivitas boleh kosong. Bukan input JSON bebas atau pengganti sumber data aktivitas']
+  status varchar(30) [not null, default: 'submitted', note: 'submitted | approved | rejected']
+  reviewed_by uuid [ref: > users.id]
+  reviewed_at timestamptz
+  review_note text [note: 'Alasan wajib saat rejected']
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (planting_cycle_task_id, attempt_number) [unique]
+    (planting_cycle_task_id, status)
+    submitted_by
+    reviewed_by
+  }
+  Note: 'Satu baris = satu pengajuan selesai. Petugas aktif hanya submit task kebun tugasnya; Admin tenant atau SuperAdmin mereview. submitted belum berarti task selesai. submitted memerlukan reviewer/waktu review kosong; approved/rejected memerlukan keduanya dan reviewed_at >= submitted_at. Isi pengajuan dan snapshot dibekukan setelah submit; keputusan final tidak ditimpa. Pengajuan ulang setelah rejected membuat baris baru. Partial unique index untuk satu submitted dan satu approved per task serta check status/aktor dirinci di dokumen; tidak dapat dibuktikan oleh FK saja. Histori dijaga restrict/arsip.'
 }
 
 // DETAIL AKTIVITAS BARU UNTUK DUA STAGE PERSIAPAN
