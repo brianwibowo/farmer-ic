@@ -1,0 +1,756 @@
+// USULAN, belum diimplementasikan. Seluruh tabel existing dipertahankan.
+// PK/FK dan nullability merupakan target akhir setelah backfill data lama.
+// Lihat phase-1-erd.md untuk aturan, keputusan terbuka, dan transisi.
+
+Project FarmerICPhase1Proposal {
+  database_type: 'PostgreSQL'
+  Note: 'DRAFT DISKUSI phase 1. Batch adalah subblok dinamis per periode tanam. Bukan schema aktif atau migration. Penomoran per lahan dan batch sebelum tanam masih asumsi.'
+}
+
+Table roles {
+  id uuid [pk]
+  name varchar(30) [not null, unique, note: 'owner | superadmin | admin | petugas; superadmin is the developer Gate::before role']
+  description text
+}
+
+Table users {
+  id uuid [pk]
+  role_id uuid [not null, ref: > roles.id]
+  name varchar(150) [not null]
+  email varchar(255) [not null, unique]
+  password text [not null]
+  avatar_url text
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null]
+  updated_at timestamptz
+  current_team_id bigint [ref: > teams.id]
+  email_verified_at timestamp
+  two_factor_secret text
+  two_factor_recovery_codes text
+  two_factor_confirmed_at timestamp
+  remember_token varchar(100)
+  assigned_farm_id uuid [ref: > farms.id, note: 'Direct one-farm assignment for petugas; nullable for owner/admin']
+}
+
+Table teams {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  slug varchar(255) [not null, unique]
+  is_personal boolean [not null, default: false]
+  created_at timestamptz
+  updated_at timestamptz
+  deleted_at timestamptz
+}
+
+Table team_members {
+  id bigint [pk, increment]
+  team_id bigint [not null, ref: > teams.id]
+  user_id uuid [not null, ref: > users.id]
+  role varchar(255) [not null, note: 'Role anggota team; terpisah dari users.role_id']
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (team_id, user_id) [unique]
+  }
+}
+
+Table team_invitations {
+  id bigint [pk, increment]
+  code varchar(64) [not null, unique]
+  team_id bigint [not null, ref: > teams.id]
+  email varchar(255) [not null]
+  role varchar(255) [not null]
+  invited_by uuid [not null, ref: > users.id]
+  expires_at timestamptz
+  accepted_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table farms {
+  id uuid [pk]
+  owner_id uuid [ref: > users.id, note: 'Pemilik kebun; bukan akun yang membuat data']
+  created_by uuid [not null, ref: > users.id]
+  name varchar(150) [not null]
+  address text
+  city varchar(100)
+  district varchar(100)
+  province varchar(100)
+  total_area_ha decimal(12,4) [not null, note: 'CHECK > 0']
+  latitude decimal(10,7)
+  longitude decimal(10,7)
+  image_url text
+  created_at timestamptz [not null]
+  updated_at timestamptz
+  team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
+  Note: 'Master lahan. Memiliki blok permanen; pembagian subblok disimpan sebagai batch pada planting_cycles.'
+}
+
+Table commodities {
+  id uuid [pk]
+  name varchar(100) [not null, unique]
+  description text
+  image_url text
+}
+
+Table crop_varieties {
+  id uuid [pk]
+  commodity_id uuid [not null, ref: > commodities.id]
+  name varchar(150) [not null]
+  description text
+  indexes { (commodity_id, name) [unique] }
+}
+
+Table planting_cycles {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  planting_round_id uuid [not null, ref: > planting_rounds.id]
+  variety_id uuid [not null, ref: > crop_varieties.id]
+  sop_template_version_id uuid [ref: > sop_template_versions.id]
+  batch_number bigint [not null, note: 'ASUMSI: urut per lahan, tidak reset antarperiode; cakupan belum diputuskan']
+  sub_block_code varchar(30) [note: 'Label opsional A/B/C dalam periode ini; bukan lokasi permanen']
+  reserved_area_ha decimal(12,4) [not null, note: 'Alokasi luas batch; CHECK > 0']
+  planted_area_ha decimal(12,4) [not null, default: 0, note: 'Luas kumulatif realisasi; 0 sampai reserved_area_ha; agregat dijaga dalam transaksi']
+  planned_planting_at date
+  planted_at date [note: 'Tanggal realisasi tanam pertama; nullable selama persiapan']
+  estimated_harvest_at date
+  estimated_weight_ton decimal(14,3)
+  closed_at timestamptz
+  status varchar(30) [not null, default: 'planned', note: 'planned | active | harvested | cancelled']
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (id, farm_id) [unique]
+    (farm_id, batch_number) [unique]
+    (planting_round_id, sub_block_code) [unique]
+    (farm_id, status)
+  }
+  Note: 'Satu record = satu batch/subblok. round.block.farm harus sama dengan farm_id; versi SOP harus milik tim lahan. Stage berjalan diturunkan dari planting_cycle_stages.'
+}
+
+Table activity_types {
+  id uuid [pk]
+  code varchar(50) [not null, unique, note: 'planting, fertilization, irrigation, growth_check, pesticide, incident, harvest, block_mapping, land_cleaning, soil_preparation']
+  name varchar(100) [not null]
+  description text
+}
+
+Table farm_activities {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  planting_cycle_id uuid [ref: > planting_cycles.id]
+  activity_type_id uuid [not null, ref: > activity_types.id]
+  performed_by uuid [not null, ref: > users.id]
+  activity_date timestamptz [not null]
+  description text
+  status varchar(30)
+  created_at timestamptz [not null]
+  updated_at timestamptz
+  daily_activity_log_id uuid [note: 'Composite FK with farm_id to daily_activity_logs; nullable for earlier activities']
+  position int
+  obstacle_status varchar(30) [not null, default: 'not_recorded', note: 'not_recorded | none | reported']
+  obstacles text
+  proposed_solution text
+  action_taken text
+  Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Tipe aktivitas menentukan satu detail yang tepat.'
+  planting_cycle_task_id uuid [note: 'Opsional: realisasi suatu jadwal batch; FK komposit didefinisikan di bawah']
+  indexes {
+    (id, planting_cycle_id) [unique]
+  }
+}
+
+Table daily_activity_logs {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  recorded_by uuid [not null, ref: > users.id]
+  work_date date [not null]
+  start_time time [not null]
+  end_time time [not null]
+  worker_count int [not null]
+  notes text
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (id, farm_id) [unique]
+  }
+}
+
+Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id, farm_id)
+
+Table block_mapping_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  form_version int [not null, default: 1]
+  block_name varchar(100) [not null]
+  length_m decimal(10,3) [not null]
+  width_m decimal(10,3) [not null]
+  row_spacing_cm decimal(8,2)
+  plant_spacing_cm decimal(8,2)
+  rows_per_bed int
+  block_id uuid [ref: > farm_blocks.id, note: 'Opsional pada histori lama; jika terisi harus satu lahan dengan aktivitas']
+  Note: 'Detail hasil pengukuran aktivitas, terpisah dari master farm_blocks. block_name dan dimensi tetap snapshot saat pengukuran.'
+}
+
+Table activity_photos {
+  id uuid [pk]
+  activity_id uuid [not null, ref: > farm_activities.id]
+  label varchar(150)
+  caption text
+  image_url text [not null]
+  uploaded_at timestamptz [not null]
+}
+
+Table planting_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  seed_name varchar(150) [note: 'Nama bibit saat pelaporan; snapshot historis']
+  seedling_count int [note: 'Jumlah bibit realisasi; nullable untuk data lama/penanaman berbasis berat; jika diisi CHECK > 0']
+  quantity_kg decimal(12,3)
+  planting_pattern varchar(150)
+  area_ha decimal(12,4) [note: 'Luas realisasi laporan, CHECK > 0 untuk laporan baru']
+  Note: 'Laporan baru wajib terkait batch melalui farm_activities.planting_cycle_id. Catat jumlah bibit atau berat benih sesuai metode; aturan rinci validasi form.'
+}
+
+Table fertilization_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  fertilization_stage varchar(100)
+  fertilizer_type varchar(150)
+  brand_name varchar(150)
+  subsidy_status varchar(30)
+  application_method varchar(150)
+  quantity_kg decimal(12,3)
+}
+
+Table irrigation_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  water_source varchar(150)
+  irrigation_method varchar(150)
+  machine_type varchar(150)
+  duration_hours decimal(8,2)
+}
+
+Table pesticide_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  pesticide_category varchar(100)
+  purpose varchar(100)
+  brand_name varchar(150)
+  active_ingredient varchar(150)
+  dosage_per_tank varchar(100) [note: 'Text mempertahankan satuan dosis dari data demo']
+  tank_size_liters decimal(8,2)
+  tank_count int
+}
+
+Table incident_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  incident_category varchar(150)
+  severity varchar(30)
+  affected_area_ha decimal(12,4)
+  proposed_solution text
+}
+
+Table harvest_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  harvested_area_ha decimal(12,4)
+  gross_weight_ton decimal(14,3)
+  moisture_percentage decimal(5,2)
+  color varchar(100)
+  ripeness varchar(150)
+  cleanliness varchar(150)
+}
+
+Table plant_observations {
+  id uuid [pk]
+  planting_cycle_id uuid [not null, ref: > planting_cycles.id]
+  activity_id uuid [unique, ref: > farm_activities.id, note: 'Opsional: pengamatan tercatat sebagai kegiatan growth_check; menggantikan growth_check_details']
+  observed_by uuid [not null, ref: > users.id]
+  observed_at timestamptz [not null]
+  growth_phase varchar(100)
+  average_height_cm decimal(8,2)
+  disease_indication varchar(100)
+  pest_indication varchar(100)
+  health_status varchar(30)
+  growth_percentage decimal(5,2)
+  plant_condition text
+  notes text
+  indexes {
+    (id, planting_cycle_id) [unique]
+  }
+}
+
+Table weather_records {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  recorded_at timestamptz [not null]
+  condition varchar(100)
+  temperature_c decimal(5,2)
+  humidity_percentage decimal(5,2)
+  data_source varchar(100)
+}
+
+Table farm_risks {
+  id uuid [pk]
+  planting_cycle_id uuid [not null, ref: > planting_cycles.id]
+  observation_id uuid [ref: > plant_observations.id]
+  risk_description text [not null]
+  severity varchar(30)
+  recommendation text
+  status varchar(30)
+  detected_at timestamptz [not null]
+}
+
+Table ai_insights {
+  id uuid [pk]
+  planting_cycle_id uuid [not null, ref: > planting_cycles.id]
+  observation_id uuid [ref: > plant_observations.id]
+  summary text
+  next_step text
+  confidence_score decimal(5,2)
+  model_name varchar(100)
+  generated_at timestamptz [not null]
+}
+
+Table financial_categories {
+  id uuid [pk]
+  name varchar(100) [not null]
+  transaction_type varchar(20) [not null, note: 'income | expense']
+  indexes {
+    (name, transaction_type) [unique]
+    (id, transaction_type) [unique]
+  }
+}
+
+Table financial_transactions {
+  id uuid [pk]
+  farm_id uuid [ref: > farms.id, note: 'Schema existing nullable; aplikasi menolak akses transaksi tanpa batas kebun/tim yang terbukti']
+  planting_cycle_id uuid [ref: > planting_cycles.id]
+  category_id uuid [not null, ref: > financial_categories.id]
+  recorded_by uuid [not null, ref: > users.id]
+  transaction_date date [not null]
+  transaction_type varchar(20) [not null, note: 'income | expense']
+  amount decimal(18,2) [not null, note: 'CHECK > 0']
+  description text
+  created_at timestamptz [not null]
+  Note: 'commodity_id dihapus untuk mengurangi redundansi; transaksi siklus mendapatkan komoditas via JOIN. Untuk transaksi per-komoditas tanpa siklus, perlu aturan tambahan.'
+}
+
+Table financial_projections {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  planting_cycle_id uuid [ref: > planting_cycles.id]
+  period_start date [not null]
+  period_end date [not null]
+  projected_income decimal(18,2)
+  projected_expense decimal(18,2)
+  calculated_at timestamptz [not null]
+}
+
+Table financial_budgets {
+  id uuid [pk]
+  farm_id uuid [ref: > farms.id]
+  category_id uuid [ref: > financial_categories.id]
+  period_start date [not null]
+  period_end date [not null]
+  budget_amount decimal(18,2) [not null]
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+}
+
+Table operational_targets {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  planting_cycle_id uuid [ref: > planting_cycles.id]
+  task_name varchar(200) [not null]
+  target_unit varchar(20) [not null, note: 'Ha | Ton | etc.']
+  target_value decimal(14,3) [not null]
+  completed_value decimal(14,3) [not null, default: 0]
+  target_date date
+  status varchar(30)
+  created_by uuid [not null, ref: > users.id]
+}
+
+Table ai_conversations {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  title varchar(200)
+  created_at timestamptz [not null]
+  updated_at timestamptz
+  team_id bigint [ref: > teams.id]
+  status varchar(32) [not null, default: 'active']
+  knowledge_snapshot jsonb
+  last_message_at timestamptz
+}
+
+Table ai_messages {
+  id uuid [pk]
+  ai_conversation_id uuid [not null, ref: > ai_conversations.id]
+  role varchar(20) [not null, note: 'user | assistant | system']
+  content text
+  model varchar(128)
+  status varchar(32) [not null, default: 'completed']
+  created_at timestamptz [not null]
+  user_id uuid [ref: > users.id]
+  provider varchar(64)
+  request_id varchar(255)
+  input_tokens int
+  output_tokens int
+  latency_ms int
+  error_message text
+  metadata jsonb
+  updated_at timestamptz
+}
+
+Table ai_attachments {
+  id uuid [pk]
+  ai_message_id uuid [ref: > ai_messages.id]
+  mime_type varchar(128)
+  path text [not null]
+  created_at timestamptz [not null]
+  ai_conversation_id uuid [ref: > ai_conversations.id]
+  user_id uuid [ref: > users.id]
+  disk varchar(64) [not null, default: 'public']
+  original_name varchar(255)
+  size bigint
+  sha256 varchar(64)
+  kind varchar(32) [not null, default: 'image']
+  status varchar(32) [not null, default: 'ready']
+  metadata jsonb
+  updated_at timestamptz
+}
+
+Table ai_knowledge_documents {
+  id uuid [pk]
+  title varchar(200) [not null]
+  content text
+  file_url text
+  created_by uuid [ref: > users.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz
+  team_id bigint [ref: > teams.id]
+  reviewed_by uuid [ref: > users.id]
+  status varchar(32) [not null, default: 'draft']
+  source varchar(255)
+  content_hash varchar(64)
+  version int [not null, default: 1]
+  published_at timestamptz
+  locale varchar(16) [not null, default: 'id-ID']
+  domain varchar(64)
+  index_status varchar(32) [not null, default: 'pending']
+  index_version varchar(64)
+  indexed_at timestamptz
+  index_error text
+}
+
+Table ai_usage_logs {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  message_id uuid [ref: > ai_messages.id, note: 'Nullable untuk pemakaian AI di luar chatbot']
+  model_name varchar(100)
+  input_tokens int
+  output_tokens int
+  estimated_cost decimal(18,8)
+  created_at timestamptz [not null]
+}
+
+Table notifications {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  title varchar(200)
+  message text
+  is_read boolean [not null, default: false]
+  created_at timestamptz [not null]
+  read_at timestamptz
+}
+
+Table audit_logs {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  table_name varchar(100)
+  record_id uuid
+  action varchar(20)
+  old_values jsonb
+  new_values jsonb
+  created_at timestamptz [not null]
+}
+
+Table ai_knowledge_chunks {
+  id uuid [pk]
+  ai_knowledge_document_id uuid [not null, ref: > ai_knowledge_documents.id]
+  team_id bigint [not null, ref: > teams.id]
+  chunk_index int [not null]
+  content text [not null]
+  content_hash varchar(64) [not null]
+  chunking_version varchar(32) [not null]
+  embedding_model varchar(128)
+  qdrant_point_id varchar(128)
+  token_count int
+  metadata jsonb
+  status varchar(32) [not null, default: 'pending']
+  indexed_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+  indexes {
+    (ai_knowledge_document_id, chunk_index, content_hash) [unique]
+  }
+}
+
+Table ai_usage_events {
+  id uuid [pk]
+  team_id bigint [ref: > teams.id]
+  user_id uuid [ref: > users.id]
+  ai_conversation_id uuid [ref: > ai_conversations.id]
+  ai_message_id uuid [ref: > ai_messages.id]
+  provider varchar(64)
+  model varchar(128)
+  event_type varchar(64) [not null]
+  request_id varchar(255)
+  input_tokens int
+  output_tokens int
+  latency_ms int
+  metadata jsonb
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+// TABEL BARU PHASE 1
+
+Table farm_blocks {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  code varchar(30) [not null]
+  name varchar(150) [not null]
+  area_ha decimal(12,4) [not null, note: 'CHECK > 0; jumlah luas blok aktif tidak melebihi total_area_ha lahan']
+  description text
+  is_active boolean [not null, default: true]
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (farm_id, code) [unique]
+  }
+  Note: 'Blok permanen. Tidak dihapus jika memiliki histori periode/batch; nonaktifkan bila tidak digunakan.'
+}
+
+Table planting_rounds {
+  id uuid [pk]
+  block_id uuid [not null, ref: > farm_blocks.id]
+  round_number int [not null]
+  name varchar(150) [not null]
+  started_at date
+  finished_at date
+  status varchar(30) [not null, default: 'planned', note: 'planned | active | closed | cancelled']
+  notes text
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (block_id, round_number) [unique]
+  }
+  Note: 'ASUMSI: periode penanaman dikelompokkan per blok. Periode pertama dapat berisi 3 batch, berikutnya 2 batch. Kapasitas diperiksa lintas periode yang masih menggunakan blok.'
+}
+
+Table sop_templates {
+  id uuid [pk]
+  team_id bigint [not null, ref: > teams.id]
+  commodity_id uuid [ref: > commodities.id]
+  name varchar(150) [not null]
+  description text
+  is_active boolean [not null, default: true]
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz
+  Note: 'ASUMSI: template dimiliki tim; commodity_id kosong berarti dapat dipakai lintas komoditas dalam tim. Hak akses tetap melalui Policy.'
+}
+
+Table sop_template_versions {
+  id uuid [pk]
+  sop_template_id uuid [not null, ref: > sop_templates.id]
+  version int [not null]
+  notes text
+  status varchar(30) [not null, default: 'draft', note: 'draft | published | retired']
+  created_by uuid [not null, ref: > users.id]
+  published_by uuid [ref: > users.id]
+  published_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (sop_template_id, version) [unique]
+  }
+  Note: 'Versi yang sudah published beserta task-nya tidak diedit. Revisi menghasilkan versi baru; retired tetap dapat dibaca oleh batch yang memakainya.'
+}
+
+Table sop_template_tasks {
+  id uuid [pk]
+  sop_template_version_id uuid [not null, ref: > sop_template_versions.id]
+  activity_type_id uuid [not null, ref: > activity_types.id]
+  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
+  name varchar(200) [not null]
+  instructions text
+  schedule_anchor varchar(30) [not null, note: 'stage_start | planting_date']
+  offset_days int [not null, default: 0, note: 'H+0 adalah tanggal acuan; negatif untuk pekerjaan sebelum acuan']
+  tolerance_days int [not null, default: 0, note: 'CHECK >= 0; due_date = scheduled_date + tolerance_days']
+  position int [not null]
+  is_required boolean [not null, default: true]
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (sop_template_version_id, position) [unique]
+  }
+  Note: 'Satu baris = satu pekerjaan pada satu hari relatif. Stage dan jenis aktivitas berbeda: basic_fertilizer adalah stage, fertilization adalah jenis aktivitas.'
+}
+
+Table planting_cycle_stages {
+  id uuid [pk]
+  planting_cycle_id uuid [not null, ref: > planting_cycles.id]
+  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
+  position int [not null]
+  planned_start_at date
+  planned_end_at date
+  started_at timestamptz
+  completed_at timestamptz
+  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | completed | skipped']
+  skip_reason text
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (id, planting_cycle_id) [unique]
+    (planting_cycle_id, stage_code) [unique]
+    (planting_cycle_id, position) [unique]
+  }
+  Note: 'Enam baris per batch, berurutan. Status skipped memerlukan alasan; data historis tidak otomatis dianggap sudah melewati semua tahap.'
+}
+
+Table planting_cycle_tasks {
+  id uuid [pk]
+  planting_cycle_id uuid [not null, ref: > planting_cycles.id]
+  planting_cycle_stage_id uuid [not null, note: 'FK komposit ke stage milik batch yang sama']
+  sop_template_task_id uuid [ref: > sop_template_tasks.id]
+  activity_type_id uuid [not null, ref: > activity_types.id]
+  name varchar(200) [not null]
+  instructions text
+  schedule_anchor varchar(30) [not null, note: 'stage_start | planting_date']
+  offset_days int [not null, default: 0]
+  tolerance_days int [not null, default: 0]
+  scheduled_date date [note: 'Boleh kosong ketika tanggal acuan belum tersedia']
+  due_date date
+  position int [not null]
+  is_required boolean [not null, default: true]
+  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | completed | skipped | cancelled']
+  completed_at timestamptz
+  skip_reason text
+  created_at timestamptz [not null]
+  updated_at timestamptz
+
+  indexes {
+    (id, planting_cycle_id, activity_type_id) [unique]
+    (planting_cycle_id, sop_template_task_id) [unique]
+    (planting_cycle_id, position) [unique]
+    (planting_cycle_id, scheduled_date, status)
+  }
+  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage, versi SOP, dan jenis aktivitas harus konsisten. Histori realisasi ada pada farm_activities.'
+}
+
+// DETAIL AKTIVITAS BARU UNTUK DUA STAGE PERSIAPAN
+Table land_cleaning_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4) [not null, note: 'CHECK > 0']
+  clearing_method varchar(150)
+  equipment varchar(150)
+}
+
+Table soil_preparation_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4) [not null, note: 'CHECK > 0']
+  preparation_method varchar(150)
+  tillage_depth_cm decimal(8,2) [note: 'Jika diisi CHECK > 0']
+}
+
+// FOREIGN KEY KOMPOSIT EXISTING DAN TAMBAHAN USULAN
+// Notasi DBML ini mendokumentasikan relasi; aksi ON DELETE dan deferred checks
+// existing harus dipertahankan ketika diterjemahkan menjadi migration.
+Ref: farm_activities.(planting_cycle_id, farm_id) > planting_cycles.(id, farm_id)
+Ref: financial_transactions.(planting_cycle_id, farm_id) > planting_cycles.(id, farm_id)
+Ref: financial_projections.(planting_cycle_id, farm_id) > planting_cycles.(id, farm_id)
+Ref: operational_targets.(planting_cycle_id, farm_id) > planting_cycles.(id, farm_id)
+Ref: plant_observations.(activity_id, planting_cycle_id) > farm_activities.(id, planting_cycle_id)
+Ref: farm_risks.(observation_id, planting_cycle_id) > plant_observations.(id, planting_cycle_id)
+Ref: ai_insights.(observation_id, planting_cycle_id) > plant_observations.(id, planting_cycle_id)
+Ref: financial_transactions.(category_id, transaction_type) > financial_categories.(id, transaction_type)
+Ref: planting_cycle_tasks.(planting_cycle_stage_id, planting_cycle_id) > planting_cycle_stages.(id, planting_cycle_id)
+Ref: farm_activities.(planting_cycle_task_id, planting_cycle_id, activity_type_id) > planting_cycle_tasks.(id, planting_cycle_id, activity_type_id)
+
+// TABEL PENDUKUNG LARAVEL: DI LUAR FITUR DOMAIN PHASE 1
+
+Table password_reset_tokens {
+  email varchar(255) [pk]
+  token varchar(255) [not null]
+  created_at timestamp
+}
+
+Table sessions {
+  id varchar(255) [pk]
+  user_id uuid [note: 'Kolom UUID terindeks; migration existing tidak memasang FK']
+  ip_address varchar(45)
+  user_agent text
+  payload text [not null]
+  last_activity int [not null]
+  indexes { user_id }
+}
+
+Table cache {
+  key varchar(255) [pk]
+  value text [not null]
+  expiration bigint [not null]
+}
+
+Table cache_locks {
+  key varchar(255) [pk]
+  owner varchar(255) [not null]
+  expiration bigint [not null]
+}
+
+Table jobs {
+  id bigint [pk, increment]
+  queue varchar(255) [not null]
+  payload text [not null]
+  attempts smallint [not null]
+  reserved_at int
+  available_at int [not null]
+  created_at int [not null]
+}
+
+Table job_batches {
+  id varchar(255) [pk]
+  name varchar(255) [not null]
+  total_jobs int [not null]
+  pending_jobs int [not null]
+  failed_jobs int [not null]
+  failed_job_ids text [not null]
+  options text
+  cancelled_at int
+  created_at int [not null]
+  finished_at int
+}
+
+Table failed_jobs {
+  id bigint [pk, increment]
+  uuid varchar(255) [not null, unique]
+  connection text [not null]
+  queue text [not null]
+  payload text [not null]
+  exception text [not null]
+  failed_at timestamp [not null]
+}
+
+Table migrations {
+  id int [pk, increment]
+  migration varchar(255) [not null]
+  batch int [not null]
+}
+
