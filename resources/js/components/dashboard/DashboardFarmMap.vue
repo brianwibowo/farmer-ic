@@ -3,7 +3,7 @@ import { LoaderCircle, LocateFixed, MapPinned, RotateCcw } from '@lucide/vue';
 import type { FeatureGroup, Map as LeafletMap, TileLayer } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../../../css/farm-map.css';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 
 type FarmPoint = {
@@ -150,6 +150,10 @@ function retryTiles(): void {
 }
 
 onMounted(() => void initialize());
+watch(
+    () => props.farms,
+    () => void initialize(),
+);
 onBeforeUnmount(() => {
     disposed = true;
     destroyMap();
@@ -158,7 +162,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div
-        class="farm-map relative isolate mt-6 h-44 overflow-hidden rounded-xl border border-border bg-muted/40"
+        class="farm-map relative isolate mt-6 h-56 overflow-hidden rounded-xl border border-border bg-muted/40 sm:h-64"
     >
         <div
             ref="container"

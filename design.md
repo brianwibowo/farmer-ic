@@ -126,6 +126,61 @@ Width should hug the content with consistent horizontal padding. Use the 12px ra
 
 Buttons may contain text, an icon, or an icon with text. When text and icons are combined, support leading and trailing icons and preserve a clear gap between them. Use a native `<button>` and expose a visible focus state.
 
+### Destructive actions and shared button states
+
+- Use the shared `Button` variants: `destructive` for the final confirmation,
+  `destructive-outline` for a secondary destructive action, and
+  `destructive-ghost` for compact list/table actions. Do not simulate them with
+  a normal primary/outline/ghost button plus `text-error` or `bg-error`.
+- Red remains the semantic color in default, hover, pressed, and keyboard focus
+  states. Use `--destructive`, `--destructive-hover`,
+  `--destructive-pressed`, and `--destructive-foreground` from the active theme;
+  never reuse primary green interaction states for destructive actions.
+- Hover and pressed states must retain readable foreground contrast in both
+  themes. Disabled/loading controls keep disabled semantics and cannot submit
+  twice. A destructive action still uses its existing confirmation flow.
+- Transitions affect colors, borders, and focus shadows without changing the
+  control's layout. Respect reduced motion. Use 44px minimum hit targets for
+  coarse pointers; compact desktop table actions may use 32px controls.
+- All pages, including future mobile pages, should consume these shared
+  variants with their own profile's tokens. Do not copy admin colors into the
+  Farmer/mobile theme.
+
+### Active navigation across subpages
+
+- A section stays selected on its index, create, detail, edit, and other nested
+  actions. Match complete path segments: `/admin/user-management-extra` is not
+  part of `/admin/user-management`. Ignore query strings, hashes, and trailing
+  slashes when matching navigation.
+- Dashboard/root links use exact matching so they do not stay selected while
+  visiting another section. Point the Dashboard item to `/admin/dashboard`.
+- Use `useCurrentUrl` and `NavItem.exact` instead of adding one-off route checks
+  in each page. Expose `aria-current="page"` on exact matches and
+  `aria-current="location"` on the selected parent section. Keep the same
+  selection for expanded, collapsed, and mobile navigation.
+- Close the mobile menu after successful navigation, while preserving normal
+  keyboard focus and visible labels/tooltips. Selected navigation uses both
+  background emphasis and weight, with a separate keyboard focus indicator.
+
+### Refinement scope
+
+Existing operational screens keep their information, permissions, and task
+flows when polishing their UI. Centralize reusable state colors and input
+behavior in the relevant profile stylesheet, and keep `design.md` as the single
+design reference. Impeccable and UI UX Pro Max provide review guidance; their
+suggestions do not replace project tokens, factual content, or this guide.
+
+Admin layouts reuse `AdminHeader` for section navigation, tenant context, and
+theme switching. Keep its navigation and theme action on one row on small
+phones; long section titles may wrap without pushing controls off screen.
+The dashboard uses two metric columns on phones. Field activities use a labeled
+officer select next to search at compact widths, and an officer panel only when
+there is room for both it and the table. Below the tablet breakpoint, present
+activities as a list with the same information as the desktop table. Show the
+active filters, result count, and a reset action; distinguish an empty dataset
+from a search with no matches. Refresh existing data through Inertia, retaining
+the current filters and showing pending, success, and failure feedback.
+
 ## Input
 
 Inputs are defined in **Large** and **Medium** sizes with **Filled** and **Outline** styles. Each style supports these states:
@@ -379,6 +434,10 @@ its main content `min-h-0 overflow-y-auto` so long pages remain reachable.
   On tablet and mobile, collapse the sidebar into an accessible drawer and stack
   grids, filters, and form fields as space requires. Do not force a 260px sidebar
   beside content on a phone.
+- Below 640px, omit the compact tenant badge in the admin header to keep the
+  section title and theme control on one row. Tenant context remains available
+  in the sidebar/team switcher. Use 16px admin input text on these widths to avoid
+  automatic form zoom on phones; retain the desktop input scale on wider screens.
 - Farmer screens retain their mobile navigation pattern. Desktop space may be
   used for wider content or additional columns when the screen specification
   calls for it; preserve reading order and access to actions.

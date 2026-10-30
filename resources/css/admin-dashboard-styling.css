@@ -1,5 +1,6 @@
 /* Desktop admin profile. Keep Farmer/mobile tokens outside this shell intact. */
 .admin-dashboard-theme {
+    color-scheme: light;
     --font-sans:
         'Plus Jakarta Sans', 'Instrument Sans', ui-sans-serif, system-ui,
         sans-serif;
@@ -36,6 +37,8 @@
     --disable: #e2e8f0;
     --disable-foreground: #475569;
     --destructive: #b91c1c;
+    --destructive-hover: #991b1b;
+    --destructive-pressed: #7f1d1d;
     --destructive-foreground: #ffffff;
     --sidebar: #ffffff;
     --sidebar-background: #ffffff;
@@ -51,6 +54,7 @@
 }
 
 .dark .admin-dashboard-theme {
+    color-scheme: dark;
     --background: #0f172a;
     --foreground: #f8fafc;
     --card: #1e293b;
@@ -82,6 +86,8 @@
     --disable: #334155;
     --disable-foreground: #cbd5e1;
     --destructive: #fca5a5;
+    --destructive-hover: #fecaca;
+    --destructive-pressed: #fee2e2;
     --destructive-foreground: #7f1d1d;
     --sidebar: #1e293b;
     --sidebar-background: #1e293b;
@@ -101,8 +107,8 @@
 }
 
 .admin-dashboard-theme .admin-page-title {
-    font-size: 2.25rem !important;
-    line-height: 2.5rem !important;
+    font-size: clamp(1.75rem, 1.25rem + 2vw, 2.25rem) !important;
+    line-height: 1.2 !important;
     font-weight: 700 !important;
     overflow-wrap: anywhere !important;
 }
@@ -136,6 +142,22 @@
     font-size: 2rem;
     line-height: 2.5rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-dashboard-theme ::selection {
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+.admin-dashboard-theme table,
+.admin-dashboard-theme dd {
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-dashboard-theme [role='region'][tabindex='0'] {
+    scrollbar-color: var(--muted-foreground) var(--muted);
+    scrollbar-width: thin;
 }
 
 .admin-dashboard-theme .admin-field {
@@ -149,10 +171,24 @@
     color: var(--foreground);
     font-size: 0.875rem;
     line-height: 1.25rem;
+    transition:
+        border-color 150ms ease,
+        background-color 150ms ease;
+    caret-color: var(--primary);
 }
 
 .admin-dashboard-theme .admin-field--large {
     min-height: 3rem;
+}
+
+@media (max-width: 639px) {
+    .admin-dashboard-theme .admin-header-tenant {
+        display: none;
+    }
+
+    .admin-dashboard-theme .admin-field {
+        font-size: 1rem;
+    }
 }
 
 .admin-dashboard-theme .admin-field::placeholder {
@@ -197,6 +233,48 @@
 
 .admin-dashboard-theme [data-slot='button'] {
     border-radius: var(--radius);
+}
+
+.admin-dashboard-theme [data-sidebar='menu-button'] {
+    min-height: 2.5rem;
+    border-radius: var(--radius);
+    font-weight: 500;
+}
+
+.admin-dashboard-theme [data-sidebar='menu-button'][data-active='true'] {
+    font-weight: 600;
+}
+
+.admin-dashboard-theme [data-collapsible='icon'] [data-sidebar='menu-button'] {
+    min-height: 2rem;
+}
+
+.admin-dashboard-theme [data-sidebar='menu-button']:focus-visible {
+    outline: 2px solid var(--sidebar-ring);
+    outline-offset: 2px;
+}
+
+.admin-dashboard-theme table tbody tr {
+    height: 3rem;
+}
+
+@media (pointer: coarse) {
+    .admin-dashboard-theme .admin-field {
+        min-height: 2.75rem;
+    }
+
+    .admin-dashboard-theme [data-slot='button'],
+    .admin-dashboard-theme [data-sidebar='menu-button'] {
+        min-height: 2.75rem;
+        min-width: 2.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-dashboard-theme .admin-field,
+    .admin-dashboard-theme [data-sidebar='menu-button'] {
+        transition: none;
+    }
 }
 
 .admin-dashboard-theme [data-slot='button'][data-size='default'] {

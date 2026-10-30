@@ -17,6 +17,8 @@ import {
     type UserPage,
 } from '@/types/user-management';
 
+defineOptions({ inheritAttrs: false });
+
 type DeletedUser = ManagedUser & { deleted_at: string; can_restore: boolean };
 defineProps<{ users: Omit<UserPage, 'data'> & { data: DeletedUser[] } }>();
 const selected = ref<DeletedUser | null>(null);
