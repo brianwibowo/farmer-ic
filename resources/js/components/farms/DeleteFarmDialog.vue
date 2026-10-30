@@ -28,7 +28,7 @@ function remove(): void {
             <p v-if="deleteError" role="alert" class="rounded-xl bg-error/10 p-3 text-sm text-error">{{ deleteError }}</p>
             <DialogFooter>
                 <Button type="button" variant="outline" class="rounded-xl" :disabled="form.processing" @click="emit('close')">Batal</Button>
-                <Button type="button" class="rounded-xl bg-error text-destructive-foreground hover:bg-error/90" :disabled="form.processing" @click="remove"><LoaderCircle v-if="form.processing" class="animate-spin" />{{ form.processing ? 'Menghapus…' : 'Ya, hapus kebun' }}</Button>
+                <Button variant="destructive" type="button" class="rounded-xl" :disabled="form.processing" @click="remove"><LoaderCircle v-if="form.processing" class="animate-spin" />{{ form.processing ? 'Menghapus…' : 'Ya, hapus kebun' }}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

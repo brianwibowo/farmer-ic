@@ -24,6 +24,8 @@ import {
     type UserManagementScope,
 } from '@/types/user-management';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
     users: UserPage;
     summary: {
@@ -461,9 +463,8 @@ function reset(): void {
                                                 ><Pencil /></Link></Button
                                         ><Button
                                             v-if="user.can?.delete"
-                                            variant="ghost"
+                                            variant="destructive-ghost"
                                             size="icon"
-                                            class="text-error"
                                             :aria-label="'Hapus ' + user.name"
                                             @click="selectedUser = user"
                                             ><Trash2
@@ -540,8 +541,7 @@ function reset(): void {
                             ><Button
                                 v-if="user.can?.delete"
                                 size="sm"
-                                variant="ghost"
-                                class="text-error"
+                                variant="destructive-ghost"
                                 @click="selectedUser = user"
                                 ><Trash2 />Hapus</Button
                             >

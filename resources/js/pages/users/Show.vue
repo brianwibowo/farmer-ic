@@ -19,6 +19,8 @@ import {
     type UserManagementScope,
 } from '@/types/user-management';
 
+defineOptions({ inheritAttrs: false });
+
 defineProps<{
     managedUser: ManagedUser;
     can: { update: boolean; delete: boolean };
@@ -65,8 +67,8 @@ const deleting = ref(false);
                     ></Button
                 ><Button
                     v-if="can.delete"
-                    variant="outline"
-                    class="h-10 rounded-xl text-error"
+                    variant="destructive-outline"
+                    class="h-10 rounded-xl"
                     @click="deleting = true"
                     ><Trash2 />Hapus</Button
                 >

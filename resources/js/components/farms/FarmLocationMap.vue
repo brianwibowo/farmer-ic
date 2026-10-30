@@ -163,7 +163,7 @@ onBeforeUnmount(() => {
         <div v-if="mapError" role="status" class="flex flex-wrap items-center gap-2 rounded-xl bg-muted p-3 text-xs text-muted-foreground"><p class="flex-1">{{ mapError }}</p><Button type="button" variant="outline" size="sm" :disabled="disabled || loading" @click="retry"><RotateCcw />Coba lagi</Button></div>
         <div v-if="editable" class="flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" :disabled="disabled || !ready" @click="useCenter"><MapPin />Gunakan titik tengah peta</Button>
-            <Button v-if="modelValue" type="button" variant="ghost" size="sm" :disabled="disabled" @click="emit('update:modelValue', null)"><X />Hapus pin</Button>
+            <Button v-if="modelValue" type="button" variant="destructive-ghost" size="sm" :disabled="disabled" @click="emit('update:modelValue', null)"><X />Hapus pin</Button>
         </div>
         <p v-if="editable" role="status" aria-live="polite" class="text-xs text-muted-foreground">{{ modelValue ? 'Pin lokasi sudah dipilih. Perubahan tersimpan setelah Simpan kebun.' : 'Belum ada pin. Lokasi boleh dikosongkan.' }}</p>
         <p v-if="error" role="alert" class="text-sm text-error">{{ error }}</p>
