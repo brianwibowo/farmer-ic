@@ -1,8 +1,12 @@
 # Usulan ERD lengkap phase 1 pertanian
 
 Tanggal rancangan dan penyelarasan RBAC: 29 Oktober 2026. Status: **draft
-implementasi phase 1**. Fitur blok, batch, SOP, dan approval yang diusulkan belum
-diterapkan ke migration, model, route, atau database. Batas akses mengikuti
+implementasi phase 1**. Subset master blok dan batch persiapan telah dibuat pada
+30 Oktober 2026; lihat [backend blok](../farm-block-backend.md) untuk cakupan,
+aturan transisi tanpa approval, dan perbedaannya dari rancangan penuh ini.
+SOP, approval task, dan flow realisasi tahap lanjutan belum diimplementasikan.
+DBML proposal tetap rancangan target; schema aktif ada di database/schema.dbml.
+Batas akses mengikuti
 versi remote `e994d7c` yang dipilih sebagai acuan: Admin mengelola satu tenant
 tanpa penugasan PIC per kebun. Asumsi yang masih terbuka ditandai terpisah.
 

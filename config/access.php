@@ -3,6 +3,9 @@
 return [
     'roles' => [
         'owner' => [
+            'farm_blocks.view' => 'any',
+            'planting_rounds.view' => 'any',
+            'planting_cycle_stages.view' => 'any',
             'activity_photos.view' => 'any',
             'activity_types.view' => 'any',
             'ai_attachments.view' => 'any',
@@ -58,6 +61,13 @@ return [
         ],
 
         'admin' => [
+            'farm_blocks.view' => 'any',
+            'farm_blocks.create' => 'any',
+            'farm_blocks.update' => 'any',
+            'farm_blocks.delete' => 'any',
+            'planting_rounds.view' => 'any',
+            'planting_rounds.create' => 'any',
+            'planting_cycle_stages.view' => 'any',
             'activity_photos.view' => 'any',
             'activity_photos.create' => 'any',
             'activity_photos.update' => 'any',
@@ -172,6 +182,10 @@ return [
         ],
 
         'petugas' => [
+            'farm_blocks.view' => 'own',
+            'planting_rounds.view' => 'own',
+            'planting_rounds.create' => 'own',
+            'planting_cycle_stages.view' => 'own',
             'farms.view' => 'own',
             'block_mapping_details.view' => 'own',
             'block_mapping_details.create' => 'own',

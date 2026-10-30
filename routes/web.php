@@ -6,6 +6,7 @@ use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
 use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FarmBlockController;
 use App\Http\Controllers\FarmManagementController;
 use App\Http\Controllers\Finance\FinanceController;
 use App\Http\Controllers\Finance\FinanceSummaryController;
@@ -31,7 +32,19 @@ Route::inertia('/aktivitas', 'farmer/Aktivitas')->defaults('farmer_guest', true)
 Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->defaults('farmer_guest', true)->name('rincian-aktivitas');
 Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->name('laporan');
 
+Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
+    Route::inertia('/', 'petugas/Home')->name('home');
+    Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
+    Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
+    Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
+});
+
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('blocks', [FarmBlockController::class, 'farms'])->name('blocks.farms');
+    Route::post('kebun/{farm}/blocks/{block}/batches', [FarmBlockController::class, 'storeBatch'])
+        ->whereUuid(['farm', 'block'])->name('blocks.batches.store');
+    Route::resource('kebun/{farm}/blocks', FarmBlockController::class)
+        ->whereUuid(['farm', 'block'])->names('blocks');
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');
     Route::get('finance/transactions/export', [FinanceSummaryController::class, 'export'])->name('finance.transactions.export');
     Route::resource('finance/transactions', FinancialTransactionController::class)->only(['index', 'show', 'update', 'destroy'])->names('finance.transactions')->whereUuid('transaction');

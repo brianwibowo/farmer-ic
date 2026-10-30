@@ -103,14 +103,69 @@ Table crop_varieties {
 Table planting_cycles {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
-  variety_id uuid [not null, ref: > crop_varieties.id]
-  planted_at date [not null]
+  variety_id uuid [ref: > crop_varieties.id, note: 'Nullable only for a zero-area preparation batch']
+  planted_at date [note: 'Nullable only for a zero-area preparation batch']
   estimated_harvest_at date
-  planted_area_ha decimal(12,4) [not null, note: 'CHECK > 0; total luas aktif per kebun perlu divalidasi']
+  planted_area_ha decimal(12,4) [not null, note: 'Positive, or zero for planned preparation batches; never exceeds reserved area']
   estimated_weight_ton decimal(14,3)
   status varchar(30) [not null, note: 'planned | active | harvested | cancelled']
   created_at timestamptz [not null]
+  planting_round_id uuid [ref: > planting_rounds.id]
+  batch_number int
+  subblock_label varchar(30)
+  reserved_area_ha decimal(12,4)
+  created_by uuid [ref: > users.id]
+  indexes {
+    (farm_id, batch_number) [unique]
+    (planting_round_id, subblock_label) [unique]
+  }
   Note: 'Satu kebun dapat memiliki banyak siklus tanam.'
+}
+
+Table farm_blocks {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  code varchar(30) [not null]
+  name varchar(150) [not null]
+  area_ha decimal(12,4) [not null]
+  description text
+  is_active boolean [not null, default: true]
+  created_by uuid [not null, ref: > users.id]
+  land_clearing_started_at timestamptz [not null]
+  land_clearing_completed_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  indexes { (farm_id, code) [unique] }
+  Note: 'Active block areas fit within the farm. First batch automatically completes Land Clearing. Historical blocks are deactivated rather than deleted.'
+}
+
+Table planting_rounds {
+  id uuid [pk]
+  block_id uuid [not null, ref: > farm_blocks.id]
+  round_number int [not null]
+  status varchar(30) [not null, default: 'active']
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  indexes { (block_id, round_number) [unique] }
+  Note: 'At most one active round per block. New rounds begin after all previous batches are terminal.'
+}
+
+Table planting_cycle_stages {
+  id uuid [pk]
+  planting_cycle_id uuid [not null, ref: > planting_cycles.id]
+  code varchar(30) [not null]
+  position int [not null]
+  status varchar(30) [not null]
+  started_at timestamptz
+  completed_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  indexes {
+    (planting_cycle_id, code) [unique]
+    (planting_cycle_id, position) [unique]
+  }
+  Note: 'Six stages per new batch: land_clearing completed, soil_preparation in_progress, remaining stages upcoming. No fabricated dates or progress percentages.'
 }
 
 Table activity_types {
@@ -161,6 +216,7 @@ Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id,
 
 Table block_mapping_details {
   activity_id uuid [pk, ref: > farm_activities.id]
+  block_id uuid [ref: > farm_blocks.id, note: 'Must share the activity farm; historical measurement fields remain snapshots']
   form_version int [not null, default: 1]
   block_name varchar(100) [not null]
   length_m decimal(10,3) [not null]

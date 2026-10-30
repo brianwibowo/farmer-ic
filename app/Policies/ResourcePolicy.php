@@ -7,6 +7,7 @@ use App\Models\AiKnowledgeDocument;
 use App\Models\AiMessage;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Support\RolePermissions;
@@ -62,6 +63,7 @@ abstract class ResourcePolicy
 
         $farm = match (true) {
             $parent instanceof Farm => $parent,
+            $parent instanceof FarmBlock => $parent->farm,
             $parent instanceof FarmActivity, $parent instanceof PlantingCycle => $parent->farm,
             default => null,
         };

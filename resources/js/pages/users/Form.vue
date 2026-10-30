@@ -11,6 +11,8 @@ import type {
     UserManagementScope,
 } from '@/types/user-management';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
     managedUser: ManagedUser | null;
     options: UserOptions;

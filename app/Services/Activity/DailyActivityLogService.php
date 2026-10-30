@@ -5,6 +5,7 @@ namespace App\Services\Activity;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
+use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -68,6 +69,13 @@ class DailyActivityLogService
             ]);
             $startedAt = CarbonImmutable::parse($data['work_date'].' '.$data['start_time'], 'Asia/Jakarta');
             foreach ($data['activities'] as $index => $item) {
+                if (! empty($item['block_mapping']['block_id'])) {
+                    $block = FarmBlock::visibleTo($recorder, $farm->team)->where('farm_id', $farm->id)
+                        ->whereKey($item['block_mapping']['block_id'])->first();
+                    if (! $block) {
+                        throw ValidationException::withMessages(["activities.{$index}.block_mapping.block_id" => 'Blok harus berasal dari kebun laporan dan dapat diakses.']);
+                    }
+                }
                 if ($item['type'] !== 'block_mapping') {
                     throw ValidationException::withMessages(["activities.{$index}.type" => 'Tahap ini hanya mendukung Pemetaan Blok.']);
                 }
