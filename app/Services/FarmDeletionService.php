@@ -8,6 +8,7 @@ use App\Models\BlockMappingDetail;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\FarmRisk;
 use App\Models\FertilizationDetail;
 use App\Models\FinancialBudget;
@@ -19,7 +20,9 @@ use App\Models\IrrigationDetail;
 use App\Models\OperationalTarget;
 use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
+use App\Models\PlantingCycleStage;
 use App\Models\PlantingDetail;
+use App\Models\PlantingRound;
 use App\Models\PlantObservation;
 use App\Models\User;
 use App\Models\WeatherRecord;
@@ -32,6 +35,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class FarmDeletionService
 {
     private const LABELS = [
+        'farm_blocks' => 'Blok kebun', 'planting_rounds' => 'Periode penanaman', 'planting_cycle_stages' => 'Timeline batch',
         'planting_cycles' => 'Siklus tanam', 'daily_activity_logs' => 'Logbook harian',
         'farm_activities' => 'Aktivitas kebun', 'plant_observations' => 'Pengamatan tanaman',
         'farm_risks' => 'Risiko kebun', 'ai_insights' => 'Insight AI siklus tanam',
@@ -83,11 +87,12 @@ class FarmDeletionService
                 DB::table('users')->whereIn('id', $graph['users'])->where('assigned_farm_id', $farm->id)
                     ->update(['assigned_farm_id' => null, 'updated_at' => now()]);
                 foreach ([
+                    'planting_cycle_stages',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
                     'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos',
                     'block_mapping_details', 'planting_details', 'fertilization_details', 'irrigation_details',
                     'pesticide_details', 'incident_details', 'harvest_details',
-                    'farm_activities', 'daily_activity_logs', 'weather_records', 'planting_cycles',
+                    'farm_activities', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'planting_rounds', 'farm_blocks',
                 ] as $table) {
                     $key = str_ends_with($table, '_details') ? 'activity_id' : 'id';
                     DB::table($table)->whereIn($key, $graph[$table])->delete();
@@ -117,6 +122,7 @@ class FarmDeletionService
         $team = $farm->team;
         $graph = [];
         foreach ([
+            'farm_blocks' => FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'planting_cycles' => PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'daily_activity_logs' => DailyActivityLog::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_activities' => FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id),
@@ -128,6 +134,8 @@ class FarmDeletionService
         ] as $table => $query) {
             $graph[$table] = $this->ids($query->toBase());
         }
+        $graph['planting_rounds'] = $this->ids(PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $graph['farm_blocks'])->toBase());
+        $graph['planting_cycle_stages'] = $this->ids(PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['plant_observations'] = $this->ids(PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['farm_risks'] = $this->ids(FarmRisk::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         // ai_insights has no Eloquent model; scope it through the already-visible,

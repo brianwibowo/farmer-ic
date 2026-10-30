@@ -41,9 +41,15 @@ record writes are application-wide because those tables have no team boundary;
 they still require a grant and team membership. Abilities without grants deny,
 including `configure` and `forceDelete`.
 
+Block preparation adds read-only `farm_blocks` access for Petugas and master CRUD
+for Admin. `planting_rounds` may be created as part of authorized batch creation,
+but has no direct update/delete grants. `planting_cycle_stages` is read-only for
+ordinary roles and initialized internally by the batch service. See
+[farm-block-backend.md](farm-block-backend.md) for the complete route and scope map.
+
 ## Model coverage
 
-There are now 36 concrete policy classes for the 36 concrete Eloquent models.
+Every concrete Eloquent model has its own concrete policy class.
 There is one authentication and authorization actor: `App\Models\User`. The merged
 backend no longer exposes a second `Farmer\User` projection. User targets use the
 convention-discovered `UserPolicy`, and notifications use the persisted native
@@ -70,6 +76,9 @@ discover the persisted domain relationships directly.
 | `DailyActivityLog` | `daily_activity_logs` | farm -> team |
 | `FarmActivity` | `farm_activities` | farm -> team |
 | `Farm` | `farms` | Farm itself -> team |
+| `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
+| `PlantingRound` | `planting_rounds` | block.farm -> team; create parent FarmBlock; system-managed round grouping |
+| `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline derived on batch creation |
 | `FarmRisk` | `farm_risks` | plantingCycle.farm -> team |
 | `FertilizationDetail` | `fertilization_details` | activity.farm -> team |
 | `FinancialBudget` | `financial_budgets` | farm -> team |

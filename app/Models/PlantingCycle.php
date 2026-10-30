@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property string $id
  * @property string $farm_id
- * @property string $variety_id
- * @property CarbonImmutable $planted_at
+ * @property string|null $variety_id
+ * @property CarbonImmutable|null $planted_at
  * @property CarbonImmutable|null $estimated_harvest_at
  * @property string $planted_area_ha
  * @property string|null $estimated_weight_ton
@@ -36,6 +36,8 @@ class PlantingCycle extends FarmerModel
             'planted_area_ha' => 'decimal:4',
             'estimated_weight_ton' => 'decimal:3',
             'created_at' => 'immutable_datetime',
+            'batch_number' => 'integer',
+            'reserved_area_ha' => 'decimal:4',
         ];
     }
 
@@ -43,6 +45,18 @@ class PlantingCycle extends FarmerModel
     public function farm(): BelongsTo
     {
         return $this->belongsTo(Farm::class, 'farm_id');
+    }
+
+    /** @return BelongsTo<PlantingRound, $this> */
+    public function plantingRound(): BelongsTo
+    {
+        return $this->belongsTo(PlantingRound::class);
+    }
+
+    /** @return HasMany<PlantingCycleStage, $this> */
+    public function stages(): HasMany
+    {
+        return $this->hasMany(PlantingCycleStage::class);
     }
 
     /** @return BelongsTo<CropVariety, $this> */

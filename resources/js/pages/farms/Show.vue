@@ -9,7 +9,7 @@ import { hectares, landTenureLabel, type ManagedFarm, type FarmPermissions } fro
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<{ farm: ManagedFarm; can: FarmPermissions & { dailyLogs: boolean } }>();
+const props = defineProps<{ farm: ManagedFarm; can: FarmPermissions & { dailyLogs: boolean; blocks: boolean } }>();
 const deleting = ref(false);
 const coordinates = computed<[number, number] | null>(() => props.farm.latitude !== null && props.farm.longitude !== null
     ? [Number(props.farm.latitude), Number(props.farm.longitude)] : null);
@@ -46,6 +46,7 @@ const coordinates = computed<[number, number] | null>(() => props.farm.latitude 
                 </dl>
             </section>
             <div class="space-y-5">
+                <section v-if="can.blocks" class="rounded-xl border border-border bg-card p-5"><h2 class="admin-section-title">Blok dan batch</h2><p class="mt-2 text-sm text-muted-foreground">Lihat pembagian blok, alokasi subblok, dan timeline persiapan.</p><Button as-child class="mt-4 h-10 w-full rounded-xl"><Link :href="`/kebun/${farm.id}/blocks`">Buka blok kebun</Link></Button></section>
                 <section class="rounded-xl border border-border bg-card p-5">
                     <div class="mb-3 flex items-center gap-2"><MapPin class="size-5 text-primary" /><h2 class="admin-section-title">Lokasi kebun</h2></div>
                     <FarmLocationMap v-if="coordinates" :model-value="coordinates" />

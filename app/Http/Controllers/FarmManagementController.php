@@ -7,6 +7,7 @@ use App\Http\Requests\Farms\ListFarmsRequest;
 use App\Http\Requests\Farms\SaveFarmRequest;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
+use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Services\FarmDeletionService;
 use App\Services\FarmService;
@@ -83,6 +84,7 @@ class FarmManagementController extends Controller
                 'delete' => Gate::allows('delete', $farm),
                 'forceDelete' => Gate::allows('forceDelete', $farm),
                 'dailyLogs' => Gate::allows('viewAny', [DailyActivityLog::class, $farm->team]),
+                'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]),
             ],
         ]);
     }
