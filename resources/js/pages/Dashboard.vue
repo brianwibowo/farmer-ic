@@ -8,10 +8,12 @@ import {
     RefreshCw,
     Sprout,
     WalletCards,
+    Wheat,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import DashboardActivities from '@/components/dashboard/DashboardActivities.vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
+import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
 import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
 import { Button } from '@/components/ui/button';
 import type { DashboardInvitation } from '@/types';
@@ -25,17 +27,24 @@ type Metric = {
     value: number | string;
     unit: string;
     note: string;
+    breakdown?: { blocks: number; subBlocks: number | null };
+};
+type ActivityDay = { label: string; value: number };
+type Commodity = {
+    id: string;
+    name: string;
+    plantedArea: string;
+    cycleCount: number;
 };
 type DashboardData = {
     generatedAt: string;
     metrics: Metric[];
-    activity: { total: number; days: Array<{ label: string; value: number }> };
-    monitoring: {
-        activeArea: string;
-        activeCycles: number;
-        openRisks: number;
-        farmsWithActivity: number;
+    activity: {
+        total: number;
+        days: ActivityDay[];
+        farms: Array<{ id: string; name: string; days: ActivityDay[] }>;
     };
+    commodities: Commodity[];
     financial: {
         opexThisMonth: string;
         monthLabel: string;
@@ -68,10 +77,48 @@ const page = usePage();
 const refreshing = ref(false);
 const refreshFeedback = ref('');
 const refreshFailed = ref(false);
+const activityFarmId = ref<string>('');
 const userName = computed(() => page.props.auth.user?.name || 'Admin');
-const maxActivity = computed(() =>
-    Math.max(...props.dashboard.activity.days.map((item) => item.value), 1),
+const selectedActivityFarm = computed(() =>
+    props.dashboard.activity.farms.find(
+        (farm) => farm.id === activityFarmId.value,
+    ),
 );
+const selectedActivityDays = computed(
+    () => selectedActivityFarm.value?.days ?? props.dashboard.activity.days,
+);
+const selectedActivityTotal = computed(() =>
+    selectedActivityDays.value.reduce((total, day) => total + day.value, 0),
+);
+const maxActivity = computed(() =>
+    Math.max(...selectedActivityDays.value.map((item) => item.value), 1),
+);
+const activityAxisTicks = computed(() => [
+    { value: maxActivity.value, y: 18 },
+    { value: Math.ceil(maxActivity.value / 2), y: 51 },
+    { value: 0, y: 84 },
+]);
+const activityChartPoints = computed(() =>
+    selectedActivityDays.value
+        .map((day, index) => {
+            const x = 8 + index * 14;
+            const y = 84 - (day.value / maxActivity.value) * 66;
+
+            return `${x},${y}`;
+        })
+        .join(' '),
+);
+const commoditySlots = computed<Array<Commodity | null>>(() => [
+    ...props.dashboard.commodities,
+    ...Array.from(
+        { length: Math.max(0, 3 - props.dashboard.commodities.length) },
+        () => null,
+    ),
+]);
+const metricHref: Partial<Record<Metric['key'], string>> = {
+    farms: '/admin/farm-management',
+    area: '/admin/farm-management',
+};
 function reportRefreshFailure(): false {
     refreshFailed.value = true;
     refreshFeedback.value =
@@ -169,10 +216,16 @@ const metricIcon = {
             aria-label="Metrik utama"
             class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4"
         >
-            <article
+            <component
                 v-for="metric in dashboard.metrics"
                 :key="metric.key"
-                class="min-w-0 rounded-xl border border-border bg-card p-5"
+                :is="metricHref[metric.key] ? Link : 'article'"
+                v-bind="
+                    metricHref[metric.key]
+                        ? { href: metricHref[metric.key] }
+                        : {}
+                "
+                class="min-w-0 rounded-xl border border-border bg-card p-5 transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
             >
                 <div class="flex items-start justify-between gap-2">
                     <p class="text-sm font-medium text-muted-foreground">
@@ -195,12 +248,101 @@ const metricIcon = {
                 <p class="mt-2 text-xs leading-5 text-muted-foreground">
                     {{ metric.note }}
                 </p>
-            </article>
+                <dl
+                    v-if="metric.breakdown"
+                    class="mt-3 flex flex-wrap gap-2 text-xs"
+                >
+                    <div
+                        class="rounded-lg bg-muted px-2 py-1 text-muted-foreground"
+                    >
+                        <dt class="sr-only">Blok dipetakan</dt>
+                        <dd>{{ metric.breakdown.blocks }} blok</dd>
+                    </div>
+                    <div
+                        class="rounded-lg bg-muted px-2 py-1 text-muted-foreground"
+                    >
+                        <dt class="sr-only">Total sub-blok</dt>
+                        <dd>
+                            {{ metric.breakdown.subBlocks ?? '—' }}
+                            sub-blok
+                        </dd>
+                    </div>
+                </dl>
+            </component>
+        </section>
+
+        <section aria-labelledby="commodities-heading">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                    <h2
+                        id="commodities-heading"
+                        class="admin-section-title text-foreground"
+                    >
+                        Komoditas tertanam
+                    </h2>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Tiga komoditas dengan luas tanam terbesar pada cycle
+                        aktif atau telah dipanen.
+                    </p>
+                </div>
+            </div>
+            <div class="grid gap-4 md:grid-cols-3">
+                <article
+                    v-for="(commodity, index) in commoditySlots"
+                    :key="commodity?.id ?? `empty-commodity-${index}`"
+                    class="min-w-0 rounded-xl border border-border bg-card p-5 transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+                >
+                    <template v-if="commodity">
+                        <div class="flex items-start justify-between gap-3">
+                            <span
+                                class="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"
+                                ><Wheat :size="21" aria-hidden="true"
+                            /></span>
+                            <span
+                                class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                                >{{ commodity.cycleCount }} cycle</span
+                            >
+                        </div>
+                        <h3 class="mt-5 text-lg font-semibold text-foreground">
+                            {{ commodity.name }}
+                        </h3>
+                        <p class="mt-2 text-sm text-muted-foreground">
+                            Luas yang sudah ditanami
+                        </p>
+                        <p
+                            class="mt-1 text-2xl font-semibold tracking-tight text-foreground"
+                        >
+                            {{ commodity.plantedArea }}
+                            <span
+                                class="text-sm font-medium text-muted-foreground"
+                                >ha</span
+                            >
+                        </p>
+                    </template>
+                    <template v-else>
+                        <div class="flex items-start justify-between gap-3">
+                            <span
+                                class="grid size-10 place-items-center rounded-xl bg-muted text-muted-foreground"
+                                ><Wheat :size="21" aria-hidden="true" /></span
+                            ><span class="text-xs text-muted-foreground"
+                                >Belum ada data</span
+                            >
+                        </div>
+                        <h3 class="mt-5 text-lg font-semibold text-foreground">
+                            Komoditas belum tercatat
+                        </h3>
+                        <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                            Komoditas akan muncul setelah cycle tanam aktif atau
+                            panen dicatat.
+                        </p>
+                    </template>
+                </article>
+            </div>
         </section>
 
         <section class="grid gap-4 xl:grid-cols-2">
             <article
-                class="min-w-0 rounded-xl border border-border bg-card p-5"
+                class="order-3 min-w-0 rounded-xl border border-border bg-card p-5 transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
             >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -211,21 +353,35 @@ const metricIcon = {
                             Aktivitas tercatat dalam tujuh hari terakhir.
                         </p>
                     </div>
-                    <span
-                        class="rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground"
-                        >7 hari terakhir</span
-                    >
+                    <label class="space-y-1.5">
+                        <span class="block text-xs font-medium text-foreground"
+                            >Kebun</span
+                        >
+                        <select
+                            v-model="activityFarmId"
+                            class="admin-field h-9 min-w-44 py-1 text-sm"
+                        >
+                            <option value="">Semua kebun</option>
+                            <option
+                                v-for="farm in dashboard.activity.farms"
+                                :key="farm.id"
+                                :value="farm.id"
+                            >
+                                {{ farm.name }}
+                            </option>
+                        </select>
+                    </label>
                 </div>
                 <div class="mt-6 flex items-baseline gap-2">
                     <strong class="text-3xl font-semibold text-foreground">{{
-                        dashboard.activity.total
+                        selectedActivityTotal
                     }}</strong
                     ><span class="text-sm text-muted-foreground"
                         >aktivitas</span
                     >
                 </div>
                 <p
-                    v-if="dashboard.activity.total === 0"
+                    v-if="selectedActivityTotal === 0"
                     class="mt-4 text-sm text-muted-foreground"
                     role="status"
                 >
@@ -233,41 +389,76 @@ const metricIcon = {
                 </p>
                 <dl class="sr-only">
                     <template
-                        v-for="day in dashboard.activity.days"
+                        v-for="day in selectedActivityDays"
                         :key="day.label"
                         ><dt>{{ day.label }}</dt>
                         <dd>{{ day.value }} aktivitas</dd></template
                     >
                 </dl>
                 <div
-                    aria-hidden="true"
-                    class="mt-6 grid h-44 grid-cols-7 items-end gap-2 border-b border-border pb-1"
+                    class="mt-6 flex items-center gap-2 text-xs font-medium text-muted-foreground"
                 >
-                    <div
-                        v-for="day in dashboard.activity.days"
-                        :key="day.label"
-                        class="flex h-full min-w-0 flex-col justify-end gap-2 text-center"
-                    >
-                        <span
-                            class="text-xs font-medium text-muted-foreground"
-                            >{{ day.value }}</span
+                    <span
+                        class="size-2 rounded-full bg-primary"
+                        aria-hidden="true"
+                    />
+                    Jumlah aktivitas per hari
+                </div>
+                <div class="mt-3 overflow-x-auto">
+                    <div class="flex min-w-140 gap-3">
+                        <div
+                            class="flex h-52 w-8 shrink-0 flex-col justify-between pb-0.5 text-right text-xs text-muted-foreground"
+                            aria-hidden="true"
                         >
-                        <div class="flex flex-1 items-end justify-center">
                             <span
-                                class="w-full max-w-8 rounded-t-md bg-primary"
-                                :style="{
-                                    height: `${Math.max((day.value / maxActivity) * 100, day.value ? 8 : 2)}%`,
-                                }"
-                            />
+                                v-for="tick in activityAxisTicks"
+                                :key="tick.y"
+                                >{{ tick.value }}</span
+                            >
                         </div>
-                        <span class="text-xs text-muted-foreground">{{
-                            day.label
-                        }}</span>
+                        <div class="min-w-0 flex-1">
+                            <svg
+                                viewBox="0 0 100 92"
+                                preserveAspectRatio="none"
+                                class="h-52 w-full"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="M8 18H92M8 51H92M8 84H92"
+                                    class="stroke-border"
+                                    stroke-width="0.5"
+                                    fill="none"
+                                />
+                                <polyline
+                                    :points="activityChartPoints"
+                                    class="fill-none stroke-primary"
+                                    stroke-width="1.25"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    vector-effect="non-scaling-stroke"
+                                />
+                            </svg>
+                            <div class="grid grid-cols-7 gap-1 text-center">
+                                <div
+                                    v-for="day in selectedActivityDays"
+                                    :key="day.label"
+                                    class="min-w-0"
+                                >
+                                    <span
+                                        class="block text-xs font-semibold text-foreground"
+                                        >{{ day.value }}</span
+                                    ><span
+                                        class="mt-1 block text-xs text-muted-foreground"
+                                        >{{ day.label }}</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </article>
             <article
-                class="min-w-0 rounded-xl border border-border bg-card p-5"
+                class="order-1 min-w-0 rounded-xl border border-border bg-card p-5 transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none xl:col-span-2"
             >
                 <div class="flex items-start justify-between gap-4">
                     <div>
@@ -297,11 +488,8 @@ const metricIcon = {
                     >
                 </p>
             </article>
-        </section>
-
-        <section class="grid gap-4 xl:grid-cols-2">
             <article
-                class="min-w-0 rounded-xl border border-border bg-card p-5"
+                class="order-2 min-w-0 rounded-xl border border-border bg-card p-5 transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
             >
                 <div class="flex items-start justify-between gap-4">
                     <div>
@@ -317,112 +505,101 @@ const metricIcon = {
                         ><WalletCards :size="20" aria-hidden="true"
                     /></span>
                 </div>
-                <dl class="mt-6 grid gap-4 sm:grid-cols-2">
-                    <div class="rounded-xl bg-muted/60 p-4">
-                        <dt class="text-xs font-medium text-muted-foreground">
-                            OPEX berjalan · {{ dashboard.financial.monthLabel }}
+                <dl class="mt-6 grid gap-3 sm:grid-cols-2">
+                    <div
+                        class="rounded-xl border border-border bg-muted/60 p-4"
+                    >
+                        <dt
+                            class="flex items-start justify-between gap-2 text-xs font-medium text-muted-foreground"
+                        >
+                            <span
+                                >OPEX berjalan ·
+                                {{ dashboard.financial.monthLabel }}</span
+                            >
+                            <MetricInfoTooltip
+                                label="Sumber OPEX berjalan"
+                                description="Nominal transaksi bertipe pengeluaran yang tanggal transaksinya berada pada bulan berjalan."
+                                :period="dashboard.financial.monthLabel"
+                            />
                         </dt>
                         <dd
                             class="mt-2 text-2xl font-semibold tracking-tight break-words text-foreground"
                         >
                             {{ dashboard.financial.opexThisMonth }}
                         </dd>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Transaksi pengeluaran pada bulan berjalan.
+                        <p class="mt-2 text-xs leading-5 text-muted-foreground">
+                            Total pengeluaran yang sudah dicatat pada bulan
+                            berjalan.
                         </p>
                     </div>
-                    <div class="rounded-xl bg-muted/60 p-4">
-                        <dt class="text-xs font-medium text-muted-foreground">
-                            Proyeksi bersih aktif
+                    <div
+                        class="rounded-xl border border-border bg-muted/60 p-4"
+                    >
+                        <dt
+                            class="flex items-start justify-between gap-2 text-xs font-medium text-muted-foreground"
+                        >
+                            <span>Proyeksi pemasukan aktif</span>
+                            <MetricInfoTooltip
+                                label="Sumber proyeksi pemasukan"
+                                description="Total kolom proyeksi pemasukan dari periode proyeksi yang mencakup hari ini."
+                                period="Periode proyeksi aktif"
+                            />
+                        </dt>
+                        <dd
+                            class="mt-2 text-2xl font-semibold tracking-tight break-words text-foreground"
+                        >
+                            {{ dashboard.financial.projectedIncome }}
+                        </dd>
+                        <p class="mt-2 text-xs leading-5 text-muted-foreground">
+                            Estimasi pemasukan untuk periode proyeksi yang
+                            sedang berlaku.
+                        </p>
+                    </div>
+                    <div
+                        class="rounded-xl border border-border bg-muted/60 p-4"
+                    >
+                        <dt
+                            class="flex items-start justify-between gap-2 text-xs font-medium text-muted-foreground"
+                        >
+                            <span>Proyeksi biaya aktif</span>
+                            <MetricInfoTooltip
+                                label="Sumber proyeksi biaya"
+                                description="Total kolom proyeksi biaya dari periode proyeksi yang mencakup hari ini."
+                                period="Periode proyeksi aktif"
+                            />
+                        </dt>
+                        <dd
+                            class="mt-2 text-2xl font-semibold tracking-tight break-words text-foreground"
+                        >
+                            {{ dashboard.financial.projectedExpense }}
+                        </dd>
+                        <p class="mt-2 text-xs leading-5 text-muted-foreground">
+                            Estimasi biaya untuk periode proyeksi yang sedang
+                            berlaku.
+                        </p>
+                    </div>
+                    <div
+                        class="rounded-xl border border-border bg-muted/60 p-4"
+                    >
+                        <dt
+                            class="flex items-start justify-between gap-2 text-xs font-medium text-muted-foreground"
+                        >
+                            <span>Proyeksi bersih aktif</span>
+                            <MetricInfoTooltip
+                                label="Perhitungan proyeksi bersih"
+                                description="Total proyeksi pemasukan dikurangi total proyeksi biaya dari periode yang sedang berlaku."
+                                :period="`${dashboard.financial.projectionCount} periode proyeksi aktif`"
+                            />
                         </dt>
                         <dd
                             class="mt-2 text-2xl font-semibold tracking-tight break-words text-foreground"
                         >
                             {{ dashboard.financial.projectedNet }}
                         </dd>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Dari
-                            {{ dashboard.financial.projectionCount }} periode
-                            proyeksi yang sedang berlaku.
+                        <p class="mt-2 text-xs leading-5 text-muted-foreground">
+                            Estimasi sisa pemasukan setelah seluruh biaya
+                            proyeksi dikurangi.
                         </p>
-                    </div>
-                </dl>
-                <div
-                    class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground"
-                >
-                    <span
-                        >Proyeksi pemasukan:
-                        <strong class="font-semibold text-foreground">{{
-                            dashboard.financial.projectedIncome
-                        }}</strong></span
-                    >
-                    <span
-                        >Proyeksi biaya:
-                        <strong class="font-semibold text-foreground">{{
-                            dashboard.financial.projectedExpense
-                        }}</strong></span
-                    >
-                </div>
-                <Button as-child variant="link" size="sm" class="mt-4 px-0">
-                    <Link href="/finance">Buka keuangan</Link>
-                </Button>
-            </article>
-            <article
-                class="min-w-0 rounded-xl border border-border bg-card p-5"
-            >
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <h2 class="admin-section-title text-foreground">
-                            Status monitoring
-                        </h2>
-                        <p class="mt-1 text-sm text-muted-foreground">
-                            Cakupan data yang dapat Anda pantau.
-                        </p>
-                    </div>
-                    <span
-                        class="grid size-10 place-items-center rounded-xl bg-success/15 text-success"
-                        ><Sprout :size="20" aria-hidden="true"
-                    /></span>
-                </div>
-                <dl class="mt-6 divide-y divide-border">
-                    <div class="flex items-center justify-between gap-4 py-3">
-                        <dt class="text-sm text-muted-foreground">
-                            Area siklus aktif
-                        </dt>
-                        <dd class="font-semibold text-foreground">
-                            {{ dashboard.monitoring.activeArea }} ha
-                        </dd>
-                    </div>
-                    <div class="flex items-center justify-between gap-4 py-3">
-                        <dt class="text-sm text-muted-foreground">
-                            Siklus tanam aktif
-                        </dt>
-                        <dd class="font-semibold text-foreground">
-                            {{ dashboard.monitoring.activeCycles }}
-                        </dd>
-                    </div>
-                    <div class="flex items-center justify-between gap-4 py-3">
-                        <dt class="text-sm text-muted-foreground">
-                            Kebun aktif minggu ini
-                        </dt>
-                        <dd class="font-semibold text-foreground">
-                            {{ dashboard.monitoring.farmsWithActivity }}
-                        </dd>
-                    </div>
-                    <div class="flex items-center justify-between gap-4 py-3">
-                        <dt class="text-sm text-muted-foreground">
-                            Risiko terbuka
-                        </dt>
-                        <dd
-                            class="font-semibold"
-                            :class="
-                                dashboard.monitoring.openRisks > 0
-                                    ? 'text-warning'
-                                    : 'text-success'
-                            "
-                        >
-                            {{ dashboard.monitoring.openRisks }}
-                        </dd>
                     </div>
                 </dl>
             </article>

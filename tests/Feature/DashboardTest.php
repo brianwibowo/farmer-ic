@@ -33,6 +33,8 @@ class DashboardTest extends TestCase
             ->component('Dashboard')
             ->has('dashboard.metrics', 4)
             ->has('dashboard.activity.days', 7)
+            ->has('dashboard.activity.farms')
+            ->has('dashboard.commodities')
             ->has('dashboard.financial')
             ->has('dashboard.landMap.farms')
             ->has('dashboard.activities')

@@ -162,7 +162,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div
-        class="farm-map relative isolate mt-6 h-56 overflow-hidden rounded-xl border border-border bg-muted/40 sm:h-64"
+        class="farm-map relative isolate mt-6 h-72 overflow-hidden rounded-xl border border-border bg-muted/40 sm:h-80 lg:h-96"
     >
         <div
             ref="container"

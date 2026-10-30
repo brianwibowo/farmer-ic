@@ -59,7 +59,7 @@ function initials(name: string): string {
 <template>
     <section class="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
         <article
-            class="min-w-0 overflow-hidden rounded-xl border border-border bg-card"
+            class="min-w-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
             aria-labelledby="activities-heading"
         >
             <div
@@ -315,7 +315,7 @@ function initials(name: string): string {
         </article>
 
         <aside
-            class="hidden min-w-0 self-start rounded-xl border border-border bg-card p-5 2xl:block"
+            class="hidden min-w-0 self-start rounded-xl border border-border bg-card p-5 transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none 2xl:block"
             aria-labelledby="officers-heading"
         >
             <div class="flex items-start justify-between gap-4">
