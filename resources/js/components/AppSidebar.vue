@@ -30,8 +30,11 @@ const dashboardUrl = computed(() =>
 const mainNavItems = computed<NavItem[]>(() => [
     {
         title: page.props.navigation?.admin ? 'Dashboard' : 'Beranda',
-        href: dashboardUrl.value,
+        href: page.props.navigation?.admin
+            ? admin.dashboard().url
+            : dashboardUrl.value,
         icon: LayoutGrid,
+        exact: true,
     },
     ...(page.props.navigation?.farms
         ? [
