@@ -60,6 +60,13 @@ class AuthorizationServiceProvider extends ServiceProvider
                 && $permissions->singleTenant($user) !== null;
         });
 
+        // Admission to an empty mobile portal, not authority over farm records.
+        Gate::define('petugas.access', function (User $user): bool {
+            $permissions = app(RolePermissions::class);
+
+            return $permissions->isKnownRole('petugas') && $permissions->roleName($user) === 'petugas';
+        });
+
         Gate::define('ai.access', function (User $user, ?Team $team = null): bool {
             $permissions = app(RolePermissions::class);
 

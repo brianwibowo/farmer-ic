@@ -32,6 +32,13 @@ Route::inertia('/aktivitas', 'farmer/Aktivitas')->defaults('farmer_guest', true)
 Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->defaults('farmer_guest', true)->name('rincian-aktivitas');
 Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->name('laporan');
 
+Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
+    Route::inertia('/', 'petugas/Home')->name('home');
+    Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
+    Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
+    Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
+});
+
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('blocks', [FarmBlockController::class, 'farms'])->name('blocks.farms');
     Route::post('kebun/{farm}/blocks/{block}/batches', [FarmBlockController::class, 'storeBatch'])

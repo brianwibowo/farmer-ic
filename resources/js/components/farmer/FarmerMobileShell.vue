@@ -98,7 +98,9 @@ function select(key: FarmerNavKey): void {
                 <slot />
             </main>
 
-            <FarmerBottomNav :active-key="selectedKey" @select="select" />
+            <slot name="navigation">
+                <FarmerBottomNav :active-key="selectedKey" @select="select" />
+            </slot>
             <Toaster />
         </section>
     </div>

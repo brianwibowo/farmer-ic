@@ -98,8 +98,24 @@ diubah untuk membatasi portal. Controller tetap memeriksa Policy Farm dan
 Service tetap memakai `visibleTo()`.
 
 Navigasi menerima boolean `navigation.admin` dan `navigation.farms` dari server.
-Login mengarahkan Admin/SuperAdmin ke `/admin/dashboard`, serta Owner/Petugas ke
-`/`. Ikon profil di antarmuka Farmer/Owner membuka ringkasan profil tanpa tautan
+Login mengarahkan Admin/SuperAdmin ke `/admin/dashboard`, Owner ke `/`, dan
+Petugas ke `/petugas`. Portal Petugas menggunakan Gate non-resource
+`petugas.access` dan middleware auth/verified. Empat route Inertia kosong
+tersedia di `/petugas`, `/petugas/kebun`, `/petugas/aktivitas`, dan
+`/petugas/laporan`, dengan navigasi dan layout mobile yang sama pada desktop.
+Gate tersebut hanya mengizinkan masuk portal; akses data kebun tetap mengikuti
+Policy/visibleTo ketika isi operasional dihubungkan. Admin/Owner ditolak pada
+URL portal Petugas; Superadmin dapat melihatnya melalui bypass existing.
+Verifikasi email mengikuti konfigurasi autentikasi existing: fitur verifikasi
+email belum diaktifkan dan User belum mengimplementasikan MustVerifyEmail,
+sehingga middleware verified saat ini belum mewajibkan verifikasi email.
+Halaman portal Petugas ini masih berupa kerangka: belum mengambil data blok,
+aktivitas, atau laporan. Tidak ada query operasional baru. Halaman demo publik
+existing `/`, `/kebun`, `/kebun/detail`, `/kebun/aktivitas`, `/aktivitas`,
+`/rincian-aktivitas`, dan `/laporan` tetap publik; portal baru tidak menggantikan
+route-route tersebut. Batas integrasi AI dan modul blok tetap tercatat dalam
+[dokumentasi backend blok](farm-block-backend.md).
+Ikon profil di antarmuka Farmer/Owner/Petugas membuka ringkasan profil tanpa tautan
 ke area admin. Route admin lama tanpa prefix sudah dihapus.
 
 Nilai `any` berarti semua data yang berada dalam batas tim yang diikuti

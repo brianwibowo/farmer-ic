@@ -234,12 +234,18 @@ Use semantic tab markup when switching content in place. Keep the selected indic
 
 ## Farmer/mobile bottom navigation
 
-The bottom bar has four menu destinations:
+The existing Owner/farmer bottom bar has five destinations: Beranda, Kebun,
+AI, Keuangan, and Aktivitas. Retain its emphasized AI action.
 
-- Beranda
-- Kebun
-- Keuangan
-- Aktivitas
+The Petugas portal uses four equally sized destinations: Beranda, Kebun,
+Aktivitas, and Laporan. These open the authenticated `/petugas` pages through
+Inertia links. Do not include AI or Finance in the Petugas portal navigation.
+The Petugas screens reuse the Farmer mobile shell at every viewport size:
+full width on phones and a centered phone-width frame on tablets/desktops,
+with the same header, independently scrolling content, and bottom safe area.
+Empty pages show their title and an honest placeholder without fabricated
+operational records, metrics, or inactive action buttons. Keep the active
+navigation indicator, request loading feedback, keyboard focus, and both themes.
 
 The Figma page includes both full-color and LoFi variants. Use the active state for the current route, provide an accessible label for every icon, and keep the bar usable on standard, Plus, and Pro Max phone widths.
 

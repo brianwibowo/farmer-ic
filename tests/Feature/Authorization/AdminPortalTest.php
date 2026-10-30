@@ -103,7 +103,7 @@ class AdminPortalTest extends TestCase
         foreach (['owner', 'petugas', 'admin', 'superadmin'] as $role) {
             auth()->logout();
             $user = $this->actor($role);
-            $destination = in_array($role, ['admin', 'superadmin'], true) ? '/admin/dashboard' : '/';
+            $destination = in_array($role, ['admin', 'superadmin'], true) ? '/admin/dashboard' : ($role === 'petugas' ? '/petugas' : '/');
             $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect($destination);
             $this->get('/login')->assertRedirect($destination);
         }
