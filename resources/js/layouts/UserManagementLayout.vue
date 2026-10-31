@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Moon, Sun, Users } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
                         >
                     </div>
                     <div class="flex min-w-0 items-center gap-2">
+                        <NotificationBell />
                         <Button
                             variant="ghost"
                             size="icon"

@@ -194,7 +194,7 @@ class ModelAuthorizationTest extends TestCase
                 'owner' => true,
                 'superadmin' => true,
                 'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['teams', 'team_invitations'], true),
-                'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'block_mapping_details', 'daily_activity_logs'], true),
+                'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'block_mapping_details', 'daily_activity_logs', 'notifications'], true),
             };
             $unlinked = false;
             if ($unlinked) {
@@ -233,6 +233,9 @@ class ModelAuthorizationTest extends TestCase
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true));
             $update = $update && ! $unlinked;
             $delete = $delete && ! $unlinked;
+            if ($prefix === 'notifications') {
+                $update = true;
+            }
             $this->assertSame($update, Gate::forUser($user)->allows('update', $record), $role.' '.$prefix.'.update');
             $this->assertSame($delete, Gate::forUser($user)->allows('delete', $record), $role.' '.$prefix.'.delete');
             $this->assertSame($role === 'superadmin' || ($role === 'admin' && $prefix === 'users'), Gate::forUser($user)->allows('configure', $record));
@@ -454,7 +457,7 @@ class ModelAuthorizationTest extends TestCase
         $this->assertTrue(Gate::forUser($actor)->allows('view', $actor));
         $this->assertTrue(Gate::forUser($actor)->allows('viewAny', [\App\Models\User::class, $actor->currentTeam]));
         $this->assertTrue(Gate::forUser($actor)->allows('view', $notification));
-        $this->assertFalse(Gate::forUser($actor)->allows('update', $notification));
+        $this->assertTrue(Gate::forUser($actor)->allows('update', $notification)); // Personal read state only via HTTP.
         $this->assertFalse(Gate::forUser($actor)->allows('delete', $notification));
         $this->assertFalse(Gate::forUser($actor)->allows('create', [\App\Models\User::class, $actor->currentTeam]));
         $this->assertSame(1, \App\Models\User::visibleTo($actor, $actor->currentTeam)->count());

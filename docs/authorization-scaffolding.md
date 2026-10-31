@@ -35,15 +35,25 @@ The four application roles retain their intended responsibilities:
 | admin | CRUD for all non-AI modeled resources within teams using `any`; no AI access. |
 | petugas | View farms and CRUD farm-operation records within assigned farms using `own`; may leave eligible teams; no finance, catalog, or AI grants. |
 
-Admin/petugas may leave non-personal teams that they do not own. Owner views
-notifications, while admin and superadmin have notification CRUD grants. Reference
+The current matrix denies leave without an explicit teams.leave grant.
+Owner, Admin and Petugas read their own notifications and may update their own
+read state. Notification inbox queries always filter the recipient, including
+for Superadmin. No HTTP endpoint accepts arbitrary notification content. Reference
 record writes are application-wide because those tables have no team boundary;
 they still require a grant and team membership. Abilities without grants deny,
 including `configure` and `forceDelete`.
 
+Notification status/date filters run on the personal inbox query before totals
+and pagination. Only Owners can select an associated non-personal tenant; a
+tenant filter from another role or for an unrelated tenant returns 403.
+`NotificationPolicy::showsTenantContext` is a presentation helper that keeps
+tenant copy/filter controls Owner-only even for Superadmin. It adds no grant or
+bypass. Tenant metadata is saved from the authorized notification snapshot;
+request input never sets a notification's tenant or recipient.
+
 ## Model coverage
 
-There are now 36 concrete policy classes for the 36 concrete Eloquent models.
+Every concrete Eloquent model has its own convention-discovered policy.
 There is one authentication and authorization actor: `App\Models\User`. The merged
 backend no longer exposes a second `Farmer\User` projection. User targets use the
 convention-discovered `UserPolicy`, and notifications use the persisted native
@@ -80,7 +90,7 @@ discover the persisted domain relationships directly.
 | `IncidentDetail` | `incident_details` | activity.farm -> team |
 | `IrrigationDetail` | `irrigation_details` | activity.farm -> team |
 | `Membership` | `memberships` | team |
-| `Notification` | `notifications` | Persisted recipient's team membership; `own` additionally requires the actor to be the recipient |
+| `Notification` | `notifications` | Personal inbox: persisted recipient only, active account and valid membership; listing without a Team explicitly spans the actor's memberships, not other recipients |
 | `OperationalTarget` | `operational_targets` | farm -> team |
 | `PesticideDetail` | `pesticide_details` | activity.farm -> team |
 | `PlantingCycle` | `planting_cycles` | farm -> team |

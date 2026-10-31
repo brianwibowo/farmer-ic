@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property string $id
  * @property string $user_id
+ * @property string|null $type
+ * @property int|null $team_id
  * @property string|null $title
  * @property string|null $message
  * @property bool $is_read
@@ -40,5 +42,11 @@ class Notification extends FarmerModel
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /** @return BelongsTo<Team, $this> */
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
     }
 }

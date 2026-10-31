@@ -82,6 +82,14 @@ const deleting = ref(false);
                 <dl class="space-y-4 text-sm">
                     <div>
                         <dt class="text-xs text-muted-foreground">
+                            Nomor WhatsApp
+                        </dt>
+                        <dd class="mt-1">
+                            {{ managedUser.phone_number || 'Belum diisi' }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">
                             Role aplikasi
                         </dt>
                         <dd class="mt-1 font-medium">

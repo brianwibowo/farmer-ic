@@ -13,6 +13,7 @@ use App\Http\Controllers\Finance\FinancialBudgetController;
 use App\Http\Controllers\Finance\FinancialCategoryController;
 use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureTeamMembership;
@@ -32,6 +33,9 @@ Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->defaults('farme
 Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->name('laporan');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('notifications.read');
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');
     Route::get('finance/transactions/export', [FinanceSummaryController::class, 'export'])->name('finance.transactions.export');
     Route::resource('finance/transactions', FinancialTransactionController::class)->only(['index', 'show', 'update', 'destroy'])->names('finance.transactions')->whereUuid('transaction');

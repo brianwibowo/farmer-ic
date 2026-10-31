@@ -97,6 +97,7 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'timezone' => 'Asia/Jakarta',
         ],
 
         'pgsql_testing' => [
@@ -111,7 +112,7 @@ return [
             'prefix' => '',
             'search_path' => 'public',
             'sslmode' => env('TEST_DB_SSLMODE', 'prefer'),
-            'timezone' => 'UTC',
+            'timezone' => 'Asia/Jakarta',
         ],
 
         'sqlsrv' => [

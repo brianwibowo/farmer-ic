@@ -7,6 +7,7 @@ import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
 import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
+import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
@@ -21,7 +22,14 @@ withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 const page = usePage();
-const isAdmin = computed(() => page.url.startsWith('/admin/'));
+const isNotifications = computed(
+    () => page.url.split('?')[0] === '/notifications',
+);
+const isAdmin = computed(
+    () =>
+        page.url.startsWith('/admin/') ||
+        (isNotifications.value && page.props.navigation?.admin === true),
+);
 const { resolvedAppearance, updateAppearance } = useAppearance();
 </script>
 
@@ -48,12 +56,19 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
                             aria-hidden="true"
                         />
                         <Link
-                            href="/admin/dashboard"
+                            :href="
+                                isNotifications
+                                    ? '/notifications'
+                                    : '/admin/dashboard'
+                            "
                             class="admin-navbar-title focus-visible:outline-2 focus-visible:outline-ring"
-                            >Dashboard</Link
+                            >{{
+                                isNotifications ? 'Notifikasi' : 'Dashboard'
+                            }}</Link
                         >
                     </div>
                     <div class="flex min-w-0 items-center gap-2">
+                        <NotificationBell />
                         <Button
                             variant="ghost"
                             size="icon"
@@ -73,6 +88,10 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
                                 v-else
                         /></Button>
                         <span
+                            v-if="
+                                !isNotifications ||
+                                page.props.canFilterTenant === true
+                            "
                             class="max-w-full truncate rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
                             >{{
                                 page.props.currentTeam?.name ??

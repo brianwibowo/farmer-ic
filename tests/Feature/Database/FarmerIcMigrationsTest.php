@@ -314,7 +314,7 @@ class FarmerIcMigrationsTest extends TestCase
         $source = file_get_contents(database_path('schema.dbml'));
         preg_match_all('/^Table\s+(\w+)\s*\{([\s\S]*?)^\}/m', $source, $tables, PREG_SET_ORDER);
         foreach ($tables as $table) {
-            preg_match_all('/^  (\w+)\s+(uuid|bigint|varchar\(\d+\)|text|boolean|timestamptz|timestamp|date|time|decimal\(\d+,\d+\)|int|jsonb)(?:\s+\[(.*)\])?\s*$/m', $table[2], $columns, PREG_SET_ORDER);
+            preg_match_all('/^  (\w+)\s+(uuid|bigint|varchar\(\d+\)|text|boolean|timestamptz|timestamp|date|time|decimal\(\d+,\d+\)|int|smallint|jsonb)(?:\s+\[(.*)\])?\s*$/m', $table[2], $columns, PREG_SET_ORDER);
             $this->definition[$table[1]] = array_map(fn (array $column) => [
                 'name' => $column[1], 'type' => $column[2], 'settings' => $column[3] ?? '',
             ], $columns);
@@ -359,6 +359,7 @@ class FarmerIcMigrationsTest extends TestCase
                     str_starts_with($type, 'decimal') => 'numeric',
                     $type === 'boolean' => 'bool',
                     $type === 'int' => 'int4',
+                    $type === 'smallint' => 'int2',
                     $type === 'bigint' => 'int8',
                     default => $type,
                 };

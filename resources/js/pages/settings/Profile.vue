@@ -72,6 +72,29 @@ const user = computed(() => page.props.auth.user);
             </div>
 
             <div class="flex items-center gap-4">
+                <div class="grid w-full gap-2">
+                    <Label for="phone_number">Nomor WhatsApp</Label>
+                    <Input
+                        id="phone_number"
+                        name="phone_number"
+                        type="tel"
+                        autocomplete="tel"
+                        inputmode="tel"
+                        :default-value="user.phone_number ?? ''"
+                        placeholder="081234567890"
+                        pattern="\+?[0-9][0-9 \(\)\-]{7,23}"
+                        maxlength="24"
+                        aria-describedby="phone-help"
+                    />
+                    <p id="phone-help" class="text-xs text-muted-foreground">
+                        Opsional. Format +6208…, 08…, atau 628… akan disimpan
+                        sebagai 628….
+                    </p>
+                    <InputError :message="errors.phone_number" />
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
                 <Button :disabled="processing" data-test="update-profile-button"
                     >Save</Button
                 >
