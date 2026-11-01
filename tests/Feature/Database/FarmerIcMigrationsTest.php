@@ -57,7 +57,9 @@ class FarmerIcMigrationsTest extends TestCase
         try {
             // Laravel's table wipe leaves PostgreSQL functions behind. Rebuild
             // without manually removing them to reproduce repeated fresh runs.
-            $this->assertSame(3, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname LIKE 'farmer_ic_%'"));
+            $functionCount = (int) $this->database->scalar("SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname LIKE 'farmer_ic_%'");
+            $this->assertGreaterThanOrEqual(3, $functionCount);
+            $this->assertSame($functionCount, (int) $this->database->scalar("SELECT COUNT(DISTINCT (p.proname || ':' || pg_get_function_identity_arguments(p.oid))) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname LIKE 'farmer_ic_%'"));
             $this->artisan('migrate:fresh', $options)->assertSuccessful();
             $this->assertDbmlContract();
             // A repeated migrate must neither duplicate tables nor change schema.
@@ -462,9 +464,15 @@ SQL, [$table]), 'columns');
         $this->ids['commodities'] = $this->insert('commodities', ['name' => 'Jagung']);
         $this->ids['crop_varieties'] = $this->insert('crop_varieties', ['name' => 'Bisi']);
         $this->ids['farms'] = $this->insert('farms', ['total_area_ha' => 100]);
-        $this->ids['planting_cycles'] = $this->insert('planting_cycles', ['status' => 'active', 'planted_area_ha' => 10]);
+        $this->ids['planting_cycles'] = $this->insert('planting_cycles', [
+            'status' => 'active', 'planted_area_ha' => 10,
+            'planted_at' => '2026-09-01', 'variety_id' => $this->ids['crop_varieties'],
+        ]);
         $this->ids['other_farm'] = $this->insert('farms', ['total_area_ha' => 50]);
-        $this->ids['other_cycle'] = $this->insert('planting_cycles', ['farm_id' => $this->ids['other_farm'], 'status' => 'active']);
+        $this->ids['other_cycle'] = $this->insert('planting_cycles', [
+            'farm_id' => $this->ids['other_farm'], 'status' => 'active',
+            'planted_at' => '2026-09-01', 'variety_id' => $this->ids['crop_varieties'],
+        ]);
         foreach (['planting', 'fertilization', 'irrigation', 'growth_check', 'pesticide', 'incident', 'harvest'] as $code) {
             $this->types[$code] = $this->insert('activity_types', ['code' => $code, 'name' => $code]);
         }
