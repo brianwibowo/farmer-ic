@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             DemoFarmSeeder::class,
             DemoFarmBlockSeeder::class,
             DemoActivitySeeder::class,
+            SopActivityTypeSeeder::class,
+            DemoSopSeeder::class,
             DemoMonitoringSeeder::class,
             DemoFinanceSeeder::class,
             DemoOperationsSeeder::class,
