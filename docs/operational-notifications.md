@@ -256,6 +256,7 @@ status dibaca dan waktu histori tetap dipertahankan.
 
 ## Referensi kode
 
+- [Audit dan optimasi query notifikasi](notification-query-performance.md), termasuk pengukuran N+1, batas snapshot membership, dan tes pertumbuhan query.
 - [NotificationService](../app/Services/Notifications/NotificationService.php)
 - [DailyReportNotification](../app/Notifications/DailyReportNotification.php), [HarvestReminderNotification](../app/Notifications/HarvestReminderNotification.php), dan [InAppChannel](../app/Notifications/Channels/InAppChannel.php)
 - [SendWhatsAppNotification](../app/Jobs/SendWhatsAppNotification.php) dan [FonnteClient](../app/Services/Notifications/FonnteClient.php)
@@ -264,8 +265,8 @@ status dibaca dan waktu histori tetap dipertahankan.
 
 ## Verifikasi terakhir
 
-Suite penuh setelah filter inbox: 390 lulus, 1 dilewati karena fitur Fortify
-2FA tidak aktif, dengan 8.384 assertions. Cakupan mencakup template kedua jenis, inbox personal, metadata
+Suite penuh setelah optimasi query notifikasi: 405 lulus, 1 dilewati karena fitur Fortify
+2FA tidak aktif, dengan 8.506 assertions. Cakupan mencakup template kedua jenis, inbox personal, metadata
 jenis, commit/rollback, worker database, validasi registrasi nomor, respons provider
 gagal, retry terbatas, perubahan jadwal dan batas waktu. Pint, PHPStan untuk kode
 runtime yang berubah, serta build frontend lulus. Build masih memunculkan warning
@@ -276,14 +277,21 @@ kebun kosong, Owner multi-tenant, isolasi Admin, identitas inbox berulang,
 perpindahan kebun, membership dicabut, payload per kebun lama, tenant tanpa kebun,
 serta rollback/commit snapshot melalui worker database nyata.
 
-Cakupan filter meliputi default belum dibaca hari ini, batas hari WIB, kombinasi
-status/tanggal/tenant sebelum pagination, reset saat masuk ulang, penolakan filter
+Cakupan filter meliputi default belum dibaca lintas tanggal, batas hari WIB pada tab Semua, kombinasi
+tanggal/tenant sebelum pagination, reset saat masuk ulang, penolakan filter
 tenant lintas membership atau dari non-Owner, validasi tanggal, dan backfill yang
-tidak menebak dari teks. Pemeriksaan browser mencakup Admin/Owner/Petugas/inbox
+tidak menebak dari teks. Pemeriksaan browser sebelumnya mencakup Admin/Owner/Petugas/inbox
 kosong di lebar 320, 390, 430, dan 1280 pada tema terang/gelap. Alur status,
 rentang tanggal, tenant, pagination, read, serta reset saat reload diuji pada
 database browser khusus tes. Grid memakai lebar container agar field tanggal
 tetap terbaca pada layout Owner yang sempit di desktop.
+
+Tes query memastikan jumlah query tetap saat jumlah kartu bertambah dari 1 ke 15,
+kebun dari 1 ke 8, serta siklus panen dari 1 ke 30. Snapshot membership dibuang
+setelah operasi dan divalidasi ulang pada pemanggilan job berikutnya, termasuk
+ketika membership, assignment, status aktif, atau role berubah selama request
+validasi Fonnte. Detail pengukuran dan batas kesimpulan tersedia pada
+[audit query](notification-query-performance.md).
 
 Provider menggunakan respons tiruan selama pengujian; tidak ada panggilan
 validasi/pengiriman nyata atau restart worker lingkungan aplikasi. Migrasi

@@ -39,10 +39,13 @@ final class SendWhatsAppNotification implements ShouldQueue
     public function handle(NotificationService $notifications, FonnteClient $client): void
     {
         $data = $this->notification->data;
-        $recipient = $notifications->validRecipient($data);
         $expiry = CarbonImmutable::parse($data['event_date'], config('app.timezone'))->addDay()->startOfDay();
         $requestWindow = FonnteClient::VALIDATION_TIMEOUT + FonnteClient::SEND_TIMEOUT;
-        if (! $recipient || ! config('operational_notifications.fonnte.enabled') || now()->addSeconds($requestWindow)->gte($expiry)) {
+        if (! config('operational_notifications.fonnte.enabled') || now()->addSeconds($requestWindow)->gte($expiry)) {
+            return;
+        }
+        $recipient = $notifications->validRecipient($data);
+        if (! $recipient) {
             return;
         }
         $number = $recipient->phone_number;

@@ -26,7 +26,7 @@ class NotificationPolicy extends ResourcePolicy
     {
         return $user->is_active && $this->permissions->scope($user, 'notifications.view') !== null
             && ($team !== null ? $this->permissions->withinTeam($user, $team)
-                : $user->teams()->get()->contains(fn (Team $candidate) => $this->permissions->withinTeam($user, $candidate)));
+                : $this->permissions->teamMemberships($user)->contains(fn (Team $candidate) => $this->permissions->withinTeam($user, $candidate)));
     }
 
     public function view(User $user, Model $record): bool

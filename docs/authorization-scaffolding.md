@@ -51,6 +51,16 @@ tenant copy/filter controls Owner-only even for Superadmin. It adds no grant or
 bypass. Tenant metadata is saved from the authorized notification snapshot;
 request input never sets a notification's tenant or recipient.
 
+Notification reads can reuse persisted membership data inside
+`RolePermissions::withMembershipSnapshot()` for one bounded callback. The snapshot
+is removed in `finally`; it never grants a new permission. HTTP inbox rendering
+keeps per-record Gate checks. Queue recipient validation starts with fresh user,
+role and membership reads on each call, including after provider validation.
+Only a freshly eager-loaded dispatcher batch uses `reload: false`. Existing
+membership helpers keep their database behavior outside this callback. See
+[notification query performance](notification-query-performance.md) for the
+measured scope and authorization regression coverage.
+
 ## Model coverage
 
 Every concrete Eloquent model has its own convention-discovered policy.

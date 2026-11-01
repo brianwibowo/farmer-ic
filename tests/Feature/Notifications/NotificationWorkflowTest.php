@@ -351,6 +351,30 @@ class NotificationWorkflowTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public static function accessChanges(): array
+    {
+        return [['membership'], ['assignment'], ['inactive'], ['role']];
+    }
+
+    #[DataProvider('accessChanges')]
+    public function test_access_changes_during_registration_check_are_not_hidden_by_permission_snapshots(string $change): void
+    {
+        $data = $this->reminderData();
+        Http::fake(function ($request) use ($change) {
+            $this->assertSame('https://api.fonnte.com/validate', $request->url());
+            match ($change) {
+                'membership' => $this->team->members()->detach($this->officer),
+                'assignment' => $this->officer->forceFill(['assigned_farm_id' => null])->save(),
+                'inactive' => $this->officer->forceFill(['is_active' => false])->save(),
+                'role' => $this->officer->forceFill(['role_id' => \App\Models\Role::firstOrCreate(['name' => 'admin'])->id])->save(),
+            };
+
+            return Http::response(['status' => true, 'registered' => ['6281234567890'], 'not_registered' => []]);
+        });
+        (new SendWhatsAppNotification(new HarvestReminderNotification($data)))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
+        Http::assertSentCount(1);
+    }
+
     public function test_too_little_time_for_validation_and_send_skips_all_provider_requests(): void
     {
         $data = $this->reminderData();

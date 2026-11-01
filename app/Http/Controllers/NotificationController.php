@@ -7,6 +7,7 @@ use App\Models\Notification;
 use App\Models\User;
 use App\Policies\NotificationPolicy;
 use App\Services\Notifications\NotificationInboxService;
+use App\Support\RolePermissions;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,38 +20,42 @@ class NotificationController extends Controller
 {
     public function unread(Request $request, NotificationInboxService $inbox): JsonResponse
     {
-        Gate::authorize('viewAny', Notification::class);
+        return app(RolePermissions::class)->withMembershipSnapshot($request->user(), function () use ($request, $inbox): JsonResponse {
+            Gate::authorize('viewAny', Notification::class);
 
-        return response()->json(['count' => $inbox->unreadCount($request->user())])->header('Cache-Control', 'no-store');
+            return response()->json(['count' => $inbox->unreadCount($request->user())])->header('Cache-Control', 'no-store');
+        });
     }
 
     public function index(FilterNotificationsRequest $request, NotificationInboxService $inbox): Response
     {
-        Gate::authorize('viewAny', Notification::class);
-        $actor = $request->user();
-        $filters = $request->validated();
-        $context = $this->tenantContext($actor, $filters, $inbox);
-        $tenantNames = array_column($context['options'], 'name', 'id');
-        $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
+        return app(RolePermissions::class)->withMembershipSnapshot($request->user(), function () use ($request, $inbox): Response {
+            Gate::authorize('viewAny', Notification::class);
+            $actor = $request->user();
+            $filters = $request->validated();
+            $context = $this->tenantContext($actor, $filters, $inbox);
+            $tenantNames = array_column($context['options'], 'name', 'id');
+            $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
 
-        return Inertia::render('notifications/Index', [
-            'notifications' => $inbox->paginate($actor, $filters)->through(fn (Notification $notification): array => [
-                'id' => $notification->id, 'title' => $notification->title,
-                'message' => $inbox->messageFor($actor, $notification, isset($tenantNames[$notification->team_id])),
-                'tenant_name' => $tenantNames[$notification->team_id] ?? null,
-                'is_read' => $notification->is_read,
-                'date_key' => $notification->created_at?->setTimezone(config('app.timezone'))->toDateString(),
-                'date_label' => $notification->created_at?->setTimezone(config('app.timezone'))->settings(['locale' => 'id'])->translatedFormat('j F Y'),
-                'created_at' => $notification->created_at?->setTimezone(config('app.timezone'))->settings(['locale' => 'id'])->translatedFormat('j F Y H:i').' WIB',
-                'can_read' => Gate::allows('update', $notification),
-            ]),
-            'unreadCount' => $inbox->unreadCount($request->user()),
-            'hasPhoneNumber' => filled($request->user()->phone_number),
-            'filters' => [...$filters, 'team_id' => isset($filters['team_id']) ? (int) $filters['team_id'] : null],
-            'defaultFilters' => ['status' => 'unread', 'date_from' => $today, 'date_to' => $today, 'team_id' => null],
-            'tenantOptions' => $context['options'],
-            'canFilterTenant' => $context['show'],
-        ]);
+            return Inertia::render('notifications/Index', [
+                'notifications' => $inbox->paginate($actor, $filters)->through(fn (Notification $notification): array => [
+                    'id' => $notification->id, 'title' => $notification->title,
+                    'message' => $inbox->messageFor($actor, $notification, isset($tenantNames[$notification->team_id])),
+                    'tenant_name' => $tenantNames[$notification->team_id] ?? null,
+                    'is_read' => $notification->is_read,
+                    'date_key' => $notification->created_at?->setTimezone(config('app.timezone'))->toDateString(),
+                    'date_label' => $notification->created_at?->setTimezone(config('app.timezone'))->settings(['locale' => 'id'])->translatedFormat('j F Y'),
+                    'created_at' => $notification->created_at?->setTimezone(config('app.timezone'))->settings(['locale' => 'id'])->translatedFormat('j F Y H:i').' WIB',
+                    'can_read' => Gate::allows('update', $notification),
+                ]),
+                'unreadCount' => $inbox->unreadCount($request->user()),
+                'hasPhoneNumber' => filled($request->user()->phone_number),
+                'filters' => [...$filters, 'team_id' => isset($filters['team_id']) ? (int) $filters['team_id'] : null],
+                'defaultFilters' => ['status' => 'unread', 'date_from' => $today, 'date_to' => $today, 'team_id' => null],
+                'tenantOptions' => $context['options'],
+                'canFilterTenant' => $context['show'],
+            ]);
+        });
     }
 
     public function read(FilterNotificationsRequest $request, Notification $notification, NotificationInboxService $inbox): RedirectResponse

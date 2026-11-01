@@ -5,9 +5,57 @@ namespace App\Support;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
+use Closure;
+use Illuminate\Database\Eloquent\Collection;
+use LogicException;
+use WeakMap;
 
 final class RolePermissions
 {
+    /** @var WeakMap<User, Collection<int, Team>>|null */
+    private static ?WeakMap $membershipSnapshots = null;
+
+    /**
+     * Reuse persisted memberships only during one read operation. No access
+     * decision survives this callback or a subsequent queue validation.
+     * $reload=false is reserved for users freshly eager-loaded by a batch query.
+     *
+     * @template TResult
+     *
+     * @param  Closure(): TResult  $callback
+     * @return TResult
+     */
+    public function withMembershipSnapshot(User $user, Closure $callback, bool $reload = true): mixed
+    {
+        self::$membershipSnapshots ??= new WeakMap;
+        if (isset(self::$membershipSnapshots[$user])) {
+            return $callback();
+        }
+
+        if (! $reload && ! $user->relationLoaded('teams')) {
+            throw new LogicException('A fresh eager-loaded teams relation is required.');
+        }
+        $teams = $reload ? $user->teams()->get() : $user->teams;
+        self::$membershipSnapshots[$user] = $teams;
+        try {
+            return $callback();
+        } finally {
+            unset(self::$membershipSnapshots[$user]);
+        }
+    }
+
+    /** @return Collection<int, Team>|null */
+    private function membershipSnapshot(User $user): ?Collection
+    {
+        return self::$membershipSnapshots[$user] ?? null;
+    }
+
+    /** @return Collection<int, Team> */
+    public function teamMemberships(User $user): Collection
+    {
+        return $this->membershipSnapshot($user) ?? $user->teams()->get();
+    }
+
     /** @return array<string, mixed> */
     public function roles(): array
     {
@@ -51,16 +99,21 @@ final class RolePermissions
 
     public function withinTeam(User $user, Team $team): bool
     {
+        $memberships = $this->membershipSnapshot($user);
+
         return $user->exists && $team->exists
             && $user->getKey() !== null && $team->getKey() !== null
             && ! $team->trashed()
             && $this->withinTeamMembershipLimit($user)
-            && $user->belongsToTeam($team);
+            && ($memberships !== null
+                ? $memberships->contains(fn (Team $candidate): bool => $candidate->is($team))
+                : $user->belongsToTeam($team));
     }
 
     public function singleTenant(User $user): ?Team
     {
-        $teams = $user->teams()->where('teams.is_personal', false)->limit(2)->get();
+        $teams = $this->membershipSnapshot($user)?->where('is_personal', false)->take(2)
+            ?? $user->teams()->where('teams.is_personal', false)->limit(2)->get();
         $team = $teams->count() === 1 ? $teams->first() : null;
 
         return $team instanceof Team && $this->withinTeam($user, $team) ? $team : null;
@@ -77,9 +130,11 @@ final class RolePermissions
             return true;
         }
 
-        $count = $user->relationLoaded('teams')
+        $memberships = $this->membershipSnapshot($user);
+        $count = $memberships !== null ? $memberships->where('is_personal', false)->unique('id')->count()
+            : ($user->relationLoaded('teams')
             ? $user->getRelation('teams')->where('is_personal', false)->unique('id')->count()
-            : $user->teams()->where('teams.is_personal', false)->distinct('teams.id')->count('teams.id');
+            : $user->teams()->where('teams.is_personal', false)->distinct('teams.id')->count('teams.id'));
 
         return $count <= 1;
     }
