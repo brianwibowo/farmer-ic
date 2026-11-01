@@ -81,7 +81,7 @@ function submit(): void {
 
 <template>
     <Dialog :open="open" @update:open="emit('update:open', $event)">
-        <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent class="admin-dashboard-theme max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
                 <DialogTitle>{{ task ? 'Ubah langkah SOP' : 'Tambah langkah SOP' }}</DialogTitle>
                 <DialogDescription>

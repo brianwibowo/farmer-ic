@@ -55,7 +55,7 @@ function submit(): void {
 
 <template>
     <Dialog :open="open" @update:open="emit('update:open', $event)">
-        <DialogContent class="sm:max-w-lg">
+        <DialogContent class="admin-dashboard-theme sm:max-w-lg">
             <DialogHeader>
                 <DialogTitle>Salin SOP ke kebun lain</DialogTitle>
                 <DialogDescription>
