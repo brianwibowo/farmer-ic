@@ -33,6 +33,8 @@ Sudah ada:
 - halaman Inertia daftar dan detail logbook
 - form batch untuk beberapa kegiatan block mapping
 - validasi, policy, dan test untuk slice block mapping
+- tabel dan halaman admin definisi SOP: `sop_templates`, `sop_template_versions`, `sop_template_tasks`
+- publikasi versi SOP dan salin template ke kebun lain
 
 Belum ada:
 
@@ -42,7 +44,8 @@ Belum ada:
 - upload foto
 - approval/paraf
 - tabel master blok (sub-blok menjadi label batch/cycle)
-- definisi SOP modular dan generate task berbasis HST
+- generate `planting_cycle_tasks` berbasis HST dari definisi SOP
+- pengajuan dan approval task SOP
 - pemindahan `worker_count` dari header ke aktivitas
 - penghapusan `notes` harian dan field kendala/solusi/tindakan
 
@@ -220,7 +223,7 @@ Catatan implementasi:
 - `activity_date` diisi per aktivitas; jika form batch tidak meminta waktu per aktivitas, gunakan `work_date` + `start_time` header.
 - Untuk export logbook, group `farm_activities` berdasarkan `daily_activity_log_id`.
 - Block mapping tetap form terpisah dan tidak termasuk kategori aktivitas.
-- Scheduled task/SOP belum termasuk implementasi minimal ini.
+- Generate scheduled task dari definisi SOP ke batch belum termasuk implementasi minimal ini; definisi template/versi/task sudah tersedia.
 - Jika aktivitas berasal dari scheduled task, simpan relasi task → activity log saat completion.
 
 ---
