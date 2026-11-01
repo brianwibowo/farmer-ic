@@ -90,7 +90,7 @@ function submit(): void {
             </DialogHeader>
 
             <form class="flex min-h-0 flex-1 flex-col gap-4" @submit.prevent="submit">
-                <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+                <div class="min-h-0 flex-1 overflow-y-auto px-1.5">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <FarmField id="task-name" label="Nama langkah" required :error="form.errors.name" class="sm:col-span-2" v-slot="field">
                             <input
