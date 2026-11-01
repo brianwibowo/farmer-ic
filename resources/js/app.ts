@@ -3,6 +3,7 @@ import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
 import UserManagementLayout from '@/layouts/UserManagementLayout.vue';
+import SopManagementLayout from '@/layouts/SopManagementLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import PetugasLayout from '@/layouts/PetugasLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -23,6 +24,8 @@ void createInertiaApp({
                 return null;
             case name.startsWith('farms/'):
                 return FarmManagementLayout;
+            case name.startsWith('sops/'):
+                return SopManagementLayout;
             case name.startsWith('users/'):
                 return UserManagementLayout;
             case name.startsWith('auth/'):
