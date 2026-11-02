@@ -140,6 +140,12 @@ function submit(): void {
                                 </option>
                             </select>
                         </FarmField>
+                        <p
+                            v-if="form.activity_category === 'planting'"
+                            class="rounded-xl bg-muted/60 p-3 text-xs leading-5 text-muted-foreground sm:col-span-2"
+                        >
+                            Langkah Penanaman menjadi acuan aktivitas tanam dan tidak dibuat sebagai task terjadwal.
+                        </p>
                         <FarmField
                             v-if="needsSubcategory"
                             id="task-subcategory"

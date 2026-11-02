@@ -106,6 +106,12 @@ class PlantingCycleTaskService
             $created = 0;
 
             foreach ($sourceTasks as $source) {
+                // Planting is the trigger and the HST anchor, not follow-up work.
+                // It stays in the SOP definition for the planting activity form.
+                if ($source->activity_category === 'planting') {
+                    continue;
+                }
+
                 $stageCode = self::STAGE_BY_CATEGORY[$source->activity_category] ?? null;
                 $stage = $stageCode === null ? null : $stages->get($stageCode);
 

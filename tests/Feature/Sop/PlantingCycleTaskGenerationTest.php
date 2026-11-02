@@ -112,7 +112,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok);
 
         $this->assertSame('generated', $result['status']);
-        $this->assertSame(3, $result['created']);
+        $this->assertSame(2, $result['created']);
         $this->assertSame($version->id, $subblok->refresh()->sop_template_version_id);
 
         $tasks = PlantingCycleTask::query()
@@ -120,17 +120,17 @@ class PlantingCycleTaskGenerationTest extends TestCase
             ->orderBy('offset_days')
             ->get();
 
-        $this->assertCount(3, $tasks);
-        $planting = $tasks->firstWhere('activity_category', 'planting');
+        $this->assertCount(2, $tasks);
+        $this->assertFalse($tasks->contains('activity_category', 'planting'));
+
         $irrigation = $tasks->firstWhere('activity_subcategory', 'irrigation');
         $harvest = $tasks->firstWhere('activity_category', 'harvest');
 
-        $this->assertSame('2026-11-05', $planting->scheduled_date->toDateString());
-        $this->assertSame('2026-11-07', $planting->due_date->toDateString());
-        $this->assertSame('planting', $planting->stage->code);
         $this->assertSame('2026-11-12', $irrigation->scheduled_date->toDateString());
+        $this->assertSame('2026-11-14', $irrigation->due_date->toDateString());
         $this->assertSame('maintenance', $irrigation->stage->code);
         $this->assertSame('2027-02-03', $harvest->scheduled_date->toDateString());
+        $this->assertSame('2027-02-08', $harvest->due_date->toDateString());
         $this->assertSame('harvest', $harvest->stage->code);
     }
 
@@ -145,13 +145,13 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $second = $service->generateForSubblok($subblok);
         $this->assertSame('already_generated', $second['status']);
         $this->assertSame(0, $second['created']);
-        $this->assertSame(3, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->count());
+        $this->assertSame(2, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->count());
 
-        $planting = PlantingCycleTask::query()
+        $irrigation = PlantingCycleTask::query()
             ->where('planting_cycle_id', $subblok->id)
-            ->where('activity_category', 'planting')
+            ->where('activity_subcategory', 'irrigation')
             ->firstOrFail();
-        $planting->forceFill([
+        $irrigation->forceFill([
             'status' => 'completed',
             'completed_at' => now(),
         ])->save();
@@ -160,14 +160,14 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $third = $service->generateForSubblok($subblok);
 
         $this->assertSame('already_generated', $third['status']);
-        $this->assertSame(2, $third['rescheduled']);
-        $this->assertSame('2026-11-05', $planting->refresh()->scheduled_date->toDateString());
+        $this->assertSame(1, $third['rescheduled']);
+        $this->assertSame('2026-11-12', $irrigation->refresh()->scheduled_date->toDateString());
 
-        $irrigation = PlantingCycleTask::query()
+        $harvest = PlantingCycleTask::query()
             ->where('planting_cycle_id', $subblok->id)
-            ->where('activity_subcategory', 'irrigation')
+            ->where('activity_category', 'harvest')
             ->firstOrFail();
-        $this->assertSame('2026-11-15', $irrigation->scheduled_date->toDateString());
+        $this->assertSame('2027-02-06', $harvest->scheduled_date->toDateString());
     }
 
     public function test_generates_tasks_without_dates_when_the_subblok_has_no_anchor(): void
@@ -179,7 +179,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok);
 
         $this->assertSame('generated', $result['status']);
-        $this->assertSame(3, $result['created']);
+        $this->assertSame(2, $result['created']);
         $this->assertSame(0, PlantingCycleTask::query()
             ->where('planting_cycle_id', $subblok->id)
             ->whereNotNull('scheduled_date')
@@ -249,7 +249,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $result = $service->generateForSubblok($subblok);
 
         $this->assertSame('already_generated', $result['status']);
-        $this->assertCount(3, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->get());
+        $this->assertCount(2, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->get());
         $this->assertSame($first->versions()->where('status', 'published')->value('id'), $subblok->refresh()->sop_template_version_id);
     }
 }

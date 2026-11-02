@@ -197,7 +197,7 @@ Table planting_cycle_tasks {
     (planting_cycle_id, scheduled_date, status)
     (planting_cycle_id, offset_days)
   }
-  Note: 'Snapshot of SOP tasks for one subblok. Generated once per subblok + SOP version. Existing snapshots survive later SOP changes.'
+  Note: 'Snapshot of follow-up SOP tasks for one subblok. Planting steps are not materialized; planting is the HST anchor. Generated once per subblok + SOP version. Existing snapshots survive later SOP changes.'
 }
 
 Table sop_templates {
