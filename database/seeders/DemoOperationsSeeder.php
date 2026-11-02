@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\AuditLog;
 use App\Models\Farm;
-use App\Models\Notification;
 use App\Models\OperationalTarget;
 use App\Models\PlantingCycle;
 use App\Models\User;
@@ -43,14 +42,6 @@ class DemoOperationsSeeder extends Seeder
             'created_by' => $petugas->id,
         ]);
 
-        Notification::query()->firstOrCreate([
-            'user_id' => $petugas->id,
-            'title' => 'Pemetaan blok perlu dilanjutkan',
-        ], [
-            'message' => 'Masih ada dua blok yang belum memiliki hasil pengukuran lengkap.',
-            'is_read' => false,
-            'created_at' => now(),
-        ]);
         AuditLog::query()->firstOrCreate([
             'user_id' => $petugas->id,
             'table_name' => 'daily_activity_logs',

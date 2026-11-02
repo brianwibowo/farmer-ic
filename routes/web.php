@@ -15,6 +15,7 @@ use App\Http\Controllers\Finance\FinancialCategoryController;
 use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
 use App\Http\Controllers\Petugas\PetugasTaskController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
 use App\Http\Controllers\Sop\SopTemplateVersionController;
@@ -41,10 +42,14 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
     Route::get('tasks', [PetugasTaskController::class, 'index'])->name('tasks.index');
     Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
+    Route::inertia('aktivitas/buat', 'petugas/ActivityCreate')->name('aktivitas.create');
     Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('notifications.read');
     Route::get('blocks', [FarmBlockController::class, 'farms'])->name('blocks.farms');
     Route::post('kebun/{farm}/blocks/{block}/batches', [FarmBlockController::class, 'storeBatch'])
         ->whereUuid(['farm', 'block'])->name('blocks.batches.store');

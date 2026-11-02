@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Moon, Sun } from '@lucide/vue';
 import type { Component } from 'vue';
@@ -6,7 +7,15 @@ import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useAppearance } from '@/composables/useAppearance';
 
-defineProps<{ title: string; href: string; icon: Component }>();
+withDefaults(
+    defineProps<{
+        title: string;
+        href: string;
+        icon: Component;
+        showTenant?: boolean;
+    }>(),
+    { showTenant: true },
+);
 
 const page = usePage();
 const { resolvedAppearance, updateAppearance } = useAppearance();
@@ -35,34 +44,38 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
         </div>
         <div class="flex min-w-0 shrink-0 items-center gap-2">
             <span
+                v-if="showTenant"
                 class="admin-header-tenant max-w-48 truncate rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
                 :title="page.props.currentTeam?.name ?? 'Tim belum dipilih'"
                 >{{ page.props.currentTeam?.name ?? 'Tim belum dipilih' }}</span
             >
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                class="shrink-0"
-                :aria-label="
-                    resolvedAppearance === 'dark'
-                        ? 'Aktifkan mode terang'
-                        : 'Aktifkan mode gelap'
-                "
-                :title="
-                    resolvedAppearance === 'dark'
-                        ? 'Aktifkan mode terang'
-                        : 'Aktifkan mode gelap'
-                "
-                @click="
-                    updateAppearance(
-                        resolvedAppearance === 'dark' ? 'light' : 'dark',
-                    )
-                "
-            >
-                <Sun v-if="resolvedAppearance === 'dark'" aria-hidden="true" />
-                <Moon v-else aria-hidden="true" />
-            </Button>
+            <div class="flex min-w-0 items-center gap-2">
+                <NotificationBell />
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    class="shrink-0"
+                    :aria-label="
+                        resolvedAppearance === 'dark'
+                            ? 'Aktifkan mode terang'
+                            : 'Aktifkan mode gelap'
+                    "
+                    :title="
+                        resolvedAppearance === 'dark'
+                            ? 'Aktifkan mode terang'
+                            : 'Aktifkan mode gelap'
+                    "
+                    @click="
+                        updateAppearance(
+                            resolvedAppearance === 'dark' ? 'light' : 'dark',
+                        )
+                    "
+                >
+                    <Sun v-if="resolvedAppearance === 'dark'" aria-hidden="true" />
+                    <Moon v-else aria-hidden="true" />
+                </Button>
+            </div>
         </div>
     </header>
 </template>

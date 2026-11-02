@@ -19,7 +19,14 @@ withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 const page = usePage();
-const isAdmin = computed(() => page.url.startsWith('/admin/'));
+const isNotifications = computed(
+    () => page.url.split('?')[0] === '/notifications',
+);
+const isAdmin = computed(
+    () =>
+        page.url.startsWith('/admin/') ||
+        (isNotifications.value && page.props.navigation?.admin === true),
+);
 </script>
 
 <template>
@@ -35,9 +42,12 @@ const isAdmin = computed(() => page.url.startsWith('/admin/'));
             <AppContent variant="sidebar" class="min-w-0 overflow-x-clip">
                 <AdminHeader
                     v-if="isAdmin"
-                    title="Dashboard"
-                    href="/admin/dashboard"
+                    :title="isNotifications ? 'Notifikasi' : 'Dashboard'"
+                    :href="isNotifications ? '/notifications' : '/admin/dashboard'"
                     :icon="LayoutGrid"
+                    :show-tenant="
+                        !isNotifications || page.props.canFilterTenant === true
+                    "
                 />
                 <div v-else class="shrink-0 bg-card px-4 pt-4 pb-2">
                     <DashboardHeader />

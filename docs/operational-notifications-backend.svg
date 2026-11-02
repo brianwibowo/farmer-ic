@@ -1,0 +1,422 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="6880" height="4630" viewBox="-40 -40 6880 4630"><rect x="-40" y="-40" width="6880" height="4630" fill="white"/>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10" fill="#64748b"/></marker></defs>
+<rect x="0" y="0" width="3340" height="2200" rx="0" stroke="#cbd5e1" stroke-width="2" fill="none"/>
+<text x="45" y="70.0" font-family="Arial,sans-serif" font-size="40" fill="#1e293b">01 KELAS PENGIRIMAN NOTIFIKASI</text>
+<text x="45" y="124.0" font-family="Arial,sans-serif" font-size="24" fill="#64748b">Diagram dependensi backend aktual. Panah putus-putus = menggunakan / memanggil; bukan urutan waktu.</text>
+<rect x="55" y="230" width="790" height="211.79999999999995" rx="0" stroke="#495057" stroke-width="2" fill="#f8f9fa"/>
+<text x="75" y="264.0" font-family="Arial,sans-serif" font-size="18" fill="#495057">App\Console\Commands | extends Command</text>
+<text x="75" y="304.4" font-family="Arial,sans-serif" font-size="28" fill="#495057">DispatchOperationalNotifications</text>
+<polyline points="55,327.79999999999995 845,327.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="75" y="361.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155"># signature: notifications:dispatch {kind}</text>
+<polyline points="55,381.79999999999995 845,381.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="75" y="415.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ handle(NotificationService): int</text>
+<rect x="1220" y="230" width="900" height="315.79999999999995" rx="0" stroke="#1971c2" stroke-width="2" fill="#e7f5ff"/>
+<text x="1240" y="264.0" font-family="Arial,sans-serif" font-size="18" fill="#1971c2">App\Services\Notifications | final</text>
+<text x="1240" y="304.4" font-family="Arial,sans-serif" font-size="28" fill="#1971c2">NotificationService</text>
+<polyline points="1220,327.79999999999995 2120,327.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1240" y="361.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">Snapshot laporan + membership operasi (RolePermissions).</text>
+<polyline points="1220,381.79999999999995 2120,381.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1240" y="415.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ dailyReports(): int</text>
+<text x="1240" y="441.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ harvestReminders(): int</text>
+<text x="1240" y="467.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ validRecipient(data: array): ?User</text>
+<text x="1240" y="493.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">- dispatch(recipient: User, data: array): void</text>
+<text x="1240" y="519.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">- now(): CarbonImmutable</text>
+<rect x="2440" y="230" width="790" height="263.79999999999995" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="2460" y="264.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">Eloquent | kelas asli diringkas dalam satu kotak</text>
+<text x="2460" y="304.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">Model sumber data</text>
+<polyline points="2440,327.79999999999995 3230,327.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="361.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">User, Team, Farm</text>
+<text x="2460" y="387.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">FarmActivity, ActivityType, PlantingCycle</text>
+<polyline points="2440,407.79999999999995 3230,407.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="441.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Queries memakai visibleTo(actor, team).</text>
+<text x="2460" y="467.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">User::teams() / assignedFarm; Gate diperiksa.</text>
+<rect x="55" y="880" width="790" height="367.79999999999995" rx="0" stroke="#6741d9" stroke-width="2" fill="#f3f0ff"/>
+<text x="75" y="914.0" font-family="Arial,sans-serif" font-size="18" fill="#6741d9">App\Notifications | final</text>
+<text x="75" y="954.4" font-family="Arial,sans-serif" font-size="28" fill="#6741d9">DailyReportNotification</text>
+<polyline points="55,977.8 845,977.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="75" y="1011.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ data: array {readonly}</text>
+<text x="75" y="1037.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ tries: int = 3; timeout: int = 30</text>
+<text x="75" y="1063.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">- DETAIL_URL: string {placeholder}</text>
+<polyline points="55,1083.8 845,1083.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="75" y="1117.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ __construct(data: array)</text>
+<text x="75" y="1143.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ via(notifiable): array</text>
+<text x="75" y="1169.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ toInApp(showTenant?: bool): array</text>
+<text x="75" y="1195.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ toWhatsAppText(showTenant?: bool): string</text>
+<text x="75" y="1221.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ backoff(): array</text>
+<rect x="1220" y="880" width="900" height="367.79999999999995" rx="0" stroke="#6741d9" stroke-width="2" fill="#f3f0ff"/>
+<text x="1240" y="914.0" font-family="Arial,sans-serif" font-size="18" fill="#6741d9">App\Notifications | final</text>
+<text x="1240" y="954.4" font-family="Arial,sans-serif" font-size="28" fill="#6741d9">HarvestReminderNotification</text>
+<polyline points="1220,977.8 2120,977.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1240" y="1011.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ data: array {readonly}</text>
+<text x="1240" y="1037.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ tries: int = 3; timeout: int = 30</text>
+<text x="1240" y="1063.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">- DETAIL_URL: string {placeholder}</text>
+<polyline points="1220,1083.8 2120,1083.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1240" y="1117.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ __construct(data: array)</text>
+<text x="1240" y="1143.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ via(notifiable): array</text>
+<text x="1240" y="1169.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ toInApp(): array</text>
+<text x="1240" y="1195.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ toWhatsAppText(): string</text>
+<text x="1240" y="1221.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ backoff(): array</text>
+<rect x="2440" y="880" width="790" height="315.79999999999995" rx="0" stroke="#1971c2" stroke-width="2" fill="#e7f5ff"/>
+<text x="2460" y="914.0" font-family="Arial,sans-serif" font-size="18" fill="#1971c2">App\Jobs | final</text>
+<text x="2460" y="954.4" font-family="Arial,sans-serif" font-size="28" fill="#1971c2">SendWhatsAppNotification</text>
+<polyline points="2440,977.8 3230,977.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="1011.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ notification: DailyReportNotification |</text>
+<text x="2460" y="1037.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">HarvestReminderNotification {readonly}</text>
+<text x="2460" y="1063.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ tries=3; timeout=30; failOnTimeout=true</text>
+<polyline points="2440,1083.8 3230,1083.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="1117.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ __construct(notification)</text>
+<text x="2460" y="1143.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ handle(NotificationService, FonnteClient): void</text>
+<text x="2460" y="1169.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ backoff(): array</text>
+<rect x="55" y="1610" width="790" height="237.80000000000018" rx="0" stroke="#1971c2" stroke-width="2" fill="#e7f5ff"/>
+<text x="75" y="1644.0" font-family="Arial,sans-serif" font-size="18" fill="#1971c2">App\Notifications\Channels | final</text>
+<text x="75" y="1684.4" font-family="Arial,sans-serif" font-size="28" fill="#1971c2">InAppChannel</text>
+<polyline points="55,1707.8000000000002 845,1707.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="75" y="1741.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">Queue: notifications. Cek validRecipient().</text>
+<polyline points="55,1761.8000000000002 845,1761.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="75" y="1795.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ send(User, DailyReportNotification |</text>
+<text x="75" y="1821.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">HarvestReminderNotification): void</text>
+<rect x="2440" y="1610" width="790" height="315.8000000000002" rx="0" stroke="#1971c2" stroke-width="2" fill="#e7f5ff"/>
+<text x="2460" y="1644.0" font-family="Arial,sans-serif" font-size="18" fill="#1971c2">App\Services\Notifications | final</text>
+<text x="2460" y="1684.4" font-family="Arial,sans-serif" font-size="28" fill="#1971c2">FonnteClient</text>
+<polyline points="2440,1707.8000000000002 3230,1707.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="1741.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ VALIDATION_TIMEOUT = 10</text>
+<text x="2460" y="1767.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ SEND_TIMEOUT = 15</text>
+<polyline points="2440,1787.8000000000002 3230,1787.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="1821.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ isRegistered(target: string): bool</text>
+<text x="2460" y="1847.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ send(target: string, message: string): string</text>
+<text x="2460" y="1873.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">- request(endpoint, target, extra, timeout): Response</text>
+<text x="2460" y="1899.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">- reject(response, fallback, classification): never</text>
+<polyline points="845,335.9 1220,387.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="865" y="305.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">handle() memanggil</text>
+<polyline points="2120,387.9 2440,361.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="2140" y="351.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">membaca / scope</text>
+<polyline points="1220,387.9 1080,490.0 1080,740.0 450,740.0 450.0,880.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="520" y="723.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">membuat objek</text>
+<polyline points="1670.0,545.8 1670.0,880.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="1700" y="718.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">membuat objek</text>
+<polyline points="2120,387.9 2260,420.0 2260,740.0 2835,740.0 2835.0,880.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="2460" y="723.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">dispatch setelah commit</text>
+<polyline points="450.0,1247.8 450.0,1610.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="470" y="1498.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">via() = InAppChannel</text>
+<polyline points="1670.0,1247.8 1670.0,1510.0 1030.0,1510.0 1030.0,1740.0 845.0,1728.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="1170" y="1483.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">via() = InAppChannel</text>
+<polyline points="2835.0,1195.8 2835.0,1610.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="2850" y="1498.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">handle() memanggil</text>
+<rect x="1220" y="1630" width="900" height="400" rx="0" stroke="#6741d9" stroke-width="2" fill="#f3f0ff"/>
+<text x="1242" y="1670.0" font-family="Arial,sans-serif" font-size="24" fill="#6741d9">Orkestrasi dan pengurangan query</text>
+<text x="1242" y="1704.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">RolePermissions (panel 02): withMembershipSnapshot().</text>
+<text x="1242" y="1730.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Daily: lazyById(100), with(role, teams).</text>
+<text x="1242" y="1756.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Aktivitas batch per penerima/tenant, groupBy(farm_id).</text>
+<text x="1242" y="1782.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Panen: with(role, teams, assignedFarm.team).</text>
+<text x="1242" y="1808.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Tiga tanggal dalam satu query; cycle memakai farm tersimpan.</text>
+<text x="1242" y="1834.2" font-family="Arial,sans-serif" font-size="20" fill="#334155"></text>
+<text x="1242" y="1860.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">DB::afterCommit(): User::notify() + Job::dispatch().</text>
+<text x="1242" y="1886.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Channel/Job memanggil validRecipient() memakai data terbaru.</text>
+<text x="1242" y="1912.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">WA nonaktif / waktu tidak cukup: skip sebelum query.</text>
+<text x="1242" y="1938.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Sesudah /validate: baca ulang membership, role, dan jadwal.</text>
+<text x="1242" y="1964.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Snapshot membership dihapus via finally; bukan cache lintas job.</text>
+<text x="55" y="2112.0" font-family="Arial,sans-serif" font-size="22" fill="#64748b">Pemicu: routes/console.php → schedule command 20:00 / 06:00 WIB. Command juga bisa dipanggil manual.</text>
+<text x="55" y="2140.6" font-family="Arial,sans-serif" font-size="22" fill="#64748b">Queue worker menjalankan queued notification dan job; constructor memakai afterCommit().</text>
+<rect x="3460" y="0" width="3340" height="2200" rx="0" stroke="#cbd5e1" stroke-width="2" fill="none"/>
+<text x="3505" y="70.0" font-family="Arial,sans-serif" font-size="40" fill="#1e293b">02 KELAS INBOX DAN OTORISASI HTTP</text>
+<text x="3505" y="124.0" font-family="Arial,sans-serif" font-size="24" fill="#64748b">Baca / filter / tandai dibaca memakai jalur controller dan service inbox yang terpisah dari dispatch.</text>
+<rect x="3515" y="230" width="790" height="341.79999999999995" rx="0" stroke="#495057" stroke-width="2" fill="#f8f9fa"/>
+<text x="3535" y="264.0" font-family="Arial,sans-serif" font-size="18" fill="#495057">App\Http\Requests\Notifications | extends FormRequest</text>
+<text x="3535" y="304.4" font-family="Arial,sans-serif" font-size="28" fill="#495057">FilterNotificationsRequest</text>
+<polyline points="3515,327.79999999999995 4305,327.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="361.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">status: unread | all</text>
+<text x="3535" y="387.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">date_from / date_to: Y-m-d</text>
+<text x="3535" y="413.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">team_id?: int; page?: int</text>
+<polyline points="3515,433.79999999999995 4305,433.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="467.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ authorize(): bool</text>
+<text x="3535" y="493.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b"># prepareForValidation(): void</text>
+<text x="3535" y="519.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ rules(): array</text>
+<text x="3535" y="545.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ messages(): array</text>
+<rect x="4680" y="230" width="900" height="315.79999999999995" rx="0" stroke="#1971c2" stroke-width="2" fill="#e7f5ff"/>
+<text x="4700" y="264.0" font-family="Arial,sans-serif" font-size="18" fill="#1971c2">App\Http\Controllers | extends Controller</text>
+<text x="4700" y="304.4" font-family="Arial,sans-serif" font-size="28" fill="#1971c2">NotificationController</text>
+<polyline points="4680,327.79999999999995 5580,327.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="4700" y="361.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">Gate::authorize() sebelum service.</text>
+<text x="4700" y="387.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">index()/unread(): withMembershipSnapshot().</text>
+<polyline points="4680,407.79999999999995 5580,407.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="4700" y="441.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ index(FilterNotificationsRequest, inbox): Response</text>
+<text x="4700" y="467.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ unread(Request, inbox): JsonResponse</text>
+<text x="4700" y="493.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ read(request, Notification, inbox): RedirectResponse</text>
+<text x="4700" y="519.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">- tenantContext(User, filters, inbox): array</text>
+<rect x="5900" y="230" width="790" height="367.79999999999995" rx="0" stroke="#1971c2" stroke-width="2" fill="#e7f5ff"/>
+<text x="5920" y="264.0" font-family="Arial,sans-serif" font-size="18" fill="#1971c2">App\Services\Notifications | final</text>
+<text x="5920" y="304.4" font-family="Arial,sans-serif" font-size="28" fill="#1971c2">NotificationInboxService</text>
+<polyline points="5900,327.79999999999995 6690,327.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="361.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">Query personal: visibleTo(actor), user_id actor.</text>
+<text x="5920" y="387.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#334155">tenantOptions(): UNION query scoped per tenant.</text>
+<polyline points="5900,407.79999999999995 6690,407.79999999999995" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="441.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ paginate(User, filters): LengthAwarePaginator</text>
+<text x="5920" y="467.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ tenantOptions(User): array</text>
+<text x="5920" y="493.79999999999995" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ messageFor(User, Notification, badge): string</text>
+<text x="5920" y="519.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ unreadCount(User): int</text>
+<text x="5920" y="545.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ markRead(Notification): void</text>
+<text x="5920" y="571.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">- query(User): Builder</text>
+<rect x="4680" y="1020" width="900" height="367.8000000000002" rx="0" stroke="#e67700" stroke-width="2" fill="#fff9db"/>
+<text x="4700" y="1054.0" font-family="Arial,sans-serif" font-size="18" fill="#e67700">App\Policies | extends ResourcePolicy</text>
+<text x="4700" y="1094.4" font-family="Arial,sans-serif" font-size="28" fill="#e67700">NotificationPolicy</text>
+<polyline points="4680,1117.8000000000002 5580,1117.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="4700" y="1151.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155"># resource = &#x27;notifications&#x27;</text>
+<text x="4700" y="1177.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155"># userPath = &#x27;user&#x27;; personal = true</text>
+<polyline points="4680,1197.8000000000002 5580,1197.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="4700" y="1231.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ viewAny(User, ?Team): bool</text>
+<text x="4700" y="1257.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ view(User, Model): bool</text>
+<text x="4700" y="1283.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ update(User, Model): bool</text>
+<text x="4700" y="1309.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ create(User, ?Model): bool</text>
+<text x="4700" y="1335.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ applyVisibility(Builder, User, ?Team): void</text>
+<text x="4700" y="1361.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ showsTenantContext(User): bool</text>
+<rect x="5900" y="1050" width="790" height="367.8000000000002" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="5920" y="1084.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">App\Models | extends FarmerModel</text>
+<text x="5920" y="1124.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">Notification</text>
+<polyline points="5900,1147.8000000000002 6690,1147.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="1181.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155"># table = &#x27;notifications&#x27;</text>
+<text x="5920" y="1207.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">id: UUID; user_id: UUID; team_id: ?int</text>
+<text x="5920" y="1233.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">type: ?string; title: ?string; message: ?string</text>
+<text x="5920" y="1259.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">is_read: bool; read_at: ?datetime</text>
+<text x="5920" y="1285.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">created_at: ?datetime</text>
+<polyline points="5900,1305.8000000000002 6690,1305.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="1339.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ user(): BelongsTo&lt;User&gt;</text>
+<text x="5920" y="1365.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ team(): BelongsTo&lt;Team&gt;</text>
+<text x="5920" y="1391.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ visibleTo(...): Builder {scope dari concern}</text>
+<rect x="3515" y="1040" width="790" height="419.8000000000002" rx="0" stroke="#e67700" stroke-width="2" fill="#fff9db"/>
+<text x="3535" y="1074.0" font-family="Arial,sans-serif" font-size="18" fill="#e67700">App\Support | final</text>
+<text x="3535" y="1114.4" font-family="Arial,sans-serif" font-size="28" fill="#e67700">RolePermissions</text>
+<polyline points="3515,1137.8000000000002 4305,1137.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="1171.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">Pembaca tunggal config/access.php.</text>
+<text x="3535" y="1197.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#334155">- membershipSnapshots: ?WeakMap {static}</text>
+<polyline points="3515,1217.8000000000002 4305,1217.8000000000002" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="1251.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ withMembershipSnapshot(User, Closure,</text>
+<text x="3535" y="1277.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">reload: bool = true): mixed</text>
+<text x="3535" y="1303.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ teamMemberships(User): Collection&lt;Team&gt;</text>
+<text x="3535" y="1329.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">- membershipSnapshot(User): ?Collection&lt;Team&gt;</text>
+<text x="3535" y="1355.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ scope(User, permission): ?string</text>
+<text x="3535" y="1381.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ roleName(User): ?string</text>
+<text x="3535" y="1407.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ withinTeam(User, Team): bool</text>
+<text x="3535" y="1433.8000000000002" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ singleTenant(User): ?Team</text>
+<polyline points="4680,387.9 4305,400.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="4320" y="358.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">validasi input</text>
+<polyline points="5580,387.9 5900,413.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="5600" y="358.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">delegasi operasi inbox</text>
+<polyline points="5130.0,545.8 5130.0,1020.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="5155" y="818.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">melalui Gate / helper presentasi</text>
+<polyline points="6295.0,597.8 6295.0,1050.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="6310" y="838.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">query dan markRead()</text>
+<polyline points="4680,1203.9 4305,1249.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="4310" y="1258.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">memeriksa grant / membership</text>
+<polyline points="5580,1203.9 5900,1233.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="5600" y="1248.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">target policy dan query scope</text>
+<rect x="3515" y="1710" width="1530" height="300" rx="0" stroke="#495057" stroke-width="2" fill="#f8f9fa"/>
+<text x="3537" y="1750.0" font-family="Arial,sans-serif" font-size="24" fill="#495057">HTTP entry points</text>
+<text x="3537" y="1784.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">GET /notifications -&gt; index()</text>
+<text x="3537" y="1810.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">GET /notifications/unread -&gt; unread()</text>
+<text x="3537" y="1836.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">PATCH /notifications/{notification}/read -&gt; read()</text>
+<text x="3537" y="1862.2" font-family="Arial,sans-serif" font-size="20" fill="#334155"></text>
+<text x="3537" y="1888.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">index/unread memakai snapshot membership satu operasi.</text>
+<text x="3537" y="1914.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Setiap kartu tetap Gate update; recipient pribadi wajib.</text>
+<text x="3537" y="1940.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">tenantOptions(): scoped UNION, tanpa exists() per tenant.</text>
+<text x="3537" y="1966.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Scope snapshot dibuang sebelum operasi/job berikutnya.</text>
+<rect x="5150" y="1710" width="1540" height="300" rx="0" stroke="#6741d9" stroke-width="2" fill="#f3f0ff"/>
+<text x="5172" y="1750.0" font-family="Arial,sans-serif" font-size="24" fill="#6741d9">Model Notification berbeda dari kelas pesan</text>
+<text x="5172" y="1784.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">App\Models\Notification adalah baris inbox yang tersimpan.</text>
+<text x="5172" y="1810.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">DailyReportNotification / HarvestReminderNotification adalah objek pesan.</text>
+<text x="5172" y="1836.2" font-family="Arial,sans-serif" font-size="20" fill="#334155"></text>
+<text x="5172" y="1862.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Belum dibaca: seluruh tanggal tanpa filter. Semua: filter tanggal + tenant Owner.</text>
+<text x="5172" y="1888.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Membuka detail tidak memanggil markRead(); tombol Tandai dibaca memanggil PATCH.</text>
+<text x="3515" y="2112.0" font-family="Arial,sans-serif" font-size="22" fill="#64748b">Nama tenant ditampilkan hanya untuk Owner melalui showsTenantContext().</text>
+<text x="3515" y="2140.6" font-family="Arial,sans-serif" font-size="22" fill="#64748b">Superadmin tidak mendapat konteks tenant Owner secara otomatis. Tidak ada otorisasi yang diputuskan Vue.</text>
+<rect x="0" y="2350" width="3340" height="2200" rx="0" stroke="#cbd5e1" stroke-width="2" fill="none"/>
+<text x="45" y="2420.0" font-family="Arial,sans-serif" font-size="40" fill="#1e293b">03 PEWARISAN, INTERFACE, DAN QUEUE</text>
+<text x="45" y="2474.0" font-family="Arial,sans-serif" font-size="24" fill="#64748b">Segitiga menunjuk tipe induk / interface. extends = garis penuh; implements = putus-putus.</text>
+<rect x="70" y="2580" width="910" height="211.80000000000018" rx="0" stroke="#495057" stroke-width="2" fill="#f8f9fa"/>
+<text x="90" y="2614.0" font-family="Arial,sans-serif" font-size="18" fill="#495057">Illuminate\Notifications | kelas framework</text>
+<text x="90" y="2654.4" font-family="Arial,sans-serif" font-size="28" fill="#495057">Notification</text>
+<polyline points="70,2677.8 980,2677.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="90" y="2711.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">Objek pesan dan pilihan channel.</text>
+<polyline points="70,2731.8 980,2731.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="90" y="2765.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Dipakai sebagai parent dua kelas notifikasi.</text>
+<rect x="1220" y="2580" width="900" height="157.80000000000018" rx="0" stroke="#e67700" stroke-width="2" fill="#fff9db"/>
+<text x="1240" y="2614.0" font-family="Arial,sans-serif" font-size="18" fill="#e67700">Illuminate\Contracts\Queue | interface</text>
+<text x="1240" y="2654.4" font-family="Arial,sans-serif" font-size="28" fill="#e67700">ShouldQueue</text>
+<polyline points="1220,2677.8 2120,2677.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1240" y="2711.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Menandai pekerjaan untuk diproses lewat queue.</text>
+<rect x="2440" y="2580" width="790" height="263.8000000000002" rx="0" stroke="#495057" stroke-width="2" fill="#f8f9fa"/>
+<text x="2460" y="2614.0" font-family="Arial,sans-serif" font-size="18" fill="#495057">Trait framework | dua namespace berbeda</text>
+<text x="2460" y="2654.4" font-family="Arial,sans-serif" font-size="28" fill="#495057">Queueable</text>
+<polyline points="2440,2677.8 3230,2677.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="2711.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">Notifikasi: Illuminate\Bus\Queueable</text>
+<text x="2460" y="2737.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">Job: Illuminate\Foundation\Queue\Queueable</text>
+<polyline points="2440,2757.8 3230,2757.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="2791.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Menyediakan onConnection(), onQueue(),</text>
+<text x="2460" y="2817.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">afterCommit(), dan perilaku antrean terkait.</text>
+<rect x="70" y="3370" width="910" height="315.8000000000002" rx="0" stroke="#6741d9" stroke-width="2" fill="#f3f0ff"/>
+<text x="90" y="3404.0" font-family="Arial,sans-serif" font-size="18" fill="#6741d9">App\Notifications | final</text>
+<text x="90" y="3444.4" font-family="Arial,sans-serif" font-size="28" fill="#6741d9">DailyReportNotification</text>
+<polyline points="70,3467.8 980,3467.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="90" y="3501.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">extends Illuminate\Notifications\Notification</text>
+<text x="90" y="3527.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">implements ShouldQueue</text>
+<text x="90" y="3553.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">uses Illuminate\Bus\Queueable</text>
+<polyline points="70,3573.8 980,3573.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="90" y="3607.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">queue: notifications</text>
+<text x="90" y="3633.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">via(): [InAppChannel::class]</text>
+<text x="90" y="3659.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Konten dibangun oleh toInApp() / toWhatsAppText().</text>
+<rect x="1220" y="3370" width="900" height="315.8000000000002" rx="0" stroke="#6741d9" stroke-width="2" fill="#f3f0ff"/>
+<text x="1240" y="3404.0" font-family="Arial,sans-serif" font-size="18" fill="#6741d9">App\Notifications | final</text>
+<text x="1240" y="3444.4" font-family="Arial,sans-serif" font-size="28" fill="#6741d9">HarvestReminderNotification</text>
+<polyline points="1220,3467.8 2120,3467.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1240" y="3501.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">extends Illuminate\Notifications\Notification</text>
+<text x="1240" y="3527.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">implements ShouldQueue</text>
+<text x="1240" y="3553.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">uses Illuminate\Bus\Queueable</text>
+<polyline points="1220,3573.8 2120,3573.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1240" y="3607.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">queue: notifications</text>
+<text x="1240" y="3633.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">via(): [InAppChannel::class]</text>
+<text x="1240" y="3659.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Konten dibangun oleh toInApp() / toWhatsAppText().</text>
+<rect x="2440" y="3370" width="790" height="289.8000000000002" rx="0" stroke="#1971c2" stroke-width="2" fill="#e7f5ff"/>
+<text x="2460" y="3404.0" font-family="Arial,sans-serif" font-size="18" fill="#1971c2">App\Jobs | final</text>
+<text x="2460" y="3444.4" font-family="Arial,sans-serif" font-size="28" fill="#1971c2">SendWhatsAppNotification</text>
+<polyline points="2440,3467.8 3230,3467.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="3501.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">implements ShouldQueue</text>
+<text x="2460" y="3527.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">uses Illuminate\Foundation\Queue\Queueable</text>
+<text x="2460" y="3553.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">Menyimpan SATU objek notifikasi.</text>
+<polyline points="2440,3573.8 3230,3573.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="2460" y="3607.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">queue: whatsapp</text>
+<text x="2460" y="3633.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">handle() → validasi → toWhatsAppText() → client.send()</text>
+<polyline points="525.0,3370 525.0,2791.8" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="535" y="3078.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">extends</text>
+<polyline points="1220,3527.9 1080,3550.0 1080,2700.0 980,2685.9" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1090" y="3193.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">extends</text>
+<polyline points="980,3527.9 1120,3550.0 1120,2730.0 1220,2658.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="1130" y="2983.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">implements</text>
+<polyline points="1670.0,3370 1670.0,2737.8" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="1690" y="3068.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">implements</text>
+<polyline points="2440,3514.9 2270,3550.0 2270,2730.0 2120,2658.9" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="2280" y="3068.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">implements</text>
+<rect x="70" y="3970" width="1500" height="380" rx="0" stroke="#6741d9" stroke-width="2" fill="#f3f0ff"/>
+<text x="92" y="4010.0" font-family="Arial,sans-serif" font-size="24" fill="#6741d9">Mengapa notification class dan job terpisah?</text>
+<text x="92" y="4044.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Kelas notification menyimpan snapshot dan membangun kedua format teks.</text>
+<text x="92" y="4070.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Laravel memproses channel in-app sebagai queued notification.</text>
+<text x="92" y="4096.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Job WhatsApp memanggil client HTTP dan mengatur retry provider.</text>
+<text x="92" y="4122.2" font-family="Arial,sans-serif" font-size="20" fill="#334155"></text>
+<text x="92" y="4148.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Dua kanal dijadwalkan terpisah. Kegagalan WhatsApp tidak mengharuskan</text>
+<text x="92" y="4174.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">pengulangan insert in-app.</text>
+<rect x="1750" y="3970" width="1480" height="289.8000000000002" rx="0" stroke="#c92a2a" stroke-width="2" fill="#fff5f5"/>
+<text x="1770" y="4004.0" font-family="Arial,sans-serif" font-size="18" fill="#c92a2a">App\Services\Notifications | extends RuntimeException</text>
+<text x="1770" y="4044.4" font-family="Arial,sans-serif" font-size="28" fill="#c92a2a">FonnteException</text>
+<polyline points="1750,4067.8 3230,4067.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1770" y="4101.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ reasonCode: string {readonly}</text>
+<text x="1770" y="4127.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">+ classification: string {readonly} = transient | permanent | uncertain</text>
+<polyline points="1750,4147.8 3230,4147.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="1770" y="4181.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ __construct(reasonCode, classification)</text>
+<text x="1770" y="4207.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ __toString(): string</text>
+<text x="1770" y="4233.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">FonnteClient throws; SendWhatsAppNotification catches.</text>
+<text x="70" y="4452.0" font-family="Arial,sans-serif" font-size="22" fill="#64748b">Nama, namespace, dan method mengacu kode saat ini. Kelas duplikat di panel berbeda adalah kelas yang SAMA.</text>
+<text x="70" y="4480.6" font-family="Arial,sans-serif" font-size="22" fill="#64748b">Connection default database; framework queue worker mengeksekusi job. Ini bukan diagram urutan eksekusi.</text>
+<rect x="3460" y="2350" width="3340" height="2200" rx="0" stroke="#cbd5e1" stroke-width="2" fill="none"/>
+<text x="3505" y="2420.0" font-family="Arial,sans-serif" font-size="40" fill="#1e293b">04 MODEL DATA DAN GATE PENGIRIMAN</text>
+<text x="3505" y="2474.0" font-family="Arial,sans-serif" font-size="24" fill="#64748b">Garis penuh tanpa panah = asosiasi Eloquent. Kardinalitas ditulis sebagai label relasi.</text>
+<rect x="3515" y="2580" width="790" height="315.8000000000002" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="3535" y="2614.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">App\Models | actor + penerima</text>
+<text x="3535" y="2654.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">User</text>
+<polyline points="3515,2677.8 4305,2677.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="2711.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">id: UUID; role_id; is_active; phone_number</text>
+<text x="3535" y="2737.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">assigned_farm_id: ?UUID</text>
+<polyline points="3515,2757.8 4305,2757.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="2791.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ teams(): BelongsToMany&lt;Team&gt;</text>
+<text x="3535" y="2817.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ assignedFarm(): BelongsTo&lt;Farm&gt;</text>
+<text x="3535" y="2843.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ notifications(): HasMany&lt;Notification&gt;</text>
+<text x="3535" y="2869.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">uses Illuminate\Notifications\Notifiable</text>
+<rect x="4680" y="2580" width="900" height="263.8000000000002" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="4700" y="2614.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">App\Models | inbox persisten</text>
+<text x="4700" y="2654.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">Notification</text>
+<polyline points="4680,2677.8 5580,2677.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="4700" y="2711.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">id: UUID; user_id: UUID; team_id: ?int</text>
+<text x="4700" y="2737.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">type; title; message; is_read; read_at</text>
+<polyline points="4680,2757.8 5580,2757.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="4700" y="2791.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ user(): BelongsTo&lt;User&gt;</text>
+<text x="4700" y="2817.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ team(): BelongsTo&lt;Team&gt;</text>
+<rect x="5900" y="2580" width="790" height="211.80000000000018" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="5920" y="2614.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">App\Models | tenant</text>
+<text x="5920" y="2654.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">Team</text>
+<polyline points="5900,2677.8 6690,2677.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="2711.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">id: int; is_personal: bool</text>
+<polyline points="5900,2731.8 6690,2731.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="2765.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Membership tersimpan di team_members.</text>
+<rect x="5900" y="3200" width="790" height="211.80000000000018" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="5920" y="3234.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">App\Models</text>
+<text x="5920" y="3274.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">Farm</text>
+<polyline points="5900,3297.8 6690,3297.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="3331.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">id: UUID; team_id: ?int</text>
+<polyline points="5900,3351.8 6690,3351.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="3385.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Memiliki aktivitas dan siklus tanam.</text>
+<rect x="4680" y="3200" width="900" height="289.8000000000002" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="4700" y="3234.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">App\Models</text>
+<text x="4700" y="3274.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">FarmActivity</text>
+<polyline points="4680,3297.8 5580,3297.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="4700" y="3331.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">id: UUID; farm_id; activity_type_id</text>
+<text x="4700" y="3357.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">performed_by; activity_date; description</text>
+<polyline points="4680,3377.8 5580,3377.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="4700" y="3411.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ activityType(): BelongsTo&lt;ActivityType&gt;</text>
+<text x="4700" y="3437.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ performer(): BelongsTo&lt;User&gt;</text>
+<text x="4700" y="3463.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Data umum dipakai dailyReports().</text>
+<rect x="5900" y="3680" width="790" height="237.80000000000018" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="5920" y="3714.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">App\Models</text>
+<text x="5920" y="3754.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">PlantingCycle</text>
+<polyline points="5900,3777.8 6690,3777.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="3811.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">id: UUID; farm_id; status</text>
+<text x="5920" y="3837.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">estimated_harvest_at</text>
+<polyline points="5900,3857.8 6690,3857.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="5920" y="3891.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Data jadwal dipakai harvestReminders().</text>
+<rect x="3515" y="3200" width="790" height="211.80000000000018" rx="0" stroke="#2b8a3e" stroke-width="2" fill="#ebfbee"/>
+<text x="3535" y="3234.0" font-family="Arial,sans-serif" font-size="18" fill="#2b8a3e">App\Models | referensi</text>
+<text x="3535" y="3274.4" font-family="Arial,sans-serif" font-size="28" fill="#2b8a3e">ActivityType</text>
+<polyline points="3515,3297.8 4305,3297.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="3331.8" font-family="Arial,sans-serif" font-size="20" fill="#334155">id: UUID; code; name</text>
+<polyline points="3515,3351.8 4305,3351.8" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="3385.8" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ activities(): HasMany&lt;FarmActivity&gt;</text>
+<polyline points="4305,2737.9 4680,2711.9" fill="none" stroke="#64748b" stroke-width="2"/>
+<text x="4310" y="2748.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">User 1 — Notification 0..*</text>
+<polyline points="5580,2711.9 5900,2685.9" fill="none" stroke="#64748b" stroke-width="2"/>
+<text x="5590" y="2748.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">Notification 0..* — Team 0..1</text>
+<polyline points="6295.0,2791.8 6295.0,3200.0" fill="none" stroke="#64748b" stroke-width="2"/>
+<text x="6310" y="3068.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">Team 1 — Farm 0..*</text>
+<polyline points="5900,3305.9 5580,3344.9" fill="none" stroke="#64748b" stroke-width="2"/>
+<text x="5600" y="3378.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">Farm 1 — FarmActivity 0..*</text>
+<polyline points="6295.0,3411.8 6295.0,3680.0" fill="none" stroke="#64748b" stroke-width="2"/>
+<text x="6310" y="3588.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">Farm 1 — PlantingCycle 0..*</text>
+<polyline points="4305,3305.9 4680,3344.9" fill="none" stroke="#64748b" stroke-width="2"/>
+<text x="4320" y="3368.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">ActivityType 1 — FarmActivity 0..*</text>
+<rect x="3515" y="3660" width="2040" height="250" rx="0" stroke="#6741d9" stroke-width="2" fill="#f3f0ff"/>
+<text x="3537" y="3700.0" font-family="Arial,sans-serif" font-size="24" fill="#6741d9">Relasi tambahan untuk batas data</text>
+<text x="3537" y="3734.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">User ↔ Team: banyak-ke-banyak melalui team_members.</text>
+<text x="3537" y="3760.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">User.assignedFarm: 0..1 Farm per Petugas; satu kebun bisa mempunyai beberapa Petugas.</text>
+<text x="3537" y="3786.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">FarmActivity.performed_by menunjuk User; setiap aktivitas memiliki satu pelaku.</text>
+<text x="3537" y="3812.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Setiap model di-scope dengan visibleTo(actor, team) sebelum pengiriman.</text>
+<rect x="3515" y="4070" width="1500" height="263.7999999999993" rx="0" stroke="#e67700" stroke-width="2" fill="#fff9db"/>
+<text x="3535" y="4104.0" font-family="Arial,sans-serif" font-size="18" fill="#e67700">App\Providers | mendefinisikan Gate</text>
+<text x="3535" y="4144.4" font-family="Arial,sans-serif" font-size="28" fill="#e67700">AuthorizationServiceProvider</text>
+<polyline points="3515,4167.799999999999 5015,4167.799999999999" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="4201.799999999999" font-family="Arial,sans-serif" font-size="20" fill="#334155">Gate notifications.dailyReport(User, Team)</text>
+<text x="3535" y="4227.799999999999" font-family="Arial,sans-serif" font-size="20" fill="#334155">Gate notifications.harvestReminder(User, Farm)</text>
+<polyline points="3515,4247.799999999999 5015,4247.799999999999" fill="none" stroke="#1e293b" stroke-width="2"/>
+<text x="3535" y="4281.799999999999" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">+ boot(): void</text>
+<text x="3535" y="4307.799999999999" font-family="Arial,sans-serif" font-size="20" fill="#1e293b">Gate memakai RolePermissions dan policy model terkait.</text>
+<rect x="5140" y="4070" width="1550" height="285" rx="0" stroke="#e67700" stroke-width="2" fill="#fff9db"/>
+<text x="5162" y="4110.0" font-family="Arial,sans-serif" font-size="24" fill="#e67700">Otorisasi saat bukan request HTTP</text>
+<text x="5162" y="4144.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Service menggunakan Gate::forUser(recipient).</text>
+<text x="5162" y="4170.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Daily: Owner/Admin; panen: Petugas dengan assignment valid.</text>
+<text x="5162" y="4196.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Semua penerima harus aktif, punya membership dan izin baca.</text>
+<text x="5162" y="4222.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">withMembershipSnapshot(): satu callback; dibuang via finally.</text>
+<text x="5162" y="4248.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Dispatcher: reload=false hanya untuk batch eager-load baru.</text>
+<text x="5162" y="4274.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">validRecipient(): user, role, membership, farm/jadwal terbaru.</text>
+<text x="5162" y="4300.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Sesudah /validate, validRecipient() dipanggil kembali.</text>
+<text x="5162" y="4326.2" font-family="Arial,sans-serif" font-size="20" fill="#334155">Nomor telepon hanya memengaruhi job WhatsApp.</text>
+<text x="3515" y="4462.0" font-family="Arial,sans-serif" font-size="22" fill="#64748b">Snapshot menyimpan ID penerima / tenant / kebun / siklus. Queue job bukan pemberi akses baru.</text>
+<text x="3515" y="4490.6" font-family="Arial,sans-serif" font-size="22" fill="#64748b">Panel ini hanya menampilkan model yang relevan dengan notifikasi; bukan seluruh ERD proyek.</text>
+<polyline points="5130.0,545.8 5130.0,680.0 3910.0,680.0 3910.0,1040.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="4030" y="664.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">snapshot operasi inbox</text>
+<polyline points="6295.0,597.8 6295.0,900.0 3910.0,900.0 3910.0,1040.0" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+<text x="5610" y="884.0" font-family="Arial,sans-serif" font-size="18" fill="#475569">scope pilihan tenant</text>
+</svg>

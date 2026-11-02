@@ -17,6 +17,9 @@ class MigrationLayoutTest extends TestCase
             array_push($tables, ...$matches[1]);
         }
         $this->assertCount(count($tables), array_unique($tables), 'A table must have exactly one create migration.');
+        $phoneMigration = file_get_contents(database_path('migrations/2026_10_31_000001_add_phone_number_to_users.php'));
+        $this->assertStringContainsString("\$table->string('phone_number', 15)->nullable()", $phoneMigration);
+        $this->assertStringNotContainsString('notification_deliveries', $phoneMigration);
         preg_match_all('/^Table\s+(\w+)\s*\{/m', file_get_contents(database_path('schema.dbml')), $erd);
         $expected = [...$erd[1], 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'sessions', 'password_reset_tokens'];
         sort($expected);

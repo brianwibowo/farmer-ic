@@ -2,6 +2,7 @@ export type ManagedUser = {
     id: string;
     name: string;
     email: string;
+    phone_number?: string | null;
     role: string | null;
     team_ids: number[];
     teams: { id: number; name: string; slug: string }[];

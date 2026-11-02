@@ -23,6 +23,7 @@ const props = defineProps<{
 const form = useForm({
     name: props.managedUser?.name ?? '',
     email: props.managedUser?.email ?? '',
+    phone_number: props.managedUser?.phone_number ?? '',
     password: '',
     password_confirmation: '',
     role: props.managedUser?.role ?? 'petugas',
@@ -156,6 +157,30 @@ function submit(): void {
                         /></template>
                     </UserField>
                     <UserField
+                        id="user-phone"
+                        label="Nomor WhatsApp"
+                        :error="form.errors.phone_number"
+                    >
+                        <template #default="{ id, invalid, description }">
+                            <input
+                                :id="id"
+                                v-model="form.phone_number"
+                                :class="controlClass"
+                                type="tel"
+                                inputmode="tel"
+                                autocomplete="tel"
+                                maxlength="24"
+                                pattern="\+?[0-9][0-9 \(\)\-]{7,23}"
+                                placeholder="081234567890"
+                                :aria-invalid="invalid"
+                                :aria-describedby="description"
+                            />
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                Opsional. Menerima +6208…, 08…, atau 628….
+                            </p>
+                        </template>
+                    </UserField>
+                    <UserField
                         id="user-role"
                         label="Role aplikasi"
                         :error="form.errors.role"
@@ -252,10 +277,7 @@ function submit(): void {
                         v-if="userManagementScope.global"
                         class="flex gap-2 rounded-xl bg-muted p-4 text-xs leading-6 text-muted-foreground"
                     >
-                        <Info class="mt-1 size-4 shrink-0" />Owner dan admin
-                        melihat farm melalui asosiasi tenant. Assignment farm
-                        individual hanya digunakan oleh petugas. User tanpa
-                        assignment belum mendapat akses operasional tenant.
+                        <Info class="mt-1 size-4 shrink-0" />Owner dan admin melihat farm melalui relasi tenant. Sementara petugas hanya dapat melihat farm yang ditugaskan ke mereka.
                     </p>
                 </div>
             </div>

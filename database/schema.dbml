@@ -27,6 +27,7 @@ Table users {
   remember_token varchar(100)
   assigned_farm_id uuid [ref: > farms.id, note: 'Direct one-farm assignment for petugas; nullable for owner/admin']
   deleted_at timestamp
+  phone_number varchar(15) [note: 'Nullable canonical international digits, e.g. 62812; normalized from +6208/08 at validated HTTP boundaries']
 }
 
 Table teams {
@@ -541,6 +542,8 @@ Table notifications {
   is_read boolean [not null, default: false]
   created_at timestamptz [not null]
   read_at timestamptz
+  type varchar(32) [note: 'daily_report or harvest_reminder; nullable for legacy non-operational entries']
+  team_id bigint [ref: > teams.id, note: 'Nullable for legacy inbox entries whose tenant cannot be proven']
 }
 
 Table audit_logs {
