@@ -440,7 +440,7 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | --- | --- | --- |
 | `sop_templates` | Baru | `id`, `team_id`, `variety_id`, `copied_from_version_id`, `name`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `sop_template_versions` | Baru | `id`, `sop_template_id`, `version`, `notes`, `status`, `created_by`, `published_by`, `published_at`, `created_at`, `updated_at` |
-| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `activity_type_id`, `stage_code`, `name`, `instructions`, `schedule_anchor`, `offset_days`, `tolerance_days`, `position`, `is_required`, `created_at`, `updated_at` |
+| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `activity_type_id`, `stage_code`, `name`, `instructions`, `schedule_anchor`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at` |
 | `planting_cycle_stages` | Baru | `id`, `planting_cycle_id`, `stage_code`, `position`, `planned_start_at`, `planned_end_at`, `started_at`, `completed_at`, `status`, `skip_reason`, `created_at`, `updated_at` |
 | `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_type_id`, `name`, `instructions`, `schedule_anchor`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
 | `planting_cycle_task_submissions` | Baru | `id`, `planting_cycle_task_id`, `attempt_number`, `submitted_by`, `submitted_at`, `reported_completed_at`, `submission_note`, `evidence_snapshot`, `status`, `reviewed_by`, `reviewed_at`, `review_note`, `created_at`, `updated_at` |

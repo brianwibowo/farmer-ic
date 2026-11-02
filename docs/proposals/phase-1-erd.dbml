@@ -601,15 +601,14 @@ Table sop_template_tasks {
   schedule_anchor varchar(30) [not null, note: 'stage_start | planting_date']
   offset_days int [not null, default: 0, note: 'H+0 adalah tanggal acuan; negatif untuk pekerjaan sebelum acuan']
   tolerance_days int [not null, default: 0, note: 'CHECK >= 0; due_date = scheduled_date + tolerance_days']
-  position int [not null]
   is_required boolean [not null, default: true]
   created_at timestamptz [not null]
   updated_at timestamptz
 
   indexes {
-    (sop_template_version_id, position) [unique]
+    (sop_template_version_id, offset_days)
   }
-  Note: 'Satu baris = satu pekerjaan pada satu hari relatif. Stage dan jenis aktivitas berbeda: basic_fertilizer adalah stage, fertilization adalah jenis aktivitas.'
+  Note: 'Satu baris = satu pekerjaan pada satu hari relatif. Diurutkan berdasarkan offset_days, lalu stage, waktu pembuatan, dan id. Stage dan jenis aktivitas berbeda: basic_fertilizer adalah stage, fertilization adalah jenis aktivitas.'
 }
 
 Table planting_cycle_stages {

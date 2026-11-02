@@ -13,7 +13,6 @@ export type SopTask = {
     schedule_anchor: 'planting_date' | 'stage_start';
     offset_days: number;
     tolerance_days: number;
-    position: number;
     is_required: boolean;
     activity_type?: SopActivityType;
 };

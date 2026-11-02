@@ -32,7 +32,6 @@ const form = useForm({
     schedule_anchor: 'planting_date',
     offset_days: 0,
     tolerance_days: 2,
-    position: 1,
     is_required: true,
 });
 
@@ -45,7 +44,6 @@ function reset(): void {
     form.schedule_anchor = props.task?.schedule_anchor ?? 'planting_date';
     form.offset_days = props.task?.offset_days ?? 0;
     form.tolerance_days = props.task?.tolerance_days ?? 2;
-    form.position = props.task?.position ?? props.version.tasks.length + 1;
     form.is_required = props.task?.is_required ?? true;
 }
 
@@ -155,20 +153,6 @@ function submit(): void {
                                 required
                                 min="0"
                                 max="365"
-                                step="1"
-                                :aria-invalid="field.invalid"
-                                :aria-describedby="field.description"
-                            />
-                        </FarmField>
-                        <FarmField id="task-position" label="Urutan" required :error="form.errors.position" v-slot="field">
-                            <input
-                                :id="field.id"
-                                v-model.number="form.position"
-                                class="admin-field"
-                                type="number"
-                                required
-                                min="1"
-                                max="999"
                                 step="1"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"

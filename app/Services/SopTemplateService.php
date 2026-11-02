@@ -150,7 +150,7 @@ class SopTemplateService
             ]);
 
             if ($latest instanceof SopTemplateVersion) {
-                $latest->tasks()->orderBy('position')->each(function (SopTemplateTask $task) use ($version, $actor): void {
+                $latest->tasks()->each(function (SopTemplateTask $task) use ($version, $actor): void {
                     $version->tasks()->create([
                         ...$this->taskAttributes($task),
                         'created_at' => now(),
@@ -194,10 +194,6 @@ class SopTemplateService
     {
         $this->assertDraft($version);
 
-        if ($version->tasks()->where('position', $data['position'])->exists()) {
-            throw ValidationException::withMessages(['position' => 'Urutan langkah sudah dipakai pada versi ini.']);
-        }
-
         return $version->tasks()->create($this->taskAttributes($data));
     }
 
@@ -205,11 +201,6 @@ class SopTemplateService
     public function updateTask(SopTemplateTask $task, array $data): SopTemplateTask
     {
         $this->assertDraft($task->version);
-
-        if (isset($data['position'])
-            && $task->version->tasks()->where('position', $data['position'])->whereKeyNot($task->id)->exists()) {
-            throw ValidationException::withMessages(['position' => 'Urutan langkah sudah dipakai pada versi ini.']);
-        }
 
         $task->fill($this->taskAttributes($data))->save();
 
@@ -244,7 +235,6 @@ class SopTemplateService
             'schedule_anchor' => $data['schedule_anchor'],
             'offset_days' => (int) ($data['offset_days'] ?? 0),
             'tolerance_days' => (int) ($data['tolerance_days'] ?? 0),
-            'position' => (int) $data['position'],
             'is_required' => (bool) ($data['is_required'] ?? true),
         ];
     }

@@ -76,17 +76,16 @@ class SopTemplateTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function taskPayload(int $position = 1, string $code = 'planting'): array
+    private function taskPayload(int $sequence = 1, string $code = 'planting'): array
     {
         return [
             'activity_type_id' => $this->activityType($code)->id,
             'stage_code' => 'planting',
-            'name' => 'Langkah '.$position,
-            'instructions' => 'Instruksi langkah '.$position.'.',
+            'name' => 'Langkah '.$sequence,
+            'instructions' => 'Instruksi langkah '.$sequence.'.',
             'schedule_anchor' => 'planting_date',
-            'offset_days' => ($position - 1) * 7,
+            'offset_days' => ($sequence - 1) * 7,
             'tolerance_days' => 2,
-            'position' => $position,
             'is_required' => true,
         ];
     }
@@ -182,6 +181,19 @@ class SopTemplateTest extends TestCase
         $this->assertSame(0, SopTemplate::query()->visibleTo($otherAdmin, $otherTeam)->count());
 
         $this->actingAs($otherAdmin)->get('/admin/sops/'.$template->id)->assertForbidden();
+    }
+
+    public function test_tasks_are_ordered_by_hst_offset(): void
+    {
+        $template = $this->createTemplate();
+        $version = $template->versions()->firstOrFail();
+        $service = app(SopTemplateService::class);
+
+        $service->createTask($version, $this->taskPayload(3, 'harvest'));
+        $service->createTask($version, $this->taskPayload(1, 'planting'));
+        $service->createTask($version, $this->taskPayload(2, 'irrigation'));
+
+        $this->assertSame([0, 7, 14], $version->tasks()->pluck('offset_days')->all());
     }
 
     public function test_admin_updates_template_without_changing_variety(): void

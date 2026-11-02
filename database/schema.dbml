@@ -214,15 +214,14 @@ Table sop_template_tasks {
   schedule_anchor varchar(30) [not null, note: 'planting_date | stage_start']
   offset_days int [not null, default: 0, note: 'H+0 is the anchor date; negative values are before the anchor']
   tolerance_days int [not null, default: 0, note: 'due_date = scheduled_date + tolerance_days']
-  position int [not null]
   is_required boolean [not null, default: true]
   created_at timestamptz
   updated_at timestamptz
   indexes {
-    (sop_template_version_id, position) [unique]
+    (sop_template_version_id, offset_days)
     (sop_template_version_id, stage_code)
   }
-  Note: 'One row is one SOP step at one relative day. Stage and activity type are separate concepts.'
+  Note: 'One row is one SOP step at one relative day. Ordered by offset_days, then stage, creation time, and id. Stage and activity type are separate concepts.'
 }
 
 Table activity_types {

@@ -58,6 +58,10 @@ class SopTemplateVersion extends FarmerModel
     /** @return HasMany<SopTemplateTask, $this> */
     public function tasks(): HasMany
     {
-        return $this->hasMany(SopTemplateTask::class, 'sop_template_version_id')->orderBy('position');
+        return $this->hasMany(SopTemplateTask::class, 'sop_template_version_id')
+            ->orderBy('offset_days')
+            ->orderByRaw("CASE stage_code WHEN 'land_cleaning' THEN 1 WHEN 'soil_preparation' THEN 2 WHEN 'basic_fertilizer' THEN 3 WHEN 'planting' THEN 4 WHEN 'maintenance' THEN 5 WHEN 'harvest' THEN 6 ELSE 7 END")
+            ->orderBy('created_at')
+            ->orderBy('id');
     }
 }
