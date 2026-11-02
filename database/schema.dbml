@@ -133,8 +133,8 @@ Table farm_blocks {
   created_by uuid [not null, ref: > users.id]
   land_clearing_started_at timestamptz [not null]
   land_clearing_completed_at timestamptz
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
+  created_at timestamptz
+  updated_at timestamptz
   indexes { (farm_id, code) [unique] }
   Note: 'Active block areas fit within the farm. First batch automatically completes Land Clearing. Historical blocks are deactivated rather than deleted.'
 }
@@ -145,8 +145,8 @@ Table planting_rounds {
   round_number int [not null]
   status varchar(30) [not null, default: 'active']
   created_by uuid [not null, ref: > users.id]
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
+  created_at timestamptz
+  updated_at timestamptz
   indexes { (block_id, round_number) [unique] }
   Note: 'At most one active round per block. New rounds begin after all previous batches are terminal.'
 }
@@ -159,8 +159,8 @@ Table planting_cycle_stages {
   status varchar(30) [not null]
   started_at timestamptz
   completed_at timestamptz
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
+  created_at timestamptz
+  updated_at timestamptz
   indexes {
     (planting_cycle_id, code) [unique]
     (planting_cycle_id, position) [unique]
@@ -168,9 +168,66 @@ Table planting_cycle_stages {
   Note: 'Six stages per new batch: land_clearing completed, soil_preparation in_progress, remaining stages upcoming. No fabricated dates or progress percentages.'
 }
 
+Table sop_templates {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  variety_id uuid [not null, ref: > crop_varieties.id]
+  copied_from_version_id uuid [ref: > sop_template_versions.id]
+  name varchar(150) [not null]
+  description text
+  is_active boolean [not null, default: true]
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz
+  updated_at timestamptz
+  indexes {
+    (farm_id, variety_id)
+    copied_from_version_id
+  }
+  Note: 'Farm-owned SOP template for one crop variety. Tenant is resolved through farm.team_id. Copies are independent templates.'
+}
+
+Table sop_template_versions {
+  id uuid [pk]
+  sop_template_id uuid [not null, ref: > sop_templates.id]
+  version int [not null]
+  notes text
+  status varchar(30) [not null, default: 'draft', note: 'draft | published | retired']
+  created_by uuid [not null, ref: > users.id]
+  published_by uuid [ref: > users.id]
+  published_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+  indexes {
+    (sop_template_id, version) [unique]
+    (sop_template_id, status)
+  }
+  Note: 'Published versions and their tasks are frozen. Revision creates a new version; older published versions are retired.'
+}
+
+Table sop_template_tasks {
+  id uuid [pk]
+  sop_template_version_id uuid [not null, ref: > sop_template_versions.id]
+  activity_type_id uuid [not null, ref: > activity_types.id]
+  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
+  name varchar(200) [not null]
+  instructions text
+  schedule_anchor varchar(30) [not null, note: 'planting_date | stage_start']
+  offset_days int [not null, default: 0, note: 'H+0 is the anchor date; negative values are before the anchor']
+  tolerance_days int [not null, default: 0, note: 'due_date = scheduled_date + tolerance_days']
+  position int [not null]
+  is_required boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  indexes {
+    (sop_template_version_id, position) [unique]
+    (sop_template_version_id, stage_code)
+  }
+  Note: 'One row is one SOP step at one relative day. Stage and activity type are separate concepts.'
+}
+
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'planting, fertilization, irrigation, growth_check, pesticide, incident, harvest, block_mapping']
+  code varchar(50) [not null, unique, note: 'planting, fertilization, irrigation, growth_check, pesticide, incident, harvest, block_mapping, land_cleaning, soil_preparation']
   name varchar(100) [not null]
   description text
 }
@@ -216,7 +273,6 @@ Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id,
 
 Table block_mapping_details {
   activity_id uuid [pk, ref: > farm_activities.id]
-  block_id uuid [ref: > farm_blocks.id, note: 'Must share the activity farm; historical measurement fields remain snapshots']
   form_version int [not null, default: 1]
   block_name varchar(100) [not null]
   length_m decimal(10,3) [not null]
@@ -224,6 +280,7 @@ Table block_mapping_details {
   row_spacing_cm decimal(8,2)
   plant_spacing_cm decimal(8,2)
   rows_per_bed int
+  block_id uuid [ref: > farm_blocks.id, note: 'Must share the activity farm; historical measurement fields remain snapshots']
 }
 
 Table activity_photos {
