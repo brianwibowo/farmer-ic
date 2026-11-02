@@ -14,6 +14,7 @@ use App\Http\Controllers\Finance\FinancialBudgetController;
 use App\Http\Controllers\Finance\FinancialCategoryController;
 use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateCopyController;
@@ -27,9 +28,10 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Public pages do not provision users or resolve the legacy team-based session.
+Route::get('/', HomeController::class)->middleware(['auth', 'verified'])->name('home');
+
+// Remaining public demo pages do not provision users or resolve the legacy team-based session.
 // AI API routes below keep their existing authentication and team middleware.
-Route::inertia('/', 'farmer/Dashboard')->defaults('farmer_guest', true)->name('home');
 Route::inertia('kebun/detail', 'farmer/KebunDetail')->defaults('farmer_guest', true)->name('kebun.detail');
 Route::inertia('kebun/aktivitas', 'farmer/KebunAktivitas')->defaults('farmer_guest', true)->name('kebun.aktivitas');
 Route::inertia('/kebun', 'farmer/Kebun')->defaults('farmer_guest', true)->name('kebun');

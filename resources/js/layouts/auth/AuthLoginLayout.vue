@@ -24,11 +24,11 @@ const year = new Date().getFullYear();
                     class="inline-flex items-center gap-2.5 rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
                 >
                     <img
-                        src="/images/logo.svg"
+                        src="/images/logo.png"
                         alt=""
                         width="42"
                         height="42"
-                        class="size-[42px]"
+                        class="size-[42px] object-contain dark:brightness-0 dark:invert"
                     />
                     <span class="text-2xl font-semibold tracking-tight"
                         >Farm <span class="text-primary">IC</span></span

@@ -1,6 +1,6 @@
 <div id="startup-screen" class="startup-screen" role="status" aria-live="polite" aria-label="Memuat aplikasi Farm IC">
     <div class="startup-screen__brand">
-        <img class="startup-screen__logo" src="/images/logo.svg" width="150" height="150" alt="" fetchpriority="high">
+        <img class="startup-screen__logo" src="/images/logo.png" width="150" height="150" alt="" fetchpriority="high">
         <p class="startup-screen__name">Farm IC</p>
         <div class="startup-screen__dots" aria-hidden="true">
             <span style="--dot-index: 0"></span>

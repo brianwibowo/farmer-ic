@@ -65,6 +65,13 @@ class AuthorizationServiceProvider extends ServiceProvider
                 && $permissions->singleTenant($user) !== null;
         });
 
+        // Admission to the existing owner dashboard, not authority over farm records.
+        Gate::define('owner.access', function (User $user): bool {
+            $permissions = app(RolePermissions::class);
+
+            return $permissions->isKnownRole('owner') && $permissions->roleName($user) === 'owner';
+        });
+
         // Admission to an empty mobile portal, not authority over farm records.
         Gate::define('petugas.access', function (User $user): bool {
             $permissions = app(RolePermissions::class);

@@ -25,7 +25,7 @@ const { signOut, processing, error } = useLogout();
     <header class="py-1">
         <div class="flex items-center justify-between gap-3">
             <img
-                src="/images/logo-dashboard.svg"
+                src="/images/logo-dashboard.png"
                 alt="Farm IC"
                 class="h-9 w-auto min-w-0 object-contain dark:brightness-0 dark:invert"
             />
