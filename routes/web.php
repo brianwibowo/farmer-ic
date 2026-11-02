@@ -36,6 +36,7 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::inertia('/', 'petugas/Home')->name('home');
     Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
     Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
+    Route::inertia('aktivitas/buat', 'petugas/ActivityCreate')->name('aktivitas.create');
     Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
 });
 
