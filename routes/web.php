@@ -14,6 +14,7 @@ use App\Http\Controllers\Finance\FinancialBudgetController;
 use App\Http\Controllers\Finance\FinancialCategoryController;
 use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
+use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
 use App\Http\Controllers\Sop\SopTemplateVersionController;
@@ -38,6 +39,7 @@ Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->na
 Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
     Route::inertia('/', 'petugas/Home')->name('home');
     Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
+    Route::get('tasks', [PetugasTaskController::class, 'index'])->name('tasks.index');
     Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
     Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
 });
