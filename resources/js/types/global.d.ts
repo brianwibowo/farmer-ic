@@ -26,6 +26,7 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             navigation?: {
                 admin: boolean;
+                notifications: boolean;
                 farms: boolean;
                 users: boolean;
                 teamSwitcher: boolean;
