@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DashboardRequest;
+use App\Models\Farm;
 use App\Models\TeamInvitation;
 use App\Services\AdminDashboardService;
-use Illuminate\Http\Request;
+use App\Support\RolePermissions;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -12,8 +15,14 @@ class DashboardController extends Controller
 {
     public function __construct(private readonly AdminDashboardService $dashboard) {}
 
-    public function __invoke(Request $request): Response
+    public function __invoke(DashboardRequest $request): Response
     {
+        $filters = $request->validated();
+        $team = app(RolePermissions::class)->singleTenant($request->user()) ?? $request->user()->currentTeam;
+        Gate::authorize('viewAny', [Farm::class, $team]);
+        if (! empty($filters['farm_id'])) {
+            Gate::authorize('view', Farm::query()->findOrFail($filters['farm_id']));
+        }
         $email = strtolower($request->user()->email);
 
         $pendingInvitations = TeamInvitation::query()
@@ -36,7 +45,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'pendingInvitations' => $pendingInvitations,
-            'dashboard' => $this->dashboard->summary($request->user(), $request->user()->currentTeam),
+            'dashboard' => $this->dashboard->summary($request->user(), $team, $filters),
         ]);
     }
 }

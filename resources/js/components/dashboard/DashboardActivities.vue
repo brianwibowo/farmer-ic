@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { ClipboardList, Search, Users } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import type { DashboardActivity, DashboardOfficer } from '@/types/dashboard';
@@ -12,6 +12,13 @@ const props = defineProps<{
 }>();
 const activitySearch = ref('');
 const selectedOfficerId = ref<string | null>(null);
+watch(
+    () => props.officers,
+    (officers) => {
+        if (!officers.some((officer) => officer.id === selectedOfficerId.value))
+            selectedOfficerId.value = null;
+    },
+);
 const selectedOfficer = computed(() =>
     props.officers.find((officer) => officer.id === selectedOfficerId.value),
 );
@@ -54,12 +61,26 @@ function initials(name: string): string {
         .join('')
         .toUpperCase();
 }
+function activityLabel(status: string): string {
+    return (
+        (
+            {
+                completed: 'Selesai',
+                done: 'Selesai',
+                in_progress: 'Dalam proses',
+                planned: 'Terjadwal',
+                pending: 'Menunggu',
+                cancelled: 'Dibatalkan',
+            } as Record<string, string>
+        )[status] ?? status
+    );
+}
 </script>
 
 <template>
     <section class="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
         <article
-            class="min-w-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
+            class="min-w-0 overflow-hidden rounded-xl bg-card"
             aria-labelledby="activities-heading"
         >
             <div
@@ -208,7 +229,9 @@ function initials(name: string): string {
                                         :class="
                                             activityTone(activityItem.status)
                                         "
-                                        >{{ activityItem.status }}</span
+                                        >{{
+                                            activityLabel(activityItem.status)
+                                        }}</span
                                     >
                                 </td>
                             </tr>
@@ -236,7 +259,7 @@ function initials(name: string): string {
                             <span
                                 class="inline-flex max-w-full rounded-full px-2.5 py-1 text-xs leading-5 font-semibold"
                                 :class="activityTone(activityItem.status)"
-                                >{{ activityItem.status }}</span
+                                >{{ activityLabel(activityItem.status) }}</span
                             >
                         </div>
                         <p
@@ -315,7 +338,7 @@ function initials(name: string): string {
         </article>
 
         <aside
-            class="hidden min-w-0 self-start rounded-xl border border-border bg-card p-5 transition-shadow transition-transform hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none 2xl:block"
+            class="hidden min-w-0 self-start rounded-xl bg-card p-5 2xl:block"
             aria-labelledby="officers-heading"
         >
             <div class="flex items-start justify-between gap-4">
@@ -331,41 +354,40 @@ function initials(name: string): string {
                     </p>
                 </div>
                 <span
-                    class="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"
+                    class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"
                     ><Users :size="20" aria-hidden="true"
                 /></span>
             </div>
-            <div class="mt-5 space-y-2">
+            <div class="mt-6 flex flex-col gap-3">
                 <Button
                     type="button"
                     :variant="selectedOfficerId === null ? 'default' : 'ghost'"
-                    class="h-auto w-full justify-start rounded-xl px-3 py-2.5 text-left whitespace-normal"
+                    class="dashboard-officer-option w-full justify-start rounded-xl text-left whitespace-normal"
                     :aria-pressed="selectedOfficerId === null"
                     @click="selectedOfficerId = null"
                     ><span
-                        class="grid size-9 place-items-center rounded-full bg-background/20 text-xs font-bold"
+                        class="grid size-10 shrink-0 place-items-center rounded-full bg-background/20 text-xs font-bold"
                         ><Users :size="18" aria-hidden="true" /></span
-                    ><span class="min-w-0 flex-1"
-                        ><span class="block font-semibold">Semua petugas</span
-                        ><span class="block text-xs opacity-80"
+                    ><span class="min-w-0 flex-1 space-y-1"
+                        ><span class="block text-base leading-6 font-semibold"
+                            >Semua petugas</span
+                        ><span
+                            class="block text-sm leading-5 font-semibold opacity-90"
                             >{{ activities.length }} aktivitas terbaru</span
                         ></span
                     ></Button
                 >
                 <Button
-                    v-for="(officer, index) in officers"
+                    v-for="officer in officers"
                     :key="officer.id"
                     type="button"
                     :variant="
                         selectedOfficerId === officer.id ? 'default' : 'ghost'
                     "
-                    class="h-auto w-full justify-start rounded-xl px-3 py-2.5 text-left whitespace-normal"
+                    class="dashboard-officer-option w-full justify-start rounded-xl text-left whitespace-normal"
                     :aria-pressed="selectedOfficerId === officer.id"
                     @click="selectedOfficerId = officer.id"
-                    ><span
-                        class="grid size-6 shrink-0 place-items-center text-xs font-semibold opacity-80"
-                        >{{ index + 1 }}</span
-                    ><Avatar class="size-9 shrink-0 rounded-full"
+                    ><Avatar class="size-10 shrink-0 rounded-full"
                         ><AvatarImage
                             v-if="officer.avatarUrl"
                             :src="officer.avatarUrl"
@@ -374,17 +396,17 @@ function initials(name: string): string {
                             class="rounded-full bg-muted text-xs font-semibold text-muted-foreground"
                             >{{ initials(officer.name) }}</AvatarFallback
                         ></Avatar
-                    ><span class="min-w-0 flex-1"
-                        ><span class="block font-semibold break-words">{{
-                            officer.name
-                        }}</span
-                        ><span class="block text-xs opacity-80"
-                            >{{ officer.activityCount }} aktivitas<span
-                                v-if="officer.latestActivityAt"
-                            >
-                                · terakhir
-                                {{ officer.latestActivityAt }}</span
-                            ></span
+                    ><span class="min-w-0 flex-1 space-y-1"
+                        ><span
+                            class="block text-base leading-6 font-semibold break-words"
+                            >{{ officer.name }}</span
+                        ><span
+                            class="block text-sm leading-5 font-semibold opacity-90"
+                            >{{ officer.activityCount }} aktivitas</span
+                        ><span
+                            v-if="officer.latestActivityAt"
+                            class="block text-sm leading-5 font-semibold opacity-90"
+                            >Terakhir {{ officer.latestActivityAt }}</span
                         ></span
                     ></Button
                 >
