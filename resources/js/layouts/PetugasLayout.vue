@@ -18,7 +18,21 @@ const items: FarmerNavItem[] = [
 ];
 const activeKey = computed<FarmerNavKey>(() => {
     const pathname = page.url.split('?')[0].replace(/\/$/, '');
-    return items.find((item) => item.href === pathname)?.key ?? 'home';
+    const exact = items.find((item) => item.href === pathname);
+    if (exact) return exact.key;
+
+    return (
+        [...items]
+            .sort(
+                (first, second) =>
+                    (second.href ?? '').length - (first.href ?? '').length,
+            )
+            .find(
+                (item) =>
+                    item.href !== undefined &&
+                    pathname.startsWith(`${item.href}/`),
+            )?.key ?? 'home'
+    );
 });
 const unsubscribe: (() => void)[] = [];
 onMounted(() => {
