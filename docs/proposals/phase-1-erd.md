@@ -163,14 +163,17 @@ pada basic fertilizer maupun maintenance.
 - Perubahan template atau versi terbaru hanya digunakan batch berikutnya.
   Jadwal dan isi pekerjaan batch berjalan tetap memakai snapshot versi semula.
 - Setiap pekerjaan menunjuk salah satu dari enam stage milik batch yang sama.
-- `schedule_anchor = planting_date` memakai tanggal realisasi tanam pertama.
-  `stage_start` memakai tanggal mulai stage. Perhitungan hari mengikuti
-  Asia/Jakarta; tanggal acuan dihitung sebagai H+0.
-- `scheduled_date = tanggal acuan + offset_days`;
-  `due_date = scheduled_date + tolerance_days`. Jika acuan belum tersedia,
-  tanggal jadwal boleh kosong. Tanggal rencana pada batch/stage dapat dipakai
-  sebagai perkiraan tampilan dan harus diberi label rencana.
-- Koreksi tanggal acuan batch/stage merupakan koreksi data realisasi oleh Admin
+- Semua offset pekerjaan SOP memakai HST dari tanggal tanam batch. `H+0`
+  adalah tanggal tanam; offset negatif dipakai untuk pekerjaan sebelum tanam
+  (misalnya `H-14` land clearing). Stage tidak menjadi acuan jadwal.
+- Tanggal acuan memakai `planting_cycles.planted_at` jika sudah ada. Sebelum
+  realisasi tanam, `planned_planting_at` dipakai sebagai acuan rencana agar
+  pekerjaan persiapan tetap memiliki tanggal. Perhitungan hari mengikuti
+  Asia/Jakarta.
+- `scheduled_date = tanggal tanam + offset_days`;
+  `due_date = scheduled_date + tolerance_days`. Jika kedua tanggal tanam belum
+  tersedia, tanggal jadwal boleh kosong.
+- Koreksi tanggal tanam batch merupakan koreksi data realisasi oleh Admin
   tenant, bukan penerapan revisi SOP. Koreksi dapat menghitung ulang tanggal task
   yang belum dimulai dari offset snapshot yang sama; riwayat perubahan wajib
   dicatat. Task yang sudah dikerjakan atau diajukan tidak digeser diam-diam.
@@ -440,9 +443,9 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | --- | --- | --- |
 | `sop_templates` | Baru | `id`, `team_id`, `variety_id`, `copied_from_version_id`, `name`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `sop_template_versions` | Baru | `id`, `sop_template_id`, `version`, `notes`, `status`, `created_by`, `published_by`, `published_at`, `created_at`, `updated_at` |
-| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `activity_type_id`, `stage_code`, `name`, `instructions`, `schedule_anchor`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at` |
+| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `activity_type_id`, `stage_code`, `name`, `instructions`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at` |
 | `planting_cycle_stages` | Baru | `id`, `planting_cycle_id`, `stage_code`, `position`, `planned_start_at`, `planned_end_at`, `started_at`, `completed_at`, `status`, `skip_reason`, `created_at`, `updated_at` |
-| `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_type_id`, `name`, `instructions`, `schedule_anchor`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
+| `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_type_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
 | `planting_cycle_task_submissions` | Baru | `id`, `planting_cycle_task_id`, `attempt_number`, `submitted_by`, `submitted_at`, `reported_completed_at`, `submission_note`, `evidence_snapshot`, `status`, `reviewed_by`, `reviewed_at`, `review_note`, `created_at`, `updated_at` |
 
 ### Aktivitas dan laporan penanaman/panen

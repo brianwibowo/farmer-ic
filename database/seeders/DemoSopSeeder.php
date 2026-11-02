@@ -42,14 +42,14 @@ class DemoSopSeeder extends Seeder
         ]);
 
         $tasks = [
-            ['code' => 'land_cleaning', 'stage' => 'land_cleaning', 'name' => 'Bersihkan lahan', 'anchor' => 'planting_date', 'offset' => -14, 'instructions' => 'Bersihkan gulma, sisa tanaman, dan material yang mengganggu area tanam.'],
-            ['code' => 'soil_preparation', 'stage' => 'soil_preparation', 'name' => 'Olah tanah dan bentuk bedengan', 'anchor' => 'planting_date', 'offset' => -7, 'instructions' => 'Bajak dan gemburkan tanah, lalu bentuk bedengan sesuai kontur lahan.'],
-            ['code' => 'planting', 'stage' => 'planting', 'name' => 'Tanam benih Bisi 18', 'anchor' => 'planting_date', 'offset' => 0, 'instructions' => 'Tanam benih dengan jarak tanam 20 x 40 cm dan kedalaman yang seragam.'],
-            ['code' => 'irrigation', 'stage' => 'maintenance', 'name' => 'Pengairan awal', 'anchor' => 'planting_date', 'offset' => 7, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
-            ['code' => 'fertilization', 'stage' => 'maintenance', 'name' => 'Pemupukan susulan pertama', 'anchor' => 'planting_date', 'offset' => 14, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
-            ['code' => 'pesticide', 'stage' => 'maintenance', 'name' => 'Pengendalian hama dan penyakit', 'anchor' => 'planting_date', 'offset' => 30, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
-            ['code' => 'fertilization', 'stage' => 'maintenance', 'name' => 'Pemupukan lanjutan', 'anchor' => 'planting_date', 'offset' => 45, 'instructions' => 'Berikan pupuk susulan sesuai fase pertumbuhan dan hasil pengamatan.'],
-            ['code' => 'harvest', 'stage' => 'harvest', 'name' => 'Panen', 'anchor' => 'planting_date', 'offset' => 90, 'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.'],
+            ['code' => 'land_cleaning', 'stage' => 'land_cleaning', 'name' => 'Bersihkan lahan', 'offset' => -14, 'instructions' => 'Bersihkan gulma, sisa tanaman, dan material yang mengganggu area tanam.'],
+            ['code' => 'soil_preparation', 'stage' => 'soil_preparation', 'name' => 'Olah tanah dan bentuk bedengan', 'offset' => -7, 'instructions' => 'Bajak dan gemburkan tanah, lalu bentuk bedengan sesuai kontur lahan.'],
+            ['code' => 'planting', 'stage' => 'planting', 'name' => 'Tanam benih Bisi 18', 'offset' => 0, 'instructions' => 'Tanam benih dengan jarak tanam 20 x 40 cm dan kedalaman yang seragam.'],
+            ['code' => 'irrigation', 'stage' => 'maintenance', 'name' => 'Pengairan awal', 'offset' => 7, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
+            ['code' => 'fertilization', 'stage' => 'maintenance', 'name' => 'Pemupukan susulan pertama', 'offset' => 14, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
+            ['code' => 'pesticide', 'stage' => 'maintenance', 'name' => 'Pengendalian hama dan penyakit', 'offset' => 30, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
+            ['code' => 'fertilization', 'stage' => 'maintenance', 'name' => 'Pemupukan lanjutan', 'offset' => 45, 'instructions' => 'Berikan pupuk susulan sesuai fase pertumbuhan dan hasil pengamatan.'],
+            ['code' => 'harvest', 'stage' => 'harvest', 'name' => 'Panen', 'offset' => 90, 'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.'],
         ];
 
         foreach ($tasks as $task) {
@@ -59,7 +59,6 @@ class DemoSopSeeder extends Seeder
                 'stage_code' => $task['stage'],
                 'name' => $task['name'],
                 'instructions' => $task['instructions'],
-                'schedule_anchor' => $task['anchor'],
                 'offset_days' => $task['offset'],
                 'tolerance_days' => 2,
                 'is_required' => true,

@@ -20,7 +20,6 @@ const props = defineProps<{
     task: SopTask | null;
     activityTypes: SopActivityType[];
     stageCodes: string[];
-    anchors: string[];
 }>();
 const emit = defineEmits<{ 'update:open': [boolean] }>();
 
@@ -29,7 +28,6 @@ const form = useForm({
     stage_code: 'planting',
     name: '',
     instructions: '',
-    schedule_anchor: 'planting_date',
     offset_days: 0,
     tolerance_days: 2,
     is_required: true,
@@ -41,7 +39,6 @@ function reset(): void {
     form.stage_code = props.task?.stage_code ?? 'planting';
     form.name = props.task?.name ?? '';
     form.instructions = props.task?.instructions ?? '';
-    form.schedule_anchor = props.task?.schedule_anchor ?? 'planting_date';
     form.offset_days = props.task?.offset_days ?? 0;
     form.tolerance_days = props.task?.tolerance_days ?? 2;
     form.is_required = props.task?.is_required ?? true;
@@ -124,13 +121,7 @@ function submit(): void {
                                 </option>
                             </select>
                         </FarmField>
-                        <FarmField id="task-anchor" label="Acuan jadwal" required :error="form.errors.schedule_anchor" v-slot="field">
-                            <select :id="field.id" v-model="form.schedule_anchor" class="admin-field" required>
-                                <option value="planting_date">Tanggal tanam (HST)</option>
-                                <option value="stage_start">Mulai stage</option>
-                            </select>
-                        </FarmField>
-                        <FarmField id="task-offset" label="Offset hari" required :error="form.errors.offset_days" hint="H+0 adalah tanggal acuan. Gunakan angka negatif untuk pekerjaan sebelum tanam." v-slot="field">
+                        <FarmField id="task-offset" label="Offset HST (hari)" required :error="form.errors.offset_days" hint="H+0 adalah tanggal tanam. Gunakan angka negatif untuk pekerjaan sebelum tanam, misalnya -14 untuk land clearing." v-slot="field">
                             <input
                                 :id="field.id"
                                 v-model.number="form.offset_days"

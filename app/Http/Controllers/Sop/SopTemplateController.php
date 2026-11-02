@@ -65,7 +65,6 @@ class SopTemplateController extends Controller
             'template' => null,
             'varieties' => $this->sops->varieties(),
             'stageCodes' => SopTemplateTask::STAGE_CODES,
-            'anchors' => SopTemplateTask::SCHEDULE_ANCHORS,
         ]);
     }
 
@@ -89,7 +88,6 @@ class SopTemplateController extends Controller
             'template' => $template,
             'activityTypes' => $this->sops->activityTypes(),
             'stageCodes' => SopTemplateTask::STAGE_CODES,
-            'anchors' => SopTemplateTask::SCHEDULE_ANCHORS,
             'can' => [
                 'update' => Gate::allows('update', $template),
                 'manageVersions' => Gate::allows('create', [\App\Models\SopTemplateVersion::class, $template]),
@@ -111,7 +109,6 @@ class SopTemplateController extends Controller
             'template' => $template->only(['id', 'variety_id', 'name', 'description', 'is_active']),
             'varieties' => $this->sops->varieties(),
             'stageCodes' => SopTemplateTask::STAGE_CODES,
-            'anchors' => SopTemplateTask::SCHEDULE_ANCHORS,
         ]);
     }
 

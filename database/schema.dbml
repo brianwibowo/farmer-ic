@@ -116,6 +116,7 @@ Table planting_cycles {
   subblock_label varchar(30)
   reserved_area_ha decimal(12,4)
   created_by uuid [ref: > users.id]
+  planned_planting_at date [note: 'Rencana tanggal tanam; acuan HST untuk jadwal tugas sebelum realisasi tanam']
   indexes {
     (farm_id, batch_number) [unique]
     (planting_round_id, subblock_label) [unique]
@@ -212,8 +213,7 @@ Table sop_template_tasks {
   stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
   name varchar(200) [not null]
   instructions text
-  schedule_anchor varchar(30) [not null, note: 'planting_date | stage_start']
-  offset_days int [not null, default: 0, note: 'H+0 is the anchor date; negative values are before the anchor']
+  offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); negatif untuk pekerjaan sebelum tanam']
   tolerance_days int [not null, default: 0, note: 'due_date = scheduled_date + tolerance_days']
   is_required boolean [not null, default: true]
   created_at timestamptz

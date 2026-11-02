@@ -83,7 +83,6 @@ class SopTemplateTest extends TestCase
             'stage_code' => 'planting',
             'name' => 'Langkah '.$sequence,
             'instructions' => 'Instruksi langkah '.$sequence.'.',
-            'schedule_anchor' => 'planting_date',
             'offset_days' => ($sequence - 1) * 7,
             'tolerance_days' => 2,
             'is_required' => true,

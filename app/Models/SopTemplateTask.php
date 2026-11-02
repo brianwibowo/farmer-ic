@@ -13,19 +13,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $stage_code
  * @property string $name
  * @property string|null $instructions
- * @property string $schedule_anchor
  * @property int $offset_days
  * @property int $tolerance_days
  * @property bool $is_required
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['sop_template_version_id', 'activity_type_id', 'stage_code', 'name', 'instructions', 'schedule_anchor', 'offset_days', 'tolerance_days', 'is_required'])]
+#[Fillable(['sop_template_version_id', 'activity_type_id', 'stage_code', 'name', 'instructions', 'offset_days', 'tolerance_days', 'is_required'])]
 class SopTemplateTask extends FarmerModel
 {
     public const STAGE_CODES = ['land_cleaning', 'soil_preparation', 'basic_fertilizer', 'planting', 'maintenance', 'harvest'];
-
-    public const SCHEDULE_ANCHORS = ['planting_date', 'stage_start'];
 
     protected $table = 'sop_template_tasks';
 

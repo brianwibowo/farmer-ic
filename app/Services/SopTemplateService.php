@@ -150,7 +150,7 @@ class SopTemplateService
             ]);
 
             if ($latest instanceof SopTemplateVersion) {
-                $latest->tasks()->each(function (SopTemplateTask $task) use ($version, $actor): void {
+                $latest->tasks()->each(function (SopTemplateTask $task) use ($version): void {
                     $version->tasks()->create([
                         ...$this->taskAttributes($task),
                         'created_at' => now(),
@@ -232,7 +232,6 @@ class SopTemplateService
             'stage_code' => $data['stage_code'],
             'name' => $data['name'],
             'instructions' => $data['instructions'] ?? null,
-            'schedule_anchor' => $data['schedule_anchor'],
             'offset_days' => (int) ($data['offset_days'] ?? 0),
             'tolerance_days' => (int) ($data['tolerance_days'] ?? 0),
             'is_required' => (bool) ($data['is_required'] ?? true),

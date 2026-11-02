@@ -28,7 +28,6 @@ const props = defineProps<{
     template: SopTemplateDetail;
     activityTypes: SopActivityType[];
     stageCodes: string[];
-    anchors: string[];
     can: SopCan;
 }>();
 
@@ -253,6 +252,5 @@ function statusClass(status: SopVersion['status']): string {
         :task="editingTask"
         :activity-types="activityTypes"
         :stage-codes="stageCodes"
-        :anchors="anchors"
     />
 </template>

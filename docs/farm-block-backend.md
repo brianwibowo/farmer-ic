@@ -19,7 +19,10 @@ minimal disediakan agar backend dapat digunakan langsung melalui form Inertia.
    Land Clearing batch merujuk waktu persiapan bersama dari blok; tahap berikutnya
    memiliki timeline masing-masing. Tidak ada persentase progres buatan.
 5. Batch persiapan berstatus siklus `planned`, luas realisasi 0, tanggal tanam
-   dan varietas belum diisi. Alokasi luas bukan realisasi tanam. Siklus lama
+   realisasi dan varietas belum diisi. Tanggal rencana tanam
+   (`planned_planting_at`) boleh diisi saat pembuatan batch dan menjadi acuan
+   HST sementara untuk jadwal tugas; nilainya tetap berlabel rencana sampai
+   realisasi tanam dicatat. Alokasi luas bukan realisasi tanam. Siklus lama
    mempertahankan data dan ID-nya, tanpa blok/periode rekaan.
 
 Nomor batch **berurutan per kebun**, dilindungi unique key dan lock kebun.

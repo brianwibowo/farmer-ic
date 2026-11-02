@@ -59,7 +59,7 @@ class FarmBlockService
 
         return ['block' => $visible->toArray(), 'rounds' => $rounds->map->only(['id', 'round_number', 'status']),
             'batches' => $batches->map(fn (PlantingCycle $batch) => [
-                ...$batch->only(['id', 'planting_round_id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'planted_at', 'status']),
+                ...$batch->only(['id', 'planting_round_id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'planned_planting_at', 'planted_at', 'status']),
                 'stages' => ($stages->get($batch->id) ?? collect())->map->only(['code', 'position', 'status', 'started_at', 'completed_at']),
             ])];
     }
@@ -179,6 +179,7 @@ class FarmBlockService
             $batch->forceFill(['farm_id' => $farm->id, 'planting_round_id' => $round->id,
                 'batch_number' => 1 + (int) PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->max('batch_number'),
                 'subblock_label' => $label, 'reserved_area_ha' => $data['reserved_area_ha'], 'planted_area_ha' => '0.0000',
+                'planned_planting_at' => $data['planned_planting_at'] ?? null,
                 'planted_at' => null, 'variety_id' => null, 'status' => 'planned', 'created_by' => $actor->id])->save();
             foreach (PlantingCycleStage::CODES as $position => $code) {
                 $stage = new PlantingCycleStage;

@@ -10,7 +10,6 @@ export type SopTask = {
     stage_code: string;
     name: string;
     instructions: string | null;
-    schedule_anchor: 'planting_date' | 'stage_start';
     offset_days: number;
     tolerance_days: number;
     is_required: boolean;

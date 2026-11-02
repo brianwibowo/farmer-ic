@@ -31,7 +31,7 @@ const props = defineProps<{
     can: { update: boolean; delete: boolean; createBatch: boolean };
 }>();
 const base = `/kebun/${props.farm.id}/blocks/${props.block.id}`;
-const batchForm = useForm({ reserved_area_ha: '', subblock_label: '' });
+const batchForm = useForm({ reserved_area_ha: '', subblock_label: '', planned_planting_at: '' });
 const deleteForm = useForm({});
 const deleteError = computed(
     () => (deleteForm.errors as Record<string, string | undefined>).delete,
@@ -169,6 +169,20 @@ const fieldClass =
                         :aria-invalid="field.invalid"
                         :aria-describedby="field.description"
                 /></FarmField>
+                <FarmField
+                    id="batch-planned-planting"
+                    label="Rencana tanggal tanam (opsional)"
+                    hint="Menjadi acuan HST untuk jadwal tugas SOP pada batch ini."
+                    :error="batchForm.errors.planned_planting_at"
+                    v-slot="field"
+                    ><input
+                        :id="field.id"
+                        v-model="batchForm.planned_planting_at"
+                        :class="fieldClass"
+                        type="date"
+                        :aria-invalid="field.invalid"
+                        :aria-describedby="field.description"
+                /></FarmField>
             </fieldset>
             <Button
                 type="submit"
@@ -217,6 +231,14 @@ const fieldClass =
                     }}
                     · Alokasi {{ hectares(batch.reserved_area_ha) }} ha ·
                     Realisasi tanam {{ hectares(batch.planted_area_ha) }} ha
+                </p>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Rencana tanam:
+                    {{
+                        batch.planned_planting_at
+                            ? blockDate(batch.planned_planting_at)
+                            : 'belum ditentukan'
+                    }}
                 </p>
             </header>
             <BatchTimeline :stages="batch.stages" />

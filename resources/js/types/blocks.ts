@@ -24,6 +24,7 @@ export type PreparationBatch = {
     subblock_label: string;
     reserved_area_ha: string;
     planted_area_ha: string;
+    planned_planting_at: string | null;
     planted_at: string | null;
     status: string;
     stages: BatchStage[];

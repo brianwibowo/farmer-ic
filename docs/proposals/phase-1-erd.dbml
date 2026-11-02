@@ -598,8 +598,7 @@ Table sop_template_tasks {
   stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
   name varchar(200) [not null]
   instructions text
-  schedule_anchor varchar(30) [not null, note: 'stage_start | planting_date']
-  offset_days int [not null, default: 0, note: 'H+0 adalah tanggal acuan; negatif untuk pekerjaan sebelum acuan']
+  offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); negatif untuk pekerjaan sebelum tanam']
   tolerance_days int [not null, default: 0, note: 'CHECK >= 0; due_date = scheduled_date + tolerance_days']
   is_required boolean [not null, default: true]
   created_at timestamptz [not null]
@@ -641,8 +640,7 @@ Table planting_cycle_tasks {
   activity_type_id uuid [not null, ref: > activity_types.id]
   name varchar(200) [not null]
   instructions text
-  schedule_anchor varchar(30) [not null, note: 'stage_start | planting_date']
-  offset_days int [not null, default: 0]
+  offset_days int [not null, default: 0, note: 'Disalin dari SOP; HST dari tanggal tanam batch']
   tolerance_days int [not null, default: 0]
   scheduled_date date [note: 'Boleh kosong ketika tanggal acuan belum tersedia']
   due_date date
