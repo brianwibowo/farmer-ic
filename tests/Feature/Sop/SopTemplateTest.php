@@ -233,6 +233,20 @@ class SopTemplateTest extends TestCase
         ])->assertSessionHasErrors('variety_id');
     }
 
+    public function test_admin_deletes_template_with_versions_and_tasks(): void
+    {
+        $template = $this->createTemplate();
+        $version = $template->versions()->firstOrFail();
+        app(SopTemplateService::class)->createTask($version, $this->taskPayload());
+        $taskId = $version->tasks()->value('id');
+
+        $this->delete('/admin/sops/'.$template->id)->assertRedirect('/admin/sops');
+
+        $this->assertDatabaseMissing('sop_templates', ['id' => $template->id]);
+        $this->assertDatabaseMissing('sop_template_versions', ['id' => $version->id]);
+        $this->assertDatabaseMissing('sop_template_tasks', ['id' => $taskId]);
+    }
+
     public function test_index_show_and_form_pages_render_for_admin(): void
     {
         $template = $this->createTemplate();
@@ -242,6 +256,9 @@ class SopTemplateTest extends TestCase
             ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
                 ->component('sops/Index')
                 ->has('sops.data', 1)
+                ->where('sops.data.0.can.view', true)
+                ->where('sops.data.0.can.update', true)
+                ->where('sops.data.0.can.delete', true)
                 ->where('can.create', true));
 
         $this->get('/admin/sops/'.$template->id)
@@ -284,6 +301,7 @@ class SopTemplateTest extends TestCase
             'variety_id' => $this->variety->id,
             'name' => 'Tidak boleh',
         ])->assertForbidden();
+        $this->actingAs($owner)->delete('/admin/sops/'.$template->id)->assertForbidden();
 
         $this->actingAs($petugas)->get('/admin/sops/'.$template->id)->assertForbidden();
     }

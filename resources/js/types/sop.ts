@@ -39,11 +39,12 @@ export type SopTemplateRow = {
     is_active: boolean;
     created_at: string;
     versions_count: number;
+    can: { view: boolean; update: boolean; delete: boolean };
     farm: SopFarm;
     variety: SopVariety & { commodity?: { id: string; name: string } };
 };
 
-export type SopTemplateDetail = Omit<SopTemplateRow, 'versions_count'> & {
+export type SopTemplateDetail = Omit<SopTemplateRow, 'versions_count' | 'can'> & {
     versions: SopVersion[];
 };
 

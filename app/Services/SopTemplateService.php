@@ -24,7 +24,7 @@ class SopTemplateService
     {
         $query = SopTemplate::query()
             ->visibleTo($actor, $team)
-            ->with(['farm:id,name', 'variety:id,commodity_id,name', 'variety.commodity:id,name'])
+            ->with(['farm:id,name,team_id', 'variety:id,commodity_id,name', 'variety.commodity:id,name'])
             ->withCount('versions');
 
         if (($filters['search'] ?? '') !== '') {
@@ -132,6 +132,20 @@ class SopTemplateService
         $template->fill(Arr::only($data, ['name', 'description', 'is_active']))->save();
 
         return $this->detail($template);
+    }
+
+    public function delete(SopTemplate $template): void
+    {
+        DB::transaction(function () use ($template): void {
+            $versionIds = $template->versions()->pluck('id')->all();
+
+            if ($versionIds !== []) {
+                SopTemplateTask::query()->whereIn('sop_template_version_id', $versionIds)->delete();
+                SopTemplateVersion::query()->whereIn('id', $versionIds)->delete();
+            }
+
+            $template->delete();
+        });
     }
 
     public function storeVersion(SopTemplate $template, User $actor, ?string $notes = null): SopTemplateVersion

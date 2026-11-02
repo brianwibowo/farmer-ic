@@ -11,9 +11,11 @@ use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\Team;
 use App\Services\SopTemplateService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -33,9 +35,19 @@ class SopTemplateController extends Controller
         ], $request->validated());
         $farms = $this->sops->farms($request->user(), $team);
         $createFarm = Farm::query()->visibleTo($request->user(), $team)->where('team_id', $team->id)->first();
+        $sops = $this->sops->paginate($request->user(), $team, $filters)->through(function (SopTemplate $sop): array {
+            $row = $sop->toArray();
+            $row['can'] = [
+                'view' => Gate::allows('view', $sop),
+                'update' => Gate::allows('update', $sop),
+                'delete' => Gate::allows('delete', $sop),
+            ];
+
+            return $row;
+        });
 
         return Inertia::render('sops/Index', [
-            'sops' => $this->sops->paginate($request->user(), $team, $filters),
+            'sops' => $sops,
             'filters' => $filters,
             'farms' => $farms,
             'varieties' => $this->sops->varieties(),
@@ -111,5 +123,23 @@ class SopTemplateController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Template SOP berhasil diperbarui.']);
 
         return to_route('sops.show', $sopTemplate);
+    }
+
+    public function destroy(SopTemplate $sopTemplate): RedirectResponse
+    {
+        Gate::authorize('delete', $sopTemplate);
+
+        try {
+            $this->sops->delete($sopTemplate);
+        } catch (QueryException $exception) {
+            report($exception);
+            throw ValidationException::withMessages([
+                'delete' => 'SOP tidak dapat dihapus karena masih dipakai oleh batch atau data lain.',
+            ]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Template SOP berhasil dihapus.']);
+
+        return to_route('sops.index');
     }
 }

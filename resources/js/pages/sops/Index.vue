@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
+    ArrowUpRight,
     ChevronLeft,
     ChevronRight,
     ClipboardList,
@@ -9,11 +10,13 @@ import {
     Plus,
     Search,
     Sprout,
+    Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
+import DeleteSopDialog from '@/components/sops/DeleteSopDialog.vue';
 import { Button } from '@/components/ui/button';
-import type { SopFarm, SopFilters, SopPage, SopVariety } from '@/types/sop';
+import type { SopFarm, SopFilters, SopPage, SopTemplateRow, SopVariety } from '@/types/sop';
 
 const props = defineProps<{
     sops: SopPage;
@@ -24,6 +27,7 @@ const props = defineProps<{
 }>();
 
 const selectedFarmId = ref(props.farms[0]?.id ?? '');
+const selectedSop = ref<SopTemplateRow | null>(null);
 const createUrl = computed(() =>
     selectedFarmId.value
         ? `/admin/farms/${selectedFarmId.value}/sops/create`
@@ -241,8 +245,20 @@ function reset(): void {
                                 </td>
                                 <td class="px-5 py-4">
                                     <div class="flex justify-end gap-1">
-                                        <Button as-child variant="ghost" size="icon" :aria-label="`Ubah ${sop.name}`">
+                                        <Button as-child variant="ghost" size="icon" :aria-label="`Lihat ${sop.name}`">
+                                            <Link :href="`/admin/sops/${sop.id}`"><ArrowUpRight /></Link>
+                                        </Button>
+                                        <Button v-if="sop.can.update" as-child variant="ghost" size="icon" :aria-label="`Ubah ${sop.name}`">
                                             <Link :href="`/admin/sops/${sop.id}/edit`"><Pencil /></Link>
+                                        </Button>
+                                        <Button
+                                            v-if="sop.can.delete"
+                                            variant="destructive-ghost"
+                                            size="icon"
+                                            :aria-label="`Hapus ${sop.name}`"
+                                            @click="selectedSop = sop"
+                                        >
+                                            <Trash2 />
                                         </Button>
                                     </div>
                                 </td>
@@ -270,6 +286,22 @@ function reset(): void {
                                 {{ sop.is_active ? 'Aktif' : 'Nonaktif' }}
                             </span>
                         </div>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <Button as-child variant="outline" size="sm">
+                                <Link :href="`/admin/sops/${sop.id}`"><ArrowUpRight />Detail</Link>
+                            </Button>
+                            <Button v-if="sop.can.update" as-child variant="outline" size="sm">
+                                <Link :href="`/admin/sops/${sop.id}/edit`"><Pencil />Ubah</Link>
+                            </Button>
+                            <Button
+                                v-if="sop.can.delete"
+                                variant="destructive-ghost"
+                                size="sm"
+                                @click="selectedSop = sop"
+                            >
+                                <Trash2 />Hapus
+                            </Button>
+                        </div>
                     </li>
                 </ul>
                 <nav class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4" aria-label="Pagination SOP">
@@ -289,4 +321,5 @@ function reset(): void {
             </template>
         </section>
     </div>
+    <DeleteSopDialog :sop="selectedSop" @close="selectedSop = null" />
 </template>
