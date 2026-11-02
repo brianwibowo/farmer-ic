@@ -47,12 +47,12 @@ but has no direct update/delete grants. `planting_cycle_stages` is read-only for
 ordinary roles and initialized internally by the batch service. See
 [farm-block-backend.md](farm-block-backend.md) for the complete route and scope map.
 
-SOP templates are farm-owned and variety-specific. Admin has CRUD plus
-`sop_templates.copy`; Owner reads templates, versions, and tasks; Petugas has no
-catalog grant and reads applied instructions through batch tasks later. Versions
-and tasks resolve their farm through `sopTemplate.farm` and
-`version.sopTemplate.farm`. Publishing uses the version `update` ability because
-only draft versions are mutable; published versions are frozen in the service.
+SOP templates are tenant-owned and variety-specific. Admin has CRUD; Owner
+reads templates, versions, and tasks; Petugas has no catalog grant and reads
+applied instructions through batch tasks later. Versions and tasks resolve their
+tenant through `sopTemplate.team` and `version.sopTemplate.team`. Publishing uses
+the version `update` ability because only draft versions are mutable; published
+versions are frozen in the service.
 
 ## Model coverage
 
@@ -101,9 +101,9 @@ discover the persisted domain relationships directly.
 | `PesticideDetail` | `pesticide_details` | activity.farm -> team |
 | `PlantingCycle` | `planting_cycles` | farm -> team |
 | `PlantingDetail` | `planting_details` | activity.farm -> team |
-| `SopTemplate` | `sop_templates` | farm -> team; create parent Farm |
-| `SopTemplateVersion` | `sop_template_versions` | sopTemplate.farm -> team; create parent SopTemplate |
-| `SopTemplateTask` | `sop_template_tasks` | version.sopTemplate.farm -> team; create parent SopTemplateVersion |
+| `SopTemplate` | `sop_templates` | team; create parent Team |
+| `SopTemplateVersion` | `sop_template_versions` | sopTemplate.team -> team; create parent SopTemplate |
+| `SopTemplateTask` | `sop_template_tasks` | version.sopTemplate.team -> team; create parent SopTemplateVersion |
 | `PlantObservation` | `plant_observations` | plantingCycle.farm -> team |
 | `Role` | `roles` | Application-wide reference/system record |
 | `TeamInvitation` | `team_invitations` | team |

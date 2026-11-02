@@ -34,7 +34,7 @@ Sudah ada:
 - form batch untuk beberapa kegiatan block mapping
 - validasi, policy, dan test untuk slice block mapping
 - tabel dan halaman admin definisi SOP: `sop_templates`, `sop_template_versions`, `sop_template_tasks`
-- publikasi versi SOP dan salin template ke kebun lain
+- publikasi versi SOP
 
 Belum ada:
 

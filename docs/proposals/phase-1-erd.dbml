@@ -5,7 +5,7 @@
 
 Project FarmerICPhase1Proposal {
   database_type: 'PostgreSQL'
-  Note: 'DRAFT DISKUSI phase 1, diselaraskan dengan RBAC 29 Oktober 2026. Admin satu tenant tanpa pivot PIC; SOP per kebun dan varietas; task selesai setelah approval. Bukan schema aktif atau migration. Penomoran per lahan dan batch sebelum tanam masih asumsi.'
+  Note: 'DRAFT DISKUSI phase 1, diselaraskan dengan RBAC 29 Oktober 2026. Admin satu tenant tanpa pivot PIC; SOP per tenant dan varietas; task selesai setelah approval. Bukan schema aktif atau migration. Penomoran per lahan dan batch sebelum tanam masih asumsi.'
 }
 
 Table roles {
@@ -131,7 +131,7 @@ Table planting_cycles {
     (planting_round_id, sub_block_code) [unique]
     (farm_id, status)
   }
-  Note: 'Satu record = satu batch/subblok. round.block.farm harus sama dengan farm_id; versi SOP harus milik kebun yang sama dan varietas batch. Stage berjalan diturunkan dari planting_cycle_stages.'
+  Note: 'Satu record = satu batch/subblok. round.block.farm harus sama dengan farm_id; versi SOP harus milik tenant yang sama dan varietas batch. Stage berjalan diturunkan dari planting_cycle_stages.'
 }
 
 Table activity_types {
@@ -557,7 +557,7 @@ Table planting_rounds {
 
 Table sop_templates {
   id uuid [pk]
-  farm_id uuid [not null, ref: > farms.id]
+  team_id bigint [not null, ref: > teams.id]
   variety_id uuid [not null, ref: > crop_varieties.id]
   copied_from_version_id uuid [ref: > sop_template_versions.id, note: 'Asal salinan jika ada; tidak membuat isi template mengikuti sumber']
   name varchar(150) [not null]
@@ -567,10 +567,10 @@ Table sop_templates {
   created_at timestamptz [not null]
   updated_at timestamptz
   indexes {
-    (farm_id, variety_id)
+    (team_id, variety_id)
     copied_from_version_id
   }
-  Note: 'SOP wajib per kebun dan varietas; tenant diturunkan dari farm.team_id, tidak disimpan ulang. Admin mengelola SOP kebun dalam tenantnya. Salin versi published menjadi template dan versi draft baru di kebun tujuan, dengan ID task baru; sumber tetap dan target independen. Salinan hanya dalam tenant yang sama serta varietas yang sama; aktor harus berwenang membaca sumber dan membuat di tujuan.'
+  Note: 'SOP wajib per tenant dan varietas. Semua kebun dalam tenant memakai template yang sama; distribusi lintas tenant berada di luar draft ini. Admin mengelola SOP tenant; versi published dibekukan dan revisi membuat versi baru.'
 }
 
 Table sop_template_versions {
@@ -588,7 +588,7 @@ Table sop_template_versions {
   indexes {
     (sop_template_id, version) [unique]
   }
-  Note: 'Versi yang sudah published beserta task-nya tidak diedit. Revisi menghasilkan versi baru dan hanya dipakai batch berikutnya; retired tetap dapat dibaca oleh batch yang memakainya. Kebun dan varietas template tidak boleh diganti setelah dipakai versi published atau batch.'
+  Note: 'Versi yang sudah published beserta task-nya tidak diedit. Revisi menghasilkan versi baru dan hanya dipakai batch berikutnya; retired tetap dapat dibaca oleh batch yang memakainya. Tenant dan varietas template tidak boleh diganti setelah dipakai versi published atau batch.'
 }
 
 Table sop_template_tasks {
