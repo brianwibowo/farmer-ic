@@ -20,7 +20,10 @@ const props = defineProps<{
     owners: { id: string; name: string }[];
     team: { id: number; name: string };
 }>();
-const regionFields = useTemplateRef('regionFields');
+const regionFields = useTemplateRef<{
+    valid: () => boolean;
+    firstIncompleteId: () => string;
+}>('regionFields');
 const form = useForm({
     name: props.farm?.name ?? '',
     land_tenure: (props.farm?.land_tenure ?? '') as LandTenure | '',
@@ -35,15 +38,20 @@ const form = useForm({
     longitude: props.farm?.longitude ?? '',
     image_url: props.farm?.image_url ?? '',
 });
-const errorFields = {
-    name: { id: 'farm-name', label: 'Nama kebun' },
-    total_area_ha: { id: 'farm-area', label: 'Luas lahan' },
-    land_tenure: { id: 'farm-tenure', label: 'Status lahan' },
-    owner_id: { id: 'farm-owner', label: 'Pemilik' },
-    district_code: { id: 'farm-district', label: 'Wilayah' },
-    address: { id: 'farm-address', label: 'Alamat' },
-    image_url: { id: 'farm-image', label: 'Tautan foto' },
-};
+const errorFields = computed<Record<string, { id: string; label: string }>>(
+    () => ({
+        name: { id: 'farm-name', label: 'Nama kebun' },
+        total_area_ha: { id: 'farm-area', label: 'Luas lahan' },
+        land_tenure: { id: 'farm-tenure', label: 'Status lahan' },
+        owner_id: { id: 'farm-owner', label: 'Pemilik' },
+        district_code: {
+            id: regionFields.value?.firstIncompleteId() ?? 'farm-province',
+            label: 'Wilayah',
+        },
+        address: { id: 'farm-address', label: 'Alamat' },
+        image_url: { id: 'farm-image', label: 'Tautan foto' },
+    }),
+);
 useUnsavedChanges(() => form.isDirty && !form.processing);
 watch(
     () => [form.district_code, form.city, form.province],
@@ -72,7 +80,7 @@ function submit(): void {
     if (regionFields.value && !regionFields.value.valid()) {
         form.setError(
             'district_code',
-            'Pilih salah satu hasil pencarian kecamatan atau kosongkan wilayah.',
+            'Lengkapi pilihan provinsi, kota/kabupaten, dan kecamatan dari daftar atau kosongkan seluruh wilayah.',
         );
         void focusFormErrors();
         return;
@@ -80,7 +88,7 @@ function submit(): void {
     if (form.district_code && (!form.city || !form.province)) {
         form.setError(
             'district_code',
-            'Lengkapi pilihan kota/kabupaten dan provinsi.',
+            'Lengkapi pilihan provinsi, kota/kabupaten, dan kecamatan.',
         );
         void focusFormErrors();
         return;

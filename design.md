@@ -539,10 +539,13 @@ its main content `min-h-0 overflow-y-auto` so long pages remain reachable.
 
 Farm Management forms display capacity limits before submission and keep a
 focusable, linked error summary alongside inline errors. Address selection starts
-with a searchable kecamatan, followed by its kota/kabupaten and provinsi; later
-controls stay disabled until the preceding choice is complete. Search results
-include parent names to distinguish duplicate kecamatan names. Existing unmatched
-addresses are explicitly marked as legacy and preserved until changed.
+with a searchable provinsi, then kota/kabupaten, then kecamatan using the existing
+combobox pattern. Later controls stay disabled until their parent is chosen;
+changing a parent clears all descendants. Result lists float above page content
+without taking layout space, stay above the map, and flip upward when space below
+is limited. Load choices from the database by parent code and filter names within
+that list. Existing unmatched addresses are explicitly marked as legacy and
+preserved until changed.
 
 Block pages reuse `FarmManagementLayout` when the backend shared navigation
 permits Farm Management, including the Admin sidebar, header, typography,

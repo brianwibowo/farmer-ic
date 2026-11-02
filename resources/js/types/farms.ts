@@ -67,6 +67,12 @@ export type RegionOption = {
     province_code: string;
 };
 
+export type RegionReferenceOption = {
+    code: string;
+    name: string;
+    parent_code: string | null;
+};
+
 export type FarmFilters = {
     search?: string;
     city?: string;

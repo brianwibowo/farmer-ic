@@ -65,6 +65,30 @@ class FarmUxTest extends TestCase
         $this->assertDatabaseHas('administrative_regions', ['code' => '32.01.09']);
     }
 
+    public function test_region_choices_follow_province_city_and_district_without_cross_parent_results(): void
+    {
+        DB::table('administrative_regions')->insert([
+            ['code' => '31', 'name' => 'DKI Jakarta', 'level' => 1, 'parent_code' => null],
+            ['code' => '31.71', 'name' => 'Kota Jakarta Pusat', 'level' => 2, 'parent_code' => '31'],
+            ['code' => '31.71.01', 'name' => 'Gambir', 'level' => 3, 'parent_code' => '31.71'],
+        ]);
+        $this->getJson('/admin/farm-regions?level=1')->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.code', '31')->assertJsonPath('data.0.parent_code', null);
+        $this->getJson('/admin/farm-regions?level=2&parent_code=32')->assertOk()->assertExactJson(['data' => [
+            ['code' => '32.01', 'name' => 'Kabupaten Bogor', 'parent_code' => '32'],
+        ]]);
+        $this->getJson('/admin/farm-regions?level=3&parent_code=32.01')->assertOk()->assertExactJson(['data' => [
+            ['code' => '32.01.09', 'name' => 'Sukamakmur', 'parent_code' => '32.01'],
+        ]]);
+        $this->getJson('/admin/farm-regions?level=3&parent_code=31.71')->assertOk()->assertJsonPath('data.0.name', 'Gambir');
+        $this->getJson('/admin/farm-regions?level=2&parent_code=99')->assertOk()->assertJsonCount(0, 'data');
+        foreach (['level=2', 'level=3&parent_code=32', 'level=2&parent_code=32.01', 'level=4', 'level[]=2'] as $invalid) {
+            $this->getJson('/admin/farm-regions?'.$invalid)->assertUnprocessable();
+        }
+        $this->admin->teams()->detach();
+        $this->getJson('/admin/farm-regions?level=1')->assertForbidden();
+    }
+
     public function test_unmatched_legacy_address_is_preserved_when_unchanged_but_cannot_be_changed_in_dropdown_contract(): void
     {
         $farm = app(FarmService::class)->create(['name' => 'Kebun Legacy', 'land_tenure' => 'owned', 'total_area_ha' => '1', 'district' => 'Ejaan lama', 'city' => 'Bogor', 'province' => 'Jawa Barat'], $this->admin, $this->team);

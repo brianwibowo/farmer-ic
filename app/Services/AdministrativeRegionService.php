@@ -8,6 +8,25 @@ use App\Models\User;
 
 class AdministrativeRegionService
 {
+    /** @return list<array{code: string, name: string, parent_code: string|null}> */
+    public function options(int $level, ?string $parentCode, User $actor, Team $team): array
+    {
+        $query = AdministrativeRegion::visibleTo($actor, $team)->where('level', $level);
+        if ($level === 1) {
+            $query->whereNull('parent_code');
+        } else {
+            $query->where('parent_code', $parentCode)->whereIn('parent_code',
+                AdministrativeRegion::visibleTo($actor, $team)->where('level', $level - 1)->select('code'));
+        }
+
+        $options = $query->orderBy('name')->orderBy('code')->get(['code', 'name', 'parent_code'])
+            ->map(fn (AdministrativeRegion $row): array => ['code' => (string) $row->code,
+                'name' => (string) $row->name, 'parent_code' => $row->parent_code === null ? null : (string) $row->parent_code])
+            ->values()->all();
+
+        return array_values($options);
+    }
+
     /** @return array{code: string, district: string, city: string, city_code: string, province: string, province_code: string}|null */
     public function district(string $code, User $actor, Team $team): ?array
     {

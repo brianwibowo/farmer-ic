@@ -14,6 +14,6 @@ class AdministrativeRegionResource extends JsonResource
             throw new \LogicException('Region options must be serialized from a lookup result.');
         }
 
-        return array_intersect_key($this->resource, array_flip(['code', 'district', 'city', 'city_code', 'province', 'province_code']));
+        return array_intersect_key($this->resource, array_flip(['code', 'name', 'parent_code', 'district', 'city', 'city_code', 'province', 'province_code']));
     }
 }

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { LoaderCircle, Search, X } from '@lucide/vue';
-import FarmField from '@/components/farms/FarmField.vue';
-import type { RegionOption } from '@/types/farms';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import RegionCombobox from '@/components/farms/RegionCombobox.vue';
+import type { RegionOption, RegionReferenceOption } from '@/types/farms';
 
 const props = defineProps<{
     initialRegion: RegionOption | null;
@@ -10,330 +9,231 @@ const props = defineProps<{
     error?: string;
     disabled?: boolean;
 }>();
-defineExpose({
-    valid: () => query.value.trim() === '' || selected.value !== null,
-});
 const districtCode = defineModel<string>('districtCode', { required: true });
 const district = defineModel<string>('district', { required: true });
 const city = defineModel<string>('city', { required: true });
 const province = defineModel<string>('province', { required: true });
-const selected = ref<RegionOption | null>(props.initialRegion);
-const query = ref(props.initialRegion?.district ?? '');
-const results = ref<RegionOption[]>([]);
-const open = ref(false);
-const loading = ref(false);
-const failure = ref('');
-const active = ref(-1);
-let timer: ReturnType<typeof setTimeout> | undefined;
-let request: AbortController | undefined;
-let generation = 0;
-const hint = computed(() =>
-    props.legacy &&
-    !selected.value &&
-    [district.value, city.value, province.value].some(Boolean)
-        ? `Alamat lama dipertahankan: ${[district.value, city.value, province.value].filter(Boolean).join(' · ')}. Pilih kecamatan untuk memperbaruinya.`
-        : 'Cari minimal 2 huruf. Hasil menampilkan kota/kabupaten dan provinsinya.',
+type Level = 'province' | 'city' | 'district';
+const fields = [
+    { key: 'province', id: 'farm-province', label: 'Provinsi', level: 1 },
+    { key: 'city', id: 'farm-city', label: 'Kota / kabupaten', level: 2 },
+    { key: 'district', id: 'farm-district', label: 'Kecamatan', level: 3 },
+] as const;
+const names = { province, city, district };
+const initial = props.initialRegion;
+const codes = reactive({
+    province: initial?.province_code ?? '',
+    city: initial?.city_code ?? '',
+    district: initial?.code ?? '',
+});
+const state = reactive<
+    Record<
+        Level,
+        { options: RegionReferenceOption[]; loading: boolean; failure: string }
+    >
+>({
+    province: {
+        options: initial
+            ? [
+                  {
+                      code: initial.province_code,
+                      name: initial.province,
+                      parent_code: null,
+                  },
+              ]
+            : [],
+        loading: false,
+        failure: '',
+    },
+    city: {
+        options: initial
+            ? [
+                  {
+                      code: initial.city_code,
+                      name: initial.city,
+                      parent_code: initial.province_code,
+                  },
+              ]
+            : [],
+        loading: false,
+        failure: '',
+    },
+    district: {
+        options: initial
+            ? [
+                  {
+                      code: initial.code,
+                      name: initial.district,
+                      parent_code: initial.city_code,
+                  },
+              ]
+            : [],
+        loading: false,
+        failure: '',
+    },
+});
+const drafts = reactive({ province: false, city: false, district: false });
+const touched = ref(false);
+const resetVersion = ref(0);
+const requests: Partial<Record<Level, AbortController>> = {};
+const generations = { province: 0, city: 0, district: 0 };
+const hasAddress = computed(() =>
+    fields.some(
+        (field) =>
+            names[field.key].value || codes[field.key] || drafts[field.key],
+    ),
 );
-
-async function search(): Promise<void> {
-    request?.abort();
-    const current = ++generation;
-    if (query.value.trim().length < 2) {
-        results.value = [];
-        loading.value = false;
-        return;
-    }
-    request = new AbortController();
-    loading.value = true;
-    failure.value = '';
+const unchangedLegacy = computed(
+    () => props.legacy && !touched.value && !initial && hasAddress.value,
+);
+const incomplete = computed(
+    () =>
+        fields.find((field) => drafts[field.key] || !codes[field.key])?.key ??
+        'district',
+);
+defineExpose({
+    valid: () =>
+        unchangedLegacy.value ||
+        (!Object.values(drafts).some(Boolean) &&
+            (!hasAddress.value ||
+                fields.every(
+                    (field) => codes[field.key] && names[field.key].value,
+                ))),
+    firstIncompleteId: () => 'farm-' + incomplete.value,
+});
+function parentCode(level: Level): string {
+    return level === 'city'
+        ? codes.province
+        : level === 'district'
+          ? codes.city
+          : '';
+}
+function disabled(level: Level): boolean {
+    return !!props.disabled || (level !== 'province' && !parentCode(level));
+}
+function hint(level: Level): string {
+    if (level === 'province')
+        return 'Pilih provinsi terlebih dahulu. Wilayah boleh dikosongkan seluruhnya.';
+    if (!parentCode(level))
+        return level === 'city'
+            ? 'Pilih provinsi terlebih dahulu.'
+            : 'Pilih kota / kabupaten terlebih dahulu.';
+    return level === 'city'
+        ? 'Hanya kota/kabupaten dalam provinsi terpilih.'
+        : 'Hanya kecamatan dalam kota/kabupaten terpilih.';
+}
+function invalidate(level: Level): void {
+    requests[level]?.abort();
+    generations[level]++;
+    state[level].options = [];
+    state[level].loading = false;
+    state[level].failure = '';
+}
+async function load(level: Level): Promise<void> {
+    requests[level]?.abort();
+    const current = ++generations[level];
+    const controller = new AbortController();
+    requests[level] = controller;
+    state[level].loading = true;
+    state[level].failure = '';
+    const params = new URLSearchParams({
+        level: String(fields.find((field) => field.key === level)!.level),
+    });
+    if (level !== 'province') params.set('parent_code', parentCode(level));
     try {
-        const response = await fetch(
-            `/admin/farm-regions?search=${encodeURIComponent(query.value.trim())}`,
-            { signal: request.signal, headers: { Accept: 'application/json' } },
-        );
-        if (!response.ok) throw new Error('Wilayah gagal dimuat');
+        const response = await fetch('/admin/farm-regions?' + params, {
+            signal: controller.signal,
+            headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error('Region lookup failed');
         const data = await response.json();
-        if (current === generation) results.value = data.data;
-    } catch (error) {
-        if (
-            current === generation &&
-            !(error instanceof DOMException && error.name === 'AbortError')
-        )
-            failure.value =
+        if (current === generations[level]) state[level].options = data.data;
+    } catch {
+        if (current === generations[level] && !controller.signal.aborted)
+            state[level].failure =
                 'Daftar wilayah belum dapat dimuat. Periksa koneksi lalu coba lagi.';
     } finally {
-        if (current === generation) loading.value = false;
+        if (current === generations[level]) state[level].loading = false;
     }
 }
-function typing(): void {
-    clearTimeout(timer);
-    request?.abort();
-    generation++;
-    selected.value = null;
-    districtCode.value = '';
-    district.value = '';
-    city.value = '';
-    province.value = '';
-    results.value = [];
-    active.value = -1;
-    failure.value = '';
-    loading.value = false;
-    open.value = true;
-    timer = setTimeout(() => void search(), 300);
-}
-function choose(option: RegionOption): void {
-    request?.abort();
-    generation++;
-    clearTimeout(timer);
-    loading.value = false;
-    selected.value = option;
-    query.value = option.district;
-    districtCode.value = option.code;
-    district.value = option.district;
-    city.value = '';
-    province.value = '';
-    open.value = false;
-    active.value = -1;
-}
-function keydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-        open.value = false;
-        return;
+function choose(level: Level, code: string): void {
+    touched.value = true;
+    codes[level] = code;
+    names[level].value =
+        state[level].options.find((option) => option.code === code)?.name ?? '';
+    const index = fields.findIndex((field) => field.key === level);
+    for (const child of fields.slice(index + 1)) {
+        codes[child.key] = '';
+        names[child.key].value = '';
+        drafts[child.key] = false;
+        invalidate(child.key);
     }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        open.value = true;
-        active.value =
-            event.key === 'ArrowDown'
-                ? Math.min(active.value + 1, results.value.length - 1)
-                : Math.max(0, active.value - 1);
-    } else if (
-        event.key === 'Enter' &&
-        open.value &&
-        active.value >= 0 &&
-        results.value[active.value]
-    ) {
-        event.preventDefault();
-        choose(results.value[active.value]);
-    }
-}
-function focus(): void {
-    open.value = true;
-    if (
-        query.value.trim().length >= 2 &&
-        !results.value.length &&
-        !loading.value
-    )
-        void search();
+    districtCode.value = codes.district;
+    const next = fields[index + 1];
+    if (code && next) void load(next.key);
 }
 function clear(): void {
-    query.value = '';
-    typing();
+    touched.value = true;
+    resetVersion.value++;
+    for (const field of fields) {
+        codes[field.key] = '';
+        names[field.key].value = '';
+        drafts[field.key] = false;
+        if (field.key !== 'province') invalidate(field.key);
+    }
+    districtCode.value = '';
 }
-watch(city, (value) => {
-    if (!value) province.value = '';
-});
-watch(active, async (index) => {
-    if (index < 0) return;
-    await nextTick();
-    document
-        .getElementById(`farm-region-${index}`)
-        ?.scrollIntoView({ block: 'nearest' });
+onMounted(() => {
+    void load('province');
+    if (codes.province) void load('city');
+    if (codes.city) void load('district');
 });
 onBeforeUnmount(() => {
-    clearTimeout(timer);
-    request?.abort();
-    generation++;
+    for (const field of fields) {
+        requests[field.key]?.abort();
+        generations[field.key]++;
+    }
 });
 </script>
 
 <template>
-    <div class="space-y-5 sm:col-span-2">
-        <FarmField
-            id="farm-district"
-            label="Kecamatan"
-            :hint="hint"
-            :error="error"
-            v-slot="field"
+    <div class="space-y-4 sm:col-span-2">
+        <p
+            v-if="unchangedLegacy"
+            role="status"
+            class="rounded-xl bg-muted p-3 text-sm leading-6 text-muted-foreground"
         >
-            <div
-                class="relative"
-                @focusout="
-                    (event) => {
-                        if (
-                            !(event.currentTarget as HTMLElement).contains(
-                                event.relatedTarget as Node,
-                            )
-                        )
-                            open = false;
-                    }
+            Alamat lama dipertahankan:
+            {{ [province, city, district].filter(Boolean).join(' · ') }}. Pilih
+            provinsi untuk menggantinya.
+        </p>
+        <div class="grid items-start gap-5 sm:grid-cols-3">
+            <RegionCombobox
+                v-for="field in fields"
+                :key="
+                    field.key + ':' + parentCode(field.key) + ':' + resetVersion
                 "
-            >
-                <div class="relative">
-                    <Search
-                        class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground"
-                        aria-hidden="true"
-                    />
-                    <input
-                        :id="field.id"
-                        v-model="query"
-                        class="admin-field pr-11! pl-9!"
-                        autocomplete="off"
-                        maxlength="100"
-                        placeholder="Cari kecamatan atau kota/kabupaten"
-                        role="combobox"
-                        aria-autocomplete="list"
-                        :aria-expanded="open"
-                        aria-controls="farm-district-results"
-                        :aria-activedescendant="
-                            active >= 0 && open
-                                ? `farm-region-${active}`
-                                : undefined
-                        "
-                        :aria-invalid="field.invalid"
-                        :aria-describedby="field.description"
-                        :disabled="disabled"
-                        @input="typing"
-                        @focus="focus"
-                        @keydown="keydown"
-                    />
-                    <button
-                        v-if="query || district"
-                        type="button"
-                        class="absolute top-0 right-0 flex h-full w-11 items-center justify-center rounded-xl text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                        aria-label="Kosongkan wilayah"
-                        :disabled="disabled"
-                        @click="clear"
-                    >
-                        <X class="size-4" />
-                    </button>
-                </div>
-                <ul
-                    v-if="open"
-                    id="farm-district-results"
-                    role="listbox"
-                    aria-label="Hasil pencarian kecamatan"
-                    class="mt-2 max-h-72 overflow-y-auto rounded-xl border border-border bg-popover p-1 text-popover-foreground"
-                >
-                    <li
-                        v-for="(option, index) in results"
-                        :id="`farm-region-${index}`"
-                        :key="option.code"
-                        role="option"
-                        :aria-selected="active === index"
-                        @pointerdown.prevent="choose(option)"
-                        @mousemove="active = index"
-                        class="cursor-pointer rounded-lg px-3 py-3"
-                        :class="
-                            active === index
-                                ? 'bg-accent text-accent-foreground'
-                                : 'hover:bg-accent'
-                        "
-                    >
-                        <p class="text-sm font-semibold">
-                            {{ option.district }}
-                        </p>
-                        <p class="mt-1 text-xs">
-                            {{ option.city }} · {{ option.province }}
-                        </p>
-                    </li>
-                    <li
-                        v-if="!results.length"
-                        role="presentation"
-                        class="px-3 py-3 text-sm text-muted-foreground"
-                    >
-                        <span
-                            v-if="loading"
-                            role="status"
-                            class="flex items-center gap-2"
-                            ><LoaderCircle class="size-4 animate-spin" />Memuat
-                            wilayah…</span
-                        >
-                        <span v-else-if="failure" role="alert"
-                            >{{ failure }}
-                            <button
-                                type="button"
-                                class="underline"
-                                @click="search"
-                            >
-                                Coba lagi
-                            </button></span
-                        >
-                        <span v-else>{{
-                            query.trim().length < 2
-                                ? 'Ketik minimal 2 huruf untuk mencari kecamatan.'
-                                : 'Tidak ada hasil. Coba nama kecamatan atau kota/kabupaten lain.'
-                        }}</span>
-                    </li>
-                </ul>
-            </div>
-        </FarmField>
-        <div class="grid gap-5 sm:grid-cols-2">
-            <FarmField
-                id="farm-city"
-                label="Kota / kabupaten"
-                :hint="
-                    selected
-                        ? 'Pilih wilayah induk kecamatan tersebut.'
-                        : 'Pilih kecamatan terlebih dahulu.'
-                "
-                v-slot="field"
-                ><select
-                    :id="field.id"
-                    v-model="city"
-                    class="admin-field"
-                    :disabled="disabled || !selected"
-                    :aria-describedby="field.description"
-                >
-                    <option value="">
-                        {{
-                            selected
-                                ? 'Pilih kota / kabupaten'
-                                : 'Menunggu kecamatan'
-                        }}
-                    </option>
-                    <option v-if="legacy && !selected && city" :value="city">
-                        {{ city }} · alamat lama
-                    </option>
-                    <option v-if="selected" :value="selected.city">
-                        {{ selected.city }}
-                    </option>
-                </select></FarmField
-            >
-            <FarmField
-                id="farm-province"
-                label="Provinsi"
-                :hint="
-                    city
-                        ? 'Pilih provinsi dari kota/kabupaten tersebut.'
-                        : 'Pilih kota / kabupaten terlebih dahulu.'
-                "
-                v-slot="field"
-                ><select
-                    :id="field.id"
-                    v-model="province"
-                    class="admin-field"
-                    :disabled="disabled || !selected || !city"
-                    :aria-describedby="field.description"
-                >
-                    <option value="">
-                        {{
-                            city
-                                ? 'Pilih provinsi'
-                                : 'Menunggu kota / kabupaten'
-                        }}
-                    </option>
-                    <option
-                        v-if="legacy && !selected && province"
-                        :value="province"
-                    >
-                        {{ province }} · alamat lama
-                    </option>
-                    <option v-if="selected && city" :value="selected.province">
-                        {{ selected.province }}
-                    </option>
-                </select></FarmField
-            >
+                :id="field.id"
+                :label="field.label"
+                :model-value="codes[field.key]"
+                :options="state[field.key].options"
+                :loading="state[field.key].loading"
+                :failure="state[field.key].failure"
+                :disabled="disabled(field.key)"
+                :hint="hint(field.key)"
+                :error="incomplete === field.key ? error : undefined"
+                @update:model-value="choose(field.key, $event)"
+                @draft="drafts[field.key] = $event"
+                @retry="load(field.key)"
+            />
         </div>
+        <button
+            type="button"
+            class="min-h-11 rounded-lg text-sm font-medium text-muted-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="disabled('province') || !hasAddress"
+            @click="clear"
+        >
+            Kosongkan wilayah
+        </button>
     </div>
 </template>
