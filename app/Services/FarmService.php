@@ -20,7 +20,7 @@ class FarmService
      */
     public function paginate(User $user, Team $team, array $filters): LengthAwarePaginator
     {
-        $query = Farm::visibleTo($user, $team);
+        $query = Farm::visibleTo($user, $team)->with('team');
         $search = trim($filters['search'] ?? '');
         if ($search !== '') {
             $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
