@@ -4,10 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\ActivityType;
 use App\Models\CropVariety;
-use App\Models\Farm;
 use App\Models\SopTemplate;
-use App\Models\SopTemplateTask;
-use App\Models\SopTemplateVersion;
+use App\Models\Team;
 use App\Models\User;
 use App\Services\SopTemplateService;
 use Illuminate\Database\Seeder;
@@ -18,12 +16,12 @@ class DemoSopSeeder extends Seeder
     {
         $this->call(SopActivityTypeSeeder::class);
 
-        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $team = Team::query()->where('slug', 'farm-ic-demo')->firstOrFail();
         $variety = CropVariety::query()->where('name', 'Bisi 18')->firstOrFail();
         $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
 
         $template = SopTemplate::query()->firstOrCreate([
-            'farm_id' => $farm->id,
+            'team_id' => $team->id,
             'variety_id' => $variety->id,
             'name' => 'SOP Budidaya Jagung Bisi 18',
         ], [

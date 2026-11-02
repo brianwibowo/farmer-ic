@@ -170,7 +170,6 @@ Table planting_cycle_stages {
 
 Table sop_templates {
   id uuid [pk]
-  farm_id uuid [not null, ref: > farms.id]
   variety_id uuid [not null, ref: > crop_varieties.id]
   copied_from_version_id uuid [ref: > sop_template_versions.id]
   name varchar(150) [not null]
@@ -179,11 +178,12 @@ Table sop_templates {
   created_by uuid [not null, ref: > users.id]
   created_at timestamptz
   updated_at timestamptz
+  team_id bigint [not null, ref: > teams.id]
   indexes {
-    (farm_id, variety_id)
+    (team_id, variety_id)
     copied_from_version_id
   }
-  Note: 'Farm-owned SOP template for one crop variety. Tenant is resolved through farm.team_id. Copies are independent templates.'
+  Note: 'Tenant-owned SOP template for one crop variety. All farms in the tenant use the same template. Copies are independent only when distributed across tenants.'
 }
 
 Table sop_template_versions {

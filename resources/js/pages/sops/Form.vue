@@ -4,10 +4,10 @@ import { ArrowLeft, ClipboardList, LoaderCircle, Save } from '@lucide/vue';
 import { computed } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import { Button } from '@/components/ui/button';
-import type { SopFarm, SopFormTemplate, SopVariety } from '@/types/sop';
+import type { SopFormTemplate, SopTeam, SopVariety } from '@/types/sop';
 
 const props = defineProps<{
-    farm: SopFarm;
+    team: SopTeam;
     template: SopFormTemplate | null;
     varieties: SopVariety[];
 }>();
@@ -28,7 +28,7 @@ function submit(): void {
     if (props.template) {
         form.put(`/admin/sops/${props.template.id}`, { preserveScroll: true });
     } else {
-        form.post(`/admin/farms/${props.farm.id}/sops`, { preserveScroll: true });
+        form.post('/admin/sops', { preserveScroll: true });
     }
 }
 </script>
@@ -43,7 +43,7 @@ function submit(): void {
             <p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">SOP / Template</p>
             <h1 class="admin-page-title">{{ template ? 'Ubah template SOP' : 'Tambah template SOP' }}</h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                Template ini dimiliki kebun <strong>{{ farm.name }}</strong> dan hanya berlaku untuk varietas yang dipilih.
+                Template ini dimiliki tenant <strong>{{ team.name }}</strong> dan berlaku untuk semua kebun di tenant tersebut.
             </p>
         </header>
 
@@ -54,7 +54,7 @@ function submit(): void {
                         <div class="rounded-xl bg-accent p-2.5 text-primary"><ClipboardList class="size-5" /></div>
                         <div>
                             <h2 class="admin-section-title">Identitas template</h2>
-                            <p class="mt-1 text-xs text-muted-foreground">Satu template mewakili satu varietas pada satu kebun.</p>
+                            <p class="mt-1 text-xs text-muted-foreground">Satu template mewakili satu varietas pada tenant ini.</p>
                         </div>
                     </div>
                     <div class="grid gap-5 sm:grid-cols-2">

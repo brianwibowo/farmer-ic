@@ -23,7 +23,6 @@ class ListSopTemplatesRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:100'],
-            'farm_id' => ['nullable', 'uuid'],
             'variety_id' => ['nullable', 'uuid'],
             'is_active' => ['nullable', 'boolean'],
             'sort' => ['nullable', 'in:name,created_at'],

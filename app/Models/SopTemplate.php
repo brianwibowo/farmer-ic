@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
- * @property string $farm_id
+ * @property int $team_id
  * @property string $variety_id
  * @property string|null $copied_from_version_id
  * @property string $name
@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['farm_id', 'variety_id', 'copied_from_version_id', 'name', 'description', 'is_active', 'created_by'])]
+#[Fillable(['team_id', 'variety_id', 'copied_from_version_id', 'name', 'description', 'is_active', 'created_by'])]
 class SopTemplate extends FarmerModel
 {
     protected $table = 'sop_templates';
@@ -36,10 +36,10 @@ class SopTemplate extends FarmerModel
         ];
     }
 
-    /** @return BelongsTo<Farm, $this> */
-    public function farm(): BelongsTo
+    /** @return BelongsTo<Team, $this> */
+    public function team(): BelongsTo
     {
-        return $this->belongsTo(Farm::class, 'farm_id');
+        return $this->belongsTo(Team::class, 'team_id');
     }
 
     /** @return BelongsTo<CropVariety, $this> */

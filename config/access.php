@@ -75,7 +75,6 @@ return [
             'sop_templates.create' => 'any',
             'sop_templates.update' => 'any',
             'sop_templates.delete' => 'any',
-            'sop_templates.copy' => 'any',
             'sop_template_versions.view' => 'any',
             'sop_template_versions.create' => 'any',
             'sop_template_versions.update' => 'any',

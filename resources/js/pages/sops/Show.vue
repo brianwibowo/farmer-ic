@@ -4,7 +4,6 @@ import {
     ArrowLeft,
     CheckCircle2,
     ClipboardList,
-    Copy,
     LoaderCircle,
     Pencil,
     Plus,
@@ -12,7 +11,6 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import CopySopDialog from '@/components/sops/CopySopDialog.vue';
 import SopTaskDialog from '@/components/sops/SopTaskDialog.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +19,6 @@ import {
     sopStageLabels,
     type SopActivityType,
     type SopCan,
-    type SopFarm,
     type SopTask,
     type SopTemplateDetail,
     type SopVersion,
@@ -30,7 +27,6 @@ import {
 const props = defineProps<{
     template: SopTemplateDetail;
     activityTypes: SopActivityType[];
-    targetFarms: SopFarm[];
     stageCodes: string[];
     anchors: string[];
     can: SopCan;
@@ -39,8 +35,6 @@ const props = defineProps<{
 const taskDialogOpen = ref(false);
 const taskVersion = ref<SopVersion | null>(null);
 const editingTask = ref<SopTask | null>(null);
-const copyDialogOpen = ref(false);
-const copyVersion = ref<SopVersion | null>(null);
 const publishingId = ref<string | null>(null);
 const creatingVersion = ref(false);
 
@@ -55,12 +49,6 @@ function openTask(version: SopVersion, task: SopTask | null = null): void {
     taskVersion.value = version;
     editingTask.value = task;
     taskDialogOpen.value = true;
-}
-
-function openCopy(): void {
-    if (!publishedVersion.value) return;
-    copyVersion.value = publishedVersion.value;
-    copyDialogOpen.value = true;
 }
 
 function createVersion(): void {
@@ -122,7 +110,7 @@ function statusClass(status: SopVersion['status']): string {
                 <p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Template SOP</p>
                 <h1 class="admin-page-title tracking-tight">{{ template.name }}</h1>
                 <p class="mt-2 text-sm text-muted-foreground">
-                    {{ template.farm?.name }} · {{ template.variety?.name }}
+                    {{ template.team?.name }} · {{ template.variety?.name }}
                     <span v-if="template.variety?.commodity?.name"> · {{ template.variety.commodity.name }}</span>
                 </p>
                 <p v-if="template.description" class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -132,14 +120,6 @@ function statusClass(status: SopVersion['status']): string {
             <div class="flex flex-wrap gap-2">
                 <Button v-if="can.update" as-child variant="outline" class="h-10 rounded-xl">
                     <Link :href="`/admin/sops/${template.id}/edit`"><Pencil />Ubah</Link>
-                </Button>
-                <Button
-                    v-if="can.copy && publishedVersion"
-                    variant="outline"
-                    class="h-10 rounded-xl"
-                    @click="openCopy"
-                >
-                    <Copy />Salin ke kebun lain
                 </Button>
                 <Button
                     v-if="can.manageVersions && !draftVersion"
@@ -274,11 +254,5 @@ function statusClass(status: SopVersion['status']): string {
         :activity-types="activityTypes"
         :stage-codes="stageCodes"
         :anchors="anchors"
-    />
-    <CopySopDialog
-        v-if="copyVersion"
-        v-model:open="copyDialogOpen"
-        :version="copyVersion"
-        :farms="targetFarms"
     />
 </template>

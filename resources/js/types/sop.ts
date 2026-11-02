@@ -1,4 +1,4 @@
-export type SopFarm = { id: string; name: string };
+export type SopTeam = { id: number; name: string };
 export type SopVariety = { id: string; name: string; commodity: string };
 
 export type SopActivityType = { id: string; code: string; name: string };
@@ -32,7 +32,7 @@ export type SopVersion = {
 
 export type SopTemplateRow = {
     id: string;
-    farm_id: string;
+    team_id: number;
     variety_id: string;
     name: string;
     description: string | null;
@@ -40,7 +40,7 @@ export type SopTemplateRow = {
     created_at: string;
     versions_count: number;
     can: { view: boolean; update: boolean; delete: boolean };
-    farm: SopFarm;
+    team: SopTeam;
     variety: SopVariety & { commodity?: { id: string; name: string } };
 };
 
@@ -50,12 +50,11 @@ export type SopTemplateDetail = Omit<SopTemplateRow, 'versions_count' | 'can'> &
 
 export type SopFormTemplate = Pick<
     SopTemplateRow,
-    'id' | 'farm_id' | 'variety_id' | 'name' | 'description' | 'is_active'
+    'id' | 'variety_id' | 'name' | 'description' | 'is_active'
 >;
 
 export type SopFilters = {
     search?: string;
-    farm_id?: string;
     variety_id?: string;
     is_active?: string;
     sort?: string;
@@ -76,7 +75,6 @@ export type SopPage = {
 
 export type SopCan = {
     update: boolean;
-    copy: boolean;
     manageVersions: boolean;
     manageTasks: boolean;
 };

@@ -15,7 +15,6 @@ use App\Http\Controllers\Finance\FinancialCategoryController;
 use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
 use App\Http\Controllers\Sop\SopTemplateController;
-use App\Http\Controllers\Sop\SopTemplateCopyController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
 use App\Http\Controllers\Sop\SopTemplateVersionController;
 use App\Http\Controllers\Teams\TeamInvitationController;
@@ -78,8 +77,8 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::get('dashboard', DashboardController::class)->name('admin.dashboard');
 
     Route::get('sops', [SopTemplateController::class, 'index'])->name('sops.index');
-    Route::get('farms/{farm}/sops/create', [SopTemplateController::class, 'create'])->whereUuid('farm')->name('sops.create');
-    Route::post('farms/{farm}/sops', [SopTemplateController::class, 'store'])->whereUuid('farm')->name('sops.store');
+    Route::get('sops/create', [SopTemplateController::class, 'create'])->name('sops.create');
+    Route::post('sops', [SopTemplateController::class, 'store'])->name('sops.store');
     Route::get('sops/{sopTemplate}', [SopTemplateController::class, 'show'])->whereUuid('sopTemplate')->name('sops.show');
     Route::get('sops/{sopTemplate}/edit', [SopTemplateController::class, 'edit'])->whereUuid('sopTemplate')->name('sops.edit');
     Route::put('sops/{sopTemplate}', [SopTemplateController::class, 'update'])->whereUuid('sopTemplate')->name('sops.update');
@@ -89,7 +88,6 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::post('sops/{sopTemplate}/versions/{version}/tasks', [SopTemplateTaskController::class, 'store'])->whereUuid(['sopTemplate', 'version'])->name('sops.tasks.store');
     Route::put('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'update'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.update');
     Route::delete('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'destroy'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.destroy');
-    Route::post('sops/{sopTemplate}/versions/{version}/copy', [SopTemplateCopyController::class, 'store'])->whereUuid(['sopTemplate', 'version'])->name('sops.copy');
 
     Route::get('farm-management/{farm}/force-delete', [FarmManagementController::class, 'confirmForceDelete'])
         ->whereUuid('farm')->name('farm-management.force-delete');

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\ActivityType;
 use App\Models\CropVariety;
-use App\Models\Farm;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
@@ -24,7 +23,7 @@ class SopTemplateService
     {
         $query = SopTemplate::query()
             ->visibleTo($actor, $team)
-            ->with(['farm:id,name,team_id', 'variety:id,commodity_id,name', 'variety.commodity:id,name'])
+            ->with(['team:id,name', 'variety:id,commodity_id,name', 'variety.commodity:id,name'])
             ->withCount('versions');
 
         if (($filters['search'] ?? '') !== '') {
@@ -33,9 +32,6 @@ class SopTemplateService
                 $query->where('name', 'ilike', $search)
                     ->orWhereHas('variety', fn ($variety) => $variety->where('name', 'ilike', $search));
             });
-        }
-        if (($filters['farm_id'] ?? '') !== '') {
-            $query->where('farm_id', $filters['farm_id']);
         }
         if (($filters['variety_id'] ?? '') !== '') {
             $query->where('variety_id', $filters['variety_id']);
@@ -53,7 +49,7 @@ class SopTemplateService
     public function detail(SopTemplate $template): SopTemplate
     {
         return $template->load([
-            'farm:id,name,team_id',
+            'team:id,name',
             'variety:id,commodity_id,name',
             'variety.commodity:id,name',
             'versions' => fn ($query) => $query->orderByDesc('version')->with([
@@ -62,19 +58,6 @@ class SopTemplateService
                 'tasks.activityType:id,code,name',
             ]),
         ]);
-    }
-
-    /** @return array<int, array{id: string, name: string}> */
-    public function farms(User $actor, Team $team, ?string $excludeFarmId = null): array
-    {
-        return Farm::query()
-            ->visibleTo($actor, $team)
-            ->where('team_id', $team->id)
-            ->when($excludeFarmId !== null, fn ($query) => $query->whereKeyNot($excludeFarmId))
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Farm $farm): array => ['id' => $farm->id, 'name' => $farm->name])
-            ->all();
     }
 
     /** @return array<int, array{id: string, name: string, commodity: string}> */
@@ -103,11 +86,11 @@ class SopTemplateService
     }
 
     /** @param array<string, mixed> $data */
-    public function create(User $actor, Farm $farm, array $data): SopTemplate
+    public function create(User $actor, Team $team, array $data): SopTemplate
     {
-        return DB::transaction(function () use ($actor, $farm, $data): SopTemplate {
+        return DB::transaction(function () use ($actor, $team, $data): SopTemplate {
             $template = SopTemplate::query()->create([
-                'farm_id' => $farm->id,
+                'team_id' => $team->id,
                 'variety_id' => $data['variety_id'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
@@ -237,61 +220,6 @@ class SopTemplateService
     {
         $this->assertDraft($task->version);
         $task->delete();
-    }
-
-    /**
-     * @param  array<int, Farm>  $targetFarms
-     * @return array<int, SopTemplate>
-     */
-    public function copyToFarms(User $actor, SopTemplateVersion $source, array $targetFarms): array
-    {
-        if ($source->status !== 'published') {
-            throw ValidationException::withMessages(['version' => 'Hanya versi published yang dapat disalin.']);
-        }
-
-        $source->loadMissing(['sopTemplate.farm', 'tasks']);
-
-        return DB::transaction(function () use ($actor, $source, $targetFarms): array {
-            $created = [];
-
-            foreach ($targetFarms as $farm) {
-                if ($farm->team_id !== $source->sopTemplate->farm->team_id) {
-                    throw ValidationException::withMessages(['target_farm_ids' => 'Kebun tujuan harus berada di tenant yang sama.']);
-                }
-                if ($farm->id === $source->sopTemplate->farm_id) {
-                    throw ValidationException::withMessages(['target_farm_ids' => 'Kebun sumber tidak dapat menjadi tujuan salinan.']);
-                }
-
-                $template = SopTemplate::query()->create([
-                    'farm_id' => $farm->id,
-                    'variety_id' => $source->sopTemplate->variety_id,
-                    'copied_from_version_id' => $source->id,
-                    'name' => $source->sopTemplate->name,
-                    'description' => $source->sopTemplate->description,
-                    'is_active' => true,
-                    'created_by' => $actor->id,
-                ]);
-
-                $version = $template->versions()->create([
-                    'version' => 1,
-                    'notes' => 'Salinan dari '.$source->sopTemplate->name.' versi '.$source->version.'.',
-                    'status' => 'draft',
-                    'created_by' => $actor->id,
-                ]);
-
-                foreach ($source->tasks as $task) {
-                    $version->tasks()->create([
-                        ...$this->taskAttributes($task),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-
-                $created[] = $this->detail($template);
-            }
-
-            return $created;
-        });
     }
 
     private function assertDraft(SopTemplateVersion $version): void

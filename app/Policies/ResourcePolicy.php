@@ -67,14 +67,14 @@ abstract class ResourcePolicy
             $parent instanceof Farm => $parent,
             $parent instanceof FarmBlock => $parent->farm,
             $parent instanceof FarmActivity, $parent instanceof PlantingCycle => $parent->farm,
-            $parent instanceof SopTemplate => $parent->farm,
-            $parent instanceof SopTemplateVersion => $parent->sopTemplate->farm,
             default => null,
         };
 
         $team = match (true) {
             $parent instanceof Team => $parent,
             $farm instanceof Farm => $farm->team,
+            $parent instanceof SopTemplate => $parent->team,
+            $parent instanceof SopTemplateVersion => $parent->sopTemplate->team,
             $parent instanceof AiConversation, $parent instanceof AiKnowledgeDocument => $parent->team,
             $parent instanceof AiMessage => $parent->conversation->team,
             $this->global => $user->currentTeam,
@@ -97,12 +97,6 @@ abstract class ResourcePolicy
     public function delete(\App\Models\User $user, Model $record): bool
     {
         return $this->view($user, $record) && $this->allowsRecord($user, $record, 'delete');
-    }
-
-    public function copy(\App\Models\User $user, Model $record): bool
-    {
-        return $this->view($user, $record)
-            && $this->permissions->scope($user, $this->resource.'.copy') !== null;
     }
 
     public function configure(\App\Models\User $user, Model $record): bool

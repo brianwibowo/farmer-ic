@@ -8,7 +8,6 @@ use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\SopTemplate;
-use App\Models\SopTemplateVersion;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\SopTemplateService;
@@ -94,7 +93,7 @@ class SopTemplateTest extends TestCase
 
     private function createTemplate(): SopTemplate
     {
-        return app(SopTemplateService::class)->create($this->admin, $this->farm, [
+        return app(SopTemplateService::class)->create($this->admin, $this->team, [
             'variety_id' => $this->variety->id,
             'name' => 'SOP Jagung Bisi 18',
             'description' => 'Panduan budidaya.',
@@ -104,7 +103,7 @@ class SopTemplateTest extends TestCase
 
     public function test_admin_creates_template_with_initial_draft_version(): void
     {
-        $response = $this->post('/admin/farms/'.$this->farm->id.'/sops', [
+        $response = $this->post('/admin/sops', [
             'variety_id' => $this->variety->id,
             'name' => 'SOP Jagung Bisi 18',
             'description' => 'Panduan budidaya.',
@@ -113,7 +112,7 @@ class SopTemplateTest extends TestCase
 
         $response->assertRedirect();
         $template = SopTemplate::query()->firstOrFail();
-        $this->assertSame($this->farm->id, $template->farm_id);
+        $this->assertSame($this->team->id, $template->team_id);
         $this->assertSame($this->variety->id, $template->variety_id);
         $this->assertSame($this->admin->id, $template->created_by);
         $this->assertDatabaseHas('sop_template_versions', [
@@ -172,42 +171,17 @@ class SopTemplateTest extends TestCase
         app(SopTemplateService::class)->publish($version, $this->admin);
     }
 
-    public function test_copy_to_multiple_farms_creates_independent_draft_templates(): void
+    public function test_other_tenant_cannot_view_or_mutate_template(): void
     {
         $template = $this->createTemplate();
-        $service = app(SopTemplateService::class);
-        $version = $template->versions()->firstOrFail();
-        $service->createTask($version, $this->taskPayload());
-        $service->publish($version, $this->admin);
+        $otherTeam = Team::factory()->create();
+        $otherAdmin = User::factory()->create(['role' => 'admin']);
+        $this->join($otherAdmin, $otherTeam);
 
-        $second = $this->farm(null, 'Kebun Tujuan A');
-        $third = $this->farm(null, 'Kebun Tujuan B');
-        $created = $service->copyToFarms($this->admin, $version, [$second, $third]);
+        $this->assertFalse(Gate::forUser($otherAdmin)->allows('view', $template));
+        $this->assertSame(0, SopTemplate::query()->visibleTo($otherAdmin, $otherTeam)->count());
 
-        $this->assertCount(2, $created);
-        $this->assertSame($version->id, $created[0]->copied_from_version_id);
-        $this->assertSame($version->id, $created[1]->copied_from_version_id);
-        foreach ($created as $copy) {
-            $copyVersion = $copy->versions()->firstOrFail();
-            $this->assertSame('draft', $copyVersion->status);
-            $this->assertSame(1, $copyVersion->tasks()->count());
-            $this->assertSame($this->variety->id, $copy->variety_id);
-        }
-    }
-
-    public function test_copy_rejects_a_farm_from_another_tenant(): void
-    {
-        $template = $this->createTemplate();
-        $service = app(SopTemplateService::class);
-        $version = $template->versions()->firstOrFail();
-        $service->createTask($version, $this->taskPayload());
-        $service->publish($version, $this->admin);
-
-        $foreignTeam = Team::factory()->create();
-        $foreignFarm = $this->farm($foreignTeam, 'Kebun Tenant Lain');
-
-        $this->expectException(ValidationException::class);
-        $service->copyToFarms($this->admin, $version, [$foreignFarm]);
+        $this->actingAs($otherAdmin)->get('/admin/sops/'.$template->id)->assertForbidden();
     }
 
     public function test_admin_updates_template_without_changing_variety(): void
@@ -266,16 +240,16 @@ class SopTemplateTest extends TestCase
             ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
                 ->component('sops/Show')
                 ->where('template.id', $template->id)
+                ->where('template.team_id', $this->team->id)
                 ->where('can.update', true)
-                ->where('can.copy', true)
                 ->has('template.versions', 1));
 
-        $this->get('/admin/farms/'.$this->farm->id.'/sops/create')
+        $this->get('/admin/sops/create')
             ->assertOk()
             ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
                 ->component('sops/Form')
                 ->where('template', null)
-                ->where('farm.id', $this->farm->id));
+                ->where('team.id', $this->team->id));
 
         $this->get('/admin/sops/'.$template->id.'/edit')
             ->assertOk()
@@ -294,10 +268,10 @@ class SopTemplateTest extends TestCase
         $petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
 
         $this->assertTrue(Gate::forUser($owner)->allows('view', $template));
-        $this->assertFalse(Gate::forUser($owner)->allows('create', [SopTemplate::class, $this->farm]));
+        $this->assertFalse(Gate::forUser($owner)->allows('create', [SopTemplate::class, $this->team]));
         $this->assertFalse(Gate::forUser($petugas)->allows('view', $template));
 
-        $this->actingAs($owner)->post('/admin/farms/'.$this->farm->id.'/sops', [
+        $this->actingAs($owner)->post('/admin/sops', [
             'variety_id' => $this->variety->id,
             'name' => 'Tidak boleh',
         ])->assertForbidden();
