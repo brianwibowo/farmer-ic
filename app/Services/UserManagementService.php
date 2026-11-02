@@ -113,6 +113,7 @@ class UserManagementService
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'phone_number' => $user->phone_number,
             'role' => $this->permissions->roleName($user),
             'team_ids' => $teams->pluck('id')->all(),
             'teams' => $teams->map(fn (Team $team): array => $team->only(['id', 'name', 'slug']))->all(),
@@ -192,6 +193,9 @@ class UserManagementService
                 }
 
                 $user->fill(['name' => $data['name'], 'email' => $data['email']]);
+                if (array_key_exists('phone_number', $data)) {
+                    $user->phone_number = $data['phone_number'];
+                }
                 if ($user->isDirty('email')) {
                     $user->forceFill(['email_verified_at' => null]);
                 }

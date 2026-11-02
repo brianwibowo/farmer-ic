@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Farm;
+use App\Models\FarmBlock;
 
 class PlantingCyclePolicy extends ResourcePolicy
 {
@@ -10,5 +11,5 @@ class PlantingCyclePolicy extends ResourcePolicy
 
     protected ?string $farmPath = 'farm';
 
-    protected array $parents = [Farm::class];
+    protected array $parents = [Farm::class, FarmBlock::class];
 }

@@ -19,6 +19,8 @@ import {
     type UserManagementScope,
 } from '@/types/user-management';
 
+defineOptions({ inheritAttrs: false });
+
 defineProps<{
     managedUser: ManagedUser;
     can: { update: boolean; delete: boolean };
@@ -65,8 +67,8 @@ const deleting = ref(false);
                     ></Button
                 ><Button
                     v-if="can.delete"
-                    variant="outline"
-                    class="h-10 rounded-xl text-error"
+                    variant="destructive-outline"
+                    class="h-10 rounded-xl"
                     @click="deleting = true"
                     ><Trash2 />Hapus</Button
                 >
@@ -80,6 +82,14 @@ const deleting = ref(false);
                     <ShieldCheck class="size-5 text-primary" />Informasi akun
                 </h2>
                 <dl class="space-y-4 text-sm">
+                    <div>
+                        <dt class="text-xs text-muted-foreground">
+                            Nomor WhatsApp
+                        </dt>
+                        <dd class="mt-1">
+                            {{ managedUser.phone_number || 'Belum diisi' }}
+                        </dd>
+                    </div>
                     <div>
                         <dt class="text-xs text-muted-foreground">
                             Role aplikasi

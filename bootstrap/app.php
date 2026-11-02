@@ -22,7 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectUsersTo(fn (Request $request) => route(
-            Gate::forUser($request->user())->allows('admin.access') ? 'admin.dashboard' : 'home',
+            Gate::forUser($request->user())->allows('admin.access') ? 'admin.dashboard'
+                : (Gate::forUser($request->user())->allows('petugas.access') ? 'petugas.home' : 'home'),
         ));
         $middleware->trustProxies(at: '*');
         $middleware->api(prepend: [EnsureLocalFarmApi::class]);

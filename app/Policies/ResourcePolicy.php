@@ -7,7 +7,10 @@ use App\Models\AiKnowledgeDocument;
 use App\Models\AiMessage;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
+use App\Models\SopTemplate;
+use App\Models\SopTemplateVersion;
 use App\Models\Team;
 use App\Support\RolePermissions;
 use Illuminate\Database\Eloquent\Builder;
@@ -62,7 +65,10 @@ abstract class ResourcePolicy
 
         $farm = match (true) {
             $parent instanceof Farm => $parent,
+            $parent instanceof FarmBlock => $parent->farm,
             $parent instanceof FarmActivity, $parent instanceof PlantingCycle => $parent->farm,
+            $parent instanceof SopTemplate => $parent->farm,
+            $parent instanceof SopTemplateVersion => $parent->sopTemplate->farm,
             default => null,
         };
 
@@ -91,6 +97,12 @@ abstract class ResourcePolicy
     public function delete(\App\Models\User $user, Model $record): bool
     {
         return $this->view($user, $record) && $this->allowsRecord($user, $record, 'delete');
+    }
+
+    public function copy(\App\Models\User $user, Model $record): bool
+    {
+        return $this->view($user, $record)
+            && $this->permissions->scope($user, $this->resource.'.copy') !== null;
     }
 
     public function configure(\App\Models\User $user, Model $record): bool

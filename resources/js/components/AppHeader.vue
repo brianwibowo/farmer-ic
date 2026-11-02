@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Menu, Search, Users } from '@lucide/vue';
 import { computed } from 'vue';
@@ -203,6 +204,7 @@ const rightNavItems: NavItem[] = [
                 </div>
 
                 <div class="ml-auto flex items-center space-x-2">
+                    <NotificationBell />
                     <div class="relative flex items-center space-x-1">
                         <Button
                             variant="ghost"

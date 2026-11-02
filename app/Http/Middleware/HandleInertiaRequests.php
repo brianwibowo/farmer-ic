@@ -7,6 +7,7 @@ use App\Models\FinancialBudget;
 use App\Models\FinancialCategory;
 use App\Models\FinancialProjection;
 use App\Models\FinancialTransaction;
+use App\Models\Notification;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -70,6 +71,8 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
             ],
             'account' => fn () => $this->account($request, $guestPage, $user),
+            'notificationAccess' => fn () => $this->account($request, $guestPage, $user) !== null
+                && $request->user() instanceof User && Gate::forUser($request->user())->allows('viewAny', Notification::class),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],

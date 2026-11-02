@@ -6,6 +6,7 @@ use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
 use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FarmBlockController;
 use App\Http\Controllers\FarmManagementController;
 use App\Http\Controllers\Finance\FinanceController;
 use App\Http\Controllers\Finance\FinanceSummaryController;
@@ -13,6 +14,11 @@ use App\Http\Controllers\Finance\FinancialBudgetController;
 use App\Http\Controllers\Finance\FinancialCategoryController;
 use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Sop\SopTemplateController;
+use App\Http\Controllers\Sop\SopTemplateCopyController;
+use App\Http\Controllers\Sop\SopTemplateTaskController;
+use App\Http\Controllers\Sop\SopTemplateVersionController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureTeamMembership;
@@ -31,7 +37,23 @@ Route::inertia('/aktivitas', 'farmer/Aktivitas')->defaults('farmer_guest', true)
 Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->defaults('farmer_guest', true)->name('rincian-aktivitas');
 Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->name('laporan');
 
+Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
+    Route::inertia('/', 'petugas/Home')->name('home');
+    Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
+    Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
+    Route::inertia('aktivitas/buat', 'petugas/ActivityCreate')->name('aktivitas.create');
+    Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
+});
+
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('notifications.read');
+    Route::get('blocks', [FarmBlockController::class, 'farms'])->name('blocks.farms');
+    Route::post('kebun/{farm}/blocks/{block}/batches', [FarmBlockController::class, 'storeBatch'])
+        ->whereUuid(['farm', 'block'])->name('blocks.batches.store');
+    Route::resource('kebun/{farm}/blocks', FarmBlockController::class)
+        ->whereUuid(['farm', 'block'])->names('blocks');
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');
     Route::get('finance/transactions/export', [FinanceSummaryController::class, 'export'])->name('finance.transactions.export');
     Route::resource('finance/transactions', FinancialTransactionController::class)->only(['index', 'show', 'update', 'destroy'])->names('finance.transactions')->whereUuid('transaction');
@@ -59,6 +81,20 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
 Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
     Route::get('dashboard', DashboardController::class)->name('admin.dashboard');
+
+    Route::get('sops', [SopTemplateController::class, 'index'])->name('sops.index');
+    Route::get('farms/{farm}/sops/create', [SopTemplateController::class, 'create'])->whereUuid('farm')->name('sops.create');
+    Route::post('farms/{farm}/sops', [SopTemplateController::class, 'store'])->whereUuid('farm')->name('sops.store');
+    Route::get('sops/{sopTemplate}', [SopTemplateController::class, 'show'])->whereUuid('sopTemplate')->name('sops.show');
+    Route::get('sops/{sopTemplate}/edit', [SopTemplateController::class, 'edit'])->whereUuid('sopTemplate')->name('sops.edit');
+    Route::put('sops/{sopTemplate}', [SopTemplateController::class, 'update'])->whereUuid('sopTemplate')->name('sops.update');
+    Route::post('sops/{sopTemplate}/versions', [SopTemplateVersionController::class, 'store'])->whereUuid('sopTemplate')->name('sops.versions.store');
+    Route::post('sops/{sopTemplate}/versions/{version}/publish', [SopTemplateVersionController::class, 'publish'])->whereUuid(['sopTemplate', 'version'])->name('sops.versions.publish');
+    Route::post('sops/{sopTemplate}/versions/{version}/tasks', [SopTemplateTaskController::class, 'store'])->whereUuid(['sopTemplate', 'version'])->name('sops.tasks.store');
+    Route::put('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'update'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.update');
+    Route::delete('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'destroy'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.destroy');
+    Route::post('sops/{sopTemplate}/versions/{version}/copy', [SopTemplateCopyController::class, 'store'])->whereUuid(['sopTemplate', 'version'])->name('sops.copy');
+
     Route::get('farm-management/{farm}/force-delete', [FarmManagementController::class, 'confirmForceDelete'])
         ->whereUuid('farm')->name('farm-management.force-delete');
     Route::delete('farm-management/{farm}/force-delete', [FarmManagementController::class, 'forceDestroy'])

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmRisk;
+use App\Models\BlockMappingDetail;
 use App\Models\FinancialProjection;
 use App\Models\FinancialTransaction;
 use App\Models\OperationalTarget;
@@ -33,6 +34,7 @@ class AdminDashboardService
         $monthEnd = CarbonImmutable::today()->endOfMonth();
 
         $activityQuery = FarmActivity::query()->visibleTo($actor, $team);
+        $mappedBlocks = BlockMappingDetail::query()->visibleTo($actor, $team)->count();
         $activeCycles = PlantingCycle::query()
             ->visibleTo($actor, $team)
             ->where('status', 'active');
@@ -97,7 +99,7 @@ class AdminDashboardService
         for ($offset = 0; $offset < 7; $offset++) {
             $date = $weekStart->addDays($offset);
             $activityCounts[] = [
-                'label' => $date->locale('id')->isoFormat('dd'),
+                'label' => $date->locale('id')->isoFormat('dddd'),
                 'value' => (clone $activityQuery)
                     ->whereDate('activity_date', $date->toDateString())
                     ->count(),
@@ -116,28 +118,70 @@ class AdminDashboardService
         $mapFarms = (clone $farms)
             ->orderBy('name')
             ->get(['id', 'name', 'city', 'total_area_ha', 'latitude', 'longitude']);
+        $commodityCycles = PlantingCycle::query()
+            ->visibleTo($actor, $team)
+            ->whereIn('status', ['active', 'harvested'])
+            ->with('variety.commodity')
+            ->get();
+        $commodities = $commodityCycles
+            ->filter(fn (PlantingCycle $cycle): bool => $cycle->variety?->commodity !== null)
+            ->groupBy(fn (PlantingCycle $cycle): string => (string) $cycle->variety->commodity->id)
+            ->map(function (Collection $cycles): array {
+                /** @var PlantingCycle $first */
+                $first = $cycles->first();
+
+                return [
+                    'id' => (string) $first->variety->commodity->id,
+                    'name' => $first->variety->commodity->name,
+                    'plantedArea' => $this->decimal((float) $cycles->sum('planted_area_ha')),
+                    'cycleCount' => $cycles->count(),
+                ];
+            })
+            ->sortByDesc(fn (array $commodity): float => (float) str_replace(',', '.', str_replace('.', '', $commodity['plantedArea'])))
+            ->take(3)
+            ->values()
+            ->all();
+
+        $activityByFarm = $mapFarms->map(function (Farm $farm) use ($activityQuery, $weekStart): array {
+            $days = [];
+            for ($offset = 0; $offset < 7; $offset++) {
+                $date = $weekStart->addDays($offset);
+                $days[] = [
+                    'label' => $date->locale('id')->isoFormat('dddd'),
+                    'value' => (clone $activityQuery)
+                        ->where('farm_id', $farm->id)
+                        ->whereDate('activity_date', $date->toDateString())
+                        ->count(),
+                ];
+            }
+
+            return ['id' => (string) $farm->id, 'name' => $farm->name, 'days' => $days];
+        })->values()->all();
 
         return [
             'generatedAt' => CarbonImmutable::now()->locale('id')->isoFormat('D MMMM YYYY'),
             'metrics' => [
                 ['key' => 'farms', 'label' => 'Total kebun', 'value' => (clone $farms)->count(), 'unit' => 'kebun', 'note' => 'Kebun dalam cakupan akses Anda.'],
-                ['key' => 'area', 'label' => 'Luas terkelola', 'value' => $this->decimal($totalArea), 'unit' => 'ha', 'note' => 'Akumulasi luas kebun yang dapat dipantau.'],
+                [
+                    'key' => 'area',
+                    'label' => 'Luas terkelola',
+                    'value' => $this->decimal($totalArea),
+                    'unit' => 'ha',
+                    'note' => 'Akumulasi luas kebun yang dapat dipantau.',
+                    'breakdown' => [
+                        'blocks' => $mappedBlocks,
+                        'subBlocks' => null,
+                    ],
+                ],
                 ['key' => 'cycles', 'label' => 'Siklus aktif', 'value' => (clone $activeCycles)->count(), 'unit' => 'siklus', 'note' => $this->decimal($activeArea).' ha sedang ditanam.'],
                 ['key' => 'risks', 'label' => 'Risiko terbuka', 'value' => (clone $openRisks)->count(), 'unit' => 'risiko', 'note' => 'Perlu ditinjau sebelum status ditutup.'],
             ],
             'activity' => [
                 'total' => $activitiesThisWeek,
                 'days' => $activityCounts,
+                'farms' => $activityByFarm,
             ],
-            'monitoring' => [
-                'activeArea' => $this->decimal($activeArea),
-                'activeCycles' => (clone $activeCycles)->count(),
-                'openRisks' => (clone $openRisks)->count(),
-                'farmsWithActivity' => (clone $activityQuery)
-                    ->whereBetween('activity_date', [$weekStart, $weekEnd])
-                    ->distinct('farm_id')
-                    ->count('farm_id'),
-            ],
+            'commodities' => $commodities,
             'financial' => [
                 'opexThisMonth' => $this->currency($opexThisMonth),
                 'monthLabel' => $monthStart->locale('id')->isoFormat('MMMM YYYY'),

@@ -9,7 +9,7 @@ import { hectares, landTenureLabel, type ManagedFarm, type FarmPermissions } fro
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<{ farm: ManagedFarm; can: FarmPermissions & { dailyLogs: boolean } }>();
+const props = defineProps<{ farm: ManagedFarm; can: FarmPermissions & { dailyLogs: boolean; blocks: boolean } }>();
 const deleting = ref(false);
 const coordinates = computed<[number, number] | null>(() => props.farm.latitude !== null && props.farm.longitude !== null
     ? [Number(props.farm.latitude), Number(props.farm.longitude)] : null);
@@ -21,7 +21,7 @@ const coordinates = computed<[number, number] | null>(() => props.farm.latitude 
         <Link href="/admin/farm-management" class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"><ArrowLeft class="size-4" />Daftar kebun</Link>
         <header class="flex flex-wrap items-start justify-between gap-4">
             <div><p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Detail kebun</p><h1 class="admin-page-title tracking-tight">{{ farm.name }}</h1><p class="mt-2 flex items-center gap-1 text-sm text-muted-foreground"><MapPin class="size-4 shrink-0" />{{ [farm.city, farm.province].filter(Boolean).join(', ') || 'Lokasi belum diisi' }}</p></div>
-            <div class="flex flex-wrap gap-2"><Button v-if="can.forceDelete" as-child variant="outline" class="h-10 rounded-xl text-error"><Link :href="`/admin/farm-management/${farm.id}/force-delete`"><Trash2 />Force delete</Link></Button><Button v-if="can.delete" variant="outline" class="h-10 rounded-xl text-error" @click="deleting = true"><Trash2 />Hapus</Button><Button v-if="can.update" as-child class="h-10 rounded-xl"><Link :href="`/admin/farm-management/${farm.id}/edit`"><Pencil />Ubah kebun</Link></Button></div>
+            <div class="flex flex-wrap gap-2"><Button v-if="can.forceDelete" as-child variant="destructive-outline" class="h-10 rounded-xl"><Link :href="`/admin/farm-management/${farm.id}/force-delete`"><Trash2 />Force delete</Link></Button><Button v-if="can.delete" variant="destructive-outline" class="h-10 rounded-xl" @click="deleting = true"><Trash2 />Hapus</Button><Button v-if="can.update" as-child class="h-10 rounded-xl"><Link :href="`/admin/farm-management/${farm.id}/edit`"><Pencil />Ubah kebun</Link></Button></div>
         </header>
         <div class="grid gap-4 sm:grid-cols-3">
             <section v-for="metric in [
@@ -46,6 +46,7 @@ const coordinates = computed<[number, number] | null>(() => props.farm.latitude 
                 </dl>
             </section>
             <div class="space-y-5">
+                <section v-if="can.blocks" class="rounded-xl border border-border bg-card p-5"><h2 class="admin-section-title">Blok dan batch</h2><p class="mt-2 text-sm text-muted-foreground">Lihat pembagian blok, alokasi subblok, dan timeline persiapan.</p><Button as-child class="mt-4 h-10 w-full rounded-xl"><Link :href="`/kebun/${farm.id}/blocks`">Buka blok kebun</Link></Button></section>
                 <section class="rounded-xl border border-border bg-card p-5">
                     <div class="mb-3 flex items-center gap-2"><MapPin class="size-5 text-primary" /><h2 class="admin-section-title">Lokasi kebun</h2></div>
                     <FarmLocationMap v-if="coordinates" :model-value="coordinates" />

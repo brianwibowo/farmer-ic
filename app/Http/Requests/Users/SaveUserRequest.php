@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Users;
 
 use App\Models\User;
+use App\Support\PhoneNumber;
 use App\Support\RolePermissions;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -32,6 +33,9 @@ class SaveUserRequest extends FormRequest
             'name' => is_string($this->name) ? trim($this->name) : $this->name,
             'email' => is_string($this->email) ? Str::lower(trim($this->email)) : $this->email,
         ]);
+        if ($this->exists('phone_number')) {
+            $this->merge(['phone_number' => PhoneNumber::normalize($this->input('phone_number'))]);
+        }
     }
 
     /** @return array<string, mixed> */
@@ -42,6 +46,7 @@ class SaveUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($target instanceof User ? $target : null)],
+            'phone_number' => ['sometimes', 'nullable', 'string', 'regex:/^[1-9][0-9]{7,14}$/D'],
             'password' => [$target instanceof User ? 'nullable' : 'required', 'string', Password::min(8), 'confirmed'],
             'role' => ['required', 'string', function (string $attribute, mixed $value, Closure $fail): void {
                 if (! is_string($value) || ! app(RolePermissions::class)->isKnownRole($value)) {

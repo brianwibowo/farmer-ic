@@ -21,6 +21,7 @@ use Illuminate\Notifications\Notifiable;
  * @property string $role_id
  * @property string $name
  * @property string $email
+ * @property string|null $phone_number
  * @property string $password
  * @property string|null $avatar_url
  * @property bool $is_active
@@ -38,7 +39,7 @@ use Illuminate\Notifications\Notifiable;
  * @property-read Farm|null $assignedFarm
  * @property string|null $remember_token
  */
-#[Fillable(['name', 'email', 'password', 'avatar_url'])]
+#[Fillable(['name', 'email', 'password', 'avatar_url', 'phone_number'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */

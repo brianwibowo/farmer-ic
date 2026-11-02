@@ -61,8 +61,8 @@ function remove(): void {
             </div>
             <DialogTitle>Hapus user?</DialogTitle>
             <DialogDescription class="text-muted-foreground">
-                Akun <strong>{{ user?.name }}</strong> ({{ user?.email }}) dan
-                tidak dapat lagi login atau muncul dalam daftar. Asosiasi tenant
+                Akun <strong>{{ user?.name }}</strong> ({{ user?.email }}) akan
+                dihapus dari daftar aktif dan tidak dapat lagi login. Asosiasi tenant
                 dan catatan operasional maupun AI tetap tersimpan.
             </DialogDescription>
             <p
@@ -81,9 +81,9 @@ function remove(): void {
                     @click="emit('close')"
                     >Batal</Button
                 >
-                <Button
+                <Button variant="destructive"
                     type="button"
-                    class="rounded-xl bg-error text-destructive-foreground hover:bg-error/90"
+                    class="rounded-xl"
                     :disabled="form.processing"
                     @click="remove"
                 >

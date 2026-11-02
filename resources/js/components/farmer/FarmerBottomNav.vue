@@ -11,7 +11,7 @@ export type FarmerNavKey =
     | 'activity'
     | 'report';
 
-type FarmerNavItem = {
+export type FarmerNavItem = {
     key: FarmerNavKey;
     label: string;
     href?: string;
@@ -20,6 +20,7 @@ type FarmerNavItem = {
 
 type Props = {
     activeKey?: FarmerNavKey;
+    items?: FarmerNavItem[];
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -40,6 +41,7 @@ const items: FarmerNavItem[] = [
 ];
 
 const active = computed(() => props.activeKey);
+const navigationItems = computed(() => props.items ?? items);
 
 function select(key: FarmerNavKey): void {
     emit('select', key);
@@ -51,9 +53,14 @@ function select(key: FarmerNavKey): void {
         aria-label="Navigasi utama"
         class="farmer-bottom-nav relative z-10 shrink-0 rounded-t-[18px] bg-card px-2"
     >
-        <ul class="grid h-[76px] grid-cols-5 items-end">
+        <ul
+            class="grid h-[76px] items-end"
+            :style="{
+                gridTemplateColumns: `repeat(${navigationItems.length}, minmax(0, 1fr))`,
+            }"
+        >
             <li
-                v-for="item in items"
+                v-for="item in navigationItems"
                 :key="item.key"
                 class="flex h-full items-end justify-center"
             >

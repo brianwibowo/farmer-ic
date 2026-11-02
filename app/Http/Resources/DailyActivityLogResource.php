@@ -34,7 +34,7 @@ class DailyActivityLogResource extends JsonResource
                 'proposed_solution' => $activity->proposed_solution,
                 'action_taken' => $activity->action_taken,
                 'block_mapping' => $activity->blockMappingDetail?->only([
-                    'form_version', 'block_name', 'length_m', 'width_m', 'row_spacing_cm', 'plant_spacing_cm', 'rows_per_bed',
+                    'form_version', 'block_id', 'block_name', 'length_m', 'width_m', 'row_spacing_cm', 'plant_spacing_cm', 'rows_per_bed',
                 ]),
             ]),
             'created_at' => $this->created_at->toISOString(),
