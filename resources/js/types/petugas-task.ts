@@ -41,10 +41,11 @@ export type PetugasTask = {
         start: boolean;
         submit: boolean;
     };
-    batch: {
+    subblok: {
         id: string;
-        batch_number: number;
-        subblock_label: string | null;
+        number: number;
+        label: string | null;
+        planned_planting_at: string | null;
         planted_at: string | null;
         hst: number | null;
         farm: { id: string; name: string };

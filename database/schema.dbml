@@ -118,6 +118,7 @@ Table planting_cycles {
   reserved_area_ha decimal(12,4)
   created_by uuid [ref: > users.id]
   planned_planting_at date [note: 'Rencana tanggal tanam; acuan HST untuk jadwal tugas sebelum realisasi tanam']
+  sop_template_version_id uuid [ref: > sop_template_versions.id, note: 'Snapshot versi SOP yang dipakai subblok ini']
   indexes {
     (farm_id, batch_number) [unique]
     (planting_round_id, subblock_label) [unique]
@@ -165,10 +166,38 @@ Table planting_cycle_stages {
   created_at timestamptz
   updated_at timestamptz
   indexes {
+    (id, planting_cycle_id) [unique]
     (planting_cycle_id, code) [unique]
     (planting_cycle_id, position) [unique]
   }
   Note: 'Six stages per new batch: land_clearing completed, soil_preparation in_progress, remaining stages upcoming. No fabricated dates or progress percentages.'
+}
+
+Table planting_cycle_tasks {
+  id uuid [pk]
+  planting_cycle_id uuid [not null, ref: > planting_cycles.id]
+  planting_cycle_stage_id uuid [not null, note: 'Composite FK to a stage of the same subblok']
+  sop_template_task_id uuid [ref: > sop_template_tasks.id]
+  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest']
+  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance']
+  name varchar(200) [not null]
+  instructions text
+  offset_days int [not null, default: 0]
+  tolerance_days int [not null, default: 0]
+  scheduled_date date [note: 'Null when the subblok has no planted_at or planned_planting_at']
+  due_date date
+  is_required boolean [not null, default: true]
+  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | submitted | completed | skipped | cancelled']
+  completed_at timestamptz
+  skip_reason text
+  created_at timestamptz
+  updated_at timestamptz
+  indexes {
+    (planting_cycle_id, sop_template_task_id) [unique]
+    (planting_cycle_id, scheduled_date, status)
+    (planting_cycle_id, offset_days)
+  }
+  Note: 'Snapshot of SOP tasks for one subblok. Generated once per subblok + SOP version. Existing snapshots survive later SOP changes.'
 }
 
 Table sop_templates {

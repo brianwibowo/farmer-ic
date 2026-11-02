@@ -10,7 +10,7 @@ use Inertia\Response;
 
 /**
  * Temporary contract stub. Replace fixtureTasks() with planting_cycle_tasks
- * queries once the batch execution layer exists.
+ * queries once the subblok task execution layer exists.
  */
 class PetugasTaskController extends Controller
 {
@@ -53,10 +53,11 @@ class PetugasTaskController extends Controller
                 'linked_activities_count' => 0,
                 'latest_submission' => null,
                 'can' => ['start' => true, 'submit' => false],
-                'batch' => [
-                    'id' => 'fixture-batch-1',
-                    'batch_number' => 1,
-                    'subblock_label' => 'A1',
+                'subblok' => [
+                    'id' => 'fixture-subblok-1',
+                    'number' => 1,
+                    'label' => 'A1',
+                    'planned_planting_at' => $plantedAt,
                     'planted_at' => $plantedAt,
                     'hst' => 21,
                     'farm' => ['id' => 'fixture-farm', 'name' => 'Kebun Cileuksa Demo'],
@@ -79,10 +80,11 @@ class PetugasTaskController extends Controller
                 'linked_activities_count' => 1,
                 'latest_submission' => null,
                 'can' => ['start' => true, 'submit' => true],
-                'batch' => [
-                    'id' => 'fixture-batch-1',
-                    'batch_number' => 1,
-                    'subblock_label' => 'A1',
+                'subblok' => [
+                    'id' => 'fixture-subblok-1',
+                    'number' => 1,
+                    'label' => 'A1',
+                    'planned_planting_at' => $plantedAt,
                     'planted_at' => $plantedAt,
                     'hst' => 21,
                     'farm' => ['id' => 'fixture-farm', 'name' => 'Kebun Cileuksa Demo'],
@@ -105,10 +107,11 @@ class PetugasTaskController extends Controller
                 'linked_activities_count' => 0,
                 'latest_submission' => null,
                 'can' => ['start' => true, 'submit' => false],
-                'batch' => [
-                    'id' => 'fixture-batch-1',
-                    'batch_number' => 1,
-                    'subblock_label' => 'A1',
+                'subblok' => [
+                    'id' => 'fixture-subblok-1',
+                    'number' => 1,
+                    'label' => 'A1',
+                    'planned_planting_at' => $plantedAt,
                     'planted_at' => $plantedAt,
                     'hst' => 21,
                     'farm' => ['id' => 'fixture-farm', 'name' => 'Kebun Cileuksa Demo'],

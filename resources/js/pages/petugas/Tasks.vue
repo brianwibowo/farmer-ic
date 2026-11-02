@@ -91,7 +91,7 @@ function statusClass(status: PetugasTask['status']): string {
             </p>
             <h1 class="text-2xl font-semibold tracking-tight">Tugas lapangan</h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                Daftar pekerjaan dari SOP batch yang menjadi tanggung jawab kebun Anda.
+                Daftar pekerjaan dari SOP subblok yang menjadi tanggung jawab kebun Anda.
             </p>
         </header>
 
@@ -122,7 +122,7 @@ function statusClass(status: PetugasTask['status']): string {
             <ClipboardList class="mx-auto size-10 text-muted-foreground" />
             <h2 class="mt-4 font-semibold">Belum ada tugas</h2>
             <p class="mx-auto mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
-                Tugas akan muncul setelah SOP diterapkan ke batch kebun Anda.
+                Tugas akan muncul setelah SOP diterapkan ke subblok kebun Anda.
             </p>
         </div>
 
@@ -167,12 +167,12 @@ function statusClass(status: PetugasTask['status']): string {
                 <div class="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span class="inline-flex items-center gap-1">
                         <MapPin class="size-3.5" />
-                        {{ task.batch.farm.name }} · {{ task.batch.block.name }}
-                        <template v-if="task.batch.subblock_label"> · {{ task.batch.subblock_label }}</template>
+                        {{ task.subblok.farm.name }} · {{ task.subblok.block.name }}
+                        <template v-if="task.subblok.label"> · {{ task.subblok.label }}</template>
                     </span>
                     <span class="inline-flex items-center gap-1">
                         <Sprout class="size-3.5" />
-                        {{ task.batch.variety.name }}
+                        {{ task.subblok.variety.name }}
                     </span>
                     <span class="inline-flex items-center gap-1">
                         <CalendarDays class="size-3.5" />

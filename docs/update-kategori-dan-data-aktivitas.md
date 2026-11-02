@@ -35,6 +35,9 @@ Sudah ada:
 - validasi, policy, dan test untuk slice block mapping
 - tabel dan halaman admin definisi SOP: `sop_templates`, `sop_template_versions`, `sop_template_tasks`
 - publikasi versi SOP
+- SOP default per kebun dan penentuan SOP berdasarkan komoditas
+- generate `planting_cycle_tasks` berbasis HST dari definisi SOP
+- snapshot versi SOP pada subblok
 
 Belum ada:
 
@@ -44,7 +47,7 @@ Belum ada:
 - upload foto
 - approval/paraf
 - tabel master blok (sub-blok menjadi label batch/cycle)
-- generate `planting_cycle_tasks` berbasis HST dari definisi SOP
+- query task list Petugas dari `planting_cycle_tasks`
 - pengajuan dan approval task SOP
 - pemindahan `worker_count` dari header ke aktivitas
 - penghapusan `notes` harian dan field kendala/solusi/tindakan

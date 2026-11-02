@@ -1,9 +1,6 @@
 # Petugas task list contract
 
-Status: **UI contract stub**. The batch execution layer does not exist yet, so the
-current `/petugas/tasks` page uses typed fixture data. Replace
-`PetugasTaskController::fixtureTasks()` with real `planting_cycle_tasks` queries
-when task generation is implemented.
+Status: **Task data generation is implemented; the `/petugas/tasks` page still uses typed fixture data.** Real rows now exist in `planting_cycle_tasks` after a subblok is generated from its farm's default SOP. Replace `PetugasTaskController::fixtureTasks()` with a scoped query when the task list backend is connected.
 
 ## Routes
 
@@ -84,10 +81,11 @@ type PetugasTask = {
         start: boolean;
         submit: boolean;
     };
-    batch: {
+    subblok: {
         id: string;
-        batch_number: number;
-        subblock_label: string | null;
+        number: number;
+        label: string | null;
+        planned_planting_at: string | null;
         planted_at: string | null;
         hst: number | null;
         farm: { id: string; name: string };
@@ -148,13 +146,35 @@ buttons are fine only if they have an explanatory label.
 
 ## Backend replacement plan
 
-1. Add stage alignment and `planting_cycle_tasks`.
-2. Generate tasks when a SOP is applied to a batch.
-3. Replace `fixtureTasks()` with a scoped query.
+1. ~~Add stage alignment and `planting_cycle_tasks`.~~ Done.
+2. ~~Generate tasks for a subblok from the farm default SOP.~~ Done.
+3. Replace `fixtureTasks()` with a scoped `PlantingCycleTask` query.
 4. Add `PetugasTaskController@show`.
 5. Add start/submit endpoints and policies.
 6. Add linked activities and submission props.
 7. Remove the fixture banner and `isFixture` prop.
+
+## Generated task fields
+
+The real query should map `planting_cycle_tasks`:
+
+```text
+id
+name
+instructions
+status
+activity_category
+activity_subcategory
+offset_days
+scheduled_date
+due_date
+is_required
+completed_at
+planting_cycle_id  → subblok.id
+```
+
+Join the subblok, block, farm, and variety for the card metadata. `hst` and
+urgency should be derived, not stored.
 
 ## File ownership
 

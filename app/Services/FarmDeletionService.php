@@ -21,6 +21,7 @@ use App\Models\OperationalTarget;
 use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
+use App\Models\PlantingCycleTask;
 use App\Models\PlantingDetail;
 use App\Models\PlantingRound;
 use App\Models\PlantObservation;
@@ -36,6 +37,7 @@ class FarmDeletionService
 {
     private const LABELS = [
         'farm_blocks' => 'Blok kebun', 'planting_rounds' => 'Periode penanaman', 'planting_cycle_stages' => 'Timeline batch',
+        'planting_cycle_tasks' => 'Tugas SOP subblok',
         'planting_cycles' => 'Siklus tanam', 'daily_activity_logs' => 'Logbook harian',
         'farm_activities' => 'Aktivitas kebun', 'plant_observations' => 'Pengamatan tanaman',
         'farm_risks' => 'Risiko kebun', 'ai_insights' => 'Insight AI siklus tanam',
@@ -87,6 +89,7 @@ class FarmDeletionService
                 DB::table('users')->whereIn('id', $graph['users'])->where('assigned_farm_id', $farm->id)
                     ->update(['assigned_farm_id' => null, 'updated_at' => now()]);
                 foreach ([
+                    'planting_cycle_tasks',
                     'planting_cycle_stages',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
                     'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos',
@@ -136,6 +139,7 @@ class FarmDeletionService
         }
         $graph['planting_rounds'] = $this->ids(PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $graph['farm_blocks'])->toBase());
         $graph['planting_cycle_stages'] = $this->ids(PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
+        $graph['planting_cycle_tasks'] = $this->ids(PlantingCycleTask::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['plant_observations'] = $this->ids(PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['farm_risks'] = $this->ids(FarmRisk::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         // ai_insights has no Eloquent model; scope it through the already-visible,

@@ -106,6 +106,7 @@ discover the persisted domain relationships directly.
 | `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
 | `PlantingRound` | `planting_rounds` | block.farm -> team; create parent FarmBlock; system-managed round grouping |
 | `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline derived on batch creation |
+| `PlantingCycleTask` | `planting_cycle_tasks` | plantingCycle.farm -> team; generated snapshot of SOP tasks for one subblok |
 | `FarmRisk` | `farm_risks` | plantingCycle.farm -> team |
 | `FertilizationDetail` | `fertilization_details` | activity.farm -> team |
 | `FinancialBudget` | `financial_budgets` | farm -> team |
