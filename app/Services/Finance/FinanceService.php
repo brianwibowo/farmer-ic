@@ -86,7 +86,7 @@ class FinanceService
 
                     return [
                         'id' => $cycle->id, 'farm_id' => $cycle->farm_id,
-                        'label' => ($variety instanceof CropVariety ? $variety->name : 'Siklus tanam').' · '.$cycle->planted_at->toDateString(),
+                        'label' => ($variety instanceof CropVariety ? $variety->name : 'Siklus tanam').' · '.($cycle->planted_at?->toDateString() ?? 'Persiapan tanam'),
                     ];
                 }),
         ];

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LandPlot, LayoutGrid, Users } from '@lucide/vue';
+import { BookOpen, ClipboardList, FolderGit2, LandPlot, LayoutGrid, Users } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -30,8 +30,11 @@ const dashboardUrl = computed(() =>
 const mainNavItems = computed<NavItem[]>(() => [
     {
         title: page.props.navigation?.admin ? 'Dashboard' : 'Beranda',
-        href: dashboardUrl.value,
+        href: page.props.navigation?.admin
+            ? admin.dashboard().url
+            : dashboardUrl.value,
         icon: LayoutGrid,
+        exact: true,
     },
     ...(page.props.navigation?.farms
         ? [
@@ -39,6 +42,15 @@ const mainNavItems = computed<NavItem[]>(() => [
                   title: 'Farm Management',
                   href: '/admin/farm-management',
                   icon: LandPlot,
+              },
+          ]
+        : []),
+    ...(page.props.navigation?.admin
+        ? [
+              {
+                  title: 'SOP',
+                  href: '/admin/sops',
+                  icon: ClipboardList,
               },
           ]
         : []),

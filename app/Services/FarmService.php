@@ -107,6 +107,18 @@ class FarmService
         return DB::transaction(function () use ($farm, $data): Farm {
             $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
             if (isset($data['total_area_ha'])) {
+                $blockCapacity = DB::table('farm_blocks')->where('farm_id', $locked->id)->where('is_active', true)
+                    ->selectRaw('COALESCE(SUM(area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
+                if ($blockCapacity) {
+                    throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total luas blok aktif.']);
+                }
+                $reservationCapacity = DB::table('planting_cycles')->where('farm_id', $locked->id)
+                    ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('planting_round_id')->where('status', 'active'))
+                        ->orWhere(fn ($batch) => $batch->whereNotNull('planting_round_id')->whereIn('status', ['planned', 'active'])))
+                    ->selectRaw('COALESCE(SUM(CASE WHEN planting_round_id IS NULL THEN planted_area_ha ELSE reserved_area_ha END), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
+                if ($reservationCapacity) {
+                    throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total alokasi tanam berjalan.']);
+                }
                 $exceedsArea = DB::table('planting_cycles')->where('farm_id', $locked->id)
                     ->where('status', 'active')
                     ->selectRaw('COALESCE(SUM(planted_area_ha), 0) > CAST(? AS numeric) AS exceeds_area', [$data['total_area_ha']])
@@ -134,6 +146,7 @@ class FarmService
                     $blockers[] = 'penugasan Petugas';
                 }
                 foreach ([
+                    'farm_blocks' => 'blok kebun',
                     'planting_cycles' => 'siklus tanam',
                     'daily_activity_logs' => 'logbook harian',
                     'farm_activities' => 'aktivitas kebun',

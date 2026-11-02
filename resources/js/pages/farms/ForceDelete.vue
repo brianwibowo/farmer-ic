@@ -48,7 +48,7 @@ function submit(): void {
                 <FarmField id="force-delete-reason" label="Alasan penghapusan" required :error="form.errors.reason" hint="Minimal 5 karakter. Alasan dan ringkasan penghapusan dicatat di audit log." v-slot="field"><textarea :id="field.id" v-model="form.reason" class="admin-field resize-y" rows="3" required minlength="5" maxlength="2000" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
             </fieldset>
             <p v-if="generalError || form.errors.summary_token" role="alert" class="rounded-xl bg-error/10 p-3 text-sm text-error">{{ generalError || form.errors.summary_token }}</p>
-            <div class="flex flex-wrap justify-end gap-3"><Button v-if="!form.processing" as-child variant="outline"><Link :href="backUrl">Batal</Link></Button><Button type="submit" class="h-auto min-h-10 max-w-full whitespace-normal bg-error text-destructive-foreground hover:bg-error/90" :disabled="!ready || form.processing"><LoaderCircle v-if="form.processing" class="animate-spin" /><Trash2 v-else />{{ form.processing ? 'Menghapus permanen…' : 'Hapus kebun dan seluruh data terkait' }}</Button></div>
+            <div class="flex flex-wrap justify-end gap-3"><Button v-if="!form.processing" as-child variant="outline"><Link :href="backUrl">Batal</Link></Button><Button variant="destructive" type="submit" class="h-auto min-h-10 max-w-full whitespace-normal" :disabled="!ready || form.processing"><LoaderCircle v-if="form.processing" class="animate-spin" /><Trash2 v-else />{{ form.processing ? 'Menghapus permanen…' : 'Hapus kebun dan seluruh data terkait' }}</Button></div>
         </form>
     </div>
 </template>

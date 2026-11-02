@@ -22,37 +22,33 @@ export type UseCurrentUrlReturn = {
     ) => T | F;
 };
 
-const page = usePage();
-const currentUrlReactive = computed(
-    () =>
-        new URL(
-            page.url,
-            typeof window !== 'undefined'
-                ? window.location.origin
-                : 'http://localhost',
-        ).pathname,
-);
-
 export function useCurrentUrl(): UseCurrentUrlReturn {
+    const page = usePage();
+    const origin =
+        typeof window !== 'undefined'
+            ? window.location.origin
+            : 'http://localhost';
+    const pathname = (url: string): string =>
+        new URL(url, origin).pathname.replace(/\/+$/, '') || '/';
+    const currentUrlReactive = computed(() => pathname(page.url));
+
     function isCurrentUrl(
         urlToCheck: NonNullable<InertiaLinkProps['href']>,
         currentUrl?: string,
         startsWith: boolean = false,
     ) {
-        const urlToCompare = currentUrl ?? currentUrlReactive.value;
-        const urlString = toUrl(urlToCheck);
-
-        const comparePath = (path: string): boolean =>
-            startsWith ? urlToCompare.startsWith(path) : path === urlToCompare;
-
-        if (!urlString.startsWith('http')) {
-            return comparePath(urlString);
-        }
-
         try {
-            const absoluteUrl = new URL(urlString);
+            const currentPath = pathname(
+                currentUrl ?? currentUrlReactive.value,
+            );
+            const targetPath = pathname(toUrl(urlToCheck));
 
-            return comparePath(absoluteUrl.pathname);
+            return (
+                currentPath === targetPath ||
+                (startsWith &&
+                    targetPath !== '/' &&
+                    currentPath.startsWith(`${targetPath}/`))
+            );
         } catch {
             return false;
         }
@@ -65,10 +61,10 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
         return isCurrentUrl(urlToCheck, currentUrl, true);
     }
 
-    function whenCurrentUrl(
+    function whenCurrentUrl<T, F = null>(
         urlToCheck: NonNullable<InertiaLinkProps['href']>,
-        ifTrue: any,
-        ifFalse: any = null,
+        ifTrue: T,
+        ifFalse: F = null as F,
     ) {
         return isCurrentUrl(urlToCheck) ? ifTrue : ifFalse;
     }

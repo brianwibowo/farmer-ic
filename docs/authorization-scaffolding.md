@@ -43,6 +43,19 @@ record writes are application-wide because those tables have no team boundary;
 they still require a grant and team membership. Abilities without grants deny,
 including `configure` and `forceDelete`.
 
+Block preparation adds read-only `farm_blocks` access for Petugas and master CRUD
+for Admin. `planting_rounds` may be created as part of authorized batch creation,
+but has no direct update/delete grants. `planting_cycle_stages` is read-only for
+ordinary roles and initialized internally by the batch service. See
+[farm-block-backend.md](farm-block-backend.md) for the complete route and scope map.
+
+SOP templates are farm-owned and variety-specific. Admin has CRUD plus
+`sop_templates.copy`; Owner reads templates, versions, and tasks; Petugas has no
+catalog grant and reads applied instructions through batch tasks later. Versions
+and tasks resolve their farm through `sopTemplate.farm` and
+`version.sopTemplate.farm`. Publishing uses the version `update` ability because
+only draft versions are mutable; published versions are frozen in the service.
+
 Notification status/date filters run on the personal inbox query before totals
 and pagination. Only Owners can select an associated non-personal tenant; a
 tenant filter from another role or for an unrelated tenant returns 403.
@@ -90,6 +103,9 @@ discover the persisted domain relationships directly.
 | `DailyActivityLog` | `daily_activity_logs` | farm -> team |
 | `FarmActivity` | `farm_activities` | farm -> team |
 | `Farm` | `farms` | Farm itself -> team |
+| `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
+| `PlantingRound` | `planting_rounds` | block.farm -> team; create parent FarmBlock; system-managed round grouping |
+| `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline derived on batch creation |
 | `FarmRisk` | `farm_risks` | plantingCycle.farm -> team |
 | `FertilizationDetail` | `fertilization_details` | activity.farm -> team |
 | `FinancialBudget` | `financial_budgets` | farm -> team |
@@ -105,6 +121,9 @@ discover the persisted domain relationships directly.
 | `PesticideDetail` | `pesticide_details` | activity.farm -> team |
 | `PlantingCycle` | `planting_cycles` | farm -> team |
 | `PlantingDetail` | `planting_details` | activity.farm -> team |
+| `SopTemplate` | `sop_templates` | farm -> team; create parent Farm |
+| `SopTemplateVersion` | `sop_template_versions` | sopTemplate.farm -> team; create parent SopTemplate |
+| `SopTemplateTask` | `sop_template_tasks` | version.sopTemplate.farm -> team; create parent SopTemplateVersion |
 | `PlantObservation` | `plant_observations` | plantingCycle.farm -> team |
 | `Role` | `roles` | Application-wide reference/system record |
 | `TeamInvitation` | `team_invitations` | team |
