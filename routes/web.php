@@ -14,8 +14,9 @@ use App\Http\Controllers\Finance\FinancialBudgetController;
 use App\Http\Controllers\Finance\FinancialCategoryController;
 use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
-use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Petugas\PetugasActivityController;
+use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
 use App\Http\Controllers\Sop\SopTemplateVersionController;
@@ -42,7 +43,7 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
     Route::get('tasks', [PetugasTaskController::class, 'index'])->name('tasks.index');
     Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
-    Route::inertia('aktivitas/buat', 'petugas/ActivityCreate')->name('aktivitas.create');
+    Route::get('aktivitas/buat', [PetugasActivityController::class, 'create'])->name('aktivitas.create');
     Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
 });
 

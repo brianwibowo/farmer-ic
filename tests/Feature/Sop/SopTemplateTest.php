@@ -4,7 +4,6 @@ namespace Tests\Feature\Sop;
 
 use App\Enums\TeamRole;
 use App\Models\Commodity;
-use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\SopTemplate;
 use App\Models\Team;
@@ -25,7 +24,7 @@ class SopTemplateTest extends TestCase
 
     private Farm $farm;
 
-    private CropVariety $variety;
+    private Commodity $commodity;
 
     protected function setUp(): void
     {
@@ -34,7 +33,7 @@ class SopTemplateTest extends TestCase
         $this->team = Team::factory()->create();
         $this->join($this->admin);
         $this->farm = $this->farm();
-        $this->variety = $this->variety();
+        $this->commodity = $this->commodity();
         $this->actingAs($this->admin);
     }
 
@@ -56,14 +55,9 @@ class SopTemplateTest extends TestCase
         return $farm;
     }
 
-    private function variety(string $name = 'Bisi 18'): CropVariety
+    private function commodity(string $name = 'Jagung'): Commodity
     {
-        $commodity = Commodity::query()->firstOrCreate(['name' => 'Jagung']);
-
-        return CropVariety::query()->create([
-            'commodity_id' => $commodity->id,
-            'name' => $name,
-        ]);
+        return Commodity::query()->firstOrCreate(['name' => $name]);
     }
 
     /** @return array<string, mixed> */
@@ -83,7 +77,7 @@ class SopTemplateTest extends TestCase
     private function createTemplate(): SopTemplate
     {
         return app(SopTemplateService::class)->create($this->admin, $this->team, [
-            'variety_id' => $this->variety->id,
+            'commodity_id' => $this->commodity->id,
             'name' => 'SOP Jagung Bisi 18',
             'description' => 'Panduan budidaya.',
             'is_active' => true,
@@ -93,7 +87,7 @@ class SopTemplateTest extends TestCase
     public function test_admin_creates_template_with_initial_draft_version(): void
     {
         $response = $this->post('/admin/sops', [
-            'variety_id' => $this->variety->id,
+            'commodity_id' => $this->commodity->id,
             'name' => 'SOP Jagung Bisi 18',
             'description' => 'Panduan budidaya.',
             'is_active' => true,
@@ -102,7 +96,7 @@ class SopTemplateTest extends TestCase
         $response->assertRedirect();
         $template = SopTemplate::query()->firstOrFail();
         $this->assertSame($this->team->id, $template->team_id);
-        $this->assertSame($this->variety->id, $template->variety_id);
+        $this->assertSame($this->commodity->id, $template->commodity_id);
         $this->assertSame($this->admin->id, $template->created_by);
         $this->assertDatabaseHas('sop_template_versions', [
             'sop_template_id' => $template->id,
@@ -213,13 +207,13 @@ class SopTemplateTest extends TestCase
         $this->assertSame([0, 7, 14], $version->tasks()->pluck('offset_days')->all());
     }
 
-    public function test_admin_updates_template_without_changing_variety(): void
+    public function test_admin_updates_template_without_changing_commodity(): void
     {
         $template = $this->createTemplate();
-        $other = $this->variety('Pioneer 32');
+        $other = $this->commodity('Kedelai');
 
         $this->put('/admin/sops/'.$template->id, [
-            'variety_id' => $this->variety->id,
+            'commodity_id' => $this->commodity->id,
             'name' => 'SOP Jagung Revisi',
             'description' => 'Deskripsi baru.',
             'is_active' => false,
@@ -228,12 +222,12 @@ class SopTemplateTest extends TestCase
         $template->refresh();
         $this->assertSame('SOP Jagung Revisi', $template->name);
         $this->assertFalse($template->is_active);
-        $this->assertSame($this->variety->id, $template->variety_id);
+        $this->assertSame($this->commodity->id, $template->commodity_id);
 
         $this->put('/admin/sops/'.$template->id, [
-            'variety_id' => $other->id,
+            'commodity_id' => $other->id,
             'name' => 'SOP Jagung Revisi',
-        ])->assertSessionHasErrors('variety_id');
+        ])->assertSessionHasErrors('commodity_id');
     }
 
     public function test_admin_deletes_template_with_versions_and_tasks(): void
@@ -301,7 +295,7 @@ class SopTemplateTest extends TestCase
         $this->assertFalse(Gate::forUser($petugas)->allows('view', $template));
 
         $this->actingAs($owner)->post('/admin/sops', [
-            'variety_id' => $this->variety->id,
+            'commodity_id' => $this->commodity->id,
             'name' => 'Tidak boleh',
         ])->assertForbidden();
         $this->actingAs($owner)->delete('/admin/sops/'.$template->id)->assertForbidden();

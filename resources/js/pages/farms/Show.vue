@@ -48,6 +48,20 @@ const coordinates = computed<[number, number] | null>(() => props.farm.latitude 
             <div class="space-y-5">
                 <section v-if="can.blocks" class="rounded-xl border border-border bg-card p-5"><h2 class="admin-section-title">Blok dan batch</h2><p class="mt-2 text-sm text-muted-foreground">Lihat pembagian blok, alokasi subblok, dan timeline persiapan.</p><Button as-child class="mt-4 h-10 w-full rounded-xl"><Link :href="`/kebun/${farm.id}/blocks`">Buka blok kebun</Link></Button></section>
                 <section class="rounded-xl border border-border bg-card p-5">
+                    <div class="mb-3 flex items-center gap-2"><ClipboardList class="size-5 text-primary" /><h2 class="admin-section-title">SOP default kebun</h2></div>
+                    <template v-if="farm.default_sop">
+                        <p class="font-semibold">{{ farm.default_sop.name }}</p>
+                        <p class="mt-1 text-sm text-muted-foreground">{{ farm.default_sop.commodity?.name ?? 'Komoditas belum diisi' }}</p>
+                        <p class="mt-2 text-xs text-muted-foreground">
+                            <template v-if="farm.default_sop.published_version">Versi {{ farm.default_sop.published_version.version }} · {{ farm.default_sop.tasks_count }} langkah</template>
+                            <template v-else>Belum ada versi published.</template>
+                        </p>
+                        <p v-if="!farm.default_sop.is_active" class="mt-3 rounded-lg bg-warning/10 p-2 text-xs text-warning">Template nonaktif. Petugas tidak dapat memakai SOP ini.</p>
+                        <p v-else-if="!farm.default_sop.published_version" class="mt-3 rounded-lg bg-warning/10 p-2 text-xs text-warning">Publikasikan versi SOP agar dapat dipakai Petugas.</p>
+                    </template>
+                    <p v-else class="text-sm leading-6 text-warning">SOP default belum diatur. Petugas tidak dapat memakai SOP otomatis sampai Admin memilihnya.</p>
+                </section>
+                <section class="rounded-xl border border-border bg-card p-5">
                     <div class="mb-3 flex items-center gap-2"><MapPin class="size-5 text-primary" /><h2 class="admin-section-title">Lokasi kebun</h2></div>
                     <FarmLocationMap v-if="coordinates" :model-value="coordinates" />
                     <p v-else class="text-sm leading-6 text-muted-foreground">Lokasi kebun belum dipilih. Lengkapi pada halaman ubah kebun.</p>

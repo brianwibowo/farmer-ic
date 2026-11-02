@@ -83,6 +83,7 @@ Table farms {
   updated_at timestamptz
   team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
   land_tenure varchar(20) [note: 'owned | rented | partnership; null for legacy farms until confirmed']
+  default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default kebun; dipakai otomatis saat Petugas mencatat penanaman']
   Note: 'Tanpa farm_plots. Jika semua owner memantau semua kebun, owner_id boleh dihilangkan.'
 }
 
@@ -172,7 +173,6 @@ Table planting_cycle_stages {
 
 Table sop_templates {
   id uuid [pk]
-  variety_id uuid [not null, ref: > crop_varieties.id]
   copied_from_version_id uuid [ref: > sop_template_versions.id]
   name varchar(150) [not null]
   description text
@@ -181,11 +181,13 @@ Table sop_templates {
   created_at timestamptz
   updated_at timestamptz
   team_id bigint [not null, ref: > teams.id]
+  commodity_id uuid [not null, ref: > commodities.id]
   indexes {
-    (team_id, variety_id)
+    (team_id, commodity_id)
+    commodity_id
     copied_from_version_id
   }
-  Note: 'Tenant-owned SOP template for one crop variety. All farms in the tenant use the same template. Copies are independent only when distributed across tenants.'
+  Note: 'Tenant-owned SOP template for one commodity. Variety does not select the SOP. A farm points to one of these templates as its default.'
 }
 
 Table sop_template_versions {

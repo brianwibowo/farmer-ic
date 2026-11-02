@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\CropVariety;
+use App\Models\Commodity;
+use App\Models\Farm;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
@@ -22,18 +23,18 @@ class SopTemplateService
     {
         $query = SopTemplate::query()
             ->visibleTo($actor, $team)
-            ->with(['team:id,name', 'variety:id,commodity_id,name', 'variety.commodity:id,name'])
+            ->with(['team:id,name', 'commodity:id,name'])
             ->withCount('versions');
 
         if (($filters['search'] ?? '') !== '') {
             $search = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim((string) $filters['search'])).'%';
             $query->where(function ($query) use ($search): void {
                 $query->where('name', 'ilike', $search)
-                    ->orWhereHas('variety', fn ($variety) => $variety->where('name', 'ilike', $search));
+                    ->orWhereHas('commodity', fn ($commodity) => $commodity->where('name', 'ilike', $search));
             });
         }
-        if (($filters['variety_id'] ?? '') !== '') {
-            $query->where('variety_id', $filters['variety_id']);
+        if (($filters['commodity_id'] ?? '') !== '') {
+            $query->where('commodity_id', $filters['commodity_id']);
         }
         if (($filters['is_active'] ?? '') !== '') {
             $query->where('is_active', (bool) $filters['is_active']);
@@ -49,8 +50,7 @@ class SopTemplateService
     {
         return $template->load([
             'team:id,name',
-            'variety:id,commodity_id,name',
-            'variety.commodity:id,name',
+            'commodity:id,name',
             'versions' => fn ($query) => $query->orderByDesc('version')->with([
                 'creator:id,name',
                 'publisher:id,name',
@@ -59,19 +59,72 @@ class SopTemplateService
         ]);
     }
 
-    /** @return array<int, array{id: string, name: string, commodity: string}> */
-    public function varieties(): array
+    /** @return array<int, array{id: string, name: string}> */
+    public function commodities(): array
     {
-        return CropVariety::query()
-            ->with('commodity:id,name')
+        return Commodity::query()
             ->orderBy('name')
-            ->get(['id', 'commodity_id', 'name'])
-            ->map(fn (CropVariety $variety): array => [
-                'id' => $variety->id,
-                'name' => $variety->name,
-                'commodity' => $variety->commodity?->name ?? '',
+            ->get(['id', 'name'])
+            ->map(fn (Commodity $commodity): array => [
+                'id' => $commodity->id,
+                'name' => $commodity->name,
             ])
             ->all();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function options(User $actor, Team $team): array
+    {
+        return SopTemplate::query()
+            ->visibleTo($actor, $team)
+            ->with('commodity:id,name')
+            ->orderBy('name')
+            ->get(['id', 'name', 'commodity_id', 'is_active'])
+            ->map(fn (SopTemplate $template): array => [
+                'id' => $template->id,
+                'name' => $template->name,
+                'is_active' => $template->is_active,
+                'commodity' => $template->commodity?->only(['id', 'name']),
+            ])
+            ->all();
+    }
+
+    /** @return array<string, mixed>|null */
+    public function defaultForFarm(Farm $farm): ?array
+    {
+        if ($farm->default_sop_template_id === null) {
+            return null;
+        }
+
+        $team = $farm->team;
+        if (! $team instanceof Team) {
+            return null;
+        }
+
+        $template = SopTemplate::query()
+            ->where('team_id', $farm->team_id)
+            ->with('commodity:id,name')
+            ->find($farm->default_sop_template_id);
+
+        if (! $template instanceof SopTemplate) {
+            return null;
+        }
+
+        $version = $template->versions()
+            ->where('status', 'published')
+            ->orderByDesc('version')
+            ->first();
+        $tasksCount = $version === null ? 0 : $version->tasks()->count();
+
+        return [
+            'id' => $template->id,
+            'name' => $template->name,
+            'is_active' => $template->is_active,
+            'commodity' => $template->commodity?->only(['id', 'name']),
+            'published_version' => $version?->only(['id', 'version', 'published_at']),
+            'tasks_count' => $tasksCount,
+            'is_usable' => $template->is_active && $version !== null && $tasksCount > 0,
+        ];
     }
 
     /** @param array<string, mixed> $data */
@@ -80,7 +133,7 @@ class SopTemplateService
         return DB::transaction(function () use ($actor, $team, $data): SopTemplate {
             $template = SopTemplate::query()->create([
                 'team_id' => $team->id,
-                'variety_id' => $data['variety_id'],
+                'commodity_id' => $data['commodity_id'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'is_active' => (bool) ($data['is_active'] ?? true),

@@ -22,7 +22,7 @@ class SaveSopTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'variety_id' => ['required', 'uuid', 'exists:crop_varieties,id'],
+            'commodity_id' => ['required', 'uuid', 'exists:commodities,id'],
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:5000'],
             'is_active' => ['sometimes', 'boolean'],

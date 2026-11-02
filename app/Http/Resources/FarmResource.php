@@ -26,6 +26,7 @@ class FarmResource extends JsonResource
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'image_url' => $this->image_url,
+            'default_sop_template_id' => $this->default_sop_template_id,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

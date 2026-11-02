@@ -34,9 +34,9 @@ nullability, serta unique key. Schema aktif tetap ada di
 - Tabel Finance, AI/RAG, autentikasi, serta histori yang sudah ada dipertahankan.
 - Admin mengelola kebun dan akun Admin/Petugas dalam satu tenant; tidak memakai
   pivot PIC. Penugasan Petugas tetap satu kebun melalui `users.assigned_farm_id`.
-- SOP dimiliki satu tenant dan wajib untuk satu varietas tanaman. Semua kebun
-  dalam tenant memakai template yang sama; distribusi lintas tenant berada di
-  luar draft ini.
+- SOP dimiliki satu tenant dan wajib untuk satu komoditas tanaman. Varietas tidak
+  memilih SOP. Setiap kebun menunjuk satu SOP default; Petugas tidak memilih SOP
+  saat mencatat penanaman. Distribusi lintas tenant berada di luar draft ini.
 - Petugas mengajukan penyelesaian task; Admin tenant melakukan approval.
   Pengiriman laporan tidak langsung membuat task berstatus selesai.
 - Versi SOP yang sudah dipakai siklus berjalan dibekukan. Perubahan template
@@ -71,7 +71,8 @@ User Management dalam mode baca. Dokumen ini tidak mengubah matriks izin aktif.
 | `farm_blocks` | 1 ke banyak | `planting_rounds` | `planting_rounds.block_id` |
 | `planting_rounds` | 1 ke banyak | `planting_cycles` | `planting_cycles.planting_round_id` |
 | `crop_varieties` | 1 ke banyak | `planting_cycles` | `planting_cycles.variety_id` |
-| `teams` dan `crop_varieties` | masing-masing 1 ke banyak | `sop_templates` | `team_id` dan `variety_id` wajib |
+| `teams` dan `commodities` | masing-masing 1 ke banyak | `sop_templates` | `team_id` dan `commodity_id` wajib |
+| `sop_templates` | 1 ke banyak | `farms` | `farms.default_sop_template_id`, opsional; dipakai otomatis untuk penanaman |
 | `sop_templates` | 1 ke banyak | `sop_template_versions` | `sop_template_versions.sop_template_id` |
 | `sop_template_versions` | 1 ke banyak template salinan | `sop_templates` | `copied_from_version_id`, opsional dan hanya untuk penelusuran asal |
 | `sop_template_versions` | 1 ke banyak | `sop_template_tasks` | `sop_template_tasks.sop_template_version_id` |
@@ -106,7 +107,7 @@ Lima tabel existing disesuaikan. Sisanya mempertahankan kolom yang sudah ada.
 | --- | --- |
 | `farm_blocks` | Master blok permanen beserta luasnya |
 | `planting_rounds` | Kelompok batch dalam satu periode penanaman di blok |
-| `sop_templates` | Identitas template SOP per tenant dan varietas beserta asal salinan |
+| `sop_templates` | Identitas template SOP per tenant dan komoditas beserta asal salinan |
 | `sop_template_versions` | Versi SOP yang dapat dipublikasikan dan dibekukan |
 | `sop_template_tasks` | Daftar pekerjaan berdasarkan kategori/subkategori dan hari HST relatif |
 | `planting_cycle_stages` | Timeline enam stage masing-masing batch |
@@ -154,13 +155,16 @@ log dibuat berdasarkan subkategori.
 
 ## Jadwal SOP dan histori
 
-- `sop_templates.team_id` dan `variety_id` wajib. Tidak ada SOP generik tanpa
-  varietas. Versi yang dipakai batch harus berasal dari tenant yang sama dan
-  varietasnya harus sama dengan `planting_cycles.variety_id` batch.
+- `sop_templates.team_id` dan `commodity_id` wajib. Tidak ada SOP generik tanpa
+  komoditas. Versi yang dipakai batch harus berasal dari tenant yang sama dan
+  komoditasnya harus sama dengan komoditas `planting_cycles.variety_id` batch.
+- Setiap kebun dapat menunjuk satu `default_sop_template_id`. Saat Petugas
+  mencatat penanaman, sistem memakai SOP default kebun tersebut tanpa pilihan
+  manual. Jika belum diatur, penanaman tidak boleh memakai SOP otomatis.
 - Template memiliki versi draft, published, dan retired. Versi published berikut
   pekerjaannya tidak diedit; revisi membuat versi baru.
-- Setelah memiliki versi published atau dipakai batch, tenant dan varietas
-  template tidak diganti. Kebutuhan di tenant/varietas lain memakai template baru.
+- Setelah memiliki versi published atau dipakai batch, tenant dan komoditas
+  template tidak diganti. Kebutuhan di tenant/komoditas lain memakai template baru.
 - Saat dipakai, isi pekerjaan disalin ke `planting_cycle_tasks`. Referensi sumber
   tetap disimpan untuk penelusuran, tetapi histori batch tidak bergantung pada
   teks template yang bisa berubah.
@@ -306,9 +310,9 @@ File DBML memperlihatkan struktur relasi; tidak menggantikan implementasi
 constraint/check/trigger. Ketika diimplementasikan, hal berikut wajib dijaga:
 
 1. Blok dan periode benar-benar berasal dari lahan batch yang sama.
-2. Versi SOP berasal dari tenant batch yang sama, memiliki varietas yang sama
-   dengan batch, dan sudah published saat diterapkan. Varietas template wajib
-   terisi; kesamaan kebun tidak menentukan.
+2. Versi SOP berasal dari tenant batch yang sama, memiliki komoditas yang sama
+   dengan batch, dan sudah published saat diterapkan. Komoditas template wajib
+   terisi; varietas dan kebun tidak menentukan.
 3. Source task adalah milik versi SOP batch dan stage yang sesuai.
 4. Stage jadwal adalah milik batch yang sama. Relasi ini didokumentasikan
    dengan FK komposit.
@@ -414,7 +418,7 @@ baru bebas berbeda setelah alokasi batch sebelumnya dilepas.
 9. Pertahankan penugasan Petugas yang sudah ada. Jangan membuat pivot PIC Admin
    atau menebak penugasan Petugas lama. Tabel PIC eksperimental yang mungkin
    masih ada pada DB lokal tidak dipakai sebagai sumber otorisasi.
-10. Template contoh lama yang belum punya tenant/varietas harus dipetakan secara
+10. Template contoh lama yang belum punya tenant/komoditas harus dipetakan secara
     eksplisit sebelum constraint wajib diaktifkan. Jangan mengubah SOP generik
     menjadi SOP semua tenant tanpa otorisasi.
 11. Task/laporan historis tidak otomatis dibuatkan pengajuan approved. Histori
@@ -435,7 +439,7 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | `teams` | Tetap | `id`, `name`, `slug`, `is_personal`, `created_at`, `updated_at`, `deleted_at` |
 | `team_members` | Tetap | `id`, `team_id`, `user_id`, `role`, `created_at`, `updated_at` |
 | `team_invitations` | Tetap | `id`, `code`, `team_id`, `email`, `role`, `invited_by`, `expires_at`, `accepted_at`, `created_at`, `updated_at` |
-| `farms` | Tetap | `id`, `owner_id`, `created_by`, `name`, `address`, `city`, `district`, `province`, `total_area_ha`, `latitude`, `longitude`, `image_url`, `created_at`, `updated_at`, `team_id`, `land_tenure` |
+| `farms` | Tetap | `id`, `owner_id`, `created_by`, `name`, `address`, `city`, `district`, `province`, `total_area_ha`, `latitude`, `longitude`, `image_url`, `created_at`, `updated_at`, `team_id`, `land_tenure`, `default_sop_template_id` |
 | `farm_blocks` | Baru | `id`, `farm_id`, `code`, `name`, `area_ha`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `commodities` | Tetap | `id`, `name`, `description`, `image_url` |
 | `crop_varieties` | Tetap | `id`, `commodity_id`, `name`, `description` |
@@ -446,7 +450,7 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 
 | Tabel | Status | Kolom lengkap |
 | --- | --- | --- |
-| `sop_templates` | Baru | `id`, `team_id`, `variety_id`, `copied_from_version_id`, `name`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
+| `sop_templates` | Baru | `id`, `team_id`, `commodity_id`, `copied_from_version_id`, `name`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `sop_template_versions` | Baru | `id`, `sop_template_id`, `version`, `notes`, `status`, `created_by`, `published_by`, `published_at`, `created_at`, `updated_at` |
 | `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at`, `activity_category`, `activity_subcategory` |
 | `planting_cycle_stages` | Baru | `id`, `planting_cycle_id`, `stage_code`, `position`, `planned_start_at`, `planned_end_at`, `started_at`, `completed_at`, `status`, `skip_reason`, `created_at`, `updated_at` |

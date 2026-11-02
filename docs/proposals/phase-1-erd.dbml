@@ -87,6 +87,7 @@ Table farms {
   updated_at timestamptz
   team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
   land_tenure varchar(20) [note: 'owned | rented | partnership; null for legacy farms until confirmed']
+  default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default kebun; dipakai otomatis saat Petugas mencatat penanaman']
   Note: 'Master lahan. Memiliki blok permanen; pembagian subblok disimpan sebagai batch pada planting_cycles.'
 }
 
@@ -558,7 +559,7 @@ Table planting_rounds {
 Table sop_templates {
   id uuid [pk]
   team_id bigint [not null, ref: > teams.id]
-  variety_id uuid [not null, ref: > crop_varieties.id]
+  commodity_id uuid [not null, ref: > commodities.id, note: 'SOP per komoditas; varietas tidak memilih SOP']
   copied_from_version_id uuid [ref: > sop_template_versions.id, note: 'Asal salinan jika ada; tidak membuat isi template mengikuti sumber']
   name varchar(150) [not null]
   description text
@@ -567,10 +568,11 @@ Table sop_templates {
   created_at timestamptz [not null]
   updated_at timestamptz
   indexes {
-    (team_id, variety_id)
+    (team_id, commodity_id)
+    commodity_id
     copied_from_version_id
   }
-  Note: 'SOP wajib per tenant dan varietas. Semua kebun dalam tenant memakai template yang sama; distribusi lintas tenant berada di luar draft ini. Admin mengelola SOP tenant; versi published dibekukan dan revisi membuat versi baru.'
+  Note: 'SOP wajib per tenant dan komoditas. Kebun menunjuk satu template sebagai SOP default; Petugas tidak memilih SOP. Versi published dibekukan dan revisi membuat versi baru.'
 }
 
 Table sop_template_versions {

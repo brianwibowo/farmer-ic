@@ -3,11 +3,13 @@
 namespace Tests\Feature\Farms;
 
 use App\Enums\TeamRole;
+use App\Models\Commodity;
 use App\Models\Farm;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmService;
+use App\Services\SopTemplateService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +58,46 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertSame('Kebun Pertiwi Utara', $farm->fresh()->name);
         $this->delete('/admin/farm-management/'.$farm->id)->assertRedirect('/admin/farm-management');
         $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
+    }
+
+    public function test_admin_can_set_a_team_sop_as_the_farm_default(): void
+    {
+        $commodity = Commodity::query()->create(['name' => 'Jagung']);
+        $sop = app(SopTemplateService::class)->create($this->admin, $this->team, [
+            'commodity_id' => $commodity->id,
+            'name' => 'SOP Jagung',
+            'description' => null,
+            'is_active' => true,
+        ]);
+
+        $this->post('/admin/farm-management', $this->payload(['default_sop_template_id' => $sop->id]))
+            ->assertRedirect();
+        $farm = Farm::query()->firstOrFail();
+        $this->assertSame($sop->id, $farm->default_sop_template_id);
+        $this->get('/admin/farm-management/create')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('farms/Form')
+                ->where('sops.0.id', $sop->id)
+                ->where('sops.0.commodity.name', 'Jagung'));
+        $this->get('/admin/farm-management/'.$farm->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('farms/Show')
+                ->where('farm.default_sop.id', $sop->id)
+                ->where('farm.default_sop.commodity.name', 'Jagung'));
+
+        $otherTeam = Team::query()->create(['name' => 'Tim lain']);
+        $foreign = app(SopTemplateService::class)->create($this->admin, $otherTeam, [
+            'commodity_id' => $commodity->id,
+            'name' => 'SOP Tim Lain',
+            'description' => null,
+            'is_active' => true,
+        ]);
+        $this->from('/admin/farm-management/'.$farm->id.'/edit')
+            ->put('/admin/farm-management/'.$farm->id, $this->payload(['default_sop_template_id' => $foreign->id]))
+            ->assertSessionHasErrors('default_sop_template_id');
+        $this->assertSame($sop->id, $farm->fresh()->default_sop_template_id);
     }
 
     public function test_lists_summary_filters_and_pagination_are_scoped_to_the_team(): void

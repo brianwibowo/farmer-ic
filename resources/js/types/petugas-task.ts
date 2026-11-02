@@ -57,6 +57,25 @@ export type PetugasTaskFilters = {
     status: 'all' | PetugasTaskUrgency;
 };
 
+export type PetugasDefaultSop = {
+    id: string;
+    name: string;
+    is_active: boolean;
+    commodity: { id: string; name: string } | null;
+    published_version: {
+        id: string;
+        version: number;
+        published_at: string | null;
+    } | null;
+    tasks_count: number;
+    is_usable: boolean;
+};
+
+export type PetugasActivityPageProps = {
+    farm: { id: string; name: string } | null;
+    defaultSop: PetugasDefaultSop | null;
+};
+
 export type PetugasTaskPageProps = {
     tasks: PetugasTask[];
     filters: PetugasTaskFilters;

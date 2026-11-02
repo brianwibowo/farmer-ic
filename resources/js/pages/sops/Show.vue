@@ -107,8 +107,7 @@ function statusClass(status: SopVersion['status']): string {
                 <p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Template SOP</p>
                 <h1 class="admin-page-title tracking-tight">{{ template.name }}</h1>
                 <p class="mt-2 text-sm text-muted-foreground">
-                    {{ template.team?.name }} · {{ template.variety?.name }}
-                    <span v-if="template.variety?.commodity?.name"> · {{ template.variety.commodity.name }}</span>
+                    {{ template.team?.name }} · {{ template.commodity?.name ?? 'Komoditas belum diisi' }}
                 </p>
                 <p v-if="template.description" class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                     {{ template.description }}

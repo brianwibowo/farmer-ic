@@ -7,6 +7,25 @@ export type FarmDeletionSummary = {
 };
 export type LandTenure = 'owned' | 'rented' | 'partnership';
 
+export type FarmSopCommodity = { id: string; name: string };
+
+export type FarmSopOption = {
+    id: string;
+    name: string;
+    is_active: boolean;
+    commodity: FarmSopCommodity | null;
+};
+
+export type FarmDefaultSop = FarmSopOption & {
+    published_version: {
+        id: string;
+        version: number;
+        published_at: string | null;
+    } | null;
+    tasks_count: number;
+    is_usable: boolean;
+};
+
 export function landTenureLabel(value: LandTenure | null): string {
     return value === 'owned' ? 'Milik sendiri' : value === 'rented' ? 'Sewa' : value === 'partnership' ? 'Kerja sama' : 'Belum diisi';
 }
@@ -30,6 +49,8 @@ export type ManagedFarm = Omit<FarmRow, 'can'> & {
     latitude: string | null;
     longitude: string | null;
     image_url: string | null;
+    default_sop_template_id: string | null;
+    default_sop: FarmDefaultSop | null;
     active_cycles: number;
     active_area_ha: string;
     created_at: string | null;

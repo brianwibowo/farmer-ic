@@ -4,22 +4,22 @@ import { ArrowLeft, ClipboardList, LoaderCircle, Save } from '@lucide/vue';
 import { computed } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import { Button } from '@/components/ui/button';
-import type { SopFormTemplate, SopTeam, SopVariety } from '@/types/sop';
+import type { SopCommodity, SopFormTemplate, SopTeam } from '@/types/sop';
 
 const props = defineProps<{
     team: SopTeam;
     template: SopFormTemplate | null;
-    varieties: SopVariety[];
+    commodities: SopCommodity[];
 }>();
 
 const form = useForm({
-    variety_id: props.template?.variety_id ?? '',
+    commodity_id: props.template?.commodity_id ?? '',
     name: props.template?.name ?? '',
     description: props.template?.description ?? '',
     is_active: props.template?.is_active ?? true,
 });
-const selectedVariety = computed(() =>
-    props.varieties.find((variety) => variety.id === form.variety_id),
+const selectedCommodity = computed(() =>
+    props.commodities.find((commodity) => commodity.id === form.commodity_id),
 );
 const backUrl = props.template
     ? `/admin/sops/${props.template.id}`
@@ -43,7 +43,7 @@ function submit(): void {
             <p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">SOP / Template</p>
             <h1 class="admin-page-title">{{ template ? 'Ubah template SOP' : 'Tambah template SOP' }}</h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                Template ini dimiliki tenant <strong>{{ team.name }}</strong> dan berlaku untuk semua kebun di tenant tersebut.
+                Template ini dimiliki tenant <strong>{{ team.name }}</strong> dan berlaku untuk semua kebun yang menanam komoditas yang sama, tanpa membedakan varietas.
             </p>
         </header>
 
@@ -54,7 +54,7 @@ function submit(): void {
                         <div class="rounded-xl bg-accent p-2.5 text-primary"><ClipboardList class="size-5" /></div>
                         <div>
                             <h2 class="admin-section-title">Identitas template</h2>
-                            <p class="mt-1 text-xs text-muted-foreground">Satu template mewakili satu varietas pada tenant ini.</p>
+                            <p class="mt-1 text-xs text-muted-foreground">Satu template mewakili satu komoditas pada tenant ini.</p>
                         </div>
                     </div>
                     <div class="grid gap-5 sm:grid-cols-2">
@@ -72,31 +72,31 @@ function submit(): void {
                                 class="admin-field"
                                 required
                                 maxlength="150"
-                                placeholder="Contoh: SOP Budidaya Jagung Bisi 18"
+                                placeholder="Contoh: SOP Budidaya Jagung"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             />
                         </FarmField>
                         <FarmField
-                            id="sop-variety"
-                            label="Varietas"
+                            id="sop-commodity"
+                            label="Komoditas"
                             required
-                            :error="form.errors.variety_id"
-                            :hint="template ? 'Varietas tidak dapat diubah setelah template dibuat.' : 'Pilih varietas yang akan memakai SOP ini.'"
+                            :error="form.errors.commodity_id"
+                            :hint="template ? 'Komoditas tidak dapat diubah setelah template dibuat.' : 'Pilih komoditas yang akan memakai SOP ini. Varietas tidak membedakan SOP.'"
                             v-slot="field"
                         >
                             <select
                                 :id="field.id"
-                                v-model="form.variety_id"
+                                v-model="form.commodity_id"
                                 class="admin-field"
                                 required
                                 :disabled="!!template"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             >
-                                <option value="" disabled>Pilih varietas</option>
-                                <option v-for="variety in varieties" :key="variety.id" :value="variety.id">
-                                    {{ variety.name }} · {{ variety.commodity }}
+                                <option value="" disabled>Pilih komoditas</option>
+                                <option v-for="commodity in commodities" :key="commodity.id" :value="commodity.id">
+                                    {{ commodity.name }}
                                 </option>
                             </select>
                         </FarmField>
@@ -125,8 +125,8 @@ function submit(): void {
                             />
                         </FarmField>
                     </div>
-                    <p v-if="selectedVariety && !template" class="mt-4 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-                        SOP akan dibuat untuk <strong>{{ selectedVariety.name }}</strong> ({{ selectedVariety.commodity }}).
+                    <p v-if="selectedCommodity && !template" class="mt-4 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+                        SOP akan dibuat untuk komoditas <strong>{{ selectedCommodity.name }}</strong>. Varietas tanam tidak perlu dipilih.
                     </p>
                 </section>
             </fieldset>

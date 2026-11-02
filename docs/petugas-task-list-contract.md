@@ -39,6 +39,14 @@ Type source:
 resources/js/types/petugas-task.ts
 ```
 
+## Default SOP for a farm
+
+The Petugas task list and planting form must not expose an SOP selector. The
+backend resolves the SOP from `farms.default_sop_template_id`. SOP templates are
+tenant-owned and tied to a commodity, not a variety. If the farm has no default
+SOP, show a clear “SOP default belum diatur” state instead of letting Petugas
+choose one.
+
 ## Task shape
 
 ```ts

@@ -1,23 +1,25 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, LandPlot, LoaderCircle, Save } from '@lucide/vue';
+import { ArrowLeft, ClipboardList, LandPlot, LoaderCircle, Save } from '@lucide/vue';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import FarmField from '@/components/farms/FarmField.vue';
 import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
-import type { LandTenure, ManagedFarm } from '@/types/farms';
+import type { FarmSopOption, LandTenure, ManagedFarm } from '@/types/farms';
 
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
     farm: ManagedFarm | null;
     owners: { id: string; name: string }[];
+    sops: FarmSopOption[];
     team: { id: number; name: string };
 }>();
 const form = useForm({
     name: props.farm?.name ?? '',
     land_tenure: (props.farm?.land_tenure ?? '') as LandTenure | '',
     owner_id: props.farm?.owner_id ?? '',
+    default_sop_template_id: props.farm?.default_sop_template_id ?? '',
     total_area_ha: props.farm?.total_area_ha ?? '',
     address: props.farm?.address ?? '',
     district: props.farm?.district ?? '',
@@ -70,7 +72,26 @@ function submit(): void {
                     </div>
                 </section>
                 <section class="rounded-xl border border-border bg-card p-5 md:p-6">
-                    <h2 class="admin-section-title">Lokasi kebun</h2><p class="mt-1 mb-6 text-xs text-muted-foreground">Detail alamat membantu petugas mengenali lokasi kebun.</p>
+                    <div class="mb-6 flex items-start gap-3"><div class="rounded-xl bg-accent p-2.5 text-primary"><ClipboardList class="size-5" /></div><div><h2 class="admin-section-title">SOP default kebun</h2><p class="mt-1 text-xs text-muted-foreground">Petugas tidak memilih SOP saat mencatat penanaman. Sistem memakai SOP ini secara otomatis.</p></div></div>
+                    <FarmField
+                        id="farm-default-sop"
+                        label="SOP default"
+                        :error="form.errors.default_sop_template_id"
+                        hint="Pilih template SOP tenant untuk komoditas kebun ini. Varietas tanam tidak memengaruhi pilihan."
+                        v-slot="field"
+                    >
+                        <select :id="field.id" v-model="form.default_sop_template_id" class="admin-field" :aria-invalid="field.invalid" :aria-describedby="field.description">
+                            <option value="">Belum ditentukan</option>
+                            <option v-for="sop in sops" :key="sop.id" :value="sop.id">
+                                {{ sop.name }} · {{ sop.commodity?.name ?? 'Komoditas belum diisi' }}{{ sop.is_active ? '' : ' (nonaktif)' }}
+                            </option>
+                        </select>
+                    </FarmField>
+                    <p v-if="!sops.length" class="mt-4 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+                        Belum ada template SOP di tenant ini. Buat template terlebih dahulu di menu SOP.
+                    </p>
+                </section>
+                <section class="rounded-xl border border-border bg-card p-5 md:p-6">
                     <div class="grid gap-5 sm:grid-cols-2">
                         <FarmField id="farm-address" label="Alamat lengkap" :error="form.errors.address" class="sm:col-span-2" v-slot="field"><textarea :id="field.id" v-model="form.address" class="admin-field resize-y" rows="3" maxlength="5000" placeholder="Desa, jalan, atau petunjuk menuju lahan" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>
                         <FarmField v-for="item in [{ key: 'district', label: 'Kecamatan' }, { key: 'city', label: 'Kota / kabupaten' }, { key: 'province', label: 'Provinsi' }] as const" :id="`farm-${item.key}`" :key="item.key" :label="item.label" :error="form.errors[item.key]" v-slot="field"><input :id="field.id" v-model="form[item.key]" class="admin-field" maxlength="100" :aria-invalid="field.invalid" :aria-describedby="field.description" /></FarmField>

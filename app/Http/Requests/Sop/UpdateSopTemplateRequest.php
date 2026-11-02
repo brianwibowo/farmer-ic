@@ -23,7 +23,7 @@ class UpdateSopTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'variety_id' => ['sometimes', 'uuid', Rule::in([$this->route('sopTemplate')?->variety_id])],
+            'commodity_id' => ['sometimes', 'uuid', Rule::in([$this->route('sopTemplate')?->commodity_id])],
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:5000'],
             'is_active' => ['sometimes', 'boolean'],

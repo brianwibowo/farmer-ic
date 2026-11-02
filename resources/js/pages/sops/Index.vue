@@ -16,12 +16,12 @@ import { computed, ref } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import DeleteSopDialog from '@/components/sops/DeleteSopDialog.vue';
 import { Button } from '@/components/ui/button';
-import type { SopFilters, SopPage, SopTeam, SopTemplateRow, SopVariety } from '@/types/sop';
+import type { SopCommodity, SopFilters, SopPage, SopTeam, SopTemplateRow } from '@/types/sop';
 
 const props = defineProps<{
     sops: SopPage;
     filters: SopFilters;
-    varieties: SopVariety[];
+    commodities: SopCommodity[];
     team: SopTeam;
     can: { create: boolean };
 }>();
@@ -30,7 +30,7 @@ const selectedSop = ref<SopTemplateRow | null>(null);
 const createUrl = '/admin/sops/create';
 const form = useForm({
     search: props.filters.search ?? '',
-    variety_id: props.filters.variety_id ?? '',
+    commodity_id: props.filters.commodity_id ?? '',
     is_active: props.filters.is_active ?? '',
     sort: props.filters.sort ?? 'name',
     direction: props.filters.direction ?? 'asc',
@@ -39,7 +39,7 @@ const form = useForm({
 const hasFilters = computed(
     () =>
         !!form.search ||
-        !!form.variety_id ||
+        !!form.commodity_id ||
         form.is_active !== '',
 );
 function apply(): void {
@@ -51,7 +51,7 @@ function apply(): void {
 }
 function reset(): void {
     form.search = '';
-    form.variety_id = '';
+    form.commodity_id = '';
     form.is_active = '';
     form.sort = 'name';
     form.direction = 'asc';
@@ -69,8 +69,8 @@ function reset(): void {
                 </p>
                 <h1 class="admin-page-title tracking-tight">Template SOP</h1>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Susun langkah budidaya modular per varietas, lalu terapkan ke batch
-                    kebun sebagai jadwal HST.
+                    Susun langkah budidaya modular per komoditas, lalu tetapkan
+                    SOP default pada kebun sebagai jadwal HST otomatis.
                 </p>
             </div>
             <div v-if="can.create" class="flex flex-wrap items-end gap-2">
@@ -97,10 +97,10 @@ function reset(): void {
             </div>
             <div class="rounded-xl border border-border bg-card p-5">
                 <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm text-muted-foreground">Varietas terdaftar</p>
+                    <p class="text-sm text-muted-foreground">Komoditas terdaftar</p>
                     <ClipboardList class="size-5 text-primary" aria-hidden="true" />
                 </div>
-                <p class="admin-metric-value mt-4">{{ varieties.length }}</p>
+                <p class="admin-metric-value mt-4">{{ commodities.length }}</p>
             </div>
         </div>
 
@@ -122,17 +122,17 @@ function reset(): void {
                                 class="admin-field pl-9!"
                                 type="search"
                                 maxlength="100"
-                                placeholder="Nama SOP atau varietas"
+                                placeholder="Nama SOP atau komoditas"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             />
                         </div>
                     </FarmField>
-                    <FarmField id="sop-variety" label="Varietas" :error="form.errors.variety_id" v-slot="field">
-                        <select :id="field.id" v-model="form.variety_id" class="admin-field">
-                            <option value="">Semua varietas</option>
-                            <option v-for="variety in varieties" :key="variety.id" :value="variety.id">
-                                {{ variety.name }} · {{ variety.commodity }}
+                    <FarmField id="sop-commodity" label="Komoditas" :error="form.errors.commodity_id" v-slot="field">
+                        <select :id="field.id" v-model="form.commodity_id" class="admin-field">
+                            <option value="">Semua komoditas</option>
+                            <option v-for="commodity in commodities" :key="commodity.id" :value="commodity.id">
+                                {{ commodity.name }}
                             </option>
                         </select>
                     </FarmField>
@@ -174,7 +174,7 @@ function reset(): void {
                 </div>
                 <h3 class="mt-4 font-semibold">{{ hasFilters ? 'SOP tidak ditemukan' : 'Belum ada SOP' }}</h3>
                 <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                    {{ hasFilters ? 'Coba kata kunci atau varietas lain.' : 'Buat template SOP pertama untuk varietas yang kamu tanam.' }}
+                    {{ hasFilters ? 'Coba kata kunci atau komoditas lain.' : 'Buat template SOP pertama untuk komoditas yang kamu tanam.' }}
                 </p>
                 <Button v-if="hasFilters" variant="outline" class="mt-5 rounded-xl" @click="reset">Reset filter</Button>
                 <Button v-else-if="can.create" as-child class="mt-5 rounded-xl">
@@ -188,7 +188,7 @@ function reset(): void {
                         <thead class="bg-muted/50 text-xs text-muted-foreground">
                             <tr>
                                 <th scope="col" class="px-5 py-3 font-semibold">Template</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Varietas</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Komoditas</th>
                                 <th scope="col" class="px-5 py-3 font-semibold">Versi</th>
                                 <th scope="col" class="px-5 py-3 font-semibold">Status</th>
                                 <th scope="col" class="px-5 py-3 text-right font-semibold">Tindakan</th>
@@ -205,8 +205,8 @@ function reset(): void {
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <p>{{ sop.variety?.name ?? '-' }}</p>
-                                    <p class="mt-1 text-xs text-muted-foreground">{{ sop.variety?.commodity?.name ?? '' }}</p>
+                                    <p>{{ sop.commodity?.name ?? '-' }}</p>
+                                    <p class="mt-1 text-xs text-muted-foreground">SOP per komoditas</p>
                                 </td>
                                 <td class="px-5 py-4">{{ sop.versions_count }}</td>
                                 <td class="px-5 py-4">
@@ -247,7 +247,7 @@ function reset(): void {
                             <ClipboardList class="size-4 shrink-0 text-primary" />
                         </Link>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            {{ sop.variety?.name }} · {{ sop.variety?.commodity?.name }}
+                            {{ sop.commodity?.name ?? 'Komoditas belum diisi' }}
                         </p>
                         <div class="mt-3 flex flex-wrap items-center gap-2">
                             <span class="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">

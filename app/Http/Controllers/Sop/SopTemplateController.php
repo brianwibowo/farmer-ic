@@ -29,7 +29,7 @@ class SopTemplateController extends Controller
         Gate::authorize('viewAny', [SopTemplate::class, $team]);
 
         $filters = array_replace([
-            'search' => '', 'variety_id' => '', 'is_active' => '',
+            'search' => '', 'commodity_id' => '', 'is_active' => '',
             'sort' => 'name', 'direction' => 'asc', 'per_page' => 15,
         ], $request->validated());
         $sops = $this->sops->paginate($request->user(), $team, $filters)->through(function (SopTemplate $sop): array {
@@ -46,7 +46,7 @@ class SopTemplateController extends Controller
         return Inertia::render('sops/Index', [
             'sops' => $sops,
             'filters' => $filters,
-            'varieties' => $this->sops->varieties(),
+            'commodities' => $this->sops->commodities(),
             'team' => $team->only(['id', 'name']),
             'can' => [
                 'create' => Gate::allows('create', [SopTemplate::class, $team]),
@@ -63,7 +63,7 @@ class SopTemplateController extends Controller
         return Inertia::render('sops/Form', [
             'team' => $team->only(['id', 'name']),
             'template' => null,
-            'varieties' => $this->sops->varieties(),
+            'commodities' => $this->sops->commodities(),
         ]);
     }
 
@@ -103,8 +103,8 @@ class SopTemplateController extends Controller
 
         return Inertia::render('sops/Form', [
             'team' => $team->only(['id', 'name']),
-            'template' => $template->only(['id', 'variety_id', 'name', 'description', 'is_active']),
-            'varieties' => $this->sops->varieties(),
+            'template' => $template->only(['id', 'commodity_id', 'name', 'description', 'is_active']),
+            'commodities' => $this->sops->commodities(),
         ]);
     }
 

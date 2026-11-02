@@ -2,7 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\CropVariety;
+use App\Models\Commodity;
+use App\Models\Farm;
 use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
@@ -14,18 +15,23 @@ class DemoSopSeeder extends Seeder
     public function run(): void
     {
         $team = Team::query()->where('slug', 'farm-ic-demo')->firstOrFail();
-        $variety = CropVariety::query()->where('name', 'Bisi 18')->firstOrFail();
+        $commodity = Commodity::query()->where('name', 'Jagung')->firstOrFail();
+        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->first();
         $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
 
         $template = SopTemplate::query()->firstOrCreate([
             'team_id' => $team->id,
-            'variety_id' => $variety->id,
-            'name' => 'SOP Budidaya Jagung Bisi 18',
+            'commodity_id' => $commodity->id,
+            'name' => 'SOP Budidaya Jagung',
         ], [
-            'description' => 'Panduan budidaya jagung hibrida Bisi 18 dari penanaman sampai panen.',
+            'description' => 'Panduan budidaya jagung hibrida dari penanaman sampai panen.',
             'is_active' => true,
             'created_by' => $admin->id,
         ]);
+
+        if ($farm instanceof Farm && $farm->default_sop_template_id === null) {
+            $farm->forceFill(['default_sop_template_id' => $template->id])->save();
+        }
 
         if ($template->versions()->exists()) {
             return;
