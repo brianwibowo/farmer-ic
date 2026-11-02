@@ -82,7 +82,7 @@ final class DailyReportNotification extends Notification implements ShouldQueue
 
         foreach ($this->data['farms'] as $index => $farm) {
             $lines[] = '';
-            $lines[] = '────────────────';
+            $lines[] = '──────────────';
             $lines[] = '*'.($index + 1).'. Kebun: '.$farm['name'].'*';
             $lines[] = '*Jumlah aktivitas*: '.count($farm['activities']);
             $lines[] = '';
@@ -104,10 +104,6 @@ final class DailyReportNotification extends Notification implements ShouldQueue
             }
         }
 
-        $lines[] = '';
-        $lines[] = $showTenant
-            ? 'Satu rekap seluruh kebun dalam tenant ini sampai pukul 20:00 WIB.'
-            : 'Satu rekap seluruh kebun Anda sampai pukul 20:00 WIB.';
         $lines[] = '';
         $lines[] = '*Detail laporan* (tautan sementara):';
         $lines[] = self::DETAIL_URL;

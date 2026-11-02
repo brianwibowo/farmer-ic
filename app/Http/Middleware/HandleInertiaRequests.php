@@ -10,6 +10,7 @@ use App\Models\FinancialTransaction;
 use App\Models\Notification;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\RolePermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -55,6 +56,9 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'navigation' => [
                 'admin' => $adminAccess,
+                'notifications' => $user !== null
+                    && app(RolePermissions::class)->roleName($user) !== 'superadmin'
+                    && Gate::forUser($user)->allows('viewAny', Notification::class),
                 'finance' => collect([
                     'transactions' => FinancialTransaction::class,
                     'categories' => FinancialCategory::class,
