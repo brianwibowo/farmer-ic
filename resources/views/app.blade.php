@@ -33,7 +33,7 @@
         </style>
 
         <link rel="icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}" sizes="any" type="image/x-icon">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="apple-touch-icon" href="/images/logo.png">
 
         @fonts
 

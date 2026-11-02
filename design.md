@@ -287,11 +287,45 @@ Dashboard menggunakan arsitektur **2 Kolom Utama** dengan pendekatan *Clean, Mod
   * **Menu Item States:**
     * *Default/Inactive:* Teks dan Ikon menggunakan `neutral-500`. Background transparan.
     * *Hover:* Teks dan Ikon berubah menjadi `brand-300`, Background `brand-100`.
-    * *Active:* Teks dan Ikon `brand-600`, Background `brand-50`.
+    * *Active:* Emerald solid melalui `--admin-sidebar-active` yang memakai
+      `--primary`, dengan teks dan ikon `--primary-foreground`. Pasangan token
+      terang/gelap menjaga kontras.
 * **Column 2 (Main Content Area):** Area kerja dinamis di sisi kanan.
   * **Top Header (Navbar):** Berada di bagian paling atas Column 2 (memuat Global Search, Profile, Notifikasi).
   * **Dynamic Content:** Konten yang berubah-ubah (Tabel, Metric Card, Form) dirender tepat di bawah Navbar.
 * **Corner Radius Default:** `12px` (map to the central radius token) untuk card, modal, dan container utama.
+
+### Desktop sidebar navigation
+
+The shared admin sidebar follows a full-height, left-aligned layout with a thin
+border, a 260px expanded width, and a 68px icon rail when collapsed. Use
+`logo-dashboard.png` in its header and `logo.png` on the icon rail. Keep the
+collapse/expand action in the sidebar header; the mobile drawer has its own
+visible close action. The desktop navbar has no sidebar toggle or adjacent
+divider. On mobile/tablet, a menu button in the navbar only opens the drawer;
+it does not collapse the desktop sidebar. Team context appears below the brand
+when the existing backend navigation grants permit it.
+
+Group operational links under **Menu utama** and the existing settings link
+under **Lainnya**. Use Plus Jakarta Sans, 14px menu labels, 12px uppercase group
+labels, 18px line icons, 6px menu-item corners, and 40px desktop rows. Menu
+corners use `--admin-sidebar-menu-radius`; other containers keep the shared
+12px radius. Touch targets are at least 44px. Use an emerald solid active row from `--primary` and
+`--primary-foreground`; hover and keyboard focus have their own semantic states.
+Keep parent sections active on their create/detail/edit pages and all settings
+subpages, with exact matching for Dashboard.
+
+The navigation scrolls independently while the account card remains at the
+bottom. Its avatar, identity, and team come from shared authenticated props;
+its existing account/settings/logout dropdown remains functional in both
+expanded and collapsed modes. Admin settings pages retain the same admin shell.
+Below 1024px, use the accessible drawer, close it after successful navigation,
+and support Escape, overlay dismissal, light/dark themes, and reduced motion.
+
+Do not add reference-only store setup progress, integrations, or help links
+without corresponding application features. Admin navigation does not include
+the starter's Repository/Documentation links. Preserve backend permission props
+and the mobile Owner/Petugas navigation profiles.
 
 ### Desktop extended color palette
 
@@ -407,8 +441,8 @@ Use semantic aliases rather than unregistered ramp classes in page templates:
 | Inactive sidebar label/icon | `neutral-500` | `text-muted-foreground` |
 | Sidebar hover background | `brand-100` | `hover:bg-sidebar-accent` |
 | Sidebar hover label/icon | `brand-300` | Scoped sidebar hover foreground token |
-| Sidebar active background | `brand-50` | Scoped sidebar active background token |
-| Sidebar active label/icon | `brand-600` | `text-sidebar-primary` |
+| Sidebar active background | Emerald solid | `--admin-sidebar-active` / `--primary` |
+| Sidebar active label/icon | Contrasting foreground | `--admin-sidebar-active-foreground` / `--primary-foreground` |
 | Dividers and table separators | `neutral-200` / `neutral-100` | `border-border` / scoped subtle border token |
 | Page/card surfaces | `neutral-50` / `neutral-0` | `bg-background` / `bg-card` |
 | Error and destructive states | `danger-*` | `text-error`, `bg-error`, `text-error-foreground` |

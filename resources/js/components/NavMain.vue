@@ -11,9 +11,14 @@ import {
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import type { NavItem } from '@/types';
 
-defineProps<{
-    items: NavItem[];
-}>();
+withDefaults(
+    defineProps<{
+        items: NavItem[];
+        label?: string;
+        ariaLabel?: string;
+    }>(),
+    { label: 'Platform', ariaLabel: 'Navigasi utama' },
+);
 
 const { isCurrentUrl, isCurrentOrParentUrl } = useCurrentUrl();
 const { setOpenMobile } = useSidebar();
@@ -24,8 +29,8 @@ const isActive = (item: NavItem): boolean =>
 
 <template>
     <SidebarGroup class="px-2 py-0">
-        <SidebarGroupLabel>Platform</SidebarGroupLabel>
-        <nav aria-label="Navigasi utama">
+        <SidebarGroupLabel>{{ label }}</SidebarGroupLabel>
+        <nav :aria-label="ariaLabel">
             <SidebarMenu>
                 <SidebarMenuItem v-for="item in items" :key="item.title">
                     <SidebarMenuButton
@@ -35,6 +40,7 @@ const isActive = (item: NavItem): boolean =>
                     >
                         <Link
                             :href="item.href"
+                            :aria-label="item.title"
                             :aria-current="
                                 isActive(item)
                                     ? isCurrentUrl(item.href)
@@ -45,7 +51,7 @@ const isActive = (item: NavItem): boolean =>
                             @success="setOpenMobile(false)"
                         >
                             <component :is="item.icon" aria-hidden="true" />
-                            <span>{{ item.title }}</span>
+                            <span class="nav-item-label">{{ item.title }}</span>
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>

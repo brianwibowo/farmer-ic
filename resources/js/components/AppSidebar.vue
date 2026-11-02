@@ -1,12 +1,24 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, ClipboardList, FolderGit2, LandPlot, LayoutGrid, Users } from '@lucide/vue';
+import {
+    BookOpen,
+    ClipboardList,
+    FolderGit2,
+    LandPlot,
+    LayoutGrid,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Settings,
+    Users,
+    X,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import TeamSwitcher from '@/components/TeamSwitcher.vue';
+import { Button } from '@/components/ui/button';
 import {
     Sidebar,
     SidebarContent,
@@ -15,13 +27,28 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
+import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import admin from '@/routes/admin';
 import type { NavItem } from '@/types';
 
-defineProps<{ adminTheme?: boolean }>();
+const props = defineProps<{ adminTheme?: boolean }>();
 
 const page = usePage();
+const { isMobile, state, openMobile, toggleSidebar, setOpenMobile } =
+    useSidebar();
+const { isCurrentOrParentUrl } = useCurrentUrl();
+const isCollapsed = computed(
+    () => !isMobile.value && state.value === 'collapsed',
+);
+const toggleLabel = computed(() =>
+    isMobile.value
+        ? 'Tutup navigasi'
+        : isCollapsed.value
+          ? 'Perluas navigasi'
+          : 'Perkecil navigasi',
+);
 
 const dashboardUrl = computed(() =>
     page.props.navigation?.admin ? admin.home().url : '/',
@@ -39,7 +66,9 @@ const mainNavItems = computed<NavItem[]>(() => [
     ...(page.props.navigation?.farms
         ? [
               {
-                  title: 'Farm Management',
+                  title: props.adminTheme
+                      ? 'Manajemen Kebun'
+                      : 'Farm Management',
                   href: '/admin/farm-management',
                   icon: LandPlot,
               },
@@ -57,12 +86,23 @@ const mainNavItems = computed<NavItem[]>(() => [
     ...(page.props.navigation?.users
         ? [
               {
-                  title: 'User Management',
+                  title: props.adminTheme
+                      ? 'Manajemen Pengguna'
+                      : 'User Management',
                   href: '/admin/user-management',
                   icon: Users,
               },
           ]
         : []),
+]);
+
+const settingsNavItems = computed<NavItem[]>(() => [
+    {
+        title: 'Pengaturan',
+        href: '/settings/profile',
+        icon: Settings,
+        isActive: isCurrentOrParentUrl('/settings'),
+    },
 ]);
 
 const footerNavItems: NavItem[] = [
@@ -81,12 +121,61 @@ const footerNavItems: NavItem[] = [
 
 <template>
     <Sidebar
-        :class="adminTheme ? 'admin-dashboard-theme' : undefined"
+        :class="
+            adminTheme
+                ? [
+                      'admin-dashboard-theme',
+                      'admin-sidebar',
+                      { 'admin-sidebar-collapsed': isCollapsed },
+                  ]
+                : undefined
+        "
         collapsible="icon"
-        variant="inset"
+        :variant="adminTheme ? 'sidebar' : 'inset'"
     >
-        <SidebarHeader>
-            <SidebarMenu>
+        <SidebarHeader :class="adminTheme ? 'admin-sidebar-header' : undefined">
+            <div v-if="adminTheme" class="admin-sidebar-brand-row">
+                <Link
+                    :href="dashboardUrl"
+                    class="admin-sidebar-brand"
+                    aria-label="Farm IC — Beranda"
+                    @success="setOpenMobile(false)"
+                >
+                    <img
+                        v-if="isCollapsed"
+                        src="/images/logo.png"
+                        alt=""
+                        width="40"
+                        height="40"
+                        class="admin-sidebar-mark dark:brightness-0 dark:invert"
+                    />
+                    <img
+                        v-else
+                        src="/images/logo-dashboard.png"
+                        alt=""
+                        width="1920"
+                        height="730"
+                        class="admin-sidebar-wordmark dark:brightness-0 dark:invert"
+                    />
+                </Link>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    class="admin-sidebar-toggle"
+                    :aria-label="toggleLabel"
+                    :title="toggleLabel"
+                    :aria-expanded="isMobile ? openMobile : !isCollapsed"
+                    aria-controls="admin-sidebar-navigation"
+                    data-test="admin-sidebar-toggle"
+                    @click="toggleSidebar"
+                >
+                    <X v-if="isMobile" aria-hidden="true" />
+                    <PanelLeftOpen v-else-if="isCollapsed" aria-hidden="true" />
+                    <PanelLeftClose v-else aria-hidden="true" />
+                </Button>
+            </div>
+            <SidebarMenu v-else>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
                         <Link :href="dashboardUrl">
@@ -95,19 +184,40 @@ const footerNavItems: NavItem[] = [
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
-            <SidebarMenu v-if="page.props.navigation?.teamSwitcher">
+            <SidebarMenu
+                v-if="page.props.navigation?.teamSwitcher"
+                :class="adminTheme ? 'admin-sidebar-team' : undefined"
+            >
                 <SidebarMenuItem>
+                    <p
+                        v-if="adminTheme && !isCollapsed"
+                        class="admin-sidebar-team-label"
+                    >
+                        Tim aktif
+                    </p>
                     <TeamSwitcher :admin-theme="adminTheme" />
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
-            <NavMain :items="mainNavItems" />
+        <SidebarContent
+            :id="adminTheme ? 'admin-sidebar-navigation' : undefined"
+            :class="adminTheme ? 'admin-sidebar-content' : undefined"
+        >
+            <NavMain
+                :items="mainNavItems"
+                :label="adminTheme ? 'Menu utama' : 'Platform'"
+            />
+            <NavMain
+                v-if="adminTheme"
+                :items="settingsNavItems"
+                label="Lainnya"
+                aria-label="Navigasi pengaturan"
+            />
         </SidebarContent>
 
-        <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+        <SidebarFooter :class="adminTheme ? 'admin-sidebar-footer' : undefined">
+            <NavFooter v-if="!adminTheme" :items="footerNavItems" />
             <NavUser :admin-theme="adminTheme" />
         </SidebarFooter>
     </Sidebar>

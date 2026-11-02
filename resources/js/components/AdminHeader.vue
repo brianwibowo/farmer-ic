@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Moon, Sun } from '@lucide/vue';
+import { Menu, Moon, Sun } from '@lucide/vue';
 import type { Component } from 'vue';
 import { Button } from '@/components/ui/button';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useAppearance } from '@/composables/useAppearance';
 
 withDefaults(
@@ -18,6 +18,7 @@ withDefaults(
 );
 
 const page = usePage();
+const { isMobile, openMobile, setOpenMobile } = useSidebar();
 const { resolvedAppearance, updateAppearance } = useAppearance();
 </script>
 
@@ -26,11 +27,19 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
         class="flex min-h-16 items-center justify-between gap-2 border-b border-border bg-card px-4 py-3 lg:px-8"
     >
         <div class="flex min-w-0 items-center gap-3">
-            <SidebarTrigger
+            <Button
+                v-if="isMobile"
+                type="button"
+                variant="ghost"
+                size="icon"
                 class="shrink-0"
-                aria-label="Buka atau tutup navigasi"
-            />
-            <span class="h-5 w-px shrink-0 bg-border" aria-hidden="true" />
+                aria-label="Buka navigasi"
+                :aria-expanded="openMobile"
+                aria-controls="admin-sidebar-navigation"
+                @click="setOpenMobile(true)"
+            >
+                <Menu aria-hidden="true" />
+            </Button>
             <component
                 :is="icon"
                 class="hidden size-5 shrink-0 text-primary sm:block"
@@ -72,7 +81,10 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
                         )
                     "
                 >
-                    <Sun v-if="resolvedAppearance === 'dark'" aria-hidden="true" />
+                    <Sun
+                        v-if="resolvedAppearance === 'dark'"
+                        aria-hidden="true"
+                    />
                     <Moon v-else aria-hidden="true" />
                 </Button>
             </div>
