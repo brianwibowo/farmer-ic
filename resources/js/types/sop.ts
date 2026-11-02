@@ -1,19 +1,24 @@
 export type SopTeam = { id: number; name: string };
 export type SopVariety = { id: string; name: string; commodity: string };
 
-export type SopActivityType = { id: string; code: string; name: string };
+export type SopActivityCategory = 'planting' | 'maintenance' | 'harvest';
+export type SopActivitySubcategory =
+    | 'irrigation'
+    | 'weeding'
+    | 'follow_up_fertilization'
+    | 'growth_check'
+    | 'pest_control';
 
 export type SopTask = {
     id: string;
     sop_template_version_id: string;
-    activity_type_id: string;
-    stage_code: string;
+    activity_category: SopActivityCategory;
+    activity_subcategory: SopActivitySubcategory | null;
     name: string;
     instructions: string | null;
     offset_days: number;
     tolerance_days: number;
     is_required: boolean;
-    activity_type?: SopActivityType;
 };
 
 export type SopVersion = {
@@ -77,14 +82,32 @@ export type SopCan = {
     manageTasks: boolean;
 };
 
-export const sopStageLabels: Record<string, string> = {
-    land_cleaning: 'Land clearing',
-    soil_preparation: 'Pengolahan tanah',
-    basic_fertilizer: 'Pemupukan dasar',
+export const sopActivityCategoryLabels: Record<SopActivityCategory, string> = {
     planting: 'Penanaman',
-    maintenance: 'Pemeliharaan',
+    maintenance: 'Perawatan',
     harvest: 'Panen',
 };
+
+export const sopActivitySubcategoryLabels: Record<SopActivitySubcategory, string> = {
+    irrigation: 'Pengairan',
+    weeding: 'Pendangiran',
+    follow_up_fertilization: 'Pemupukan susulan',
+    growth_check: 'Pengecekan pertumbuhan',
+    pest_control: 'Pengendalian hama dan penyakit',
+};
+
+export function sopTaskCategoryLabel(task: Pick<SopTask, 'activity_category'>): string {
+    return sopActivityCategoryLabels[task.activity_category] ?? task.activity_category;
+}
+
+export function sopTaskSubcategoryLabel(
+    task: Pick<SopTask, 'activity_subcategory'>,
+): string {
+    return task.activity_subcategory
+        ? (sopActivitySubcategoryLabels[task.activity_subcategory] ??
+              task.activity_subcategory)
+        : '-';
+}
 
 export function hstLabel(task: Pick<SopTask, 'offset_days'>): string {
     return `H${task.offset_days >= 0 ? '+' : ''}${task.offset_days}`;

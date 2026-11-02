@@ -8,6 +8,15 @@ export type PetugasTaskStatus =
 
 export type PetugasTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
+export type PetugasTaskCategory = 'planting' | 'maintenance' | 'harvest';
+
+export type PetugasTaskSubcategory =
+    | 'irrigation'
+    | 'weeding'
+    | 'follow_up_fertilization'
+    | 'growth_check'
+    | 'pest_control';
+
 export type PetugasTaskSubmission = {
     status: 'submitted' | 'approved' | 'rejected';
     submitted_at: string | null;
@@ -20,8 +29,8 @@ export type PetugasTask = {
     instructions: string | null;
     status: PetugasTaskStatus;
     urgency: PetugasTaskUrgency;
-    stage_code: string;
-    activity_type: { id: string; code: string; name: string };
+    activity_category: PetugasTaskCategory;
+    activity_subcategory: PetugasTaskSubcategory | null;
     offset_days: number;
     scheduled_date: string | null;
     due_date: string | null;

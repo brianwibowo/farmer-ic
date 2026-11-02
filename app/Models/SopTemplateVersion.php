@@ -60,7 +60,7 @@ class SopTemplateVersion extends FarmerModel
     {
         return $this->hasMany(SopTemplateTask::class, 'sop_template_version_id')
             ->orderBy('offset_days')
-            ->orderByRaw("CASE stage_code WHEN 'land_cleaning' THEN 1 WHEN 'soil_preparation' THEN 2 WHEN 'basic_fertilizer' THEN 3 WHEN 'planting' THEN 4 WHEN 'maintenance' THEN 5 WHEN 'harvest' THEN 6 ELSE 7 END")
+            ->orderByRaw("CASE activity_category WHEN 'planting' THEN 1 WHEN 'maintenance' THEN 2 WHEN 'harvest' THEN 3 ELSE 4 END")
             ->orderBy('created_at')
             ->orderBy('id');
     }

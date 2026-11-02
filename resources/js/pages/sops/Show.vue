@@ -16,8 +16,8 @@ import { Button } from '@/components/ui/button';
 import {
     hstLabel,
     sopDate,
-    sopStageLabels,
-    type SopActivityType,
+    sopTaskCategoryLabel,
+    sopTaskSubcategoryLabel,
     type SopCan,
     type SopTask,
     type SopTemplateDetail,
@@ -26,8 +26,6 @@ import {
 
 const props = defineProps<{
     template: SopTemplateDetail;
-    activityTypes: SopActivityType[];
-    stageCodes: string[];
     can: SopCan;
 }>();
 
@@ -208,8 +206,8 @@ function statusClass(status: SopVersion['status']): string {
                         <tr>
                             <th scope="col" class="px-5 py-3 font-semibold">HST</th>
                             <th scope="col" class="px-5 py-3 font-semibold">Langkah</th>
-                            <th scope="col" class="px-5 py-3 font-semibold">Stage</th>
-                            <th scope="col" class="px-5 py-3 font-semibold">Jenis</th>
+                            <th scope="col" class="px-5 py-3 font-semibold">Kategori</th>
+                            <th scope="col" class="px-5 py-3 font-semibold">Subkategori</th>
                             <th scope="col" class="px-5 py-3 font-semibold">Wajib</th>
                             <th v-if="version.status === 'draft' && can.manageTasks" scope="col" class="px-5 py-3 text-right font-semibold">Tindakan</th>
                         </tr>
@@ -221,8 +219,8 @@ function statusClass(status: SopVersion['status']): string {
                                 <p class="font-medium">{{ task.name }}</p>
                                 <p v-if="task.instructions" class="mt-1 max-w-xl text-xs leading-5 text-muted-foreground">{{ task.instructions }}</p>
                             </td>
-                            <td class="px-5 py-4 whitespace-nowrap">{{ sopStageLabels[task.stage_code] ?? task.stage_code }}</td>
-                            <td class="px-5 py-4 whitespace-nowrap">{{ task.activity_type?.name ?? '—' }}</td>
+                            <td class="px-5 py-4 whitespace-nowrap">{{ sopTaskCategoryLabel(task) }}</td>
+                            <td class="px-5 py-4 whitespace-nowrap">{{ sopTaskSubcategoryLabel(task) }}</td>
                             <td class="px-5 py-4">{{ task.is_required ? 'Ya' : 'Tidak' }}</td>
                             <td v-if="version.status === 'draft' && can.manageTasks" class="px-5 py-4">
                                 <div class="flex justify-end gap-1">
@@ -250,7 +248,5 @@ function statusClass(status: SopVersion['status']): string {
         v-model:open="taskDialogOpen"
         :version="taskVersion"
         :task="editingTask"
-        :activity-types="activityTypes"
-        :stage-codes="stageCodes"
     />
 </template>

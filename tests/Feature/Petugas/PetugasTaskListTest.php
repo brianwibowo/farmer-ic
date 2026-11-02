@@ -24,6 +24,8 @@ class PetugasTaskListTest extends TestCase
                 ->where('filters.status', 'overdue')
                 ->has('tasks', 3)
                 ->where('tasks.0.batch.farm.name', 'Kebun Cileuksa Demo')
+                ->where('tasks.0.activity_category', 'maintenance')
+                ->where('tasks.0.activity_subcategory', 'follow_up_fertilization')
                 ->where('tasks.0.can.start', true)
                 ->where('tasks.0.can.submit', false));
     }

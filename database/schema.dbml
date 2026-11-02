@@ -209,20 +209,21 @@ Table sop_template_versions {
 Table sop_template_tasks {
   id uuid [pk]
   sop_template_version_id uuid [not null, ref: > sop_template_versions.id]
-  activity_type_id uuid [not null, ref: > activity_types.id]
-  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
   name varchar(200) [not null]
   instructions text
-  offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); negatif untuk pekerjaan sebelum tanam']
+  offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); SOP dimulai pada H+0']
   tolerance_days int [not null, default: 0, note: 'due_date = scheduled_date + tolerance_days']
   is_required boolean [not null, default: true]
   created_at timestamptz
   updated_at timestamptz
+  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; SOP starts at planting']
+  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
   indexes {
     (sop_template_version_id, offset_days)
-    (sop_template_version_id, stage_code)
+    (sop_template_version_id, activity_category)
+    (sop_template_version_id, activity_subcategory)
   }
-  Note: 'One row is one SOP step at one relative day. Ordered by offset_days, then stage, creation time, and id. Stage and activity type are separate concepts.'
+  Note: 'One row is one SOP step at one relative day. Ordered by offset_days, then category, creation time, and id. Category and subcategory follow the activity form taxonomy; stage is derived from the category at execution time.'
 }
 
 Table activity_types {

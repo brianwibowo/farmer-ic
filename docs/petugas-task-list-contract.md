@@ -54,8 +54,14 @@ type PetugasTask = {
         | 'skipped'
         | 'cancelled';
     urgency: 'overdue' | 'today' | 'upcoming' | 'completed';
-    stage_code: string;
-    activity_type: { id: string; code: string; name: string };
+    activity_category: 'planting' | 'maintenance' | 'harvest';
+    activity_subcategory:
+        | 'irrigation'
+        | 'weeding'
+        | 'follow_up_fertilization'
+        | 'growth_check'
+        | 'pest_control'
+        | null;
     offset_days: number;
     scheduled_date: string | null;
     due_date: string | null;
@@ -111,7 +117,7 @@ The page currently supports:
 - fixture warning banner
 - counts for overdue / today / upcoming
 - grouped task cards
-- task name, HST, stage, activity type
+- task name, HST, category, subcategory
 - farm, block, subblock, variety
 - scheduled date
 - linked activity count

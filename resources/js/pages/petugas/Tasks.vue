@@ -7,6 +7,10 @@ import type {
     PetugasTaskFilters,
     PetugasTaskUrgency,
 } from '@/types/petugas-task';
+import {
+    sopActivityCategoryLabels,
+    sopActivitySubcategoryLabels,
+} from '@/types/sop';
 
 const props = defineProps<{
     tasks: PetugasTask[];
@@ -21,20 +25,25 @@ const sections: { key: PetugasTaskUrgency; label: string; description: string }[
     { key: 'completed', label: 'Selesai', description: 'Pekerjaan yang sudah disetujui.' },
 ];
 
-const stageLabels: Record<string, string> = {
-    land_cleaning: 'Land clearing',
-    soil_preparation: 'Pengolahan tanah',
-    basic_fertilizer: 'Pemupukan dasar',
-    planting: 'Penanaman',
-    maintenance: 'Pemeliharaan',
-    harvest: 'Panen',
-};
-
 const visibleTasks = computed(() =>
     props.filters.status === 'all'
         ? props.tasks
         : props.tasks.filter((task) => task.urgency === props.filters.status),
 );
+
+function categoryLabel(task: PetugasTask): string {
+    return (
+        sopActivityCategoryLabels[task.activity_category] ??
+        task.activity_category
+    );
+}
+
+function subcategoryLabel(task: PetugasTask): string {
+    return task.activity_subcategory
+        ? (sopActivitySubcategoryLabels[task.activity_subcategory] ??
+              task.activity_subcategory)
+        : '-';
+}
 
 function tasksFor(section: PetugasTaskUrgency): PetugasTask[] {
     return visibleTasks.value.filter((task) => task.urgency === section);
@@ -140,7 +149,7 @@ function statusClass(status: PetugasTask['status']): string {
                                 {{ hstLabel(task) }}
                             </span>
                             <span class="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                                {{ stageLabels[task.stage_code] ?? task.stage_code }}
+                                {{ categoryLabel(task) }}
                             </span>
                             <span v-if="task.is_required" class="text-[11px] font-medium text-warning">Wajib</span>
                         </div>
@@ -173,7 +182,7 @@ function statusClass(status: PetugasTask['status']): string {
 
                 <div class="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 text-xs">
                     <span class="text-muted-foreground">
-                        {{ task.activity_type.name }} · {{ task.linked_activities_count }} aktivitas terkait
+                        {{ categoryLabel(task) }} · {{ subcategoryLabel(task) }} · {{ task.linked_activities_count }} aktivitas terkait
                     </span>
                     <span v-if="task.latest_submission?.status === 'rejected'" class="font-medium text-error">
                         Perlu diperbaiki

@@ -594,20 +594,22 @@ Table sop_template_versions {
 Table sop_template_tasks {
   id uuid [pk]
   sop_template_version_id uuid [not null, ref: > sop_template_versions.id]
-  activity_type_id uuid [not null, ref: > activity_types.id]
-  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
   name varchar(200) [not null]
   instructions text
-  offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); negatif untuk pekerjaan sebelum tanam']
+  offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); SOP dimulai pada H+0']
   tolerance_days int [not null, default: 0, note: 'CHECK >= 0; due_date = scheduled_date + tolerance_days']
   is_required boolean [not null, default: true]
   created_at timestamptz [not null]
   updated_at timestamptz
+  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; SOP dimulai pada penanaman']
+  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
 
   indexes {
     (sop_template_version_id, offset_days)
+    (sop_template_version_id, activity_category)
+    (sop_template_version_id, activity_subcategory)
   }
-  Note: 'Satu baris = satu pekerjaan pada satu hari relatif. Diurutkan berdasarkan offset_days, lalu stage, waktu pembuatan, dan id. Stage dan jenis aktivitas berbeda: basic_fertilizer adalah stage, fertilization adalah jenis aktivitas.'
+  Note: 'Satu baris = satu pekerjaan pada satu hari relatif. Diurutkan berdasarkan offset_days, lalu kategori, waktu pembuatan, dan id. Kategori/subkategori mengikuti form aktivitas; stage diturunkan dari kategori saat task batch dibuat.'
 }
 
 Table planting_cycle_stages {
@@ -637,10 +639,12 @@ Table planting_cycle_tasks {
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
   planting_cycle_stage_id uuid [not null, note: 'FK komposit ke stage milik batch yang sama']
   sop_template_task_id uuid [ref: > sop_template_tasks.id]
-  activity_type_id uuid [not null, ref: > activity_types.id]
+  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; disalin dari SOP']
+  activity_subcategory varchar(50) [note: 'Disalin dari SOP; wajib untuk maintenance']
+  activity_type_id uuid [not null, ref: > activity_types.id, note: 'Turunan kategori/subkategori untuk activity log']
   name varchar(200) [not null]
   instructions text
-  offset_days int [not null, default: 0, note: 'Disalin dari SOP; HST dari tanggal tanam batch']
+  offset_days int [not null, default: 0, note: 'Disalin dari SOP; HST non-negatif dari tanggal tanam batch']
   tolerance_days int [not null, default: 0]
   scheduled_date date [note: 'Boleh kosong ketika tanggal acuan belum tersedia']
   due_date date
@@ -658,7 +662,7 @@ Table planting_cycle_tasks {
     (planting_cycle_id, position) [unique]
     (planting_cycle_id, scheduled_date, status)
   }
-  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage, versi SOP, dan jenis aktivitas harus konsisten. Histori realisasi ada pada farm_activities; pengajuan dan keputusan ada pada planting_cycle_task_submissions. Status task dan keputusan review diperbarui atomik; satu pengajuan submitted aktif dan maksimal satu approved per task. Task rejected kembali in_progress; riwayat penolakan tidak ditimpa.'
+  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage diturunkan dari kategori; activity_type_id juga diturunkan dari kategori/subkategori agar konsisten dengan activity log. Histori realisasi ada pada farm_activities; pengajuan dan keputusan ada pada planting_cycle_task_submissions. Status task dan keputusan review diperbarui atomik; satu pengajuan submitted aktif dan maksimal satu approved per task. Task rejected kembali in_progress; riwayat penolakan tidak ditimpa.'
 }
 
 Table planting_cycle_task_submissions {

@@ -3,7 +3,6 @@
 namespace Tests\Feature\Sop;
 
 use App\Enums\TeamRole;
-use App\Models\ActivityType;
 use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\Farm;
@@ -67,20 +66,12 @@ class SopTemplateTest extends TestCase
         ]);
     }
 
-    private function activityType(string $code = 'planting'): ActivityType
-    {
-        return ActivityType::query()->firstOrCreate(['code' => $code], [
-            'name' => ucfirst(str_replace('_', ' ', $code)),
-            'description' => 'Jenis aktivitas pengujian.',
-        ]);
-    }
-
     /** @return array<string, mixed> */
-    private function taskPayload(int $sequence = 1, string $code = 'planting'): array
+    private function taskPayload(int $sequence = 1, string $category = 'planting', ?string $subcategory = null): array
     {
         return [
-            'activity_type_id' => $this->activityType($code)->id,
-            'stage_code' => 'planting',
+            'activity_category' => $category,
+            'activity_subcategory' => $subcategory,
             'name' => 'Langkah '.$sequence,
             'instructions' => 'Instruksi langkah '.$sequence.'.',
             'offset_days' => ($sequence - 1) * 7,
@@ -140,6 +131,33 @@ class SopTemplateTest extends TestCase
         $service->createTask($version, $this->taskPayload(2, 'harvest'));
     }
 
+    public function test_task_requires_a_supported_category_and_maintenance_subcategory(): void
+    {
+        $template = $this->createTemplate();
+        $version = $template->versions()->firstOrFail();
+        $url = '/admin/sops/'.$template->id.'/versions/'.$version->id.'/tasks';
+
+        $this->post($url, [
+            ...$this->taskPayload(1, 'maintenance'),
+            'activity_subcategory' => '',
+        ])->assertSessionHasErrors('activity_subcategory');
+
+        $this->post($url, [
+            ...$this->taskPayload(1, 'planting'),
+            'activity_subcategory' => 'irrigation',
+        ])->assertSessionHasErrors('activity_subcategory');
+
+        $this->post($url, [
+            ...$this->taskPayload(1, 'land_cleaning'),
+        ])->assertSessionHasErrors('activity_category');
+
+        $this->post($url, [
+            ...$this->taskPayload(),
+            'stage_code' => 'planting',
+            'activity_type_id' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertSessionHasErrors(['stage_code', 'activity_type_id']);
+    }
+
     public function test_new_version_copies_tasks_and_publishing_retires_previous_version(): void
     {
         $template = $this->createTemplate();
@@ -190,7 +208,7 @@ class SopTemplateTest extends TestCase
 
         $service->createTask($version, $this->taskPayload(3, 'harvest'));
         $service->createTask($version, $this->taskPayload(1, 'planting'));
-        $service->createTask($version, $this->taskPayload(2, 'irrigation'));
+        $service->createTask($version, $this->taskPayload(2, 'maintenance', 'irrigation'));
 
         $this->assertSame([0, 7, 14], $version->tasks()->pluck('offset_days')->all());
     }

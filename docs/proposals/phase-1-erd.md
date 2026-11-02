@@ -108,7 +108,7 @@ Lima tabel existing disesuaikan. Sisanya mempertahankan kolom yang sudah ada.
 | `planting_rounds` | Kelompok batch dalam satu periode penanaman di blok |
 | `sop_templates` | Identitas template SOP per tenant dan varietas beserta asal salinan |
 | `sop_template_versions` | Versi SOP yang dapat dipublikasikan dan dibekukan |
-| `sop_template_tasks` | Daftar pekerjaan berdasarkan stage dan hari relatif |
+| `sop_template_tasks` | Daftar pekerjaan berdasarkan kategori/subkategori dan hari HST relatif |
 | `planting_cycle_stages` | Timeline enam stage masing-masing batch |
 | `planting_cycle_tasks` | Salinan pekerjaan dan jadwal per batch |
 | `planting_cycle_task_submissions` | Riwayat pengajuan selesai, snapshot bukti, dan keputusan approval setiap percobaan |
@@ -133,20 +133,24 @@ Nilainya wajib sama dengan lahan dari `planting_rounds.block_id`.
 `current_stage` tidak ditambahkan pada batch: nilainya diperoleh dari timeline
 agar tidak menyimpan dua status tahap yang dapat berbeda.
 
-## Arti stage dan jenis aktivitas
+## Kategori, subkategori, dan stage batch
 
-| Stage | Contoh jenis aktivitas | Detail realisasi |
+Form aktivitas memakai kategori dan subkategori. Stage adalah konsep internal
+batch yang diturunkan dari kategori task saat task batch dibuat.
+
+| Kategori | Subkategori | Stage batch |
 | --- | --- | --- |
-| `land_cleaning` | `land_cleaning` | `land_cleaning_details` |
-| `soil_preparation` | `soil_preparation` | `soil_preparation_details` |
-| `basic_fertilizer` | `fertilization` | `fertilization_details` |
-| `planting` | `planting` | `planting_details` |
-| `maintenance` | `irrigation`, `fertilization`, `pesticide`, `growth_check`, `incident` | Detail sesuai jenis; `growth_check` memakai `plant_observations` |
-| `harvest` | `harvest` | `harvest_details` |
+| `planting` | - | `planting` |
+| `maintenance` | `irrigation` | `maintenance` |
+| `maintenance` | `weeding` | `maintenance` |
+| `maintenance` | `follow_up_fertilization` | `maintenance` |
+| `maintenance` | `growth_check` | `maintenance` |
+| `maintenance` | `pest_control` | `maintenance` |
+| `harvest` | - | `harvest` |
 
-Enam stage merupakan alur tetap, bukan master tahap yang dapat diedit bebas.
-Jenis aktivitas dan stage adalah dua konsep berbeda: pemupukan bisa terjadi
-pada basic fertilizer maupun maintenance.
+Pembersihan lahan dan pengolahan tanah bukan bagian SOP; keduanya dikelola
+sebagai persiapan batch/blok. Detail realisasi tetap ditentukan saat activity
+log dibuat berdasarkan subkategori.
 
 ## Jadwal SOP dan histori
 
@@ -162,10 +166,11 @@ pada basic fertilizer maupun maintenance.
   teks template yang bisa berubah.
 - Perubahan template atau versi terbaru hanya digunakan batch berikutnya.
   Jadwal dan isi pekerjaan batch berjalan tetap memakai snapshot versi semula.
-- Setiap pekerjaan menunjuk salah satu dari enam stage milik batch yang sama.
+- Setiap pekerjaan memiliki kategori/subkategori; stage batch diturunkan dari
+  kategori tersebut saat task batch dibuat.
 - Semua offset pekerjaan SOP memakai HST dari tanggal tanam batch. `H+0`
-  adalah tanggal tanam; offset negatif dipakai untuk pekerjaan sebelum tanam
-  (misalnya `H-14` land clearing). Stage tidak menjadi acuan jadwal.
+  adalah tanggal tanam. SOP dimulai pada penanaman; pekerjaan persiapan tidak
+  menjadi langkah SOP.
 - Tanggal acuan memakai `planting_cycles.planted_at` jika sudah ada. Sebelum
   realisasi tanam, `planned_planting_at` dipakai sebagai acuan rencana agar
   pekerjaan persiapan tetap memiliki tanggal. Perhitungan hari mengikuti
@@ -443,9 +448,9 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | --- | --- | --- |
 | `sop_templates` | Baru | `id`, `team_id`, `variety_id`, `copied_from_version_id`, `name`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `sop_template_versions` | Baru | `id`, `sop_template_id`, `version`, `notes`, `status`, `created_by`, `published_by`, `published_at`, `created_at`, `updated_at` |
-| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `activity_type_id`, `stage_code`, `name`, `instructions`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at` |
+| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at`, `activity_category`, `activity_subcategory` |
 | `planting_cycle_stages` | Baru | `id`, `planting_cycle_id`, `stage_code`, `position`, `planned_start_at`, `planned_end_at`, `started_at`, `completed_at`, `status`, `skip_reason`, `created_at`, `updated_at` |
-| `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_type_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
+| `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_category`, `activity_subcategory`, `activity_type_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
 | `planting_cycle_task_submissions` | Baru | `id`, `planting_cycle_task_id`, `attempt_number`, `submitted_by`, `submitted_at`, `reported_completed_at`, `submission_note`, `evidence_snapshot`, `status`, `reviewed_by`, `reviewed_at`, `review_note`, `created_at`, `updated_at` |
 
 ### Aktivitas dan laporan penanaman/panen

@@ -64,7 +64,6 @@ class SopTemplateController extends Controller
             'team' => $team->only(['id', 'name']),
             'template' => null,
             'varieties' => $this->sops->varieties(),
-            'stageCodes' => SopTemplateTask::STAGE_CODES,
         ]);
     }
 
@@ -86,8 +85,6 @@ class SopTemplateController extends Controller
 
         return Inertia::render('sops/Show', [
             'template' => $template,
-            'activityTypes' => $this->sops->activityTypes(),
-            'stageCodes' => SopTemplateTask::STAGE_CODES,
             'can' => [
                 'update' => Gate::allows('update', $template),
                 'manageVersions' => Gate::allows('create', [\App\Models\SopTemplateVersion::class, $template]),
@@ -108,7 +105,6 @@ class SopTemplateController extends Controller
             'team' => $team->only(['id', 'name']),
             'template' => $template->only(['id', 'variety_id', 'name', 'description', 'is_active']),
             'varieties' => $this->sops->varieties(),
-            'stageCodes' => SopTemplateTask::STAGE_CODES,
         ]);
     }
 

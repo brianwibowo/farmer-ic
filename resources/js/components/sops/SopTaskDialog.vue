@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Save } from '@lucide/vue';
-import { watch } from 'vue';
+import { computed, watch } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,20 +12,34 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { sopStageLabels, type SopActivityType, type SopTask, type SopVersion } from '@/types/sop';
+import {
+    sopActivityCategoryLabels,
+    sopActivitySubcategoryLabels,
+    type SopActivityCategory,
+    type SopActivitySubcategory,
+    type SopTask,
+    type SopVersion,
+} from '@/types/sop';
 
 const props = defineProps<{
     open: boolean;
     version: SopVersion;
     task: SopTask | null;
-    activityTypes: SopActivityType[];
-    stageCodes: string[];
 }>();
 const emit = defineEmits<{ 'update:open': [boolean] }>();
 
+const categoryOptions = Object.entries(sopActivityCategoryLabels) as [
+    SopActivityCategory,
+    string,
+][];
+const subcategoryOptions = Object.entries(sopActivitySubcategoryLabels) as [
+    SopActivitySubcategory,
+    string,
+][];
+
 const form = useForm({
-    activity_type_id: '',
-    stage_code: 'planting',
+    activity_category: 'planting' as SopActivityCategory,
+    activity_subcategory: '' as SopActivitySubcategory | '',
     name: '',
     instructions: '',
     offset_days: 0,
@@ -33,10 +47,14 @@ const form = useForm({
     is_required: true,
 });
 
+const needsSubcategory = computed(
+    () => form.activity_category === 'maintenance',
+);
+
 function reset(): void {
     form.clearErrors();
-    form.activity_type_id = props.task?.activity_type_id ?? '';
-    form.stage_code = props.task?.stage_code ?? 'planting';
+    form.activity_category = props.task?.activity_category ?? 'planting';
+    form.activity_subcategory = props.task?.activity_subcategory ?? '';
     form.name = props.task?.name ?? '';
     form.instructions = props.task?.instructions ?? '';
     form.offset_days = props.task?.offset_days ?? 0;
@@ -48,6 +66,15 @@ watch(
     () => props.open,
     (open) => {
         if (open) reset();
+    },
+);
+
+watch(
+    () => form.activity_category,
+    (category) => {
+        if (category !== 'maintenance') {
+            form.activity_subcategory = '';
+        }
     },
 );
 
@@ -80,7 +107,7 @@ function submit(): void {
             <DialogHeader class="shrink-0">
                 <DialogTitle>{{ task ? 'Ubah langkah SOP' : 'Tambah langkah SOP' }}</DialogTitle>
                 <DialogDescription>
-                    Langkah ini tersimpan pada versi {{ version.version }} yang masih draft.
+                    SOP mencakup pekerjaan penanaman sampai panen pada versi {{ version.version }} yang masih draft.
                 </DialogDescription>
             </DialogHeader>
 
@@ -99,36 +126,50 @@ function submit(): void {
                                 :aria-describedby="field.description"
                             />
                         </FarmField>
-                        <FarmField id="task-type" label="Jenis aktivitas" required :error="form.errors.activity_type_id" v-slot="field">
+                        <FarmField id="task-category" label="Kategori aktivitas" required :error="form.errors.activity_category" v-slot="field">
                             <select
                                 :id="field.id"
-                                v-model="form.activity_type_id"
+                                v-model="form.activity_category"
                                 class="admin-field"
                                 required
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             >
-                                <option value="" disabled>Pilih jenis</option>
-                                <option v-for="type in activityTypes" :key="type.id" :value="type.id">
-                                    {{ type.name }}
+                                <option v-for="[value, label] in categoryOptions" :key="value" :value="value">
+                                    {{ label }}
                                 </option>
                             </select>
                         </FarmField>
-                        <FarmField id="task-stage" label="Stage" required :error="form.errors.stage_code" v-slot="field">
-                            <select :id="field.id" v-model="form.stage_code" class="admin-field" required>
-                                <option v-for="stage in stageCodes" :key="stage" :value="stage">
-                                    {{ sopStageLabels[stage] ?? stage }}
+                        <FarmField
+                            v-if="needsSubcategory"
+                            id="task-subcategory"
+                            label="Subkategori aktivitas"
+                            required
+                            :error="form.errors.activity_subcategory"
+                            v-slot="field"
+                        >
+                            <select
+                                :id="field.id"
+                                v-model="form.activity_subcategory"
+                                class="admin-field"
+                                required
+                                :aria-invalid="field.invalid"
+                                :aria-describedby="field.description"
+                            >
+                                <option value="" disabled>Pilih subkategori</option>
+                                <option v-for="[value, label] in subcategoryOptions" :key="value" :value="value">
+                                    {{ label }}
                                 </option>
                             </select>
                         </FarmField>
-                        <FarmField id="task-offset" label="Offset HST (hari)" required :error="form.errors.offset_days" hint="H+0 adalah tanggal tanam. Gunakan angka negatif untuk pekerjaan sebelum tanam, misalnya -14 untuk land clearing." v-slot="field">
+                        <FarmField id="task-offset" label="Offset HST (hari)" required :error="form.errors.offset_days" hint="H+0 adalah tanggal tanam. SOP dimulai pada penanaman, jadi offset tidak negatif." v-slot="field">
                             <input
                                 :id="field.id"
                                 v-model.number="form.offset_days"
                                 class="admin-field"
                                 type="number"
                                 required
-                                min="-3650"
+                                min="0"
                                 max="3650"
                                 step="1"
                                 :aria-invalid="field.invalid"
@@ -163,7 +204,7 @@ function submit(): void {
                         </FarmField>
                         <label class="flex items-center gap-3 text-sm sm:col-span-2">
                             <input v-model="form.is_required" type="checkbox" class="size-4 accent-primary" />
-                            Wajib diselesaikan sebelum stage dianggap selesai
+                            Wajib diselesaikan sebelum tahap batch terkait dianggap selesai
                         </label>
                     </div>
 

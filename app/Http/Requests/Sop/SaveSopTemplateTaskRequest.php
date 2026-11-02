@@ -27,15 +27,22 @@ class SaveSopTemplateTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'activity_type_id' => ['required', 'uuid', 'exists:activity_types,id'],
-            'stage_code' => ['required', Rule::in(SopTemplateTask::STAGE_CODES)],
+            'activity_category' => ['required', Rule::in(SopTemplateTask::categoryCodes())],
+            'activity_subcategory' => [
+                'nullable',
+                'string',
+                Rule::requiredIf(fn (): bool => $this->input('activity_category') === 'maintenance'),
+                Rule::in(SopTemplateTask::subcategoryCodes()),
+                'prohibited_unless:activity_category,maintenance',
+            ],
             'name' => ['required', 'string', 'max:200'],
             'instructions' => ['nullable', 'string', 'max:5000'],
-            'offset_days' => ['required', 'integer', 'between:-3650,3650'],
+            'offset_days' => ['required', 'integer', 'between:0,3650'],
             'tolerance_days' => ['required', 'integer', 'between:0,365'],
             'is_required' => ['sometimes', 'boolean'],
             ...array_fill_keys([
-                'id', 'sop_template_version_id', 'version', 'status', 'position', 'schedule_anchor', 'created_at', 'updated_at',
+                'id', 'sop_template_version_id', 'version', 'status', 'position', 'schedule_anchor',
+                'activity_type_id', 'stage_code', 'created_at', 'updated_at',
             ], ['prohibited']),
         ];
     }

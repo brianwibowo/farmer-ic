@@ -146,7 +146,8 @@ Jika Blok B dan sebagian Blok A ditanam dalam selisih 0–3 hari, keduanya masuk
 ## Scheduled Tasks Berbasis SOP
 
 - Scheduled tasks **tidak** memakai recurrence daily/weekly/monthly.
-- Admin menyusun **SOP modular**: nama langkah, activity type, offset HST, instruksi, dan bukti yang diminta.
+- Admin menyusun **SOP modular**: nama langkah, kategori/subkategori aktivitas, offset HST, instruksi, dan bukti yang diminta.
+- SOP mencakup penanaman sampai panen; pembersihan lahan dan pengolahan tanah dikelola sebagai persiapan batch/blok.
 - Saat SOP diterapkan ke batch, sistem membuat task untuk setiap langkah SOP pada tanggal tanam + offset HST. Sebelum realisasi tanam, `planned_planting_at` menjadi acuan sementara. Batch dalam satu cycle memakai acuan HST yang sama.
 - Task terikat pada batch/sub-blok; cycle diperoleh dari batch.
 - Petugas menyelesaikan task dengan membuat activity log yang terhubung ke task.

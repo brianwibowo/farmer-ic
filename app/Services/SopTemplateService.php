@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\ActivityType;
 use App\Models\CropVariety;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
@@ -55,7 +54,7 @@ class SopTemplateService
             'versions' => fn ($query) => $query->orderByDesc('version')->with([
                 'creator:id,name',
                 'publisher:id,name',
-                'tasks.activityType:id,code,name',
+                'tasks',
             ]),
         ]);
     }
@@ -72,16 +71,6 @@ class SopTemplateService
                 'name' => $variety->name,
                 'commodity' => $variety->commodity?->name ?? '',
             ])
-            ->all();
-    }
-
-    /** @return array<int, array{id: string, code: string, name: string}> */
-    public function activityTypes(): array
-    {
-        return ActivityType::query()
-            ->orderBy('name')
-            ->get(['id', 'code', 'name'])
-            ->map(fn (ActivityType $type): array => ['id' => $type->id, 'code' => $type->code, 'name' => $type->name])
             ->all();
     }
 
@@ -159,7 +148,7 @@ class SopTemplateService
                 });
             }
 
-            return $version->load(['tasks.activityType:id,code,name']);
+            return $version->load(['tasks']);
         });
     }
 
@@ -185,7 +174,7 @@ class SopTemplateService
                 'published_at' => now(),
             ])->save();
 
-            return $version->load(['tasks.activityType:id,code,name', 'publisher:id,name']);
+            return $version->load(['tasks', 'publisher:id,name']);
         });
     }
 
@@ -228,8 +217,8 @@ class SopTemplateService
         $data = $source instanceof SopTemplateTask ? $source->getAttributes() : $source;
 
         return [
-            'activity_type_id' => $data['activity_type_id'],
-            'stage_code' => $data['stage_code'],
+            'activity_category' => $data['activity_category'],
+            'activity_subcategory' => $data['activity_subcategory'] ?? null,
             'name' => $data['name'],
             'instructions' => $data['instructions'] ?? null,
             'offset_days' => (int) ($data['offset_days'] ?? 0),
