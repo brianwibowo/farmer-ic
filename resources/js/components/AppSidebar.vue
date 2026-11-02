@@ -71,6 +71,9 @@ const mainNavItems = computed<NavItem[]>(() => [
                       : 'Farm Management',
                   href: '/admin/farm-management',
                   icon: LandPlot,
+                  isActive:
+                      isCurrentOrParentUrl('/admin/farm-management') ||
+                      page.component.startsWith('farmer/blocks/'),
               },
           ]
         : []),

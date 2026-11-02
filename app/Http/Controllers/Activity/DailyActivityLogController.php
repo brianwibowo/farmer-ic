@@ -41,6 +41,7 @@ class DailyActivityLogController extends Controller
                 'name' => $request->user()->name,
             ],
             'today' => now('Asia/Jakarta')->format('Y-m-d'),
+            'blocks' => Gate::allows('viewAny', [\App\Models\FarmBlock::class, $team]) ? $this->logs->blockOptions($farm, $request->user(), $team) : [],
             'can' => [
                 'create' => Gate::allows('create', [DailyActivityLog::class, $farm]),
             ],

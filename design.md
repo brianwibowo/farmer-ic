@@ -495,6 +495,32 @@ its main content `min-h-0 overflow-y-auto` so long pages remain reachable.
 
 ## Implementation rules for Farmer IC
 
+Farm Management forms display capacity limits before submission and keep a
+focusable, linked error summary alongside inline errors. Address selection starts
+with a searchable kecamatan, followed by its kota/kabupaten and provinsi; later
+controls stay disabled until the preceding choice is complete. Search results
+include parent names to distinguish duplicate kecamatan names. Existing unmatched
+addresses are explicitly marked as legacy and preserved until changed.
+
+Block pages reuse `FarmManagementLayout` when the backend shared navigation
+permits Farm Management, including the Admin sidebar, header, typography,
+`admin-field` controls, and themed dialog portals. Keep Manajemen Kebun active
+while visiting block routes. On wide desktop screens, batch capacity and its form
+share two columns; on mobile they remain sequential. Block forms follow the farm
+form width, and compact list metrics retain their units.
+Capacity metrics provide an information button with a 44px touch target using
+`MetricInfoTooltip`; explain block boundaries, batch reservations, and a labeled
+example. Keep totals visible, support keyboard/tap dismissal, and theme portals.
+
+For the Farmer profile, the block shell uses `resources/css/farm-block-styling.css`
+and `farm-block-theme` for contrast corrections, including dialog
+portals. Primary button labels use a dark foreground on the existing light green;
+error/success text has separate dark values. Keep Admin tokens in the existing
+admin stylesheet. On mobile, compact statistics retain units, optional list
+filters can collapse, and batch timelines expose their current stage before the
+expandable six-stage history. A visible return link preserves the permitted Admin
+context when moving between farm details, blocks, and logbook.
+
 Admin dashboard screens share `resources/css/admin-dashboard-styling.css` for
 their light/dark tokens, typography, and field states. Apply the
 `admin-dashboard-theme` class to admin layouts and portal content. Use

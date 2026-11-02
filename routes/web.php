@@ -97,6 +97,8 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::delete('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'destroy'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.destroy');
     Route::post('sops/{sopTemplate}/versions/{version}/copy', [SopTemplateCopyController::class, 'store'])->whereUuid(['sopTemplate', 'version'])->name('sops.copy');
 
+    Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');
+    Route::get('farm-management/{farm}/deletion-check', [FarmManagementController::class, 'deletionCheck'])->whereUuid('farm')->name('farm-management.deletion-check');
     Route::get('farm-management/{farm}/force-delete', [FarmManagementController::class, 'confirmForceDelete'])
         ->whereUuid('farm')->name('farm-management.force-delete');
     Route::delete('farm-management/{farm}/force-delete', [FarmManagementController::class, 'forceDestroy'])

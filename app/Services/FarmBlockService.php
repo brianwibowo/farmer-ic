@@ -9,7 +9,9 @@ use App\Models\PlantingCycleStage;
 use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\LandArea;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -57,7 +59,11 @@ class FarmBlockService
         $batches = PlantingCycle::visibleTo($actor, $team)->whereIn('planting_round_id', $rounds->modelKeys())->orderBy('batch_number')->get();
         $stages = PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())->orderBy('position')->get()->groupBy('planting_cycle_id');
 
+        $farm = Farm::visibleTo($actor, $team)->findOrFail($visible->farm_id);
+
         return ['block' => $visible->toArray(), 'rounds' => $rounds->map->only(['id', 'round_number', 'status']),
+            'deletionBlocked' => $rounds->isNotEmpty() || \App\Models\BlockMappingDetail::visibleTo($actor, $team)->where('block_id', $visible->id)->exists(),
+            'capacity' => $this->batchCapacity($farm, $visible, PlantingCycle::visibleTo($actor, $team)->toBase()),
             'batches' => $batches->map(fn (PlantingCycle $batch) => [
                 ...$batch->only(['id', 'planting_round_id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'planted_at', 'status']),
                 'stages' => ($stages->get($batch->id) ?? collect())->map->only(['code', 'position', 'status', 'started_at', 'completed_at']),
@@ -115,6 +121,20 @@ class FarmBlockService
         }
     }
 
+    /** @return array{maximum_area_ha: string, minimum_area_ha: string, running_batches: int} */
+    public function formCapacity(Farm $farm, User $actor, Team $team, ?FarmBlock $block = null): array
+    {
+        $others = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)
+            ->when($block, fn ($q) => $q->whereKeyNot($block->id))->sum('area_ha');
+        $running = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->whereIn('planting_round_id', PlantingRound::visibleTo($actor, $team)->where('block_id', $block?->id)->select('id'))
+            ->whereIn('status', ['planned', 'active']);
+
+        return ['maximum_area_ha' => LandArea::hectares(max(0, LandArea::squareMetres($farm->total_area_ha) - LandArea::squareMetres($others))),
+            'minimum_area_ha' => LandArea::hectares(max(1, LandArea::squareMetres((clone $running)->sum('reserved_area_ha')))),
+            'running_batches' => (clone $running)->count()];
+    }
+
     public function delete(FarmBlock $block, User $actor, Team $team): void
     {
         DB::transaction(function () use ($block, $actor, $team): void {
@@ -137,17 +157,22 @@ class FarmBlockService
             if (! $locked->is_active) {
                 throw ValidationException::withMessages(['reserved_area_ha' => 'Aktifkan blok sebelum membuat subblok/batch.']);
             }
-            // Reservations span all rounds. Existing active cycles without a block
-            // still occupy farm capacity until explicitly reconciled or closed.
-            $running = DB::table('planting_cycles as c')->join('planting_rounds as r', 'r.id', '=', 'c.planting_round_id')
-                ->where('r.block_id', $locked->id)->whereIn('c.status', ['planned', 'active']);
-            $exceedsBlock = $running->selectRaw('COALESCE(SUM(c.reserved_area_ha), 0) + CAST(? AS numeric) > CAST(? AS numeric) AS exceeds', [$data['reserved_area_ha'], $locked->area_ha])->value('exceeds');
-            $exceedsFarm = DB::table('planting_cycles')->where('farm_id', $farm->id)
-                ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('planting_round_id')->where('status', 'active'))
-                    ->orWhere(fn ($batch) => $batch->whereNotNull('planting_round_id')->whereIn('status', ['planned', 'active'])))
-                ->selectRaw('COALESCE(SUM(CASE WHEN planting_round_id IS NULL THEN planted_area_ha ELSE reserved_area_ha END), 0) + CAST(? AS numeric) > CAST(? AS numeric) AS exceeds', [$data['reserved_area_ha'], $farm->total_area_ha])->value('exceeds');
-            if ($exceedsBlock || $exceedsFarm) {
-                throw ValidationException::withMessages(['reserved_area_ha' => 'Alokasi batch melebihi sisa kapasitas blok atau kebun.']);
+            // Integrity checks include all running reservations, even when a
+            // caller's read permissions cannot expose every related record.
+            $capacity = $this->batchCapacity($farm, $locked, DB::table('planting_cycles'));
+            $requested = LandArea::squareMetres($data['reserved_area_ha']);
+            if ($requested === null || $requested < 1) {
+                throw ValidationException::withMessages(['reserved_area_ha' => 'Masukkan luas batch minimal 0,0001 ha atau 1 m².']);
+            }
+            if ($requested > LandArea::squareMetres($capacity['available_ha'])) {
+                $blockLimited = LandArea::squareMetres($capacity['block_remaining_ha']) <= LandArea::squareMetres($capacity['farm_remaining_ha']);
+                $remaining = LandArea::squareMetres($capacity[$blockLimited ? 'block_remaining_ha' : 'farm_remaining_ha']);
+                $message = 'Luas batch '.LandArea::label($requested).' melebihi sisa kapasitas '.($blockLimited ? 'blok' : 'kebun').' '.LandArea::label($remaining).'.';
+                if (! $blockLimited && LandArea::squareMetres($capacity['legacy_active_ha']) > 0) {
+                    $message .= ' '.LandArea::label(LandArea::squareMetres($capacity['legacy_active_ha'])).' masih digunakan tanam aktif di luar batch.';
+                }
+                $message .= ' Maksimal batch baru '.LandArea::label(LandArea::squareMetres($capacity['available_ha'])).'.';
+                throw ValidationException::withMessages(['reserved_area_ha' => $message]);
             }
             $round = PlantingRound::visibleTo($actor, $team)->where('block_id', $locked->id)->where('status', 'active')->first();
             if ($round && ! PlantingCycle::visibleTo($actor, $team)->where('planting_round_id', $round->id)->whereIn('status', ['planned', 'active'])->exists()) {
@@ -190,6 +215,33 @@ class FarmBlockService
 
             return $batch->refresh();
         });
+    }
+
+    /** @return array<string, string> */
+    private function batchCapacity(Farm $farm, FarmBlock $block, Builder $cycles): array
+    {
+        $usage = $cycles->where('planting_cycles.farm_id', $farm->id)
+            ->leftJoin('planting_rounds as capacity_rounds', 'capacity_rounds.id', '=', 'planting_cycles.planting_round_id')
+            ->selectRaw("COALESCE(SUM(CASE WHEN planting_round_id IS NULL AND planting_cycles.status = 'active' THEN planted_area_ha ELSE 0 END), 0) AS legacy_active_ha")
+            ->selectRaw("COALESCE(SUM(CASE WHEN planting_round_id IS NOT NULL AND planting_cycles.status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS farm_batches_ha")
+            ->selectRaw("COALESCE(SUM(CASE WHEN capacity_rounds.block_id = ? AND planting_cycles.status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS block_batches_ha", [$block->id])
+            ->first();
+        $legacy = LandArea::squareMetres(data_get($usage, 'legacy_active_ha', 0));
+        $farmBatches = LandArea::squareMetres(data_get($usage, 'farm_batches_ha', 0));
+        $blockBatches = LandArea::squareMetres(data_get($usage, 'block_batches_ha', 0));
+        $farmRemaining = max(0, LandArea::squareMetres($farm->total_area_ha) - $legacy - $farmBatches);
+        $blockRemaining = max(0, LandArea::squareMetres($block->area_ha) - $blockBatches);
+
+        return [
+            'farm_total_ha' => LandArea::hectares(LandArea::squareMetres($farm->total_area_ha)),
+            'block_total_ha' => LandArea::hectares(LandArea::squareMetres($block->area_ha)),
+            'legacy_active_ha' => LandArea::hectares($legacy),
+            'farm_batches_ha' => LandArea::hectares($farmBatches),
+            'block_batches_ha' => LandArea::hectares($blockBatches),
+            'farm_remaining_ha' => LandArea::hectares($farmRemaining),
+            'block_remaining_ha' => LandArea::hectares($blockRemaining),
+            'available_ha' => LandArea::hectares(min($farmRemaining, $blockRemaining)),
+        ];
     }
 
     private function letterLabel(int $number): string

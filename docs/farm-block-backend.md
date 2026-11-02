@@ -146,7 +146,30 @@ itu belum ditambahkan oleh pekerjaan blok ini. Endpoint aksi AI tetap mengikuti
 implementasinya yang sudah ada. Tidak dilakukan audit/perubahan menyeluruh pada
 query dan route modul lain.
 
-## Hasil verifikasi
+## Kapasitas dan satuan input batch (2 November 2026)
+
+Detail blok menampilkan sisa alokasi blok dan kebun, pemakaian tanam aktif di
+luar batch, serta maksimal batch baru (nilai terkecil dari kedua sisa).
+Pesan penolakan menyebut batas yang terlampaui dan angka kapasitasnya.
+
+Form batch menerima `area_value` dan `area_unit` (`ha`/`m2`). Konversi server
+menyimpan nilai pada `reserved_area_ha`, dengan presisi 1 m² = 0,0001 ha.
+Input ha menerima koma/titik desimal; m² harus bulat tanpa pemisah ribuan.
+Payload lama `reserved_area_ha` tetap didukung, tetapi tidak boleh dicampur
+dengan pasangan input baru. Validasi server, lock, dan constraint tetap berlaku.
+
+Untuk instalasi demo baru, `DemoFarmSeeder` juga memanggil
+`DemoFarmBlockSeeder`: kebun 12,5 ha memiliki B01 10 ha dan B02 2,5 ha.
+B01 memiliki batch aktif 4,25 ha (fase pemeliharaan), B02 memiliki batch planned
+1,25 ha (pengolahan tanah). Setiap batch memiliki periode dan enam tahap.
+Tidak ada siklus legacy pada instalasi baru. Logbook, pengamatan, dan finance
+tetap menggunakan siklus aktif yang sudah terhubung ke blok/batch.
+
+Pengulangan seeder mempertahankan blok dan siklus existing. Bila ditemukan
+siklus lama tanpa periode/blok, seeder memberi peringatan dan tidak menambahkan
+batch demo di atasnya. Ini bukan migrasi atau reset data aplikasi lama.
+
+## Hasil verifikasi implementasi awal
 
 - 92 pengujian terkait lulus, 3.866 assertions: modul blok, dua worker bersamaan,
   matriks Policy semua model, halaman kebun, force delete kebun, finance,

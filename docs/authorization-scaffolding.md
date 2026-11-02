@@ -90,6 +90,7 @@ discover the persisted domain relationships directly.
 | --- | --- | --- |
 | `ActivityPhoto` | `activity_photos` | activity.farm -> team |
 | `ActivityType` | `activity_types` | Application-wide reference/system record |
+| `AdministrativeRegion` | `administrative_regions` | Application-wide read-only region reference; membership required |
 | `AiAttachment` | `ai_attachments` | conversation.team |
 | `AiConversation` | `ai_conversations` | team |
 | `AiKnowledgeChunk` | `ai_knowledge_chunks` | document.team |
@@ -142,6 +143,7 @@ The exact model rules are:
 | CropVariety | crop_varieties.view = any | At least one persisted team membership |
 | FinancialCategory | financial_categories.view = any | At least one persisted team membership |
 | ActivityType | activity_types.view = any | At least one persisted team membership |
+| AdministrativeRegion | administrative_regions.view = any | Owner/Admin/Petugas: persisted membership; native Policy and visibleTo; application mutations default deny |
 | Role | roles.view = any | At least one persisted team membership |
 | AuditLog | audit_logs.view = any | At least one persisted team membership |
 

@@ -48,11 +48,12 @@ class FarmBlockController extends Controller
         ]);
     }
 
-    public function create(Farm $farm): Response
+    public function create(Request $request, Farm $farm): Response
     {
         Gate::authorize('create', [FarmBlock::class, $farm]);
 
-        return Inertia::render('farmer/blocks/Form', ['farm' => $farm->only(['id', 'name', 'total_area_ha']), 'block' => null]);
+        return Inertia::render('farmer/blocks/Form', ['farm' => $farm->only(['id', 'name', 'total_area_ha']), 'block' => null,
+            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm))]);
     }
 
     public function store(SaveFarmBlockRequest $request, Farm $farm): RedirectResponse
@@ -87,6 +88,7 @@ class FarmBlockController extends Controller
         return Inertia::render('farmer/blocks/Form', [
             'farm' => $farm->only(['id', 'name', 'total_area_ha']),
             'block' => $this->blocks->detail($block, $request->user(), $this->team($farm))['block'],
+            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm), $block),
         ]);
     }
 

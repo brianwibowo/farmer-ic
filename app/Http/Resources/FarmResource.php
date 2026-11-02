@@ -21,6 +21,7 @@ class FarmResource extends JsonResource
             'address' => $this->address,
             'city' => $this->city,
             'district' => $this->district,
+            'district_code' => $this->getAttribute('district_code'),
             'province' => $this->province,
             'total_area_ha' => $this->total_area_ha,
             'latitude' => $this->latitude,

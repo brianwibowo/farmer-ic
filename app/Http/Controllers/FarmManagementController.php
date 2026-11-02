@@ -42,6 +42,7 @@ class FarmManagementController extends Controller
                     ],
                 ]),
                 'summary' => $this->farms->summary($request->user(), $team),
+                'locationOptions' => $this->farms->locationOptions($request->user(), $team),
                 'filters' => array_replace([
                     'search' => '', 'city' => '', 'province' => '',
                     'sort' => 'name', 'direction' => 'asc', 'per_page' => 15,
@@ -82,6 +83,7 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Show', [
             'farm' => $this->farms->detail($farm, $request->user()),
+            'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [
                 'update' => Gate::allows('update', $farm),
                 'delete' => Gate::allows('delete', $farm),
@@ -125,6 +127,13 @@ class FarmManagementController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun berhasil dihapus.']);
 
         return to_route('farm-management.index');
+    }
+
+    public function deletionCheck(Request $request, Farm $farm): \Illuminate\Http\JsonResponse
+    {
+        Gate::authorize('delete', $farm);
+
+        return response()->json(['blockers' => $this->farms->deletionBlockers($farm, $request->user(), $farm->team)]);
     }
 
     public function confirmForceDelete(Request $request, Farm $farm, FarmDeletionService $deletion): Response

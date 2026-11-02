@@ -3,6 +3,7 @@
 return [
     'roles' => [
         'owner' => [
+            'administrative_regions.view' => 'any',
             'farm_blocks.view' => 'any',
             'planting_rounds.view' => 'any',
             'planting_cycle_stages.view' => 'any',
@@ -65,6 +66,7 @@ return [
         ],
 
         'admin' => [
+            'administrative_regions.view' => 'any',
             'farm_blocks.view' => 'any',
             'farm_blocks.create' => 'any',
             'farm_blocks.update' => 'any',
@@ -199,6 +201,7 @@ return [
         ],
 
         'petugas' => [
+            'administrative_regions.view' => 'any',
             'notifications.view' => 'own',
             'notifications.update' => 'own',
             'farm_blocks.view' => 'own',

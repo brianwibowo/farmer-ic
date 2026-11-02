@@ -1,15 +1,43 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { Moon, Sun } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
 import { useAppearance } from '@/composables/useAppearance';
+import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
+import '../../css/farm-block-styling.css';
+
+defineOptions({ inheritAttrs: false });
 
 const { resolvedAppearance, updateAppearance } = useAppearance();
+const page = usePage();
+const farm = computed(
+    () => page.props.farm as { id: string; name: string } | undefined,
+);
 </script>
 
 <template>
-    <div class="min-h-dvh bg-background text-foreground">
+    <FarmManagementLayout v-if="page.props.navigation?.farms">
+        <div class="space-y-6">
+            <Link
+                :href="
+                    farm
+                        ? `/admin/farm-management/${farm.id}`
+                        : '/admin/farm-management'
+                "
+                class="inline-flex min-h-10 items-center rounded-lg text-sm font-medium text-muted-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
+                >{{
+                    farm ? `Manajemen Kebun / ${farm.name}` : 'Manajemen Kebun'
+                }}</Link
+            >
+            <div class="space-y-6"><slot /></div>
+        </div>
+    </FarmManagementLayout>
+    <div
+        v-else
+        class="farm-block-theme min-h-dvh bg-background text-foreground"
+    >
         <header class="border-b border-border bg-card">
             <div
                 class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6"

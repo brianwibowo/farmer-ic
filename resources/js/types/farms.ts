@@ -1,14 +1,29 @@
-export type FarmPermissions = { update: boolean; delete: boolean; forceDelete: boolean };
+export type FarmPermissions = {
+    update: boolean;
+    delete: boolean;
+    forceDelete: boolean;
+};
 
 export type FarmDeletionSummary = {
-    groups: { key: string; label: string; count: number; effect: 'delete' | 'detach' }[];
+    groups: {
+        key: string;
+        label: string;
+        count: number;
+        effect: 'delete' | 'detach';
+    }[];
     blockers: string[];
     token: string;
 };
 export type LandTenure = 'owned' | 'rented' | 'partnership';
 
 export function landTenureLabel(value: LandTenure | null): string {
-    return value === 'owned' ? 'Milik sendiri' : value === 'rented' ? 'Sewa' : value === 'partnership' ? 'Kerja sama' : 'Belum diisi';
+    return value === 'owned'
+        ? 'Milik sendiri'
+        : value === 'rented'
+          ? 'Sewa'
+          : value === 'partnership'
+            ? 'Kerja sama'
+            : 'Belum diisi';
 }
 
 export type FarmRow = {
@@ -23,6 +38,14 @@ export type FarmRow = {
 };
 
 export type ManagedFarm = Omit<FarmRow, 'can'> & {
+    district_code: string | null;
+    region: RegionOption | null;
+    owner_restricted: boolean;
+    capacity: {
+        block_area_ha: string;
+        reserved_area_ha: string;
+        minimum_area_ha: string;
+    };
     owner_id: string | null;
     owner_name: string | null;
     team_name: string;
@@ -33,6 +56,15 @@ export type ManagedFarm = Omit<FarmRow, 'can'> & {
     active_cycles: number;
     active_area_ha: string;
     created_at: string | null;
+};
+
+export type RegionOption = {
+    code: string;
+    district: string;
+    city: string;
+    city_code: string;
+    province: string;
+    province_code: string;
 };
 
 export type FarmFilters = {
@@ -56,5 +88,7 @@ export type FarmPage = {
 };
 
 export function hectares(value: string | number): string {
-    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 4 }).format(Number(value));
+    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 4 }).format(
+        Number(value),
+    );
 }
