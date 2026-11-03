@@ -59,7 +59,7 @@ class FarmBlockController extends Controller
     public function store(SaveFarmBlockRequest $request, Farm $farm): RedirectResponse
     {
         Gate::authorize('create', [FarmBlock::class, $farm]);
-        $block = $this->blocks->create($farm, $request->user(), $this->team($farm), $request->validated());
+        $block = $this->blocks->create($farm, $request->user(), $this->team($farm), $request->safe()->except(['area_value', 'area_unit']));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Blok dibuat. Land Clearing dimulai.']);
 
         return to_route('blocks.show', [$farm, $block]);
@@ -96,7 +96,7 @@ class FarmBlockController extends Controller
     {
         $this->matchFarm($farm, $block);
         Gate::authorize('update', $block);
-        $this->blocks->update($block, $request->user(), $this->team($farm), $request->validated());
+        $this->blocks->update($block, $request->user(), $this->team($farm), $request->safe()->except(['area_value', 'area_unit']));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan blok disimpan.']);
 
         return to_route('blocks.show', [$farm, $block]);

@@ -164,6 +164,39 @@ untuk siklus yang sudah ditanam.
 
 ## 6. Verifikasi terakhir
 
+### Integrasi remote sebelum push
+
+- Commit lokal awal: `fa7a24e`.
+- Remote `origin/feat/admin-sop` telah bergerak ke `1908285` saat akan push;
+  perubahan remote digabung, bukan ditimpa atau force-push.
+- Manajemen tugas Admin (skip/cancel/reschedule), pembatasan kategori SOP ke
+  maintenance/harvest, perubahan UI Admin/settings, dan shared select remote
+  dipertahankan.
+- Jadwal efektif Petugas menghormati `rescheduled_date` dari Admin. Sinkronisasi
+  HST memperbarui jadwal dasar tugas pending tanpa menghapus override Admin
+  atau membuat due date-nya tidak sesuai override.
+- Task list tanpa assignment menampilkan data kosong. Flag start/submit tetap
+  nonaktif karena endpoint lifecycle Petugas belum diimplementasikan; fixture
+  banner lama tidak digunakan.
+- Form kategori generik lama tetap digantikan oleh form tugas yang sudah
+  menyimpan data backend. Select baru mengikuti primitive bersama dari remote.
+- `docs/petugas-flow-handoff.md` dipertahankan sebagai catatan historis dengan
+  penunjuk ke handoff terbaru ini.
+
+### Verifikasi setelah integrasi remote
+
+- **539 tes: 538 lulus, 1 dilewati; 58.189 assertions.**
+- Regresi penuh dijalankan pada database terpisah
+  `farmer_ic_crud_test_merge_verification`, dengan batas waktu PHP CLI
+  dinonaktifkan untuk suite yang berlangsung sekitar dua menit.
+- Termasuk tes baru bahwa realisasi tanam mempertahankan override jadwal Admin
+  beserta due date-nya.
+- Build frontend, TypeScript, PHPStan terarah pada integrasi, Pint, serta
+  lint/format form yang berubah: lulus.
+- Warning build tetap font opsional dan ukuran chunk, bukan kegagalan build.
+
+### Verifikasi sebelum integrasi remote
+
 - **523 tes: 522 lulus, 1 dilewati; 10.895 assertions.**
 - Tes dua proses independen: dua Petugas pada tugas berbeda menghasilkan satu
   header, dua aktivitas berurutan, dan tidak menimpa data pembuat pertama.
@@ -185,6 +218,10 @@ untuk siklus yang sudah ditanam.
 1. Periksa status Git dan perubahan baru sebelum mengedit.
 2. Pada checkout/database lain, jalankan migrasi normal; jangan gunakan
    `migrate:fresh` atau reset demo pada database operasional.
+   Migrasi task-management dan pembatasan kategori dari remote ikut tersedia
+   setelah merge; migrasi remote tersebut belum dijalankan ke database lokal
+   oleh sesi commit/push ini. Periksa `php artisan migrate:status` sebelum
+   melanjutkan aplikasi pada lingkungan lokal/deployment lain.
 3. Jika migrasi header unik menemukan duplikat, hentikan dan tentukan penanganan
    data lingkungan itu. Migrasi tidak diberi izin menghapus laporan otomatis.
 4. Pastikan PHP web server menyediakan folder `upload_tmp_dir` yang tersedia
@@ -196,6 +233,12 @@ untuk siklus yang sudah ditanam.
 6. Buka `/petugas/aktivitas`, pilih tanggal, lalu gunakan **Tambah aktivitas**.
 7. Prioritas berikutnya yang disarankan: sepakati aturan tanggal pelaporan,
    implementasikan lifecycle/review tugas, lalu akumulasi panen dan penutupan siklus.
+
+Jangan menjalankan dua suite yang melakukan reset pada database uji yang sama
+secara bersamaan. Untuk regresi penuh yang lebih lama dari batas waktu PHP CLI,
+gunakan `php -d max_execution_time=0 vendor/bin/phpunit --display-skipped` dan
+database uji terpisah melalui `TEST_DB_DATABASE` serta
+`FARMER_CRUD_TEST_DATABASE` dengan nama yang diizinkan `Tests\Support\TestDatabase`.
 
 File rujukan:
 - `docs/petugas-task-list-contract.md`

@@ -45,6 +45,7 @@ class SopTemplateController extends Controller
 
         return Inertia::render('sops/Index', [
             'sops' => $sops,
+            'summary' => $this->sops->summary($request->user(), $team),
             'filters' => $filters,
             'commodities' => $this->sops->commodities(),
             'team' => $team->only(['id', 'name']),
@@ -87,6 +88,7 @@ class SopTemplateController extends Controller
             'template' => $template,
             'can' => [
                 'update' => Gate::allows('update', $template),
+                'delete' => Gate::allows('delete', $template),
                 'manageVersions' => Gate::allows('create', [\App\Models\SopTemplateVersion::class, $template]),
                 'manageTasks' => $template->versions->contains(fn ($version) => $version->status === 'draft')
                     && Gate::allows('create', [SopTemplateTask::class, $template->versions->firstWhere('status', 'draft')]),

@@ -248,7 +248,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertForbidden();
         $this->actor->forceFill(['assigned_farm_id' => null])->save();
         $this->actor->unsetRelation('assignedFarm');
-        $this->get('/petugas/tasks')->assertForbidden();
+        $this->get('/petugas/tasks')->assertInertia(fn (Assert $page) => $page->has('tasks', 0)->where('farm', null));
     }
 
     public function test_filters_have_unfiltered_scoped_counts_and_closed_tasks_cannot_receive_reports(): void

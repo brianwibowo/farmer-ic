@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Link } from '@inertiajs/vue3';
 import { ClipboardList, Search, Users } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -106,20 +108,22 @@ function activityLabel(status: string): string {
                     <span class="block text-xs font-medium text-foreground"
                         >Petugas</span
                     >
-                    <select
+                    <AppSelect
                         v-model="selectedOfficerId"
                         class="admin-field"
                         aria-controls="dashboard-activity-results"
                     >
-                        <option :value="null">Semua petugas</option>
-                        <option
+                        <AppSelectOption :value="null"
+                            >Semua petugas</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="officer in officers"
                             :key="officer.id"
                             :value="officer.id"
                         >
                             {{ officer.name }}
-                        </option>
-                    </select>
+                        </AppSelectOption>
+                    </AppSelect>
                 </label>
                 <label class="block space-y-2">
                     <span class="block text-xs font-medium text-foreground"

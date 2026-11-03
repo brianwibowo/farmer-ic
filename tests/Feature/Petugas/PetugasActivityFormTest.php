@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** The former category-selector form is deliberately replaced by a task picker. */
+/** The former frontend-only category selector is superseded by task-specific forms. */
 class PetugasActivityFormTest extends TestCase
 {
     use RefreshDatabase;
@@ -14,8 +14,7 @@ class PetugasActivityFormTest extends TestCase
     public function test_generic_form_redirects_to_tasks_instead_of_accepting_browser_context(): void
     {
         $actor = User::factory()->create(['role' => 'petugas']);
-        $this->actingAs($actor)->get('/petugas/aktivitas/buat?category=harvest&task_id=forged')
-            ->assertRedirect('/petugas/tasks');
+        $this->actingAs($actor)->get('/petugas/aktivitas/buat?category=harvest&task_id=forged')->assertRedirect('/petugas/tasks');
     }
 
     public function test_generic_form_remains_authenticated_and_portal_protected(): void

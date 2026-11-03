@@ -117,7 +117,8 @@ class PlantingCycleTaskService
                 continue;
             }
             $date = $anchor->addDays($task->offset_days);
-            $due = $date->addDays($task->tolerance_days);
+            // Preserve an Admin's explicit override when the base HST schedule moves.
+            $due = ($task->rescheduled_date ?? $date)->addDays($task->tolerance_days);
             if ($task->scheduled_date?->toDateString() !== $date->toDateString() || $task->due_date?->toDateString() !== $due->toDateString()) {
                 $task->forceFill(['scheduled_date' => $date->toDateString(), 'due_date' => $due->toDateString()])->save();
                 $count++;

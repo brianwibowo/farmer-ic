@@ -43,17 +43,18 @@ class PetugasTaskReadService
         $block = FarmBlock::visibleTo($actor, $team)->findOrFail($round->block_id);
         $variety = CropVariety::visibleTo($actor, $team)->find($cycle->variety_id);
         $today = CarbonImmutable::today('Asia/Jakarta');
+        $effective = $task->effectiveScheduledDate();
         $urgency = match (true) {
             in_array($task->status, ['completed', 'skipped', 'cancelled'], true) => 'completed',
-            $task->scheduled_date === null => 'upcoming',
+            $effective === null => 'upcoming',
             $task->due_date !== null && $task->due_date->toDateString() < $today->toDateString() => 'overdue',
-            $task->scheduled_date->toDateString() <= $today->toDateString() && $task->due_date !== null => 'today',
+            $effective->toDateString() <= $today->toDateString() => 'today',
             default => 'upcoming',
         };
 
         return [
             ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'activity_subcategory', 'offset_days', 'is_required']),
-            'scheduled_date' => $task->scheduled_date?->toDateString(),
+            'scheduled_date' => $effective?->toDateString(),
             'due_date' => $task->due_date?->toDateString(), 'urgency' => $urgency,
             'linked_activities_count' => FarmActivity::visibleTo($actor, $team)->where('planting_cycle_task_id', $task->id)->count(),
             'latest_submission' => null,

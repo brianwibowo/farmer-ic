@@ -1,7 +1,7 @@
 export type SopTeam = { id: number; name: string };
 export type SopCommodity = { id: string; name: string };
 
-export type SopActivityCategory = 'planting' | 'maintenance' | 'harvest';
+export type SopActivityCategory = 'maintenance' | 'harvest';
 export type SopActivitySubcategory =
     | 'irrigation'
     | 'weeding'
@@ -78,12 +78,18 @@ export type SopPage = {
 
 export type SopCan = {
     update: boolean;
+    delete?: boolean;
     manageVersions: boolean;
     manageTasks: boolean;
 };
 
+export type SopSummary = {
+    total: number;
+    active: number;
+    commodities: number;
+};
+
 export const sopActivityCategoryLabels: Record<SopActivityCategory, string> = {
-    planting: 'Penanaman',
     maintenance: 'Perawatan',
     harvest: 'Panen',
 };
@@ -116,5 +122,5 @@ export function hstLabel(task: Pick<SopTask, 'offset_days'>): string {
 export function sopDate(value: string | null): string {
     return value
         ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value))
-        : '—';
+        : '-';
 }

@@ -9,7 +9,7 @@ use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
 use App\Models\Team;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -44,6 +44,18 @@ class SopTemplateService
         $direction = ($filters['direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
 
         return $query->orderBy($sort, $direction)->orderBy('id')->paginate((int) ($filters['per_page'] ?? 15))->withQueryString();
+    }
+
+    /** @return array{total: int, active: int, commodities: int} */
+    public function summary(User $actor, Team $team): array
+    {
+        $base = SopTemplate::query()->visibleTo($actor, $team);
+
+        return [
+            'total' => (clone $base)->count(),
+            'active' => (clone $base)->where('is_active', true)->count(),
+            'commodities' => (clone $base)->distinct()->count('commodity_id'),
+        ];
     }
 
     public function detail(SopTemplate $template): SopTemplate
@@ -185,7 +197,7 @@ class SopTemplateService
             }
 
             $version = $template->versions()->create([
-                'version' => ($latest?->version ?? 0) + 1,
+                'version' => $latest instanceof SopTemplateVersion ? $latest->version + 1 : 1,
                 'notes' => $notes ?? 'Revisi dari versi sebelumnya.',
                 'status' => 'draft',
                 'created_by' => $actor->id,

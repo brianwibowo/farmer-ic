@@ -3,6 +3,8 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Camera, LoaderCircle, Save, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import TaskContext from '@/components/petugas/TaskContext.vue';
 import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
 import type { PetugasTask, TaskActivityField } from '@/types/petugas-task';
@@ -30,10 +32,8 @@ const errors = computed<Record<string, string>>(() => ({
     ...form.errors,
     ...clientErrors.value,
 }));
-const fileInput = ref<HTMLInputElement>();
 const headerReady = ref(false);
 const existingHeader = ref(false);
-
 function selectPhotos(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
@@ -51,13 +51,15 @@ function selectPhotos(event: Event): void {
             'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 10 MB.';
     } else {
         form.photos.push(...files);
-        form.clearErrors('photos');
+        for (const key of Object.keys(form.errors)) {
+            if (key === 'photos' || key.startsWith('photos.'))
+                form.clearErrors(key as keyof typeof form.errors);
+        }
     }
     input.value = '';
 }
-
 function submit(): void {
-    if (form.processing) return;
+    if (form.processing || !headerReady.value) return;
     clientErrors.value = {};
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto bukti.';
@@ -65,7 +67,6 @@ function submit(): void {
         clientErrors.value.end_time =
             'Waktu selesai harus setelah waktu mulai.';
     if (Object.keys(clientErrors.value).length) return;
-    if (!headerReady.value) return;
     form.transform((data) =>
         existingHeader.value
             ? {
@@ -130,7 +131,6 @@ function submit(): void {
                         ></label
                     >
                 </section>
-
                 <DailyHeaderContext
                     v-model:start="form.start_time"
                     v-model:end="form.end_time"
@@ -142,38 +142,39 @@ function submit(): void {
                     @ready="headerReady = $event"
                     @existing="existingHeader = $event"
                 />
-
                 <section
                     class="space-y-4 rounded-xl border border-border bg-card p-4"
                 >
                     <h2 class="text-base font-semibold">Hasil pelaksanaan</h2>
-                    <label
+                    <div
                         v-for="field in fields"
                         :key="field.key"
-                        class="block space-y-2 text-sm"
+                        class="space-y-2 text-sm"
                     >
-                        <span>{{ field.label }}</span>
-                        <select
+                        <label :for="`activity-${field.key}`">{{
+                            field.label
+                        }}</label>
+                        <AppSelect
                             v-if="field.type === 'select'"
+                            :id="`activity-${field.key}`"
                             v-model="form.details[field.key]"
                             :required="!field.optional"
+                            :disabled="form.processing"
+                            :placeholder="`Pilih ${field.label.toLowerCase()}`"
                             class="task-activity-field"
                             :aria-invalid="!!errors[`details.${field.key}`]"
                             :aria-describedby="`error-${field.key}`"
                         >
-                            <option value="" disabled>
-                                Pilih {{ field.label.toLowerCase() }}
-                            </option>
-                            <option
+                            <AppSelectOption
                                 v-for="option in field.options"
                                 :key="option"
                                 :value="option"
+                                >{{ option }}</AppSelectOption
                             >
-                                {{ option }}
-                            </option>
-                        </select>
+                        </AppSelect>
                         <input
                             v-else
+                            :id="`activity-${field.key}`"
                             v-model="form.details[field.key]"
                             :type="field.type"
                             :inputmode="
@@ -188,18 +189,18 @@ function submit(): void {
                             :aria-invalid="!!errors[`details.${field.key}`]"
                             :aria-describedby="`error-${field.key}`"
                         />
-                        <span
+                        <p
                             v-if="errors[`details.${field.key}`]"
                             :id="`error-${field.key}`"
-                            class="block text-xs text-error"
-                            >{{ errors[`details.${field.key}`] }}</span
+                            class="text-xs text-error"
                         >
-                    </label>
+                            {{ errors[`details.${field.key}`] }}
+                        </p>
+                    </div>
                     <p v-if="errors.details" class="text-sm text-error">
                         {{ errors.details }}
                     </p>
                 </section>
-
                 <section
                     class="space-y-4 rounded-xl border border-border bg-card p-4"
                 >
@@ -207,7 +208,6 @@ function submit(): void {
                     <label class="block space-y-2 text-sm"
                         ><span>Foto aktivitas · minimal satu</span
                         ><input
-                            ref="fileInput"
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
                             multiple

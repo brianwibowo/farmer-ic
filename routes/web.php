@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Activity\DailyActivityLogController;
+use App\Http\Controllers\Admin\TaskManagementController;
 use App\Http\Controllers\AI\AiConversationController;
 use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
@@ -110,6 +111,12 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::post('sops/{sopTemplate}/versions/{version}/tasks', [SopTemplateTaskController::class, 'store'])->whereUuid(['sopTemplate', 'version'])->name('sops.tasks.store');
     Route::put('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'update'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.update');
     Route::delete('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'destroy'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.destroy');
+
+    Route::get('tasks', [TaskManagementController::class, 'index'])->name('tasks.index');
+    Route::get('tasks/{task}', [TaskManagementController::class, 'show'])->whereUuid('task')->name('tasks.show');
+    Route::post('tasks/{task}/skip', [TaskManagementController::class, 'skip'])->whereUuid('task')->name('tasks.skip');
+    Route::post('tasks/{task}/cancel', [TaskManagementController::class, 'cancel'])->whereUuid('task')->name('tasks.cancel');
+    Route::post('tasks/{task}/reschedule', [TaskManagementController::class, 'reschedule'])->whereUuid('task')->name('tasks.reschedule');
 
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');
     Route::get('farm-management/{farm}/deletion-check', [FarmManagementController::class, 'deletionCheck'])->whereUuid('farm')->name('farm-management.deletion-check');

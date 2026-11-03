@@ -20,13 +20,18 @@ class PetugasTaskController extends Controller
     public function index(Request $request): Response
     {
         $farm = $request->user()->assignedFarm;
-        abort_unless($farm instanceof Farm, 403, 'Anda belum memiliki penugasan kebun. Hubungi admin.');
-        Gate::authorize('view', $farm);
-        Gate::authorize('viewAny', [PlantingCycleTask::class, $farm->team]);
         $status = $request->query('status', 'all');
         if (! is_string($status) || ! in_array($status, ['all', 'overdue', 'today', 'upcoming', 'completed'], true)) {
             $status = 'all';
         }
+        if (! $farm instanceof Farm) {
+            return Inertia::render('petugas/Tasks', [
+                'tasks' => [], 'filters' => ['status' => $status], 'farm' => null,
+                'summary' => ['overdue' => 0, 'today' => 0, 'upcoming' => 0, 'completed' => 0], 'defaultSopMissing' => true,
+            ]);
+        }
+        Gate::authorize('view', $farm);
+        Gate::authorize('viewAny', [PlantingCycleTask::class, $farm->team]);
         $data = $this->tasks->listing($request->user(), $farm, $status);
         $data['tasks'] = array_map(fn ($task) => [...$task, 'can' => ['start' => false, 'submit' => false,
             'record' => Gate::allows('recordTask', [FarmActivity::class, PlantingCycleTask::visibleTo($request->user(), $farm->team)->findOrFail($task['id'])])

@@ -61,7 +61,7 @@ class SopTemplateTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function taskPayload(int $sequence = 1, string $category = 'planting', ?string $subcategory = null): array
+    private function taskPayload(int $sequence = 1, string $category = 'maintenance', ?string $subcategory = 'irrigation'): array
     {
         return [
             'activity_category' => $category,
@@ -122,7 +122,7 @@ class SopTemplateTest extends TestCase
         $this->assertNotNull($version->published_at);
 
         $this->expectException(ValidationException::class);
-        $service->createTask($version, $this->taskPayload(2, 'harvest'));
+        $service->createTask($version, $this->taskPayload(2, 'harvest', null));
     }
 
     public function test_task_requires_a_supported_category_and_maintenance_subcategory(): void
@@ -139,6 +139,10 @@ class SopTemplateTest extends TestCase
         $this->post($url, [
             ...$this->taskPayload(1, 'planting'),
             'activity_subcategory' => 'irrigation',
+        ])->assertSessionHasErrors('activity_category');
+
+        $this->post($url, [
+            ...$this->taskPayload(1, 'harvest', 'irrigation'),
         ])->assertSessionHasErrors('activity_subcategory');
 
         $this->post($url, [
@@ -165,7 +169,7 @@ class SopTemplateTest extends TestCase
         $this->assertSame(1, $second->tasks()->count());
         $this->assertSame('draft', $second->status);
 
-        $service->createTask($second, $this->taskPayload(2, 'harvest'));
+        $service->createTask($second, $this->taskPayload(2, 'harvest', null));
         $service->publish($second, $this->admin);
 
         $this->assertSame('retired', $first->refresh()->status);
@@ -200,9 +204,9 @@ class SopTemplateTest extends TestCase
         $version = $template->versions()->firstOrFail();
         $service = app(SopTemplateService::class);
 
-        $service->createTask($version, $this->taskPayload(3, 'harvest'));
-        $service->createTask($version, $this->taskPayload(1, 'planting'));
-        $service->createTask($version, $this->taskPayload(2, 'maintenance', 'irrigation'));
+        $service->createTask($version, $this->taskPayload(3, 'harvest', null));
+        $service->createTask($version, $this->taskPayload(1, 'maintenance', 'irrigation'));
+        $service->createTask($version, $this->taskPayload(2, 'harvest', null));
 
         $this->assertSame([0, 7, 14], $version->tasks()->pluck('offset_days')->all());
     }

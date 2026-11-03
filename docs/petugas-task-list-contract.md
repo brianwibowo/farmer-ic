@@ -160,11 +160,15 @@ Query parameter:
 status = all | overdue | today | upcoming | completed
 ```
 
+The controller validates the value and passes it back as `filters.status`. The
+backend applies the urgency filter while summary counts remain scoped to the
+full assigned-farm task set.
+
 Default: `all`.
 
-The page remains inside the existing `petugas.access` middleware. The real
-implementation must also require the Petugas user to have an assigned farm and
-must only return tasks for that farm.
+The page remains inside the existing `petugas.access` middleware. The
+implementation only returns tasks for the assigned farm. A user without an
+assignment receives an empty page with no operational data or actionable links.
 
 ## Inertia props
 
@@ -173,7 +177,7 @@ type PetugasTaskPageProps = {
     tasks: PetugasTask[];
     filters: { status: 'all' | 'overdue' | 'today' | 'upcoming' | 'completed' };
     summary: Record<'overdue' | 'today' | 'upcoming' | 'completed', number>;
-    farm: { id: string; name: string };
+    farm: { id: string; name: string } | null;
     defaultSopMissing: boolean;
 };
 ```
@@ -207,7 +211,7 @@ type PetugasTask = {
         | 'skipped'
         | 'cancelled';
     urgency: 'overdue' | 'today' | 'upcoming' | 'completed';
-    activity_category: 'planting' | 'maintenance' | 'harvest';
+    activity_category: 'maintenance' | 'harvest';
     activity_subcategory:
         | 'irrigation'
         | 'weeding'
@@ -246,7 +250,9 @@ type PetugasTask = {
 
 ## Urgency rules
 
-The backend should derive `urgency`, not store it:
+The backend derives `urgency`; it is not stored. The effective date is
+`rescheduled_date ?? scheduled_date`, so an Admin reschedule is visible to
+Petugas without changing the original SOP date:
 
 ```text
 status completed / skipped / cancelled → completed
@@ -294,11 +300,12 @@ buttons are fine only if they have an explanatory label.
 
 1. ~~Add stage alignment and `planting_cycle_tasks`.~~ Done.
 2. ~~Generate tasks for a subblok from the farm default SOP.~~ Done.
-3. Replace `fixtureTasks()` with a scoped `PlantingCycleTask` query.
+3. ~~Replace `fixtureTasks()` with a scoped `PlantingCycleTask` query.~~ Done.
 4. Add `PetugasTaskController@show`.
 5. Add start/submit endpoints and policies.
 6. Add linked activities and submission props.
-7. Remove the fixture banner and `isFixture` prop.
+7. Remove the fixture banner and `isFixture` prop from the friend-owned UI.
+8. Add pagination once the task volume requires it.
 
 Steps 3, 4, 6 (linked reports only), and 7 are now complete. Start/submit
 endpoints, submission/review records and pagination remain unimplemented.
@@ -313,9 +320,7 @@ npm run build
 
 ## Generated task fields
 
-Planting-category SOP steps are **not** materialized as tasks. Planting is the
-HST anchor and the generation trigger; it stays in the SOP definition for the
-planting activity form. The generated task list starts at maintenance work.
+SOP authoring only includes follow-up **Perawatan** and **Panen** steps. Planting is the HST anchor and is recorded through the planting activity, not as an SOP step or a generated task. The generated task list starts at maintenance work.
 
 The real query should map `planting_cycle_tasks`:
 

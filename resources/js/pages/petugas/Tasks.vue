@@ -118,8 +118,11 @@ function statusClass(status: PetugasTask['status']): string {
                 Daftar pekerjaan dari SOP subblok yang menjadi tanggung jawab
                 kebun Anda.
             </p>
-            <p class="mt-2 text-sm font-medium">{{ farm.name }}</p>
+            <p class="mt-2 text-sm font-medium">
+                {{ farm?.name ?? 'Belum ada penugasan kebun. Hubungi Admin.' }}
+            </p>
             <Link
+                v-if="farm"
                 :href="`/petugas/penanaman${activityDate}`"
                 class="mt-3 inline-flex min-h-11 items-center rounded-xl border border-border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >Catat penanaman / siapkan tugas subblok</Link

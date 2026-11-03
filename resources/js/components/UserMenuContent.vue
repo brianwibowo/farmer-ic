@@ -40,7 +40,7 @@ const emit = defineEmits<{ navigate: [] }>();
                 @success="emit('navigate')"
             >
                 <Settings class="mr-2 h-4 w-4" />
-                Settings
+                Pengaturan
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>

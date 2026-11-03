@@ -8,7 +8,7 @@ export type PetugasTaskStatus =
 
 export type PetugasTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
-export type PetugasTaskCategory = 'planting' | 'maintenance' | 'harvest';
+export type PetugasTaskCategory = 'maintenance' | 'harvest';
 
 export type PetugasTaskSubcategory =
     | 'irrigation'
@@ -82,7 +82,7 @@ export type PetugasTaskPageProps = {
     tasks: PetugasTask[];
     filters: PetugasTaskFilters;
     summary: Record<PetugasTaskUrgency, number>;
-    farm: { id: string; name: string };
+    farm: { id: string; name: string } | null;
     defaultSopMissing: boolean;
 };
 

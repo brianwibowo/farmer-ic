@@ -3,6 +3,8 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, LoaderCircle, Save, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
 import type { PlantingCycleContext, PlantingReport } from '@/types/planting';
 
@@ -212,21 +214,23 @@ function submit(): void {
                 />
                 <label class="block space-y-2 text-sm"
                     ><span>Varietas</span
-                    ><select
+                    ><AppSelect
                         v-model="form.variety_id"
                         required
+                        aria-label="Varietas"
+                        placeholder="Pilih varietas"
+                        :disabled="form.processing || !varieties.length"
                         :class="fieldClass"
                         :aria-invalid="!!errors.variety_id"
                         aria-describedby="planting-variety-error"
                     >
-                        <option value="" disabled>Pilih varietas</option>
-                        <option
+                        <AppSelectOption
                             v-for="variety in varieties"
                             :key="variety.id"
                             :value="variety.id"
                         >
                             {{ variety.name }}
-                        </option></select
+                        </AppSelectOption></AppSelect
                     ><span
                         v-if="errors.variety_id"
                         id="planting-variety-error"

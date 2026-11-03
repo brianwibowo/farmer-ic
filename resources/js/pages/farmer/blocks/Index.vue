@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Plus } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
@@ -116,15 +118,15 @@ function search(): void {
         <div>
             <label for="block-status" class="mb-2 block text-sm font-medium"
                 >Status</label
-            ><select
+            ><AppSelect
                 id="block-status"
                 v-model="filters.status"
                 class="admin-field block-field"
             >
-                <option value="all">Semua</option>
-                <option value="active">Aktif</option>
-                <option value="inactive">Nonaktif</option>
-            </select>
+                <AppSelectOption value="all">Semua</AppSelectOption>
+                <AppSelectOption value="active">Aktif</AppSelectOption>
+                <AppSelectOption value="inactive">Nonaktif</AppSelectOption>
+            </AppSelect>
         </div>
         <Button
             type="submit"

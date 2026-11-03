@@ -68,7 +68,7 @@ class PetugasPlantingActivityTest extends TestCase
         $service = app(SopTemplateService::class);
         $sop = $service->create($this->admin, $this->team, ['commodity_id' => $this->variety->commodity_id, 'name' => 'SOP Jagung Pengujian', 'is_active' => true]);
         $version = $sop->versions()->firstOrFail();
-        foreach ([['planting', null, 0], ['maintenance', 'irrigation', 7], ['harvest', null, 90]] as [$category, $subcategory, $days]) {
+        foreach ([['maintenance', 'irrigation', 7], ['harvest', null, 90]] as [$category, $subcategory, $days]) {
             $service->createTask($version, ['activity_category' => $category, 'activity_subcategory' => $subcategory, 'name' => 'Pekerjaan '.$category, 'offset_days' => $days, 'tolerance_days' => 2, 'is_required' => true]);
         }
         $service->publish($version, $this->admin);
@@ -177,6 +177,25 @@ class PetugasPlantingActivityTest extends TestCase
         $this->post($this->url(), $this->payload())->assertRedirect();
         $this->assertNotNull($this->cycle->refresh()->planted_at);
         $this->assertDatabaseCount('planting_cycle_tasks', 0);
+    }
+
+    public function test_actual_planting_keeps_an_admin_schedule_override_and_its_due_date(): void
+    {
+        $this->sop();
+        $this->actingAs($this->actor)->post('/petugas/subbloks/'.$this->cycle->id.'/tasks/sync')->assertRedirect();
+        $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
+        $override = now('Asia/Jakarta')->addDays(10)->toDateString();
+        $due = now('Asia/Jakarta')->addDays(12)->toDateString();
+        $task->update([
+            'rescheduled_date' => $override, 'due_date' => $due,
+            'reschedule_reason' => 'Penyesuaian ketersediaan air oleh Admin.',
+            'rescheduled_by' => $this->admin->id, 'rescheduled_at' => now(),
+        ]);
+        $this->post($this->url(), $this->payload())->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame($override, $task->refresh()->effectiveScheduledDate()->toDateString());
+        $this->assertSame($due, $task->due_date->toDateString());
+        $this->assertSame(now('Asia/Jakarta')->subDays(2)->addDays(7)->toDateString(), $task->scheduled_date->toDateString());
+        $this->get('/petugas/tasks/'.$task->id)->assertInertia(fn (Assert $page) => $page->where('task.scheduled_date', $override)->where('task.due_date', $due));
     }
 
     public function test_duplicate_planting_and_invalid_area_do_not_overwrite_or_create_partial_reports(): void

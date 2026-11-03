@@ -6,6 +6,7 @@ import {
     FolderGit2,
     LandPlot,
     LayoutGrid,
+    ListChecks,
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
@@ -83,6 +84,12 @@ const mainNavItems = computed<NavItem[]>(() => [
                   title: 'SOP',
                   href: '/admin/sops',
                   icon: ClipboardList,
+              },
+              {
+                  title: 'Tugas',
+                  href: '/admin/tasks',
+                  icon: ListChecks,
+                  isActive: isCurrentOrParentUrl('/admin/tasks'),
               },
           ]
         : []),
