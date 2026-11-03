@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, ClipboardList, LoaderCircle, Save } from '@lucide/vue';
 import { computed } from 'vue';
@@ -28,7 +30,9 @@ function submit(): void {
     if (props.template) {
         form.put(`/admin/sops/${props.template.id}`, { preserveScroll: true });
     } else {
-        form.post(`/admin/farms/${props.farm.id}/sops`, { preserveScroll: true });
+        form.post(`/admin/farms/${props.farm.id}/sops`, {
+            preserveScroll: true,
+        });
     }
 }
 </script>
@@ -36,25 +40,47 @@ function submit(): void {
 <template>
     <Head :title="template ? `Ubah ${template.name}` : 'Tambah SOP'" />
     <div class="mx-auto max-w-4xl space-y-6">
-        <Link :href="backUrl" class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary">
+        <Link
+            :href="backUrl"
+            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
+        >
             <ArrowLeft class="size-4" />Kembali
         </Link>
         <header>
-            <p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">SOP / Template</p>
-            <h1 class="admin-page-title">{{ template ? 'Ubah template SOP' : 'Tambah template SOP' }}</h1>
+            <p
+                class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase"
+            >
+                SOP / Template
+            </p>
+            <h1 class="admin-page-title">
+                {{ template ? 'Ubah template SOP' : 'Tambah template SOP' }}
+            </h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                Template ini dimiliki kebun <strong>{{ farm.name }}</strong> dan hanya berlaku untuk varietas yang dipilih.
+                Template ini dimiliki kebun <strong>{{ farm.name }}</strong> dan
+                hanya berlaku untuk varietas yang dipilih.
             </p>
         </header>
 
         <form class="space-y-5" @submit.prevent="submit">
-            <fieldset :disabled="form.processing" class="space-y-5 disabled:opacity-75">
-                <section class="rounded-xl border border-border bg-card p-5 md:p-6">
+            <fieldset
+                :disabled="form.processing"
+                class="space-y-5 disabled:opacity-75"
+            >
+                <section
+                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                >
                     <div class="mb-6 flex items-start gap-3">
-                        <div class="rounded-xl bg-accent p-2.5 text-primary"><ClipboardList class="size-5" /></div>
+                        <div class="rounded-xl bg-accent p-2.5 text-primary">
+                            <ClipboardList class="size-5" />
+                        </div>
                         <div>
-                            <h2 class="admin-section-title">Identitas template</h2>
-                            <p class="mt-1 text-xs text-muted-foreground">Satu template mewakili satu varietas pada satu kebun.</p>
+                            <h2 class="admin-section-title">
+                                Identitas template
+                            </h2>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                Satu template mewakili satu varietas pada satu
+                                kebun.
+                            </p>
                         </div>
                     </div>
                     <div class="grid gap-5 sm:grid-cols-2">
@@ -82,10 +108,14 @@ function submit(): void {
                             label="Varietas"
                             required
                             :error="form.errors.variety_id"
-                            :hint="template ? 'Varietas tidak dapat diubah setelah template dibuat.' : 'Pilih varietas yang akan memakai SOP ini.'"
+                            :hint="
+                                template
+                                    ? 'Varietas tidak dapat diubah setelah template dibuat.'
+                                    : 'Pilih varietas yang akan memakai SOP ini.'
+                            "
                             v-slot="field"
                         >
-                            <select
+                            <AppSelect
                                 :id="field.id"
                                 v-model="form.variety_id"
                                 class="admin-field"
@@ -94,16 +124,36 @@ function submit(): void {
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             >
-                                <option value="" disabled>Pilih varietas</option>
-                                <option v-for="variety in varieties" :key="variety.id" :value="variety.id">
+                                <AppSelectOption value="" disabled
+                                    >Pilih varietas</AppSelectOption
+                                >
+                                <AppSelectOption
+                                    v-for="variety in varieties"
+                                    :key="variety.id"
+                                    :value="variety.id"
+                                >
                                     {{ variety.name }} · {{ variety.commodity }}
-                                </option>
-                            </select>
+                                </AppSelectOption>
+                            </AppSelect>
                         </FarmField>
-                        <FarmField id="sop-active" label="Status" :error="form.errors.is_active" v-slot="field">
-                            <label class="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-background px-3">
-                                <input v-model="form.is_active" type="checkbox" class="size-4 accent-primary" />
-                                <span class="text-sm">Aktif dan dapat dipakai untuk batch baru</span>
+                        <FarmField
+                            id="sop-active"
+                            label="Status"
+                            :error="form.errors.is_active"
+                            v-slot="field"
+                        >
+                            <label
+                                class="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-background px-3"
+                            >
+                                <input
+                                    v-model="form.is_active"
+                                    type="checkbox"
+                                    class="size-4 accent-primary"
+                                />
+                                <span class="text-sm"
+                                    >Aktif dan dapat dipakai untuk batch
+                                    baru</span
+                                >
                             </label>
                         </FarmField>
                         <FarmField
@@ -125,22 +175,43 @@ function submit(): void {
                             />
                         </FarmField>
                     </div>
-                    <p v-if="selectedVariety && !template" class="mt-4 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-                        SOP akan dibuat untuk <strong>{{ selectedVariety.name }}</strong> ({{ selectedVariety.commodity }}).
+                    <p
+                        v-if="selectedVariety && !template"
+                        class="mt-4 rounded-xl bg-muted p-3 text-xs text-muted-foreground"
+                    >
+                        SOP akan dibuat untuk
+                        <strong>{{ selectedVariety.name }}</strong> ({{
+                            selectedVariety.commodity
+                        }}).
                     </p>
                 </section>
             </fieldset>
 
-            <div v-if="form.hasErrors" role="alert" class="rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error">
+            <div
+                v-if="form.hasErrors"
+                role="alert"
+                class="rounded-xl border border-error/30 bg-error/10 p-4 text-sm text-error"
+            >
                 Periksa isian yang ditandai. Perubahan belum disimpan.
             </div>
             <div class="flex flex-wrap justify-end gap-3">
-                <Button v-if="!form.processing" as-child variant="outline" class="h-10 rounded-xl">
+                <Button
+                    v-if="!form.processing"
+                    as-child
+                    variant="outline"
+                    class="h-10 rounded-xl"
+                >
                     <Link :href="backUrl">Batal</Link>
                 </Button>
-                <Button type="submit" class="h-10 rounded-xl" :disabled="form.processing">
+                <Button
+                    type="submit"
+                    class="h-10 rounded-xl"
+                    :disabled="form.processing"
+                >
                     <LoaderCircle v-if="form.processing" class="animate-spin" />
-                    <Save v-else />{{ form.processing ? 'Menyimpan…' : 'Simpan template' }}
+                    <Save v-else />{{
+                        form.processing ? 'Menyimpan…' : 'Simpan template'
+                    }}
                 </Button>
             </div>
         </form>

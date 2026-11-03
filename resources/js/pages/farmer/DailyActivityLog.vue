@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     AlertTriangle,
@@ -409,7 +411,7 @@ function detailUrl(log: DailyLog): string {
                                     class="col-span-2 space-y-1.5 text-xs font-medium text-foreground"
                                 >
                                     <span>Blok kebun</span>
-                                    <select
+                                    <AppSelect
                                         v-model="
                                             activity.block_mapping.block_id
                                         "
@@ -417,17 +419,17 @@ function detailUrl(log: DailyLog): string {
                                         required
                                         @change="selectBlock(activity)"
                                     >
-                                        <option value="">
+                                        <AppSelectOption value="">
                                             Pilih blok aktif kebun ini
-                                        </option>
-                                        <option
+                                        </AppSelectOption>
+                                        <AppSelectOption
                                             v-for="block in blocks"
                                             :key="block.id"
                                             :value="block.id"
                                         >
                                             {{ block.code }} · {{ block.name }}
-                                        </option>
-                                    </select>
+                                        </AppSelectOption>
+                                    </AppSelect>
                                     <span
                                         v-if="!blocks.length"
                                         class="block text-xs text-muted-foreground"
@@ -598,17 +600,17 @@ function detailUrl(log: DailyLog): string {
                                     class="space-y-1.5 text-xs font-medium text-foreground"
                                 >
                                     <span>Status kendala</span>
-                                    <select
+                                    <AppSelect
                                         v-model="activity.obstacle_status"
                                         class="form-input"
                                     >
-                                        <option value="none">
+                                        <AppSelectOption value="none">
                                             Tidak ada kendala
-                                        </option>
-                                        <option value="reported">
+                                        </AppSelectOption>
+                                        <AppSelectOption value="reported">
                                             Ada kendala
-                                        </option>
-                                    </select>
+                                        </AppSelectOption>
+                                    </AppSelect>
                                 </label>
                                 <label
                                     v-if="

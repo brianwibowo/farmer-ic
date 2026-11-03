@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, router, usePage, Link } from '@inertiajs/vue3';
 import {
     Bell,
@@ -369,30 +371,29 @@ onUnmounted(() => {
                                 class="block text-sm font-medium"
                                 >Tenant</label
                             >
-                            <select
+                            <AppSelect
                                 id="notification-tenant"
                                 v-model="filters.team_id"
                                 :class="fieldClass"
                             >
-                                <option :value="null">Semua tenant</option>
-                                <option
+                                <AppSelectOption :value="null"
+                                    >Semua tenant</AppSelectOption
+                                >
+                                <AppSelectOption
                                     v-for="tenant in props.tenantOptions"
                                     :key="tenant.id"
                                     :value="tenant.id"
                                 >
                                     {{ tenant.name }}
-                                </option>
-                            </select>
+                                </AppSelectOption>
+                            </AppSelect>
                         </div>
                     </div>
                 </fieldset>
             </form>
 
             <div
-                v-if="
-                    showPhoneWarning &&
-                    !props.hasPhoneNumber
-                "
+                v-if="showPhoneWarning && !props.hasPhoneNumber"
                 class="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted p-4 text-sm leading-6"
                 role="status"
             >
@@ -406,7 +407,7 @@ onUnmounted(() => {
                 </p>
                 <button
                     type="button"
-                    class="inline-flex shrink-0 self-stretch items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                    class="inline-flex shrink-0 items-center justify-center self-stretch rounded-lg text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                     aria-label="Tutup pemberitahuan nomor WhatsApp"
                     @click="showPhoneWarning = false"
                 >
@@ -554,7 +555,7 @@ onUnmounted(() => {
                                         "
                                         variant="outline"
                                         size="sm"
-                                        class="mt-4 bg-primary text-white rounded-lg"
+                                        class="mt-4 rounded-lg bg-primary text-white"
                                         :disabled="pending !== null || loading"
                                         @click="read(notice)"
                                     >

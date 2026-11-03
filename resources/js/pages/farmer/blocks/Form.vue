@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, LoaderCircle } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import FormErrorSummary from '@/components/farms/FormErrorSummary.vue';
 import {
@@ -12,6 +14,7 @@ import { hectares } from '@/types/farms';
 import { Button } from '@/components/ui/button';
 import BlockLayout from '@/layouts/BlockLayout.vue';
 import type { BlockFarm, FarmBlock } from '@/types/blocks';
+import { areaValue, squareMetres, type AreaUnit } from '@/lib/landArea';
 
 defineOptions({ layout: BlockLayout, inheritAttrs: false });
 const props = defineProps<{
@@ -28,11 +31,54 @@ const back = props.block ? `${base}/${props.block.id}` : base;
 const form = useForm({
     code: props.block?.code ?? '',
     name: props.block?.name ?? '',
-    area_ha: props.block?.area_ha ?? '',
+    area_value: props.block?.area_ha ?? '',
+    area_unit: 'ha' as AreaUnit,
     description: props.block?.description ?? '',
     is_active: props.block?.is_active ?? true,
 });
 useUnsavedChanges(() => form.isDirty && !form.processing);
+const enteredMetres = computed(() =>
+    squareMetres(form.area_value, form.area_unit),
+);
+const areaError = computed(() => {
+    if (!form.area_value.trim()) return null;
+    const metres = enteredMetres.value;
+    if (metres === null)
+        return form.area_unit === 'm2'
+            ? 'Masukkan m² bulat tanpa pemisah ribuan, misalnya 50000.'
+            : 'Masukkan luas ha dengan maksimal 4 desimal, misalnya 0,5.';
+    const minimum = squareMetres(props.capacity.minimum_area_ha) ?? 1;
+    if (metres < minimum)
+        return `Luas minimal ${hectares(props.capacity.minimum_area_ha)} ha (${new Intl.NumberFormat('id-ID').format(minimum)} m²).`;
+    if (metres > 999999999999) return 'Luas melebihi batas penyimpanan.';
+    if (
+        form.is_active &&
+        metres > (squareMetres(props.capacity.maximum_area_ha) ?? 0)
+    )
+        return `Luas melebihi kapasitas blok aktif ${hectares(props.capacity.maximum_area_ha)} ha.`;
+    return null;
+});
+const serverAreaError = computed(
+    () =>
+        form.errors.area_value ??
+        (form.errors as Record<string, string>).area_ha,
+);
+watch(
+    () => form.area_unit,
+    (unit, previous) => {
+        const metres = squareMetres(form.area_value, previous);
+        if (metres !== null) form.area_value = areaValue(metres, unit);
+        form.clearErrors('area_value', 'area_unit');
+        delete (form.errors as Record<string, string>).area_ha;
+    },
+);
+watch(
+    () => form.area_value,
+    () => {
+        form.clearErrors('area_value');
+        delete (form.errors as Record<string, string>).area_ha;
+    },
+);
 const noCapacity = computed(
     () =>
         form.is_active &&
@@ -43,12 +89,19 @@ const errorFields = {
     code: { id: 'block-code', label: 'Kode blok' },
     name: { id: 'block-name', label: 'Nama blok' },
     area_ha: { id: 'block-area', label: 'Luas blok' },
+    area_value: { id: 'block-area', label: 'Luas blok' },
+    area_unit: { id: 'block-area-unit', label: 'Satuan luas' },
     is_active: { id: 'block-active', label: 'Status' },
     description: { id: 'block-description', label: 'Catatan' },
 };
 const fieldClass = 'admin-field block-field';
 function submit(): void {
     if (noCapacity.value) return;
+    if (areaError.value || enteredMetres.value === null) {
+        form.setError('area_value', areaError.value ?? 'Isi luas blok.');
+        void focusFormErrors();
+        return;
+    }
     if (props.block)
         form.put(`${base}/${props.block.id}`, {
             preserveScroll: true,
@@ -148,42 +201,80 @@ function submit(): void {
                 /></FarmField>
                 <FarmField
                     id="block-area"
-                    label="Luas blok (ha)"
+                    label="Luas blok"
                     required
-                    :error="form.errors.area_ha"
-                    :hint="`Maksimal 4 desimal. Batas blok aktif ${hectares(capacity.maximum_area_ha)} ha.`"
+                    :error="areaError ?? serverAreaError"
+                    :hint="
+                        form.area_unit === 'ha'
+                            ? 'Maksimal 4 desimal. Gunakan koma atau titik, misalnya 0,5.'
+                            : 'Gunakan m² bulat tanpa pemisah ribuan, misalnya 5000.'
+                    "
                     v-slot="field"
                     ><input
                         :id="field.id"
-                        v-model="form.area_ha"
+                        v-model="form.area_value"
                         :class="fieldClass"
-                        type="number"
+                        type="text"
                         inputmode="decimal"
                         required
-                        :min="capacity.minimum_area_ha"
-                        :max="
-                            form.is_active
-                                ? capacity.maximum_area_ha
-                                : '99999999.9999'
+                        :placeholder="
+                            form.area_unit === 'ha'
+                                ? 'Contoh: 5'
+                                : 'Contoh: 50000'
                         "
-                        step="0.0001"
                         :aria-invalid="field.invalid"
                         :aria-describedby="field.description"
                 /></FarmField>
+                <FarmField
+                    id="block-area-unit"
+                    label="Satuan luas"
+                    required
+                    :error="form.errors.area_unit"
+                    v-slot="field"
+                >
+                    <AppSelect
+                        :id="field.id"
+                        v-model="form.area_unit"
+                        :class="fieldClass"
+                        :aria-invalid="field.invalid"
+                        :aria-describedby="field.description"
+                    >
+                        <AppSelectOption value="ha"
+                            >Hektare (ha)</AppSelectOption
+                        >
+                        <AppSelectOption value="m2"
+                            >Meter persegi (m²)</AppSelectOption
+                        >
+                    </AppSelect>
+                </FarmField>
+                <p
+                    class="text-xs leading-5 text-muted-foreground sm:col-span-2"
+                >
+                    1 ha = 10.000 m². Pergantian satuan mempertahankan luas yang
+                    sudah diisi.<span
+                        v-if="enteredMetres !== null && !areaError"
+                    >
+                        Setara {{ hectares(areaValue(enteredMetres, 'ha')) }} ha
+                        ({{
+                            new Intl.NumberFormat('id-ID').format(enteredMetres)
+                        }}
+                        m²).</span
+                    >
+                </p>
                 <FarmField
                     id="block-active"
                     label="Status blok"
                     :error="form.errors.is_active"
                     v-slot="field"
-                    ><select
+                    ><AppSelect
                         :id="field.id"
                         v-model="form.is_active"
                         :class="fieldClass"
                         :aria-invalid="field.invalid"
                         :aria-describedby="field.description"
                     >
-                        <option :value="true">Aktif</option>
-                        <option
+                        <AppSelectOption :value="true">Aktif</AppSelectOption>
+                        <AppSelectOption
                             :value="false"
                             :disabled="capacity.running_batches > 0"
                         >
@@ -192,8 +283,8 @@ function submit(): void {
                                     ? ' · masih ada batch berjalan'
                                     : ''
                             }}
-                        </option>
-                    </select></FarmField
+                        </AppSelectOption>
+                    </AppSelect></FarmField
                 >
                 <FarmField
                     id="block-description"

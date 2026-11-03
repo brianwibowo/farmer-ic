@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import {
+    ArrowDownWideNarrow,
+    ArrowUpWideNarrow,
     ArrowUpRight,
     Building2,
     ChevronLeft,
@@ -12,9 +16,17 @@ import {
     Pencil,
     Plus,
     Search,
+    SlidersHorizontal,
     Trash2,
+    X,
 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import {
@@ -43,7 +55,7 @@ const filters = useForm({
     province: props.filters.province ?? '',
     sort: props.filters.sort ?? 'name',
     direction: props.filters.direction ?? 'asc',
-    per_page: props.filters.per_page ?? 15,
+    per_page: Number(props.filters.per_page ?? 15),
 });
 const hasFilters = computed(
     () =>
@@ -56,12 +68,45 @@ const hasFilters = computed(
             filters.per_page !== 15
         ),
 );
+const activeLocationCount = computed(
+    () => [props.filters.city, props.filters.province].filter(Boolean).length,
+);
+const hasSearchCriteria = computed(
+    () =>
+        !!(
+            props.filters.search ||
+            props.filters.city ||
+            props.filters.province
+        ),
+);
+const directionDescription = computed(() => {
+    const ascending = filters.direction === 'asc';
+    const labels =
+        filters.sort === 'total_area_ha'
+            ? ['Terkecil ke terbesar', 'Terbesar ke terkecil']
+            : filters.sort === 'created_at'
+              ? ['Terlama ke terbaru', 'Terbaru ke terlama']
+              : ['A–Z', 'Z–A'];
+    return `Urutan ${labels[ascending ? 0 : 1]}. Ubah menjadi ${labels[ascending ? 1 : 0]}.`;
+});
 function apply(): void {
     filters.get('/admin/farm-management', {
         preserveState: true,
         preserveScroll: true,
         replace: true,
+        onError: () => {
+            if (filters.errors.city || filters.errors.province)
+                showFilters.value = true;
+        },
     });
+}
+function toggleDirection(): void {
+    filters.direction = filters.direction === 'asc' ? 'desc' : 'asc';
+    apply();
+}
+function removeLocation(key: 'city' | 'province'): void {
+    filters[key] = '';
+    apply();
 }
 function reset(): void {
     filters.search = '';
@@ -151,155 +196,259 @@ function reset(): void {
                         >{{ farms.total }}</span
                     >
                 </div>
-                <form
-                    class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-4"
-                    @submit.prevent="apply"
-                >
-                    <FarmField
-                        id="farm-search"
-                        label="Cari kebun"
-                        :error="filters.errors.search"
-                        v-slot="field"
+                <form @submit.prevent="apply">
+                    <div
+                        class="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,15rem)]"
                     >
-                        <div class="relative">
-                            <Search
-                                class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground"
-                                aria-hidden="true"
-                            /><input
-                                :id="field.id"
-                                v-model="filters.search"
-                                class="admin-field pl-9!"
-                                type="search"
-                                placeholder="Nama atau lokasi kebun"
-                                maxlength="150"
-                                :aria-invalid="field.invalid"
-                                :aria-describedby="field.description"
-                            />
-                        </div>
-                    </FarmField>
-                    <div class="sm:col-span-2 xl:col-span-3">
-                        <button
+                        <FarmField
+                            id="farm-search"
+                            label="Cari kebun"
+                            class="col-span-2 sm:col-span-1"
+                            :error="filters.errors.search"
+                            v-slot="field"
+                        >
+                            <div class="flex gap-2">
+                                <div class="relative min-w-0 flex-1">
+                                    <Search
+                                        class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground"
+                                        aria-hidden="true"
+                                    />
+                                    <input
+                                        :id="field.id"
+                                        v-model="filters.search"
+                                        class="admin-field pl-9!"
+                                        type="search"
+                                        placeholder="Nama atau lokasi kebun"
+                                        maxlength="150"
+                                        :disabled="filters.processing"
+                                        :aria-invalid="field.invalid"
+                                        :aria-describedby="field.description"
+                                    />
+                                </div>
+                                <Button
+                                    type="submit"
+                                    variant="outline"
+                                    class="size-10 shrink-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                                    :disabled="filters.processing"
+                                    :aria-label="
+                                        filters.processing
+                                            ? 'Mencari kebun'
+                                            : 'Cari kebun'
+                                    "
+                                    title="Cari kebun"
+                                >
+                                    <LoaderCircle
+                                        v-if="filters.processing"
+                                        class="animate-spin"
+                                        aria-hidden="true"
+                                    /><Search v-else aria-hidden="true" />
+                                </Button>
+                            </div>
+                        </FarmField>
+                        <Button
                             type="button"
-                            class="mb-3 min-h-11 rounded-lg text-sm font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring sm:hidden"
+                            :variant="
+                                activeLocationCount ? 'secondary' : 'outline'
+                            "
+                            class="h-10 pointer-coarse:min-h-11"
+                            :disabled="filters.processing"
                             :aria-expanded="showFilters"
                             aria-controls="farm-extra-filters"
                             @click="showFilters = !showFilters"
                         >
-                            {{
-                                showFilters
-                                    ? 'Sembunyikan filter tambahan'
-                                    : 'Wilayah dan urutan'
-                            }}
-                        </button>
-                        <div
-                            id="farm-extra-filters"
-                            class="gap-3 sm:grid sm:grid-cols-3"
-                            :class="showFilters ? 'grid' : 'hidden'"
-                        >
-                            <FarmField
-                                id="farm-city"
-                                label="Kota / kabupaten"
-                                :error="filters.errors.city"
-                                v-slot="field"
-                                ><select
-                                    :id="field.id"
-                                    v-model="filters.city"
-                                    class="admin-field"
-                                    :aria-describedby="field.description"
-                                >
-                                    <option value="">
-                                        Semua kota / kabupaten
-                                    </option>
-                                    <option
-                                        v-for="city in locationOptions.cities"
-                                        :key="city"
-                                        :value="city"
-                                    >
-                                        {{ city }}
-                                    </option>
-                                </select></FarmField
+                            <SlidersHorizontal aria-hidden="true" />Filter
+                            <span
+                                v-if="activeLocationCount"
+                                class="rounded-full bg-accent px-1.5 text-xs text-accent-foreground"
+                                :aria-label="
+                                    activeLocationCount +
+                                    ' filter wilayah aktif'
+                                "
+                                >{{ activeLocationCount }}</span
                             >
+                        </Button>
+                        <FarmField
+                            id="farm-sort"
+                            label="Urutkan"
+                            :error="
+                                filters.errors.sort || filters.errors.direction
+                            "
+                            v-slot="field"
+                        >
+                            <div class="flex gap-2">
+                                <AppSelect
+                                    :id="field.id"
+                                    v-model="filters.sort"
+                                    class="admin-field min-w-0 flex-1"
+                                    :disabled="filters.processing"
+                                    :aria-invalid="field.invalid"
+                                    :aria-describedby="field.description"
+                                    @change="apply"
+                                >
+                                    <AppSelectOption value="name"
+                                        >Nama kebun</AppSelectOption
+                                    >
+                                    <AppSelectOption value="total_area_ha">
+                                        Luas lahan
+                                    </AppSelectOption>
+                                    <AppSelectOption value="created_at">
+                                        Waktu dibuat
+                                    </AppSelectOption>
+                                </AppSelect>
+                                <TooltipProvider :delay-duration="150"
+                                    ><Tooltip
+                                        ><TooltipTrigger as-child>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                class="size-10 shrink-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                                                :disabled="filters.processing"
+                                                :aria-label="
+                                                    directionDescription
+                                                "
+                                                @click="toggleDirection"
+                                            >
+                                                <ArrowUpWideNarrow
+                                                    v-if="
+                                                        filters.direction ===
+                                                        'asc'
+                                                    "
+                                                    aria-hidden="true"
+                                                /><ArrowDownWideNarrow
+                                                    v-else
+                                                    aria-hidden="true"
+                                                />
+                                            </Button> </TooltipTrigger
+                                        ><TooltipContent
+                                            class="admin-dashboard-theme max-w-[calc(100vw-2rem)]"
+                                            :collision-padding="16"
+                                            >{{
+                                                directionDescription
+                                            }}</TooltipContent
+                                        ></Tooltip
+                                    ></TooltipProvider
+                                >
+                            </div>
+                        </FarmField>
+                    </div>
+                    <div
+                        v-show="showFilters"
+                        id="farm-extra-filters"
+                        class="mt-4 space-y-3 border-t border-border pt-4"
+                    >
+                        <div class="grid gap-3 sm:grid-cols-2">
                             <FarmField
                                 id="farm-province"
                                 label="Provinsi"
                                 :error="filters.errors.province"
                                 v-slot="field"
-                                ><select
+                            >
+                                <AppSelect
                                     :id="field.id"
                                     v-model="filters.province"
                                     class="admin-field"
+                                    :disabled="filters.processing"
+                                    :aria-invalid="field.invalid"
                                     :aria-describedby="field.description"
                                 >
-                                    <option value="">Semua provinsi</option>
-                                    <option
+                                    <AppSelectOption value=""
+                                        >Semua provinsi</AppSelectOption
+                                    >
+                                    <AppSelectOption
                                         v-for="province in locationOptions.provinces"
                                         :key="province"
                                         :value="province"
                                     >
                                         {{ province }}
-                                    </option>
-                                </select></FarmField
-                            >
+                                    </AppSelectOption>
+                                </AppSelect>
+                            </FarmField>
                             <FarmField
-                                id="farm-sort"
-                                label="Urutkan"
-                                :error="filters.errors.sort"
+                                id="farm-city"
+                                label="Kota / kabupaten"
+                                :error="filters.errors.city"
                                 v-slot="field"
-                                ><select
+                            >
+                                <AppSelect
                                     :id="field.id"
-                                    v-model="filters.sort"
+                                    v-model="filters.city"
                                     class="admin-field"
+                                    :disabled="filters.processing"
+                                    :aria-invalid="field.invalid"
+                                    :aria-describedby="field.description"
                                 >
-                                    <option value="name">Nama kebun</option>
-                                    <option value="total_area_ha">
-                                        Luas lahan
-                                    </option>
-                                    <option value="created_at">
-                                        Waktu dibuat
-                                    </option>
-                                </select></FarmField
+                                    <AppSelectOption value="">
+                                        Semua kota / kabupaten
+                                    </AppSelectOption>
+                                    <AppSelectOption
+                                        v-for="city in locationOptions.cities"
+                                        :key="city"
+                                        :value="city"
+                                    >
+                                        {{ city }}
+                                    </AppSelectOption>
+                                </AppSelect>
+                            </FarmField>
+                        </div>
+                        <div class="flex justify-end">
+                            <Button
+                                type="submit"
+                                class="h-10"
+                                :disabled="filters.processing"
+                                ><LoaderCircle
+                                    v-if="filters.processing"
+                                    class="animate-spin"
+                                    aria-hidden="true"
+                                />Terapkan filter</Button
                             >
                         </div>
                     </div>
-                    <div
-                        class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-4"
-                    >
-                        <select
-                            v-model="filters.direction"
-                            class="admin-field w-auto!"
-                            aria-label="Arah urutan"
-                        >
-                            <option value="asc">Naik</option>
-                            <option value="desc">Turun</option>
-                        </select>
-                        <select
-                            v-model.number="filters.per_page"
-                            class="admin-field w-auto!"
-                            aria-label="Jumlah kebun per halaman"
-                        >
-                            <option :value="15">15 / halaman</option>
-                            <option :value="30">30 / halaman</option>
-                            <option :value="50">50 / halaman</option>
-                        </select>
-                        <Button
-                            type="submit"
-                            class="h-10 rounded-xl"
-                            :disabled="filters.processing"
-                            ><LoaderCircle
-                                v-if="filters.processing"
-                                class="animate-spin"
-                            /><Search v-else />Terapkan</Button
-                        >
-                        <Button
-                            v-if="hasFilters"
-                            type="button"
-                            variant="ghost"
-                            :disabled="filters.processing"
-                            @click="reset"
-                            >Reset filter</Button
-                        >
-                    </div>
                 </form>
+                <div
+                    v-if="hasFilters || activeLocationCount"
+                    class="mt-3 flex flex-wrap items-center gap-2"
+                >
+                    <Button
+                        v-for="item in [
+                            {
+                                key: 'province' as const,
+                                label: 'Provinsi',
+                                value: props.filters.province,
+                            },
+                            {
+                                key: 'city' as const,
+                                label: 'Kota / kabupaten',
+                                value: props.filters.city,
+                            },
+                        ].filter((item) => item.value)"
+                        :key="item.key"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        class="h-auto min-h-8 max-w-full text-left whitespace-normal"
+                        :disabled="filters.processing"
+                        :aria-label="
+                            'Hapus filter ' +
+                            item.label.toLowerCase() +
+                            ' ' +
+                            item.value
+                        "
+                        @click="removeLocation(item.key)"
+                    >
+                        <span class="min-w-0 break-words"
+                            >{{ item.label }}: {{ item.value }}</span
+                        ><X class="size-3 shrink-0" aria-hidden="true" />
+                    </Button>
+                    <Button
+                        v-if="hasFilters"
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        :disabled="filters.processing"
+                        @click="reset"
+                        >Reset filter</Button
+                    >
+                </div>
             </div>
             <div
                 v-if="filters.processing"
@@ -322,14 +471,16 @@ function reset(): void {
                 </div>
                 <h3 class="mt-4 font-semibold">
                     {{
-                        hasFilters ? 'Kebun tidak ditemukan' : 'Belum ada kebun'
+                        hasSearchCriteria
+                            ? 'Kebun tidak ditemukan'
+                            : 'Belum ada kebun'
                     }}
                 </h3>
                 <p
                     class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground"
                 >
                     {{
-                        hasFilters
+                        hasSearchCriteria
                             ? 'Coba kata kunci atau wilayah lain untuk menampilkan kebun.'
                             : 'Data kebun yang dapat kamu akses akan muncul di sini.'
                     }}
@@ -525,10 +676,48 @@ function reset(): void {
                     class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4"
                     aria-label="Pagination kebun"
                 >
-                    <p class="text-xs text-muted-foreground">
-                        Menampilkan {{ farms.from }}–{{ farms.to }} dari
-                        {{ farms.total }} kebun
-                    </p>
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <p class="text-xs text-muted-foreground">
+                            Menampilkan {{ farms.from }}–{{ farms.to }} dari
+                            {{ farms.total }} kebun
+                        </p>
+                        <label
+                            for="farm-per-page"
+                            class="flex items-center gap-2 text-xs text-muted-foreground"
+                            >Per halaman
+                            <AppSelect
+                                id="farm-per-page"
+                                v-model.number="filters.per_page"
+                                class="admin-field w-auto!"
+                                :disabled="filters.processing"
+                                :aria-invalid="!!filters.errors.per_page"
+                                :aria-describedby="
+                                    filters.errors.per_page
+                                        ? 'farm-per-page-error'
+                                        : undefined
+                                "
+                                @change="apply"
+                            >
+                                <AppSelectOption :value="15"
+                                    >15</AppSelectOption
+                                >
+                                <AppSelectOption :value="30"
+                                    >30</AppSelectOption
+                                >
+                                <AppSelectOption :value="50"
+                                    >50</AppSelectOption
+                                >
+                            </AppSelect>
+                        </label>
+                        <p
+                            v-if="filters.errors.per_page"
+                            id="farm-per-page-error"
+                            role="alert"
+                            class="text-xs text-error"
+                        >
+                            {{ filters.errors.per_page }}
+                        </p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <Button
                             v-if="farms.prev_page_url"

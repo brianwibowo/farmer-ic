@@ -199,6 +199,24 @@ Every input needs a visible `<label>`, a helpful value or placeholder, and inlin
 
 ## Pop-up
 
+### Shared selects and searchable choices
+
+- Use `components/selects/AppSelect.vue` with `AppSelectOption.vue` for ordinary
+  single choices. Use `AppCombobox.vue` for choices that need text search; keep
+  region loading, retries, and parent/child resets in `FarmRegionFields` and
+  `RegionCombobox`, rather than the generic control.
+- Preserve option value types (including empty strings, numbers, booleans and
+  null), required validation, names for native form submission, and disabled
+  options. Supply a visible associated label or an explicit accessible name.
+- Menus float above the document and may flip to remain in the viewport; they
+  must not move the content below. Portaled menus inherit the originating
+  admin/Farmer profile. Keep keyboard navigation, Escape dismissal, visible
+  focus, selected state, and loading/empty/error feedback in both themes.
+- Block and batch area fields offer hectares or whole square metres. Changing
+  units preserves valid entered area (1 ha = 10,000 m²). Explain the accepted
+  precision and show the equivalent area; Laravel validates and converts the
+  submitted unit/value to canonical hectares before persistence.
+
 Pop-ups support both horizontal and vertical button layouts. Content patterns include:
 
 - Title and message
@@ -536,6 +554,13 @@ its main content `min-h-0 overflow-y-auto` so long pages remain reachable.
   that target; keep any required token adjustment central and intentional.
 
 ## Implementation rules for Farmer IC
+
+Farm list toolbars keep search, the region-filter disclosure, and sorting visible.
+Place province/city choices in a collapsible panel at every viewport size, show
+applied filters as removable controls with an active count, and keep page size
+beside pagination. Use a direction icon beside the sort field; its accessible
+name and tooltip explain the current order and the next action for names, areas,
+or dates. Sort and page-size changes apply through the existing scoped backend.
 
 Farm Management forms display capacity limits before submission and keep a
 focusable, linked error summary alongside inline errors. Address selection starts

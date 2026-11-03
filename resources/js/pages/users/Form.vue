@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Info, LoaderCircle, Save, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
@@ -194,7 +196,7 @@ function submit(): void {
                         required
                     >
                         <template #default="{ id, invalid, description }"
-                            ><select
+                            ><AppSelect
                                 :id="id"
                                 v-model="form.role"
                                 :class="controlClass"
@@ -203,14 +205,14 @@ function submit(): void {
                                 :aria-invalid="invalid"
                                 :aria-describedby="description"
                             >
-                                <option
+                                <AppSelectOption
                                     v-for="role in options.roles"
                                     :key="role.value"
                                     :value="role.value"
                                 >
                                     {{ role.label }}
-                                </option>
-                            </select></template
+                                </AppSelectOption>
+                            </AppSelect></template
                         >
                     </UserField>
                     <div class="space-y-5 border-t border-border pt-5">
@@ -277,7 +279,9 @@ function submit(): void {
                         v-if="userManagementScope.global"
                         class="flex gap-2 rounded-xl bg-muted p-4 text-xs leading-6 text-muted-foreground"
                     >
-                        <Info class="mt-1 size-4 shrink-0" />Owner dan admin melihat farm melalui relasi tenant. Sementara petugas hanya dapat melihat farm yang ditugaskan ke mereka.
+                        <Info class="mt-1 size-4 shrink-0" />Owner dan admin
+                        melihat farm melalui relasi tenant. Sementara petugas
+                        hanya dapat melihat farm yang ditugaskan ke mereka.
                     </p>
                 </div>
             </div>

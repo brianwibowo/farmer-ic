@@ -82,6 +82,38 @@ class FarmBlockTest extends TestCase
         DB::statement('SET CONSTRAINTS ALL DEFERRED');
     }
 
+    public function test_block_area_units_are_converted_on_create_and_update(): void
+    {
+        $this->post($this->url(), ['code' => 'M01', 'name' => 'Blok Konversi', 'area_value' => '12500', 'area_unit' => 'm2'])->assertRedirect();
+        $block = FarmBlock::where('code', 'M01')->firstOrFail();
+        $this->assertSame('1.2500', $block->area_ha);
+
+        $this->patch($this->url($block), ['area_value' => '0,5001', 'area_unit' => 'ha'])->assertRedirect();
+        $this->assertSame('0.5001', $block->fresh()->area_ha);
+        $this->patch($this->url($block), ['area_value' => '1', 'area_unit' => 'm2'])->assertRedirect();
+        $this->assertSame('0.0001', $block->fresh()->area_ha);
+    }
+
+    public function test_block_area_units_reject_invalid_or_conflicting_inputs_without_writing(): void
+    {
+        foreach ([
+            ['area_value' => '1.5', 'area_unit' => 'm2'],
+            ['area_value' => '0', 'area_unit' => 'ha'],
+            ['area_value' => '1.00001', 'area_unit' => 'ha'],
+            ['area_value' => '50.000', 'area_unit' => 'm2'],
+            ['area_value' => '1e4', 'area_unit' => 'm2'],
+            ['area_value' => '1', 'area_unit' => 'acre'],
+            ['area_value' => '1'],
+            ['area_unit' => 'm2'],
+            ['area_value' => '10000', 'area_unit' => 'm2', 'area_ha' => '2'],
+        ] as $area) {
+            $this->post($this->url(), ['code' => 'M01', 'name' => 'Blok Konversi', ...$area])->assertSessionHasErrors();
+            $this->assertDatabaseMissing('farm_blocks', ['code' => 'M01']);
+        }
+        $this->post($this->url(), ['code' => 'M01', 'name' => 'Blok Konversi', 'area_value' => '100001', 'area_unit' => 'm2'])->assertSessionHasErrors('area_ha');
+        $this->assertDatabaseMissing('farm_blocks', ['code' => 'M01']);
+    }
+
     public function test_admin_crud_normalizes_code_and_starts_land_clearing(): void
     {
         $this->get($this->url().'/create')->assertInertia(fn (Assert $page) => $page->component('farmer/blocks/Form')->where('block', null));

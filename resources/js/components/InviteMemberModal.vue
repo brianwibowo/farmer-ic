@@ -14,13 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { store as storeInvitation } from '@/routes/teams/invitations';
 import type { RoleOption, Team } from '@/types';
 
@@ -81,24 +76,21 @@ function handleOpenChange(value: boolean) {
 
                     <div class="grid gap-2">
                         <Label for="role">Role</Label>
-                        <Select
+                        <AppSelect
                             v-model="inviteRole"
+                            id="role"
+                            placeholder="Select a role"
                             name="role"
                             data-test="invite-role"
                         >
-                            <SelectTrigger class="w-full">
-                                <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="role in props.availableRoles"
-                                    :key="role.value"
-                                    :value="role.value"
-                                >
-                                    {{ role.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                            <AppSelectOption
+                                v-for="role in props.availableRoles"
+                                :key="role.value"
+                                :value="role.value"
+                            >
+                                {{ role.label }}
+                            </AppSelectOption>
+                        </AppSelect>
                         <InputError :message="errors.role" />
                     </div>
                 </div>

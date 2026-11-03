@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -240,21 +242,23 @@ function submit(): void {
                     class="space-y-1.5"
                 >
                     <Label for="finance-farm">Kebun</Label>
-                    <select
+                    <AppSelect
                         id="finance-farm"
                         v-model="farmId"
                         required
                         class="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
                     >
-                        <option value="" disabled>Pilih kebun</option>
-                        <option
+                        <AppSelectOption value="" disabled
+                            >Pilih kebun</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="farm in options.farms"
                             :key="farm.id"
                             :value="farm.id"
                         >
                             {{ farm.name }}
-                        </option>
-                    </select>
+                        </AppSelectOption>
+                    </AppSelect>
                 </div>
                 <div v-if="resource === 'categories'" class="space-y-1.5">
                     <Label for="finance-name">Nama kategori</Label
@@ -272,14 +276,18 @@ function submit(): void {
                     class="space-y-1.5"
                 >
                     <Label for="finance-type">Jenis transaksi</Label
-                    ><select
+                    ><AppSelect
                         id="finance-type"
                         v-model="form.transaction_type"
                         required
                         class="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
                     >
-                        <option value="income">Pemasukan</option>
-                        <option value="expense">Pengeluaran</option></select
+                        <AppSelectOption value="income"
+                            >Pemasukan</AppSelectOption
+                        >
+                        <AppSelectOption value="expense"
+                            >Pengeluaran</AppSelectOption
+                        ></AppSelect
                     ><InputError :message="form.errors.transaction_type" />
                 </div>
                 <div
@@ -290,26 +298,26 @@ function submit(): void {
                         >Kategori{{
                             resource === 'budgets' ? ' (opsional)' : ''
                         }}</Label
-                    ><select
+                    ><AppSelect
                         id="finance-category"
                         v-model="form.category_id"
                         :required="resource === 'transactions'"
                         class="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
                     >
-                        <option value="">
+                        <AppSelectOption value="">
                             {{
                                 resource === 'budgets'
                                     ? 'Tanpa kategori'
                                     : 'Pilih kategori'
                             }}
-                        </option>
-                        <option
+                        </AppSelectOption>
+                        <AppSelectOption
                             v-for="category in categories"
                             :key="category.id"
                             :value="category.id"
                         >
                             {{ category.name }}
-                        </option></select
+                        </AppSelectOption></AppSelect
                     ><InputError :message="form.errors.category_id" />
                 </div>
                 <div
@@ -320,19 +328,21 @@ function submit(): void {
                     class="space-y-1.5"
                 >
                     <Label for="finance-cycle">Siklus tanam (opsional)</Label
-                    ><select
+                    ><AppSelect
                         id="finance-cycle"
                         v-model="form.planting_cycle_id"
                         class="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
                     >
-                        <option value="">Tanpa siklus tanam</option>
-                        <option
+                        <AppSelectOption value=""
+                            >Tanpa siklus tanam</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="cycle in cycles"
                             :key="cycle.id"
                             :value="cycle.id"
                         >
                             {{ cycle.label }}
-                        </option></select
+                        </AppSelectOption></AppSelect
                     ><InputError :message="form.errors.planting_cycle_id" />
                 </div>
                 <div v-if="resource === 'transactions'" class="space-y-1.5">

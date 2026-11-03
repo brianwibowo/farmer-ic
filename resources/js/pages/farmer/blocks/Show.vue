@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, LoaderCircle, Pencil, Trash2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -363,16 +365,20 @@ const fieldClass = 'admin-field block-field';
                     :error="batchForm.errors.area_unit"
                     v-slot="field"
                 >
-                    <select
+                    <AppSelect
                         :id="field.id"
                         v-model="batchForm.area_unit"
                         :class="fieldClass"
                         :aria-invalid="field.invalid"
                         :aria-describedby="field.description"
                     >
-                        <option value="ha">Hektare (ha)</option>
-                        <option value="m2">Meter persegi (m²)</option>
-                    </select>
+                        <AppSelectOption value="ha"
+                            >Hektare (ha)</AppSelectOption
+                        >
+                        <AppSelectOption value="m2"
+                            >Meter persegi (m²)</AppSelectOption
+                        >
+                    </AppSelect>
                 </FarmField>
             </fieldset>
             <p

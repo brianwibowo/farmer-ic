@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, LandPlot, LoaderCircle, Save } from '@lucide/vue';
 import { computed, useTemplateRef, watch } from 'vue';
@@ -195,7 +197,7 @@ function submit(): void {
                             :error="form.errors.land_tenure"
                             v-slot="field"
                         >
-                            <select
+                            <AppSelect
                                 :id="field.id"
                                 v-model="form.land_tenure"
                                 class="admin-field"
@@ -203,13 +205,19 @@ function submit(): void {
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             >
-                                <option value="" disabled>
+                                <AppSelectOption value="" disabled>
                                     Pilih status lahan
-                                </option>
-                                <option value="owned">Milik sendiri</option>
-                                <option value="rented">Sewa</option>
-                                <option value="partnership">Kerja sama</option>
-                            </select>
+                                </AppSelectOption>
+                                <AppSelectOption value="owned"
+                                    >Milik sendiri</AppSelectOption
+                                >
+                                <AppSelectOption value="rented"
+                                    >Sewa</AppSelectOption
+                                >
+                                <AppSelectOption value="partnership"
+                                    >Kerja sama</AppSelectOption
+                                >
+                            </AppSelect>
                         </FarmField>
                         <FarmField
                             id="farm-owner"
@@ -223,15 +231,17 @@ function submit(): void {
                                       : 'Belum ada Owner yang dapat dipilih sesuai akses kamu.'
                             "
                             v-slot="field"
-                            ><select
+                            ><AppSelect
                                 :id="field.id"
                                 v-model="form.owner_id"
                                 class="admin-field"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             >
-                                <option value="">Belum ditentukan</option>
-                                <option
+                                <AppSelectOption value=""
+                                    >Belum ditentukan</AppSelectOption
+                                >
+                                <AppSelectOption
                                     v-if="
                                         farm?.owner_id &&
                                         !owners.some(
@@ -243,15 +253,15 @@ function submit(): void {
                                 >
                                     Pertahankan pemilik saat ini · akses
                                     terbatas
-                                </option>
-                                <option
+                                </AppSelectOption>
+                                <AppSelectOption
                                     v-for="owner in owners"
                                     :key="owner.id"
                                     :value="owner.id"
                                 >
                                     {{ owner.name }}
-                                </option>
-                            </select></FarmField
+                                </AppSelectOption>
+                            </AppSelect></FarmField
                         >
                     </div>
                 </section>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 withDefaults(
     defineProps<{
         modelValue?: string;
@@ -18,24 +20,21 @@ defineEmits<{ 'update:modelValue': [value: string] }>();
             >{{ label }} <span v-if="optional">(opsional)</span
             ><em v-else>*</em></span
         >
-        <select
-            :value="modelValue"
+        <AppSelect
+            :model-value="modelValue"
             class="petugas-field"
-            @change="
-                $emit(
-                    'update:modelValue',
-                    ($event.target as HTMLSelectElement).value,
-                )
-            "
+            @update:model-value="$emit('update:modelValue', $event)"
         >
-            <option value="" :disabled="!optional">Pilih opsi</option>
-            <option
+            <AppSelectOption value="" :disabled="!optional"
+                >Pilih opsi</AppSelectOption
+            >
+            <AppSelectOption
                 v-for="option in options"
                 :key="option[0]"
                 :value="option[0]"
             >
                 {{ option[1] }}
-            </option>
-        </select>
+            </AppSelectOption>
+        </AppSelect>
     </label>
 </template>

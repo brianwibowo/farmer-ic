@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowUpRight,
@@ -217,20 +219,22 @@ function reset(): void {
                             for="filter-role"
                             class="block text-sm font-medium"
                             >Role</label
-                        ><select
+                        ><AppSelect
                             id="filter-role"
                             v-model="filters.role"
                             :class="controlClass"
                         >
-                            <option value="">Semua role</option>
-                            <option
+                            <AppSelectOption value=""
+                                >Semua role</AppSelectOption
+                            >
+                            <AppSelectOption
                                 v-for="role in options.roles"
                                 :key="role.value"
                                 :value="role.value"
                             >
                                 {{ role.label }}
-                            </option>
-                        </select>
+                            </AppSelectOption>
+                        </AppSelect>
                     </div>
                     <div
                         v-if="userManagementScope.multiTenant"
@@ -240,20 +244,22 @@ function reset(): void {
                             for="filter-team"
                             class="block text-sm font-medium"
                             >Tenant</label
-                        ><select
+                        ><AppSelect
                             id="filter-team"
                             v-model="filters.team_id"
                             :class="controlClass"
                         >
-                            <option value="">Semua tenant</option>
-                            <option
+                            <AppSelectOption value=""
+                                >Semua tenant</AppSelectOption
+                            >
+                            <AppSelectOption
                                 v-for="team in options.teams"
                                 :key="team.id"
                                 :value="team.id"
                             >
                                 {{ team.name }}
-                            </option>
-                        </select>
+                            </AppSelectOption>
+                        </AppSelect>
                     </div>
                     <div class="space-y-2">
                         <label
@@ -261,14 +267,16 @@ function reset(): void {
                             class="block text-sm font-medium"
                             >Kebun</label
                         >
-                        <select
+                        <AppSelect
                             id="filter-farm"
                             v-model="filters.farm_id"
                             :class="controlClass"
                             aria-describedby="filter-farm-hint"
                         >
-                            <option value="">Semua kebun</option>
-                            <option
+                            <AppSelectOption value=""
+                                >Semua kebun</AppSelectOption
+                            >
+                            <AppSelectOption
                                 v-for="farm in availableFarms"
                                 :key="farm.id"
                                 :value="farm.id"
@@ -284,8 +292,8 @@ function reset(): void {
                                           )?.name ?? '')
                                         : ''
                                 }}
-                            </option>
-                        </select>
+                            </AppSelectOption>
+                        </AppSelect>
                         <p
                             id="filter-farm-hint"
                             class="text-xs text-muted-foreground"
@@ -559,15 +567,21 @@ function reset(): void {
                             >{{ users.from }}–{{ users.to }} dari
                             {{ users.total }} user</span
                         ><label class="flex items-center gap-2"
-                            >Per halaman<select
+                            >Per halaman<AppSelect
                                 v-model="filters.per_page"
                                 class="h-8 rounded-lg border border-input bg-background px-2 text-foreground"
                                 @change="apply"
                             >
-                                <option :value="15">15</option>
-                                <option :value="30">30</option>
-                                <option :value="50">50</option>
-                            </select></label
+                                <AppSelectOption :value="15"
+                                    >15</AppSelectOption
+                                >
+                                <AppSelectOption :value="30"
+                                    >30</AppSelectOption
+                                >
+                                <AppSelectOption :value="50"
+                                    >50</AppSelectOption
+                                >
+                            </AppSelect></label
                         >
                     </div>
                     <div class="flex items-center gap-2">

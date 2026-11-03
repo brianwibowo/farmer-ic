@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Link } from '@inertiajs/vue3';
 import { Building2, LandPlot } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -169,22 +171,24 @@ watch(
                 hint="Boleh dikosongkan jika user belum ditugaskan."
             >
                 <template #default="{ id, invalid, description }">
-                    <select
+                    <AppSelect
                         :id="id"
                         v-model="singleTeam"
                         :aria-invalid="invalid"
                         :aria-describedby="description"
                         class="admin-field"
                     >
-                        <option value="">Belum ditugaskan</option>
-                        <option
+                        <AppSelectOption value=""
+                            >Belum ditugaskan</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="team in options.teams"
                             :key="team.id"
                             :value="team.id"
                         >
                             {{ team.name }}
-                        </option>
-                    </select>
+                        </AppSelectOption>
+                    </AppSelect>
                 </template>
             </UserField>
         </template>
@@ -221,7 +225,7 @@ watch(
                 "
             >
                 <template #default="{ id, invalid, description }">
-                    <select
+                    <AppSelect
                         :id="id"
                         v-model="farmId"
                         :disabled="
@@ -233,15 +237,17 @@ watch(
                         :aria-describedby="description"
                         class="admin-field"
                     >
-                        <option value="">Belum ditugaskan</option>
-                        <option
+                        <AppSelectOption value=""
+                            >Belum ditugaskan</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="farm in availableFarms"
                             :key="farm.id"
                             :value="farm.id"
                         >
                             {{ farm.name }}
-                        </option>
-                    </select>
+                        </AppSelectOption>
+                    </AppSelect>
                 </template>
             </UserField>
         </div>
