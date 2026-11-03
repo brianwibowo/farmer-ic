@@ -7,7 +7,8 @@ use App\Http\Requests\Admin\CancelTaskRequest;
 use App\Http\Requests\Admin\ListTasksRequest;
 use App\Http\Requests\Admin\RescheduleTaskRequest;
 use App\Http\Requests\Admin\SkipTaskRequest;
-use App\Models\Farm;
+use App\Models\FarmBlock;
+use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
@@ -34,7 +35,7 @@ class TaskManagementController extends Controller
         Gate::authorize('viewAny', [PlantingCycleTask::class, $team]);
 
         $filters = array_replace([
-            'search' => '', 'farm_id' => '', 'status' => '', 'category' => '', 'per_page' => 15,
+            'search' => '', 'block_id' => '', 'subblok_id' => '', 'status' => '', 'category' => '', 'per_page' => 15,
         ], $request->validated());
 
         $query = $this->query($user, $team, $filters);
@@ -42,11 +43,36 @@ class TaskManagementController extends Controller
 
         return Inertia::render('tasks/Index', [
             'tasks' => $query->paginate((int) $filters['per_page'])->withQueryString()
-                ->through(fn (PlantingCycleTask $task): array => $this->row($task)),
+                ->through(fn (PlantingCycleTask $task, int $key): array => $this->row($task)),
             'filters' => $filters,
             'summary' => $summary,
-            'farms' => Farm::visibleTo($user, $team)->orderBy('name')->get(['id', 'name'])
-                ->map(fn (Farm $farm): array => ['id' => $farm->id, 'name' => $farm->name])->all(),
+            'blocks' => FarmBlock::query()
+                ->visibleTo($user, $team)
+                ->with('farm:id,name')
+                ->orderBy('code')
+                ->get(['id', 'farm_id', 'code', 'name'])
+                ->map(fn (FarmBlock $block): array => [
+                    'id' => $block->id,
+                    'farm_id' => $block->farm_id,
+                    'code' => $block->code,
+                    'name' => $block->name,
+                    'farm_name' => $block->farm?->name,
+                ])->all(),
+            'subbloks' => PlantingCycle::query()
+                ->visibleTo($user, $team)
+                ->whereNotNull('planting_round_id')
+                ->whereNotNull('batch_number')
+                ->whereHas('plantingRound.block')
+                ->with('plantingRound.block:id,name')
+                ->orderBy('batch_number')
+                ->get(['id', 'planting_round_id', 'batch_number', 'subblock_label'])
+                ->map(fn (PlantingCycle $subblok): array => [
+                    'id' => $subblok->id,
+                    'block_id' => $subblok->plantingRound?->block?->id,
+                    'number' => (int) $subblok->batch_number,
+                    'label' => $subblok->subblock_label,
+                    'block_name' => $subblok->plantingRound?->block?->name,
+                ])->all(),
         ]);
     }
 
@@ -81,13 +107,16 @@ class TaskManagementController extends Controller
     public function reschedule(RescheduleTaskRequest $request, PlantingCycleTask $task): RedirectResponse
     {
         Gate::authorize('update', $task);
-        $this->tasks->reschedule($task, $request->user(), $request->validated());
+        $this->tasks->reschedule($task, $request->user(), $request->payload());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Jadwal tugas diperbarui.']);
 
         return back();
     }
 
-    /** @param array<string, mixed> $filters */
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return Builder<PlantingCycleTask>
+     */
     private function query(User $user, Team $team, array $filters): Builder
     {
         $query = PlantingCycleTask::query()
@@ -107,8 +136,12 @@ class TaskManagementController extends Controller
             });
         }
 
-        if (($filters['farm_id'] ?? '') !== '') {
-            $query->whereHas('plantingCycle', fn (Builder $cycle) => $cycle->where('farm_id', $filters['farm_id']));
+        if (($filters['block_id'] ?? '') !== '') {
+            $query->whereHas('plantingCycle.plantingRound.block', fn (Builder $block) => $block
+                ->whereKey($filters['block_id']));
+        }
+        if (($filters['subblok_id'] ?? '') !== '') {
+            $query->where('planting_cycle_id', $filters['subblok_id']);
         }
         if (($filters['status'] ?? '') !== '') {
             $query->where('status', $filters['status']);
@@ -125,7 +158,10 @@ class TaskManagementController extends Controller
             ->orderBy('id');
     }
 
-    /** @return array{total: int, open: int, overdue: int, today: int, completed: int} */
+    /**
+     * @param  Builder<PlantingCycleTask>  $query
+     * @return array{total: int, open: int, overdue: int, today: int, completed: int}
+     */
     private function summary(Builder $query): array
     {
         $today = CarbonImmutable::today()->toDateString();

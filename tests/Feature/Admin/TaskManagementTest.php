@@ -62,12 +62,13 @@ class TaskManagementTest extends TestCase
         $user->unsetRelation('teams')->unsetRelation('currentTeam');
     }
 
-    private function task(array $overrides = []): PlantingCycleTask
+    private function task(array $overrides = [], ?PlantingCycle $subblok = null): PlantingCycleTask
     {
-        $stage = $this->subblok->stages()->where('code', 'maintenance')->firstOrFail();
+        $subblok ??= $this->subblok;
+        $stage = $subblok->stages()->where('code', 'maintenance')->firstOrFail();
 
         return PlantingCycleTask::query()->create([
-            'planting_cycle_id' => $this->subblok->id,
+            'planting_cycle_id' => $subblok->id,
             'planting_cycle_stage_id' => $stage->id,
             'activity_category' => 'maintenance',
             'activity_subcategory' => 'irrigation',
@@ -83,7 +84,7 @@ class TaskManagementTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_list_and_filter_tasks_in_the_tenant(): void
+    public function test_admin_can_list_and_filter_tasks_by_block_and_subblok(): void
     {
         $pending = $this->task();
         $completed = $this->task([
@@ -91,15 +92,46 @@ class TaskManagementTest extends TestCase
             'status' => 'completed',
             'completed_at' => now(),
         ]);
+        $secondBlock = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
+            'code' => 'B02',
+            'name' => 'Blok Selatan',
+            'area_ha' => '4.0000',
+        ]);
+        $secondSubblok = app(FarmBlockService::class)->createBatch($secondBlock, $this->admin, $this->team, [
+            'reserved_area_ha' => '1.0000',
+            'subblock_label' => 'B',
+            'planned_planting_at' => '2026-11-06',
+        ]);
+        $secondTask = $this->task(['name' => 'Tugas blok selatan'], $secondSubblok);
 
         $this->get('/admin/tasks')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('tasks/Index')
-                ->where('tasks.total', 2)
-                ->has('farms', 1)
-                ->where('summary.total', 2)
+                ->where('tasks.total', 3)
+                ->has('blocks', 2)
+                ->where('blocks.0.code', 'B01')
+                ->where('blocks.1.code', 'B02')
+                ->has('subbloks', 2)
+                ->where('subbloks.0.id', $this->subblok->id)
+                ->where('subbloks.0.label', 'A')
+                ->where('subbloks.1.id', $secondSubblok->id)
+                ->where('subbloks.1.label', 'B')
+                ->where('summary.total', 3)
                 ->where('summary.completed', 1));
+
+        $this->get('/admin/tasks?block_id='.$this->block->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.block_id', $this->block->id)
+                ->where('tasks.total', 2));
+
+        $this->get('/admin/tasks?block_id='.$secondBlock->id.'&subblok_id='.$secondSubblok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.subblok_id', $secondSubblok->id)
+                ->where('tasks.total', 1)
+                ->where('tasks.data.0.id', $secondTask->id));
 
         $this->get('/admin/tasks?status=completed')
             ->assertOk()
@@ -113,6 +145,12 @@ class TaskManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('tasks.total', 1)
                 ->where('tasks.data.0.id', $pending->id));
+    }
+
+    public function test_block_and_subblok_filters_must_be_valid_uuids(): void
+    {
+        $this->get('/admin/tasks?block_id=not-a-block&subblok_id=not-a-subblok')
+            ->assertSessionHasErrors(['block_id', 'subblok_id']);
     }
 
     public function test_admin_can_open_task_detail(): void
@@ -226,7 +264,10 @@ class TaskManagementTest extends TestCase
         $this->actingAs($this->admin)
             ->get('/admin/tasks')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('tasks.total', 1));
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.total', 1)
+                ->has('blocks', 1)
+                ->has('subbloks', 1));
 
         $this->get('/admin/tasks/'.$otherTask->id)->assertForbidden();
     }

@@ -37,4 +37,13 @@ class RescheduleTaskRequest extends FormRequest
             'reschedule_reason.min' => 'Alasan penjadwalan ulang minimal 5 karakter.',
         ];
     }
+
+    /** @return array{rescheduled_date: string, reschedule_reason: string} */
+    public function payload(): array
+    {
+        return [
+            'rescheduled_date' => (string) $this->validated('rescheduled_date'),
+            'reschedule_reason' => (string) $this->validated('reschedule_reason'),
+        ];
+    }
 }

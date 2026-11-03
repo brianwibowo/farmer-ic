@@ -21,8 +21,10 @@ import {
     adminTaskSubcategoryLabel,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
+    type AdminTaskBlockOption,
     type AdminTaskFilters,
     type AdminTaskPage,
+    type AdminTaskSubblokOption,
     type AdminTaskSummary,
 } from '@/types/tasks';
 
@@ -30,19 +32,45 @@ const props = defineProps<{
     tasks: AdminTaskPage;
     filters: AdminTaskFilters;
     summary: AdminTaskSummary;
-    farms: { id: string; name: string }[];
+    blocks: AdminTaskBlockOption[];
+    subbloks: AdminTaskSubblokOption[];
 }>();
 
 const form = useForm({
     search: props.filters.search ?? '',
-    farm_id: props.filters.farm_id ?? '',
+    block_id: props.filters.block_id ?? '',
+    subblok_id: props.filters.subblok_id ?? '',
     status: props.filters.status ?? '',
     category: props.filters.category ?? '',
     per_page: props.filters.per_page ?? 15,
 });
-const hasFilters = computed(
-    () => !!form.search || !!form.farm_id || !!form.status || !!form.category,
+const subblokOptions = computed(() =>
+    form.block_id
+        ? props.subbloks.filter((subblok) => subblok.block_id === form.block_id)
+        : props.subbloks,
 );
+const showBlockFarm = computed(
+    () => new Set(props.blocks.map((block) => block.farm_id)).size > 1,
+);
+const hasFilters = computed(
+    () =>
+        !!form.search ||
+        !!form.block_id ||
+        !!form.subblok_id ||
+        !!form.status ||
+        !!form.category,
+);
+
+function changeBlock(): void {
+    if (
+        form.subblok_id &&
+        !subblokOptions.value.some(
+            (subblok) => subblok.id === form.subblok_id,
+        )
+    ) {
+        form.subblok_id = '';
+    }
+}
 
 function apply(): void {
     form.get('/admin/tasks', {
@@ -54,7 +82,8 @@ function apply(): void {
 
 function reset(): void {
     form.search = '';
-    form.farm_id = '';
+    form.block_id = '';
+    form.subblok_id = '';
     form.status = '';
     form.category = '';
     apply();
@@ -102,8 +131,8 @@ function reset(): void {
                         {{ tasks.total }}
                     </span>
                 </div>
-                <form class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-5" @submit.prevent="apply">
-                    <FarmField id="task-search" label="Cari" :error="form.errors.search" class="xl:col-span-2" v-slot="field">
+                <form class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-6" @submit.prevent="apply">
+                    <FarmField id="task-search" label="Cari" :error="form.errors.search" class="sm:col-span-2 xl:col-span-2" v-slot="field">
                         <div class="relative">
                             <Search class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" aria-hidden="true" />
                             <input
@@ -112,17 +141,36 @@ function reset(): void {
                                 class="admin-field pl-9!"
                                 type="search"
                                 maxlength="100"
-                                placeholder="Nama tugas, kebun, blok, atau subblok"
+                                placeholder="Nama tugas, blok, atau subblok"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             />
                         </div>
                     </FarmField>
-                    <FarmField id="task-farm" label="Kebun" :error="form.errors.farm_id" v-slot="field">
-                        <select :id="field.id" v-model="form.farm_id" class="admin-field">
-                            <option value="">Semua kebun</option>
-                            <option v-for="farm in farms" :key="farm.id" :value="farm.id">
-                                {{ farm.name }}
+                    <FarmField id="task-block" label="Blok" :error="form.errors.block_id" v-slot="field">
+                        <select
+                            :id="field.id"
+                            v-model="form.block_id"
+                            class="admin-field"
+                            @change="changeBlock"
+                        >
+                            <option value="">Semua blok</option>
+                            <option v-for="block in blocks" :key="block.id" :value="block.id">
+                                {{ block.code }} · {{ block.name }}
+                                <template v-if="showBlockFarm && block.farm_name">
+                                    · {{ block.farm_name }}
+                                </template>
+                            </option>
+                        </select>
+                    </FarmField>
+                    <FarmField id="task-subblok" label="Subblok" :error="form.errors.subblok_id" v-slot="field">
+                        <select :id="field.id" v-model="form.subblok_id" class="admin-field">
+                            <option value="">Semua subblok</option>
+                            <option v-for="subblok in subblokOptions" :key="subblok.id" :value="subblok.id">
+                                {{ subblok.label ?? `Subblok ${subblok.number}` }}
+                                <template v-if="!form.block_id && subblok.block_name">
+                                    · {{ subblok.block_name }}
+                                </template>
                             </option>
                         </select>
                     </FarmField>
@@ -142,7 +190,7 @@ function reset(): void {
                             </option>
                         </select>
                     </FarmField>
-                    <div class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-5">
+                    <div class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-6">
                         <select v-model.number="form.per_page" class="admin-field w-auto!" aria-label="Jumlah per halaman">
                             <option :value="15">15 / halaman</option>
                             <option :value="30">30 / halaman</option>

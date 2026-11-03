@@ -56,10 +56,27 @@ export type AdminTaskPage = {
 
 export type AdminTaskFilters = {
     search?: string;
-    farm_id?: string;
+    block_id?: string;
+    subblok_id?: string;
     status?: string;
     category?: string;
     per_page?: number;
+};
+
+export type AdminTaskBlockOption = {
+    id: string;
+    farm_id: string;
+    code: string;
+    name: string;
+    farm_name: string | null;
+};
+
+export type AdminTaskSubblokOption = {
+    id: string;
+    block_id: string | null;
+    number: number;
+    label: string | null;
+    block_name: string | null;
 };
 
 export type AdminTaskSummary = {
