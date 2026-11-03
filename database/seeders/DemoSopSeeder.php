@@ -47,7 +47,7 @@ class DemoSopSeeder extends Seeder
             ]);
 
             $tasks = [
-                ['category' => 'planting', 'subcategory' => null, 'name' => 'Tanam benih Bisi 18', 'offset' => 0, 'instructions' => 'Tanam benih dengan jarak tanam 20 x 40 cm dan kedalaman yang seragam.'],
+                // Planting is the HST anchor and planting activity, not a follow-up SOP task.
                 ['category' => 'maintenance', 'subcategory' => 'irrigation', 'name' => 'Pengairan awal', 'offset' => 7, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
                 ['category' => 'maintenance', 'subcategory' => 'follow_up_fertilization', 'name' => 'Pemupukan susulan pertama', 'offset' => 14, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
                 ['category' => 'maintenance', 'subcategory' => 'pest_control', 'name' => 'Pengendalian hama dan penyakit', 'offset' => 30, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
