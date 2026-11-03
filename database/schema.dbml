@@ -205,6 +205,11 @@ Table planting_cycle_tasks {
   skip_reason text
   created_at timestamptz
   updated_at timestamptz
+  cancel_reason text
+  rescheduled_date date [note: 'Admin override; original scheduled_date remains the SOP/HST target']
+  reschedule_reason text
+  rescheduled_by uuid [ref: > users.id]
+  rescheduled_at timestamptz
   indexes {
     (planting_cycle_id, sop_template_task_id) [unique]
     (planting_cycle_id, scheduled_date, status)

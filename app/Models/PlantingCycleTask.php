@@ -23,6 +23,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $status
  * @property CarbonImmutable|null $completed_at
  * @property string|null $skip_reason
+ * @property string|null $cancel_reason
+ * @property CarbonImmutable|null $rescheduled_date
+ * @property string|null $reschedule_reason
+ * @property string|null $rescheduled_by
+ * @property CarbonImmutable|null $rescheduled_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
@@ -30,7 +35,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'planting_cycle_id', 'planting_cycle_stage_id', 'sop_template_task_id',
     'activity_category', 'activity_subcategory', 'name', 'instructions',
     'offset_days', 'tolerance_days', 'scheduled_date', 'due_date',
-    'is_required', 'status', 'completed_at', 'skip_reason',
+    'is_required', 'status', 'completed_at', 'skip_reason', 'cancel_reason',
+    'rescheduled_date', 'reschedule_reason', 'rescheduled_by', 'rescheduled_at',
 ])]
 class PlantingCycleTask extends FarmerModel
 {
@@ -50,6 +56,8 @@ class PlantingCycleTask extends FarmerModel
             'due_date' => 'immutable_date',
             'is_required' => 'boolean',
             'completed_at' => 'immutable_datetime',
+            'rescheduled_date' => 'immutable_date',
+            'rescheduled_at' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];
@@ -71,5 +79,16 @@ class PlantingCycleTask extends FarmerModel
     public function sourceTask(): BelongsTo
     {
         return $this->belongsTo(SopTemplateTask::class, 'sop_template_task_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function rescheduledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rescheduled_by');
+    }
+
+    public function effectiveScheduledDate(): CarbonImmutable|null
+    {
+        return $this->rescheduled_date ?? $this->scheduled_date;
     }
 }
