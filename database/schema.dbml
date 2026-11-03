@@ -66,6 +66,18 @@ Table team_invitations {
   updated_at timestamptz
 }
 
+Table administrative_regions {
+  code varchar(8) [pk]
+  name varchar(100) [not null]
+  level smallint [not null]
+  parent_code varchar(8) [ref: > administrative_regions.code]
+  indexes {
+    level
+    parent_code
+  }
+  Note: 'Snapshot wilayah administratif Indonesia: provinsi, kabupaten/kota, kecamatan.'
+}
+
 Table farms {
   id uuid [pk]
   owner_id uuid [ref: > users.id, note: 'Pemilik kebun; bukan akun yang membuat data']
@@ -83,6 +95,8 @@ Table farms {
   updated_at timestamptz
   team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
   land_tenure varchar(20) [note: 'owned | rented | partnership; null for legacy farms until confirmed']
+  district_code varchar(8) [ref: > administrative_regions.code]
+  default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default kebun; dipakai otomatis saat Petugas mencatat penanaman']
   Note: 'Tanpa farm_plots. Jika semua owner memantau semua kebun, owner_id boleh dihilangkan.'
 }
 
@@ -116,6 +130,8 @@ Table planting_cycles {
   subblock_label varchar(30)
   reserved_area_ha decimal(12,4)
   created_by uuid [ref: > users.id]
+  planned_planting_at date [note: 'Rencana tanggal tanam; acuan HST untuk jadwal tugas sebelum realisasi tanam']
+  sop_template_version_id uuid [ref: > sop_template_versions.id, note: 'Snapshot versi SOP yang dipakai subblok ini']
   indexes {
     (farm_id, batch_number) [unique]
     (planting_round_id, subblock_label) [unique]
@@ -163,16 +179,42 @@ Table planting_cycle_stages {
   created_at timestamptz
   updated_at timestamptz
   indexes {
+    (id, planting_cycle_id) [unique]
     (planting_cycle_id, code) [unique]
     (planting_cycle_id, position) [unique]
   }
   Note: 'Six stages per new batch: land_clearing completed, soil_preparation in_progress, remaining stages upcoming. No fabricated dates or progress percentages.'
 }
 
+Table planting_cycle_tasks {
+  id uuid [pk]
+  planting_cycle_id uuid [not null, ref: > planting_cycles.id]
+  planting_cycle_stage_id uuid [not null, note: 'Composite FK to a stage of the same subblok']
+  sop_template_task_id uuid [ref: > sop_template_tasks.id]
+  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest']
+  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance']
+  name varchar(200) [not null]
+  instructions text
+  offset_days int [not null, default: 0]
+  tolerance_days int [not null, default: 0]
+  scheduled_date date [note: 'Null when the subblok has no planted_at or planned_planting_at']
+  due_date date
+  is_required boolean [not null, default: true]
+  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | submitted | completed | skipped | cancelled']
+  completed_at timestamptz
+  skip_reason text
+  created_at timestamptz
+  updated_at timestamptz
+  indexes {
+    (planting_cycle_id, sop_template_task_id) [unique]
+    (planting_cycle_id, scheduled_date, status)
+    (planting_cycle_id, offset_days)
+  }
+  Note: 'Snapshot of follow-up SOP tasks for one subblok. Planting steps are not materialized; planting is the HST anchor. Generated once per subblok + SOP version. Existing snapshots survive later SOP changes.'
+}
+
 Table sop_templates {
   id uuid [pk]
-  farm_id uuid [not null, ref: > farms.id]
-  variety_id uuid [not null, ref: > crop_varieties.id]
   copied_from_version_id uuid [ref: > sop_template_versions.id]
   name varchar(150) [not null]
   description text
@@ -180,11 +222,14 @@ Table sop_templates {
   created_by uuid [not null, ref: > users.id]
   created_at timestamptz
   updated_at timestamptz
+  team_id bigint [not null, ref: > teams.id]
+  commodity_id uuid [not null, ref: > commodities.id]
   indexes {
-    (farm_id, variety_id)
+    (team_id, commodity_id)
+    commodity_id
     copied_from_version_id
   }
-  Note: 'Farm-owned SOP template for one crop variety. Tenant is resolved through farm.team_id. Copies are independent templates.'
+  Note: 'Tenant-owned SOP template for one commodity. Variety does not select the SOP. A farm points to one of these templates as its default.'
 }
 
 Table sop_template_versions {
@@ -208,22 +253,21 @@ Table sop_template_versions {
 Table sop_template_tasks {
   id uuid [pk]
   sop_template_version_id uuid [not null, ref: > sop_template_versions.id]
-  activity_type_id uuid [not null, ref: > activity_types.id]
-  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
   name varchar(200) [not null]
   instructions text
-  schedule_anchor varchar(30) [not null, note: 'planting_date | stage_start']
-  offset_days int [not null, default: 0, note: 'H+0 is the anchor date; negative values are before the anchor']
+  offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); SOP dimulai pada H+0']
   tolerance_days int [not null, default: 0, note: 'due_date = scheduled_date + tolerance_days']
-  position int [not null]
   is_required boolean [not null, default: true]
   created_at timestamptz
   updated_at timestamptz
+  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; SOP starts at planting']
+  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
   indexes {
-    (sop_template_version_id, position) [unique]
-    (sop_template_version_id, stage_code)
+    (sop_template_version_id, offset_days)
+    (sop_template_version_id, activity_category)
+    (sop_template_version_id, activity_subcategory)
   }
-  Note: 'One row is one SOP step at one relative day. Stage and activity type are separate concepts.'
+  Note: 'One row is one SOP step at one relative day. Ordered by offset_days, then category, creation time, and id. Category and subcategory follow the activity form taxonomy; stage is derived from the category at execution time.'
 }
 
 Table activity_types {

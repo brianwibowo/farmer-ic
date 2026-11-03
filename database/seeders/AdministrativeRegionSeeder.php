@@ -16,7 +16,12 @@ class AdministrativeRegionSeeder extends Seeder
             throw new RuntimeException('Metadata snapshot wilayah belum tersedia.');
         }
         $source = json_decode($metadata, true, flags: JSON_THROW_ON_ERROR);
-        if (hash_file('sha256', $path) !== $source['csv_sha256']) {
+        $csv = file_get_contents($path);
+        if ($csv === false) {
+            throw new RuntimeException('Snapshot wilayah belum dapat dibaca.');
+        }
+        $normalizedCsv = str_replace("\r\n", "\n", $csv);
+        if (hash('sha256', $normalizedCsv) !== $source['csv_sha256']) {
             throw new RuntimeException('Snapshot wilayah tidak sesuai checksum.');
         }
         DB::transaction(function () use ($path): void {

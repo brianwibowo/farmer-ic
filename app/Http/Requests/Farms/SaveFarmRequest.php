@@ -42,6 +42,8 @@ class SaveFarmRequest extends FormRequest
                 ->where('is_active', true)
                 ->whereIn('id', fn ($members) => $members->select('user_id')->from('team_members')->where('team_id', $teamId))
                 ->whereIn('role_id', fn ($roles) => $roles->select('id')->from('roles')->where('name', 'owner')))],
+            'default_sop_template_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('sop_templates', 'id')
+                ->where(fn ($query) => $query->where('team_id', $teamId))],
             'created_by' => ['prohibited'],
             'team_id' => ['prohibited'],
             'assigned_farm_id' => ['prohibited'],

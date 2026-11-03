@@ -5,7 +5,7 @@
 
 Project FarmerICPhase1Proposal {
   database_type: 'PostgreSQL'
-  Note: 'DRAFT DISKUSI phase 1, diselaraskan dengan RBAC 29 Oktober 2026. Admin satu tenant tanpa pivot PIC; SOP per kebun dan varietas; task selesai setelah approval. Bukan schema aktif atau migration. Penomoran per lahan dan batch sebelum tanam masih asumsi.'
+  Note: 'DRAFT DISKUSI phase 1, diselaraskan dengan RBAC 29 Oktober 2026. Admin satu tenant tanpa pivot PIC; SOP per tenant dan varietas; task selesai setelah approval. Bukan schema aktif atau migration. Penomoran per lahan dan batch sebelum tanam masih asumsi.'
 }
 
 Table roles {
@@ -87,6 +87,7 @@ Table farms {
   updated_at timestamptz
   team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
   land_tenure varchar(20) [note: 'owned | rented | partnership; null for legacy farms until confirmed']
+  default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default kebun; dipakai otomatis saat Petugas mencatat penanaman']
   Note: 'Master lahan. Memiliki blok permanen; pembagian subblok disimpan sebagai batch pada planting_cycles.'
 }
 
@@ -131,7 +132,7 @@ Table planting_cycles {
     (planting_round_id, sub_block_code) [unique]
     (farm_id, status)
   }
-  Note: 'Satu record = satu batch/subblok. round.block.farm harus sama dengan farm_id; versi SOP harus milik kebun yang sama dan varietas batch. Stage berjalan diturunkan dari planting_cycle_stages.'
+  Note: 'Satu record = satu batch/subblok. round.block.farm harus sama dengan farm_id; versi SOP harus milik tenant yang sama dan varietas batch. Stage berjalan diturunkan dari planting_cycle_stages.'
 }
 
 Table activity_types {
@@ -557,8 +558,8 @@ Table planting_rounds {
 
 Table sop_templates {
   id uuid [pk]
-  farm_id uuid [not null, ref: > farms.id]
-  variety_id uuid [not null, ref: > crop_varieties.id]
+  team_id bigint [not null, ref: > teams.id]
+  commodity_id uuid [not null, ref: > commodities.id, note: 'SOP per komoditas; varietas tidak memilih SOP']
   copied_from_version_id uuid [ref: > sop_template_versions.id, note: 'Asal salinan jika ada; tidak membuat isi template mengikuti sumber']
   name varchar(150) [not null]
   description text
@@ -567,10 +568,11 @@ Table sop_templates {
   created_at timestamptz [not null]
   updated_at timestamptz
   indexes {
-    (farm_id, variety_id)
+    (team_id, commodity_id)
+    commodity_id
     copied_from_version_id
   }
-  Note: 'SOP wajib per kebun dan varietas; tenant diturunkan dari farm.team_id, tidak disimpan ulang. Admin mengelola SOP kebun dalam tenantnya. Salin versi published menjadi template dan versi draft baru di kebun tujuan, dengan ID task baru; sumber tetap dan target independen. Salinan hanya dalam tenant yang sama serta varietas yang sama; aktor harus berwenang membaca sumber dan membuat di tujuan.'
+  Note: 'SOP wajib per tenant dan komoditas. Kebun menunjuk satu template sebagai SOP default; Petugas tidak memilih SOP. Versi published dibekukan dan revisi membuat versi baru.'
 }
 
 Table sop_template_versions {
@@ -588,28 +590,28 @@ Table sop_template_versions {
   indexes {
     (sop_template_id, version) [unique]
   }
-  Note: 'Versi yang sudah published beserta task-nya tidak diedit. Revisi menghasilkan versi baru dan hanya dipakai batch berikutnya; retired tetap dapat dibaca oleh batch yang memakainya. Kebun dan varietas template tidak boleh diganti setelah dipakai versi published atau batch.'
+  Note: 'Versi yang sudah published beserta task-nya tidak diedit. Revisi menghasilkan versi baru dan hanya dipakai batch berikutnya; retired tetap dapat dibaca oleh batch yang memakainya. Tenant dan varietas template tidak boleh diganti setelah dipakai versi published atau batch.'
 }
 
 Table sop_template_tasks {
   id uuid [pk]
   sop_template_version_id uuid [not null, ref: > sop_template_versions.id]
-  activity_type_id uuid [not null, ref: > activity_types.id]
-  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
   name varchar(200) [not null]
   instructions text
-  schedule_anchor varchar(30) [not null, note: 'stage_start | planting_date']
-  offset_days int [not null, default: 0, note: 'H+0 adalah tanggal acuan; negatif untuk pekerjaan sebelum acuan']
+  offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); SOP dimulai pada H+0']
   tolerance_days int [not null, default: 0, note: 'CHECK >= 0; due_date = scheduled_date + tolerance_days']
-  position int [not null]
   is_required boolean [not null, default: true]
   created_at timestamptz [not null]
   updated_at timestamptz
+  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; SOP dimulai pada penanaman']
+  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
 
   indexes {
-    (sop_template_version_id, position) [unique]
+    (sop_template_version_id, offset_days)
+    (sop_template_version_id, activity_category)
+    (sop_template_version_id, activity_subcategory)
   }
-  Note: 'Satu baris = satu pekerjaan pada satu hari relatif. Stage dan jenis aktivitas berbeda: basic_fertilizer adalah stage, fertilization adalah jenis aktivitas.'
+  Note: 'Satu baris = satu pekerjaan pada satu hari relatif. Diurutkan berdasarkan offset_days, lalu kategori, waktu pembuatan, dan id. Kategori/subkategori mengikuti form aktivitas; stage diturunkan dari kategori saat task batch dibuat.'
 }
 
 Table planting_cycle_stages {
@@ -639,11 +641,12 @@ Table planting_cycle_tasks {
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
   planting_cycle_stage_id uuid [not null, note: 'FK komposit ke stage milik batch yang sama']
   sop_template_task_id uuid [ref: > sop_template_tasks.id]
-  activity_type_id uuid [not null, ref: > activity_types.id]
+  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; disalin dari SOP']
+  activity_subcategory varchar(50) [note: 'Disalin dari SOP; wajib untuk maintenance']
+  activity_type_id uuid [not null, ref: > activity_types.id, note: 'Turunan kategori/subkategori untuk activity log']
   name varchar(200) [not null]
   instructions text
-  schedule_anchor varchar(30) [not null, note: 'stage_start | planting_date']
-  offset_days int [not null, default: 0]
+  offset_days int [not null, default: 0, note: 'Disalin dari SOP; HST non-negatif dari tanggal tanam batch']
   tolerance_days int [not null, default: 0]
   scheduled_date date [note: 'Boleh kosong ketika tanggal acuan belum tersedia']
   due_date date
@@ -661,7 +664,7 @@ Table planting_cycle_tasks {
     (planting_cycle_id, position) [unique]
     (planting_cycle_id, scheduled_date, status)
   }
-  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage, versi SOP, dan jenis aktivitas harus konsisten. Histori realisasi ada pada farm_activities; pengajuan dan keputusan ada pada planting_cycle_task_submissions. Status task dan keputusan review diperbarui atomik; satu pengajuan submitted aktif dan maksimal satu approved per task. Task rejected kembali in_progress; riwayat penolakan tidak ditimpa.'
+  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage diturunkan dari kategori; activity_type_id juga diturunkan dari kategori/subkategori agar konsisten dengan activity log. Histori realisasi ada pada farm_activities; pengajuan dan keputusan ada pada planting_cycle_task_submissions. Status task dan keputusan review diperbarui atomik; satu pengajuan submitted aktif dan maksimal satu approved per task. Task rejected kembali in_progress; riwayat penolakan tidak ditimpa.'
 }
 
 Table planting_cycle_task_submissions {

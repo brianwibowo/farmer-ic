@@ -4,7 +4,6 @@ import {
     ArrowLeft,
     CheckCircle2,
     ClipboardList,
-    Copy,
     LoaderCircle,
     Pencil,
     Plus,
@@ -12,16 +11,14 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import CopySopDialog from '@/components/sops/CopySopDialog.vue';
 import SopTaskDialog from '@/components/sops/SopTaskDialog.vue';
 import { Button } from '@/components/ui/button';
 import {
     hstLabel,
     sopDate,
-    sopStageLabels,
-    type SopActivityType,
+    sopTaskCategoryLabel,
+    sopTaskSubcategoryLabel,
     type SopCan,
-    type SopFarm,
     type SopTask,
     type SopTemplateDetail,
     type SopVersion,
@@ -29,18 +26,12 @@ import {
 
 const props = defineProps<{
     template: SopTemplateDetail;
-    activityTypes: SopActivityType[];
-    targetFarms: SopFarm[];
-    stageCodes: string[];
-    anchors: string[];
     can: SopCan;
 }>();
 
 const taskDialogOpen = ref(false);
 const taskVersion = ref<SopVersion | null>(null);
 const editingTask = ref<SopTask | null>(null);
-const copyDialogOpen = ref(false);
-const copyVersion = ref<SopVersion | null>(null);
 const publishingId = ref<string | null>(null);
 const creatingVersion = ref(false);
 
@@ -55,12 +46,6 @@ function openTask(version: SopVersion, task: SopTask | null = null): void {
     taskVersion.value = version;
     editingTask.value = task;
     taskDialogOpen.value = true;
-}
-
-function openCopy(): void {
-    if (!publishedVersion.value) return;
-    copyVersion.value = publishedVersion.value;
-    copyDialogOpen.value = true;
 }
 
 function createVersion(): void {
@@ -122,8 +107,7 @@ function statusClass(status: SopVersion['status']): string {
                 <p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">Template SOP</p>
                 <h1 class="admin-page-title tracking-tight">{{ template.name }}</h1>
                 <p class="mt-2 text-sm text-muted-foreground">
-                    {{ template.farm?.name }} · {{ template.variety?.name }}
-                    <span v-if="template.variety?.commodity?.name"> · {{ template.variety.commodity.name }}</span>
+                    {{ template.team?.name }} · {{ template.commodity?.name ?? 'Komoditas belum diisi' }}
                 </p>
                 <p v-if="template.description" class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                     {{ template.description }}
@@ -132,14 +116,6 @@ function statusClass(status: SopVersion['status']): string {
             <div class="flex flex-wrap gap-2">
                 <Button v-if="can.update" as-child variant="outline" class="h-10 rounded-xl">
                     <Link :href="`/admin/sops/${template.id}/edit`"><Pencil />Ubah</Link>
-                </Button>
-                <Button
-                    v-if="can.copy && publishedVersion"
-                    variant="outline"
-                    class="h-10 rounded-xl"
-                    @click="openCopy"
-                >
-                    <Copy />Salin ke kebun lain
                 </Button>
                 <Button
                     v-if="can.manageVersions && !draftVersion"
@@ -229,8 +205,8 @@ function statusClass(status: SopVersion['status']): string {
                         <tr>
                             <th scope="col" class="px-5 py-3 font-semibold">HST</th>
                             <th scope="col" class="px-5 py-3 font-semibold">Langkah</th>
-                            <th scope="col" class="px-5 py-3 font-semibold">Stage</th>
-                            <th scope="col" class="px-5 py-3 font-semibold">Jenis</th>
+                            <th scope="col" class="px-5 py-3 font-semibold">Kategori</th>
+                            <th scope="col" class="px-5 py-3 font-semibold">Subkategori</th>
                             <th scope="col" class="px-5 py-3 font-semibold">Wajib</th>
                             <th v-if="version.status === 'draft' && can.manageTasks" scope="col" class="px-5 py-3 text-right font-semibold">Tindakan</th>
                         </tr>
@@ -242,8 +218,8 @@ function statusClass(status: SopVersion['status']): string {
                                 <p class="font-medium">{{ task.name }}</p>
                                 <p v-if="task.instructions" class="mt-1 max-w-xl text-xs leading-5 text-muted-foreground">{{ task.instructions }}</p>
                             </td>
-                            <td class="px-5 py-4 whitespace-nowrap">{{ sopStageLabels[task.stage_code] ?? task.stage_code }}</td>
-                            <td class="px-5 py-4 whitespace-nowrap">{{ task.activity_type?.name ?? '—' }}</td>
+                            <td class="px-5 py-4 whitespace-nowrap">{{ sopTaskCategoryLabel(task) }}</td>
+                            <td class="px-5 py-4 whitespace-nowrap">{{ sopTaskSubcategoryLabel(task) }}</td>
                             <td class="px-5 py-4">{{ task.is_required ? 'Ya' : 'Tidak' }}</td>
                             <td v-if="version.status === 'draft' && can.manageTasks" class="px-5 py-4">
                                 <div class="flex justify-end gap-1">
@@ -271,14 +247,5 @@ function statusClass(status: SopVersion['status']): string {
         v-model:open="taskDialogOpen"
         :version="taskVersion"
         :task="editingTask"
-        :activity-types="activityTypes"
-        :stage-codes="stageCodes"
-        :anchors="anchors"
-    />
-    <CopySopDialog
-        v-if="copyVersion"
-        v-model:open="copyDialogOpen"
-        :version="copyVersion"
-        :farms="targetFarms"
     />
 </template>

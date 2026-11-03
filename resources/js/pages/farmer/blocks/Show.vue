@@ -49,6 +49,7 @@ const batchForm = useForm({
     area_value: '',
     area_unit: 'ha' as AreaUnit,
     subblock_label: '',
+    planned_planting_at: '',
 });
 useUnsavedChanges(() => batchForm.isDirty && !batchForm.processing);
 const availableMetres = computed(
@@ -380,6 +381,20 @@ const fieldClass = 'admin-field block-field';
                         >
                     </AppSelect>
                 </FarmField>
+                <FarmField
+                    id="batch-planned-planting"
+                    label="Rencana tanggal tanam (opsional)"
+                    hint="Menjadi acuan HST untuk jadwal tugas SOP pada batch ini."
+                    :error="batchForm.errors.planned_planting_at"
+                    v-slot="field"
+                    ><input
+                        :id="field.id"
+                        v-model="batchForm.planned_planting_at"
+                        :class="fieldClass"
+                        type="date"
+                        :aria-invalid="field.invalid"
+                        :aria-describedby="field.description"
+                /></FarmField>
             </fieldset>
             <p
                 class="min-h-6 text-sm text-muted-foreground"
@@ -452,6 +467,14 @@ const fieldClass = 'admin-field block-field';
                     }}
                     · Alokasi {{ hectares(batch.reserved_area_ha) }} ha ·
                     Realisasi tanam {{ hectares(batch.planted_area_ha) }} ha
+                </p>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Rencana tanam:
+                    {{
+                        batch.planned_planting_at
+                            ? blockDate(batch.planned_planting_at)
+                            : 'belum ditentukan'
+                    }}
                 </p>
             </header>
             <p class="text-sm font-medium">

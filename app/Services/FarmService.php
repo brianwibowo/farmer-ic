@@ -14,6 +14,8 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class FarmService
 {
+    public function __construct(private readonly SopTemplateService $sops) {}
+
     /**
      * @param  array<string, mixed>  $filters  Validated list parameters.
      * @return LengthAwarePaginator<int, Farm>
@@ -112,7 +114,7 @@ class FarmService
         $owner = User::visibleTo($user, $team)->whereKey($visible->owner_id)->first(['id', 'name']);
 
         return [
-            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
+            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id']),
             'region' => $visible->getAttribute('district_code') ? app(AdministrativeRegionService::class)->district($visible->getAttribute('district_code'), $user, $team) : null,
             'owner_restricted' => $visible->owner_id !== null && $owner === null,
             'capacity' => $this->capacity($visible, $user, $team),
@@ -120,6 +122,7 @@ class FarmService
             'team_name' => $team->name,
             'active_cycles' => (clone $cycles)->count(),
             'active_area_ha' => (string) (clone $cycles)->sum('planted_area_ha'),
+            'default_sop' => $this->sops->defaultForFarm($visible),
             'created_at' => $visible->created_at?->toISOString(),
         ];
     }

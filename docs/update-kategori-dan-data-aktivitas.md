@@ -34,7 +34,10 @@ Sudah ada:
 - form batch untuk beberapa kegiatan block mapping
 - validasi, policy, dan test untuk slice block mapping
 - tabel dan halaman admin definisi SOP: `sop_templates`, `sop_template_versions`, `sop_template_tasks`
-- publikasi versi SOP dan salin template ke kebun lain
+- publikasi versi SOP
+- SOP default per kebun dan penentuan SOP berdasarkan komoditas
+- generate `planting_cycle_tasks` berbasis HST dari definisi SOP
+- snapshot versi SOP pada subblok
 
 Belum ada:
 
@@ -44,7 +47,7 @@ Belum ada:
 - upload foto
 - approval/paraf
 - tabel master blok (sub-blok menjadi label batch/cycle)
-- generate `planting_cycle_tasks` berbasis HST dari definisi SOP
+- query task list Petugas dari `planting_cycle_tasks`
 - pengajuan dan approval task SOP
 - pemindahan `worker_count` dari header ke aktivitas
 - penghapusan `notes` harian dan field kendala/solusi/tindakan
@@ -146,8 +149,10 @@ Jika Blok B dan sebagian Blok A ditanam dalam selisih 0–3 hari, keduanya masuk
 ## Scheduled Tasks Berbasis SOP
 
 - Scheduled tasks **tidak** memakai recurrence daily/weekly/monthly.
-- Admin menyusun **SOP modular**: nama langkah, activity type, offset HST, instruksi, dan bukti yang diminta.
-- Saat SOP diterapkan ke batch, sistem membuat task untuk setiap langkah SOP pada tanggal acuan HST + offset. Batch dalam satu cycle memakai anchor HST yang sama.
+- Admin menyusun **SOP modular**: nama langkah, kategori/subkategori aktivitas, offset HST, instruksi, dan bukti yang diminta.
+- SOP dikaitkan ke **komoditas**, bukan varietas. Setiap kebun memiliki satu **SOP default**; Petugas tidak memilih SOP saat mencatat penanaman.
+- SOP mencakup penanaman sampai panen; pembersihan lahan dan pengolahan tanah dikelola sebagai persiapan batch/blok.
+- Saat SOP diterapkan ke subblok, sistem membuat task untuk setiap langkah SOP **Perawatan dan Panen** pada tanggal tanam + offset HST. Langkah **Penanaman** menjadi acuan aktivitas tanam dan tidak dibuat sebagai task terjadwal. Sebelum realisasi tanam, `planned_planting_at` menjadi acuan sementara.
 - Task terikat pada batch/sub-blok; cycle diperoleh dari batch.
 - Petugas menyelesaikan task dengan membuat activity log yang terhubung ke task.
 - Jika langkah tidak relevan, admin dapat menonaktifkan atau menandai task sebagai skip (future work).

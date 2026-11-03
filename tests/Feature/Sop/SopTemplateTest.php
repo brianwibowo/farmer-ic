@@ -3,12 +3,9 @@
 namespace Tests\Feature\Sop;
 
 use App\Enums\TeamRole;
-use App\Models\ActivityType;
 use App\Models\Commodity;
-use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\SopTemplate;
-use App\Models\SopTemplateVersion;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\SopTemplateService;
@@ -27,7 +24,7 @@ class SopTemplateTest extends TestCase
 
     private Farm $farm;
 
-    private CropVariety $variety;
+    private Commodity $commodity;
 
     protected function setUp(): void
     {
@@ -36,7 +33,7 @@ class SopTemplateTest extends TestCase
         $this->team = Team::factory()->create();
         $this->join($this->admin);
         $this->farm = $this->farm();
-        $this->variety = $this->variety();
+        $this->commodity = $this->commodity();
         $this->actingAs($this->admin);
     }
 
@@ -58,44 +55,29 @@ class SopTemplateTest extends TestCase
         return $farm;
     }
 
-    private function variety(string $name = 'Bisi 18'): CropVariety
+    private function commodity(string $name = 'Jagung'): Commodity
     {
-        $commodity = Commodity::query()->firstOrCreate(['name' => 'Jagung']);
-
-        return CropVariety::query()->create([
-            'commodity_id' => $commodity->id,
-            'name' => $name,
-        ]);
-    }
-
-    private function activityType(string $code = 'planting'): ActivityType
-    {
-        return ActivityType::query()->firstOrCreate(['code' => $code], [
-            'name' => ucfirst(str_replace('_', ' ', $code)),
-            'description' => 'Jenis aktivitas pengujian.',
-        ]);
+        return Commodity::query()->firstOrCreate(['name' => $name]);
     }
 
     /** @return array<string, mixed> */
-    private function taskPayload(int $position = 1, string $code = 'planting'): array
+    private function taskPayload(int $sequence = 1, string $category = 'planting', ?string $subcategory = null): array
     {
         return [
-            'activity_type_id' => $this->activityType($code)->id,
-            'stage_code' => 'planting',
-            'name' => 'Langkah '.$position,
-            'instructions' => 'Instruksi langkah '.$position.'.',
-            'schedule_anchor' => 'planting_date',
-            'offset_days' => ($position - 1) * 7,
+            'activity_category' => $category,
+            'activity_subcategory' => $subcategory,
+            'name' => 'Langkah '.$sequence,
+            'instructions' => 'Instruksi langkah '.$sequence.'.',
+            'offset_days' => ($sequence - 1) * 7,
             'tolerance_days' => 2,
-            'position' => $position,
             'is_required' => true,
         ];
     }
 
     private function createTemplate(): SopTemplate
     {
-        return app(SopTemplateService::class)->create($this->admin, $this->farm, [
-            'variety_id' => $this->variety->id,
+        return app(SopTemplateService::class)->create($this->admin, $this->team, [
+            'commodity_id' => $this->commodity->id,
             'name' => 'SOP Jagung Bisi 18',
             'description' => 'Panduan budidaya.',
             'is_active' => true,
@@ -104,8 +86,8 @@ class SopTemplateTest extends TestCase
 
     public function test_admin_creates_template_with_initial_draft_version(): void
     {
-        $response = $this->post('/admin/farms/'.$this->farm->id.'/sops', [
-            'variety_id' => $this->variety->id,
+        $response = $this->post('/admin/sops', [
+            'commodity_id' => $this->commodity->id,
             'name' => 'SOP Jagung Bisi 18',
             'description' => 'Panduan budidaya.',
             'is_active' => true,
@@ -113,8 +95,8 @@ class SopTemplateTest extends TestCase
 
         $response->assertRedirect();
         $template = SopTemplate::query()->firstOrFail();
-        $this->assertSame($this->farm->id, $template->farm_id);
-        $this->assertSame($this->variety->id, $template->variety_id);
+        $this->assertSame($this->team->id, $template->team_id);
+        $this->assertSame($this->commodity->id, $template->commodity_id);
         $this->assertSame($this->admin->id, $template->created_by);
         $this->assertDatabaseHas('sop_template_versions', [
             'sop_template_id' => $template->id,
@@ -141,6 +123,33 @@ class SopTemplateTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $service->createTask($version, $this->taskPayload(2, 'harvest'));
+    }
+
+    public function test_task_requires_a_supported_category_and_maintenance_subcategory(): void
+    {
+        $template = $this->createTemplate();
+        $version = $template->versions()->firstOrFail();
+        $url = '/admin/sops/'.$template->id.'/versions/'.$version->id.'/tasks';
+
+        $this->post($url, [
+            ...$this->taskPayload(1, 'maintenance'),
+            'activity_subcategory' => '',
+        ])->assertSessionHasErrors('activity_subcategory');
+
+        $this->post($url, [
+            ...$this->taskPayload(1, 'planting'),
+            'activity_subcategory' => 'irrigation',
+        ])->assertSessionHasErrors('activity_subcategory');
+
+        $this->post($url, [
+            ...$this->taskPayload(1, 'land_cleaning'),
+        ])->assertSessionHasErrors('activity_category');
+
+        $this->post($url, [
+            ...$this->taskPayload(),
+            'stage_code' => 'planting',
+            'activity_type_id' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertSessionHasErrors(['stage_code', 'activity_type_id']);
     }
 
     public function test_new_version_copies_tasks_and_publishing_retires_previous_version(): void
@@ -172,51 +181,39 @@ class SopTemplateTest extends TestCase
         app(SopTemplateService::class)->publish($version, $this->admin);
     }
 
-    public function test_copy_to_multiple_farms_creates_independent_draft_templates(): void
+    public function test_other_tenant_cannot_view_or_mutate_template(): void
     {
         $template = $this->createTemplate();
-        $service = app(SopTemplateService::class);
-        $version = $template->versions()->firstOrFail();
-        $service->createTask($version, $this->taskPayload());
-        $service->publish($version, $this->admin);
+        $otherTeam = Team::factory()->create();
+        $otherAdmin = User::factory()->create(['role' => 'admin']);
+        $this->join($otherAdmin, $otherTeam);
 
-        $second = $this->farm(null, 'Kebun Tujuan A');
-        $third = $this->farm(null, 'Kebun Tujuan B');
-        $created = $service->copyToFarms($this->admin, $version, [$second, $third]);
+        $this->assertFalse(Gate::forUser($otherAdmin)->allows('view', $template));
+        $this->assertSame(0, SopTemplate::query()->visibleTo($otherAdmin, $otherTeam)->count());
 
-        $this->assertCount(2, $created);
-        $this->assertSame($version->id, $created[0]->copied_from_version_id);
-        $this->assertSame($version->id, $created[1]->copied_from_version_id);
-        foreach ($created as $copy) {
-            $copyVersion = $copy->versions()->firstOrFail();
-            $this->assertSame('draft', $copyVersion->status);
-            $this->assertSame(1, $copyVersion->tasks()->count());
-            $this->assertSame($this->variety->id, $copy->variety_id);
-        }
+        $this->actingAs($otherAdmin)->get('/admin/sops/'.$template->id)->assertForbidden();
     }
 
-    public function test_copy_rejects_a_farm_from_another_tenant(): void
+    public function test_tasks_are_ordered_by_hst_offset(): void
     {
         $template = $this->createTemplate();
-        $service = app(SopTemplateService::class);
         $version = $template->versions()->firstOrFail();
-        $service->createTask($version, $this->taskPayload());
-        $service->publish($version, $this->admin);
+        $service = app(SopTemplateService::class);
 
-        $foreignTeam = Team::factory()->create();
-        $foreignFarm = $this->farm($foreignTeam, 'Kebun Tenant Lain');
+        $service->createTask($version, $this->taskPayload(3, 'harvest'));
+        $service->createTask($version, $this->taskPayload(1, 'planting'));
+        $service->createTask($version, $this->taskPayload(2, 'maintenance', 'irrigation'));
 
-        $this->expectException(ValidationException::class);
-        $service->copyToFarms($this->admin, $version, [$foreignFarm]);
+        $this->assertSame([0, 7, 14], $version->tasks()->pluck('offset_days')->all());
     }
 
-    public function test_admin_updates_template_without_changing_variety(): void
+    public function test_admin_updates_template_without_changing_commodity(): void
     {
         $template = $this->createTemplate();
-        $other = $this->variety('Pioneer 32');
+        $other = $this->commodity('Kedelai');
 
         $this->put('/admin/sops/'.$template->id, [
-            'variety_id' => $this->variety->id,
+            'commodity_id' => $this->commodity->id,
             'name' => 'SOP Jagung Revisi',
             'description' => 'Deskripsi baru.',
             'is_active' => false,
@@ -225,12 +222,26 @@ class SopTemplateTest extends TestCase
         $template->refresh();
         $this->assertSame('SOP Jagung Revisi', $template->name);
         $this->assertFalse($template->is_active);
-        $this->assertSame($this->variety->id, $template->variety_id);
+        $this->assertSame($this->commodity->id, $template->commodity_id);
 
         $this->put('/admin/sops/'.$template->id, [
-            'variety_id' => $other->id,
+            'commodity_id' => $other->id,
             'name' => 'SOP Jagung Revisi',
-        ])->assertSessionHasErrors('variety_id');
+        ])->assertSessionHasErrors('commodity_id');
+    }
+
+    public function test_admin_deletes_template_with_versions_and_tasks(): void
+    {
+        $template = $this->createTemplate();
+        $version = $template->versions()->firstOrFail();
+        app(SopTemplateService::class)->createTask($version, $this->taskPayload());
+        $taskId = $version->tasks()->value('id');
+
+        $this->delete('/admin/sops/'.$template->id)->assertRedirect('/admin/sops');
+
+        $this->assertDatabaseMissing('sop_templates', ['id' => $template->id]);
+        $this->assertDatabaseMissing('sop_template_versions', ['id' => $version->id]);
+        $this->assertDatabaseMissing('sop_template_tasks', ['id' => $taskId]);
     }
 
     public function test_index_show_and_form_pages_render_for_admin(): void
@@ -242,6 +253,9 @@ class SopTemplateTest extends TestCase
             ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
                 ->component('sops/Index')
                 ->has('sops.data', 1)
+                ->where('sops.data.0.can.view', true)
+                ->where('sops.data.0.can.update', true)
+                ->where('sops.data.0.can.delete', true)
                 ->where('can.create', true));
 
         $this->get('/admin/sops/'.$template->id)
@@ -249,16 +263,16 @@ class SopTemplateTest extends TestCase
             ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
                 ->component('sops/Show')
                 ->where('template.id', $template->id)
+                ->where('template.team_id', $this->team->id)
                 ->where('can.update', true)
-                ->where('can.copy', true)
                 ->has('template.versions', 1));
 
-        $this->get('/admin/farms/'.$this->farm->id.'/sops/create')
+        $this->get('/admin/sops/create')
             ->assertOk()
             ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
                 ->component('sops/Form')
                 ->where('template', null)
-                ->where('farm.id', $this->farm->id));
+                ->where('team.id', $this->team->id));
 
         $this->get('/admin/sops/'.$template->id.'/edit')
             ->assertOk()
@@ -277,13 +291,14 @@ class SopTemplateTest extends TestCase
         $petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
 
         $this->assertTrue(Gate::forUser($owner)->allows('view', $template));
-        $this->assertFalse(Gate::forUser($owner)->allows('create', [SopTemplate::class, $this->farm]));
+        $this->assertFalse(Gate::forUser($owner)->allows('create', [SopTemplate::class, $this->team]));
         $this->assertFalse(Gate::forUser($petugas)->allows('view', $template));
 
-        $this->actingAs($owner)->post('/admin/farms/'.$this->farm->id.'/sops', [
-            'variety_id' => $this->variety->id,
+        $this->actingAs($owner)->post('/admin/sops', [
+            'commodity_id' => $this->commodity->id,
             'name' => 'Tidak boleh',
         ])->assertForbidden();
+        $this->actingAs($owner)->delete('/admin/sops/'.$template->id)->assertForbidden();
 
         $this->actingAs($petugas)->get('/admin/sops/'.$template->id)->assertForbidden();
     }

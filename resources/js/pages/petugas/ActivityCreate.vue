@@ -20,6 +20,9 @@ import AreaField from '@/components/petugas/activity-form/AreaField.vue';
 import SelectField from '@/components/petugas/activity-form/SelectField.vue';
 import TextAreaField from '@/components/petugas/activity-form/TextAreaField.vue';
 import TextField from '@/components/petugas/activity-form/TextField.vue';
+import type { PetugasActivityPageProps } from '@/types/petugas-task';
+
+const props = defineProps<PetugasActivityPageProps>();
 
 type ActivityCategory =
     | 'land_cleaning'
@@ -546,6 +549,40 @@ function submit(): void {
                 v-else-if="form.category === 'planting'"
                 class="mt-4 space-y-3"
             >
+                <div class="rounded-xl border border-border bg-muted/40 p-3">
+                    <p
+                        class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        SOP otomatis
+                    </p>
+                    <template v-if="defaultSop">
+                        <p class="mt-1 font-semibold">{{ defaultSop.name }}</p>
+                        <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                            {{
+                                defaultSop.commodity?.name ??
+                                'Komoditas belum diisi'
+                            }}
+                            <template v-if="defaultSop.published_version">
+                                · Versi
+                                {{ defaultSop.published_version.version }} ·
+                                {{ defaultSop.tasks_count }} langkah
+                            </template>
+                            <template v-else>
+                                · Belum ada versi published
+                            </template>
+                        </p>
+                        <p
+                            v-if="!defaultSop.is_usable"
+                            class="mt-2 text-xs leading-5 text-warning"
+                        >
+                            SOP default belum siap dipakai. Hubungi Admin.
+                        </p>
+                    </template>
+                    <p v-else class="mt-1 text-sm leading-5 text-warning">
+                        Kebun ini belum memiliki SOP default. Hubungi Admin
+                        sebelum mencatat penanaman.
+                    </p>
+                </div>
                 <TextField v-model="form.details.variety" label="Varietas" />
                 <div class="grid grid-cols-2 gap-3">
                     <TextField

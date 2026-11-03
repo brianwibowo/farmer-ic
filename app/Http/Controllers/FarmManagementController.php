@@ -11,6 +11,7 @@ use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Services\FarmDeletionService;
 use App\Services\FarmService;
+use App\Services\SopTemplateService;
 use App\Support\RolePermissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,10 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class FarmManagementController extends Controller
 {
-    public function __construct(private readonly FarmService $farms) {}
+    public function __construct(
+        private readonly FarmService $farms,
+        private readonly SopTemplateService $sops,
+    ) {}
 
     public function index(ListFarmsRequest $request): Response
     {
@@ -62,6 +66,7 @@ class FarmManagementController extends Controller
         return Inertia::render('farms/Form', [
             'farm' => null,
             'owners' => $this->farms->owners($request->user(), $team),
+            'sops' => $this->sops->options($request->user(), $team),
             'team' => $team->only(['id', 'name']),
         ]);
     }
@@ -103,6 +108,7 @@ class FarmManagementController extends Controller
         return Inertia::render('farms/Form', [
             'farm' => $this->farms->detail($farm, $request->user()),
             'owners' => $this->farms->owners($request->user(), $team),
+            'sops' => $this->sops->options($request->user(), $team),
             'team' => $team->only(['id', 'name']),
         ]);
     }

@@ -173,13 +173,14 @@ class FarmBlockTest extends TestCase
         $actor = User::factory()->create(['role' => 'petugas']);
         $this->join($actor);
         $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
-        $this->actingAs($actor)->post($this->url($block).'/batches', ['reserved_area_ha' => '1.2500'])->assertRedirect($this->url($block));
+        $this->actingAs($actor)->post($this->url($block).'/batches', ['reserved_area_ha' => '1.2500', 'planned_planting_at' => '2026-11-15'])->assertRedirect($this->url($block));
         $first = PlantingCycle::firstOrFail();
         $this->assertSame(1, $first->batch_number);
         $this->assertSame('A', $first->subblock_label);
         $this->assertSame($actor->id, $first->created_by);
         $this->assertSame('planned', $first->status);
         $this->assertSame('0.0000', $first->planted_area_ha);
+        $this->assertSame('2026-11-15', $first->planned_planting_at?->toDateString());
         $this->assertNull($first->planted_at);
         $this->assertNull($first->variety_id);
         $completedAt = $block->refresh()->land_clearing_completed_at->toISOString();
@@ -350,7 +351,7 @@ class FarmBlockTest extends TestCase
         $this->post($this->url(), ['code' => 'b01', 'name' => 'Duplikat', 'area_ha' => '1'])->assertSessionHasErrors('code');
         $this->post($this->url(), ['code' => 'B 02', 'name' => '', 'area_ha' => '1.00001', 'farm_id' => $this->farm->id, 'created_by' => $this->admin->id])->assertSessionHasErrors(['code', 'name', 'area_ha', 'farm_id', 'created_by']);
         $this->patch($this->url($block), ['land_clearing_completed_at' => now()->toISOString(), 'current_stage' => 'harvest'])->assertSessionHasErrors(['land_clearing_completed_at', 'current_stage']);
-        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '-1', 'farm_id' => $this->farm->id, 'batch_number' => 99, 'status' => 'active', 'stages' => ['harvest']])->assertSessionHasErrors(['reserved_area_ha', 'farm_id', 'batch_number', 'status', 'stages']);
+        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '-1', 'farm_id' => $this->farm->id, 'batch_number' => 99, 'status' => 'active', 'stages' => ['harvest'], 'planned_planting_at' => '15-11-2026'])->assertSessionHasErrors(['reserved_area_ha', 'farm_id', 'batch_number', 'status', 'stages', 'planned_planting_at']);
         $this->getJson($this->url().'?per_page=101')->assertUnprocessable();
     }
 

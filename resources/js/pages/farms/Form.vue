@@ -2,7 +2,13 @@
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, LandPlot, LoaderCircle, Save } from '@lucide/vue';
+import {
+    ArrowLeft,
+    ClipboardList,
+    LandPlot,
+    LoaderCircle,
+    Save,
+} from '@lucide/vue';
 import { computed, useTemplateRef, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import FarmField from '@/components/farms/FarmField.vue';
@@ -13,13 +19,19 @@ import {
     useUnsavedChanges,
 } from '@/composables/useFormRecovery';
 import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
-import { hectares, type LandTenure, type ManagedFarm } from '@/types/farms';
+import {
+    hectares,
+    type FarmSopOption,
+    type LandTenure,
+    type ManagedFarm,
+} from '@/types/farms';
 
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
     farm: ManagedFarm | null;
     owners: { id: string; name: string }[];
+    sops: FarmSopOption[];
     team: { id: number; name: string };
 }>();
 const regionFields = useTemplateRef<{
@@ -30,6 +42,7 @@ const form = useForm({
     name: props.farm?.name ?? '',
     land_tenure: (props.farm?.land_tenure ?? '') as LandTenure | '',
     owner_id: props.farm?.owner_id ?? '',
+    default_sop_template_id: props.farm?.default_sop_template_id ?? '',
     total_area_ha: props.farm?.total_area_ha ?? '',
     address: props.farm?.address ?? '',
     district: props.farm?.district ?? '',
@@ -129,7 +142,7 @@ function submit(): void {
             <FormErrorSummary :errors="form.errors" :fields="errorFields" />
             <fieldset
                 :disabled="form.processing"
-                class="space-y-5 disabled:opacity-75"
+                class="min-w-0 space-y-5 disabled:opacity-75"
             >
                 <section
                     class="rounded-xl border border-border bg-card p-5 md:p-6"
@@ -145,7 +158,7 @@ function submit(): void {
                             </p>
                         </div>
                     </div>
-                    <div class="grid gap-5 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <FarmField
                             id="farm-name"
                             label="Nama kebun"
@@ -268,11 +281,67 @@ function submit(): void {
                 <section
                     class="rounded-xl border border-border bg-card p-5 md:p-6"
                 >
+                    <div class="mb-6 flex items-start gap-3">
+                        <div class="rounded-xl bg-accent p-2.5 text-primary">
+                            <ClipboardList class="size-5" />
+                        </div>
+                        <div>
+                            <h2 class="admin-section-title">
+                                SOP default kebun
+                            </h2>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                Petugas tidak memilih SOP saat mencatat
+                                penanaman. Sistem memakai SOP ini secara
+                                otomatis.
+                            </p>
+                        </div>
+                    </div>
+                    <FarmField
+                        id="farm-default-sop"
+                        label="SOP default"
+                        :error="form.errors.default_sop_template_id"
+                        hint="Pilih template SOP tenant untuk komoditas kebun ini. Varietas tanam tidak memengaruhi pilihan."
+                        v-slot="field"
+                    >
+                        <AppSelect
+                            :id="field.id"
+                            v-model="form.default_sop_template_id"
+                            class="admin-field"
+                            :aria-invalid="field.invalid"
+                            :aria-describedby="field.description"
+                        >
+                            <AppSelectOption value=""
+                                >Belum ditentukan</AppSelectOption
+                            >
+                            <AppSelectOption
+                                v-for="sop in sops"
+                                :key="sop.id"
+                                :value="sop.id"
+                            >
+                                {{ sop.name }} ·
+                                {{
+                                    sop.commodity?.name ??
+                                    'Komoditas belum diisi'
+                                }}{{ sop.is_active ? '' : ' (nonaktif)' }}
+                            </AppSelectOption>
+                        </AppSelect>
+                    </FarmField>
+                    <p
+                        v-if="!sops.length"
+                        class="mt-4 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning"
+                    >
+                        Belum ada template SOP di tenant ini. Buat template
+                        terlebih dahulu di menu SOP.
+                    </p>
+                </section>
+                <section
+                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                >
                     <h2 class="admin-section-title">Lokasi kebun</h2>
                     <p class="mt-1 mb-6 text-xs text-muted-foreground">
                         Detail alamat membantu petugas mengenali lokasi kebun.
                     </p>
-                    <div class="grid gap-5 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <FarmField
                             id="farm-address"
                             label="Alamat lengkap"

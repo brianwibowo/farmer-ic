@@ -3,6 +3,7 @@ import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
+    ArrowUpRight,
     ChevronLeft,
     ChevronRight,
     ClipboardList,
@@ -11,41 +12,40 @@ import {
     Plus,
     Search,
     Sprout,
+    Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
+import DeleteSopDialog from '@/components/sops/DeleteSopDialog.vue';
 import { Button } from '@/components/ui/button';
-import type { SopFarm, SopFilters, SopPage, SopVariety } from '@/types/sop';
+import type {
+    SopCommodity,
+    SopFilters,
+    SopPage,
+    SopTeam,
+    SopTemplateRow,
+} from '@/types/sop';
 
 const props = defineProps<{
     sops: SopPage;
     filters: SopFilters;
-    farms: SopFarm[];
-    varieties: SopVariety[];
+    commodities: SopCommodity[];
+    team: SopTeam;
     can: { create: boolean };
 }>();
 
-const selectedFarmId = ref(props.farms[0]?.id ?? '');
-const createUrl = computed(() =>
-    selectedFarmId.value
-        ? `/admin/farms/${selectedFarmId.value}/sops/create`
-        : '/admin/sops',
-);
+const selectedSop = ref<SopTemplateRow | null>(null);
+const createUrl = '/admin/sops/create';
 const form = useForm({
     search: props.filters.search ?? '',
-    farm_id: props.filters.farm_id ?? '',
-    variety_id: props.filters.variety_id ?? '',
+    commodity_id: props.filters.commodity_id ?? '',
     is_active: props.filters.is_active ?? '',
     sort: props.filters.sort ?? 'name',
     direction: props.filters.direction ?? 'asc',
     per_page: props.filters.per_page ?? 15,
 });
 const hasFilters = computed(
-    () =>
-        !!form.search ||
-        !!form.farm_id ||
-        !!form.variety_id ||
-        form.is_active !== '',
+    () => !!form.search || !!form.commodity_id || form.is_active !== '',
 );
 function apply(): void {
     form.get('/admin/sops', {
@@ -56,8 +56,7 @@ function apply(): void {
 }
 function reset(): void {
     form.search = '';
-    form.farm_id = '';
-    form.variety_id = '';
+    form.commodity_id = '';
     form.is_active = '';
     form.sort = 'name';
     form.direction = 'asc';
@@ -79,32 +78,11 @@ function reset(): void {
                 <p
                     class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground"
                 >
-                    Susun langkah budidaya modular per varietas, lalu terapkan
-                    ke batch kebun sebagai jadwal HST.
+                    Susun langkah budidaya modular per komoditas, lalu tetapkan
+                    SOP default pada kebun sebagai jadwal HST otomatis.
                 </p>
             </div>
-            <div
-                v-if="can.create && farms.length"
-                class="flex flex-wrap items-end gap-2"
-            >
-                <label
-                    v-if="farms.length > 1"
-                    class="space-y-1 text-xs text-muted-foreground"
-                >
-                    <span>Kebun tujuan</span>
-                    <AppSelect
-                        v-model="selectedFarmId"
-                        class="admin-field h-10 min-w-48"
-                    >
-                        <AppSelectOption
-                            v-for="farm in farms"
-                            :key="farm.id"
-                            :value="farm.id"
-                        >
-                            {{ farm.name }}
-                        </AppSelectOption>
-                    </AppSelect>
-                </label>
+            <div v-if="can.create" class="flex flex-wrap items-end gap-2">
                 <Button as-child class="h-10 rounded-xl">
                     <Link :href="createUrl"><Plus />Tambah SOP</Link>
                 </Button>
@@ -124,22 +102,22 @@ function reset(): void {
             </div>
             <div class="rounded-xl border border-border bg-card p-5">
                 <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm text-muted-foreground">Kebun tersedia</p>
+                    <p class="text-sm text-muted-foreground">Tenant</p>
                     <Sprout class="size-5 text-primary" aria-hidden="true" />
                 </div>
-                <p class="admin-metric-value mt-4">{{ farms.length }}</p>
+                <p class="mt-4 text-lg font-semibold">{{ team.name }}</p>
             </div>
             <div class="rounded-xl border border-border bg-card p-5">
                 <div class="flex items-center justify-between gap-3">
                     <p class="text-sm text-muted-foreground">
-                        Varietas terdaftar
+                        Komoditas terdaftar
                     </p>
                     <ClipboardList
                         class="size-5 text-primary"
                         aria-hidden="true"
                     />
                 </div>
-                <p class="admin-metric-value mt-4">{{ varieties.length }}</p>
+                <p class="admin-metric-value mt-4">{{ commodities.length }}</p>
             </div>
         </div>
 
@@ -156,7 +134,7 @@ function reset(): void {
                     </span>
                 </div>
                 <form
-                    class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-4"
+                    class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3"
                     @submit.prevent="apply"
                 >
                     <FarmField
@@ -176,55 +154,32 @@ function reset(): void {
                                 class="admin-field pl-9!"
                                 type="search"
                                 maxlength="100"
-                                placeholder="Nama SOP atau varietas"
+                                placeholder="Nama SOP atau komoditas"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             />
                         </div>
                     </FarmField>
                     <FarmField
-                        id="sop-farm"
-                        label="Kebun"
-                        :error="form.errors.farm_id"
+                        id="sop-commodity"
+                        label="Komoditas"
+                        :error="form.errors.commodity_id"
                         v-slot="field"
                     >
                         <AppSelect
                             :id="field.id"
-                            v-model="form.farm_id"
+                            v-model="form.commodity_id"
                             class="admin-field"
                         >
                             <AppSelectOption value=""
-                                >Semua kebun</AppSelectOption
+                                >Semua komoditas</AppSelectOption
                             >
                             <AppSelectOption
-                                v-for="farm in farms"
-                                :key="farm.id"
-                                :value="farm.id"
+                                v-for="commodity in commodities"
+                                :key="commodity.id"
+                                :value="commodity.id"
                             >
-                                {{ farm.name }}
-                            </AppSelectOption>
-                        </AppSelect>
-                    </FarmField>
-                    <FarmField
-                        id="sop-variety"
-                        label="Varietas"
-                        :error="form.errors.variety_id"
-                        v-slot="field"
-                    >
-                        <AppSelect
-                            :id="field.id"
-                            v-model="form.variety_id"
-                            class="admin-field"
-                        >
-                            <AppSelectOption value=""
-                                >Semua varietas</AppSelectOption
-                            >
-                            <AppSelectOption
-                                v-for="variety in varieties"
-                                :key="variety.id"
-                                :value="variety.id"
-                            >
-                                {{ variety.name }} · {{ variety.commodity }}
+                                {{ commodity.name }}
                             </AppSelectOption>
                         </AppSelect>
                     </FarmField>
@@ -249,7 +204,7 @@ function reset(): void {
                         </AppSelect>
                     </FarmField>
                     <div
-                        class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-4"
+                        class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-3"
                     >
                         <AppSelect
                             v-model="form.direction"
@@ -327,8 +282,8 @@ function reset(): void {
                 >
                     {{
                         hasFilters
-                            ? 'Coba kata kunci, kebun, atau varietas lain.'
-                            : 'Buat template SOP pertama untuk varietas yang kamu tanam.'
+                            ? 'Coba kata kunci atau komoditas lain.'
+                            : 'Buat template SOP pertama untuk komoditas yang kamu tanam.'
                     }}
                 </p>
                 <Button
@@ -338,11 +293,7 @@ function reset(): void {
                     @click="reset"
                     >Reset filter</Button
                 >
-                <Button
-                    v-else-if="can.create && farms.length"
-                    as-child
-                    class="mt-5 rounded-xl"
-                >
+                <Button v-else-if="can.create" as-child class="mt-5 rounded-xl">
                     <Link :href="createUrl"><Plus />Tambah SOP pertama</Link>
                 </Button>
             </div>
@@ -363,10 +314,7 @@ function reset(): void {
                                     Template
                                 </th>
                                 <th scope="col" class="px-5 py-3 font-semibold">
-                                    Kebun
-                                </th>
-                                <th scope="col" class="px-5 py-3 font-semibold">
-                                    Varietas
+                                    Komoditas
                                 </th>
                                 <th scope="col" class="px-5 py-3 font-semibold">
                                     Versi
@@ -405,14 +353,11 @@ function reset(): void {
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">
-                                    {{ sop.farm?.name ?? '—' }}
-                                </td>
-                                <td class="px-5 py-4">
-                                    <p>{{ sop.variety?.name ?? '—' }}</p>
+                                    <p>{{ sop.commodity?.name ?? '-' }}</p>
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ sop.variety?.commodity?.name ?? '' }}
+                                        SOP per komoditas
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">
@@ -438,12 +383,33 @@ function reset(): void {
                                             as-child
                                             variant="ghost"
                                             size="icon"
+                                            :aria-label="`Lihat ${sop.name}`"
+                                        >
+                                            <Link
+                                                :href="`/admin/sops/${sop.id}`"
+                                                ><ArrowUpRight
+                                            /></Link>
+                                        </Button>
+                                        <Button
+                                            v-if="sop.can.update"
+                                            as-child
+                                            variant="ghost"
+                                            size="icon"
                                             :aria-label="`Ubah ${sop.name}`"
                                         >
                                             <Link
                                                 :href="`/admin/sops/${sop.id}/edit`"
                                                 ><Pencil
                                             /></Link>
+                                        </Button>
+                                        <Button
+                                            v-if="sop.can.delete"
+                                            variant="destructive-ghost"
+                                            size="icon"
+                                            :aria-label="`Hapus ${sop.name}`"
+                                            @click="selectedSop = sop"
+                                        >
+                                            <Trash2 />
                                         </Button>
                                     </div>
                                 </td>
@@ -466,7 +432,7 @@ function reset(): void {
                             />
                         </Link>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            {{ sop.farm?.name }} · {{ sop.variety?.name }}
+                            {{ sop.commodity?.name ?? 'Komoditas belum diisi' }}
                         </p>
                         <div class="mt-3 flex flex-wrap items-center gap-2">
                             <span
@@ -484,6 +450,31 @@ function reset(): void {
                             >
                                 {{ sop.is_active ? 'Aktif' : 'Nonaktif' }}
                             </span>
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <Button as-child variant="outline" size="sm">
+                                <Link :href="`/admin/sops/${sop.id}`"
+                                    ><ArrowUpRight />Detail</Link
+                                >
+                            </Button>
+                            <Button
+                                v-if="sop.can.update"
+                                as-child
+                                variant="outline"
+                                size="sm"
+                            >
+                                <Link :href="`/admin/sops/${sop.id}/edit`"
+                                    ><Pencil />Ubah</Link
+                                >
+                            </Button>
+                            <Button
+                                v-if="sop.can.delete"
+                                variant="destructive-ghost"
+                                size="sm"
+                                @click="selectedSop = sop"
+                            >
+                                <Trash2 />Hapus
+                            </Button>
                         </div>
                     </li>
                 </ul>
@@ -525,4 +516,5 @@ function reset(): void {
             </template>
         </section>
     </div>
+    <DeleteSopDialog :sop="selectedSop" @close="selectedSop = null" />
 </template>

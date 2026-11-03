@@ -4,7 +4,7 @@
   "path": "db/wilayah.sql",
   "retrieved_at": "2026-11-02",
   "source_sha256": "b90f420bf8f8027170168f33314c4f065ec422120531f16708ea2d833c6c2144",
-  "csv_sha256": "2fd68fa54b9847eef5ba91a9d7756a2c562d9ead23f2c80fa91fa7452cbd89cd",
+  "csv_sha256": "7b0117cde7b5afe9cab9459e4e2a072604be2d7d257b66244e43834bb12d32aa",
   "counts": {
     "1": 38,
     "2": 514,
