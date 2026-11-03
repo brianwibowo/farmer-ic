@@ -46,6 +46,18 @@ class SopTemplateService
         return $query->orderBy($sort, $direction)->orderBy('id')->paginate((int) ($filters['per_page'] ?? 15))->withQueryString();
     }
 
+    /** @return array{total: int, active: int, commodities: int} */
+    public function summary(User $actor, Team $team): array
+    {
+        $base = SopTemplate::query()->visibleTo($actor, $team);
+
+        return [
+            'total' => (clone $base)->count(),
+            'active' => (clone $base)->where('is_active', true)->count(),
+            'commodities' => (clone $base)->distinct()->count('commodity_id'),
+        ];
+    }
+
     public function detail(SopTemplate $template): SopTemplate
     {
         return $template->load([

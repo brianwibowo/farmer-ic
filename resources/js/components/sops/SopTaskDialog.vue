@@ -106,7 +106,7 @@ function submit(): void {
 <template>
     <Dialog :open="open" @update:open="emit('update:open', $event)">
         <DialogContent
-            class="admin-dashboard-theme flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-2xl"
+            class="admin-dashboard-theme flex max-h-[90dvh] flex-col overflow-hidden rounded-xl bg-card text-foreground sm:max-w-2xl"
         >
             <DialogHeader class="shrink-0">
                 <DialogTitle>{{
@@ -262,9 +262,11 @@ function submit(): void {
                             />
                         </FarmField>
                         <label
-                            class="flex items-center gap-3 text-sm sm:col-span-2"
+                            for="task-is-required"
+                            class="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-3 text-sm transition-colors hover:bg-muted/30 sm:col-span-2"
                         >
                             <input
+                                id="task-is-required"
                                 v-model="form.is_required"
                                 type="checkbox"
                                 class="size-4 accent-primary"
@@ -287,11 +289,16 @@ function submit(): void {
                     <Button
                         type="button"
                         variant="outline"
+                        class="rounded-xl"
                         :disabled="form.processing"
                         @click="close"
                         >Batal</Button
                     >
-                    <Button type="submit" :disabled="form.processing">
+                    <Button
+                        type="submit"
+                        class="rounded-xl"
+                        :disabled="form.processing"
+                    >
                         <LoaderCircle
                             v-if="form.processing"
                             class="animate-spin"
