@@ -122,19 +122,7 @@ function reset(): void {
 <template>
     <Head title="Farm Management" />
     <div class="space-y-6">
-        <header class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <h1 class="admin-page-title tracking-tight">Kelola kebun</h1>
-                <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                    Pantau dan kelola lahan yang dapat kamu akses.
-                </p>
-            </div>
-            <Button v-if="can.create" as-child class="h-10 rounded-xl"
-                ><Link href="/admin/farm-management/create"
-                    ><Plus /> Tambah kebun</Link
-                ></Button
-            >
-        </header>
+        <h1 class="sr-only">Manajemen kebun</h1>
 
         <div class="grid grid-cols-3 gap-2 sm:gap-4">
             <div
@@ -189,11 +177,20 @@ function reset(): void {
             class="overflow-hidden rounded-xl border border-border bg-card"
         >
             <div class="border-b border-border p-4 md:p-5">
-                <div class="mb-4 flex items-center gap-2">
-                    <h2 class="admin-section-title">Daftar kebun</h2>
-                    <span
-                        class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
-                        >{{ farms.total }}</span
+                <div
+                    class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                >
+                    <div class="flex items-center gap-2">
+                        <h2 class="admin-section-title">Daftar kebun</h2>
+                        <span
+                            class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
+                            >{{ farms.total }}</span
+                        >
+                    </div>
+                    <Button v-if="can.create" as-child class="h-10 rounded-xl"
+                        ><Link href="/admin/farm-management/create"
+                            ><Plus />Tambah kebun</Link
+                        ></Button
                     >
                 </div>
                 <form @submit.prevent="apply">
@@ -725,7 +722,9 @@ function reset(): void {
                                 as-child
                                 variant="outline"
                                 size="sm"
-                                ><Link :href="farms.prev_page_url" preserve-scroll
+                                ><Link
+                                    :href="farms.prev_page_url"
+                                    preserve-scroll
                                     ><ChevronLeft />Sebelumnya</Link
                                 ></Button
                             ><span aria-current="page" class="px-2 text-xs"
@@ -736,12 +735,13 @@ function reset(): void {
                                 as-child
                                 variant="outline"
                                 size="sm"
-                                ><Link :href="farms.next_page_url" preserve-scroll
+                                ><Link
+                                    :href="farms.next_page_url"
+                                    preserve-scroll
                                     >Berikutnya<ChevronRight /></Link
-                            ></Button
-                        >
+                            ></Button>
+                        </div>
                     </div>
-                </div>
                 </nav>
             </template>
         </section>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Farms\ForceDeleteFarmRequest;
 use App\Http\Requests\Farms\ListFarmsRequest;
 use App\Http\Requests\Farms\SaveFarmRequest;
+use App\Models\Commodity;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmBlock;
@@ -26,6 +27,7 @@ class FarmManagementController extends Controller
     public function __construct(
         private readonly FarmService $farms,
         private readonly SopTemplateService $sops,
+        private readonly \App\Services\FarmBlockService $blocks,
     ) {}
 
     public function index(ListFarmsRequest $request): Response
@@ -65,7 +67,7 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Form', [
             'farm' => null,
-            'owners' => $this->farms->owners($request->user(), $team),
+            'commodities' => Commodity::visibleTo($request->user(), $team)->orderBy('name')->get(['id', 'name']),
             'sops' => $this->sops->options($request->user(), $team),
             'team' => $team->only(['id', 'name']),
         ]);
@@ -88,6 +90,8 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Show', [
             'farm' => $this->farms->detail($farm, $request->user()),
+            'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]) ? $this->blocks->overview($farm, $request->user(), $farm->team)->map(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block)]]) : [],
+            'blockCapacity' => Gate::allows('create', [FarmBlock::class, $farm]) ? $this->blocks->formCapacity($farm, $request->user(), $farm->team) : null,
             'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [
                 'update' => Gate::allows('update', $farm),
@@ -95,6 +99,7 @@ class FarmManagementController extends Controller
                 'forceDelete' => Gate::allows('forceDelete', $farm),
                 'dailyLogs' => Gate::allows('viewAny', [DailyActivityLog::class, $farm->team]),
                 'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]),
+                'createBlock' => Gate::allows('create', [FarmBlock::class, $farm]),
             ],
         ]);
     }
@@ -107,7 +112,7 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Form', [
             'farm' => $this->farms->detail($farm, $request->user()),
-            'owners' => $this->farms->owners($request->user(), $team),
+            'commodities' => Commodity::visibleTo($request->user(), $team)->orderBy('name')->get(['id', 'name']),
             'sops' => $this->sops->options($request->user(), $team),
             'team' => $team->only(['id', 'name']),
         ]);

@@ -57,6 +57,13 @@ export type FarmRow = {
 };
 
 export type ManagedFarm = Omit<FarmRow, 'can'> & {
+    target_volume_ton: string | null;
+    progress_overview: {
+        total: number;
+        stages: { code: string; count: number }[];
+    };
+    commodity_id: string | null;
+    commodity: FarmSopCommodity | null;
     district_code: string | null;
     region: RegionOption | null;
     owner_restricted: boolean;

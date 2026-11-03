@@ -114,12 +114,14 @@ class FarmService
         $owner = User::visibleTo($user, $team)->whereKey($visible->owner_id)->first(['id', 'name']);
 
         return [
-            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id']),
+            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id', 'commodity_id', 'target_volume_ton']),
+            'commodity' => \App\Models\Commodity::visibleTo($user, $team)->find($visible->getAttribute('commodity_id'))?->only(['id', 'name']),
             'region' => $visible->getAttribute('district_code') ? app(AdministrativeRegionService::class)->district($visible->getAttribute('district_code'), $user, $team) : null,
             'owner_restricted' => $visible->owner_id !== null && $owner === null,
             'capacity' => $this->capacity($visible, $user, $team),
             'owner_name' => $owner?->name,
             'team_name' => $team->name,
+            'progress_overview' => $this->progressOverview($visible, $user, $team),
             'active_cycles' => (clone $cycles)->count(),
             'active_area_ha' => (string) (clone $cycles)->sum('planted_area_ha'),
             'default_sop' => $this->sops->defaultForFarm($visible),
@@ -127,11 +129,30 @@ class FarmService
         ];
     }
 
+    /** @return array{total: int, stages: list<array{code: string, count: int}>} */
+    public function progressOverview(Farm $farm, User $actor, Team $team): array
+    {
+        $blocks = \App\Models\FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->select('id');
+        $rounds = \App\Models\PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $blocks)->where('status', 'active')->select('id');
+        $batches = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('planting_round_id', $rounds)
+            ->whereIn('status', ['planned', 'active', 'harvested'])->get(['id', 'status']);
+        $stages = \App\Models\PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())
+            ->where('status', 'in_progress')->orderBy('position')->get(['planting_cycle_id', 'code'])->keyBy('planting_cycle_id');
+        $counts = array_fill_keys([...\App\Models\PlantingCycleStage::CODES, 'not_started'], 0);
+        foreach ($batches as $batch) {
+            $code = $batch->status === 'harvested' ? 'harvest' : ($stages->get($batch->id)?->getAttribute('code') ?? 'not_started');
+            $counts[$code]++;
+        }
+
+        return ['total' => $batches->count(), 'stages' => array_values(collect($counts)->map(fn (int $count, string $code): array => ['code' => $code, 'count' => $count])->all())];
+    }
+
     /** @param array<string, mixed> $data Validated farm attributes. */
     public function create(array $data, User|string $user, ?Team $team = null): Farm
     {
         $actor = is_string($user) ? User::query()->findOrFail($user) : $user;
-        $farm = new Farm($data);
+        $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton']));
+        $farm->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
         if (array_key_exists('district_code', $data)) {
             $farm->forceFill(['district_code' => $data['district_code']]);
         }
@@ -175,7 +196,8 @@ class FarmService
                     throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh lebih kecil dari total luas tanam aktif.']);
                 }
             }
-            $locked->fill($data);
+            $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton']));
+            $locked->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
             if (array_key_exists('district_code', $data)) {
                 $locked->forceFill(['district_code' => $data['district_code']]);
             }
