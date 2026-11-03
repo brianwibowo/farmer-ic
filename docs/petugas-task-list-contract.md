@@ -1,6 +1,6 @@
 # Petugas task list contract
 
-Status: **Task generation and the `/petugas/tasks` query are implemented.** The page now reads real `planting_cycle_tasks` rows for the Petugas user's assigned farm. The `isFixture` prop remains temporarily set to `false` so the existing UI banner stays hidden without changing friend-owned frontend files.
+Status: **Task generation and the `/petugas/tasks` query are implemented.** The page now reads real `planting_cycle_tasks` rows for the Petugas user's assigned farm. The `isFixture` prop remains temporarily set to `false` so the existing UI banner stays hidden without changing friend-owned frontend files. See `docs/petugas-flow-handoff.md` for the remaining Petugas execution work and ownership boundary.
 
 ## Routes
 
