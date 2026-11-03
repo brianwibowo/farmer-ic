@@ -65,6 +65,16 @@ class FarmService
             ->map(fn (User $owner): array => ['id' => $owner->id, 'name' => $owner->name]);
     }
 
+    /** @return \Illuminate\Database\Eloquent\Collection<int, User> */
+    public function picOptions(User $actor, Team $team, ?Farm $farm = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return User::visibleTo($actor, $team)->where('is_active', true)
+            ->whereHas('role', fn ($q) => $q->where('name', 'petugas'))
+            ->whereHas('teams', fn ($q) => $q->whereKey($team->id))
+            ->where(fn ($q) => $q->whereNull('assigned_farm_id')->when($farm, fn ($q) => $q->orWhere('assigned_farm_id', $farm->id)))
+            ->orderBy('name')->get(['id', 'name']);
+    }
+
     /** @return array{block_area_ha: string, reserved_area_ha: string, minimum_area_ha: string} */
     public function capacity(Farm $farm, User $user, Team $team): array
     {
@@ -112,6 +122,10 @@ class FarmService
         $visible = Farm::visibleTo($user, $team)->findOrFail($farm->id);
         $cycles = PlantingCycle::visibleTo($user, $team)->where('farm_id', $visible->id)->where('status', 'active');
         $owner = User::visibleTo($user, $team)->whereKey($visible->owner_id)->first(['id', 'name']);
+        $pic = User::visibleTo($user, $team)->whereKey($visible->getAttribute('pic_user_id'))
+            ->where('is_active', true)->where('assigned_farm_id', $visible->id)
+            ->whereHas('role', fn ($q) => $q->where('name', 'petugas'))
+            ->whereHas('teams', fn ($q) => $q->whereKey($team->id))->first(['id', 'name', 'phone_number']);
 
         return [
             ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id', 'commodity_id', 'target_volume_ton']),
@@ -120,6 +134,9 @@ class FarmService
             'owner_restricted' => $visible->owner_id !== null && $owner === null,
             'capacity' => $this->capacity($visible, $user, $team),
             'owner_name' => $owner?->name,
+            'pic_user_id' => $pic?->id,
+            'pic_name' => $pic?->name,
+            'pic_phone_number' => $pic?->phone_number,
             'team_name' => $team->name,
             'progress_overview' => $this->progressOverview($visible, $user, $team),
             'active_cycles' => (clone $cycles)->count(),
@@ -151,18 +168,23 @@ class FarmService
     public function create(array $data, User|string $user, ?Team $team = null): Farm
     {
         $actor = is_string($user) ? User::query()->findOrFail($user) : $user;
-        $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton']));
-        $farm->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
-        if (array_key_exists('district_code', $data)) {
-            $farm->forceFill(['district_code' => $data['district_code']]);
-        }
-        if ($team instanceof Team) {
-            $farm->team()->associate($team);
-        }
-        $farm->created_by = $actor->getKey();
-        $farm->save();
 
-        return $farm->refresh();
+        return DB::transaction(function () use ($data, $actor, $team): Farm {
+            $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'pic_user_id']));
+            $farm->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
+            if (array_key_exists('district_code', $data)) {
+                $farm->forceFill(['district_code' => $data['district_code']]);
+            }
+            if ($team instanceof Team) {
+                $farm->team()->associate($team);
+            }
+            $farm->created_by = $actor->getKey();
+            $farm->save();
+
+            $this->savePic($farm, $data);
+
+            return $farm->refresh();
+        });
     }
 
     public function find(string $id): Farm
@@ -203,8 +225,29 @@ class FarmService
             }
             $locked->save();
 
+            $this->savePic($locked, $data);
+
             return $locked->refresh();
         });
+    }
+
+    /** @param array<string, mixed> $data */
+    private function savePic(Farm $farm, array $data): void
+    {
+        if (! array_key_exists('pic_user_id', $data)) {
+            return;
+        }
+        $id = $data['pic_user_id'] ?: null;
+        if ($id !== null) {
+            $pic = User::query()->whereKey($id)->lockForUpdate()->first();
+            if (! $pic || ! $pic->is_active || ! $pic->role()->where('name', 'petugas')->exists()
+                || ! $pic->teams()->whereKey($farm->team_id)->exists()
+                || ($pic->assignedFarmId() !== null && $pic->assignedFarmId() !== $farm->id)) {
+                throw ValidationException::withMessages(['pic_user_id' => 'Pilih petugas aktif dalam tenant ini yang belum ditugaskan atau sudah ditugaskan ke kebun ini.']);
+            }
+            $pic->forceFill(['assigned_farm_id' => $farm->id])->save();
+        }
+        $farm->forceFill(['pic_user_id' => $id])->save();
     }
 
     public function delete(Farm $farm): void

@@ -74,6 +74,9 @@ export type ManagedFarm = Omit<FarmRow, 'can'> & {
     };
     owner_id: string | null;
     owner_name: string | null;
+    pic_user_id: string | null;
+    pic_name: string | null;
+    pic_phone_number: string | null;
     team_name: string;
     address: string | null;
     latitude: string | null;

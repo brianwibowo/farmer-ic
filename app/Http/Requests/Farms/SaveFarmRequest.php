@@ -42,6 +42,7 @@ class SaveFarmRequest extends FormRequest
                 ->where('is_active', true)
                 ->whereIn('id', fn ($members) => $members->select('user_id')->from('team_members')->where('team_id', $teamId))
                 ->whereIn('role_id', fn ($roles) => $roles->select('id')->from('roles')->where('name', 'owner')))],
+            'pic_user_id' => [$this->routeIs('farm-management.*') ? 'sometimes' : 'prohibited', 'nullable', 'uuid'],
             'target_volume_ton' => ['sometimes', 'nullable', 'numeric', 'decimal:0,3', 'between:0.001,999999999.999'],
             'commodity_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('commodities', 'id')],
             'default_sop_template_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('sop_templates', 'id')

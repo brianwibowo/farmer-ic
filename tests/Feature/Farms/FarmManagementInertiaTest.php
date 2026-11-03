@@ -34,6 +34,108 @@ class FarmManagementInertiaTest extends TestCase
         $this->actingAs($this->admin);
     }
 
+    public function test_pic_assignment_is_optional_scoped_and_assigns_the_worker(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $worker->update(['phone_number' => '081234567890']);
+        $otherTeam = Team::query()->create(['name' => 'Tenant Lain', 'is_personal' => false]);
+        $outsider = $this->actor('petugas', $otherTeam);
+        $otherFarm = $this->farm(['name' => 'Kebun Lain']);
+        $busy = $this->actor('petugas', $this->team);
+        $busy->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
+
+        $this->get('/admin/farm-management/create')->assertInertia(fn (Assert $page) => $page
+            ->has('picOptions', 1)->where('picOptions.0.id', $worker->id));
+        $this->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $this->assertSame($farm->id, $worker->fresh()->assignedFarmId());
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->get($url)->assertInertia(fn (Assert $page) => $page
+            ->where('farm.pic_name', $worker->name)->where('farm.pic_phone_number', '081234567890'));
+        $this->patch($url, ['pic_user_id' => $busy->id])->assertSessionHasErrors('pic_user_id');
+        $this->patch($url, ['pic_user_id' => $outsider->id])->assertSessionHasErrors('pic_user_id');
+        $this->patch($url, ['pic_user_id' => null])->assertSessionHasNoErrors();
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+        $this->assertSame($farm->id, $worker->fresh()->assignedFarmId());
+    }
+
+    public function test_pic_is_cleared_when_worker_is_deleted(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $this->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $this->delete('/admin/user-management/'.$worker->id)->assertSessionHasNoErrors();
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+    }
+
+    public function test_pic_options_do_not_add_queries_per_worker_on_create_and_edit(): void
+    {
+        config(['inertia.ssr.enabled' => false]);
+        $farm = $this->farm();
+        $first = $this->actor('petugas', $this->team);
+        $first->forceFill(['assigned_farm_id' => $farm->id])->save();
+        $otherFarm = $this->farm(['name' => 'Kebun lain']);
+        $busy = $this->actor('petugas', $this->team);
+        $busy->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
+        $superadmin = $this->actor('superadmin', $this->team);
+        $urls = ['/admin/farm-management/create', '/admin/farm-management/'.$farm->id.'/edit'];
+        $counts = [];
+
+        foreach ([1, 20] as $size) {
+            if ($size === 20) {
+                for ($i = 0; $i < 19; $i++) {
+                    $this->actor('petugas', $this->team);
+                }
+            }
+            foreach ([$this->admin, $superadmin] as $actor) {
+                foreach ($urls as $url) {
+                    $this->actingAs($actor->fresh());
+                    $connection = DB::connection();
+                    $connection->flushQueryLog();
+                    $connection->enableQueryLog();
+                    try {
+                        $response = $this->get($url)->assertOk();
+                        $counts[$actor->id][$url][$size] = count($connection->getQueryLog());
+                    } finally {
+                        $connection->disableQueryLog();
+                        $connection->flushQueryLog();
+                    }
+                    $expected = $size - (str_ends_with($url, '/create') ? 1 : 0);
+                    $response->assertInertia(fn (Assert $page) => $page
+                        ->has('picOptions', $expected)
+                        ->where('picOptions', fn ($options) => collect($options)->every(fn ($option) => $option['id'] !== $busy->id)));
+                }
+            }
+        }
+        foreach ($counts as $requests) {
+            foreach ($requests as $queryCounts) {
+                $this->assertSame($queryCounts[1], $queryCounts[20], 'Query count must not grow with PIC options.');
+            }
+        }
+    }
+
+    public function test_reassignment_clears_pic_and_superadmin_can_assign(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $superadmin = $this->actor('superadmin', $this->team);
+        $this->actingAs($superadmin)->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $other = $this->farm(['name' => 'Kebun Baru']);
+        app(\App\Services\UserManagementService::class)->save($superadmin, [
+            'name' => $worker->name, 'email' => $worker->email, 'role' => 'petugas',
+            'team_ids' => [$this->team->id], 'assigned_farm_id' => $other->id,
+        ], $worker);
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+        $this->assertSame($other->id, $worker->fresh()->assignedFarmId());
+
+        $this->actingAs($superadmin)->patch('/admin/farm-management/'.$other->id, ['pic_user_id' => $worker->id])->assertSessionHasNoErrors();
+        app(\App\Services\UserManagementService::class)->save($superadmin, [
+            'name' => $worker->name, 'email' => $worker->email, 'role' => 'admin',
+            'team_ids' => [$this->team->id], 'assigned_farm_id' => null,
+        ], $worker->fresh());
+        $this->assertNull($other->fresh()->getAttribute('pic_user_id'));
+    }
+
     public function test_commodity_persists_without_a_sop_and_mismatched_sop_is_rejected(): void
     {
         $corn = Commodity::create(['name' => 'Jagung']);

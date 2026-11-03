@@ -10,6 +10,7 @@ use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\Team;
+use App\Models\User;
 use App\Services\FarmDeletionService;
 use App\Services\FarmService;
 use App\Services\SopTemplateService;
@@ -69,6 +70,7 @@ class FarmManagementController extends Controller
             'farm' => null,
             'commodities' => Commodity::visibleTo($request->user(), $team)->orderBy('name')->get(['id', 'name']),
             'sops' => $this->sops->options($request->user(), $team),
+            'picOptions' => $this->farms->picOptions($request->user(), $team),
             'team' => $team->only(['id', 'name']),
         ]);
     }
@@ -78,6 +80,7 @@ class FarmManagementController extends Controller
         $team = $request->user()->currentTeam;
         Gate::authorize('create', [Farm::class, $team]);
         abort_unless($team instanceof Team, 403);
+        $this->authorizePic($request, $team);
         $farm = $this->farms->create($request->validated(), $request->user(), $team);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun berhasil ditambahkan.']);
 
@@ -114,6 +117,7 @@ class FarmManagementController extends Controller
             'farm' => $this->farms->detail($farm, $request->user()),
             'commodities' => Commodity::visibleTo($request->user(), $team)->orderBy('name')->get(['id', 'name']),
             'sops' => $this->sops->options($request->user(), $team),
+            'picOptions' => $this->farms->picOptions($request->user(), $team, $farm),
             'team' => $team->only(['id', 'name']),
         ]);
     }
@@ -121,10 +125,24 @@ class FarmManagementController extends Controller
     public function update(SaveFarmRequest $request, Farm $farm): RedirectResponse
     {
         Gate::authorize('update', $farm);
+        $this->authorizePic($request, $farm->team, $farm);
         $this->farms->update($farm, $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan kebun berhasil disimpan.']);
 
         return to_route('farm-management.show', $farm);
+    }
+
+    private function authorizePic(SaveFarmRequest $request, Team $team, ?Farm $farm = null): void
+    {
+        $id = $request->validated('pic_user_id');
+        if (! $id) {
+            return;
+        }
+        $pic = User::visibleTo($request->user(), $team)->whereKey($id)->first();
+        if (! $pic) {
+            throw ValidationException::withMessages(['pic_user_id' => 'Petugas tidak tersedia.']);
+        }
+        Gate::authorize('configure', [$pic, $pic->role, $pic->teams()->where('teams.is_personal', false)->get(), $farm]);
     }
 
     public function destroy(Farm $farm): RedirectResponse

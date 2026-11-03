@@ -208,6 +208,11 @@ const progressStages = computed(() =>
                 class="grid gap-x-6 gap-y-4 border-t border-border bg-muted/20 px-5 py-4 sm:grid-cols-3 sm:px-6"
             >
                 <div>
+                    <dt class="text-xs text-muted-foreground">PIC kebun</dt>
+                    <dd class="mt-1 text-sm font-semibold">{{ farm.pic_name ?? 'Belum ditentukan' }}</dd>
+                    <p class="mt-1 text-xs text-muted-foreground">{{ farm.pic_name ? (farm.pic_phone_number || 'Nomor telepon belum diisi') : '' }}</p>
+                </div>
+                <div>
                     <dt class="text-xs text-muted-foreground">
                         Komoditas yang ditanam
                     </dt>

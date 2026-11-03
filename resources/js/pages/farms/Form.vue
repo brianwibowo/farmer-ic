@@ -33,6 +33,7 @@ const props = defineProps<{
     commodities: { id: string; name: string }[];
     sops: FarmSopOption[];
     team: { id: number; name: string };
+    picOptions: { id: string; name: string }[];
 }>();
 const regionFields = useTemplateRef<{
     valid: () => boolean;
@@ -40,6 +41,7 @@ const regionFields = useTemplateRef<{
 }>('regionFields');
 const form = useForm({
     name: props.farm?.name ?? '',
+    pic_user_id: props.farm?.pic_user_id ?? '',
     land_tenure: (props.farm?.land_tenure ?? '') as LandTenure | '',
     commodity_id:
         props.farm?.commodity_id ??
@@ -60,6 +62,7 @@ const form = useForm({
 const errorFields = computed<Record<string, { id: string; label: string }>>(
     () => ({
         name: { id: 'farm-name', label: 'Nama kebun' },
+        pic_user_id: { id: 'farm-pic', label: 'PIC kebun' },
         total_area_ha: { id: 'farm-area', label: 'Luas lahan' },
         target_volume_ton: {
             id: 'farm-target-volume',
@@ -272,6 +275,12 @@ function submit(): void {
                                 <AppSelectOption value="partnership"
                                     >Kerja sama</AppSelectOption
                                 >
+                            </AppSelect>
+                        </FarmField>
+                        <FarmField id="farm-pic" label="PIC kebun (opsional)" :error="form.errors.pic_user_id" v-slot="field">
+                            <AppSelect :id="field.id" v-model="form.pic_user_id" class="admin-field" :aria-invalid="field.invalid" :aria-describedby="field.description">
+                                <AppSelectOption value="">Belum ditentukan</AppSelectOption>
+                                <AppSelectOption v-for="pic in picOptions" :key="pic.id" :value="pic.id">{{ pic.name }}</AppSelectOption>
                             </AppSelect>
                         </FarmField>
                     </div>
