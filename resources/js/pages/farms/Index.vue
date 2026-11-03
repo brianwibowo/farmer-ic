@@ -676,69 +676,72 @@ function reset(): void {
                     class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4"
                     aria-label="Pagination kebun"
                 >
-                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-                        <p class="text-xs text-muted-foreground">
-                            Menampilkan {{ farms.from }}–{{ farms.to }} dari
-                            {{ farms.total }} kebun
-                        </p>
-                        <label
-                            for="farm-per-page"
-                            class="flex items-center gap-2 text-xs text-muted-foreground"
-                            >Per halaman
-                            <AppSelect
-                                id="farm-per-page"
-                                v-model.number="filters.per_page"
-                                class="admin-field w-auto!"
-                                :disabled="filters.processing"
-                                :aria-invalid="!!filters.errors.per_page"
-                                :aria-describedby="
-                                    filters.errors.per_page
-                                        ? 'farm-per-page-error'
-                                        : undefined
-                                "
-                                @change="apply"
+                    <p class="text-xs text-muted-foreground">
+                        Menampilkan {{ farms.from }}–{{ farms.to }} dari
+                        {{ farms.total }} kebun
+                    </p>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <label
+                                for="farm-per-page"
+                                class="flex items-center gap-2 text-xs text-muted-foreground"
+                                >Per halaman
+                                <AppSelect
+                                    id="farm-per-page"
+                                    v-model.number="filters.per_page"
+                                    class="admin-field w-auto!"
+                                    :disabled="filters.processing"
+                                    :aria-invalid="!!filters.errors.per_page"
+                                    :aria-describedby="
+                                        filters.errors.per_page
+                                            ? 'farm-per-page-error'
+                                            : undefined
+                                    "
+                                    @change="apply"
+                                >
+                                    <AppSelectOption :value="15"
+                                        >15</AppSelectOption
+                                    >
+                                    <AppSelectOption :value="30"
+                                        >30</AppSelectOption
+                                    >
+                                    <AppSelectOption :value="50"
+                                        >50</AppSelectOption
+                                    >
+                                </AppSelect>
+                            </label>
+                            <p
+                                v-if="filters.errors.per_page"
+                                id="farm-per-page-error"
+                                role="alert"
+                                class="text-xs text-error"
                             >
-                                <AppSelectOption :value="15"
-                                    >15</AppSelectOption
-                                >
-                                <AppSelectOption :value="30"
-                                    >30</AppSelectOption
-                                >
-                                <AppSelectOption :value="50"
-                                    >50</AppSelectOption
-                                >
-                            </AppSelect>
-                        </label>
-                        <p
-                            v-if="filters.errors.per_page"
-                            id="farm-per-page-error"
-                            role="alert"
-                            class="text-xs text-error"
-                        >
-                            {{ filters.errors.per_page }}
-                        </p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <Button
-                            v-if="farms.prev_page_url"
-                            as-child
-                            variant="outline"
-                            size="sm"
-                            ><Link :href="farms.prev_page_url" preserve-scroll
-                                ><ChevronLeft />Sebelumnya</Link
+                                {{ filters.errors.per_page }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Button
+                                v-if="farms.prev_page_url"
+                                as-child
+                                variant="outline"
+                                size="sm"
+                                ><Link :href="farms.prev_page_url" preserve-scroll
+                                    ><ChevronLeft />Sebelumnya</Link
+                                ></Button
+                            ><span aria-current="page" class="px-2 text-xs"
+                                >{{ farms.current_page }} /
+                                {{ farms.last_page }}</span
+                            ><Button
+                                v-if="farms.next_page_url"
+                                as-child
+                                variant="outline"
+                                size="sm"
+                                ><Link :href="farms.next_page_url" preserve-scroll
+                                    >Berikutnya<ChevronRight /></Link
                             ></Button
-                        ><span aria-current="page" class="px-2 text-xs"
-                            >{{ farms.current_page }} /
-                            {{ farms.last_page }}</span
-                        ><Button
-                            v-if="farms.next_page_url"
-                            as-child
-                            variant="outline"
-                            size="sm"
-                            ><Link :href="farms.next_page_url" preserve-scroll
-                                >Berikutnya<ChevronRight /></Link
-                        ></Button>
+                        >
                     </div>
+                </div>
                 </nav>
             </template>
         </section>
