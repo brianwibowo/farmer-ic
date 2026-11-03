@@ -145,7 +145,7 @@ function reset(): void {
                     },
                 ]"
                 :key="item.label"
-                class="admin-card min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
+                class="admin-card min-w-0 rounded-xl bg-card p-3 sm:p-5"
             >
                 <div class="flex items-center justify-between gap-3">
                     <p
@@ -171,9 +171,7 @@ function reset(): void {
             </div>
         </div>
 
-        <section
-            class="admin-card overflow-hidden rounded-xl border border-border bg-card"
-        >
+        <section class="admin-card overflow-hidden rounded-xl bg-card">
             <div class="border-b border-border p-4 md:p-5">
                 <div
                     class="mb-4 flex flex-wrap items-center justify-between gap-3"

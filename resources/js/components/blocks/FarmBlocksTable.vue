@@ -71,7 +71,7 @@ function remove(): void {
 }
 </script>
 <template>
-    <section class="overflow-hidden rounded-xl border border-border bg-card">
+    <section class="overflow-hidden rounded-xl bg-card">
         <header
             class="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6"
         >

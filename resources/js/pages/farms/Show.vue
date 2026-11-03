@@ -94,9 +94,7 @@ const progressStages = computed(() =>
                 /></Button>
             </div>
         </header>
-        <section
-            class="overflow-hidden rounded-xl border border-border bg-card"
-        >
+        <section class="overflow-hidden rounded-xl bg-card">
             <header class="px-5 pt-4 sm:px-6 sm:pt-5">
                 <h2 class="admin-section-title">Ringkasan kebun</h2>
             </header>
