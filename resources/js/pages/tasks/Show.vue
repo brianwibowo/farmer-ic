@@ -44,6 +44,10 @@ const rescheduleForm = useForm({
     reschedule_reason: '',
 });
 
+function statusError(errors: object): string | undefined {
+    return (errors as { status?: string }).status;
+}
+
 function openSkip(): void {
     skipForm.reset();
     skipForm.clearErrors();
@@ -252,7 +256,7 @@ function submitReschedule(): void {
                         :aria-describedby="field.description"
                     />
                 </FarmField>
-                <p v-if="skipForm.errors.status" role="alert" class="text-sm text-error">{{ skipForm.errors.status }}</p>
+                <p v-if="statusError(skipForm.errors)" role="alert" class="text-sm text-error">{{ statusError(skipForm.errors) }}</p>
                 <DialogFooter>
                     <Button type="button" variant="outline" :disabled="skipForm.processing" @click="skipOpen = false">Batal</Button>
                     <Button type="submit" :disabled="skipForm.processing">
@@ -286,7 +290,7 @@ function submitReschedule(): void {
                         :aria-describedby="field.description"
                     />
                 </FarmField>
-                <p v-if="cancelForm.errors.status" role="alert" class="text-sm text-error">{{ cancelForm.errors.status }}</p>
+                <p v-if="statusError(cancelForm.errors)" role="alert" class="text-sm text-error">{{ statusError(cancelForm.errors) }}</p>
                 <DialogFooter>
                     <Button type="button" variant="outline" :disabled="cancelForm.processing" @click="cancelOpen = false">Batal</Button>
                     <Button type="submit" variant="destructive" :disabled="cancelForm.processing">
@@ -332,7 +336,7 @@ function submitReschedule(): void {
                         :aria-describedby="field.description"
                     />
                 </FarmField>
-                <p v-if="rescheduleForm.errors.status" role="alert" class="text-sm text-error">{{ rescheduleForm.errors.status }}</p>
+                <p v-if="statusError(rescheduleForm.errors)" role="alert" class="text-sm text-error">{{ statusError(rescheduleForm.errors) }}</p>
                 <DialogFooter>
                     <Button type="button" variant="outline" :disabled="rescheduleForm.processing" @click="rescheduleOpen = false">Batal</Button>
                     <Button type="submit" :disabled="rescheduleForm.processing">
