@@ -56,6 +56,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('blocks', [FarmBlockController::class, 'farms'])->name('blocks.farms');
     Route::post('kebun/{farm}/blocks/{block}/batches', [FarmBlockController::class, 'storeBatch'])
         ->whereUuid(['farm', 'block'])->name('blocks.batches.store');
+    Route::put('kebun/{farm}/blocks/{block}/batches/{batch}', [FarmBlockController::class, 'updateBatch'])
+        ->whereUuid(['farm', 'block', 'batch'])->name('blocks.batches.update');
     Route::resource('kebun/{farm}/blocks', FarmBlockController::class)
         ->whereUuid(['farm', 'block'])->names('blocks');
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');

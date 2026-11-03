@@ -486,8 +486,7 @@ for maintenance and other activities. Do not display fabricated trend deltas.
 
 ### Farm Management pages
 
-Use three summary cards for total farms, registered area and city coverage,
-backed by the existing database props. Summaries describe all visible farms;
+Start the Farm Management index directly with three summary cards for total farms, registered area and city coverage, backed by the existing database props. Do not show the former Kelola kebun heading or its introductory sentence. Place Tambah kebun beside the Daftar kebun table heading, above search and filters. Keep one screen-reader page heading. Summaries describe all visible farms;
 the list count reflects applied filters. On phones show two cards and a full-width
 coverage card, then a responsive list of farm cards instead of the desktop table.
 
@@ -652,8 +651,9 @@ preserved until changed.
 Block pages reuse `FarmManagementLayout` when the backend shared navigation
 permits Farm Management, including the Admin sidebar, header, typography,
 `admin-field` controls, and themed dialog portals. Keep Manajemen Kebun active
-while visiting block routes. On wide desktop screens, batch capacity and its form
-share two columns; on mobile they remain sequential. Block forms follow the farm
+while visiting block routes. Farm detail uses one overview panel: registered area, location, user-entered harvest target in tonnes, and the number of sub blocks at each persisted stage come first; the location map follows within the same panel. The header combines the back action and farm name on one row, with compact top padding so the overview is visible immediately. Use the shared 36px/700 metric style (32px on phones) for area, target, and sub block counts, with a bold location name. Use complete, beginner-friendly labels: Status lahan before Milik sendiri/Sewa/Kerja sama, Komoditas yang ditanam, and Panduan budidaya (SOP). Each progress item names its unit and action, for example 2 sub blok sedang dalam pengolahan tanah. Never show unexplained fragments such as 1 Pengolahan tanah. Team and owner information do not appear in the detail. Logbook is a text link. The block table follows the overview; create/edit actions open a shared dialog and return to that detail. Farm forms choose a commodity before its matching SOP. Sub block create/edit uses a dialog, while each sub block always shows its stages and start/completion dates without a progress disclosure.
+
+Block and sub block editor dialogs use a roomy 768px maximum desktop width, constrained to the viewport on phones. Use card surfaces, semantic tokens, a context header with the existing icon system, a visible capacity summary, two form columns where space permits, and an independently scrolling body. Keep the separated Batal/Simpan footer visible while scrolling; hide duplicate submit/close actions while processing. Retain focus trapping, keyboard dismissal, unsaved-change confirmation, inline errors, and both profile themes. Block forms follow the farm
 form width, and compact list metrics retain their units.
 Capacity metrics provide an information button with a 44px touch target using
 `MetricInfoTooltip`; explain block boundaries, batch reservations, and a labeled
@@ -664,8 +664,7 @@ and `farm-block-theme` for contrast corrections, including dialog
 portals. Primary button labels use a dark foreground on the existing light green;
 error/success text has separate dark values. Keep Admin tokens in the existing
 admin stylesheet. On mobile, compact statistics retain units, optional list
-filters can collapse, and batch timelines expose their current stage before the
-expandable six-stage history. A visible return link preserves the permitted Admin
+filters can collapse, and batch timelines show all stages and their dates without an expansion step. A visible return link preserves the permitted Admin
 context when moving between farm details, blocks, and logbook.
 
 Admin dashboard screens share `resources/css/admin-dashboard-styling.css` for

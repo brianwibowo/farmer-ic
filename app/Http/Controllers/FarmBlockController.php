@@ -43,6 +43,7 @@ class FarmBlockController extends Controller
             'farm' => $farm->only(['id', 'name', 'total_area_ha']),
             'blocks' => $this->blocks->paginate($farm, $request->user(), $team, $request->validated()),
             'summary' => $this->blocks->summary($farm, $request->user(), $team),
+            'blockCapacity' => $this->blocks->formCapacity($farm, $request->user(), $team),
             'filters' => array_replace(['search' => '', 'status' => 'all', 'per_page' => 15], $request->validated()),
             'can' => ['create' => Gate::allows('create', [FarmBlock::class, $farm])],
         ]);
@@ -62,7 +63,7 @@ class FarmBlockController extends Controller
         $block = $this->blocks->create($farm, $request->user(), $this->team($farm), $request->safe()->except(['area_value', 'area_unit']));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Blok dibuat. Land Clearing dimulai.']);
 
-        return to_route('blocks.show', [$farm, $block]);
+        return $this->returnToFarm($request, $farm) ?? to_route('blocks.show', [$farm, $block]);
     }
 
     public function show(Request $request, Farm $farm, FarmBlock $block): Response
@@ -73,6 +74,7 @@ class FarmBlockController extends Controller
         return Inertia::render('farmer/blocks/Show', [
             'farm' => $farm->only(['id', 'name', 'total_area_ha']),
             ...$this->blocks->detail($block, $request->user(), $this->team($farm)),
+            'batchPermissions' => PlantingCycle::visibleTo($request->user(), $this->team($farm))->whereIn('planting_round_id', PlantingRound::visibleTo($request->user(), $this->team($farm))->where('block_id', $block->id)->select('id'))->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $this->blocks->isBatchEditable($block, $batch)]),
             'can' => [
                 'update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block),
                 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block]) && Gate::allows('create', [PlantingRound::class, $block]),
@@ -99,7 +101,7 @@ class FarmBlockController extends Controller
         $this->blocks->update($block, $request->user(), $this->team($farm), $request->safe()->except(['area_value', 'area_unit']));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan blok disimpan.']);
 
-        return to_route('blocks.show', [$farm, $block]);
+        return $this->returnToFarm($request, $farm) ?? to_route('blocks.show', [$farm, $block]);
     }
 
     public function destroy(Request $request, Farm $farm, FarmBlock $block): RedirectResponse
@@ -109,7 +111,7 @@ class FarmBlockController extends Controller
         $this->blocks->delete($block, $request->user(), $this->team($farm));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Blok dihapus.']);
 
-        return to_route('blocks.index', $farm);
+        return $this->returnToFarm($request, $farm) ?? to_route('blocks.index', $farm);
     }
 
     public function storeBatch(StorePreparationBatchRequest $request, Farm $farm, FarmBlock $block): RedirectResponse
@@ -122,6 +124,23 @@ class FarmBlockController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Subblok/batch dibuat. Pengolahan tanah dimulai tanpa persetujuan Admin.']);
 
         return to_route('blocks.show', [$farm, $block]);
+    }
+
+    public function updateBatch(StorePreparationBatchRequest $request, Farm $farm, FarmBlock $block, PlantingCycle $batch): RedirectResponse
+    {
+        $this->matchFarm($farm, $block);
+        abort_unless($batch->farm_id === $farm->id && $batch->plantingRound?->block_id === $block->id, 404);
+        Gate::authorize('update', $batch);
+        $this->blocks->updateBatch($block, $batch, $request->user(), $this->team($farm), $request->validated());
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan sub blok disimpan.']);
+
+        return to_route('blocks.show', [$farm, $block]);
+    }
+
+    private function returnToFarm(Request $request, Farm $farm): ?RedirectResponse
+    {
+        // A fixed destination retains dialog context without accepting redirect URLs.
+        return $request->input('return_to') === 'farm' ? to_route('farm-management.show', $farm) : null;
     }
 
     private function matchFarm(Farm $farm, FarmBlock $block): void
