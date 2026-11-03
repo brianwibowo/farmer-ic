@@ -1,6 +1,6 @@
 # Petugas task list contract
 
-Status: **Task data generation is implemented; the `/petugas/tasks` page still uses typed fixture data.** Real rows now exist in `planting_cycle_tasks` after a subblok is generated from its farm's default SOP. Replace `PetugasTaskController::fixtureTasks()` with a scoped query when the task list backend is connected.
+Status: **Task generation and the `/petugas/tasks` query are implemented.** The page now reads real `planting_cycle_tasks` rows for the Petugas user's assigned farm. The `isFixture` prop remains temporarily set to `false` so the existing UI banner stays hidden without changing friend-owned frontend files.
 
 ## Routes
 
@@ -14,11 +14,15 @@ Query parameter:
 status = all | overdue | today | upcoming | completed
 ```
 
+The controller validates the value and passes it back as `filters.status`. The
+current UI applies the urgency filter client-side so the summary counts remain
+global; the backend returns the full assigned-farm task set.
+
 Default: `all`.
 
-The page remains inside the existing `petugas.access` middleware. The real
-implementation must also require the Petugas user to have an assigned farm and
-must only return tasks for that farm.
+The page remains inside the existing `petugas.access` middleware. The
+implementation requires the Petugas user to have an assigned farm and only
+returns tasks for that farm.
 
 ## Inertia props
 
@@ -26,7 +30,7 @@ must only return tasks for that farm.
 type PetugasTaskPageProps = {
     tasks: PetugasTask[];
     filters: { status: 'all' | 'overdue' | 'today' | 'upcoming' | 'completed' };
-    isFixture: boolean; // remove when the real query is connected
+    isFixture: false; // retained temporarily for UI compatibility
 };
 ```
 
@@ -97,7 +101,9 @@ type PetugasTask = {
 
 ## Urgency rules
 
-The backend should derive `urgency`, not store it:
+The backend derives `urgency`; it is not stored. The effective date is
+`rescheduled_date ?? scheduled_date`, so an Admin reschedule is visible to
+Petugas without changing the original SOP date:
 
 ```text
 status completed / skipped / cancelled → completed
@@ -148,11 +154,12 @@ buttons are fine only if they have an explanatory label.
 
 1. ~~Add stage alignment and `planting_cycle_tasks`.~~ Done.
 2. ~~Generate tasks for a subblok from the farm default SOP.~~ Done.
-3. Replace `fixtureTasks()` with a scoped `PlantingCycleTask` query.
+3. ~~Replace `fixtureTasks()` with a scoped `PlantingCycleTask` query.~~ Done.
 4. Add `PetugasTaskController@show`.
 5. Add start/submit endpoints and policies.
 6. Add linked activities and submission props.
-7. Remove the fixture banner and `isFixture` prop.
+7. Remove the fixture banner and `isFixture` prop from the friend-owned UI.
+8. Add pagination once the task volume requires it.
 
 ## Generated task fields
 
