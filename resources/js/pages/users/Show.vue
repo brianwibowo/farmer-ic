@@ -31,11 +31,11 @@ const deleting = ref(false);
 
 <template>
     <Head :title="managedUser.name" />
-    <div class="space-y-6">
+    <div class="space-y-[18px]">
         <Link
             href="/admin/user-management"
             class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-            ><ArrowLeft class="size-4" />Kembali ke daftar user</Link
+            ><ArrowLeft class="size-4" />Kembali ke daftar pengguna</Link
         >
         <header class="flex flex-wrap items-start justify-between gap-4">
             <div class="flex min-w-0 items-start gap-4">
@@ -45,7 +45,9 @@ const deleting = ref(false);
                     <UserRound class="size-7" />
                 </div>
                 <div class="min-w-0">
-                    <h1 class="admin-page-title tracking-tight break-words">
+                    <h1
+                        class="admin-page-title tracking-tight break-words text-primary"
+                    >
                         {{ managedUser.name }}
                     </h1>
                     <p class="mt-2 text-sm break-all text-muted-foreground">
@@ -63,7 +65,7 @@ const deleting = ref(false);
                         :href="
                             '/admin/user-management/' + managedUser.id + '/edit'
                         "
-                        ><Pencil />Ubah user</Link
+                        ><Pencil />Ubah pengguna</Link
                     ></Button
                 ><Button
                     v-if="can.delete"
@@ -75,9 +77,7 @@ const deleting = ref(false);
             </div>
         </header>
         <div class="grid items-start gap-5 lg:grid-cols-3">
-            <section
-                class="space-y-5 rounded-xl border border-border bg-card p-5 md:p-6 lg:col-span-2"
-            >
+            <section class="admin-panel space-y-5 lg:col-span-2">
                 <h2 class="admin-section-title flex items-center gap-2">
                     <ShieldCheck class="size-5 text-primary" />Informasi akun
                 </h2>
@@ -129,9 +129,7 @@ const deleting = ref(false);
                     membership tenant.
                 </p>
             </section>
-            <section
-                class="space-y-5 rounded-xl border border-border bg-card p-5 md:p-6"
-            >
+            <section class="admin-panel space-y-5">
                 <h2 class="admin-section-title flex items-center gap-2">
                     <Building2 class="size-5 text-primary" />Tenant & farm
                 </h2>

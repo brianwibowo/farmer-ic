@@ -61,7 +61,7 @@ watch(
 <template>
     <section
         v-if="scope.global || role === 'petugas' || teamError"
-        class="space-y-5 rounded-xl border border-border bg-card p-5 md:p-6"
+        class="admin-panel space-y-5"
         aria-labelledby="assignment-heading"
     >
         <div v-if="scope.global || role === 'petugas'">

@@ -6,7 +6,7 @@
         sans-serif;
     font-family: var(--font-sans);
     --radius: 0.75rem;
-    --background: #f8fafc;
+    --background: #f3f4f6;
     --foreground: #0f172a;
     --card: #ffffff;
     --card-foreground: #0f172a;
@@ -54,15 +54,19 @@
     --admin-sidebar-menu-radius: 6px;
     --admin-chart-secondary: #6ee7b7;
     --admin-chart-tertiary: #d1fae5;
-    --admin-overview-background: #f6faf8;
+    --admin-overview-background: var(--background);
+    --admin-page-title-size: 1.75rem;
+    --admin-section-title-size: 1rem;
+    --admin-metric-value-size: 2.25rem;
+    --admin-content-gap: 1.125rem;
+    --admin-panel-padding: 1.125rem;
 }
 
 .dark .admin-dashboard-theme {
     --admin-chart-secondary: #059669;
     --admin-chart-tertiary: #065f46;
-    --admin-overview-background: #111c17;
     color-scheme: dark;
-    --background: #0f172a;
+    --background: #111c17;
     --foreground: #f8fafc;
     --card: #1e293b;
     --card-foreground: #f8fafc;
@@ -115,7 +119,7 @@
 }
 
 .admin-dashboard-theme .admin-page-title {
-    font-size: clamp(1.75rem, 1.25rem + 2vw, 2.25rem) !important;
+    font-size: var(--admin-page-title-size) !important;
     line-height: 1.2 !important;
     font-weight: 700 !important;
     overflow-wrap: anywhere !important;
@@ -129,7 +133,7 @@
 }
 
 .admin-dashboard-theme .admin-section-title {
-    font-size: 1rem;
+    font-size: var(--admin-section-title-size);
     line-height: 1.5rem;
     font-weight: 600;
 }
@@ -139,15 +143,10 @@
         font-size: 0.9375rem;
         line-height: 1.375rem;
     }
-
-    .admin-dashboard-theme .admin-section-title {
-        font-size: 1.125rem;
-        line-height: 1.625rem;
-    }
 }
 
 .admin-dashboard-theme .admin-metric-value {
-    font-size: 2rem;
+    font-size: var(--admin-metric-value-size);
     line-height: 2.5rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
@@ -376,6 +375,7 @@
     display: flex;
     min-width: 0;
     align-items: center;
+    gap: 0.625rem;
     border-radius: var(--radius);
 }
 
@@ -383,14 +383,6 @@
 .admin-sidebar .admin-sidebar-toggle:focus-visible {
     outline: 2px solid var(--sidebar-ring);
     outline-offset: 3px;
-}
-
-.admin-sidebar-wordmark {
-    display: block;
-    width: 10.25rem;
-    max-width: 100%;
-    height: auto;
-    object-fit: contain;
 }
 
 .admin-sidebar-mark {
@@ -551,11 +543,12 @@
 .admin-dashboard-overview {
     background: var(--admin-overview-background);
 }
+.admin-dashboard-theme .admin-panel,
 .admin-dashboard-theme .dashboard-panel {
     min-width: 0;
     border-radius: var(--radius);
     background: var(--card);
-    padding: 1.25rem;
+    padding: var(--admin-panel-padding);
 }
 .admin-dashboard-theme .dashboard-series-0 {
     background: var(--primary);
@@ -580,6 +573,7 @@
     filter: saturate(1.3);
 }
 @media (max-width: 639px) {
+    .admin-dashboard-theme .admin-panel,
     .admin-dashboard-theme .dashboard-panel {
         padding: 1rem;
     }
@@ -714,6 +708,10 @@
     }
 }
 @media (max-width: 639px) {
+    .admin-dashboard-theme {
+        --admin-page-title-size: 1.625rem;
+        --admin-metric-value-size: 2rem;
+    }
     .admin-dashboard-theme .admin-dashboard-overview .admin-page-title {
         font-size: 1.625rem !important;
     }
@@ -748,4 +746,202 @@
     gap: 0.75rem;
     padding: 0.875rem;
     line-height: 1.5;
+}
+
+/* Farm management shares the dashboard composition. */
+.farm-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--admin-content-gap);
+}
+.admin-dashboard-theme .farm-summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.125rem;
+}
+.farm-list-toolbar {
+    padding: 1.25rem;
+}
+@media (max-width: 639px) {
+    .farm-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+    .admin-dashboard-theme .farm-summary-card {
+        padding: 1rem 0.875rem;
+    }
+    .farm-summary-icon {
+        display: none;
+    }
+    .farm-summary-card:last-child {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: 1rem;
+        row-gap: 0.25rem;
+    }
+    .farm-summary-card:last-child .dashboard-metric-middle {
+        grid-column: 2;
+        grid-row: 1 / 3;
+    }
+    .farm-list-toolbar {
+        padding: 1rem;
+    }
+}
+
+/* User directory: a single panel with quiet, rounded list rows. */
+.user-directory {
+    min-width: 0;
+}
+.user-directory-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.5rem 1.5rem 1.25rem;
+}
+.user-directory-inset {
+    padding-inline: 1.5rem;
+}
+.user-directory-tabs {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+    scrollbar-width: thin;
+}
+.user-directory-tab {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 3rem;
+    padding: 0.625rem 0.125rem;
+    border-bottom: 2px solid transparent;
+    color: var(--muted-foreground);
+    font-weight: 500;
+    white-space: nowrap;
+}
+.user-directory-tab.is-active {
+    border-bottom-color: var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+}
+.user-directory-tab:hover {
+    color: var(--primary);
+}
+.user-directory-tab:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+.user-directory-tab-count {
+    display: inline-flex;
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 0.375rem;
+    border-radius: 999px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.user-directory-tab.is-active .user-directory-tab-count {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+.user-directory-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 0.5rem;
+}
+.user-directory-table {
+    border-collapse: separate;
+    border-spacing: 0 0.625rem;
+}
+.admin-dashboard-theme .user-directory-table th {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.user-directory-table td {
+    padding: 1rem 0.75rem;
+    background: var(--background);
+    vertical-align: middle;
+}
+.user-directory-table td:first-child {
+    border-radius: var(--radius) 0 0 var(--radius);
+}
+.user-directory-table td:last-child {
+    border-radius: 0 var(--radius) var(--radius) 0;
+}
+.user-directory-table tbody tr:hover td {
+    background: var(--muted);
+}
+.user-directory-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+}
+@media (max-width: 639px) {
+    .user-directory-heading {
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1.25rem 1rem 0.75rem;
+    }
+    .user-directory-inset {
+        padding-inline: 1rem;
+    }
+    .user-directory-toolbar {
+        padding: 1rem;
+        gap: 0.875rem;
+    }
+    .user-directory-tabs {
+        gap: 1.25rem;
+    }
+    .user-directory-footer {
+        padding: 1rem;
+    }
+}
+
+.user-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+.user-summary-card {
+    min-width: 0;
+    padding: 1.125rem;
+}
+@media (min-width: 768px) {
+    .user-summary-grid {
+        grid-template-columns: repeat(
+            var(--user-summary-columns),
+            minmax(0, 1fr)
+        );
+    }
+}
+@media (max-width: 767px) {
+    .user-summary-grid {
+        gap: 0.75rem;
+    }
+    .user-summary-card {
+        padding: 1rem;
+    }
+    .user-summary-card:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
 }
