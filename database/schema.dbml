@@ -97,6 +97,13 @@ Table farms {
   land_tenure varchar(20) [note: 'owned | rented | partnership; null for legacy farms until confirmed']
   district_code varchar(8) [ref: > administrative_regions.code]
   default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default kebun; dipakai otomatis saat Petugas mencatat penanaman']
+  commodity_id uuid [ref: > commodities.id, note: 'Komoditas kebun; dapat dipilih sebelum SOP tersedia']
+  pic_user_id uuid [ref: > users.id, note: 'PIC opsional dari Admin tenant yang sama; ON DELETE SET NULL']
+  target_volume_ton decimal(12,3) [note: 'Target volume opsional dalam ton; CHECK > 0']
+  indexes {
+    commodity_id
+    pic_user_id
+  }
   Note: 'Tanpa farm_plots. Jika semua owner memantau semua kebun, owner_id boleh dihilangkan.'
 }
 

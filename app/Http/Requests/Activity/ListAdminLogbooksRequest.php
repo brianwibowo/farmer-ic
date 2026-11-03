@@ -8,6 +8,7 @@ use Illuminate\Validation\Validator;
 
 class ListAdminLogbooksRequest extends FormRequest
 {
+    /** @return array<string, array<mixed>> */
     public function rules(): array
     {
         return [
@@ -20,6 +21,7 @@ class ListAdminLogbooksRequest extends FormRequest
         ];
     }
 
+    /** @return list<\Closure(Validator): void> */
     public function after(): array
     {
         return [function (Validator $validator): void {

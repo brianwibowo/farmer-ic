@@ -466,17 +466,20 @@ class FarmBlockTest extends TestCase
     {
         $this->seed(BlockMappingActivityTypeSeeder::class);
         $block = $this->block();
+        $petugas = User::factory()->create(['role' => 'petugas']);
+        $this->join($petugas);
+        $petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $payload = ['work_date' => now('Asia/Jakarta')->format('Y-m-d'), 'start_time' => '08:00', 'end_time' => '10:00', 'worker_count' => 2,
             'activities' => [['type' => 'block_mapping', 'obstacle_status' => 'none',
                 'block_mapping' => ['block_id' => $block->id, 'block_name' => 'Nama saat pengukuran', 'length_m' => '100', 'width_m' => '100']]]];
-        $this->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertRedirect();
-        $this->patch($this->url($block), ['name' => 'Nama Baru'])->assertRedirect();
+        $this->actingAs($petugas)->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($this->admin)->patch($this->url($block), ['name' => 'Nama Baru'])->assertRedirect();
         $this->assertDatabaseHas('block_mapping_details', ['block_id' => $block->id, 'block_name' => 'Nama saat pengukuran']);
         $this->delete($this->url($block))->assertSessionHasErrors('delete');
         $other = $this->farm();
         $otherBlock = $this->block('B99', '1', $other);
         $payload['activities'][0]['block_mapping']['block_id'] = $otherBlock->id;
-        $this->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertSessionHasErrors('activities.0.block_mapping.block_id');
+        $this->actingAs($petugas)->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertSessionHasErrors('activities.0.block_mapping.block_id');
         $this->assertDatabaseCount('daily_activity_logs', 1);
         $this->constraints();
     }

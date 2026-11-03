@@ -13,6 +13,7 @@ use Illuminate\Support\Collection;
 
 class AdminLogbookService
 {
+    /** @return Builder<DailyActivityLog> */
     private function logs(User $actor, Team $team, ?Farm $farm = null): Builder
     {
         return DailyActivityLog::visibleTo($actor, $team)
@@ -20,6 +21,10 @@ class AdminLogbookService
             ->when($farm, fn ($query) => $query->where('farm_id', $farm->id));
     }
 
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<int, array{id: string, name: string, city: string|null, district: string|null, province: string|null, log_count: int, latest_work_date: mixed}>
+     */
     public function farms(User $actor, Team $team, array $filters): LengthAwarePaginator
     {
         $query = Farm::visibleTo($actor, $team)->select(['id', 'name', 'city', 'district', 'province'])
@@ -38,6 +43,7 @@ class AdminLogbookService
             ]);
     }
 
+    /** @return array{farms: int, reports: int, today: int, activities: int, obstacles: int} */
     public function summary(User $actor, Team $team, ?Farm $farm = null): array
     {
         $logs = $this->logs($actor, $team, $farm);
@@ -52,6 +58,10 @@ class AdminLogbookService
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<int, array{id: string, worker_count: int, notes: string|null, work_date: string, start_time: string, end_time: string, recorder_name: string|null, activities_count: int, obstacle_count: int}>
+     */
     public function paginate(Farm $farm, User $actor, Team $team, array $filters): LengthAwarePaginator
     {
         $query = $this->logs($actor, $team, $farm)
@@ -82,6 +92,7 @@ class AdminLogbookService
             ]);
     }
 
+    /** @return Collection<int, User> */
     public function recorders(Farm $farm, User $actor, Team $team): Collection
     {
         return User::visibleTo($actor, $team)->whereIn('id', $this->logs($actor, $team, $farm)->select('recorded_by'))
