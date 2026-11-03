@@ -104,6 +104,7 @@ class DemoSopSeeder extends Seeder
             $subblok->forceFill(['planned_planting_at' => today()->addDays(3)->toDateString()])->save();
         }
 
-        app(PlantingCycleTaskService::class)->generateForSubblok($subblok);
+        \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('synchronize', [\App\Models\PlantingCycleTask::class, $subblok]);
+        app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $actor);
     }
 }

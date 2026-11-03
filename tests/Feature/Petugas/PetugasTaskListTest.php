@@ -167,7 +167,7 @@ class PetugasTaskListTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('petugas/Tasks')
-                ->where('isFixture', false)
+                ->missing('isFixture')
                 ->where('filters.status', 'all')
                 ->has('tasks', 3)
                 ->where('tasks.0.id', $overdue->id)
@@ -179,12 +179,12 @@ class PetugasTaskListTest extends TestCase
                 ->where('tasks.0.due_date', $today->subDays(4)->toDateString())
                 ->where('tasks.0.linked_activities_count', 0)
                 ->where('tasks.0.latest_submission', null)
-                ->where('tasks.0.can.start', true)
+                ->where('tasks.0.can.start', false)
                 ->where('tasks.0.can.submit', false)
                 ->where('tasks.0.subblok.id', $this->subblok->id)
                 ->where('tasks.0.subblok.number', 1)
                 ->where('tasks.0.subblok.label', 'A')
-                ->where('tasks.0.subblok.hst', 20)
+                ->where('tasks.0.subblok.hst', null)
                 ->where('tasks.0.subblok.farm.id', $this->farm->id)
                 ->where('tasks.0.subblok.farm.name', 'Kebun Petugas')
                 ->where('tasks.0.subblok.block.name', 'Blok B01')
@@ -220,7 +220,7 @@ class PetugasTaskListTest extends TestCase
                 ->where('tasks.0.scheduled_date', $today->toDateString())
                 ->where('tasks.0.urgency', 'today')
                 ->where('tasks.0.can.start', false)
-                ->where('tasks.0.can.submit', true));
+                ->where('tasks.0.can.submit', false));
     }
 
     public function test_petugas_without_an_assigned_farm_gets_an_empty_real_list(): void
@@ -234,7 +234,7 @@ class PetugasTaskListTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('petugas/Tasks')
-                ->where('isFixture', false)
+                ->missing('isFixture')
                 ->where('filters.status', 'all')
                 ->has('tasks', 0));
     }
@@ -247,8 +247,13 @@ class PetugasTaskListTest extends TestCase
             $actor = User::factory()->create(['role' => $role]);
             $this->actingAs($actor)->get('/petugas/tasks')->assertForbidden();
         }
+    }
 
-        $superadmin = User::factory()->create(['role' => 'superadmin']);
-        $this->actingAs($superadmin)->get('/petugas/tasks')->assertOk();
+    public function test_task_listing_remains_authenticated_and_portal_protected(): void
+    {
+        $this->get('/petugas/tasks')->assertRedirect('/login');
+        foreach (['owner', 'admin'] as $role) {
+            $this->actingAs(User::factory()->create(['role' => $role]))->get('/petugas/tasks')->assertForbidden();
+        }
     }
 }

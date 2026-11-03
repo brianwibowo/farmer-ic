@@ -18,6 +18,7 @@ use App\Http\Controllers\Finance\FinancialTransactionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Petugas\PetugasActivityController;
+use App\Http\Controllers\Petugas\PetugasPlantingController;
 use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
@@ -44,9 +45,17 @@ Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->na
 Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
     Route::inertia('/', 'petugas/Home')->name('home');
     Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
+    Route::get('penanaman', [PetugasPlantingController::class, 'index'])->name('planting.index');
+    Route::get('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'show'])->whereUuid('cycle')->name('planting.show');
+    Route::post('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'store'])->whereUuid('cycle')->name('planting.store');
+    Route::post('subbloks/{cycle}/tasks/sync', [PetugasPlantingController::class, 'synchronize'])->whereUuid('cycle')->name('planting.synchronize');
     Route::get('tasks', [PetugasTaskController::class, 'index'])->name('tasks.index');
-    Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
-    Route::get('aktivitas/buat', [PetugasActivityController::class, 'create'])->name('aktivitas.create');
+    Route::get('tasks/{task}', [PetugasTaskController::class, 'show'])->whereUuid('task')->name('tasks.show');
+    Route::get('tasks/{task}/aktivitas/buat', [PetugasActivityController::class, 'create'])->whereUuid('task')->name('tasks.aktivitas.create');
+    Route::post('tasks/{task}/aktivitas', [PetugasActivityController::class, 'store'])->whereUuid('task')->name('tasks.aktivitas.store');
+    Route::get('aktivitas/{activity}/foto/{photo}', [PetugasActivityController::class, 'photo'])->whereUuid(['activity', 'photo'])->name('aktivitas.photos');
+    Route::get('aktivitas', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'index'])->name('aktivitas');
+    Route::redirect('aktivitas/buat', '/petugas/tasks')->name('aktivitas.create');
     Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
 });
 
@@ -79,6 +88,9 @@ Route::get('/bypass', function (Request $request) {
 Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->whereUuid('farm')->group(function (): void {
     Route::get('/', [DailyActivityLogController::class, 'index'])->name('daily-logs.index');
     Route::post('/', [DailyActivityLogController::class, 'store'])->name('daily-logs.store');
+    Route::get('context', [DailyActivityLogController::class, 'context'])->name('daily-logs.context');
+    Route::get('activities/{activity}/photos/{photo}', [DailyActivityLogController::class, 'photo'])->whereUuid(['activity', 'photo'])->name('daily-logs.photos');
+    Route::patch('{dailyLog}', [DailyActivityLogController::class, 'update'])->whereUuid('dailyLog')->name('daily-logs.update');
     Route::get('{dailyLog}', [DailyActivityLogController::class, 'show'])
         ->whereUuid('dailyLog')
         ->name('daily-logs.show');

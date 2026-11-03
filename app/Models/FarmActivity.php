@@ -58,6 +58,12 @@ class FarmActivity extends FarmerModel
         return $this->belongsTo(PlantingCycle::class, 'planting_cycle_id');
     }
 
+    /** @return BelongsTo<PlantingCycleTask, $this> */
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(PlantingCycleTask::class, 'planting_cycle_task_id');
+    }
+
     /** @return BelongsTo<ActivityType, $this> */
     public function activityType(): BelongsTo
     {

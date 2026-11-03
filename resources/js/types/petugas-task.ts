@@ -40,6 +40,7 @@ export type PetugasTask = {
     can: {
         start: boolean;
         submit: boolean;
+        record: boolean;
     };
     subblok: {
         id: string;
@@ -80,5 +81,29 @@ export type PetugasActivityPageProps = {
 export type PetugasTaskPageProps = {
     tasks: PetugasTask[];
     filters: PetugasTaskFilters;
-    isFixture: boolean;
+    summary: Record<PetugasTaskUrgency, number>;
+    farm: { id: string; name: string } | null;
+    defaultSopMissing: boolean;
+};
+
+export type TaskActivityField = {
+    key: string;
+    label: string;
+    type: 'text' | 'number' | 'select';
+    optional?: boolean;
+    max?: number;
+    step?: string;
+    options?: string[];
+};
+
+export type TaskActivityReport = {
+    id: string;
+    performer_name: string | null;
+    work_date: string;
+    start_time: string;
+    end_time: string;
+    worker_count: number;
+    notes: string | null;
+    details: Record<string, string | number | null>;
+    photos: { id: string; url: string }[];
 };

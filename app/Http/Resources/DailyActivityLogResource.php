@@ -27,6 +27,7 @@ class DailyActivityLogResource extends JsonResource
             'activities' => $this->activities->map(fn (FarmActivity $activity): array => [
                 'id' => $activity->id,
                 'type' => $activity->activityType?->code,
+                'name' => $activity->activityType?->name,
                 'position' => $activity->position,
                 'notes' => $activity->description,
                 'obstacle_status' => $activity->obstacle_status,

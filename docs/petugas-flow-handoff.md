@@ -1,5 +1,12 @@
 # Petugas flow handoff
 
+> **Historical handoff:** Activity creation, planting realization, and shared
+> daily reports have since been implemented and integrated. For the current
+> status and remaining work, read `docs/petugas-activity-handoff.md` and
+> `docs/petugas-task-list-contract.md`. The notes below describe the earlier
+> ownership boundary, not the current absence of those endpoints. Admin
+> skip/cancel/reschedule remains available; Petugas start/submit/review does not.
+
 Status: **Ownership split confirmed.** The Petugas flow — activity creation,
 planting logging, task start/submit, and Petugas task actions — is owned by the
 friend. The Admin task-management and read-only Petugas task-list backend are

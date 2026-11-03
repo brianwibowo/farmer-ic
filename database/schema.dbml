@@ -212,6 +212,7 @@ Table planting_cycle_tasks {
   rescheduled_at timestamptz
   indexes {
     (planting_cycle_id, sop_template_task_id) [unique]
+    (id, planting_cycle_id) [unique]
     (planting_cycle_id, scheduled_date, status)
     (planting_cycle_id, offset_days)
   }
@@ -308,13 +309,15 @@ Table farm_activities {
   obstacles text
   proposed_solution text
   action_taken text
-  Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Tipe aktivitas menentukan satu detail yang tepat.'
+  planting_cycle_task_id uuid [note: 'Composite FK with planting_cycle_id; nullable for non-task activities']
+  task_details jsonb [note: 'Validated task-specific measurements; required for task-linked reports. Weeding uses these details; other types also retain their existing typed detail.']
+  Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Tipe aktivitas menentukan satu detail yang tepat; task-linked weeding uses task_details instead.'
 }
 
 Table daily_activity_logs {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
-  recorded_by uuid [not null, ref: > users.id]
+  recorded_by uuid [not null, ref: > users.id, note: 'Pembuat pertama header bersama; pelaksana tiap aktivitas ada di farm_activities.performed_by']
   work_date date [not null]
   start_time time [not null]
   end_time time [not null]
@@ -325,10 +328,13 @@ Table daily_activity_logs {
 
   indexes {
     (id, farm_id) [unique]
+    (farm_id, work_date) [unique]
   }
+  Note: 'Satu header bersama per kebun per tanggal. Jam kerja dan total pekerja berlaku untuk keseluruhan hari; menambah aktivitas tidak menimpa header.'
 }
 
 Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id, farm_id)
+Ref: farm_activities.(planting_cycle_task_id, planting_cycle_id) > planting_cycle_tasks.(id, planting_cycle_id)
 
 Table block_mapping_details {
   activity_id uuid [pk, ref: > farm_activities.id]

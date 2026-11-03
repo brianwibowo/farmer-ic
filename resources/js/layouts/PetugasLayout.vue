@@ -18,6 +18,12 @@ const items: FarmerNavItem[] = [
 ];
 const activeKey = computed<FarmerNavKey>(() => {
     const pathname = page.url.split('?')[0].replace(/\/$/, '');
+    if (
+        ['/petugas/tasks', '/petugas/penanaman', '/petugas/subbloks'].some(
+            (path) => pathname === path || pathname.startsWith(`${path}/`),
+        )
+    )
+        return 'activity';
     const exact = items.find((item) => item.href === pathname);
     if (exact) return exact.key;
 

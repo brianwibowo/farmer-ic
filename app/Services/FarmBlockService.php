@@ -148,6 +148,18 @@ class FarmBlockService
         });
     }
 
+    /** @param array<string, mixed> $data
+     * @return array{batch: PlantingCycle, generation: array{status: string, created: int, rescheduled: int, version_id: string|null, detail: string|null}}
+     */
+    public function prepareBatch(FarmBlock $block, User $actor, Team $team, array $data): array
+    {
+        return DB::transaction(function () use ($block, $actor, $team, $data): array {
+            $batch = $this->createBatch($block, $actor, $team, $data);
+
+            return ['batch' => $batch, 'generation' => app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor)];
+        });
+    }
+
     /** @param array<string, mixed> $data */
     public function createBatch(FarmBlock $block, User $actor, Team $team, array $data): PlantingCycle
     {

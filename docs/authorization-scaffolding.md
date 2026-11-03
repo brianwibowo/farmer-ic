@@ -325,3 +325,47 @@ collecting IDs/counts; raw integrity checks inspect outside references only to
 block the operation. No new unprotected route is introduced. Existing public
 demo routes and the previously unaudited AI conversation/message/voice query
 paths keep their existing checks; this task does not claim to secure them.
+# Task-linked activity recording
+
+Shared daily headers use the existing DailyActivityLogPolicy and static grants:
+one persisted farm/date header, shared between authorized officers in that farm.
+`own` remains farm-assignment scope, not `recorded_by`. Header update is a
+separately authorized action; activity appends cannot overwrite header values.
+Context lookup authorizes farm view and daily-log viewAny before a scoped query.
+Petugas daily reports scope both the parent log and all activity/detail/photo
+queries. The general report-photo route authorizes farm, activity and photo,
+checks persisted parent links, then uses a scoped file lookup. Only the known
+shared seed placeholder or private task-activity files are served. Header creator
+and activity performer names are minimal projections through already-authorized
+reports, not a user-directory grant; no account details or user-management access
+are exposed. Owner remains read-only; other-farm/tenant officers cannot read or
+edit shared headers. No grants or role definitions were added.
+
+All new daily-report, context, update and photo routes are protected. Existing
+daily-log child-list reads now also apply visibleTo. Unrelated routes and AI/RAG
+retrieval have not been re-audited by this change.
+
+Initial planting uses `FarmActivityPolicy::recordPlanting` against a persisted
+cycle and composes cycle update, activity create, daily-log/photo/planting-detail
+view/create grants. Petugas reads only its assigned farm's subblok and reports.
+The controller authorizes before the transactional service; FormRequest delegates
+the same ability early so validation cannot expose foreign-farm context.
+`PlantingCycleTaskPolicy::synchronize` composes cycle update and task-list admission
+for derived scheduling, without granting arbitrary task CRUD. Job/command/seed
+callers must explicitly authorize it before invoking `generateForSubblok` with
+an actor. Petugas now has tenant-scoped `any` read grants for SOP templates,
+versions and tasks, allowing scoped generation. SOP mutations and admin portal
+admission remain denied. All new planting/synchronization/photo routes are guarded;
+this work does not audit unrelated existing routes.
+
+`FarmActivityPolicy::recordTask` authorizes the composite report creation use
+case against a persisted `PlantingCycleTask`. It requires task visibility and
+the existing activity/daily-log/photo/applicable typed-detail view/create
+grants within the same farm boundary. It is not a new matrix grant and does
+not authorize updating or completing a task. HTTP controllers check it before
+calling the report service. The Petugas portal additionally requires that
+the task's farm equals the persisted assignment, even for developer portal use.
+
+Petugas can read activity types and crop varieties as shared reference records
+(`any`, with valid team membership), but cannot mutate them. Task listing,
+summary counts, linked reports and photo serialization use `visibleTo`.

@@ -24,9 +24,9 @@ class StoreDailyActivityLogRequest extends FormRequest
     {
         return [
             'work_date' => ['required', 'date_format:Y-m-d'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
-            'worker_count' => ['required', 'integer', 'between:1,32767'],
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
+            'worker_count' => ['nullable', 'integer', 'between:1,32767'],
             // The controller derives the recorder from the authenticated user.
             // Keep this optional for backwards-compatible JSON clients, but never trust it.
             'recorded_by' => ['sometimes', 'uuid', Rule::exists('users', 'id')->where('is_active', true)],
