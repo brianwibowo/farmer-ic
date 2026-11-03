@@ -17,7 +17,7 @@ const page = usePage();
             <AppSidebar admin-theme />
             <AppContent variant="sidebar" class="min-w-0 bg-background">
                 <AdminHeader
-                    title="Farm Management"
+                    title="Manajemen Kebun"
                     href="/admin/farm-management"
                     :icon="LandPlot"
                 />

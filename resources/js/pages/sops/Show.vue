@@ -238,7 +238,7 @@ function statusClass(status: SopVersion['status']): string {
             <section
                 v-for="metric in summaryMetrics"
                 :key="metric.label"
-                class="min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
+                class="admin-card min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
             >
                 <div class="flex items-center justify-between gap-3">
                     <h2
@@ -267,7 +267,7 @@ function statusClass(status: SopVersion['status']): string {
 
         <div
             v-if="!template.versions.length"
-            class="rounded-xl border border-dashed border-border bg-card px-5 py-14 text-center"
+            class="admin-card rounded-xl border border-dashed border-border bg-card px-5 py-14 text-center"
         >
             <div
                 class="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent text-primary"
@@ -291,7 +291,7 @@ function statusClass(status: SopVersion['status']): string {
         <section
             v-for="version in template.versions"
             :key="version.id"
-            class="overflow-hidden rounded-xl border border-border bg-card"
+            class="admin-card overflow-hidden rounded-xl border border-border bg-card"
         >
             <div
                 class="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4 md:p-5"

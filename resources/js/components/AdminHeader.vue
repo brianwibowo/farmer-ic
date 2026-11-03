@@ -2,7 +2,7 @@
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Menu, Moon, Sun } from '@lucide/vue';
-import type { Component } from 'vue';
+import { computed, type Component } from 'vue';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAppearance } from '@/composables/useAppearance';
@@ -18,6 +18,16 @@ withDefaults(
 );
 
 const page = usePage();
+const isSectionIndex = computed(() =>
+    [
+        'Dashboard',
+        'farms/Index',
+        'users/Index',
+        'sops/Index',
+        'logbook/Index',
+        'notifications/Index',
+    ].includes(page.component),
+);
 const { isMobile, openMobile, setOpenMobile } = useSidebar();
 const { resolvedAppearance, updateAppearance } = useAppearance();
 </script>
@@ -45,11 +55,13 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
                 class="hidden size-5 shrink-0 text-primary sm:block"
                 aria-hidden="true"
             />
-            <Link
-                :href="href"
-                class="admin-navbar-title min-w-0 rounded-sm break-words focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-                >{{ title }}</Link
-            >
+            <component :is="isSectionIndex ? 'h1' : 'div'" class="min-w-0">
+                <Link
+                    :href="href"
+                    class="admin-navbar-title min-w-0 rounded-sm break-words focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+                    >{{ title }}</Link
+                >
+            </component>
         </div>
         <div class="flex min-w-0 shrink-0 items-center gap-2">
             <span

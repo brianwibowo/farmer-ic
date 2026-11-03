@@ -242,7 +242,10 @@ onUnmounted(() => {
             :class="{ 'admin-dashboard-theme': page.props.navigation?.admin }"
             :aria-busy="loading || pending !== null"
         >
-            <header class="flex flex-wrap items-center justify-between gap-3">
+            <header
+                v-if="!page.props.navigation?.admin"
+                class="flex flex-wrap items-center justify-between gap-3"
+            >
                 <div>
                     <h1 class="text-2xl font-semibold">Notifikasi</h1>
                     <p class="mt-1 text-sm text-muted-foreground">

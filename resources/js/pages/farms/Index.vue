@@ -122,8 +122,6 @@ function reset(): void {
 <template>
     <Head title="Farm Management" />
     <div class="space-y-6">
-        <h1 class="sr-only">Manajemen kebun</h1>
-
         <div class="grid grid-cols-3 gap-2 sm:gap-4">
             <div
                 v-for="item in [
@@ -147,7 +145,7 @@ function reset(): void {
                     },
                 ]"
                 :key="item.label"
-                class="min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
+                class="admin-card min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
             >
                 <div class="flex items-center justify-between gap-3">
                     <p
@@ -174,7 +172,7 @@ function reset(): void {
         </div>
 
         <section
-            class="overflow-hidden rounded-xl border border-border bg-card"
+            class="admin-card overflow-hidden rounded-xl border border-border bg-card"
         >
             <div class="border-b border-border p-4 md:p-5">
                 <div
@@ -195,12 +193,12 @@ function reset(): void {
                 </div>
                 <form @submit.prevent="apply">
                     <div
-                        class="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,15rem)]"
+                        class="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,12rem)_auto] xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,15rem)_auto]"
                     >
                         <FarmField
                             id="farm-search"
                             label="Cari kebun"
-                            class="col-span-2 sm:col-span-1"
+                            class="col-span-2 lg:col-span-1"
                             :error="filters.errors.search"
                             v-slot="field"
                         >
@@ -327,6 +325,14 @@ function reset(): void {
                                 >
                             </div>
                         </FarmField>
+                        <Button
+                            v-if="can.create"
+                            as-child
+                            class="col-span-2 h-10 justify-self-end rounded-xl lg:col-span-1 pointer-coarse:min-h-11"
+                            ><Link href="/admin/farm-management/create"
+                                ><Plus />Tambah kebun</Link
+                            ></Button
+                        >
                     </div>
                     <div
                         v-show="showFilters"

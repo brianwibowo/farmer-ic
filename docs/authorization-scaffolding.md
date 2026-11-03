@@ -9,6 +9,18 @@ source of truth for every other role.
 
 ## Providers and grant source
 
+The desktop admin logbook uses the existing DailyActivityLog, Farm, FarmActivity,
+User, ActivityType and BlockMappingDetail policies. Its three GET routes under
+`/admin/logbook` require authenticated/verified admin admission plus explicit
+controller resource authorization. `AdminLogbookService` scopes directory rows,
+report totals, activity counts, recorder options and detail relationships with
+`visibleTo` before serialization. No new model prefixes or wildcard grants are
+introduced. Admin is read-only for DailyActivityLog: its create/update/delete
+grants are removed, including access through existing mobile/JSON endpoints.
+Petugas retains own-farm recording access; the developer Superadmin bypass stays.
+See `docs/daily-activity-log.md` for the route map; all new routes and queries are
+protected. Mobile recording still uses its existing controller and service.
+
 - `AppServiceProvider`: framework defaults only.
 - `AiServiceProvider`: existing AI/RAG container bindings, preserved as before.
 - `AuthorizationServiceProvider`: defines `ai.access` and the superadmin

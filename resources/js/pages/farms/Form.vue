@@ -164,7 +164,7 @@ function submit(): void {
                 class="min-w-0 space-y-5 disabled:opacity-75"
             >
                 <section
-                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-card rounded-xl border border-border bg-card p-5 md:p-6"
                 >
                     <div class="mb-6 flex items-start gap-3">
                         <div class="rounded-xl bg-accent p-2.5 text-primary">
@@ -277,7 +277,7 @@ function submit(): void {
                     </div>
                 </section>
                 <section
-                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-card rounded-xl border border-border bg-card p-5 md:p-6"
                 >
                     <div class="mb-6 flex items-start gap-3">
                         <div class="rounded-xl bg-accent p-2.5 text-primary">
@@ -359,7 +359,7 @@ function submit(): void {
                     </p>
                 </section>
                 <section
-                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-card rounded-xl border border-border bg-card p-5 md:p-6"
                 >
                     <h2 class="admin-section-title">Lokasi kebun</h2>
                     <p class="mt-1 mb-6 text-xs text-muted-foreground">
@@ -423,7 +423,7 @@ function submit(): void {
                     </div>
                 </section>
                 <section
-                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-card rounded-xl border border-border bg-card p-5 md:p-6"
                 >
                     <h2 class="admin-section-title mb-5">Dokumentasi kebun</h2>
                     <FarmField

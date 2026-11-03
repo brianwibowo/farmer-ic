@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Activity\AdminLogbookController;
 use App\Http\Controllers\Activity\DailyActivityLogController;
 use App\Http\Controllers\AI\AiConversationController;
 use App\Http\Controllers\AI\AiKnowledgeDocumentController;
@@ -87,6 +88,9 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
 Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
     Route::get('dashboard', DashboardController::class)->name('admin.dashboard');
+    Route::get('logbook', [AdminLogbookController::class, 'index'])->name('admin.logbook.index');
+    Route::get('logbook/{farm}', [AdminLogbookController::class, 'farm'])->whereUuid('farm')->name('admin.logbook.farm');
+    Route::get('logbook/{farm}/{dailyLog}', [AdminLogbookController::class, 'show'])->whereUuid(['farm', 'dailyLog'])->name('admin.logbook.show');
 
     Route::get('sops', [SopTemplateController::class, 'index'])->name('sops.index');
     Route::get('sops/create', [SopTemplateController::class, 'create'])->name('sops.create');

@@ -82,7 +82,7 @@ function activityLabel(status: string): string {
 <template>
     <section class="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
         <article
-            class="min-w-0 overflow-hidden rounded-xl bg-card"
+            class="admin-card min-w-0 overflow-hidden rounded-xl bg-card"
             aria-labelledby="activities-heading"
         >
             <div
@@ -342,7 +342,7 @@ function activityLabel(status: string): string {
         </article>
 
         <aside
-            class="hidden min-w-0 self-start rounded-xl bg-card p-5 2xl:block"
+            class="admin-card hidden min-w-0 self-start rounded-xl bg-card p-5 2xl:block"
             aria-labelledby="officers-heading"
         >
             <div class="flex items-start justify-between gap-4">
