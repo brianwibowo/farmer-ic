@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import AppSelect from '@/components/selects/AppSelect.vue';
-import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import AppSelect from "@/components/selects/AppSelect.vue";
+import AppSelectOption from "@/components/selects/AppSelectOption.vue";
+import { Head, Link, useForm } from "@inertiajs/vue3";
+import { computed, ref } from "vue";
 import {
     ArrowDownWideNarrow,
     ArrowUpWideNarrow,
@@ -19,23 +19,23 @@ import {
     SlidersHorizontal,
     Trash2,
     X,
-} from '@lucide/vue';
-import { Button } from '@/components/ui/button';
+} from "@lucide/vue";
+import { Button } from "@/components/ui/button";
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
-} from '@/components/ui/tooltip';
-import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
-import FarmField from '@/components/farms/FarmField.vue';
+} from "@/components/ui/tooltip";
+import DeleteFarmDialog from "@/components/farms/DeleteFarmDialog.vue";
+import FarmField from "@/components/farms/FarmField.vue";
 import {
     hectares,
     landTenureLabel,
     type FarmFilters,
     type FarmPage,
     type FarmRow,
-} from '@/types/farms';
+} from "@/types/farms";
 
 defineOptions({ inheritAttrs: false });
 
@@ -50,11 +50,11 @@ const props = defineProps<{
 const selectedFarm = ref<FarmRow | null>(null);
 const showFilters = ref(false);
 const filters = useForm({
-    search: props.filters.search ?? '',
-    city: props.filters.city ?? '',
-    province: props.filters.province ?? '',
-    sort: props.filters.sort ?? 'name',
-    direction: props.filters.direction ?? 'asc',
+    search: props.filters.search ?? "",
+    city: props.filters.city ?? "",
+    province: props.filters.province ?? "",
+    sort: props.filters.sort ?? "name",
+    direction: props.filters.direction ?? "asc",
     per_page: Number(props.filters.per_page ?? 15),
 });
 const hasFilters = computed(
@@ -63,8 +63,8 @@ const hasFilters = computed(
             filters.search ||
             filters.city ||
             filters.province ||
-            filters.sort !== 'name' ||
-            filters.direction !== 'asc' ||
+            filters.sort !== "name" ||
+            filters.direction !== "asc" ||
             filters.per_page !== 15
         ),
 );
@@ -80,17 +80,17 @@ const hasSearchCriteria = computed(
         ),
 );
 const directionDescription = computed(() => {
-    const ascending = filters.direction === 'asc';
+    const ascending = filters.direction === "asc";
     const labels =
-        filters.sort === 'total_area_ha'
-            ? ['Terkecil ke terbesar', 'Terbesar ke terkecil']
-            : filters.sort === 'created_at'
-              ? ['Terlama ke terbaru', 'Terbaru ke terlama']
-              : ['A–Z', 'Z–A'];
+        filters.sort === "total_area_ha"
+            ? ["Terkecil ke terbesar", "Terbesar ke terkecil"]
+            : filters.sort === "created_at"
+              ? ["Terlama ke terbaru", "Terbaru ke terlama"]
+              : ["A–Z", "Z–A"];
     return `Urutan ${labels[ascending ? 0 : 1]}. Ubah menjadi ${labels[ascending ? 1 : 0]}.`;
 });
 function apply(): void {
-    filters.get('/admin/farm-management', {
+    filters.get("/admin/farm-management", {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -101,19 +101,19 @@ function apply(): void {
     });
 }
 function toggleDirection(): void {
-    filters.direction = filters.direction === 'asc' ? 'desc' : 'asc';
+    filters.direction = filters.direction === "asc" ? "desc" : "asc";
     apply();
 }
-function removeLocation(key: 'city' | 'province'): void {
-    filters[key] = '';
+function removeLocation(key: "city" | "province"): void {
+    filters[key] = "";
     apply();
 }
 function reset(): void {
-    filters.search = '';
-    filters.city = '';
-    filters.province = '';
-    filters.sort = 'name';
-    filters.direction = 'asc';
+    filters.search = "";
+    filters.city = "";
+    filters.province = "";
+    filters.sort = "name";
+    filters.direction = "asc";
     filters.per_page = 15;
     apply();
 }
@@ -325,14 +325,6 @@ function reset(): void {
                                 >
                             </div>
                         </FarmField>
-                        <Button
-                            v-if="can.create"
-                            as-child
-                            class="col-span-2 h-10 justify-self-end rounded-xl lg:col-span-1 pointer-coarse:min-h-11"
-                            ><Link href="/admin/farm-management/create"
-                                ><Plus />Tambah kebun</Link
-                            ></Button
-                        >
                     </div>
                     <div
                         v-show="showFilters"
@@ -475,8 +467,8 @@ function reset(): void {
                 <h3 class="mt-4 font-semibold">
                     {{
                         hasSearchCriteria
-                            ? 'Kebun tidak ditemukan'
-                            : 'Belum ada kebun'
+                            ? "Kebun tidak ditemukan"
+                            : "Belum ada kebun"
                     }}
                 </h3>
                 <p
@@ -484,8 +476,8 @@ function reset(): void {
                 >
                     {{
                         hasSearchCriteria
-                            ? 'Coba kata kunci atau wilayah lain untuk menampilkan kebun.'
-                            : 'Data kebun yang dapat kamu akses akan muncul di sini.'
+                            ? "Coba kata kunci atau wilayah lain untuk menampilkan kebun."
+                            : "Data kebun yang dapat kamu akses akan muncul di sini."
                     }}
                 </p>
                 <Button
@@ -550,7 +542,7 @@ function reset(): void {
                                     >
                                         {{
                                             farm.district ??
-                                            'Kecamatan belum diisi'
+                                            "Kecamatan belum diisi"
                                         }}
                                     </p>
                                 </td>
@@ -563,11 +555,11 @@ function reset(): void {
                                     >
                                 </td>
                                 <td class="px-5 py-4">
-                                    <p>{{ farm.city ?? '—' }}</p>
+                                    <p>{{ farm.city ?? "—" }}</p>
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ farm.province ?? '—' }}
+                                        {{ farm.province ?? "—" }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
@@ -635,7 +627,7 @@ function reset(): void {
                             {{
                                 [farm.district, farm.city, farm.province]
                                     .filter(Boolean)
-                                    .join(', ') || 'Lokasi belum diisi'
+                                    .join(", ") || "Lokasi belum diisi"
                             }}
                         </p>
                         <div
