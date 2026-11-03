@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     CalendarDays,
     Camera,
     CheckCircle2,
-    ChevronDown,
     Clock3,
     FileImage,
     Info,
@@ -292,24 +293,19 @@ function submit(): void {
             <label class="mt-4 block space-y-1.5">
                 <span class="petugas-label">Kategori <em>*</em></span>
                 <span class="relative block">
-                    <select
+                    <AppSelect
                         v-model="form.category"
                         class="petugas-field appearance-none pr-10"
                         @change="changeCategory"
                     >
-                        <option
+                        <AppSelectOption
                             v-for="option in categoryOptions"
                             :key="option.value"
                             :value="option.value"
                         >
                             {{ option.label }}
-                        </option>
-                    </select>
-                    <ChevronDown
-                        :size="18"
-                        class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
-                        aria-hidden="true"
-                    />
+                        </AppSelectOption>
+                    </AppSelect>
                 </span>
                 <p v-if="errors.category" class="petugas-error">
                     {{ errors.category }}
@@ -319,25 +315,22 @@ function submit(): void {
             <label v-if="needsSubcategory" class="mt-4 block space-y-1.5">
                 <span class="petugas-label">Subkategori <em>*</em></span>
                 <span class="relative block">
-                    <select
+                    <AppSelect
                         v-model="form.subcategory"
                         class="petugas-field appearance-none pr-10"
                         @change="clearError('subcategory')"
                     >
-                        <option value="" disabled>Pilih subkategori</option>
-                        <option
+                        <AppSelectOption value="" disabled
+                            >Pilih subkategori</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="[value, label] in subcategoryOptions"
                             :key="value"
                             :value="value"
                         >
                             {{ label }}
-                        </option>
-                    </select>
-                    <ChevronDown
-                        :size="18"
-                        class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
-                        aria-hidden="true"
-                    />
+                        </AppSelectOption>
+                    </AppSelect>
                 </span>
                 <p v-if="errors.subcategory" class="petugas-error">
                     {{ errors.subcategory }}
@@ -557,16 +550,22 @@ function submit(): void {
                 class="mt-4 space-y-3"
             >
                 <div class="rounded-xl border border-border bg-muted/40 p-3">
-                    <p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    <p
+                        class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
                         SOP otomatis
                     </p>
                     <template v-if="defaultSop">
                         <p class="mt-1 font-semibold">{{ defaultSop.name }}</p>
                         <p class="mt-1 text-xs leading-5 text-muted-foreground">
-                            {{ defaultSop.commodity?.name ?? 'Komoditas belum diisi' }}
+                            {{
+                                defaultSop.commodity?.name ??
+                                'Komoditas belum diisi'
+                            }}
                             <template v-if="defaultSop.published_version">
-                                · Versi {{ defaultSop.published_version.version }}
-                                · {{ defaultSop.tasks_count }} langkah
+                                · Versi
+                                {{ defaultSop.published_version.version }} ·
+                                {{ defaultSop.tasks_count }} langkah
                             </template>
                             <template v-else>
                                 · Belum ada versi published
@@ -579,10 +578,7 @@ function submit(): void {
                             SOP default belum siap dipakai. Hubungi Admin.
                         </p>
                     </template>
-                    <p
-                        v-else
-                        class="mt-1 text-sm leading-5 text-warning"
-                    >
+                    <p v-else class="mt-1 text-sm leading-5 text-warning">
                         Kebun ini belum memiliki SOP default. Hubungi Admin
                         sebelum mencatat penanaman.
                     </p>
@@ -1075,7 +1071,6 @@ function submit(): void {
 <style>
 .petugas-field,
 input.petugas-field,
-select.petugas-field,
 textarea.petugas-field {
     width: 100%;
     min-height: 44px;

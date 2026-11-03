@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronDown, FileText, Filter, Search, X } from '@lucide/vue';
+import { FileText, Filter, Search, X } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import FinanceNavigation from '@/components/farmer/FinanceNavigation.vue';
@@ -295,26 +297,23 @@ function clearTransactionFilters(): void {
                     <label for="kebun-filter-select" class="sr-only">
                         Filter Kebun
                     </label>
-                    <select
+                    <AppSelect
                         id="kebun-filter-select"
                         v-model="selectedKebunId"
                         class="h-10.5 w-full appearance-none rounded-xl border border-border bg-card px-3.5 pr-10 text-xs font-medium text-foreground shadow-xs transition-colors outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
-                        <option value="all">Semua Kebun (Konsolidasi)</option>
-                        <option
+                        <AppSelectOption value="all"
+                            >Semua Kebun (Konsolidasi)</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="item in kebunList"
                             :key="item.id"
                             :value="item.id"
                         >
                             {{ item.name
                             }}{{ item.city ? ` · ${item.city}` : '' }}
-                        </option>
-                    </select>
-                    <div
-                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
-                    >
-                        <ChevronDown :size="16" />
-                    </div>
+                        </AppSelectOption>
+                    </AppSelect>
                 </div>
             </header>
 
@@ -578,19 +577,21 @@ function clearTransactionFilters(): void {
                             >
                                 Kebun
                             </span>
-                            <select
+                            <AppSelect
                                 v-model="selectedKebunId"
                                 class="h-9.5 w-full rounded-lg border border-border bg-card px-2 text-xs text-foreground outline-none focus:border-primary"
                             >
-                                <option value="all">Semua kebun</option>
-                                <option
+                                <AppSelectOption value="all"
+                                    >Semua kebun</AppSelectOption
+                                >
+                                <AppSelectOption
                                     v-for="item in kebunList"
                                     :key="item.id"
                                     :value="item.id"
                                 >
                                     {{ item.name }}
-                                </option>
-                            </select>
+                                </AppSelectOption>
+                            </AppSelect>
                         </label>
                         <label class="min-w-0">
                             <span
@@ -598,18 +599,26 @@ function clearTransactionFilters(): void {
                             >
                                 Periode
                             </span>
-                            <select
+                            <AppSelect
                                 v-model="selectedPeriod"
                                 class="h-9.5 w-full rounded-lg border border-border bg-card px-2 text-xs text-foreground outline-none focus:border-primary"
                             >
-                                <option value="YTD">
+                                <AppSelectOption value="YTD">
                                     YTD (Tahun Berjalan)
-                                </option>
-                                <option value="Q1">Q1 (Jan–Mar)</option>
-                                <option value="Q2">Q2 (Apr–Jun)</option>
-                                <option value="Q3">Q3 (Jul–Sep)</option>
-                                <option value="Q4">Q4 (Okt–Des)</option>
-                            </select>
+                                </AppSelectOption>
+                                <AppSelectOption value="Q1"
+                                    >Q1 (Jan–Mar)</AppSelectOption
+                                >
+                                <AppSelectOption value="Q2"
+                                    >Q2 (Apr–Jun)</AppSelectOption
+                                >
+                                <AppSelectOption value="Q3"
+                                    >Q3 (Jul–Sep)</AppSelectOption
+                                >
+                                <AppSelectOption value="Q4"
+                                    >Q4 (Okt–Des)</AppSelectOption
+                                >
+                            </AppSelect>
                         </label>
                     </div>
 
@@ -620,19 +629,21 @@ function clearTransactionFilters(): void {
                             >
                                 Komoditas
                             </span>
-                            <select
+                            <AppSelect
                                 v-model="selectedCommodity"
                                 class="h-9.5 w-full rounded-lg border border-border bg-card px-2 text-xs text-foreground outline-none focus:border-primary"
                             >
-                                <option value="all">Semua komoditas</option>
-                                <option
+                                <AppSelectOption value="all"
+                                    >Semua komoditas</AppSelectOption
+                                >
+                                <AppSelectOption
                                     v-for="commodity in commodities"
                                     :key="commodity"
                                     :value="commodity"
                                 >
                                     {{ commodity }}
-                                </option>
-                            </select>
+                                </AppSelectOption>
+                            </AppSelect>
                         </label>
                         <label class="min-w-0">
                             <span
@@ -640,14 +651,20 @@ function clearTransactionFilters(): void {
                             >
                                 Tipe transaksi
                             </span>
-                            <select
+                            <AppSelect
                                 v-model="selectedType"
                                 class="h-9.5 w-full rounded-lg border border-border bg-card px-2 text-xs text-foreground outline-none focus:border-primary"
                             >
-                                <option value="all">Semua transaksi</option>
-                                <option value="income">Pemasukan</option>
-                                <option value="expense">Pengeluaran</option>
-                            </select>
+                                <AppSelectOption value="all"
+                                    >Semua transaksi</AppSelectOption
+                                >
+                                <AppSelectOption value="income"
+                                    >Pemasukan</AppSelectOption
+                                >
+                                <AppSelectOption value="expense"
+                                    >Pengeluaran</AppSelectOption
+                                >
+                            </AppSelect>
                         </label>
                     </div>
 

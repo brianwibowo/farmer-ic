@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Sop;
 
+use App\Models\SopTemplate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,8 +23,10 @@ class UpdateSopTemplateRequest extends FormRequest
     /** @return array<string, array<mixed>> */
     public function rules(): array
     {
+        $template = $this->route('sopTemplate');
+
         return [
-            'commodity_id' => ['sometimes', 'uuid', Rule::in([$this->route('sopTemplate')?->commodity_id])],
+            'commodity_id' => ['sometimes', 'uuid', Rule::in($template instanceof SopTemplate ? [$template->commodity_id] : [])],
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:5000'],
             'is_active' => ['sometimes', 'boolean'],

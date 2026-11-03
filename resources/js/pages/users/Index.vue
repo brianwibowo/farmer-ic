@@ -1,22 +1,31 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
-    ArrowUpRight,
     Building2,
     ChevronLeft,
     ChevronRight,
+    LandPlot,
     LoaderCircle,
-    Pencil,
+    Mail,
     Plus,
     Search,
-    Trash2,
     Users,
+    X,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import DeleteUserDialog from '@/components/users/DeleteUserDialog.vue';
+import UserDirectoryTabs from '@/components/users/UserDirectoryTabs.vue';
+import UserIdentity from '@/components/users/UserIdentity.vue';
+import UserAccountStatus from '@/components/users/UserAccountStatus.vue';
+import UserRowActions from '@/components/users/UserRowActions.vue';
+import UserFiltersPopover from '@/components/users/UserFiltersPopover.vue';
+import UserSummaryCards from '@/components/users/UserSummaryCards.vue';
 import {
     roleLabel,
+    userDate,
     type ManagedUser,
     type UserFilters,
     type UserOptions,
@@ -25,7 +34,6 @@ import {
 } from '@/types/user-management';
 
 defineOptions({ inheritAttrs: false });
-
 const props = defineProps<{
     users: UserPage;
     summary: {
@@ -41,60 +49,76 @@ const props = defineProps<{
     userManagementScope: UserManagementScope;
 }>();
 const selectedUser = ref<ManagedUser | null>(null);
+const showFilters = ref(false);
 const filters = useForm({
     search: props.filters.search ?? '',
     role: props.filters.role ?? '',
     team_id: props.filters.team_id ?? '',
     farm_id: props.filters.farm_id ?? '',
-    per_page: props.filters.per_page ?? 15,
+    per_page: Number(props.filters.per_page ?? 15),
 });
-const hasFilters = computed(
-    () =>
-        !!(
-            filters.search ||
-            filters.role ||
-            filters.farm_id ||
-            (filters.team_id &&
-                (props.userManagementScope.multiTenant ||
-                    String(filters.team_id) !==
-                        String(props.userManagementScope.team?.id)))
-        ),
-);
-const availableFarms = computed(() =>
-    props.options.farms.filter(
-        (farm) =>
-            !props.userManagementScope.multiTenant ||
-            !filters.team_id ||
-            String(farm.team_id) === String(filters.team_id),
-    ),
-);
-watch(
-    () => filters.team_id,
-    () => {
-        if (
-            filters.farm_id &&
-            !availableFarms.value.some((farm) => farm.id === filters.farm_id)
-        ) {
-            filters.farm_id = '';
-        }
-    },
-);
-const metrics = computed(() => [
-    props.userManagementScope.global
-        ? { label: 'Superadmin', value: props.summary.superadmin, icon: Users }
-        : { label: 'Total user', value: props.summary.total, icon: Users },
-    ...(props.userManagementScope.multiTenant
-        ? [{ label: 'Owner', value: props.summary.owner, icon: Users }]
+const roleSummary = computed(() => [
+    ...(props.userManagementScope.global
+        ? [{ role: 'superadmin', count: props.summary.superadmin }]
         : []),
-    { label: 'Admin', value: props.summary.admin, icon: Users },
-    { label: 'Petugas', value: props.summary.petugas, icon: Users },
+    ...(props.userManagementScope.multiTenant
+        ? [{ role: 'owner', count: props.summary.owner }]
+        : []),
+    { role: 'admin', count: props.summary.admin },
+    { role: 'petugas', count: props.summary.petugas },
 ]);
-const controlClass = 'admin-field';
+const appliedFilters = computed(() =>
+    [
+        {
+            key: 'search' as const,
+            label: props.filters.search
+                ? 'Pencarian: ' + props.filters.search
+                : '',
+        },
+        {
+            key: 'role' as const,
+            label: props.filters.role
+                ? 'Role: ' + roleLabel(props.filters.role)
+                : '',
+        },
+        {
+            key: 'team_id' as const,
+            label:
+                props.userManagementScope.multiTenant && props.filters.team_id
+                    ? 'Tim: ' +
+                      (props.options.teams.find(
+                          (team) =>
+                              String(team.id) === String(props.filters.team_id),
+                      )?.name ?? 'Tidak tersedia')
+                    : '',
+        },
+        {
+            key: 'farm_id' as const,
+            label: props.filters.farm_id
+                ? 'Kebun: ' +
+                  (props.options.farms.find(
+                      (farm) => farm.id === props.filters.farm_id,
+                  )?.name ?? 'Tidak tersedia')
+                : '',
+        },
+    ].filter((item) => item.label),
+);
+const hasFilters = computed(() => appliedFilters.value.length > 0);
+const filterCount = computed(
+    () => appliedFilters.value.filter((item) => item.key !== 'search').length,
+);
 function apply(): void {
     filters.get('/admin/user-management', {
         preserveState: true,
         preserveScroll: true,
         replace: true,
+        onSuccess: () => {
+            showFilters.value = false;
+        },
+        onError: (errors) => {
+            if (errors.role || errors.team_id || errors.farm_id)
+                showFilters.value = true;
+        },
     });
 }
 function reset(): void {
@@ -102,524 +126,431 @@ function reset(): void {
     filters.role = '';
     filters.team_id = '';
     filters.farm_id = '';
+    filters.clearErrors();
     apply();
+}
+function clearFilter(key: 'search' | 'role' | 'team_id' | 'farm_id'): void {
+    filters[key] = '';
+    if (key === 'team_id') filters.farm_id = '';
+    apply();
+}
+function teamLabel(user: ManagedUser): string {
+    return (
+        user.teams.map((team) => team.name).join(', ') ||
+        (user.role === 'superadmin' ? 'Akses global' : 'Belum ditugaskan')
+    );
 }
 </script>
 
 <template>
-    <Head title="User Management" />
-    <div class="space-y-6">
-        <header class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <p
-                    class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase"
+    <Head title="Manajemen Pengguna" />
+    <div class="space-y-[18px]" :aria-busy="filters.processing">
+        <header class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0 flex-1 basis-64">
+                <h1
+                    id="users-title"
+                    class="admin-page-title tracking-tight text-primary"
                 >
-                    Administrasi pengguna
-                </p>
-                <h1 class="admin-page-title tracking-tight">User Management</h1>
+                    Manajemen Pengguna
+                </h1>
                 <p
                     class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground"
                 >
                     {{
                         userManagementScope.global
-                            ? 'Kelola akun dan assignment tenant maupun farm untuk seluruh pengguna.'
+                            ? 'Kelola akun, tim, dan penugasan pengguna dalam satu tempat.'
                             : userManagementScope.multiTenant
-                              ? 'Lihat pengguna pada tenant yang terasosiasi dengan akun Anda.'
-                              : 'Kelola akun Admin dan Petugas serta assignment farm dalam tenant ' +
+                              ? 'Lihat pengguna dan penugasan pada seluruh tim yang Anda akses.'
+                              : 'Kelola akun dan penugasan pengguna di ' +
                                 userManagementScope.team?.name +
                                 '.'
                     }}
                 </p>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <Button
-                    v-if="can.viewDeleted"
-                    as-child
-                    variant="outline"
-                    class="h-10 rounded-xl"
-                >
-                    <Link href="/admin/user-management/deleted"
-                        ><Trash2 />User terhapus</Link
-                    >
-                </Button>
-                <Button v-if="can.create" as-child class="h-10 rounded-xl"
-                    ><Link href="/admin/user-management/create"
-                        ><Plus />Tambah user</Link
-                    ></Button
-                >
-            </div>
-        </header>
-        <section
-            class="grid gap-4 sm:grid-cols-3"
-            :class="userManagementScope.multiTenant ? 'lg:grid-cols-4' : ''"
-            aria-label="Ringkasan seluruh user"
-        >
-            <div
-                v-for="metric in metrics"
-                :key="metric.label"
-                class="rounded-xl border border-border bg-card p-5"
+            <Button
+                v-if="can.create"
+                as-child
+                class="ml-auto h-10 rounded-xl px-2! sm:px-4! pointer-coarse:min-h-11"
+                aria-label="Tambah pengguna"
+                title="Tambah pengguna"
+                ><Link href="/admin/user-management/create"
+                    ><Plus />Tambah pengguna</Link
+                ></Button
             >
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm text-muted-foreground">
-                        {{ metric.label }}
-                    </p>
-                    <component
-                        :is="metric.icon"
-                        class="size-5 text-primary"
-                        aria-hidden="true"
-                    />
-                </div>
-                <p class="admin-metric-value mt-4 tracking-tight">
-                    {{ metric.value }}
-                    <span class="ml-2 text-lg font-medium text-muted-foreground"
-                        >user</span
-                    >
-                </p>
-            </div>
-        </section>
+        </header>
+        <UserSummaryCards :total="summary.total" :roles="roleSummary" />
         <section
-            class="overflow-hidden rounded-xl border border-border bg-card"
-            :aria-busy="filters.processing"
+            class="user-directory rounded-xl bg-card"
+            aria-label="Daftar pengguna"
         >
-            <div class="border-b border-border p-4 md:p-5">
-                <div class="mb-4 flex items-center gap-2">
-                    <h2 class="admin-section-title">Daftar user</h2>
-                    <span
-                        class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
-                        >{{ users.total }}</span
-                    >
-                </div>
+            <div class="user-directory-inset">
+                <UserDirectoryTabs
+                    active="users"
+                    :user-count="summary.total"
+                    :show-deleted="can.viewDeleted"
+                />
+            </div>
+            <div class="user-directory-toolbar">
                 <form
-                    class="grid items-start gap-3 sm:grid-cols-2"
-                    :class="
-                        userManagementScope.multiTenant
-                            ? 'xl:grid-cols-4'
-                            : 'xl:grid-cols-3'
-                    "
+                    class="flex min-w-0 flex-1 items-center gap-2"
                     @submit.prevent="apply"
                 >
-                    <div class="space-y-2">
-                        <label
-                            for="search-users"
-                            class="block text-sm font-medium"
-                            >Cari user</label
-                        ><input
-                            id="search-users"
-                            type="search"
-                            v-model="filters.search"
-                            :class="controlClass"
-                            placeholder="Nama atau email…"
-                            maxlength="150"
-                        />
-                    </div>
-                    <div class="space-y-2">
-                        <label
-                            for="filter-role"
-                            class="block text-sm font-medium"
-                            >Role</label
-                        ><select
-                            id="filter-role"
-                            v-model="filters.role"
-                            :class="controlClass"
+                    <div class="min-w-0 grow">
+                        <label for="search-users" class="sr-only"
+                            >Cari pengguna</label
                         >
-                            <option value="">Semua role</option>
-                            <option
-                                v-for="role in options.roles"
-                                :key="role.value"
-                                :value="role.value"
-                            >
-                                {{ role.label }}
-                            </option>
-                        </select>
+                        <div class="relative">
+                            <Search
+                                class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                aria-hidden="true"
+                            /><input
+                                id="search-users"
+                                v-model="filters.search"
+                                type="search"
+                                class="admin-field pl-10!"
+                                placeholder="Cari nama atau email…"
+                                maxlength="150"
+                                :disabled="filters.processing"
+                                :aria-invalid="!!filters.errors.search"
+                                :aria-describedby="
+                                    filters.errors.search
+                                        ? 'users-search-error'
+                                        : undefined
+                                "
+                            />
+                        </div>
                     </div>
-                    <div
-                        v-if="userManagementScope.multiTenant"
-                        class="space-y-2"
-                    >
-                        <label
-                            for="filter-team"
-                            class="block text-sm font-medium"
-                            >Tenant</label
-                        ><select
-                            id="filter-team"
-                            v-model="filters.team_id"
-                            :class="controlClass"
-                        >
-                            <option value="">Semua tenant</option>
-                            <option
-                                v-for="team in options.teams"
-                                :key="team.id"
-                                :value="team.id"
-                            >
-                                {{ team.name }}
-                            </option>
-                        </select>
-                    </div>
-                    <div class="space-y-2">
-                        <label
-                            for="filter-farm"
-                            class="block text-sm font-medium"
-                            >Kebun</label
-                        >
-                        <select
-                            id="filter-farm"
-                            v-model="filters.farm_id"
-                            :class="controlClass"
-                            aria-describedby="filter-farm-hint"
-                        >
-                            <option value="">Semua kebun</option>
-                            <option
-                                v-for="farm in availableFarms"
-                                :key="farm.id"
-                                :value="farm.id"
-                            >
-                                {{ farm.name
-                                }}{{
-                                    userManagementScope.multiTenant &&
-                                    !filters.team_id
-                                        ? ' — ' +
-                                          (options.teams.find(
-                                              (team) =>
-                                                  team.id === farm.team_id,
-                                          )?.name ?? '')
-                                        : ''
-                                }}
-                            </option>
-                        </select>
-                        <p
-                            id="filter-farm-hint"
-                            class="text-xs text-muted-foreground"
-                        ></p>
-                    </div>
-                    <div
-                        class="flex flex-wrap items-center gap-3 sm:col-span-2"
-                        :class="
-                            userManagementScope.multiTenant
-                                ? 'xl:col-span-4'
-                                : 'xl:col-span-3'
-                        "
-                    >
-                        <Button
-                            type="submit"
-                            class="h-10 rounded-xl"
-                            :disabled="filters.processing"
-                            ><LoaderCircle
-                                v-if="filters.processing"
-                                class="animate-spin"
-                            /><Search v-else />Cari</Button
-                        ><Button
-                            v-if="hasFilters"
-                            type="button"
-                            variant="ghost"
-                            :disabled="filters.processing"
-                            @click="reset"
-                            >Reset</Button
-                        >
-                    </div>
+                    <Button
+                        type="submit"
+                        variant="outline"
+                        class="size-10 shrink-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                        aria-label="Cari pengguna"
+                        title="Cari pengguna"
+                        :disabled="filters.processing"
+                        ><LoaderCircle
+                            v-if="filters.processing"
+                            class="animate-spin motion-reduce:animate-none" /><Search
+                            v-else
+                            class="size-4"
+                    /></Button>
                 </form>
+                <div class="flex shrink-0 items-center gap-2">
+                    <UserFiltersPopover
+                        v-model:open="showFilters"
+                        v-model:role="filters.role"
+                        v-model:team-id="filters.team_id"
+                        v-model:farm-id="filters.farm_id"
+                        :options="options"
+                        :scope="userManagementScope"
+                        :processing="filters.processing"
+                        :count="filterCount"
+                        :errors="filters.errors"
+                        @apply="apply"
+                        @reset="reset"
+                    />
+                </div>
+            </div>
+            <div
+                v-if="hasFilters"
+                class="user-directory-inset mb-4 flex flex-wrap items-center gap-2"
+                aria-label="Filter yang diterapkan"
+            >
+                <button
+                    v-for="item in appliedFilters"
+                    :key="item.key"
+                    type="button"
+                    class="inline-flex max-w-full items-center gap-2 rounded-md bg-accent/60 px-2.5 py-1.5 text-xs text-accent-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+                    :disabled="filters.processing"
+                    :aria-label="'Hapus filter ' + item.label"
+                    @click="clearFilter(item.key)"
+                >
+                    <span class="break-words">{{ item.label }}</span
+                    ><X class="size-3.5 shrink-0" />
+                </button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    :disabled="filters.processing"
+                    @click="reset"
+                    >Reset semua</Button
+                >
             </div>
             <p
                 v-if="Object.keys(filters.errors).length"
+                id="users-search-error"
                 role="alert"
-                class="p-4 text-sm text-error"
+                class="user-directory-inset mb-4 text-sm text-error"
             >
                 {{ Object.values(filters.errors)[0] }}
             </p>
-            <p
+            <div
                 v-if="filters.processing"
+                class="user-directory-inset space-y-3 py-5"
                 role="status"
-                class="flex items-center gap-2 px-5 py-3 text-sm text-muted-foreground"
+                aria-label="Memuat pengguna"
             >
-                <LoaderCircle class="size-4 animate-spin" />Memuat user…
-            </p>
-            <div v-if="users.data.length === 0" class="px-5 py-14 text-center">
                 <div
-                    class="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent text-primary"
+                    v-for="row in 3"
+                    :key="row"
+                    class="h-[72px] animate-pulse rounded-xl bg-muted motion-reduce:animate-none"
+                />
+                <p class="text-sm text-muted-foreground">Memuat pengguna…</p>
+            </div>
+            <div v-else-if="!users.data.length" class="px-5 py-16 text-center">
+                <div
+                    class="mx-auto flex size-14 items-center justify-center rounded-full bg-accent text-primary"
                 >
-                    <Users class="size-7" />
+                    <Users class="size-6" />
                 </div>
                 <h2 class="mt-4 text-base font-semibold">
-                    {{ hasFilters ? 'User tidak ditemukan' : 'Belum ada user' }}
-                </h2>
-                <p class="mt-2 text-sm text-muted-foreground">
                     {{
                         hasFilters
-                            ? 'Coba nama, role, tenant, atau kebun yang berbeda.'
-                            : 'Tambahkan akun pertama untuk mulai mengatur assignment.'
+                            ? 'Pengguna tidak ditemukan'
+                            : 'Belum ada pengguna'
+                    }}
+                </h2>
+                <p
+                    class="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground"
+                >
+                    {{
+                        hasFilters
+                            ? 'Coba kata kunci, role, tim, atau kebun yang berbeda.'
+                            : 'Pengguna yang dapat Anda akses akan ditampilkan di sini.'
                     }}
                 </p>
                 <Button
                     v-if="hasFilters"
-                    type="button"
                     variant="outline"
                     class="mt-5"
                     @click="reset"
                     >Reset filter</Button
                 >
-                <Button v-else-if="can.create" as-child class="mt-5 rounded-xl"
+                <Button v-else-if="can.create" as-child class="mt-5"
                     ><Link href="/admin/user-management/create"
-                        ><Plus />Tambah user pertama</Link
+                        ><Plus />Tambah pengguna</Link
                     ></Button
                 >
             </div>
             <template v-else>
                 <div
-                    class="hidden overflow-x-auto md:block"
+                    class="user-directory-inset hidden overflow-x-auto md:block"
                     role="region"
-                    aria-label="Tabel user"
+                    aria-label="Tabel pengguna"
                     tabindex="0"
                 >
-                    <table class="w-full text-left text-sm">
-                        <thead
-                            class="bg-muted/50 text-xs text-muted-foreground"
-                        >
+                    <table
+                        class="user-directory-table w-full min-w-[880px] text-left text-sm"
+                    >
+                        <thead>
                             <tr>
-                                <th scope="col" class="px-5 py-3">User</th>
-                                <th scope="col" class="px-5 py-3">Role</th>
-                                <th scope="col" class="px-5 py-3">Tenant</th>
-                                <th scope="col" class="px-5 py-3">Farm</th>
-                                <th scope="col" class="px-5 py-3 text-right">
-                                    Tindakan
+                                <th scope="col">Pengguna</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Tim & kebun tugas</th>
+                                <th scope="col">Bergabung</th>
+                                <th scope="col">Status akun</th>
+                                <th scope="col">
+                                    <span class="sr-only">Aksi</span>
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-border">
-                            <tr
-                                v-for="user in users.data"
-                                :key="user.id"
-                                class="hover:bg-muted/40"
-                            >
-                                <td class="px-5 py-4">
+                        <tbody>
+                            <tr v-for="user in users.data" :key="user.id">
+                                <td>
                                     <Link
                                         :href="
                                             '/admin/user-management/' + user.id
                                         "
-                                        class="font-semibold hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-                                        >{{ user.name }}</Link
-                                    >
-                                    <p
-                                        class="mt-1 text-xs text-muted-foreground"
-                                    >
-                                        {{ user.email }}
-                                    </p>
+                                        class="block min-w-36 rounded-lg hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
+                                        ><UserIdentity :name="user.name"
+                                    /></Link>
                                 </td>
-                                <td class="px-5 py-4">
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <Mail
+                                            class="size-3.5 shrink-0 text-muted-foreground"
+                                            aria-hidden="true"
+                                        /><span
+                                            class="max-w-52 text-xs break-all"
+                                            >{{ user.email }}</span
+                                        >
+                                    </div>
+                                </td>
+                                <td>
                                     <span
-                                        class="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground"
+                                        class="inline-flex rounded-full bg-accent/60 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-accent-foreground"
                                         >{{ roleLabel(user.role) }}</span
                                     >
                                 </td>
-                                <td class="max-w-xs px-5 py-4">
-                                    <p
-                                        v-if="user.teams.length"
-                                        class="text-xs leading-6"
-                                    >
-                                        {{
-                                            user.teams
-                                                .map((team) => team.name)
-                                                .join(', ')
-                                        }}
+                                <td class="max-w-44">
+                                    <p class="text-xs leading-5">
+                                        {{ teamLabel(user) }}
                                     </p>
-                                    <span
-                                        v-else
-                                        class="text-xs text-muted-foreground"
-                                        >{{
-                                            user.role === 'superadmin'
-                                                ? 'Akses global'
-                                                : 'Belum ditugaskan'
-                                        }}</span
+                                    <p
+                                        v-if="user.assigned_farm"
+                                        class="mt-1 flex items-center gap-1 text-xs leading-5 text-muted-foreground"
                                     >
+                                        <LandPlot
+                                            class="size-3.5 shrink-0"
+                                            aria-hidden="true"
+                                        />{{ user.assigned_farm.name }}
+                                    </p>
                                 </td>
                                 <td
-                                    class="px-5 py-4 text-xs text-muted-foreground"
+                                    class="text-xs whitespace-nowrap text-muted-foreground"
                                 >
-                                    {{ user.assigned_farm?.name ?? '—' }}
+                                    <time
+                                        v-if="user.created_at"
+                                        :datetime="user.created_at"
+                                        >{{ userDate(user.created_at) }}</time
+                                    ><span v-else>Belum tersedia</span>
                                 </td>
-                                <td class="px-5 py-4">
-                                    <div class="flex justify-end gap-1">
-                                        <Button
-                                            as-child
-                                            variant="ghost"
-                                            size="icon"
-                                            :aria-label="'Detail ' + user.name"
-                                            ><Link
-                                                :href="
-                                                    '/admin/user-management/' +
-                                                    user.id
-                                                "
-                                                ><ArrowUpRight /></Link></Button
-                                        ><Button
-                                            v-if="user.can?.update"
-                                            as-child
-                                            variant="ghost"
-                                            size="icon"
-                                            :aria-label="'Ubah ' + user.name"
-                                            ><Link
-                                                :href="
-                                                    '/admin/user-management/' +
-                                                    user.id +
-                                                    '/edit'
-                                                "
-                                                ><Pencil /></Link></Button
-                                        ><Button
-                                            v-if="user.can?.delete"
-                                            variant="destructive-ghost"
-                                            size="icon"
-                                            :aria-label="'Hapus ' + user.name"
-                                            @click="selectedUser = user"
-                                            ><Trash2
-                                        /></Button>
-                                    </div>
+                                <td>
+                                    <UserAccountStatus
+                                        :active="user.is_active"
+                                    />
+                                </td>
+                                <td class="text-right">
+                                    <UserRowActions
+                                        :user="user"
+                                        @delete="selectedUser = $event"
+                                    />
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <ul
-                    class="divide-y divide-border md:hidden"
-                    aria-label="Daftar user"
+                    class="user-directory-inset space-y-3 pb-4 md:hidden"
+                    aria-label="Daftar pengguna"
                 >
                     <li
                         v-for="user in users.data"
                         :key="user.id"
-                        class="space-y-3 p-4"
+                        class="space-y-4 rounded-xl bg-background p-4"
                     >
-                        <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start justify-between gap-2">
                             <Link
                                 :href="'/admin/user-management/' + user.id"
-                                class="min-w-0"
-                                ><p class="font-semibold break-words">
-                                    {{ user.name }}
-                                </p>
-                                <p
-                                    class="mt-1 text-xs break-all text-muted-foreground"
-                                >
-                                    {{ user.email }}
-                                </p></Link
-                            ><span
-                                class="shrink-0 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground"
+                                class="min-w-0 rounded-lg hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
+                                ><UserIdentity
+                                    :name="user.name"
+                                    :email="user.email" /></Link
+                            ><UserRowActions
+                                :user="user"
+                                @delete="selectedUser = $event"
+                            />
+                        </div>
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2"
+                        >
+                            <span
+                                class="rounded-full bg-accent/60 px-2.5 py-1.5 text-xs font-semibold text-accent-foreground"
                                 >{{ roleLabel(user.role) }}</span
-                            >
+                            ><UserAccountStatus :active="user.is_active" />
                         </div>
                         <p
-                            class="flex gap-2 text-xs leading-5 text-muted-foreground"
+                            class="flex items-start gap-2 text-xs leading-5 text-muted-foreground"
                         >
-                            <Building2 class="size-4 shrink-0" />{{
-                                user.teams
-                                    .map((team) => team.name)
-                                    .join(', ') ||
-                                (user.role === 'superadmin'
-                                    ? 'Akses global'
-                                    : 'Belum ditugaskan')
-                            }}
+                            <Building2
+                                class="size-4 shrink-0"
+                                aria-hidden="true"
+                            />{{ teamLabel(user) }}
                         </p>
                         <p
                             v-if="user.assigned_farm"
-                            class="text-xs text-muted-foreground"
+                            class="flex items-start gap-2 text-xs leading-5 text-muted-foreground"
                         >
-                            Farm: {{ user.assigned_farm.name }}
+                            <LandPlot
+                                class="size-4 shrink-0"
+                                aria-hidden="true"
+                            />{{ user.assigned_farm.name }}
                         </p>
-                        <div class="flex flex-wrap gap-2">
-                            <Button as-child size="sm" variant="outline"
-                                ><Link
-                                    :href="'/admin/user-management/' + user.id"
-                                    >Detail</Link
-                                ></Button
-                            ><Button
-                                v-if="user.can?.update"
-                                as-child
-                                size="sm"
-                                variant="ghost"
-                                ><Link
-                                    :href="
-                                        '/admin/user-management/' +
-                                        user.id +
-                                        '/edit'
-                                    "
-                                    ><Pencil />Ubah</Link
-                                ></Button
-                            ><Button
-                                v-if="user.can?.delete"
-                                size="sm"
-                                variant="destructive-ghost"
-                                @click="selectedUser = user"
-                                ><Trash2 />Hapus</Button
-                            >
-                        </div>
+                        <p
+                            class="border-t border-border pt-3 text-xs text-muted-foreground"
+                        >
+                            Bergabung {{ userDate(user.created_at) }}
+                        </p>
                     </li>
                 </ul>
-                <nav
-                    class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4"
-                    aria-label="Pagination user"
-                >
-                    <div
-                        class="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"
-                    >
-                        <span
-                            >{{ users.from }}–{{ users.to }} dari
-                            {{ users.total }} user</span
-                        ><label class="flex items-center gap-2"
-                            >Per halaman<select
-                                v-model="filters.per_page"
-                                class="h-8 rounded-lg border border-input bg-background px-2 text-foreground"
-                                @change="apply"
-                            >
-                                <option :value="15">15</option>
-                                <option :value="30">30</option>
-                                <option :value="50">50</option>
-                            </select></label
+            </template>
+            <footer class="user-directory-footer">
+                <p class="text-xs text-muted-foreground" role="status">
+                    {{
+                        users.total
+                            ? 'Menampilkan ' +
+                              users.from +
+                              '–' +
+                              users.to +
+                              ' dari ' +
+                              users.total +
+                              ' pengguna'
+                            : '0 pengguna ditemukan'
+                    }}
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="w-36">
+                        <AppSelect
+                            id="users-page-size"
+                            v-model="filters.per_page"
+                            class="admin-field"
+                            aria-label="Jumlah pengguna per halaman"
+                            :disabled="filters.processing"
+                            @change="apply"
+                            ><AppSelectOption :value="15"
+                                >15 / halaman</AppSelectOption
+                            ><AppSelectOption :value="30"
+                                >30 / halaman</AppSelectOption
+                            ><AppSelectOption :value="50"
+                                >50 / halaman</AppSelectOption
+                            ></AppSelect
                         >
                     </div>
-                    <div class="flex items-center gap-2">
+                    <nav
+                        class="flex items-center gap-1"
+                        aria-label="Pagination pengguna"
+                    >
                         <Button
                             v-if="users.prev_page_url"
                             as-child
-                            size="sm"
-                            variant="outline"
+                            variant="ghost"
+                            size="icon-sm"
                             aria-label="Halaman sebelumnya"
                             ><Link :href="users.prev_page_url" preserve-scroll
-                                ><ChevronLeft /><span class="hidden sm:inline"
-                                    >Sebelumnya</span
-                                ></Link
-                            ></Button
+                                ><ChevronLeft /></Link></Button
                         ><Button
                             v-else
-                            type="button"
-                            size="sm"
-                            variant="outline"
+                            variant="ghost"
+                            size="icon-sm"
                             disabled
                             aria-label="Halaman sebelumnya"
-                        >
-                            <ChevronLeft /><span class="hidden sm:inline"
-                                >Sebelumnya</span
-                            > </Button
-                        ><span aria-current="page" class="px-1 text-xs"
+                            ><ChevronLeft
+                        /></Button>
+                        <span
+                            aria-current="page"
+                            class="px-2 text-xs font-semibold tabular-nums"
                             >{{ users.current_page }} /
                             {{ users.last_page }}</span
-                        ><Button
+                        >
+                        <Button
                             v-if="users.next_page_url"
                             as-child
-                            size="sm"
-                            variant="outline"
+                            variant="ghost"
+                            size="icon-sm"
                             aria-label="Halaman berikutnya"
                             ><Link :href="users.next_page_url" preserve-scroll
-                                ><span class="hidden sm:inline">Berikutnya</span
-                                ><ChevronRight /></Link
-                        ></Button>
-                        <Button
+                                ><ChevronRight /></Link></Button
+                        ><Button
                             v-else
-                            type="button"
-                            size="sm"
-                            variant="outline"
+                            variant="ghost"
+                            size="icon-sm"
                             disabled
                             aria-label="Halaman berikutnya"
-                        >
-                            <span class="hidden sm:inline">Berikutnya</span
-                            ><ChevronRight />
-                        </Button>
-                    </div>
-                </nav>
-            </template>
+                            ><ChevronRight
+                        /></Button>
+                    </nav>
+                </div>
+            </footer>
         </section>
     </div>
     <DeleteUserDialog :user="selectedUser" @close="selectedUser = null" />

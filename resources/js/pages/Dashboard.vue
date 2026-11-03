@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { RefreshCw, WalletCards } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -122,33 +124,37 @@ function loadDashboard(): void {
             >
                 <label class="col-span-2 min-w-0 flex-1 sm:flex-none"
                     ><span class="sr-only">Kebun</span
-                    ><select
+                    ><AppSelect
                         v-model="farmId"
                         class="admin-field dashboard-filter w-full sm:max-w-56"
                         :disabled="refreshing"
                         @change="loadDashboard"
                     >
-                        <option value="">Semua kebun</option>
-                        <option
+                        <AppSelectOption value="">Semua kebun</AppSelectOption>
+                        <AppSelectOption
                             v-for="farm in dashboard.farmOptions"
                             :key="farm.id"
                             :value="farm.id"
                         >
                             {{ farm.name }}
-                        </option>
-                    </select></label
+                        </AppSelectOption>
+                    </AppSelect></label
                 >
                 <label class="min-w-0 flex-1 sm:flex-none"
                     ><span class="sr-only">Periode aktivitas</span
-                    ><select
+                    ><AppSelect
                         v-model="period"
                         class="admin-field dashboard-filter w-full"
                         :disabled="refreshing"
                         @change="loadDashboard"
                     >
-                        <option value="7">7 hari terakhir</option>
-                        <option value="30">30 hari terakhir</option>
-                    </select></label
+                        <AppSelectOption value="7"
+                            >7 hari terakhir</AppSelectOption
+                        >
+                        <AppSelectOption value="30"
+                            >30 hari terakhir</AppSelectOption
+                        >
+                    </AppSelect></label
                 >
                 <Button
                     type="button"

@@ -4,7 +4,7 @@ import { Bell } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const page = usePage();
-const visible = computed(() => page.props.notificationAccess === true);
+const visible = computed(() => page.props.navigation?.notifications === true);
 const count = ref(0);
 const failed = ref(false);
 let timer: ReturnType<typeof setInterval> | undefined;
