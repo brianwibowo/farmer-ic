@@ -74,7 +74,6 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $version = $template->versions()->firstOrFail();
 
         foreach ([
-            ['activity_category' => 'planting', 'activity_subcategory' => null, 'name' => 'Tanam benih', 'offset_days' => 0, 'tolerance_days' => 2],
             ['activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan awal', 'offset_days' => 7, 'tolerance_days' => 2],
             ['activity_category' => 'harvest', 'activity_subcategory' => null, 'name' => 'Panen', 'offset_days' => 90, 'tolerance_days' => 5],
         ] as $task) {
@@ -259,9 +258,9 @@ class PlantingCycleTaskGenerationTest extends TestCase
         ]);
         $version = $second->versions()->firstOrFail();
         app(SopTemplateService::class)->createTask($version, [
-            'activity_category' => 'planting',
+            'activity_category' => 'harvest',
             'activity_subcategory' => null,
-            'name' => 'Tanam versi baru',
+            'name' => 'Panen versi baru',
             'instructions' => null,
             'offset_days' => 0,
             'tolerance_days' => 1,

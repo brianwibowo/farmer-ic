@@ -29,7 +29,7 @@ class DemoSopSeeder extends Seeder
             'commodity_id' => $commodity->id,
             'name' => 'SOP Budidaya Jagung',
         ], [
-            'description' => 'Panduan budidaya jagung hibrida dari penanaman sampai panen.',
+            'description' => 'Panduan perawatan sampai panen untuk budidaya jagung hibrida.',
             'is_active' => true,
             'created_by' => $admin->id,
         ]);

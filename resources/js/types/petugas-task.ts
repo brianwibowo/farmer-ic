@@ -8,7 +8,7 @@ export type PetugasTaskStatus =
 
 export type PetugasTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
-export type PetugasTaskCategory = 'planting' | 'maintenance' | 'harvest';
+export type PetugasTaskCategory = 'maintenance' | 'harvest';
 
 export type PetugasTaskSubcategory =
     | 'irrigation'

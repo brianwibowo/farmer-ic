@@ -151,8 +151,8 @@ Jika Blok B dan sebagian Blok A ditanam dalam selisih 0–3 hari, keduanya masuk
 - Scheduled tasks **tidak** memakai recurrence daily/weekly/monthly.
 - Admin menyusun **SOP modular**: nama langkah, kategori/subkategori aktivitas, offset HST, instruksi, dan bukti yang diminta.
 - SOP dikaitkan ke **komoditas**, bukan varietas. Setiap kebun memiliki satu **SOP default**; Petugas tidak memilih SOP saat mencatat penanaman.
-- SOP mencakup penanaman sampai panen; pembersihan lahan dan pengolahan tanah dikelola sebagai persiapan batch/blok.
-- Saat SOP diterapkan ke subblok, sistem membuat task untuk setiap langkah SOP **Perawatan dan Panen** pada tanggal tanam + offset HST. Langkah **Penanaman** menjadi acuan aktivitas tanam dan tidak dibuat sebagai task terjadwal. Sebelum realisasi tanam, `planned_planting_at` menjadi acuan sementara.
+- SOP mencakup langkah **Perawatan dan Panen**; pembersihan lahan dan pengolahan tanah dikelola sebagai persiapan batch/blok. **Penanaman** dicatat sebagai aktivitas tanam dan menjadi acuan HST, bukan langkah SOP.
+- Saat SOP diterapkan ke subblok, sistem membuat task untuk setiap langkah SOP **Perawatan dan Panen** pada tanggal tanam + offset HST. Sebelum realisasi tanam, `planned_planting_at` menjadi acuan sementara.
 - Task terikat pada batch/sub-blok; cycle diperoleh dari batch.
 - Petugas menyelesaikan task dengan membuat activity log yang terhubung ke task.
 - Jika langkah tidak relevan, admin dapat menonaktifkan atau menandai task sebagai skip (future work).

@@ -72,9 +72,9 @@ class PetugasActivityFormTest extends TestCase
         ]);
         $version = $sop->versions()->firstOrFail();
         $service->createTask($version, [
-            'activity_category' => 'planting',
-            'activity_subcategory' => null,
-            'name' => 'Tanam benih',
+            'activity_category' => 'maintenance',
+            'activity_subcategory' => 'irrigation',
+            'name' => 'Pengairan awal',
             'instructions' => null,
             'offset_days' => 0,
             'tolerance_days' => 2,

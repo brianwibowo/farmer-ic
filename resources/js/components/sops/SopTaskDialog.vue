@@ -38,7 +38,7 @@ const subcategoryOptions = Object.entries(sopActivitySubcategoryLabels) as [
 ][];
 
 const form = useForm({
-    activity_category: 'planting' as SopActivityCategory,
+    activity_category: 'maintenance' as SopActivityCategory,
     activity_subcategory: '' as SopActivitySubcategory | '',
     name: '',
     instructions: '',
@@ -53,7 +53,7 @@ const needsSubcategory = computed(
 
 function reset(): void {
     form.clearErrors();
-    form.activity_category = props.task?.activity_category ?? 'planting';
+    form.activity_category = props.task?.activity_category ?? 'maintenance';
     form.activity_subcategory = props.task?.activity_subcategory ?? '';
     form.name = props.task?.name ?? '';
     form.instructions = props.task?.instructions ?? '';
@@ -107,7 +107,7 @@ function submit(): void {
             <DialogHeader class="shrink-0">
                 <DialogTitle>{{ task ? 'Ubah langkah SOP' : 'Tambah langkah SOP' }}</DialogTitle>
                 <DialogDescription>
-                    SOP mencakup pekerjaan penanaman sampai panen pada versi {{ version.version }} yang masih draft.
+                    SOP mencakup langkah perawatan sampai panen pada versi {{ version.version }} yang masih draft.
                 </DialogDescription>
             </DialogHeader>
 
@@ -140,12 +140,6 @@ function submit(): void {
                                 </option>
                             </select>
                         </FarmField>
-                        <p
-                            v-if="form.activity_category === 'planting'"
-                            class="rounded-xl bg-muted/60 p-3 text-xs leading-5 text-muted-foreground sm:col-span-2"
-                        >
-                            Langkah Penanaman menjadi acuan aktivitas tanam dan tidak dibuat sebagai task terjadwal.
-                        </p>
                         <FarmField
                             v-if="needsSubcategory"
                             id="task-subcategory"
@@ -168,7 +162,7 @@ function submit(): void {
                                 </option>
                             </select>
                         </FarmField>
-                        <FarmField id="task-offset" label="Offset HST (hari)" required :error="form.errors.offset_days" hint="H+0 adalah tanggal tanam. SOP dimulai pada penanaman, jadi offset tidak negatif." v-slot="field">
+                        <FarmField id="task-offset" label="Offset HST (hari)" required :error="form.errors.offset_days" hint="H+0 adalah tanggal tanam. Offset dihitung dari tanggal tanam dan tidak negatif." v-slot="field">
                             <input
                                 :id="field.id"
                                 v-model.number="form.offset_days"

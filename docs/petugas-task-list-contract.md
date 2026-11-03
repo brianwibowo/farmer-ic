@@ -163,9 +163,7 @@ buttons are fine only if they have an explanatory label.
 
 ## Generated task fields
 
-Planting-category SOP steps are **not** materialized as tasks. Planting is the
-HST anchor and the generation trigger; it stays in the SOP definition for the
-planting activity form. The generated task list starts at maintenance work.
+SOP authoring only includes follow-up **Perawatan** and **Panen** steps. Planting is the HST anchor and is recorded through the planting activity, not as an SOP step or a generated task. The generated task list starts at maintenance work.
 
 The real query should map `planting_cycle_tasks`:
 

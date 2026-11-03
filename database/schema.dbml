@@ -265,14 +265,14 @@ Table sop_template_tasks {
   is_required boolean [not null, default: true]
   created_at timestamptz
   updated_at timestamptz
-  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; SOP starts at planting']
+  activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not an SOP step']
   activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
   indexes {
     (sop_template_version_id, offset_days)
     (sop_template_version_id, activity_category)
     (sop_template_version_id, activity_subcategory)
   }
-  Note: 'One row is one SOP step at one relative day. Ordered by offset_days, then category, creation time, and id. Category and subcategory follow the activity form taxonomy; stage is derived from the category at execution time.'
+  Note: 'One row is one follow-up SOP step at one relative day. Ordered by offset_days, then category, creation time, and id. Planting is recorded by the planting activity and is not an SOP step.'
 }
 
 Table activity_types {
