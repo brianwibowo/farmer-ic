@@ -98,6 +98,12 @@ diubah untuk membatasi portal. Controller tetap memeriksa Policy Farm dan
 Service tetap memakai `visibleTo()`.
 
 Navigasi menerima boolean `navigation.admin` dan `navigation.farms` dari server.
+Route utama `/` menggunakan auth/verified. Guest diarahkan ke `/login`;
+Admin/Superadmin yang sudah login diarahkan ke `/admin/dashboard`, Petugas ke
+`/petugas`, sedangkan Owner menerima dashboard Inertia `farmer/Dashboard`
+dengan identitas sesi sebenarnya. Gate `owner.access` membatasi dashboard ini
+ke role Owner yang dikenal; role tidak valid atau Admin tanpa tenant yang sah
+ditolak dengan 403. Gate ini hanya untuk admission halaman, bukan izin data.
 Login mengarahkan Admin/SuperAdmin ke `/admin/dashboard`, Owner ke `/`, dan
 Petugas ke `/petugas`. Portal Petugas menggunakan Gate non-resource
 `petugas.access` dan middleware auth/verified. Empat route Inertia kosong
@@ -111,7 +117,7 @@ email belum diaktifkan dan User belum mengimplementasikan MustVerifyEmail,
 sehingga middleware verified saat ini belum mewajibkan verifikasi email.
 Halaman portal Petugas ini masih berupa kerangka: belum mengambil data blok,
 aktivitas, atau laporan. Tidak ada query operasional baru. Halaman demo publik
-existing `/`, `/kebun`, `/kebun/detail`, `/kebun/aktivitas`, `/aktivitas`,
+existing `/kebun`, `/kebun/detail`, `/kebun/aktivitas`, `/aktivitas`,
 `/rincian-aktivitas`, dan `/laporan` tetap publik; portal baru tidak menggantikan
 route-route tersebut. Batas integrasi AI dan modul blok tetap tercatat dalam
 [dokumentasi backend blok](farm-block-backend.md).

@@ -15,11 +15,11 @@ import { Toaster } from '@/components/ui/sonner';
             <AppSidebar admin-theme />
             <AppContent variant="sidebar" class="min-w-0 bg-background">
                 <AdminHeader
-                    title="User Management"
+                    title="Manajemen Pengguna"
                     href="/admin/user-management"
                     :icon="Users"
                 />
-                <div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6 lg:p-8">
+                <div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6">
                     <slot />
                 </div>
             </AppContent>

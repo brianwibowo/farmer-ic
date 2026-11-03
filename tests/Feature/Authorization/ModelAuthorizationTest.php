@@ -12,7 +12,6 @@ use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
 use App\Models\Role;
 use App\Models\SopTemplate;
-use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
 use App\Models\Team;
 use App\Models\User;
@@ -120,6 +119,7 @@ class ModelAuthorizationTest extends TestCase
             'Farm' => $farm,
             'Membership' => $team->memberships()->where('user_id', $user->id)->firstOrFail(),
             'Role' => Role::query()->firstOrFail(),
+            'AdministrativeRegion' => \App\Models\AdministrativeRegion::find('32') ?? \App\Models\AdministrativeRegion::forceCreate(['code' => '32', 'name' => 'Jawa Barat', 'level' => 1]),
             default => null,
         };
         if ($record !== null) {
@@ -140,9 +140,10 @@ class ModelAuthorizationTest extends TestCase
             'FarmBlock' => ['farm_id' => $farm->id, 'code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '1.0000', 'created_by' => $user->id, 'land_clearing_started_at' => now(), 'created_at' => now(), 'updated_at' => now()],
             'PlantingRound' => ['block_id' => $this->record(\App\Models\FarmBlock::class, $user, $team, $farm)->id, 'round_number' => 1, 'status' => 'active', 'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now()],
             'PlantingCycleStage' => ['planting_cycle_id' => $this->record(PlantingCycle::class, $user, $team, $farm)->id, 'code' => 'soil_preparation', 'position' => 2, 'status' => 'in_progress', 'started_at' => now(), 'created_at' => now(), 'updated_at' => now()],
-            'SopTemplate' => ['farm_id' => $farm->id, 'variety_id' => $this->record(CropVariety::class, $user, $team, $farm)->getKey(), 'name' => 'SOP '.$farm->id, 'is_active' => true, 'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now()],
+            'PlantingCycleTask' => ['planting_cycle_id' => $this->record(PlantingCycle::class, $user, $team, $farm)->id, 'planting_cycle_stage_id' => $this->record(\App\Models\PlantingCycleStage::class, $user, $team, $farm)->id, 'activity_category' => 'planting', 'name' => 'Penanaman', 'offset_days' => 0, 'tolerance_days' => 0, 'is_required' => true, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()],
+            'SopTemplate' => ['team_id' => $team->id, 'commodity_id' => $this->record(\App\Models\Commodity::class, $user, $team, $farm)->getKey(), 'name' => 'SOP '.$farm->id, 'is_active' => true, 'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now()],
             'SopTemplateVersion' => ['sop_template_id' => $this->record(SopTemplate::class, $user, $team, $farm)->getKey(), 'version' => 1, 'status' => 'draft', 'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now()],
-            'SopTemplateTask' => ['sop_template_version_id' => $this->record(SopTemplateVersion::class, $user, $team, $farm)->getKey(), 'activity_type_id' => $this->record(\App\Models\ActivityType::class, $user, $team, $farm)->getKey(), 'stage_code' => 'planting', 'name' => 'Penanaman', 'schedule_anchor' => 'planting_date', 'offset_days' => 0, 'tolerance_days' => 0, 'position' => 1, 'is_required' => true, 'created_at' => now(), 'updated_at' => now()],
+            'SopTemplateTask' => ['sop_template_version_id' => $this->record(SopTemplateVersion::class, $user, $team, $farm)->getKey(), 'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan', 'offset_days' => 0, 'tolerance_days' => 0, 'is_required' => true, 'created_at' => now(), 'updated_at' => now()],
             'PlantingCycle' => ['farm_id' => $farm->id, 'variety_id' => $this->record(CropVariety::class, $user, $team, $farm)->getKey(), 'planted_at' => today(), 'planted_area_ha' => '1.0000', 'status' => 'active', 'created_at' => now()],
             'WeatherRecord' => ['farm_id' => $farm->id, 'recorded_at' => now()],
             'FinancialCategory' => ['name' => 'Category '.$farm->id, 'transaction_type' => 'income'],
@@ -203,7 +204,7 @@ class ModelAuthorizationTest extends TestCase
                 'owner' => true,
                 'superadmin' => true,
                 'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['teams', 'team_invitations'], true),
-                'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'farm_blocks', 'planting_rounds', 'planting_cycle_stages', 'block_mapping_details', 'daily_activity_logs', 'notifications'], true),
+                'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'farm_blocks', 'planting_rounds', 'planting_cycle_stages', 'planting_cycle_tasks', 'block_mapping_details', 'daily_activity_logs', 'notifications', 'administrative_regions'], true),
             };
             $unlinked = false;
             if ($unlinked) {
@@ -216,7 +217,7 @@ class ModelAuthorizationTest extends TestCase
             $create = match ($role) {
                 'owner' => in_array($prefix, ['ai_conversations', 'ai_messages', 'ai_attachments', 'ai_knowledge_documents'], true),
                 'superadmin' => true,
-                'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages'], true),
+                'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages', 'administrative_regions'], true),
                 'petugas' => in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs', 'planting_rounds'], true),
             };
             $create = $create && ! $unlinked;
@@ -229,7 +230,8 @@ class ModelAuthorizationTest extends TestCase
                 'FarmBlock' => $farm,
                 'PlantingRound' => $this->record(\App\Models\FarmBlock::class, $user, $team, $farm),
                 'PlantingCycleStage' => $this->record(PlantingCycle::class, $user, $team, $farm),
-                'SopTemplate' => $farm,
+                'PlantingCycleTask' => $this->record(PlantingCycle::class, $user, $team, $farm),
+                'SopTemplate' => $team,
                 'SopTemplateVersion' => $this->record(SopTemplate::class, $user, $team, $farm),
                 'SopTemplateTask' => $this->record(SopTemplateVersion::class, $user, $team, $farm),
                 'Notification' => $user,
@@ -242,9 +244,9 @@ class ModelAuthorizationTest extends TestCase
             $update = ($role === 'superadmin')
                 || ($role === 'owner' && $create)
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true))
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages'], true));
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions'], true));
             $delete = ($role === 'superadmin') || ($role === 'owner' && $create)
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages'], true))
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions'], true))
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true));
             $update = $update && ! $unlinked;
             $delete = $delete && ! $unlinked;
@@ -273,7 +275,7 @@ class ModelAuthorizationTest extends TestCase
                 if ($permission !== 'ai.access') {
                     [$prefix, $ability] = explode('.', $permission);
                     $this->assertContains($prefix, $prefixes);
-                    $this->assertContains($ability, ['view', 'create', 'update', 'delete', 'configure', 'leave', 'restore', 'copy']);
+                    $this->assertContains($ability, ['view', 'create', 'update', 'delete', 'configure', 'leave', 'restore']);
                 } else {
                     $this->assertSame('owner', $role);
                 }
@@ -312,7 +314,7 @@ class ModelAuthorizationTest extends TestCase
         $otherOwner = $this->actor('owner');
         $team = $otherOwner->currentTeam;
         $farm = $this->farm($team);
-        $global = ['activity_types', 'commodities', 'crop_varieties', 'financial_categories', 'roles', 'audit_logs'];
+        $global = ['administrative_regions', 'activity_types', 'commodities', 'crop_varieties', 'financial_categories', 'roles', 'audit_logs'];
 
         foreach ($this->models() as $class) {
             $record = $this->record($class, $otherOwner, $team, $farm);

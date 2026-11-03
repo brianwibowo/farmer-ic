@@ -393,7 +393,11 @@ WHERE i.indrelid = ?::regclass AND a.attname = ? AND i.indisvalid AND i.indpred 
 SQL, [$table, $column['name']]), $table.'.'.$column['name'].' needs an index prefix');
                 }
             }
-            $primaryColumn = str_ends_with($table, '_details') ? 'activity_id' : 'id';
+            $primaryColumn = match (true) {
+                str_ends_with($table, '_details') => 'activity_id',
+                $table === 'administrative_regions' => 'code',
+                default => 'id',
+            };
             $this->assertSame($primaryColumn, $this->database->scalar("SELECT a.attname FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1] WHERE c.contype = 'p' AND c.conrelid = ?::regclass", [$table]));
             $uniqueKeys = array_column($this->database->select(<<<'SQL'
 SELECT string_agg(a.attname, ',' ORDER BY key.position) AS columns
@@ -414,7 +418,7 @@ SQL, [$table]), 'columns');
         }
         $farmTeamAlreadyDocumented = in_array('team_id', array_column($this->definition['farms'], 'name'), true);
         $this->assertSame($simpleForeignKeys + ($farmTeamAlreadyDocumented ? 0 : 1), (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
-        $this->assertSame(9, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
+        $this->assertSame(10, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
     }
 
     /** @param array<string, mixed> $overrides

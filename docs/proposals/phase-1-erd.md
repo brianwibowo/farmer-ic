@@ -4,9 +4,9 @@ Tanggal rancangan dan penyelarasan RBAC: 29 Oktober 2026. Status: **draft
 implementasi phase 1**. Subset master blok dan batch persiapan telah dibuat pada
 30 Oktober 2026; lihat [backend blok](../farm-block-backend.md) untuk cakupan,
 aturan transisi tanpa approval, dan perbedaannya dari rancangan penuh ini.
-Lapisan definisi SOP (template, versi, dan langkah) telah diimplementasikan
-pada 1 November 2026. Eksekusi task batch, approval, dan flow realisasi tahap
-lanjutan belum diimplementasikan.
+Lapisan definisi SOP (template, versi, dan langkah) sebagai resource tenant
+telah diimplementasikan pada 1 November 2026. Eksekusi task batch, approval, dan
+flow realisasi tahap lanjutan belum diimplementasikan.
 DBML proposal tetap rancangan target; schema aktif ada di database/schema.dbml.
 Batas akses mengikuti
 versi remote `e994d7c` yang dipilih sebagai acuan: Admin mengelola satu tenant
@@ -34,9 +34,9 @@ nullability, serta unique key. Schema aktif tetap ada di
 - Tabel Finance, AI/RAG, autentikasi, serta histori yang sudah ada dipertahankan.
 - Admin mengelola kebun dan akun Admin/Petugas dalam satu tenant; tidak memakai
   pivot PIC. Penugasan Petugas tetap satu kebun melalui `users.assigned_farm_id`.
-- SOP dimiliki satu kebun dan wajib untuk satu varietas tanaman. Template dapat
-  disalin ke kebun lain sebagai salinan independen, bukan template bersama yang
-  berubah serentak di semua kebun.
+- SOP dimiliki satu tenant dan wajib untuk satu komoditas tanaman. Varietas tidak
+  memilih SOP. Setiap kebun menunjuk satu SOP default; Petugas tidak memilih SOP
+  saat mencatat penanaman. Distribusi lintas tenant berada di luar draft ini.
 - Petugas mengajukan penyelesaian task; Admin tenant melakukan approval.
   Pengiriman laporan tidak langsung membuat task berstatus selesai.
 - Versi SOP yang sudah dipakai siklus berjalan dibekukan. Perubahan template
@@ -71,7 +71,8 @@ User Management dalam mode baca. Dokumen ini tidak mengubah matriks izin aktif.
 | `farm_blocks` | 1 ke banyak | `planting_rounds` | `planting_rounds.block_id` |
 | `planting_rounds` | 1 ke banyak | `planting_cycles` | `planting_cycles.planting_round_id` |
 | `crop_varieties` | 1 ke banyak | `planting_cycles` | `planting_cycles.variety_id` |
-| `farms` dan `crop_varieties` | masing-masing 1 ke banyak | `sop_templates` | `farm_id` dan `variety_id` wajib; tenant melalui farm |
+| `teams` dan `commodities` | masing-masing 1 ke banyak | `sop_templates` | `team_id` dan `commodity_id` wajib |
+| `sop_templates` | 1 ke banyak | `farms` | `farms.default_sop_template_id`, opsional; dipakai otomatis untuk penanaman |
 | `sop_templates` | 1 ke banyak | `sop_template_versions` | `sop_template_versions.sop_template_id` |
 | `sop_template_versions` | 1 ke banyak template salinan | `sop_templates` | `copied_from_version_id`, opsional dan hanya untuk penelusuran asal |
 | `sop_template_versions` | 1 ke banyak | `sop_template_tasks` | `sop_template_tasks.sop_template_version_id` |
@@ -106,9 +107,9 @@ Lima tabel existing disesuaikan. Sisanya mempertahankan kolom yang sudah ada.
 | --- | --- |
 | `farm_blocks` | Master blok permanen beserta luasnya |
 | `planting_rounds` | Kelompok batch dalam satu periode penanaman di blok |
-| `sop_templates` | Identitas template SOP per kebun dan varietas beserta asal salinan |
+| `sop_templates` | Identitas template SOP per tenant dan komoditas beserta asal salinan |
 | `sop_template_versions` | Versi SOP yang dapat dipublikasikan dan dibekukan |
-| `sop_template_tasks` | Daftar pekerjaan berdasarkan stage dan hari relatif |
+| `sop_template_tasks` | Daftar pekerjaan berdasarkan kategori/subkategori dan hari HST relatif |
 | `planting_cycle_stages` | Timeline enam stage masing-masing batch |
 | `planting_cycle_tasks` | Salinan pekerjaan dan jadwal per batch |
 | `planting_cycle_task_submissions` | Riwayat pengajuan selesai, snapshot bukti, dan keputusan approval setiap percobaan |
@@ -133,45 +134,55 @@ Nilainya wajib sama dengan lahan dari `planting_rounds.block_id`.
 `current_stage` tidak ditambahkan pada batch: nilainya diperoleh dari timeline
 agar tidak menyimpan dua status tahap yang dapat berbeda.
 
-## Arti stage dan jenis aktivitas
+## Kategori, subkategori, dan stage batch
 
-| Stage | Contoh jenis aktivitas | Detail realisasi |
+Form aktivitas memakai kategori dan subkategori. Stage adalah konsep internal
+batch yang diturunkan dari kategori task saat task batch dibuat.
+
+| Kategori | Subkategori | Stage batch |
 | --- | --- | --- |
-| `land_cleaning` | `land_cleaning` | `land_cleaning_details` |
-| `soil_preparation` | `soil_preparation` | `soil_preparation_details` |
-| `basic_fertilizer` | `fertilization` | `fertilization_details` |
-| `planting` | `planting` | `planting_details` |
-| `maintenance` | `irrigation`, `fertilization`, `pesticide`, `growth_check`, `incident` | Detail sesuai jenis; `growth_check` memakai `plant_observations` |
-| `harvest` | `harvest` | `harvest_details` |
+| `planting` | - | `planting` |
+| `maintenance` | `irrigation` | `maintenance` |
+| `maintenance` | `weeding` | `maintenance` |
+| `maintenance` | `follow_up_fertilization` | `maintenance` |
+| `maintenance` | `growth_check` | `maintenance` |
+| `maintenance` | `pest_control` | `maintenance` |
+| `harvest` | - | `harvest` |
 
-Enam stage merupakan alur tetap, bukan master tahap yang dapat diedit bebas.
-Jenis aktivitas dan stage adalah dua konsep berbeda: pemupukan bisa terjadi
-pada basic fertilizer maupun maintenance.
+Pembersihan lahan dan pengolahan tanah bukan bagian SOP; keduanya dikelola
+sebagai persiapan batch/blok. Detail realisasi tetap ditentukan saat activity
+log dibuat berdasarkan subkategori.
 
 ## Jadwal SOP dan histori
 
-- `sop_templates.farm_id` dan `variety_id` wajib. Tidak ada SOP generik tanpa
-  varietas. Tenant diperoleh dari kebun; `team_id` tidak diduplikasi pada
-  template. Versi yang dipakai batch harus berasal dari kebun yang sama dan
-  varietasnya harus sama dengan `planting_cycles.variety_id` batch.
+- `sop_templates.team_id` dan `commodity_id` wajib. Tidak ada SOP generik tanpa
+  komoditas. Versi yang dipakai batch harus berasal dari tenant yang sama dan
+  komoditasnya harus sama dengan komoditas `planting_cycles.variety_id` batch.
+- Setiap kebun dapat menunjuk satu `default_sop_template_id`. Saat Petugas
+  mencatat penanaman, sistem memakai SOP default kebun tersebut tanpa pilihan
+  manual. Jika belum diatur, penanaman tidak boleh memakai SOP otomatis.
 - Template memiliki versi draft, published, dan retired. Versi published berikut
   pekerjaannya tidak diedit; revisi membuat versi baru.
-- Setelah memiliki versi published atau dipakai batch, kebun dan varietas
-  template tidak diganti. Kebutuhan di kebun/varietas lain memakai template baru.
+- Setelah memiliki versi published atau dipakai batch, tenant dan komoditas
+  template tidak diganti. Kebutuhan di tenant/komoditas lain memakai template baru.
 - Saat dipakai, isi pekerjaan disalin ke `planting_cycle_tasks`. Referensi sumber
   tetap disimpan untuk penelusuran, tetapi histori batch tidak bergantung pada
   teks template yang bisa berubah.
 - Perubahan template atau versi terbaru hanya digunakan batch berikutnya.
   Jadwal dan isi pekerjaan batch berjalan tetap memakai snapshot versi semula.
-- Setiap pekerjaan menunjuk salah satu dari enam stage milik batch yang sama.
-- `schedule_anchor = planting_date` memakai tanggal realisasi tanam pertama.
-  `stage_start` memakai tanggal mulai stage. Perhitungan hari mengikuti
-  Asia/Jakarta; tanggal acuan dihitung sebagai H+0.
-- `scheduled_date = tanggal acuan + offset_days`;
-  `due_date = scheduled_date + tolerance_days`. Jika acuan belum tersedia,
-  tanggal jadwal boleh kosong. Tanggal rencana pada batch/stage dapat dipakai
-  sebagai perkiraan tampilan dan harus diberi label rencana.
-- Koreksi tanggal acuan batch/stage merupakan koreksi data realisasi oleh Admin
+- Setiap pekerjaan memiliki kategori/subkategori; stage batch diturunkan dari
+  kategori tersebut saat task batch dibuat.
+- Semua offset pekerjaan SOP memakai HST dari tanggal tanam batch. `H+0`
+  adalah tanggal tanam. SOP dimulai pada penanaman; pekerjaan persiapan tidak
+  menjadi langkah SOP.
+- Tanggal acuan memakai `planting_cycles.planted_at` jika sudah ada. Sebelum
+  realisasi tanam, `planned_planting_at` dipakai sebagai acuan rencana agar
+  pekerjaan persiapan tetap memiliki tanggal. Perhitungan hari mengikuti
+  Asia/Jakarta.
+- `scheduled_date = tanggal tanam + offset_days`;
+  `due_date = scheduled_date + tolerance_days`. Jika kedua tanggal tanam belum
+  tersedia, tanggal jadwal boleh kosong.
+- Koreksi tanggal tanam batch merupakan koreksi data realisasi oleh Admin
   tenant, bukan penerapan revisi SOP. Koreksi dapat menghitung ulang tanggal task
   yang belum dimulai dari offset snapshot yang sama; riwayat perubahan wajib
   dicatat. Task yang sudah dikerjakan atau diajukan tidak digeser diam-diam.
@@ -184,19 +195,11 @@ pada basic fertilizer maupun maintenance.
 - Pekerjaan yang terlambat ditentukan dari tanggal dan status; tidak perlu
   menyimpan status overdue terpisah yang dapat basi.
 
-### Menyalin SOP ke kebun lain
+### Distribusi lintas tenant
 
-Salinan berasal dari satu versi published. Aktor harus berwenang membaca
-template sumber dan membuat SOP pada kebun tujuan. Bagi Admin, kedua kebun
-harus berada di tenant yang dikelolanya; SuperAdmin tetap dapat
-mengakses keduanya. Distribusi salinan lintas tenant berada di luar draft ini.
-
-Proses membuat `sop_templates` baru pada kebun tujuan dengan varietas yang sama,
-menyimpan `copied_from_version_id`, lalu membuat versi draft dan task dengan ID
-baru. Salinan tidak menggunakan ulang ID task/versi sumber, tidak otomatis
-published, dan tidak langsung diterapkan ke batch tujuan yang sedang berjalan.
-Perubahan pada sumber maupun salinan tidak saling memperbarui isi. Kebun tujuan
-dapat menyesuaikan versi draft dan mempublikasikannya untuk batch berikutnya.
+SOP tidak disalin antar kebun dalam tenant yang sama karena semua kebun memakai
+template tenant. Penyalinan lintas tenant berada di luar draft ini;
+`copied_from_version_id` tetap disediakan untuk kebutuhan tersebut nanti.
 
 ## Pengajuan selesai dan approval task
 
@@ -307,9 +310,9 @@ File DBML memperlihatkan struktur relasi; tidak menggantikan implementasi
 constraint/check/trigger. Ketika diimplementasikan, hal berikut wajib dijaga:
 
 1. Blok dan periode benar-benar berasal dari lahan batch yang sama.
-2. Versi SOP berasal dari kebun batch yang sama, memiliki varietas yang sama
-   dengan batch, dan sudah published saat diterapkan. Varietas template wajib
-   terisi; kesamaan tenant saja tidak cukup untuk memakai template kebun lain.
+2. Versi SOP berasal dari tenant batch yang sama, memiliki komoditas yang sama
+   dengan batch, dan sudah published saat diterapkan. Komoditas template wajib
+   terisi; varietas dan kebun tidak menentukan.
 3. Source task adalah milik versi SOP batch dan stage yang sesuai.
 4. Stage jadwal adalah milik batch yang sama. Relasi ini didokumentasikan
    dengan FK komposit.
@@ -330,9 +333,9 @@ constraint/check/trigger. Ketika diimplementasikan, hal berikut wajib dijaga:
     Admin memerlukan membership pada satu tenant nonpersonal, tanpa pivot PIC;
     Petugas memerlukan membership dan satu `assigned_farm_id`. Keberadaan
     membership tidak menggantikan grant tindakan atau mengizinkan lintas tenant.
-11. SOP merupakan resource milik kebun. Scope `any` Admin dibatasi tenant melalui
-    `sop_templates.farm`, bukan `created_by`. Versi dan task template menurunkan
-    kebun dari template; stage/task/pengajuan batch menurunkannya dari
+11. SOP merupakan resource milik tenant. Scope `any` Admin dibatasi tenant melalui
+    `sop_templates.team`, bukan `created_by`. Versi dan task template menurunkan
+    tenant dari template; stage/task/pengajuan batch menurunkannya dari
     `planting_cycles.farm`. Semua model baru memerlukan Policy dan `visibleTo`
     sebelum daftar, pagination, jumlah, total, ekspor, dan serialisasi.
 12. Pengajuan aktif dan keputusan review harus konsisten dengan status task.
@@ -349,10 +352,9 @@ Hak fitur baru mengikuti batas RBAC yang telah disepakati:
 | Resource atau tindakan | Owner | Admin | Petugas | SuperAdmin |
 | --- | --- | --- | --- | --- |
 | Blok, periode, batch, stage dan jadwal task | Baca dalam tenant | Kelola kebun dalam tenant | Baca hanya kebun tugas; tidak mengonfigurasi | Semua |
-| Template, versi, dan task SOP | Baca dalam tenant | Kelola kebun dalam tenant, versi published tidak diedit | Baca petunjuk/versi yang diterapkan ke task kebunnya; tidak mengelola katalog | Semua, tetap menjaga histori versi |
+| Template, versi, dan task SOP | Baca dalam tenant | Kelola SOP dalam tenant, versi published tidak diedit | Baca petunjuk/versi yang diterapkan ke task kebunnya; tidak mengelola katalog | Semua, tetap menjaga histori versi |
 | Pengajuan penyelesaian | Baca dalam tenant | Baca pengajuan dalam tenant | Membuat pengajuan pada kebun tugas; tidak mengubah pengajuan yang sudah dikirim | Semua |
 | Approval atau penolakan | Tidak | Hanya dalam tenant | Tidak | Semua |
-| Salin template SOP | Tidak | Baca sumber dan buat pada tujuan dalam tenant | Tidak | Semua dalam flow salin satu tenant |
 
 Pengelolaan akun mengikuti versi remote: Admin dapat membuat Admin/Petugas
 dalam tenant yang sama, tetapi tidak mengubah role atau tenant akun existing.
@@ -416,9 +418,9 @@ baru bebas berbeda setelah alokasi batch sebelumnya dilepas.
 9. Pertahankan penugasan Petugas yang sudah ada. Jangan membuat pivot PIC Admin
    atau menebak penugasan Petugas lama. Tabel PIC eksperimental yang mungkin
    masih ada pada DB lokal tidak dipakai sebagai sumber otorisasi.
-10. Template contoh lama yang belum punya kebun/varietas harus dipetakan secara
+10. Template contoh lama yang belum punya tenant/komoditas harus dipetakan secara
     eksplisit sebelum constraint wajib diaktifkan. Jangan mengubah SOP generik
-    menjadi SOP semua kebun tanpa otorisasi dan salinan independen.
+    menjadi SOP semua tenant tanpa otorisasi.
 11. Task/laporan historis tidak otomatis dibuatkan pengajuan approved. Histori
     yang belum memiliki bukti review tidak boleh diberi reviewer atau waktu
     approval fiktif. Uji partial unique dan submit/review bersamaan di PostgreSQL.
@@ -437,7 +439,7 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | `teams` | Tetap | `id`, `name`, `slug`, `is_personal`, `created_at`, `updated_at`, `deleted_at` |
 | `team_members` | Tetap | `id`, `team_id`, `user_id`, `role`, `created_at`, `updated_at` |
 | `team_invitations` | Tetap | `id`, `code`, `team_id`, `email`, `role`, `invited_by`, `expires_at`, `accepted_at`, `created_at`, `updated_at` |
-| `farms` | Tetap | `id`, `owner_id`, `created_by`, `name`, `address`, `city`, `district`, `province`, `total_area_ha`, `latitude`, `longitude`, `image_url`, `created_at`, `updated_at`, `team_id`, `land_tenure` |
+| `farms` | Tetap | `id`, `owner_id`, `created_by`, `name`, `address`, `city`, `district`, `province`, `total_area_ha`, `latitude`, `longitude`, `image_url`, `created_at`, `updated_at`, `team_id`, `land_tenure`, `default_sop_template_id` |
 | `farm_blocks` | Baru | `id`, `farm_id`, `code`, `name`, `area_ha`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `commodities` | Tetap | `id`, `name`, `description`, `image_url` |
 | `crop_varieties` | Tetap | `id`, `commodity_id`, `name`, `description` |
@@ -448,11 +450,11 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 
 | Tabel | Status | Kolom lengkap |
 | --- | --- | --- |
-| `sop_templates` | Baru | `id`, `farm_id`, `variety_id`, `copied_from_version_id`, `name`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
+| `sop_templates` | Baru | `id`, `team_id`, `commodity_id`, `copied_from_version_id`, `name`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `sop_template_versions` | Baru | `id`, `sop_template_id`, `version`, `notes`, `status`, `created_by`, `published_by`, `published_at`, `created_at`, `updated_at` |
-| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `activity_type_id`, `stage_code`, `name`, `instructions`, `schedule_anchor`, `offset_days`, `tolerance_days`, `position`, `is_required`, `created_at`, `updated_at` |
+| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at`, `activity_category`, `activity_subcategory` |
 | `planting_cycle_stages` | Baru | `id`, `planting_cycle_id`, `stage_code`, `position`, `planned_start_at`, `planned_end_at`, `started_at`, `completed_at`, `status`, `skip_reason`, `created_at`, `updated_at` |
-| `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_type_id`, `name`, `instructions`, `schedule_anchor`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
+| `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_category`, `activity_subcategory`, `activity_type_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
 | `planting_cycle_task_submissions` | Baru | `id`, `planting_cycle_task_id`, `attempt_number`, `submitted_by`, `submitted_at`, `reported_completed_at`, `submission_note`, `evidence_snapshot`, `status`, `reviewed_by`, `reviewed_at`, `review_note`, `created_at`, `updated_at` |
 
 ### Aktivitas dan laporan penanaman/panen

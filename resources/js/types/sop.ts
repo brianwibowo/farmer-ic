@@ -1,21 +1,24 @@
-export type SopFarm = { id: string; name: string };
-export type SopVariety = { id: string; name: string; commodity: string };
+export type SopTeam = { id: number; name: string };
+export type SopCommodity = { id: string; name: string };
 
-export type SopActivityType = { id: string; code: string; name: string };
+export type SopActivityCategory = 'planting' | 'maintenance' | 'harvest';
+export type SopActivitySubcategory =
+    | 'irrigation'
+    | 'weeding'
+    | 'follow_up_fertilization'
+    | 'growth_check'
+    | 'pest_control';
 
 export type SopTask = {
     id: string;
     sop_template_version_id: string;
-    activity_type_id: string;
-    stage_code: string;
+    activity_category: SopActivityCategory;
+    activity_subcategory: SopActivitySubcategory | null;
     name: string;
     instructions: string | null;
-    schedule_anchor: 'planting_date' | 'stage_start';
     offset_days: number;
     tolerance_days: number;
-    position: number;
     is_required: boolean;
-    activity_type?: SopActivityType;
 };
 
 export type SopVersion = {
@@ -32,30 +35,30 @@ export type SopVersion = {
 
 export type SopTemplateRow = {
     id: string;
-    farm_id: string;
-    variety_id: string;
+    team_id: number;
+    commodity_id: string;
     name: string;
     description: string | null;
     is_active: boolean;
     created_at: string;
     versions_count: number;
-    farm: SopFarm;
-    variety: SopVariety & { commodity?: { id: string; name: string } };
+    can: { view: boolean; update: boolean; delete: boolean };
+    team: SopTeam;
+    commodity: SopCommodity | null;
 };
 
-export type SopTemplateDetail = Omit<SopTemplateRow, 'versions_count'> & {
+export type SopTemplateDetail = Omit<SopTemplateRow, 'versions_count' | 'can'> & {
     versions: SopVersion[];
 };
 
 export type SopFormTemplate = Pick<
     SopTemplateRow,
-    'id' | 'farm_id' | 'variety_id' | 'name' | 'description' | 'is_active'
+    'id' | 'commodity_id' | 'name' | 'description' | 'is_active'
 >;
 
 export type SopFilters = {
     search?: string;
-    farm_id?: string;
-    variety_id?: string;
+    commodity_id?: string;
     is_active?: string;
     sort?: string;
     direction?: string;
@@ -75,19 +78,36 @@ export type SopPage = {
 
 export type SopCan = {
     update: boolean;
-    copy: boolean;
     manageVersions: boolean;
     manageTasks: boolean;
 };
 
-export const sopStageLabels: Record<string, string> = {
-    land_cleaning: 'Land clearing',
-    soil_preparation: 'Pengolahan tanah',
-    basic_fertilizer: 'Pemupukan dasar',
+export const sopActivityCategoryLabels: Record<SopActivityCategory, string> = {
     planting: 'Penanaman',
-    maintenance: 'Pemeliharaan',
+    maintenance: 'Perawatan',
     harvest: 'Panen',
 };
+
+export const sopActivitySubcategoryLabels: Record<SopActivitySubcategory, string> = {
+    irrigation: 'Pengairan',
+    weeding: 'Pendangiran',
+    follow_up_fertilization: 'Pemupukan susulan',
+    growth_check: 'Pengecekan pertumbuhan',
+    pest_control: 'Pengendalian hama dan penyakit',
+};
+
+export function sopTaskCategoryLabel(task: Pick<SopTask, 'activity_category'>): string {
+    return sopActivityCategoryLabels[task.activity_category] ?? task.activity_category;
+}
+
+export function sopTaskSubcategoryLabel(
+    task: Pick<SopTask, 'activity_subcategory'>,
+): string {
+    return task.activity_subcategory
+        ? (sopActivitySubcategoryLabels[task.activity_subcategory] ??
+              task.activity_subcategory)
+        : '-';
+}
 
 export function hstLabel(task: Pick<SopTask, 'offset_days'>): string {
     return `H${task.offset_days >= 0 ? '+' : ''}${task.offset_days}`;

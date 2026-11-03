@@ -31,7 +31,7 @@ const getDonutSegments = () => {
             <header class="print-header">
                 <div>
                     <div class="print-identity">
-                        <img class="print-header-logo" src="/images/logo-dashboard.svg" alt="Farmer IC" style="margin-right:0pt;"/>
+                        <img class="print-header-logo" src="/images/logo-dashboard.png" alt="Farmer IC" style="margin-right:0pt;"/>
                         <p class="print-kicker" style="padding-top: 0,5pt;">-  Laporan resmi</p>
                     </div>
                     <h1>Laporan Kebun</h1>

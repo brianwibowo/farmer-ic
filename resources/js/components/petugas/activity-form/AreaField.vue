@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 withDefaults(
     defineProps<{
         value?: string;
@@ -36,19 +38,14 @@ defineEmits<{
         </label>
         <label class="space-y-1.5">
             <span class="petugas-label">Satuan</span>
-            <select
-                :value="unit"
+            <AppSelect
+                :model-value="unit"
                 class="petugas-field"
-                @change="
-                    $emit(
-                        'update:unit',
-                        ($event.target as HTMLSelectElement).value,
-                    )
-                "
+                @update:model-value="$emit('update:unit', $event)"
             >
-                <option value="m2">m²</option>
-                <option value="ha">Ha</option>
-            </select>
+                <AppSelectOption value="m2">m²</AppSelectOption>
+                <AppSelectOption value="ha">Ha</AppSelectOption>
+            </AppSelect>
         </label>
     </div>
 </template>

@@ -8,7 +8,7 @@ class SopTemplateTaskPolicy extends ResourcePolicy
 {
     protected string $resource = 'sop_template_tasks';
 
-    protected ?string $farmPath = 'version.sopTemplate.farm';
+    protected ?string $teamPath = 'version.sopTemplate.team';
 
     protected array $parents = [SopTemplateVersion::class];
 }

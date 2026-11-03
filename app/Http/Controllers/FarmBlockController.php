@@ -48,17 +48,18 @@ class FarmBlockController extends Controller
         ]);
     }
 
-    public function create(Farm $farm): Response
+    public function create(Request $request, Farm $farm): Response
     {
         Gate::authorize('create', [FarmBlock::class, $farm]);
 
-        return Inertia::render('farmer/blocks/Form', ['farm' => $farm->only(['id', 'name', 'total_area_ha']), 'block' => null]);
+        return Inertia::render('farmer/blocks/Form', ['farm' => $farm->only(['id', 'name', 'total_area_ha']), 'block' => null,
+            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm))]);
     }
 
     public function store(SaveFarmBlockRequest $request, Farm $farm): RedirectResponse
     {
         Gate::authorize('create', [FarmBlock::class, $farm]);
-        $block = $this->blocks->create($farm, $request->user(), $this->team($farm), $request->validated());
+        $block = $this->blocks->create($farm, $request->user(), $this->team($farm), $request->safe()->except(['area_value', 'area_unit']));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Blok dibuat. Land Clearing dimulai.']);
 
         return to_route('blocks.show', [$farm, $block]);
@@ -87,6 +88,7 @@ class FarmBlockController extends Controller
         return Inertia::render('farmer/blocks/Form', [
             'farm' => $farm->only(['id', 'name', 'total_area_ha']),
             'block' => $this->blocks->detail($block, $request->user(), $this->team($farm))['block'],
+            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm), $block),
         ]);
     }
 
@@ -94,7 +96,7 @@ class FarmBlockController extends Controller
     {
         $this->matchFarm($farm, $block);
         Gate::authorize('update', $block);
-        $this->blocks->update($block, $request->user(), $this->team($farm), $request->validated());
+        $this->blocks->update($block, $request->user(), $this->team($farm), $request->safe()->except(['area_value', 'area_unit']));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan blok disimpan.']);
 
         return to_route('blocks.show', [$farm, $block]);

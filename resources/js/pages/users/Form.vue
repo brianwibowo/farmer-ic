@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Info, LoaderCircle, Save, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
@@ -76,8 +78,8 @@ function submit(): void {
 </script>
 
 <template>
-    <Head :title="managedUser ? 'Ubah user' : 'Tambah user'" />
-    <div class="mx-auto max-w-4xl space-y-6">
+    <Head :title="managedUser ? 'Ubah pengguna' : 'Tambah pengguna'" />
+    <div class="mx-auto max-w-4xl space-y-[18px]">
         <Link
             :href="backUrl"
             class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
@@ -87,10 +89,10 @@ function submit(): void {
             <p
                 class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase"
             >
-                User Management
+                Manajemen Pengguna
             </p>
-            <h1 class="admin-page-title">
-                {{ managedUser ? 'Ubah user' : 'Tambah user baru' }}
+            <h1 class="admin-page-title text-primary">
+                {{ managedUser ? 'Ubah pengguna' : 'Tambah pengguna baru' }}
             </h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
                 {{
@@ -102,12 +104,12 @@ function submit(): void {
         </header>
         <form
             :aria-busy="form.processing"
-            class="space-y-6"
+            class="space-y-[18px]"
             @submit.prevent="submit"
         >
             <div class="space-y-5">
                 <section
-                    class="space-y-5 rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-panel space-y-5"
                     aria-labelledby="profile-heading"
                 >
                     <h2
@@ -194,7 +196,7 @@ function submit(): void {
                         required
                     >
                         <template #default="{ id, invalid, description }"
-                            ><select
+                            ><AppSelect
                                 :id="id"
                                 v-model="form.role"
                                 :class="controlClass"
@@ -203,14 +205,14 @@ function submit(): void {
                                 :aria-invalid="invalid"
                                 :aria-describedby="description"
                             >
-                                <option
+                                <AppSelectOption
                                     v-for="role in options.roles"
                                     :key="role.value"
                                     :value="role.value"
                                 >
                                     {{ role.label }}
-                                </option>
-                            </select></template
+                                </AppSelectOption>
+                            </AppSelect></template
                         >
                     </UserField>
                     <div class="space-y-5 border-t border-border pt-5">
@@ -277,13 +279,13 @@ function submit(): void {
                         v-if="userManagementScope.global"
                         class="flex gap-2 rounded-xl bg-muted p-4 text-xs leading-6 text-muted-foreground"
                     >
-                        <Info class="mt-1 size-4 shrink-0" />Owner dan admin melihat farm melalui relasi tenant. Sementara petugas hanya dapat melihat farm yang ditugaskan ke mereka.
+                        <Info class="mt-1 size-4 shrink-0" />Owner dan admin
+                        melihat farm melalui relasi tenant. Sementara petugas
+                        hanya dapat melihat farm yang ditugaskan ke mereka.
                     </p>
                 </div>
             </div>
-            <footer
-                class="flex flex-wrap justify-end gap-3 rounded-xl border border-border bg-card p-4"
-            >
+            <footer class="admin-panel flex flex-wrap justify-end gap-3">
                 <Button
                     variant="outline"
                     class="rounded-xl"

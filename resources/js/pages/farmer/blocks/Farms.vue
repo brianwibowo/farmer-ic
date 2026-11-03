@@ -4,7 +4,7 @@ import BlockLayout from '@/layouts/BlockLayout.vue';
 import type { BlockFarm } from '@/types/blocks';
 import { hectares } from '@/types/farms';
 
-defineOptions({ layout: BlockLayout });
+defineOptions({ layout: BlockLayout, inheritAttrs: false });
 defineProps<{
     farms: {
         data: BlockFarm[];
@@ -18,7 +18,9 @@ defineProps<{
 <template>
     <Head title="Blok kebun" />
     <header>
-        <h1 class="text-2xl font-semibold sm:text-3xl">Blok kebun</h1>
+        <h1 class="admin-page-title text-2xl font-semibold sm:text-3xl">
+            Blok kebun
+        </h1>
         <p class="mt-2 text-sm text-muted-foreground">
             Pilih kebun dalam tim {{ team.name }} untuk melihat blok dan batch.
         </p>
@@ -29,7 +31,9 @@ defineProps<{
             :key="farm.id"
             :href="`/kebun/${farm.id}/blocks`"
             class="rounded-xl border border-border bg-card p-5 hover:border-primary focus-visible:outline-2 focus-visible:outline-ring"
-            ><h2 class="text-lg font-semibold">{{ farm.name }}</h2>
+            ><h2 class="admin-section-title text-lg font-semibold">
+                {{ farm.name }}
+            </h2>
             <p class="mt-2 text-sm text-muted-foreground">
                 {{ hectares(farm.total_area_ha) }} ha
             </p>

@@ -49,12 +49,12 @@ but has no direct update/delete grants. `planting_cycle_stages` is read-only for
 ordinary roles and initialized internally by the batch service. See
 [farm-block-backend.md](farm-block-backend.md) for the complete route and scope map.
 
-SOP templates are farm-owned and variety-specific. Admin has CRUD plus
-`sop_templates.copy`; Owner reads templates, versions, and tasks; Petugas has no
-catalog grant and reads applied instructions through batch tasks later. Versions
-and tasks resolve their farm through `sopTemplate.farm` and
-`version.sopTemplate.farm`. Publishing uses the version `update` ability because
-only draft versions are mutable; published versions are frozen in the service.
+SOP templates are tenant-owned and variety-specific. Admin has CRUD; Owner
+reads templates, versions, and tasks; Petugas has no catalog grant and reads
+applied instructions through batch tasks later. Versions and tasks resolve their
+tenant through `sopTemplate.team` and `version.sopTemplate.team`. Publishing uses
+the version `update` ability because only draft versions are mutable; published
+versions are frozen in the service.
 
 Notification status/date filters run on the personal inbox query before totals
 and pagination. Only Owners can select an associated non-personal tenant; a
@@ -90,6 +90,7 @@ discover the persisted domain relationships directly.
 | --- | --- | --- |
 | `ActivityPhoto` | `activity_photos` | activity.farm -> team |
 | `ActivityType` | `activity_types` | Application-wide reference/system record |
+| `AdministrativeRegion` | `administrative_regions` | Application-wide read-only region reference; membership required |
 | `AiAttachment` | `ai_attachments` | conversation.team |
 | `AiConversation` | `ai_conversations` | team |
 | `AiKnowledgeChunk` | `ai_knowledge_chunks` | document.team |
@@ -106,6 +107,7 @@ discover the persisted domain relationships directly.
 | `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
 | `PlantingRound` | `planting_rounds` | block.farm -> team; create parent FarmBlock; system-managed round grouping |
 | `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline derived on batch creation |
+| `PlantingCycleTask` | `planting_cycle_tasks` | plantingCycle.farm -> team; generated snapshot of SOP tasks for one subblok |
 | `FarmRisk` | `farm_risks` | plantingCycle.farm -> team |
 | `FertilizationDetail` | `fertilization_details` | activity.farm -> team |
 | `FinancialBudget` | `financial_budgets` | farm -> team |
@@ -121,9 +123,9 @@ discover the persisted domain relationships directly.
 | `PesticideDetail` | `pesticide_details` | activity.farm -> team |
 | `PlantingCycle` | `planting_cycles` | farm -> team |
 | `PlantingDetail` | `planting_details` | activity.farm -> team |
-| `SopTemplate` | `sop_templates` | farm -> team; create parent Farm |
-| `SopTemplateVersion` | `sop_template_versions` | sopTemplate.farm -> team; create parent SopTemplate |
-| `SopTemplateTask` | `sop_template_tasks` | version.sopTemplate.farm -> team; create parent SopTemplateVersion |
+| `SopTemplate` | `sop_templates` | team; create parent Team |
+| `SopTemplateVersion` | `sop_template_versions` | sopTemplate.team -> team; create parent SopTemplate |
+| `SopTemplateTask` | `sop_template_tasks` | version.sopTemplate.team -> team; create parent SopTemplateVersion |
 | `PlantObservation` | `plant_observations` | plantingCycle.farm -> team |
 | `Role` | `roles` | Application-wide reference/system record |
 | `TeamInvitation` | `team_invitations` | team |
@@ -142,6 +144,7 @@ The exact model rules are:
 | CropVariety | crop_varieties.view = any | At least one persisted team membership |
 | FinancialCategory | financial_categories.view = any | At least one persisted team membership |
 | ActivityType | activity_types.view = any | At least one persisted team membership |
+| AdministrativeRegion | administrative_regions.view = any | Owner/Admin/Petugas: persisted membership; native Policy and visibleTo; application mutations default deny |
 | Role | roles.view = any | At least one persisted team membership |
 | AuditLog | audit_logs.view = any | At least one persisted team membership |
 

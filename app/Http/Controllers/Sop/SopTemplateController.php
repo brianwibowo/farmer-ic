@@ -6,14 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Sop\ListSopTemplatesRequest;
 use App\Http\Requests\Sop\SaveSopTemplateRequest;
 use App\Http\Requests\Sop\UpdateSopTemplateRequest;
-use App\Models\Farm;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\Team;
 use App\Services\SopTemplateService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,61 +29,64 @@ class SopTemplateController extends Controller
         Gate::authorize('viewAny', [SopTemplate::class, $team]);
 
         $filters = array_replace([
-            'search' => '', 'farm_id' => '', 'variety_id' => '', 'is_active' => '',
+            'search' => '', 'commodity_id' => '', 'is_active' => '',
             'sort' => 'name', 'direction' => 'asc', 'per_page' => 15,
         ], $request->validated());
-        $farms = $this->sops->farms($request->user(), $team);
-        $createFarm = Farm::query()->visibleTo($request->user(), $team)->where('team_id', $team->id)->first();
+        $sops = $this->sops->paginate($request->user(), $team, $filters)->through(function (SopTemplate $sop): array {
+            $row = $sop->toArray();
+            $row['can'] = [
+                'view' => Gate::allows('view', $sop),
+                'update' => Gate::allows('update', $sop),
+                'delete' => Gate::allows('delete', $sop),
+            ];
+
+            return $row;
+        });
 
         return Inertia::render('sops/Index', [
-            'sops' => $this->sops->paginate($request->user(), $team, $filters),
+            'sops' => $sops,
             'filters' => $filters,
-            'farms' => $farms,
-            'varieties' => $this->sops->varieties(),
+            'commodities' => $this->sops->commodities(),
+            'team' => $team->only(['id', 'name']),
             'can' => [
-                'create' => $createFarm instanceof Farm && Gate::allows('create', [SopTemplate::class, $createFarm]),
+                'create' => Gate::allows('create', [SopTemplate::class, $team]),
             ],
         ]);
     }
 
-    public function create(Request $request, Farm $farm): Response
+    public function create(Request $request): Response
     {
-        Gate::authorize('create', [SopTemplate::class, $farm]);
+        $team = $request->user()->currentTeam;
+        abort_unless($team instanceof Team, 403);
+        Gate::authorize('create', [SopTemplate::class, $team]);
 
         return Inertia::render('sops/Form', [
-            'farm' => $farm->only(['id', 'name']),
+            'team' => $team->only(['id', 'name']),
             'template' => null,
-            'varieties' => $this->sops->varieties(),
-            'stageCodes' => SopTemplateTask::STAGE_CODES,
-            'anchors' => SopTemplateTask::SCHEDULE_ANCHORS,
+            'commodities' => $this->sops->commodities(),
         ]);
     }
 
-    public function store(SaveSopTemplateRequest $request, Farm $farm): RedirectResponse
+    public function store(SaveSopTemplateRequest $request): RedirectResponse
     {
-        Gate::authorize('create', [SopTemplate::class, $farm]);
-        $template = $this->sops->create($request->user(), $farm, $request->validated());
+        $team = $request->user()->currentTeam;
+        abort_unless($team instanceof Team, 403);
+        Gate::authorize('create', [SopTemplate::class, $team]);
+        $template = $this->sops->create($request->user(), $team, $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Template SOP berhasil dibuat.']);
 
         return to_route('sops.show', $template);
     }
 
-    public function show(Request $request, SopTemplate $sopTemplate): Response
+    public function show(SopTemplate $sopTemplate): Response
     {
         Gate::authorize('view', $sopTemplate);
-        $team = $request->user()->currentTeam;
-        abort_unless($team instanceof Team, 403);
         $template = $this->sops->detail($sopTemplate);
 
         return Inertia::render('sops/Show', [
             'template' => $template,
-            'activityTypes' => $this->sops->activityTypes(),
-            'targetFarms' => $this->sops->farms($request->user(), $team, $template->farm_id),
-            'stageCodes' => SopTemplateTask::STAGE_CODES,
-            'anchors' => SopTemplateTask::SCHEDULE_ANCHORS,
             'can' => [
                 'update' => Gate::allows('update', $template),
-                'copy' => Gate::allows('copy', $template),
                 'manageVersions' => Gate::allows('create', [\App\Models\SopTemplateVersion::class, $template]),
                 'manageTasks' => $template->versions->contains(fn ($version) => $version->status === 'draft')
                     && Gate::allows('create', [SopTemplateTask::class, $template->versions->firstWhere('status', 'draft')]),
@@ -94,13 +98,13 @@ class SopTemplateController extends Controller
     {
         Gate::authorize('update', $sopTemplate);
         $template = $this->sops->detail($sopTemplate);
+        $team = $request->user()->currentTeam;
+        abort_unless($team instanceof Team, 403);
 
         return Inertia::render('sops/Form', [
-            'farm' => $template->farm->only(['id', 'name']),
-            'template' => $template->only(['id', 'farm_id', 'variety_id', 'name', 'description', 'is_active']),
-            'varieties' => $this->sops->varieties(),
-            'stageCodes' => SopTemplateTask::STAGE_CODES,
-            'anchors' => SopTemplateTask::SCHEDULE_ANCHORS,
+            'team' => $team->only(['id', 'name']),
+            'template' => $template->only(['id', 'commodity_id', 'name', 'description', 'is_active']),
+            'commodities' => $this->sops->commodities(),
         ]);
     }
 
@@ -111,5 +115,23 @@ class SopTemplateController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Template SOP berhasil diperbarui.']);
 
         return to_route('sops.show', $sopTemplate);
+    }
+
+    public function destroy(SopTemplate $sopTemplate): RedirectResponse
+    {
+        Gate::authorize('delete', $sopTemplate);
+
+        try {
+            $this->sops->delete($sopTemplate);
+        } catch (QueryException $exception) {
+            report($exception);
+            throw ValidationException::withMessages([
+                'delete' => 'SOP tidak dapat dihapus karena masih dipakai oleh batch atau data lain.',
+            ]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Template SOP berhasil dihapus.']);
+
+        return to_route('sops.index');
     }
 }

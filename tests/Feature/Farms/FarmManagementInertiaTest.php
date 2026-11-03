@@ -3,11 +3,13 @@
 namespace Tests\Feature\Farms;
 
 use App\Enums\TeamRole;
+use App\Models\Commodity;
 use App\Models\Farm;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmService;
+use App\Services\SopTemplateService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +60,46 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
     }
 
+    public function test_admin_can_set_a_team_sop_as_the_farm_default(): void
+    {
+        $commodity = Commodity::query()->create(['name' => 'Jagung']);
+        $sop = app(SopTemplateService::class)->create($this->admin, $this->team, [
+            'commodity_id' => $commodity->id,
+            'name' => 'SOP Jagung',
+            'description' => null,
+            'is_active' => true,
+        ]);
+
+        $this->post('/admin/farm-management', $this->payload(['default_sop_template_id' => $sop->id]))
+            ->assertRedirect();
+        $farm = Farm::query()->firstOrFail();
+        $this->assertSame($sop->id, $farm->default_sop_template_id);
+        $this->get('/admin/farm-management/create')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('farms/Form')
+                ->where('sops.0.id', $sop->id)
+                ->where('sops.0.commodity.name', 'Jagung'));
+        $this->get('/admin/farm-management/'.$farm->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('farms/Show')
+                ->where('farm.default_sop.id', $sop->id)
+                ->where('farm.default_sop.commodity.name', 'Jagung'));
+
+        $otherTeam = Team::query()->create(['name' => 'Tim lain']);
+        $foreign = app(SopTemplateService::class)->create($this->admin, $otherTeam, [
+            'commodity_id' => $commodity->id,
+            'name' => 'SOP Tim Lain',
+            'description' => null,
+            'is_active' => true,
+        ]);
+        $this->from('/admin/farm-management/'.$farm->id.'/edit')
+            ->put('/admin/farm-management/'.$farm->id, $this->payload(['default_sop_template_id' => $foreign->id]))
+            ->assertSessionHasErrors('default_sop_template_id');
+        $this->assertSame($sop->id, $farm->fresh()->default_sop_template_id);
+    }
+
     public function test_lists_summary_filters_and_pagination_are_scoped_to_the_team(): void
     {
         $this->farm(['name' => 'Jagung 100%', 'total_area_ha' => '5']);
@@ -71,6 +113,55 @@ class FarmManagementInertiaTest extends TestCase
             ->where('farms.total', 1)->where('farms.data.0.name', 'Jagung 100%'));
         $this->get('/admin/farm-management?sort=total_area_ha&direction=desc')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('farms.data.0.name', 'Kebun Selatan'));
+    }
+
+    public function test_admin_list_queries_do_not_grow_with_the_page_size(): void
+    {
+        config(['inertia.ssr.enabled' => false]);
+        for ($i = 1; $i <= 100; $i++) {
+            $this->farm(['name' => sprintf('Kebun %03d', $i), 'total_area_ha' => '1']);
+        }
+        $otherTeam = Team::query()->create(['name' => 'Tim privat', 'is_personal' => false]);
+        app(FarmService::class)->create($this->payload(['name' => 'Kebun privat', 'total_area_ha' => '1000']), $this->admin, $otherTeam);
+
+        // Warm framework caches, then use a fresh actor for each full HTTP request.
+        $this->actingAs($this->admin->fresh())->get('/admin/farm-management')->assertOk();
+        $counts = [];
+        foreach ([1, 15, 100] as $size) {
+            $this->actingAs($this->admin->fresh());
+            $connection = DB::connection();
+            $connection->flushQueryLog();
+            $connection->enableQueryLog();
+            try {
+                $response = $this->get('/admin/farm-management?per_page='.$size)->assertOk();
+                $counts[$size] = count($connection->getQueryLog());
+            } finally {
+                $connection->disableQueryLog();
+                $connection->flushQueryLog();
+            }
+            $response->assertInertia(fn (Assert $page) => $page
+                ->component('farms/Index')->has('farms.data', $size)->where('farms.total', 100)
+                ->where('summary.count', 100)->where('summary.area_ha', '100.0000')
+                ->where('can.create', true)
+                ->where('farms.data', fn ($rows) => collect($rows)->every(fn ($row) => $row['name'] !== 'Kebun privat'
+                    && $row['can'] === ['update' => true, 'delete' => true, 'forceDelete' => false]
+                    && ! array_key_exists('team', $row))));
+        }
+
+        $this->assertSame($counts[1], $counts[15], 'Queries must not grow per farm row.');
+        $this->assertSame($counts[1], $counts[100], 'Large pages must retain constant query count.');
+    }
+
+    public function test_listing_does_not_reuse_membership_after_it_is_revoked(): void
+    {
+        $farm = $this->farm();
+        $this->get('/admin/farm-management')->assertOk();
+        $this->team->members()->detach($this->admin);
+
+        // Reuse the same authenticated model to catch stale permission snapshots.
+        $this->get('/admin/farm-management')->assertForbidden();
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload(['name' => 'Tidak diizinkan']))->assertForbidden();
+        $this->assertSame('Kebun Pertiwi', $farm->fresh()->name);
     }
 
     public function test_owner_and_petugas_cannot_enter_admin_even_with_farm_read_permission(): void

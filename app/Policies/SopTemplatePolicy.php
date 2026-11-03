@@ -2,13 +2,13 @@
 
 namespace App\Policies;
 
-use App\Models\Farm;
+use App\Models\Team;
 
 class SopTemplatePolicy extends ResourcePolicy
 {
     protected string $resource = 'sop_templates';
 
-    protected ?string $farmPath = 'farm';
+    protected ?string $teamPath = 'team';
 
-    protected array $parents = [Farm::class];
+    protected array $parents = [Team::class];
 }

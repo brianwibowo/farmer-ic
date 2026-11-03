@@ -3,9 +3,11 @@
 return [
     'roles' => [
         'owner' => [
+            'administrative_regions.view' => 'any',
             'farm_blocks.view' => 'any',
             'planting_rounds.view' => 'any',
             'planting_cycle_stages.view' => 'any',
+            'planting_cycle_tasks.view' => 'any',
             'activity_photos.view' => 'any',
             'activity_types.view' => 'any',
             'sop_templates.view' => 'any',
@@ -65,6 +67,7 @@ return [
         ],
 
         'admin' => [
+            'administrative_regions.view' => 'any',
             'farm_blocks.view' => 'any',
             'farm_blocks.create' => 'any',
             'farm_blocks.update' => 'any',
@@ -72,11 +75,14 @@ return [
             'planting_rounds.view' => 'any',
             'planting_rounds.create' => 'any',
             'planting_cycle_stages.view' => 'any',
+            'planting_cycle_tasks.view' => 'any',
+            'planting_cycle_tasks.create' => 'any',
+            'planting_cycle_tasks.update' => 'any',
+            'planting_cycle_tasks.delete' => 'any',
             'sop_templates.view' => 'any',
             'sop_templates.create' => 'any',
             'sop_templates.update' => 'any',
             'sop_templates.delete' => 'any',
-            'sop_templates.copy' => 'any',
             'sop_template_versions.view' => 'any',
             'sop_template_versions.create' => 'any',
             'sop_template_versions.update' => 'any',
@@ -199,12 +205,14 @@ return [
         ],
 
         'petugas' => [
+            'administrative_regions.view' => 'any',
             'notifications.view' => 'own',
             'notifications.update' => 'own',
             'farm_blocks.view' => 'own',
             'planting_rounds.view' => 'own',
             'planting_rounds.create' => 'own',
             'planting_cycle_stages.view' => 'own',
+            'planting_cycle_tasks.view' => 'own',
             'farms.view' => 'own',
             'block_mapping_details.view' => 'own',
             'block_mapping_details.create' => 'own',

@@ -21,11 +21,13 @@ class FarmResource extends JsonResource
             'address' => $this->address,
             'city' => $this->city,
             'district' => $this->district,
+            'district_code' => $this->getAttribute('district_code'),
             'province' => $this->province,
             'total_area_ha' => $this->total_area_ha,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'image_url' => $this->image_url,
+            'default_sop_template_id' => $this->default_sop_template_id,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

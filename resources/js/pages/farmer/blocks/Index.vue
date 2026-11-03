@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Plus } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
@@ -6,7 +8,7 @@ import BlockLayout from '@/layouts/BlockLayout.vue';
 import type { BlockFarm, FarmBlock } from '@/types/blocks';
 import { hectares } from '@/types/farms';
 
-defineOptions({ layout: BlockLayout });
+defineOptions({ layout: BlockLayout, inheritAttrs: false });
 const props = defineProps<{
     farm: BlockFarm;
     blocks: {
@@ -22,6 +24,11 @@ const props = defineProps<{
     can: { create: boolean };
 }>();
 const filters = useForm({ ...props.filters });
+function reset(): void {
+    filters.search = '';
+    filters.status = 'all';
+    search();
+}
 function search(): void {
     filters.get(`/kebun/${props.farm.id}/blocks`, {
         preserveState: true,
@@ -34,33 +41,56 @@ function search(): void {
     <Head :title="`Blok · ${farm.name}`" />
     <header class="flex flex-wrap items-start justify-between gap-4">
         <div>
-            <p class="text-sm text-muted-foreground">{{ farm.name }}</p>
-            <h1 class="mt-1 text-2xl font-semibold sm:text-3xl">Blok kebun</h1>
+            <h1
+                class="admin-page-title mt-1 text-2xl font-semibold sm:text-3xl"
+            >
+                Blok kebun
+            </h1>
             <p class="mt-2 text-sm text-muted-foreground">
-                Kelola blok permanen dan pembagian batch penanamannya.
+                {{ farm.name }} · Kelola blok permanen dan pembagian batch
+                penanamannya.
             </p>
         </div>
-        <Button v-if="can.create" as-child class="h-12 rounded-xl"
+        <Button v-if="can.create" as-child class="block-action h-10"
             ><Link :href="`/kebun/${farm.id}/blocks/create`"
                 ><Plus />Tambah blok</Link
             ></Button
         >
     </header>
-    <div class="grid gap-3 sm:grid-cols-3">
+    <div class="grid grid-cols-3 gap-2 sm:gap-4">
         <section
             v-for="metric in [
-                { label: 'Total blok', value: summary.total },
-                { label: 'Blok aktif', value: summary.active },
+                { label: 'Total blok', value: summary.total, unit: 'blok' },
+                { label: 'Blok aktif', value: summary.active, unit: 'blok' },
                 {
-                    label: 'Luas blok aktif / kebun (ha)',
-                    value: `${hectares(summary.active_area_ha)} / ${hectares(farm.total_area_ha)}`,
+                    label: 'Luas blok aktif',
+                    value: hectares(summary.active_area_ha),
+                    unit: 'ha',
+                    hint: `dari ${hectares(farm.total_area_ha)} ha kebun`,
                 },
             ]"
             :key="metric.label"
-            class="rounded-xl border border-border bg-card p-5"
+            class="min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
         >
-            <h2 class="text-sm text-muted-foreground">{{ metric.label }}</h2>
-            <p class="mt-2 text-2xl font-semibold">{{ metric.value }}</p>
+            <h2
+                class="min-h-10 text-xs leading-5 text-muted-foreground sm:min-h-0 sm:text-sm"
+            >
+                {{ metric.label }}
+            </h2>
+            <p
+                class="admin-metric-value mt-2 text-xl! tracking-tight break-words sm:text-3xl!"
+            >
+                {{ metric.value }}
+                <span class="text-xs font-medium text-muted-foreground">{{
+                    metric.unit
+                }}</span>
+            </p>
+            <p
+                v-if="metric.hint"
+                class="mt-1 text-xs leading-5 text-muted-foreground"
+            >
+                {{ metric.hint }}
+            </p>
         </section>
     </div>
     <form
@@ -73,7 +103,7 @@ function search(): void {
             ><input
                 id="block-search"
                 v-model="filters.search"
-                class="h-12 w-full rounded-xl border border-border bg-background px-3 focus-visible:outline-2 focus-visible:outline-ring"
+                class="admin-field block-field"
                 maxlength="150"
                 placeholder="Kode atau nama blok"
             />
@@ -88,23 +118,32 @@ function search(): void {
         <div>
             <label for="block-status" class="mb-2 block text-sm font-medium"
                 >Status</label
-            ><select
+            ><AppSelect
                 id="block-status"
                 v-model="filters.status"
-                class="h-12 rounded-xl border border-border bg-background px-3 focus-visible:outline-2 focus-visible:outline-ring"
+                class="admin-field block-field"
             >
-                <option value="all">Semua</option>
-                <option value="active">Aktif</option>
-                <option value="inactive">Nonaktif</option>
-            </select>
+                <AppSelectOption value="all">Semua</AppSelectOption>
+                <AppSelectOption value="active">Aktif</AppSelectOption>
+                <AppSelectOption value="inactive">Nonaktif</AppSelectOption>
+            </AppSelect>
         </div>
         <Button
             type="submit"
-            class="h-12 rounded-xl"
+            class="block-action h-10"
             :disabled="filters.processing"
             ><LoaderCircle v-if="filters.processing" class="animate-spin" />{{
                 filters.processing ? 'Memuat…' : 'Terapkan'
             }}</Button
+        >
+        <Button
+            v-if="filters.search || filters.status !== 'all'"
+            type="button"
+            variant="outline"
+            class="block-action h-10"
+            :disabled="filters.processing"
+            @click="reset"
+            >Reset filter</Button
         >
     </form>
     <div
@@ -139,7 +178,9 @@ function search(): void {
         v-else
         class="rounded-xl border border-dashed border-border bg-card p-8 text-center"
     >
-        <h2 class="text-lg font-semibold">Belum ada blok yang ditampilkan</h2>
+        <h2 class="admin-section-title text-lg font-semibold">
+            Belum ada blok yang ditampilkan
+        </h2>
         <p class="mt-2 text-sm text-muted-foreground">
             {{
                 summary.total
@@ -149,6 +190,15 @@ function search(): void {
                       : 'Admin belum menambahkan blok pada kebun ini.'
             }}
         </p>
+        <Button
+            v-if="filters.search || filters.status !== 'all'"
+            type="button"
+            variant="outline"
+            class="mt-4"
+            :disabled="filters.processing"
+            @click="reset"
+            >Reset filter</Button
+        >
     </section>
     <nav
         v-if="blocks.last_page > 1"

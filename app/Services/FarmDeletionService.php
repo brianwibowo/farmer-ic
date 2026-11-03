@@ -21,12 +21,10 @@ use App\Models\OperationalTarget;
 use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
+use App\Models\PlantingCycleTask;
 use App\Models\PlantingDetail;
 use App\Models\PlantingRound;
 use App\Models\PlantObservation;
-use App\Models\SopTemplate;
-use App\Models\SopTemplateTask;
-use App\Models\SopTemplateVersion;
 use App\Models\User;
 use App\Models\WeatherRecord;
 use Illuminate\Database\Query\Builder;
@@ -39,7 +37,7 @@ class FarmDeletionService
 {
     private const LABELS = [
         'farm_blocks' => 'Blok kebun', 'planting_rounds' => 'Periode penanaman', 'planting_cycle_stages' => 'Timeline batch',
-        'sop_templates' => 'Template SOP', 'sop_template_versions' => 'Versi SOP', 'sop_template_tasks' => 'Langkah SOP',
+        'planting_cycle_tasks' => 'Tugas SOP subblok',
         'planting_cycles' => 'Siklus tanam', 'daily_activity_logs' => 'Logbook harian',
         'farm_activities' => 'Aktivitas kebun', 'plant_observations' => 'Pengamatan tanaman',
         'farm_risks' => 'Risiko kebun', 'ai_insights' => 'Insight AI siklus tanam',
@@ -91,7 +89,7 @@ class FarmDeletionService
                 DB::table('users')->whereIn('id', $graph['users'])->where('assigned_farm_id', $farm->id)
                     ->update(['assigned_farm_id' => null, 'updated_at' => now()]);
                 foreach ([
-                    'sop_template_tasks', 'sop_template_versions', 'sop_templates',
+                    'planting_cycle_tasks',
                     'planting_cycle_stages',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
                     'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos',
@@ -128,7 +126,6 @@ class FarmDeletionService
         $graph = [];
         foreach ([
             'farm_blocks' => FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id),
-            'sop_templates' => SopTemplate::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'planting_cycles' => PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'daily_activity_logs' => DailyActivityLog::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_activities' => FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id),
@@ -141,9 +138,8 @@ class FarmDeletionService
             $graph[$table] = $this->ids($query->toBase());
         }
         $graph['planting_rounds'] = $this->ids(PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $graph['farm_blocks'])->toBase());
-        $graph['sop_template_versions'] = $this->ids(SopTemplateVersion::visibleTo($actor, $team)->whereIn('sop_template_id', $graph['sop_templates'])->toBase());
-        $graph['sop_template_tasks'] = $this->ids(SopTemplateTask::visibleTo($actor, $team)->whereIn('sop_template_version_id', $graph['sop_template_versions'])->toBase());
         $graph['planting_cycle_stages'] = $this->ids(PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
+        $graph['planting_cycle_tasks'] = $this->ids(PlantingCycleTask::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['plant_observations'] = $this->ids(PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['farm_risks'] = $this->ids(FarmRisk::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         // ai_insights has no Eloquent model; scope it through the already-visible,

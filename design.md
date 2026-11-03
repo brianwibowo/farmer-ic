@@ -199,6 +199,24 @@ Every input needs a visible `<label>`, a helpful value or placeholder, and inlin
 
 ## Pop-up
 
+### Shared selects and searchable choices
+
+- Use `components/selects/AppSelect.vue` with `AppSelectOption.vue` for ordinary
+  single choices. Use `AppCombobox.vue` for choices that need text search; keep
+  region loading, retries, and parent/child resets in `FarmRegionFields` and
+  `RegionCombobox`, rather than the generic control.
+- Preserve option value types (including empty strings, numbers, booleans and
+  null), required validation, names for native form submission, and disabled
+  options. Supply a visible associated label or an explicit accessible name.
+- Menus float above the document and may flip to remain in the viewport; they
+  must not move the content below. Portaled menus inherit the originating
+  admin/Farmer profile. Keep keyboard navigation, Escape dismissal, visible
+  focus, selected state, and loading/empty/error feedback in both themes.
+- Block and batch area fields offer hectares or whole square metres. Changing
+  units preserves valid entered area (1 ha = 10,000 m²). Explain the accepted
+  precision and show the equivalent area; Laravel validates and converts the
+  submitted unit/value to canonical hectares before persistence.
+
 Pop-ups support both horizontal and vertical button layouts. Content patterns include:
 
 - Title and message
@@ -285,13 +303,58 @@ Dashboard menggunakan arsitektur **2 Kolom Utama** dengan pendekatan *Clean, Mod
   * **Top Section:** Logo Aplikasi.
   * **Middle Section:** Daftar Menu Utama.
   * **Menu Item States:**
-    * *Default/Inactive:* Teks dan Ikon menggunakan `neutral-500`. Background transparan.
+    * *Default/Inactive:* Teks, ikon, dan label kelompok memakai
+      `--sidebar-foreground`: hitam pada tema terang dan terang pada tema gelap.
+      Background transparan.
     * *Hover:* Teks dan Ikon berubah menjadi `brand-300`, Background `brand-100`.
-    * *Active:* Teks dan Ikon `brand-600`, Background `brand-50`.
+    * *Active:* Emerald solid melalui `--admin-sidebar-active` yang memakai
+      `--primary`, dengan teks dan ikon `--primary-foreground`. Pasangan token
+      terang/gelap menjaga kontras.
 * **Column 2 (Main Content Area):** Area kerja dinamis di sisi kanan.
-  * **Top Header (Navbar):** Berada di bagian paling atas Column 2 (memuat Global Search, Profile, Notifikasi).
+  * **Top Header (Navbar):** Sticky di bagian paling atas Column 2 saat halaman
+    digulir (memuat Global Search, Profile, Notifikasi). Gunakan `top: 0`, latar
+    surface yang opak, dan lapisan di bawah overlay drawer/dialog.
   * **Dynamic Content:** Konten yang berubah-ubah (Tabel, Metric Card, Form) dirender tepat di bawah Navbar.
 * **Corner Radius Default:** `12px` (map to the central radius token) untuk card, modal, dan container utama.
+
+### Desktop sidebar navigation
+
+The shared admin sidebar follows a full-height, left-aligned layout with a thin
+border, a 260px expanded width, and a 68px icon rail when collapsed. Use
+the login page's `logo.png` mark with the live text **Farm IC** in its header:
+a 42px mark, 10px gap and 24px semibold text, with IC using the primary token.
+On the collapsed icon rail, show only the 40px mark. Keep the
+collapse/expand action in the sidebar header; the mobile drawer has its own
+visible close action. The desktop navbar has no sidebar toggle or adjacent
+divider. On mobile/tablet, a menu button in the navbar only opens the drawer;
+it does not collapse the desktop sidebar. Team context appears below the brand
+when the existing backend navigation grants permit it.
+
+Group operational links under **Menu utama** and the existing settings link
+under **Lainnya**. Use Plus Jakarta Sans, 14px menu labels, 12px uppercase group
+labels, 18px line icons, 6px menu-item corners, and 40px desktop rows. Menu
+corners use `--admin-sidebar-menu-radius`; other containers keep the shared
+12px radius. Touch targets are at least 44px. Use an emerald solid active row from `--primary` and
+`--primary-foreground`; hover and keyboard focus have their own semantic states.
+Group labels, inactive menu text/icons, team labels, and the account subtitle
+use `--sidebar-foreground` (black in light mode, a readable light color in dark
+mode). Active items retain their contrasting foreground. The shared admin navbar
+stays sticky at the viewport top while page content scrolls underneath; the
+mobile drawer and dropdown overlays remain above it.
+Keep parent sections active on their create/detail/edit pages and all settings
+subpages, with exact matching for Dashboard.
+
+The navigation scrolls independently while the account card remains at the
+bottom. Its avatar, identity, and team come from shared authenticated props;
+its existing account/settings/logout dropdown remains functional in both
+expanded and collapsed modes. Admin settings pages retain the same admin shell.
+Below 1024px, use the accessible drawer, close it after successful navigation,
+and support Escape, overlay dismissal, light/dark themes, and reduced motion.
+
+Do not add reference-only store setup progress, integrations, or help links
+without corresponding application features. Admin navigation does not include
+the starter's Repository/Documentation links. Preserve backend permission props
+and the mobile Owner/Petugas navigation profiles.
 
 ### Desktop extended color palette
 
@@ -368,11 +431,119 @@ Tipografi didasarkan pada skala *Golden Ratio* (~1.618) menggunakan **Plus Jakar
 | **Caption 1** | `12px` | `16px` | Medium/Reg | Metadata, Helper text, Tooltips, Status trend |
 | **Caption 2** | `10px` | `14px` | Medium | Label super kecil (jarang digunakan) |
 
-The existing application loads Instrument Sans through `vite.config.ts` and
-`resources/css/app.css`. Plus Jakarta Sans is the desktop design target; configure
-its font loading and scoped font token when implementing that profile. Do not
-assume the font is installed or change the farmer font globally as a side effect.
-No font or theme runtime changes are made by this documentation merge.
+The application loads Plus Jakarta Sans through vite.config.ts. The scoped
+admin font token uses this family while the Farmer/mobile profile keeps its
+existing font configuration.
+
+### Shared admin theme — all pages
+
+Use the redesigned dashboard as the reference for all admin listing, detail and
+create/edit pages. Share resources/css/admin-dashboard-styling.css and the
+admin-dashboard-theme class, including portal content. The light canvas is
+light neutral gray #F3F4F6 and the dark canvas is muted forest #111C17, both
+through --background; --admin-overview-background aliases that token.
+Keep white/dark-card surfaces and emerald accents through semantic utilities.
+
+Use Plus Jakarta Sans, 28px/700 page titles (26px on phones), 16px/600 section
+headings, 14px body/labels, 12px supporting text and 36px/700 metric values
+(32px on phones). Use admin-page-title, admin-section-title, admin-metric-value,
+and admin-panel. Panels share 12px corners, 18px desktop padding and 16px phone
+padding; section gaps are 18px. Page padding is 24px desktop and 16px phone.
+Keep admin-field controls, loading/empty/error states and existing permissions.
+
+### Admin dashboard overview
+
+The overview uses a light neutral gray canvas
+(`--admin-overview-background`, `#F3F4F6`) with white cards in light mode,
+and a muted forest canvas (`#111C17`)
+with the existing dark card surfaces in dark mode. Keep card corners at 12px and sidebar
+menu corners at 6px. Non-interactive cards use minimal borders and no hover lift.
+Keep the compact overview layout with readable, stronger typography: 28px bold
+page title, 16px semibold panel headings, 36px bold metric values, 14px semibold
+labels, 12px supporting notes, and 18px content gaps. On phones use 32px bold
+metric values and 13px labels. Numeric totals, stage counts, percentages and
+financial values use bold weight (700) so they stand out from supporting text.
+Metric cards include small area/stage graphics derived from the displayed data;
+keep their notes brief and put detailed explanations below the overview. Use a
+160px activity plot beside compact 48px attention rows. Keep filter labels
+accessible while visually hiding them in the compact toolbar.
+Officer selection rows contain multiple text lines: let their height grow with
+content instead of inheriting the default 40px button height. Use 14px padding,
+12px between rows and avatar/text, 40px avatars, and separate activity counts
+from the last-activity date so the panel remains readable at its narrow width.
+
+Order content as four metrics, the activity chart and attention panel, three
+planting/commodity panels, the financial summary, the farm map, and the field
+activity table. Keep the map and activity table visible. On phones, stack panels
+and show activity cards. Farm selection applies to the entire overview; the
+7/30 day selector applies only to the activity chart.
+
+Use persisted stage statuses for the planting breakdown. Show batches without
+a recorded running stage explicitly, and keep land clearing at block level.
+The map represents saved coordinate points, not invented parcel boundaries.
+Activity bars use stable type codes for planting/harvest and a labeled group
+for maintenance and other activities. Do not display fabricated trend deltas.
+
+### Farm Management pages
+
+Use three summary cards for total farms, registered area and city coverage,
+backed by the existing database props. Summaries describe all visible farms;
+the list count reflects applied filters. On phones show two cards and a full-width
+coverage card, then a responsive list of farm cards instead of the desktop table.
+
+Keep search and its submit action on the toolbar. The Filter button opens a
+360px-wide dropdown directly below it, aligned to its right edge and constrained
+to the viewport width. Do not flip the dropdown above the trigger. Stack city,
+province, sort and direction fields inside. Constrain height to the available
+space below, with scrollable fields and a visible header/action footer. Include
+Reset and Apply, outside-click/Escape dismissal, focus return and closing after
+a successful Inertia request. Show validation errors and applied filter chips.
+Place page size and pagination in the table footer. Preserve detail/edit/delete
+permissions and workflows. Detail and create/edit forms use the same admin-panel
+surfaces, emerald titles and 18px gaps; keep the cascading address selectors.
+
+### User Management pages
+
+Keep three sibling sections in order: a standalone page heading with its short
+tenant-aware subtitle and a right-aligned Tambah pengguna action; a standalone stat-card
+grid; then the content card containing directory navigation, search and the user
+list. Do not wrap the heading or stat cards inside the content card. Use the
+existing admin canvas, emerald, Plus Jakarta Sans and 12px corners.
+Keep Pengguna and permission-gated Terhapus links with an active underline and
+real counts when provided by the backend. Do not repeat role summary chips in
+the toolbar; keep role selection inside the Filter dropdown. Place search, its
+submit action and the Filter button together on one toolbar row inside the
+content card. Match Farm Management: a 40px outlined Filter button with its icon,
+visible label and inline count (secondary when filtered). The 40px emerald
+Tambah pengguna button has a Plus icon and full label, and sits at the upper
+right beside the page title, outside the content card. Both use the shared 12px
+radius and 44px touch targets. Use a square search-submit button with an accessible
+name. Keep search flexible on phones; let the header wrap with Add aligned right
+when space is limited. Keep Filter outside the search form to avoid nested forms.
+Place stat cards below the heading and above the content card: Total pengguna
+plus each role already provided in the permitted summary (Admin/Petugas,
+Owner for multi-tenant views and Superadmin for the global view). Use real
+unfiltered scoped totals, bold 36px numbers, white/dark card surfaces and line
+icons. Show only the label, icon and number; omit supporting sentences below
+the number. Cards adapt to one desktop row and two phone columns, with an odd final
+card spanning both columns. Do not derive whole-directory totals from a page of
+results or fabricate active/deleted counts that the backend does not provide.
+
+Keep role, tenant (where permitted) and farm filters in an anchored dropdown,
+using AppSelect and the existing parent/child reset behavior. Show removable
+applied filter chips and a reset action. Preserve Inertia search, validation,
+pending feedback and pagination, with page size in the footer. The filter panel
+opens below its trigger, with a viewport-constrained scrollable body.
+
+Desktop rows have rounded soft surfaces, initials avatars, name, email, role,
+team/farm, joined date, persisted active status and an accessible three-dot action
+menu. Menus use backend permission booleans and the existing delete confirmation.
+On phones show equivalent user cards; wrap toolbars and keep tabs scrollable.
+Deleted users use the same directory surface and preserve restore confirmation.
+Create/edit/detail pages reuse admin-panel surfaces and the shared typography.
+Do not add invitation, favorites, bulk actions, sorting or fabricated counts
+unless those capabilities are implemented and authorized. Empty, loading, error,
+keyboard focus and both themes must remain usable.
 
 ### Desktop task-list tables
 
@@ -404,11 +575,11 @@ Use semantic aliases rather than unregistered ramp classes in page templates:
 
 | Design role | Desktop design value | Semantic implementation |
 | --- | --- | --- |
-| Inactive sidebar label/icon | `neutral-500` | `text-muted-foreground` |
+| Inactive sidebar label/icon | Black in light mode; light in dark mode | `text-sidebar-foreground` |
 | Sidebar hover background | `brand-100` | `hover:bg-sidebar-accent` |
 | Sidebar hover label/icon | `brand-300` | Scoped sidebar hover foreground token |
-| Sidebar active background | `brand-50` | Scoped sidebar active background token |
-| Sidebar active label/icon | `brand-600` | `text-sidebar-primary` |
+| Sidebar active background | Emerald solid | `--admin-sidebar-active` / `--primary` |
+| Sidebar active label/icon | Contrasting foreground | `--admin-sidebar-active-foreground` / `--primary-foreground` |
 | Dividers and table separators | `neutral-200` / `neutral-100` | `border-border` / scoped subtle border token |
 | Page/card surfaces | `neutral-50` / `neutral-0` | `bg-background` / `bg-card` |
 | Error and destructive states | `danger-*` | `text-error`, `bg-error`, `text-error-foreground` |
@@ -460,6 +631,42 @@ its main content `min-h-0 overflow-y-auto` so long pages remain reachable.
   that target; keep any required token adjustment central and intentional.
 
 ## Implementation rules for Farmer IC
+
+Farm list toolbars keep search, the region-filter disclosure, and sorting visible.
+Place province/city choices in a collapsible panel at every viewport size, show
+applied filters as removable controls with an active count, and keep page size
+beside pagination. Use a direction icon beside the sort field; its accessible
+name and tooltip explain the current order and the next action for names, areas,
+or dates. Sort and page-size changes apply through the existing scoped backend.
+
+Farm Management forms display capacity limits before submission and keep a
+focusable, linked error summary alongside inline errors. Address selection starts
+with a searchable provinsi, then kota/kabupaten, then kecamatan using the existing
+combobox pattern. Later controls stay disabled until their parent is chosen;
+changing a parent clears all descendants. Result lists float above page content
+without taking layout space, stay above the map, and flip upward when space below
+is limited. Load choices from the database by parent code and filter names within
+that list. Existing unmatched addresses are explicitly marked as legacy and
+preserved until changed.
+
+Block pages reuse `FarmManagementLayout` when the backend shared navigation
+permits Farm Management, including the Admin sidebar, header, typography,
+`admin-field` controls, and themed dialog portals. Keep Manajemen Kebun active
+while visiting block routes. On wide desktop screens, batch capacity and its form
+share two columns; on mobile they remain sequential. Block forms follow the farm
+form width, and compact list metrics retain their units.
+Capacity metrics provide an information button with a 44px touch target using
+`MetricInfoTooltip`; explain block boundaries, batch reservations, and a labeled
+example. Keep totals visible, support keyboard/tap dismissal, and theme portals.
+
+For the Farmer profile, the block shell uses `resources/css/farm-block-styling.css`
+and `farm-block-theme` for contrast corrections, including dialog
+portals. Primary button labels use a dark foreground on the existing light green;
+error/success text has separate dark values. Keep Admin tokens in the existing
+admin stylesheet. On mobile, compact statistics retain units, optional list
+filters can collapse, and batch timelines expose their current stage before the
+expandable six-stage history. A visible return link preserves the permitted Admin
+context when moving between farm details, blocks, and logbook.
 
 Admin dashboard screens share `resources/css/admin-dashboard-styling.css` for
 their light/dark tokens, typography, and field states. Apply the

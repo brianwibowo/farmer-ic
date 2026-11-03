@@ -2,73 +2,108 @@
 
 namespace Database\Seeders;
 
-use App\Models\ActivityType;
-use App\Models\CropVariety;
+use App\Models\Commodity;
 use App\Models\Farm;
+use App\Models\FarmBlock;
+use App\Models\PlantingCycle;
 use App\Models\SopTemplate;
-use App\Models\SopTemplateTask;
-use App\Models\SopTemplateVersion;
+use App\Models\Team;
 use App\Models\User;
+use App\Services\FarmBlockService;
+use App\Services\PlantingCycleTaskService;
 use App\Services\SopTemplateService;
 use Illuminate\Database\Seeder;
+use Throwable;
 
 class DemoSopSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(SopActivityTypeSeeder::class);
-
-        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
-        $variety = CropVariety::query()->where('name', 'Bisi 18')->firstOrFail();
+        $team = Team::query()->where('slug', 'farm-ic-demo')->firstOrFail();
+        $commodity = Commodity::query()->where('name', 'Jagung')->firstOrFail();
+        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->first();
         $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
 
         $template = SopTemplate::query()->firstOrCreate([
-            'farm_id' => $farm->id,
-            'variety_id' => $variety->id,
-            'name' => 'SOP Budidaya Jagung Bisi 18',
+            'team_id' => $team->id,
+            'commodity_id' => $commodity->id,
+            'name' => 'SOP Budidaya Jagung',
         ], [
-            'description' => 'Panduan budidaya jagung hibrida Bisi 18 dari persiapan lahan sampai panen.',
+            'description' => 'Panduan budidaya jagung hibrida dari penanaman sampai panen.',
             'is_active' => true,
             'created_by' => $admin->id,
         ]);
 
-        if ($template->versions()->exists()) {
-            return;
+        if ($farm instanceof Farm && $farm->default_sop_template_id === null) {
+            $farm->forceFill(['default_sop_template_id' => $template->id])->save();
         }
 
-        $version = $template->versions()->create([
-            'version' => 1,
-            'notes' => 'Versi awal untuk demonstrasi SOP modular berbasis HST.',
-            'status' => 'draft',
-            'created_by' => $admin->id,
-        ]);
-
-        $tasks = [
-            ['code' => 'land_cleaning', 'stage' => 'land_cleaning', 'name' => 'Bersihkan lahan', 'anchor' => 'planting_date', 'offset' => -14, 'position' => 1, 'instructions' => 'Bersihkan gulma, sisa tanaman, dan material yang mengganggu area tanam.'],
-            ['code' => 'soil_preparation', 'stage' => 'soil_preparation', 'name' => 'Olah tanah dan bentuk bedengan', 'anchor' => 'planting_date', 'offset' => -7, 'position' => 2, 'instructions' => 'Bajak dan gemburkan tanah, lalu bentuk bedengan sesuai kontur lahan.'],
-            ['code' => 'planting', 'stage' => 'planting', 'name' => 'Tanam benih Bisi 18', 'anchor' => 'planting_date', 'offset' => 0, 'position' => 3, 'instructions' => 'Tanam benih dengan jarak tanam 20 x 40 cm dan kedalaman yang seragam.'],
-            ['code' => 'irrigation', 'stage' => 'maintenance', 'name' => 'Pengairan awal', 'anchor' => 'planting_date', 'offset' => 7, 'position' => 4, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
-            ['code' => 'fertilization', 'stage' => 'maintenance', 'name' => 'Pemupukan susulan pertama', 'anchor' => 'planting_date', 'offset' => 14, 'position' => 5, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
-            ['code' => 'pesticide', 'stage' => 'maintenance', 'name' => 'Pengendalian hama dan penyakit', 'anchor' => 'planting_date', 'offset' => 30, 'position' => 6, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
-            ['code' => 'fertilization', 'stage' => 'maintenance', 'name' => 'Pemupukan lanjutan', 'anchor' => 'planting_date', 'offset' => 45, 'position' => 7, 'instructions' => 'Berikan pupuk susulan sesuai fase pertumbuhan dan hasil pengamatan.'],
-            ['code' => 'harvest', 'stage' => 'harvest', 'name' => 'Panen', 'anchor' => 'planting_date', 'offset' => 90, 'position' => 8, 'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.'],
-        ];
-
-        foreach ($tasks as $task) {
-            $type = ActivityType::query()->where('code', $task['code'])->firstOrFail();
-            $version->tasks()->create([
-                'activity_type_id' => $type->id,
-                'stage_code' => $task['stage'],
-                'name' => $task['name'],
-                'instructions' => $task['instructions'],
-                'schedule_anchor' => $task['anchor'],
-                'offset_days' => $task['offset'],
-                'tolerance_days' => 2,
-                'position' => $task['position'],
-                'is_required' => true,
+        if (! $template->versions()->exists()) {
+            $version = $template->versions()->create([
+                'version' => 1,
+                'notes' => 'Versi awal untuk demonstrasi SOP modular berbasis HST.',
+                'status' => 'draft',
+                'created_by' => $admin->id,
             ]);
+
+            $tasks = [
+                ['category' => 'planting', 'subcategory' => null, 'name' => 'Tanam benih Bisi 18', 'offset' => 0, 'instructions' => 'Tanam benih dengan jarak tanam 20 x 40 cm dan kedalaman yang seragam.'],
+                ['category' => 'maintenance', 'subcategory' => 'irrigation', 'name' => 'Pengairan awal', 'offset' => 7, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
+                ['category' => 'maintenance', 'subcategory' => 'follow_up_fertilization', 'name' => 'Pemupukan susulan pertama', 'offset' => 14, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
+                ['category' => 'maintenance', 'subcategory' => 'pest_control', 'name' => 'Pengendalian hama dan penyakit', 'offset' => 30, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
+                ['category' => 'maintenance', 'subcategory' => 'follow_up_fertilization', 'name' => 'Pemupukan lanjutan', 'offset' => 45, 'instructions' => 'Berikan pupuk susulan sesuai fase pertumbuhan dan hasil pengamatan.'],
+                ['category' => 'harvest', 'subcategory' => null, 'name' => 'Panen', 'offset' => 90, 'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.'],
+            ];
+
+            foreach ($tasks as $task) {
+                $version->tasks()->create([
+                    'activity_category' => $task['category'],
+                    'activity_subcategory' => $task['subcategory'],
+                    'name' => $task['name'],
+                    'instructions' => $task['instructions'],
+                    'offset_days' => $task['offset'],
+                    'tolerance_days' => 2,
+                    'is_required' => true,
+                ]);
+            }
+
+            app(SopTemplateService::class)->publish($version, $admin);
         }
 
-        app(SopTemplateService::class)->publish($version, $admin);
+        if ($farm instanceof Farm) {
+            $this->generateDemoTasks($farm, $admin, $team);
+        }
+    }
+
+    private function generateDemoTasks(Farm $farm, User $actor, Team $team): void
+    {
+        $subblok = PlantingCycle::query()
+            ->where('farm_id', $farm->id)
+            ->whereNotNull('planting_round_id')
+            ->orderBy('batch_number')
+            ->first();
+
+        if (! $subblok instanceof PlantingCycle) {
+            $block = FarmBlock::query()->where('farm_id', $farm->id)->where('code', 'B01')->first();
+            if ($block === null) {
+                return;
+            }
+
+            try {
+                $subblok = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
+                    'reserved_area_ha' => '2.5000',
+                    'subblock_label' => 'DEMO',
+                    'planned_planting_at' => today()->addDays(3)->toDateString(),
+                ]);
+            } catch (Throwable) {
+                return;
+            }
+        }
+
+        if ($subblok->planned_planting_at === null && $subblok->planted_at === null) {
+            $subblok->forceFill(['planned_planting_at' => today()->addDays(3)->toDateString()])->save();
+        }
+
+        app(PlantingCycleTaskService::class)->generateForSubblok($subblok);
     }
 }
