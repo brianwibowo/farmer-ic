@@ -18,6 +18,7 @@ class DemoFarmSeeder extends Seeder
         $team = Team::query()->where('slug', 'farm-ic-demo')->firstOrFail();
 
         $farm = Farm::query()->firstOrNew(['name' => 'Kebun Cileuksa Demo']);
+        $isNewFarm = ! $farm->exists;
         \Illuminate\Support\Facades\Gate::forUser($owner)->authorize('viewAny', [\App\Models\AdministrativeRegion::class, $team]);
         $hasRegion = \App\Models\AdministrativeRegion::visibleTo($owner, $team)->whereKey('32.01.09')->exists();
         if ($hasRegion && (! $farm->exists || $farm->getAttribute('district_code') === '32.01.09')) {
@@ -43,6 +44,11 @@ class DemoFarmSeeder extends Seeder
         $jagung = Commodity::query()->firstOrCreate(['name' => 'Jagung'], [
             'description' => 'Komoditas utama lahan demo untuk simulasi logbook dan analitik.',
         ]);
+        if ($isNewFarm) {
+            $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
+            \Illuminate\Support\Facades\Gate::forUser($admin)->authorize('update', $farm);
+            $farm->forceFill(['commodity_id' => $jagung->id, 'target_volume_ton' => '80.000'])->save();
+        }
         CropVariety::query()->firstOrCreate([
             'commodity_id' => $jagung->id,
             'name' => 'Bisi 18',

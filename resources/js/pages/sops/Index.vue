@@ -208,28 +208,11 @@ function reset(): void {
 <template>
     <Head title="SOP" />
     <div class="space-y-6">
-        <header class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <h1 class="admin-page-title tracking-tight">
-                    Kelola template SOP
-                </h1>
-                <p
-                    class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground"
-                >
-                    Susun langkah budidaya modular per komoditas, lalu tetapkan
-                    SOP default pada kebun sebagai jadwal HST otomatis.
-                </p>
-            </div>
-            <Button v-if="can.create" as-child class="h-10 rounded-xl">
-                <Link :href="createUrl"><Plus /> Tambah SOP</Link>
-            </Button>
-        </header>
-
         <div class="grid grid-cols-3 gap-2 sm:gap-4">
             <div
                 v-for="item in summaryCards"
                 :key="item.label"
-                class="min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
+                class="admin-card min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
             >
                 <div class="flex items-center justify-between gap-3">
                     <p
@@ -256,7 +239,7 @@ function reset(): void {
         </div>
 
         <section
-            class="overflow-hidden rounded-xl border border-border bg-card"
+            class="admin-card overflow-hidden rounded-xl border border-border bg-card"
         >
             <div class="border-b border-border p-4 md:p-5">
                 <div class="mb-4 flex items-center gap-2">
@@ -270,12 +253,12 @@ function reset(): void {
 
                 <form @submit.prevent="apply">
                     <div
-                        class="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,15rem)]"
+                        class="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,12rem)_auto] xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,15rem)_auto]"
                     >
                         <FarmField
                             id="sop-search"
                             label="Cari SOP"
-                            class="col-span-2 sm:col-span-1"
+                            class="col-span-2 lg:col-span-1"
                             :error="form.errors.search"
                             v-slot="field"
                         >
@@ -400,6 +383,14 @@ function reset(): void {
                                 </TooltipProvider>
                             </div>
                         </FarmField>
+                        <Button
+                            v-if="can.create"
+                            as-child
+                            class="col-span-2 h-10 justify-self-end rounded-xl lg:col-span-1 pointer-coarse:min-h-11"
+                            ><Link :href="createUrl"
+                                ><Plus />Tambah SOP</Link
+                            ></Button
+                        >
                     </div>
 
                     <div
@@ -816,7 +807,10 @@ function reset(): void {
                                 variant="outline"
                                 size="sm"
                             >
-                                <Link :href="sops.prev_page_url" preserve-scroll>
+                                <Link
+                                    :href="sops.prev_page_url"
+                                    preserve-scroll
+                                >
                                     <ChevronLeft />Sebelumnya
                                 </Link>
                             </Button>
@@ -829,7 +823,10 @@ function reset(): void {
                                 variant="outline"
                                 size="sm"
                             >
-                                <Link :href="sops.next_page_url" preserve-scroll>
+                                <Link
+                                    :href="sops.next_page_url"
+                                    preserve-scroll
+                                >
                                     Berikutnya<ChevronRight />
                                 </Link>
                             </Button>

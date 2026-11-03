@@ -28,6 +28,7 @@ declare module '@inertiajs/core' {
                 admin: boolean;
                 notifications: boolean;
                 farms: boolean;
+                logbook: boolean;
                 users: boolean;
                 teamSwitcher: boolean;
             };

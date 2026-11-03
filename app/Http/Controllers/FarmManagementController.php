@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Farms\ForceDeleteFarmRequest;
 use App\Http\Requests\Farms\ListFarmsRequest;
 use App\Http\Requests\Farms\SaveFarmRequest;
+use App\Models\Commodity;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\Team;
+use App\Models\User;
 use App\Services\FarmDeletionService;
 use App\Services\FarmService;
 use App\Services\SopTemplateService;
@@ -26,6 +28,7 @@ class FarmManagementController extends Controller
     public function __construct(
         private readonly FarmService $farms,
         private readonly SopTemplateService $sops,
+        private readonly \App\Services\FarmBlockService $blocks,
     ) {}
 
     public function index(ListFarmsRequest $request): Response
@@ -65,8 +68,9 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Form', [
             'farm' => null,
-            'owners' => $this->farms->owners($request->user(), $team),
+            'commodities' => Commodity::visibleTo($request->user(), $team)->orderBy('name')->get(['id', 'name']),
             'sops' => $this->sops->options($request->user(), $team),
+            'picOptions' => $this->farms->picOptions($request->user(), $team),
             'team' => $team->only(['id', 'name']),
         ]);
     }
@@ -76,6 +80,7 @@ class FarmManagementController extends Controller
         $team = $request->user()->currentTeam;
         Gate::authorize('create', [Farm::class, $team]);
         abort_unless($team instanceof Team, 403);
+        $this->authorizePic($request, $team);
         $farm = $this->farms->create($request->validated(), $request->user(), $team);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun berhasil ditambahkan.']);
 
@@ -88,6 +93,8 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Show', [
             'farm' => $this->farms->detail($farm, $request->user()),
+            'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]) ? $this->blocks->overview($farm, $request->user(), $farm->team)->map(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block)]]) : [],
+            'blockCapacity' => Gate::allows('create', [FarmBlock::class, $farm]) ? $this->blocks->formCapacity($farm, $request->user(), $farm->team) : null,
             'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [
                 'update' => Gate::allows('update', $farm),
@@ -95,6 +102,7 @@ class FarmManagementController extends Controller
                 'forceDelete' => Gate::allows('forceDelete', $farm),
                 'dailyLogs' => Gate::allows('viewAny', [DailyActivityLog::class, $farm->team]),
                 'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]),
+                'createBlock' => Gate::allows('create', [FarmBlock::class, $farm]),
             ],
         ]);
     }
@@ -107,8 +115,9 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Form', [
             'farm' => $this->farms->detail($farm, $request->user()),
-            'owners' => $this->farms->owners($request->user(), $team),
+            'commodities' => Commodity::visibleTo($request->user(), $team)->orderBy('name')->get(['id', 'name']),
             'sops' => $this->sops->options($request->user(), $team),
+            'picOptions' => $this->farms->picOptions($request->user(), $team, $farm),
             'team' => $team->only(['id', 'name']),
         ]);
     }
@@ -116,10 +125,24 @@ class FarmManagementController extends Controller
     public function update(SaveFarmRequest $request, Farm $farm): RedirectResponse
     {
         Gate::authorize('update', $farm);
+        $this->authorizePic($request, $farm->team, $farm);
         $this->farms->update($farm, $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan kebun berhasil disimpan.']);
 
         return to_route('farm-management.show', $farm);
+    }
+
+    private function authorizePic(SaveFarmRequest $request, Team $team, ?Farm $farm = null): void
+    {
+        $id = $request->validated('pic_user_id');
+        if (! $id) {
+            return;
+        }
+        $pic = User::visibleTo($request->user(), $team)->whereKey($id)->first();
+        if (! $pic) {
+            throw ValidationException::withMessages(['pic_user_id' => 'Petugas tidak tersedia.']);
+        }
+        Gate::authorize('configure', [$pic, $pic->role, $pic->teams()->where('teams.is_personal', false)->get(), $farm]);
     }
 
     public function destroy(Farm $farm): RedirectResponse

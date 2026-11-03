@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FinancialBudget;
 use App\Models\FinancialCategory;
@@ -50,12 +51,16 @@ class HandleInertiaRequests extends Middleware
         $guestPage = $request->route()?->defaults['farmer_guest'] ?? false;
         $user = $guestPage ? null : $request->user();
         $adminAccess = $user !== null && Gate::forUser($user)->allows('admin.access');
+        $logbookTeam = $user ? (app(RolePermissions::class)->singleTenant($user) ?? $user->currentTeam) : null;
 
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'navigation' => [
                 'admin' => $adminAccess,
+                'logbook' => $adminAccess && $logbookTeam instanceof Team
+                    && Gate::forUser($user)->allows('viewAny', [Farm::class, $logbookTeam])
+                    && Gate::forUser($user)->allows('viewAny', [DailyActivityLog::class, $logbookTeam]),
                 'notifications' => $user !== null
                     && app(RolePermissions::class)->roleName($user) !== 'superadmin'
                     && Gate::forUser($user)->allows('viewAny', Notification::class),

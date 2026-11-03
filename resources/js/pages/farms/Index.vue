@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import AppSelect from '@/components/selects/AppSelect.vue';
-import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import AppSelect from "@/components/selects/AppSelect.vue";
+import AppSelectOption from "@/components/selects/AppSelectOption.vue";
+import { Head, Link, useForm } from "@inertiajs/vue3";
+import { computed, ref } from "vue";
 import {
     ArrowDownWideNarrow,
     ArrowUpWideNarrow,
@@ -19,23 +19,23 @@ import {
     SlidersHorizontal,
     Trash2,
     X,
-} from '@lucide/vue';
-import { Button } from '@/components/ui/button';
+} from "@lucide/vue";
+import { Button } from "@/components/ui/button";
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
-} from '@/components/ui/tooltip';
-import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
-import FarmField from '@/components/farms/FarmField.vue';
+} from "@/components/ui/tooltip";
+import DeleteFarmDialog from "@/components/farms/DeleteFarmDialog.vue";
+import FarmField from "@/components/farms/FarmField.vue";
 import {
     hectares,
     landTenureLabel,
     type FarmFilters,
     type FarmPage,
     type FarmRow,
-} from '@/types/farms';
+} from "@/types/farms";
 
 defineOptions({ inheritAttrs: false });
 
@@ -50,11 +50,11 @@ const props = defineProps<{
 const selectedFarm = ref<FarmRow | null>(null);
 const showFilters = ref(false);
 const filters = useForm({
-    search: props.filters.search ?? '',
-    city: props.filters.city ?? '',
-    province: props.filters.province ?? '',
-    sort: props.filters.sort ?? 'name',
-    direction: props.filters.direction ?? 'asc',
+    search: props.filters.search ?? "",
+    city: props.filters.city ?? "",
+    province: props.filters.province ?? "",
+    sort: props.filters.sort ?? "name",
+    direction: props.filters.direction ?? "asc",
     per_page: Number(props.filters.per_page ?? 15),
 });
 const hasFilters = computed(
@@ -63,8 +63,8 @@ const hasFilters = computed(
             filters.search ||
             filters.city ||
             filters.province ||
-            filters.sort !== 'name' ||
-            filters.direction !== 'asc' ||
+            filters.sort !== "name" ||
+            filters.direction !== "asc" ||
             filters.per_page !== 15
         ),
 );
@@ -80,17 +80,17 @@ const hasSearchCriteria = computed(
         ),
 );
 const directionDescription = computed(() => {
-    const ascending = filters.direction === 'asc';
+    const ascending = filters.direction === "asc";
     const labels =
-        filters.sort === 'total_area_ha'
-            ? ['Terkecil ke terbesar', 'Terbesar ke terkecil']
-            : filters.sort === 'created_at'
-              ? ['Terlama ke terbaru', 'Terbaru ke terlama']
-              : ['A–Z', 'Z–A'];
+        filters.sort === "total_area_ha"
+            ? ["Terkecil ke terbesar", "Terbesar ke terkecil"]
+            : filters.sort === "created_at"
+              ? ["Terlama ke terbaru", "Terbaru ke terlama"]
+              : ["A–Z", "Z–A"];
     return `Urutan ${labels[ascending ? 0 : 1]}. Ubah menjadi ${labels[ascending ? 1 : 0]}.`;
 });
 function apply(): void {
-    filters.get('/admin/farm-management', {
+    filters.get("/admin/farm-management", {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -101,19 +101,19 @@ function apply(): void {
     });
 }
 function toggleDirection(): void {
-    filters.direction = filters.direction === 'asc' ? 'desc' : 'asc';
+    filters.direction = filters.direction === "asc" ? "desc" : "asc";
     apply();
 }
-function removeLocation(key: 'city' | 'province'): void {
-    filters[key] = '';
+function removeLocation(key: "city" | "province"): void {
+    filters[key] = "";
     apply();
 }
 function reset(): void {
-    filters.search = '';
-    filters.city = '';
-    filters.province = '';
-    filters.sort = 'name';
-    filters.direction = 'asc';
+    filters.search = "";
+    filters.city = "";
+    filters.province = "";
+    filters.sort = "name";
+    filters.direction = "asc";
     filters.per_page = 15;
     apply();
 }
@@ -122,20 +122,6 @@ function reset(): void {
 <template>
     <Head title="Farm Management" />
     <div class="space-y-6">
-        <header class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <h1 class="admin-page-title tracking-tight">Kelola kebun</h1>
-                <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                    Pantau dan kelola lahan yang dapat kamu akses.
-                </p>
-            </div>
-            <Button v-if="can.create" as-child class="h-10 rounded-xl"
-                ><Link href="/admin/farm-management/create"
-                    ><Plus /> Tambah kebun</Link
-                ></Button
-            >
-        </header>
-
         <div class="grid grid-cols-3 gap-2 sm:gap-4">
             <div
                 v-for="item in [
@@ -159,7 +145,7 @@ function reset(): void {
                     },
                 ]"
                 :key="item.label"
-                class="min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
+                class="admin-card min-w-0 rounded-xl bg-card p-3 sm:p-5"
             >
                 <div class="flex items-center justify-between gap-3">
                     <p
@@ -185,25 +171,32 @@ function reset(): void {
             </div>
         </div>
 
-        <section
-            class="overflow-hidden rounded-xl border border-border bg-card"
-        >
+        <section class="admin-card overflow-hidden rounded-xl bg-card">
             <div class="border-b border-border p-4 md:p-5">
-                <div class="mb-4 flex items-center gap-2">
-                    <h2 class="admin-section-title">Daftar kebun</h2>
-                    <span
-                        class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
-                        >{{ farms.total }}</span
+                <div
+                    class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                >
+                    <div class="flex items-center gap-2">
+                        <h2 class="admin-section-title">Daftar kebun</h2>
+                        <span
+                            class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
+                            >{{ farms.total }}</span
+                        >
+                    </div>
+                    <Button v-if="can.create" as-child class="h-10 rounded-xl"
+                        ><Link href="/admin/farm-management/create"
+                            ><Plus />Tambah kebun</Link
+                        ></Button
                     >
                 </div>
                 <form @submit.prevent="apply">
                     <div
-                        class="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,15rem)]"
+                        class="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,12rem)_auto] xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,15rem)_auto]"
                     >
                         <FarmField
                             id="farm-search"
                             label="Cari kebun"
-                            class="col-span-2 sm:col-span-1"
+                            class="col-span-2 lg:col-span-1"
                             :error="filters.errors.search"
                             v-slot="field"
                         >
@@ -472,8 +465,8 @@ function reset(): void {
                 <h3 class="mt-4 font-semibold">
                     {{
                         hasSearchCriteria
-                            ? 'Kebun tidak ditemukan'
-                            : 'Belum ada kebun'
+                            ? "Kebun tidak ditemukan"
+                            : "Belum ada kebun"
                     }}
                 </h3>
                 <p
@@ -481,8 +474,8 @@ function reset(): void {
                 >
                     {{
                         hasSearchCriteria
-                            ? 'Coba kata kunci atau wilayah lain untuk menampilkan kebun.'
-                            : 'Data kebun yang dapat kamu akses akan muncul di sini.'
+                            ? "Coba kata kunci atau wilayah lain untuk menampilkan kebun."
+                            : "Data kebun yang dapat kamu akses akan muncul di sini."
                     }}
                 </p>
                 <Button
@@ -547,7 +540,7 @@ function reset(): void {
                                     >
                                         {{
                                             farm.district ??
-                                            'Kecamatan belum diisi'
+                                            "Kecamatan belum diisi"
                                         }}
                                     </p>
                                 </td>
@@ -560,11 +553,11 @@ function reset(): void {
                                     >
                                 </td>
                                 <td class="px-5 py-4">
-                                    <p>{{ farm.city ?? '—' }}</p>
+                                    <p>{{ farm.city ?? "—" }}</p>
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ farm.province ?? '—' }}
+                                        {{ farm.province ?? "—" }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
@@ -632,7 +625,7 @@ function reset(): void {
                             {{
                                 [farm.district, farm.city, farm.province]
                                     .filter(Boolean)
-                                    .join(', ') || 'Lokasi belum diisi'
+                                    .join(", ") || "Lokasi belum diisi"
                             }}
                         </p>
                         <div
@@ -725,7 +718,9 @@ function reset(): void {
                                 as-child
                                 variant="outline"
                                 size="sm"
-                                ><Link :href="farms.prev_page_url" preserve-scroll
+                                ><Link
+                                    :href="farms.prev_page_url"
+                                    preserve-scroll
                                     ><ChevronLeft />Sebelumnya</Link
                                 ></Button
                             ><span aria-current="page" class="px-2 text-xs"
@@ -736,12 +731,13 @@ function reset(): void {
                                 as-child
                                 variant="outline"
                                 size="sm"
-                                ><Link :href="farms.next_page_url" preserve-scroll
+                                ><Link
+                                    :href="farms.next_page_url"
+                                    preserve-scroll
                                     >Berikutnya<ChevronRight /></Link
-                            ></Button
-                        >
+                            ></Button>
+                        </div>
                     </div>
-                </div>
                 </nav>
             </template>
         </section>

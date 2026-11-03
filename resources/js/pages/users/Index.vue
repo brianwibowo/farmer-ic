@@ -145,39 +145,6 @@ function teamLabel(user: ManagedUser): string {
 <template>
     <Head title="Manajemen Pengguna" />
     <div class="space-y-[18px]" :aria-busy="filters.processing">
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div class="min-w-0 flex-1 basis-64">
-                <h1
-                    id="users-title"
-                    class="admin-page-title tracking-tight text-primary"
-                >
-                    Manajemen Pengguna
-                </h1>
-                <p
-                    class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground"
-                >
-                    {{
-                        userManagementScope.global
-                            ? 'Kelola akun, tim, dan penugasan pengguna dalam satu tempat.'
-                            : userManagementScope.multiTenant
-                              ? 'Lihat pengguna dan penugasan pada seluruh tim yang Anda akses.'
-                              : 'Kelola akun dan penugasan pengguna di ' +
-                                userManagementScope.team?.name +
-                                '.'
-                    }}
-                </p>
-            </div>
-            <Button
-                v-if="can.create"
-                as-child
-                class="ml-auto h-10 rounded-xl px-2! sm:px-4! pointer-coarse:min-h-11"
-                aria-label="Tambah pengguna"
-                title="Tambah pengguna"
-                ><Link href="/admin/user-management/create"
-                    ><Plus />Tambah pengguna</Link
-                ></Button
-            >
-        </header>
         <UserSummaryCards :total="summary.total" :roles="roleSummary" />
         <section
             class="user-directory rounded-xl bg-card"
@@ -192,7 +159,7 @@ function teamLabel(user: ManagedUser): string {
             </div>
             <div class="user-directory-toolbar">
                 <form
-                    class="flex min-w-0 flex-1 items-center gap-2"
+                    class="flex min-w-0 flex-1 basis-64 items-center gap-2"
                     @submit.prevent="apply"
                 >
                     <div class="min-w-0 grow">
@@ -248,6 +215,16 @@ function teamLabel(user: ManagedUser): string {
                         @apply="apply"
                         @reset="reset"
                     />
+                    <Button
+                        v-if="can.create"
+                        as-child
+                        class="h-10 shrink-0 rounded-xl px-2! sm:px-4! pointer-coarse:min-h-11"
+                        aria-label="Tambah pengguna"
+                        title="Tambah pengguna"
+                        ><Link href="/admin/user-management/create"
+                            ><Plus />Tambah pengguna</Link
+                        ></Button
+                    >
                 </div>
             </div>
             <div

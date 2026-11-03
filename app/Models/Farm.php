@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property string $id
  * @property string|null $owner_id
+ * @property string|null $pic_user_id
  * @property int|null $team_id
  * @property-read Team|null $team
  * @property string $created_by
@@ -56,6 +57,12 @@ class Farm extends FarmerModel
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function pic(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pic_user_id');
     }
 
     /** @return BelongsTo<User, $this> */

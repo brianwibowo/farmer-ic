@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 
 const props = withDefaults(defineProps<{
     modelValue: [number, number] | null;
+    prominent?: boolean;
     editable?: boolean;
     disabled?: boolean;
     error?: string;
@@ -155,7 +156,7 @@ onBeforeUnmount(() => {
         <p :id="hintId" class="text-xs leading-5 text-muted-foreground">
             {{ editable ? 'Klik peta untuk menaruh pin, lalu geser pin untuk memperbaiki posisi. Dengan keyboard, geser peta menggunakan tombol panah lalu pilih Gunakan titik tengah peta.' : 'Pin menunjukkan titik lokasi kebun, bukan batas atau luas lahan.' }}
         </p>
-        <div v-if="editable || modelValue" class="farm-map relative isolate h-72 overflow-hidden rounded-xl border bg-muted sm:h-80" :class="error ? 'border-error' : 'border-border'">
+        <div v-if="editable || modelValue" class="farm-map relative isolate overflow-hidden rounded-xl border bg-muted" :class="[error ? 'border-error' : 'border-border', prominent ? 'h-80 sm:h-[26rem]' : 'h-72 sm:h-80']">
             <div ref="mapElement" class="absolute inset-0" :aria-busy="loading" />
             <div v-if="loading" role="status" class="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center gap-2 bg-card/80 text-sm text-muted-foreground"><LoaderCircle class="size-4 animate-spin" />Memuat peta…</div>
         </div>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { RefreshCw, WalletCards } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DashboardActivities from '@/components/dashboard/DashboardActivities.vue';
@@ -17,6 +17,8 @@ import type { DashboardInvitation } from '@/types';
 import type { DashboardData } from '@/types/dashboard';
 
 defineOptions({ inheritAttrs: false });
+const page = usePage();
+const welcomeName = computed(() => page.props.auth.user?.name?.trim() ?? '');
 const props = defineProps<{
     pendingInvitations?: DashboardInvitation[];
     dashboard: DashboardData;
@@ -113,12 +115,16 @@ function loadDashboard(): void {
         :aria-busy="refreshing"
     >
         <header class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <h1 class="admin-page-title text-primary">Dashboard</h1>
-                <p class="mt-1.5 text-sm leading-5 text-muted-foreground">
-                    Pantau kebun dan pekerjaan lapangan dalam satu pandangan.
-                </p>
-            </div>
+            <p
+                class="min-w-0 flex-1 basis-64 text-xl leading-8 font-medium tracking-tight break-words text-foreground sm:text-2xl"
+            >
+                Selamat datang<template v-if="welcomeName"
+                    >,
+                    <strong class="font-bold text-primary">{{
+                        welcomeName
+                    }}</strong></template
+                >!
+            </p>
             <div
                 class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:flex sm:w-auto sm:flex-wrap"
             >

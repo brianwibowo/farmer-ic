@@ -30,10 +30,10 @@ class NotificationContentTest extends TestCase
         $whatsApp = $notification->toWhatsAppText();
         $this->assertStringStartsWith("*Report Harian Kebun dari Petugas*\n\nSalam hormat Bapak/Ibu,", $whatsApp);
         $this->assertStringContainsString("*Tenant*: Tenant Jawa Barat\n*Tanggal*: 30 Oktober 2026\n*Jumlah kebun*: 2\n*Batas rekap*: 20:00 WIB", $whatsApp);
-        $this->assertStringContainsString("\n────────────────\n*1. Kebun: Kebun Cianjur*\n*Jumlah aktivitas*: 2\n\n", $whatsApp);
+        $this->assertStringContainsString("\n──────────────\n*1. Kebun: Kebun Cianjur*\n*Jumlah aktivitas*: 2\n\n", $whatsApp);
         $this->assertStringContainsString("*Aktivitas 1: Penyiraman*\n*Waktu*: 09:00 WIB\n*Petugas*: Rina\n*Catatan*: Menyiram Blok A", $whatsApp);
         $this->assertStringContainsString("\n\n*Aktivitas 2: Aktivitas*\n*Waktu*: 10:00 WIB\n*Petugas*: Petugas tidak tersedia\n*Catatan*: Tanpa catatan", $whatsApp);
-        $this->assertStringContainsString("\n────────────────\n*2. Kebun: Kebun Bogor*\n*Jumlah aktivitas*: 0\n\nPetugas belum mengisi aktivitas hari ini", $whatsApp);
+        $this->assertStringContainsString("\n──────────────\n*2. Kebun: Kebun Bogor*\n*Jumlah aktivitas*: 0\n\nPetugas belum mengisi aktivitas hari ini", $whatsApp);
         $this->assertStringContainsString("\n\n2. Kebun: Kebun Bogor\nPetugas belum mengisi aktivitas hari ini", $content['message']);
         $this->assertStringNotContainsString(' | ', $whatsApp);
         $this->assertStringEndsWith("\n\n*Detail laporan* (tautan sementara):\nhttps://example.com/laporan-harian-kebun", $whatsApp);

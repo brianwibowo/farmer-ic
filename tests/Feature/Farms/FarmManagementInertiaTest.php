@@ -34,6 +34,176 @@ class FarmManagementInertiaTest extends TestCase
         $this->actingAs($this->admin);
     }
 
+    public function test_pic_assignment_is_optional_scoped_and_assigns_the_worker(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $worker->update(['phone_number' => '081234567890']);
+        $otherTeam = Team::query()->create(['name' => 'Tenant Lain', 'is_personal' => false]);
+        $outsider = $this->actor('petugas', $otherTeam);
+        $otherFarm = $this->farm(['name' => 'Kebun Lain']);
+        $busy = $this->actor('petugas', $this->team);
+        $busy->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
+
+        $this->get('/admin/farm-management/create')->assertInertia(fn (Assert $page) => $page
+            ->has('picOptions', 1)->where('picOptions.0.id', $worker->id));
+        $this->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $this->assertSame($farm->id, $worker->fresh()->assignedFarmId());
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->get($url)->assertInertia(fn (Assert $page) => $page
+            ->where('farm.pic_name', $worker->name)->where('farm.pic_phone_number', '081234567890'));
+        $this->patch($url, ['pic_user_id' => $busy->id])->assertSessionHasErrors('pic_user_id');
+        $this->patch($url, ['pic_user_id' => $outsider->id])->assertSessionHasErrors('pic_user_id');
+        $this->patch($url, ['pic_user_id' => null])->assertSessionHasNoErrors();
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+        $this->assertSame($farm->id, $worker->fresh()->assignedFarmId());
+    }
+
+    public function test_pic_is_cleared_when_worker_is_deleted(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $this->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $this->delete('/admin/user-management/'.$worker->id)->assertSessionHasNoErrors();
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+    }
+
+    public function test_pic_options_do_not_add_queries_per_worker_on_create_and_edit(): void
+    {
+        config(['inertia.ssr.enabled' => false]);
+        $farm = $this->farm();
+        $first = $this->actor('petugas', $this->team);
+        $first->forceFill(['assigned_farm_id' => $farm->id])->save();
+        $otherFarm = $this->farm(['name' => 'Kebun lain']);
+        $busy = $this->actor('petugas', $this->team);
+        $busy->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
+        $superadmin = $this->actor('superadmin', $this->team);
+        $urls = ['/admin/farm-management/create', '/admin/farm-management/'.$farm->id.'/edit'];
+        $counts = [];
+
+        foreach ([1, 20] as $size) {
+            if ($size === 20) {
+                for ($i = 0; $i < 19; $i++) {
+                    $this->actor('petugas', $this->team);
+                }
+            }
+            foreach ([$this->admin, $superadmin] as $actor) {
+                foreach ($urls as $url) {
+                    $this->actingAs($actor->fresh());
+                    $connection = DB::connection();
+                    $connection->flushQueryLog();
+                    $connection->enableQueryLog();
+                    try {
+                        $response = $this->get($url)->assertOk();
+                        $counts[$actor->id][$url][$size] = count($connection->getQueryLog());
+                    } finally {
+                        $connection->disableQueryLog();
+                        $connection->flushQueryLog();
+                    }
+                    $expected = $size - (str_ends_with($url, '/create') ? 1 : 0);
+                    $response->assertInertia(fn (Assert $page) => $page
+                        ->has('picOptions', $expected)
+                        ->where('picOptions', fn ($options) => collect($options)->every(fn ($option) => $option['id'] !== $busy->id)));
+                }
+            }
+        }
+        foreach ($counts as $requests) {
+            foreach ($requests as $queryCounts) {
+                $this->assertSame($queryCounts[1], $queryCounts[20], 'Query count must not grow with PIC options.');
+            }
+        }
+    }
+
+    public function test_reassignment_clears_pic_and_superadmin_can_assign(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $superadmin = $this->actor('superadmin', $this->team);
+        $this->actingAs($superadmin)->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $other = $this->farm(['name' => 'Kebun Baru']);
+        app(\App\Services\UserManagementService::class)->save($superadmin, [
+            'name' => $worker->name, 'email' => $worker->email, 'role' => 'petugas',
+            'team_ids' => [$this->team->id], 'assigned_farm_id' => $other->id,
+        ], $worker);
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+        $this->assertSame($other->id, $worker->fresh()->assignedFarmId());
+
+        $this->actingAs($superadmin)->patch('/admin/farm-management/'.$other->id, ['pic_user_id' => $worker->id])->assertSessionHasNoErrors();
+        app(\App\Services\UserManagementService::class)->save($superadmin, [
+            'name' => $worker->name, 'email' => $worker->email, 'role' => 'admin',
+            'team_ids' => [$this->team->id], 'assigned_farm_id' => null,
+        ], $worker->fresh());
+        $this->assertNull($other->fresh()->getAttribute('pic_user_id'));
+    }
+
+    public function test_commodity_persists_without_a_sop_and_mismatched_sop_is_rejected(): void
+    {
+        $corn = Commodity::create(['name' => 'Jagung']);
+        $chili = Commodity::create(['name' => 'Cabai']);
+        $sop = app(SopTemplateService::class)->create($this->admin, $this->team, [
+            'commodity_id' => $corn->id, 'name' => 'SOP Jagung', 'is_active' => true,
+        ]);
+        $this->post('/admin/farm-management', $this->payload(['commodity_id' => $chili->id]))->assertSessionHasNoErrors();
+        $farm = Farm::firstOrFail();
+        $this->patch('/admin/farm-management/'.$farm->id, ['commodity_id' => 'invalid-id'])->assertSessionHasErrors('commodity_id');
+        $this->patch('/admin/farm-management/'.$farm->id, ['commodity_id' => $corn->id, 'default_sop_template_id' => 'invalid-id'])->assertSessionHasErrors('default_sop_template_id');
+        $this->assertSame($chili->id, $farm->getAttribute('commodity_id'));
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->patch($url, ['default_sop_template_id' => $sop->id])->assertSessionHasErrors('default_sop_template_id');
+        $this->patch($url, ['commodity_id' => $corn->id, 'default_sop_template_id' => $sop->id])->assertSessionHasNoErrors();
+        $this->patch($url, ['commodity_id' => $chili->id])->assertSessionHasErrors('default_sop_template_id');
+        $this->assertSame($corn->id, $farm->fresh()->getAttribute('commodity_id'));
+        $this->get($url.'/edit')->assertInertia(fn (Assert $page) => $page->where('farm.commodity.id', $corn->id)->has('commodities', 2)->missing('owners'));
+        $this->patch($url, ['commodity_id' => $chili->id, 'default_sop_template_id' => null])->assertSessionHasNoErrors();
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.commodity.id', $chili->id)->where('farm.default_sop', null));
+    }
+
+    public function test_farm_detail_has_scoped_blocks_and_dialog_mutations_return_to_the_farm(): void
+    {
+        $farm = app(FarmService::class)->create($this->payload(), $this->admin, $this->team);
+        $other = app(FarmService::class)->create($this->payload(['name' => 'Kebun Lain']), $this->admin, $this->team);
+        $base = '/kebun/'.$farm->id.'/blocks';
+        $detail = '/admin/farm-management/'.$farm->id;
+        $this->post($base, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '2', 'return_to' => 'farm'])->assertRedirect($detail);
+        $block = \App\Models\FarmBlock::firstOrFail();
+        app(\App\Services\FarmBlockService::class)->create($other, $this->admin, $this->team, ['code' => 'B99', 'name' => 'Blok Kebun Lain', 'area_ha' => '1']);
+        $this->get($detail)->assertInertia(fn (Assert $page) => $page->has('blocks', 1)->where('blocks.0.id', $block->id)
+            ->where('blocks.0.can.update', true)->where('can.createBlock', true)->where('blocks.0.deletionBlocked', false));
+        $this->patch($base.'/'.$block->id, ['name' => 'Blok Barat', 'return_to' => 'farm'])->assertRedirect($detail);
+        $this->assertSame('Blok Barat', $block->fresh()->name);
+        $this->delete($base.'/'.$block->id, ['return_to' => 'farm'])->assertRedirect($detail);
+        $this->assertDatabaseMissing('farm_blocks', ['id' => $block->id]);
+    }
+
+    public function test_target_volume_and_progress_are_persisted_and_scoped_to_current_farm_rounds(): void
+    {
+        $this->post('/admin/farm-management', $this->payload(['target_volume_ton' => '80.125']))->assertSessionHasNoErrors();
+        $farm = Farm::firstOrFail();
+        $blocks = app(\App\Services\FarmBlockService::class);
+        $block = $blocks->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+        $first = $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $otherFarm = app(FarmService::class)->create($this->payload(['name' => 'Kebun Lain']), $this->admin, $this->team);
+        $otherBlock = $blocks->create($otherFarm, $this->admin, $this->team, ['code' => 'B99', 'name' => 'Blok Lain', 'area_ha' => '2']);
+        $blocks->createBatch($otherBlock, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.target_volume_ton', '80.125')
+            ->where('farm.progress_overview.total', 2)->where('farm.progress_overview.stages.1.code', 'soil_preparation')->where('farm.progress_overview.stages.1.count', 2));
+        foreach ([0, -1, '0.0001', 'invalid'] as $invalid) {
+            $this->patch($url, ['target_volume_ton' => $invalid])->assertSessionHasErrors('target_volume_ton');
+        }
+        $this->patch($url, ['target_volume_ton' => '125.500'])->assertSessionHasNoErrors();
+        $this->assertSame('125.500', $farm->fresh()->getAttribute('target_volume_ton'));
+        \App\Models\PlantingCycle::where('planting_round_id', $first->planting_round_id)->update(['status' => 'cancelled']);
+        $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.progress_overview.total', 1)->where('farm.progress_overview.stages.1.count', 1));
+        $worker = $this->actor('petugas', $this->team);
+        $worker->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
+        $this->assertSame(0, app(FarmService::class)->progressOverview($farm, $worker, $this->team)['total']);
+        $this->assertSame(1, app(FarmService::class)->progressOverview($otherFarm, $worker, $this->team)['total']);
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
     public function test_guest_is_redirected_to_login(): void
     {
         auth()->logout();
@@ -203,7 +373,7 @@ class FarmManagementInertiaTest extends TestCase
         $this->actor('owner', $this->team);
         $this->get('/admin/farm-management/create')->assertInertia(fn (Assert $page) => $page
             // Admin user visibility intentionally excludes Owner and Superadmin records.
-            ->has('owners', 0));
+            ->missing('owners'));
     }
 
     public function test_web_validation_uses_session_errors_and_preserves_records(): void

@@ -51,7 +51,7 @@ use Illuminate\Support\Carbon;
 ])]
 class AiKnowledgeDocument extends Model
 {
-    use HasVisibleScope, HasUuids;
+    use HasUuids, HasVisibleScope;
 
     public const STATUS_DRAFT = 'draft';
 

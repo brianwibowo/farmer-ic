@@ -1,13 +1,12 @@
 <div id="startup-screen" class="startup-screen" role="status" aria-live="polite" aria-label="Memuat aplikasi Farm IC">
     <div class="startup-screen__brand">
         <img class="startup-screen__logo" src="/images/logo.png" width="150" height="150" alt="" fetchpriority="high">
-        <p class="startup-screen__name">Farm IC</p>
-        <div class="startup-screen__dots" aria-hidden="true">
-            <span style="--dot-index: 0"></span>
-            <span style="--dot-index: 1"></span>
-            <span style="--dot-index: 2"></span>
-            <span style="--dot-index: 3"></span>
-        </div>
+        <p class="startup-screen__name">Farm <span>IC</span></p>
+        <svg class="startup-screen__spiral" width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="32" cy="32" r="28" pathLength="100" stroke-dasharray="72 28" />
+            <circle cx="32" cy="32" r="19" pathLength="100" stroke-dasharray="67 33" />
+            <circle cx="32" cy="32" r="10" pathLength="100" stroke-dasharray="60 40" />
+        </svg>
     </div>
     <div id="startup-error" class="startup-screen__error" hidden>
         <p>Aplikasi belum siap. Silakan coba muat ulang.</p>

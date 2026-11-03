@@ -173,6 +173,9 @@ suggestions do not replace project tokens, factual content, or this guide.
 Admin layouts reuse `AdminHeader` for section navigation, tenant context, and
 theme switching. Keep its navigation and theme action on one row on small
 phones; long section titles may wrap without pushing controls off screen.
+The theme toggle matches NotificationBell: a 44px circular target, muted/40
+surface, primary-colored 20px icon and muted hover/pressed surface in both themes.
+Keep the accessible action label, tooltip and visible keyboard focus state.
 The dashboard uses two metric columns on phones. Field activities use a labeled
 officer select next to search at compact widths, and an officer panel only when
 there is room for both it and the table. Below the tablet breakpoint, present
@@ -269,6 +272,20 @@ The Figma page includes both full-color and LoFi variants. Use the active state 
 
 ## Login and password recovery pages
 
+### Application loading screen
+
+The shared startup screen shows the Farm IC logo/name with a 64px, three-layer
+spiral beneath it. Match the login wordmark: Instrument Sans, 24px semibold,
+32px line-height and tight tracking; Farm uses the foreground token and IC the
+primary token. Keep the vertical logo/name arrangement. Use three concentric
+open SVG arcs with rounded ends and
+the existing startup primary token. Vary rotation speed and reverse the middle
+layer; reduce opacity on the inner layers. Keep the status announcement, error
+recovery and existing dismissal flow. Respect reduced motion by showing static
+arcs. The loading visual follows both themes and fits small phone viewports.
+
+### Authentication layout
+
 - Use the Farmer IC palette for the shared login entry point, regardless of the
   role that will sign in. Retain the same profile on desktop and mobile.
 - On desktop, use two columns: brand, login form, and footer on the left; a
@@ -315,7 +332,7 @@ Dashboard menggunakan arsitektur **2 Kolom Utama** dengan pendekatan *Clean, Mod
     digulir (memuat Global Search, Profile, Notifikasi). Gunakan `top: 0`, latar
     surface yang opak, dan lapisan di bawah overlay drawer/dialog.
   * **Dynamic Content:** Konten yang berubah-ubah (Tabel, Metric Card, Form) dirender tepat di bawah Navbar.
-* **Corner Radius Default:** `12px` (map to the central radius token) untuk card, modal, dan container utama.
+* **Corner Radius:** `20px` untuk card konten/statistik melalui `--admin-card-radius`; `12px` untuk tombol, input, dan modal melalui token radius dasar.
 
 ### Desktop sidebar navigation
 
@@ -447,16 +464,40 @@ Keep white/dark-card surfaces and emerald accents through semantic utilities.
 Use Plus Jakarta Sans, 28px/700 page titles (26px on phones), 16px/600 section
 headings, 14px body/labels, 12px supporting text and 36px/700 metric values
 (32px on phones). Use admin-page-title, admin-section-title, admin-metric-value,
-and admin-panel. Panels share 12px corners, 18px desktop padding and 16px phone
+and admin-panel. Content and metric cards share 20px corners through
+`--admin-card-radius`; use `admin-card` for card containers that do not already
+use `admin-panel` or `dashboard-panel`. Keep button/input corners at 12px and
+sidebar menu corners at 6px. Panels use 18px desktop padding and 16px phone
 padding; section gaps are 18px. Page padding is 24px desktop and 16px phone.
 Keep admin-field controls, loading/empty/error states and existing permissions.
 
+On admin section index pages, show the section title only in the sticky navbar.
+`AdminHeader` supplies the page's semantic h1 there. Do not repeat that title
+above the content, and omit the introductory sentence/subtitle beneath it.
+Start listing content with metrics followed by the content card. Place permitted
+Tambah actions at the right of the same toolbar as search, filters and sorting
+inside that card, rather than in a separate row above metrics. Keep controls
+bottom-aligned and allow the toolbar to wrap on small screens without overflow.
+Dashboard filters retain their overview toolbar. Remove empty header wrappers.
+Detail and create/edit pages retain their
+record-specific names and action titles so the current context stays clear.
+Farmer/mobile pages retain their existing headings.
+
 ### Admin dashboard overview
+
+Show one personalized welcome sentence, `Selamat datang, {nama pengguna}!`,
+at the left of the overview toolbar using the authenticated Inertia user name.
+Use `Selamat datang!` when a name is unavailable. Keep the sentence in one inline
+text flow without an icon or forced line break. Use 20px/24px medium text
+(phone/desktop), with the user's name in bold emerald. Let long names wrap
+naturally only when needed to avoid overflow on small screens.
+Keep filters on the right; wrap the controls below it on small screens. This
+dashboard greeting does not repeat the navbar title or restore listing subtitles.
 
 The overview uses a light neutral gray canvas
 (`--admin-overview-background`, `#F3F4F6`) with white cards in light mode,
 and a muted forest canvas (`#111C17`)
-with the existing dark card surfaces in dark mode. Keep card corners at 12px and sidebar
+with the existing dark card surfaces in dark mode. Keep card corners at 20px and sidebar
 menu corners at 6px. Non-interactive cards use minimal borders and no hover lift.
 Keep the compact overview layout with readable, stronger typography: 28px bold
 page title, 16px semibold panel headings, 36px bold metric values, 14px semibold
@@ -486,12 +527,13 @@ for maintenance and other activities. Do not display fabricated trend deltas.
 
 ### Farm Management pages
 
-Use three summary cards for total farms, registered area and city coverage,
-backed by the existing database props. Summaries describe all visible farms;
+Start the Farm Management index directly with three summary cards for total farms, registered area and city coverage, backed by the existing database props. Do not show the former Kelola kebun heading or its introductory sentence. Place Tambah kebun beside the Daftar kebun table heading, above search and filters. Keep one screen-reader page heading. Summaries describe all visible farms;
 the list count reflects applied filters. On phones show two cards and a full-width
 coverage card, then a responsive list of farm cards instead of the desktop table.
 
-Keep search and its submit action on the toolbar. The Filter button opens a
+Keep search, its submit action, Filter, sorting and the permitted Tambah kebun
+action on one desktop toolbar row, with Tambah at the right edge. SOP uses the
+same arrangement for Tambah SOP. The Filter button opens a
 360px-wide dropdown directly below it, aligned to its right edge and constrained
 to the viewport width. Do not flip the dropdown above the trigger. Stack city,
 province, sort and direction fields inside. Constrain height to the available
@@ -504,23 +546,22 @@ surfaces, emerald titles and 18px gaps; keep the cascading address selectors.
 
 ### User Management pages
 
-Keep three sibling sections in order: a standalone page heading with its short
-tenant-aware subtitle and a right-aligned Tambah pengguna action; a standalone stat-card
-grid; then the content card containing directory navigation, search and the user
-list. Do not wrap the heading or stat cards inside the content card. Use the
-existing admin canvas, emerald, Plus Jakarta Sans and 12px corners.
+Keep a standalone stat-card grid followed by the content card containing
+directory navigation, search, filters, the permitted Tambah pengguna action and
+the user list. Do not wrap stat cards inside the content card. Use the
+existing admin canvas, emerald, Plus Jakarta Sans and 20px card corners.
 Keep Pengguna and permission-gated Terhapus links with an active underline and
 real counts when provided by the backend. Do not repeat role summary chips in
 the toolbar; keep role selection inside the Filter dropdown. Place search, its
-submit action and the Filter button together on one toolbar row inside the
+submit action, Filter and Tambah pengguna together on one toolbar row inside the
 content card. Match Farm Management: a 40px outlined Filter button with its icon,
 visible label and inline count (secondary when filtered). The 40px emerald
-Tambah pengguna button has a Plus icon and full label, and sits at the upper
-right beside the page title, outside the content card. Both use the shared 12px
+Tambah pengguna button has a Plus icon and full label, and sits at the right
+edge of that toolbar, after Filter. Both use the shared 12px
 radius and 44px touch targets. Use a square search-submit button with an accessible
-name. Keep search flexible on phones; let the header wrap with Add aligned right
+name. Keep search flexible on phones; let the toolbar wrap with Add aligned right
 when space is limited. Keep Filter outside the search form to avoid nested forms.
-Place stat cards below the heading and above the content card: Total pengguna
+Place stat cards above the content card: Total pengguna
 plus each role already provided in the permitted summary (Admin/Petugas,
 Owner for multi-tenant views and Superadmin for the global view). Use real
 unfiltered scoped totals, bold 36px numbers, white/dark card surfaces and line
@@ -544,6 +585,30 @@ Create/edit/detail pages reuse admin-panel surfaces and the shared typography.
 Do not add invitation, favorites, bulk actions, sorting or fabricated counts
 unless those capabilities are implemented and authorized. Empty, loading, error,
 keyboard focus and both themes must remain usable.
+
+### Desktop admin logbook
+
+Logbook has its own permission-gated admin sidebar item and LogbookLayout.
+Use the shared neutral canvas, white stat cards and content card in that order;
+the section title appears only in the navbar, without an introductory sentence.
+The directory lists accessible farms with persisted
+report counts and their latest work date, including farms without reports.
+Search uses farm name/location; summary cards describe the full visible scope.
+
+The farm page keeps the admin sidebar, a back link, farm identity, summary cards,
+date/recorder filters and paginated history. Admin logbook screens are read-only:
+do not show Catat logbook, a report form or other write actions. Petugas records
+reports through the existing mobile flow for its assigned farm. Keep WIB times
+and the same persisted activity details in desktop history and report views.
+
+Report details use a wide main column for report data, daily notes, measurement
+grids, obstacles, proposed solutions and actions; a side panel shows farm context
+and recording dates. Missing measurements remain an em dash. Show reported
+obstacles as recorded facts, without inventing a resolution or approval status.
+Tables become equivalent cards on phones; filters and detail columns stack.
+Keep loading, no-results/empty states, pagination, light/dark themes and keyboard
+focus. Admin farm links open this desktop flow; the existing mobile flow remains
+available to field workers and its routes are not repurposed.
 
 ### Desktop task-list tables
 
@@ -652,8 +717,9 @@ preserved until changed.
 Block pages reuse `FarmManagementLayout` when the backend shared navigation
 permits Farm Management, including the Admin sidebar, header, typography,
 `admin-field` controls, and themed dialog portals. Keep Manajemen Kebun active
-while visiting block routes. On wide desktop screens, batch capacity and its form
-share two columns; on mobile they remain sequential. Block forms follow the farm
+while visiting block routes. Farm detail uses one overview panel: registered area, location, user-entered harvest target in tonnes, and the number of sub blocks at each persisted stage come first; the location map follows within the same panel. The header combines the back action and farm name on one row, with compact top padding so the overview is visible immediately. Use the shared 36px/700 metric style (32px on phones) for area, target, and sub block counts, with a bold location name. Use complete, beginner-friendly labels: Status lahan before Milik sendiri/Sewa/Kerja sama, Komoditas yang ditanam, and Panduan budidaya (SOP). Each progress item names its unit and action, for example 2 sub blok sedang dalam pengolahan tanah. Never show unexplained fragments such as 1 Pengolahan tanah. Team and owner information do not appear in the detail. Logbook is a text link. The block table follows the overview; create/edit actions open a shared dialog and return to that detail. Farm forms choose a commodity before its matching SOP. Sub block create/edit uses a dialog, while each sub block always shows its stages and start/completion dates without a progress disclosure.
+
+Block and sub block editor dialogs use a roomy 768px maximum desktop width, constrained to the viewport on phones. Use card surfaces, semantic tokens, a context header with the existing icon system, a visible capacity summary, two form columns where space permits, and an independently scrolling body. Keep the separated Batal/Simpan footer visible while scrolling; hide duplicate submit/close actions while processing. Retain focus trapping, keyboard dismissal, unsaved-change confirmation, inline errors, and both profile themes. Block forms follow the farm
 form width, and compact list metrics retain their units.
 Capacity metrics provide an information button with a 44px touch target using
 `MetricInfoTooltip`; explain block boundaries, batch reservations, and a labeled
@@ -664,8 +730,7 @@ and `farm-block-theme` for contrast corrections, including dialog
 portals. Primary button labels use a dark foreground on the existing light green;
 error/success text has separate dark values. Keep Admin tokens in the existing
 admin stylesheet. On mobile, compact statistics retain units, optional list
-filters can collapse, and batch timelines expose their current stage before the
-expandable six-stage history. A visible return link preserves the permitted Admin
+filters can collapse, and batch timelines show all stages and their dates without an expansion step. A visible return link preserves the permitted Admin
 context when moving between farm details, blocks, and logbook.
 
 Admin dashboard screens share `resources/css/admin-dashboard-styling.css` for

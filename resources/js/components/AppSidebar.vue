@@ -77,6 +77,9 @@ const mainNavItems = computed<NavItem[]>(() => [
               },
           ]
         : []),
+    ...(page.props.navigation?.admin && page.props.navigation?.logbook
+        ? [{ title: 'Logbook', href: '/admin/logbook', icon: BookOpen }]
+        : []),
     ...(page.props.navigation?.admin
         ? [
               {

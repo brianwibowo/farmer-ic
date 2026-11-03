@@ -42,7 +42,7 @@ use Illuminate\Support\Carbon;
 ])]
 class AiKnowledgeChunk extends Model
 {
-    use HasVisibleScope, HasUuids;
+    use HasUuids, HasVisibleScope;
 
     public const STATUS_PENDING = 'pending';
 

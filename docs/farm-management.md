@@ -212,3 +212,44 @@ protected by the portal Gate as well as their existing resource checks. Public
 Farmer prototype routes remain public and show bundled demo data; existing
 daily-log and local/testing JSON API routes retain their own checks. This change
 does not claim that all other application routes have been audited.
+
+## Revisi alur kebun dan blok (3 November 2026)
+
+Detail kebun memakai satu section: luas kebun, lokasi, target volume panen
+dalam ton, dan ringkasan tahap sub blok ditampilkan sebelum peta. Tabel blok
+berada di bawah section tersebut. Header dan padding atas dipadatkan, dengan
+angka utama menggunakan gaya metrik Admin agar langsung terbaca. Tim dan
+Pemilik tidak ditampilkan; Logbook memakai tautan teks. Tambah/Ubah blok memakai
+komponen dialog bersama dan kembali ke detail kebun setelah penyimpanan. Hapus
+blok tetap memakai konfirmasi dan mempertahankan penolakan untuk blok berhistori.
+
+Form kebun memilih komoditas sebelum SOP. `farms.commodity_id` disimpan secara
+terpisah sehingga komoditas dapat dipilih walaupun belum tersedia SOP. SOP harus
+berasal dari tenant yang sama dan cocok dengan komoditas; backend memvalidasi
+kombinasi tersebut termasuk pada PATCH. Mengubah komoditas mengosongkan SOP yang
+tidak cocok. Pemilik existing tidak diubah oleh form baru. Migration tambahan
+`2026_11_03_000001_add_commodity_to_farms.php` mengisi komoditas dari SOP existing
+hanya ketika tenant keduanya sesuai; tidak mereset data atau mengubah baseline.
+
+Target panen `farms.target_volume_ton` berasal dari input Create/Edit kebun,
+bukan perhitungan AI atau perkiraan dari luas lahan. Presisi maksimal 3 desimal;
+1 ton = 1.000 kg. Kebun lama tanpa target menampilkan Belum diisi. Migration
+`2026_11_03_000002_add_target_volume_to_farms.php` tidak mengarang target untuk
+kebun existing. Seeder instalasi demo baru menggunakan target 80 ton dan komoditas
+Jagung; target existing tidak ditimpa.
+
+Progres menghitung sub blok dalam periode aktif, dikelompokkan menurut tahap
+berstatus in_progress yang tersimpan. Sub blok harvested pada periode aktif
+masuk kelompok Panen; yang tidak memiliki tahap berjalan ditandai Belum dimulai.
+Periode tertutup dan sub blok cancelled tidak dihitung. Semua query model,
+termasuk tahap dan periode, memakai visibleTo sebelum agregasi.
+
+Dialog blok/sub blok memakai lebar desktop maksimal 768px, header berkonteks,
+ringkasan kapasitas, body yang dapat digulir, dan footer tindakan yang tetap
+terlihat. Tampilan tetap mengikuti profil Admin/Farmer dan design.md.
+
+Daftar kebun langsung diawali tiga kartu ringkasan; heading Kelola kebun dan
+kalimat pembuka lama dihapus. Tambah kebun berada di header Daftar kebun,
+sebelum pencarian/filter. Detail menggunakan label Status lahan, Komoditas yang
+ditanam, dan Panduan budidaya (SOP). Progres menjelaskan unit dan pekerjaan,
+misalnya 2 sub blok sedang dalam pengolahan tanah, bukan angka tanpa konteks.

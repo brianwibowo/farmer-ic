@@ -52,7 +52,10 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        $user->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user): void {
+            \App\Models\Farm::query()->where('pic_user_id', $user->id)->update(['pic_user_id' => null]);
+            $user->delete();
+        });
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

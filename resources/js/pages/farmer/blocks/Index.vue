@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Plus } from '@lucide/vue';
+import { ref, computed } from 'vue';
+import BlockDialog from '@/components/blocks/BlockDialog.vue';
 import { Button } from '@/components/ui/button';
 import BlockLayout from '@/layouts/BlockLayout.vue';
-import type { BlockFarm, FarmBlock } from '@/types/blocks';
+import type { BlockFarm, FarmBlock, BlockFormCapacity } from '@/types/blocks';
 import { hectares } from '@/types/farms';
 
 defineOptions({ layout: BlockLayout, inheritAttrs: false });
@@ -19,10 +21,16 @@ const props = defineProps<{
         prev_page_url: string | null;
         next_page_url: string | null;
     };
+    blockCapacity: BlockFormCapacity;
     summary: { total: number; active: number; active_area_ha: string };
     filters: { search: string; status: string; per_page: number };
     can: { create: boolean };
 }>();
+const creating = ref(false);
+const page = usePage();
+const theme = computed(() =>
+    page.props.navigation?.farms ? 'admin-dashboard-theme' : 'farm-block-theme',
+);
 const filters = useForm({ ...props.filters });
 function reset(): void {
     filters.search = '';
@@ -51,10 +59,11 @@ function search(): void {
                 penanamannya.
             </p>
         </div>
-        <Button v-if="can.create" as-child class="block-action h-10"
-            ><Link :href="`/kebun/${farm.id}/blocks/create`"
-                ><Plus />Tambah blok</Link
-            ></Button
+        <Button
+            v-if="can.create"
+            class="block-action h-10"
+            @click="creating = true"
+            ><Plus />Tambah blok</Button
         >
     </header>
     <div class="grid grid-cols-3 gap-2 sm:gap-4">
@@ -221,4 +230,11 @@ function search(): void {
             >
         </div>
     </nav>
+    <BlockDialog
+        v-model:open="creating"
+        :farm="farm"
+        :block="null"
+        :capacity="blockCapacity"
+        :theme="theme"
+    />
 </template>

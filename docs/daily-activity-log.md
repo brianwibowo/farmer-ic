@@ -1,5 +1,45 @@
 # Daily activity log: block mapping
 
+## Desktop admin logbook
+
+The admin sidebar now includes **Logbook**. `/admin/logbook` lists visible farms,
+their scoped report counts and latest report dates. `/admin/logbook/{farm}` opens
+read-only desktop history, date/recorder filters and pagination.
+`/admin/logbook/{farm}/{dailyLog}` shows the full desktop report, measurement
+details, notes, obstacles, proposed solutions and actions. The Farm Management
+detail link now opens this desktop flow. The existing `/kebun/.../daily-logs`
+mobile pages and compatibility JSON routes remain unchanged.
+
+| Method | Route | Authorization |
+| --- | --- | --- |
+| GET | `/admin/logbook` | admin.access; Farm and DailyActivityLog viewAny in trusted team context |
+| GET | `/admin/logbook/{farm}` | admin.access; Farm view; DailyActivityLog viewAny for farm.team |
+| GET | `/admin/logbook/{farm}/{dailyLog}` | same parent checks; scoped lookup in that farm; DailyActivityLog view |
+
+`AdminLogbookController` authorizes actions before calling services. Reads use
+`AdminLogbookService` and apply `visibleTo` to farms, reports, activity counts,
+recorders, activity types and mapping details before aggregation, pagination or
+serialization. Farm visibility also constrains report reads; a report UUID from
+another farm returns 404 inside the authorized parent. Foreign farms return 403.
+The sidebar boolean is computed once in shared props from the same viewAny
+abilities. Admin has only `daily_activity_logs.view`: create, update and delete
+grants are absent. Existing mobile and JSON write endpoints therefore return
+403 for Admin as well. Petugas retains `create = own` for its assigned farm;
+Owner stays read-only and the existing developer Superadmin bypass is retained.
+
+The desktop has no report form or write route. Petugas records reports through
+the existing mobile Inertia flow, using `StoreDailyActivityLogRequest` and
+`DailyActivityLogService` with the authenticated recorder identity. This adds no
+external API, migrations, duplicate operational tables or frontend-only records.
+Summary cards are unfiltered visible-scope totals; list totals follow filters.
+Kendala counts mean activities marked `reported`, not unresolved incidents.
+
+Focused integration coverage is in `tests/Feature/Activity/AdminLogbookTest.php`:
+role admission, navigation grants, tenant/farm boundaries, scoped totals and
+recorders, missing grants, own scope, date validation, parent binding and trusted
+mobile write identity/persistence and Admin write denial. Use the existing dedicated PostgreSQL test harness;
+never reset the application database to run these checks.
+
 This slice stores a complete daily report with one or more block mapping
 activities in PostgreSQL. The primary user flow is a server-backed Inertia page:
 the controller renders the page and redirects form submissions while the service

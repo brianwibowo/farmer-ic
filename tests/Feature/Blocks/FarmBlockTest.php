@@ -82,6 +82,69 @@ class FarmBlockTest extends TestCase
         DB::statement('SET CONSTRAINTS ALL DEFERRED');
     }
 
+    public function test_preparation_batch_edit_persists_without_changing_progress_and_reuses_its_capacity(): void
+    {
+        $block = $this->block('B01', '5');
+        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '4'])->assertRedirect();
+        $batch = PlantingCycle::firstOrFail();
+        $stages = PlantingCycleStage::orderBy('position')->get()->toArray();
+        $url = $this->url($block).'/batches/'.$batch->id;
+        $this->put($url, ['area_value' => '50000', 'area_unit' => 'm2', 'subblock_label' => ' c ', 'planned_planting_at' => '2026-12-05'])->assertSessionHasNoErrors()->assertRedirect($this->url($block));
+        $this->assertSame('5.0000', $batch->fresh()->getAttribute('reserved_area_ha'));
+        $this->assertSame('C', $batch->fresh()->getAttribute('subblock_label'));
+        $this->assertSame('2026-12-05', $batch->fresh()->planned_planting_at?->toDateString());
+        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page->where('batches.0.planned_planting_at', '2026-12-05'));
+        $this->assertSame($stages, PlantingCycleStage::orderBy('position')->get()->toArray());
+        $this->put($url, ['reserved_area_ha' => '5.0001'])->assertSessionHasErrors('reserved_area_ha');
+        $this->put($url, ['reserved_area_ha' => '4', 'status' => 'active', 'farm_id' => $this->farm->id])->assertSessionHasErrors(['status', 'farm_id']);
+        $this->constraints();
+    }
+
+    #[DataProvider('roles')]
+    public function test_batch_update_obeys_policy_and_assigned_farm(string $role, bool $unused): void
+    {
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
+        $batch = PlantingCycle::firstOrFail();
+        $actor = User::factory()->create(['role' => $role]);
+        if ($role !== 'superadmin') {
+            $this->join($actor);
+        }
+        $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
+        $this->actingAs($actor);
+        $allowed = $role !== 'owner';
+        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page->where('batchPermissions.'.$batch->id, $allowed));
+        $response = $this->put($this->url($block).'/batches/'.$batch->id, ['reserved_area_ha' => '2']);
+        $allowed ? $response->assertRedirect() : $response->assertForbidden();
+        if ($role === 'petugas') {
+            $actor->forceFill(['assigned_farm_id' => null])->save();
+            $this->put($this->url($block).'/batches/'.$batch->id, ['reserved_area_ha' => '1'])->assertForbidden();
+        }
+        $this->constraints();
+    }
+
+    public function test_batch_update_rejects_duplicate_label_wrong_parent_cross_team_and_started_planting(): void
+    {
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1', 'subblock_label' => 'A'])->assertRedirect();
+        $batch = PlantingCycle::firstOrFail();
+        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1', 'subblock_label' => 'B'])->assertRedirect();
+        $url = $this->url($block).'/batches/'.$batch->id;
+        $this->put($url, ['reserved_area_ha' => '1', 'subblock_label' => 'B'])->assertSessionHasErrors('subblock_label');
+        $other = $this->block('B02');
+        $this->put($this->url($other).'/batches/'.$batch->id, ['reserved_area_ha' => '1'])->assertNotFound();
+        $foreign = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($foreign)->put($url, ['reserved_area_ha' => '1', 'team_id' => $this->team->id])->assertSessionHasErrors('team_id');
+        $this->put($url, ['reserved_area_ha' => '1'])->assertForbidden();
+        $this->actingAs($this->admin);
+        $commodity = Commodity::create(['name' => 'Jagung Persiapan']);
+        $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi Persiapan']);
+        $batch->forceFill(['variety_id' => $variety->id, 'planted_at' => '2026-11-03', 'planted_area_ha' => '1', 'status' => 'active'])->save();
+        $this->put($url, ['reserved_area_ha' => '2'])->assertSessionHasErrors('subblock_label');
+        $this->assertSame('1.0000', $batch->fresh()->getAttribute('reserved_area_ha'));
+        $this->constraints();
+    }
+
     public function test_block_area_units_are_converted_on_create_and_update(): void
     {
         $this->post($this->url(), ['code' => 'M01', 'name' => 'Blok Konversi', 'area_value' => '12500', 'area_unit' => 'm2'])->assertRedirect();
@@ -375,6 +438,8 @@ class FarmBlockTest extends TestCase
     {
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoFarmBlockSeeder::class]);
         $demo = Farm::where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $this->assertSame('80.000', $demo->getAttribute('target_volume_ton'));
+        $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), $demo->getAttribute('commodity_id'));
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();
         $batchIds = PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all();
         $this->assertCount(2, $batchIds);
@@ -401,17 +466,20 @@ class FarmBlockTest extends TestCase
     {
         $this->seed(BlockMappingActivityTypeSeeder::class);
         $block = $this->block();
+        $petugas = User::factory()->create(['role' => 'petugas']);
+        $this->join($petugas);
+        $petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $payload = ['work_date' => now('Asia/Jakarta')->format('Y-m-d'), 'start_time' => '08:00', 'end_time' => '10:00', 'worker_count' => 2,
             'activities' => [['type' => 'block_mapping', 'obstacle_status' => 'none',
                 'block_mapping' => ['block_id' => $block->id, 'block_name' => 'Nama saat pengukuran', 'length_m' => '100', 'width_m' => '100']]]];
-        $this->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertRedirect();
-        $this->patch($this->url($block), ['name' => 'Nama Baru'])->assertRedirect();
+        $this->actingAs($petugas)->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($this->admin)->patch($this->url($block), ['name' => 'Nama Baru'])->assertRedirect();
         $this->assertDatabaseHas('block_mapping_details', ['block_id' => $block->id, 'block_name' => 'Nama saat pengukuran']);
         $this->delete($this->url($block))->assertSessionHasErrors('delete');
         $other = $this->farm();
         $otherBlock = $this->block('B99', '1', $other);
         $payload['activities'][0]['block_mapping']['block_id'] = $otherBlock->id;
-        $this->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertSessionHasErrors('activities.0.block_mapping.block_id');
+        $this->actingAs($petugas)->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertSessionHasErrors('activities.0.block_mapping.block_id');
         $this->assertDatabaseCount('daily_activity_logs', 1);
         $this->constraints();
     }

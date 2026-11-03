@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class AiUsageEvent extends Model
 {
-    use HasVisibleScope, HasUuids;
+    use HasUuids, HasVisibleScope;
 
     protected function casts(): array
     {
