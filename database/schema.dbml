@@ -191,7 +191,7 @@ Table planting_cycle_tasks {
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
   planting_cycle_stage_id uuid [not null, note: 'Composite FK to a stage of the same subblok']
   sop_template_task_id uuid [ref: > sop_template_tasks.id]
-  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest']
+  activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not a task']
   activity_subcategory varchar(50) [note: 'Wajib untuk maintenance']
   name varchar(200) [not null]
   instructions text

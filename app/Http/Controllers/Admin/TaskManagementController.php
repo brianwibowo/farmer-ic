@@ -121,6 +121,7 @@ class TaskManagementController extends Controller
     {
         $query = PlantingCycleTask::query()
             ->visibleTo($user, $team)
+            ->whereIn('activity_category', PlantingCycleTask::CATEGORIES)
             ->with($this->relations());
 
         if (($filters['search'] ?? '') !== '') {

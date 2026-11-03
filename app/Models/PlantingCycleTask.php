@@ -42,6 +42,8 @@ class PlantingCycleTask extends FarmerModel
 {
     public const STATUSES = ['pending', 'in_progress', 'submitted', 'completed', 'skipped', 'cancelled'];
 
+    public const CATEGORIES = ['maintenance', 'harvest'];
+
     protected $table = 'planting_cycle_tasks';
 
     public $timestamps = true;
@@ -87,7 +89,7 @@ class PlantingCycleTask extends FarmerModel
         return $this->belongsTo(User::class, 'rescheduled_by');
     }
 
-    public function effectiveScheduledDate(): CarbonImmutable|null
+    public function effectiveScheduledDate(): ?CarbonImmutable
     {
         return $this->rescheduled_date ?? $this->scheduled_date;
     }

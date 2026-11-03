@@ -147,10 +147,13 @@ class TaskManagementTest extends TestCase
                 ->where('tasks.data.0.id', $pending->id));
     }
 
-    public function test_block_and_subblok_filters_must_be_valid_uuids(): void
+    public function test_invalid_task_filters_are_rejected(): void
     {
         $this->get('/admin/tasks?block_id=not-a-block&subblok_id=not-a-subblok')
             ->assertSessionHasErrors(['block_id', 'subblok_id']);
+
+        $this->get('/admin/tasks?category=planting')
+            ->assertSessionHasErrors('category');
     }
 
     public function test_admin_can_open_task_detail(): void

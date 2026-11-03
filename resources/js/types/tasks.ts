@@ -1,7 +1,6 @@
 import {
     sopActivityCategoryLabels,
     sopActivitySubcategoryLabels,
-    type SopActivityCategory,
     type SopActivitySubcategory,
 } from '@/types/sop';
 
@@ -15,13 +14,15 @@ export type AdminTaskStatus =
 
 export type AdminTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
+export type AdminTaskCategory = 'maintenance' | 'harvest';
+
 export type AdminTask = {
     id: string;
     name: string;
     instructions: string | null;
     status: AdminTaskStatus;
     urgency: AdminTaskUrgency;
-    activity_category: SopActivityCategory;
+    activity_category: AdminTaskCategory;
     activity_subcategory: SopActivitySubcategory | null;
     offset_days: number;
     scheduled_date: string | null;
@@ -108,10 +109,10 @@ export const adminTaskStatusOptions = Object.entries(adminTaskStatusLabels) as [
     string,
 ][];
 
-export const adminTaskCategoryOptions = Object.entries(sopActivityCategoryLabels) as [
-    SopActivityCategory,
-    string,
-][];
+export const adminTaskCategoryOptions: [AdminTaskCategory, string][] = [
+    ['maintenance', sopActivityCategoryLabels.maintenance],
+    ['harvest', sopActivityCategoryLabels.harvest],
+];
 
 export function adminTaskCategoryLabel(task: Pick<AdminTask, 'activity_category'>): string {
     return sopActivityCategoryLabels[task.activity_category] ?? task.activity_category;

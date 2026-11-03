@@ -63,7 +63,7 @@ type PetugasTask = {
         | 'skipped'
         | 'cancelled';
     urgency: 'overdue' | 'today' | 'upcoming' | 'completed';
-    activity_category: 'planting' | 'maintenance' | 'harvest';
+    activity_category: 'maintenance' | 'harvest';
     activity_subcategory:
         | 'irrigation'
         | 'weeding'

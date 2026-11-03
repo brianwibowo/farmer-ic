@@ -13,7 +13,6 @@ class PlantingCycleTaskService
 {
     /** @var array<string, string> */
     private const STAGE_BY_CATEGORY = [
-        'planting' => 'planting',
         'maintenance' => 'maintenance',
         'harvest' => 'harvest',
     ];

@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\FarmBlockService;
 use App\Services\PlantingCycleTaskService;
 use App\Services\SopTemplateService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -132,6 +133,29 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertSame('2027-02-03', $harvest->scheduled_date->toDateString());
         $this->assertSame('2027-02-08', $harvest->due_date->toDateString());
         $this->assertSame('harvest', $harvest->stage->code);
+    }
+
+    public function test_planting_cannot_be_persisted_as_a_cycle_task(): void
+    {
+        $subblok = $this->subblok();
+        $stage = $subblok->stages()->where('code', 'planting')->firstOrFail();
+
+        $this->expectException(QueryException::class);
+
+        PlantingCycleTask::query()->create([
+            'planting_cycle_id' => $subblok->id,
+            'planting_cycle_stage_id' => $stage->id,
+            'activity_category' => 'planting',
+            'activity_subcategory' => null,
+            'name' => 'Tanam benih',
+            'instructions' => null,
+            'offset_days' => 0,
+            'tolerance_days' => 2,
+            'scheduled_date' => '2026-11-05',
+            'due_date' => '2026-11-07',
+            'is_required' => true,
+            'status' => 'pending',
+        ]);
     }
 
     public function test_generation_is_idempotent_and_reschedules_only_pending_tasks(): void

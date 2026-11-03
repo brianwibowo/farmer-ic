@@ -28,7 +28,7 @@ class ListTasksRequest extends FormRequest
             'block_id' => ['nullable', 'uuid'],
             'subblok_id' => ['nullable', 'uuid'],
             'status' => ['nullable', Rule::in(PlantingCycleTask::STATUSES)],
-            'category' => ['nullable', Rule::in(['planting', 'maintenance', 'harvest'])],
+            'category' => ['nullable', Rule::in(PlantingCycleTask::CATEGORIES)],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
