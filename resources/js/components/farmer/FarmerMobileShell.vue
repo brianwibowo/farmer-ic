@@ -10,10 +10,12 @@ import { router } from '@inertiajs/vue3';
 
 type Props = {
     activeKey?: FarmerNavKey;
+    showNavigation?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
     activeKey: 'home',
+    showNavigation: true,
 });
 
 const emit = defineEmits<{
@@ -98,7 +100,7 @@ function select(key: FarmerNavKey): void {
                 <slot />
             </main>
 
-            <slot name="navigation">
+            <slot v-if="props.showNavigation" name="navigation">
                 <FarmerBottomNav :active-key="selectedKey" @select="select" />
             </slot>
             <Toaster />
