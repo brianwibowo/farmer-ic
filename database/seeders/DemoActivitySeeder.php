@@ -22,17 +22,6 @@ class DemoActivitySeeder extends Seeder
         $petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
         $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
 
-        foreach ([
-            ['code' => 'planting', 'name' => 'Penanaman', 'description' => 'Pencatatan proses penanaman.'],
-            ['code' => 'fertilization', 'name' => 'Pemupukan', 'description' => 'Pencatatan pemupukan tanaman.'],
-            ['code' => 'irrigation', 'name' => 'Irigasi', 'description' => 'Pencatatan pengairan lahan.'],
-            ['code' => 'growth_check', 'name' => 'Pengecekan Pertumbuhan', 'description' => 'Observasi pertumbuhan dan kesehatan tanaman.'],
-            ['code' => 'pesticide', 'name' => 'Pengendalian Hama', 'description' => 'Pencatatan aplikasi pengendalian hama.'],
-            ['code' => 'incident', 'name' => 'Insiden Kebun', 'description' => 'Pencatatan insiden dan tindak lanjutnya.'],
-            ['code' => 'harvest', 'name' => 'Panen', 'description' => 'Pencatatan hasil panen.'],
-        ] as $type) {
-            ActivityType::query()->firstOrCreate(['code' => $type['code']], $type);
-        }
         $this->call(BlockMappingActivityTypeSeeder::class);
 
         if (! DailyActivityLog::query()->where('farm_id', $farm->id)->exists()) {
@@ -67,7 +56,7 @@ class DemoActivitySeeder extends Seeder
             'planting_pattern' => 'Jarak tanam 20 x 40 cm',
             'area_ha' => 4.2500,
         ]);
-        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'fertilization', 'Pemupukan dasar Blok 1', [
+        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'follow_up_fertilization', 'Pemupukan dasar Blok 1', [
             'fertilization_stage' => 'Pemupukan dasar',
             'fertilizer_type' => 'NPK 15-15-15',
             'brand_name' => 'NPK Demo',
@@ -81,7 +70,7 @@ class DemoActivitySeeder extends Seeder
             'machine_type' => 'Pompa listrik',
             'duration_hours' => 2.50,
         ]);
-        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'pesticide', 'Pengendalian ulat Blok 1', [
+        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'pest_control', 'Pengendalian ulat Blok 1', [
             'pesticide_category' => 'Biologis',
             'purpose' => 'Pengendalian ulat daun',
             'brand_name' => 'Bt Demo',
@@ -139,9 +128,9 @@ class DemoActivitySeeder extends Seeder
             ]);
             $relation = match ($typeCode) {
                 'planting' => 'plantingDetail',
-                'fertilization' => 'fertilizationDetail',
+                'follow_up_fertilization' => 'fertilizationDetail',
                 'irrigation' => 'irrigationDetail',
-                'pesticide' => 'pesticideDetail',
+                'pest_control' => 'pesticideDetail',
                 'incident' => 'incidentDetail',
                 'harvest' => 'harvestDetail',
                 default => throw new \LogicException("Unsupported demo activity type {$typeCode}"),

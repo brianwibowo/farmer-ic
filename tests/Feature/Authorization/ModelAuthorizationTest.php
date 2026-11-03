@@ -119,6 +119,7 @@ class ModelAuthorizationTest extends TestCase
             'Farm' => $farm,
             'Membership' => $team->memberships()->where('user_id', $user->id)->firstOrFail(),
             'Role' => Role::query()->firstOrFail(),
+            'ActivityType' => \App\Models\ActivityType::query()->where('code', 'growth_check')->firstOrFail(),
             'AdministrativeRegion' => \App\Models\AdministrativeRegion::find('32') ?? \App\Models\AdministrativeRegion::forceCreate(['code' => '32', 'name' => 'Jawa Barat', 'level' => 1]),
             default => null,
         };
@@ -133,7 +134,6 @@ class ModelAuthorizationTest extends TestCase
         $attributes += match ($name) {
             'Commodity' => ['name' => 'Commodity '.$farm->id],
             'CropVariety' => ['commodity_id' => $this->record(Commodity::class, $user, $team, $farm)->getKey(), 'name' => 'Variety '.$farm->id],
-            'ActivityType' => ['code' => 'growth_check', 'name' => 'Growth check'],
             'FarmActivity' => ['farm_id' => $farm->id, 'activity_type_id' => $this->record(\App\Models\ActivityType::class, $user, $team, $farm)->getKey(), 'performed_by' => $user->id, 'activity_date' => now(), 'created_at' => now()],
             'DailyActivityLog' => ['farm_id' => $farm->id, 'recorded_by' => $user->id, 'work_date' => today(), 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 1, 'created_at' => now()],
             'BlockMappingDetail' => ['block_name' => 'Block 1', 'length_m' => '10', 'width_m' => '10'],

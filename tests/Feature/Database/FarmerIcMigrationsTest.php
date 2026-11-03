@@ -478,8 +478,22 @@ SQL, [$table]), 'columns');
             'farm_id' => $this->ids['other_farm'], 'status' => 'active',
             'planted_at' => '2026-09-01', 'variety_id' => $this->ids['crop_varieties'],
         ]);
-        foreach (['planting', 'fertilization', 'irrigation', 'growth_check', 'pesticide', 'incident', 'harvest'] as $code) {
-            $this->types[$code] = $this->insert('activity_types', ['code' => $code, 'name' => $code]);
+        $types = [
+            'planting' => ['detail_key' => 'planting'],
+            'follow_up_fertilization' => ['detail_key' => 'fertilization'],
+            'irrigation' => ['detail_key' => 'irrigation'],
+            'growth_check' => ['detail_key' => 'growth_check'],
+            'pest_control' => ['detail_key' => 'pesticide'],
+            'incident' => ['detail_key' => 'incident'],
+            'harvest' => ['detail_key' => 'harvest'],
+        ];
+        foreach ($types as $code => $attributes) {
+            $this->types[$code] = $this->database->table('activity_types')->where('code', $code)->value('id')
+                ?? $this->insert('activity_types', [
+                    'code' => $code,
+                    'name' => $code,
+                    ...$attributes,
+                ]);
         }
         $this->ids['financial_categories'] = $this->insert('financial_categories', ['name' => 'Sales', 'transaction_type' => 'income']);
         $this->ids['expense_category'] = $this->insert('financial_categories', ['name' => 'Fertilizer', 'transaction_type' => 'expense']);
@@ -497,6 +511,8 @@ SQL, [$table]), 'columns');
             ], $overrides));
             $detail = match ($code) {
                 'growth_check' => 'plant_observations',
+                'follow_up_fertilization' => 'fertilization_details',
+                'pest_control' => 'pesticide_details',
                 default => $code === 'harvest' ? 'harvest_details' : $code.'_details',
             };
             $this->insert($detail, ['activity_id' => $id]);
@@ -574,15 +590,15 @@ SQL, [$table]), 'columns');
         }, '23514');
         $this->reject(fn () => $this->insert('planting_details', ['activity_id' => $this->ids['irrigation_activity']]), '23514');
         $this->reject(fn () => $this->database->table('irrigation_details')->where('activity_id', $this->ids['irrigation_activity'])->delete(), '23514');
-        $this->reject(fn () => $this->database->table('farm_activities')->where('id', $this->ids['irrigation_activity'])->update(['activity_type_id' => $this->types['fertilization']]), '23514');
+        $this->reject(fn () => $this->database->table('farm_activities')->where('id', $this->ids['irrigation_activity'])->update(['activity_type_id' => $this->types['follow_up_fertilization']]), '23514');
         $this->reject(fn () => $this->activity('harvest', ['activity_date' => '2026-08-01 00:00:00+00']), '23514');
         foreach ([
             ['planting_details', 'planting', 'quantity_kg', -1],
             ['planting_details', 'planting', 'area_ha', -1],
-            ['fertilization_details', 'fertilization', 'quantity_kg', -1],
+            ['fertilization_details', 'follow_up_fertilization', 'quantity_kg', -1],
             ['irrigation_details', 'irrigation', 'duration_hours', -1],
-            ['pesticide_details', 'pesticide', 'tank_count', -1],
-            ['pesticide_details', 'pesticide', 'tank_size_liters', -1],
+            ['pesticide_details', 'pest_control', 'tank_count', -1],
+            ['pesticide_details', 'pest_control', 'tank_size_liters', -1],
             ['incident_details', 'incident', 'affected_area_ha', -1],
             ['harvest_details', 'harvest', 'gross_weight_ton', -1],
             ['harvest_details', 'harvest', 'moisture_percentage', 101],

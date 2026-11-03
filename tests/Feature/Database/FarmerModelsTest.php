@@ -137,9 +137,9 @@ class FarmerModelsTest extends TestCase
     {
         $details = [
             ['planting', PlantingDetail::class, 'plantingDetail', ['seed_name' => 'Bisi 18', 'area_ha' => '5.1250']],
-            ['fertilization', FertilizationDetail::class, 'fertilizationDetail', ['quantity_kg' => '12.125']],
+            ['follow_up_fertilization', FertilizationDetail::class, 'fertilizationDetail', ['quantity_kg' => '12.125']],
             ['irrigation', IrrigationDetail::class, 'irrigationDetail', ['duration_hours' => '2.50']],
-            ['pesticide', PesticideDetail::class, 'pesticideDetail', ['dosage_per_tank' => '20 ml', 'tank_count' => 3]],
+            ['pest_control', PesticideDetail::class, 'pesticideDetail', ['dosage_per_tank' => '20 ml', 'tank_count' => 3]],
             ['incident', IncidentDetail::class, 'incidentDetail', ['affected_area_ha' => '0.1250']],
             ['harvest', HarvestDetail::class, 'harvestDetail', ['gross_weight_ton' => '12.125', 'moisture_percentage' => '14.25']],
         ];
@@ -210,7 +210,10 @@ class FarmerModelsTest extends TestCase
 
     private function activity(string $code): FarmActivity
     {
-        $type = ActivityType::create(['code' => $code, 'name' => ucfirst($code)]);
+        $type = ActivityType::query()->firstOrCreate(
+            ['code' => $code],
+            ['name' => ucfirst($code)],
+        );
 
         return FarmActivity::create([
             'farm_id' => $this->farm->id, 'planting_cycle_id' => $this->cycle->id,

@@ -38,21 +38,71 @@ Sudah ada:
 - SOP default per kebun dan penentuan SOP berdasarkan komoditas
 - generate `planting_cycle_tasks` berbasis HST dari definisi SOP
 - snapshot versi SOP pada subblok
+- hierarki `activity_types` untuk kategori dan subkategori aktivitas
+- query task list Petugas dari `planting_cycle_tasks`
 
 Belum ada:
 
 - endpoint append satu atau beberapa aktivitas ke header yang sudah ada
 - reuse header otomatis di frontend
-- kategori/subkategori aktivitas selain block mapping (block mapping tetap form terpisah)
+- endpoint create/append untuk kategori non-block_mapping dan detail table lengkap
 - upload foto
 - approval/paraf
 - tabel master blok (sub-blok menjadi label batch/cycle)
-- query task list Petugas dari `planting_cycle_tasks`
 - pengajuan dan approval task SOP
 - pemindahan `worker_count` dari header ke aktivitas
 - penghapusan `notes` harian dan field kendala/solusi/tindakan
 
 Backend saat ini masih menyimpan `worker_count` dan `notes` di `daily_activity_logs`, serta `obstacles`, `proposed_solution`, dan `action_taken` di `farm_activities`. Form target memindahkan jumlah pekerja ke aktivitas dan menghapus field-field tersebut kecuali `Tindakan segera` khusus insiden.
+
+## Hierarki Kategori Aktivitas
+
+`activity_types` sekarang memakai relasi self-reference:
+
+- `parent_id` — `null` untuk kategori root, diisi untuk subkategori.
+- `detail_key` — menentukan detail table yang dipakai. `null` berarti detail table belum tersedia.
+- `is_selectable` — `false` untuk parent kategori dan `block_mapping`; aktivitas baru harus memilih baris selectable.
+- `sort_order` / `is_active` — urutan dropdown dan status.
+
+Tree saat ini:
+
+```text
+land_cleaning
+soil_preparation
+├── loosening
+├── beds
+├── liming
+└── base_fertilization
+planting
+maintenance
+├── irrigation
+├── weeding
+├── follow_up_fertilization
+├── growth_check
+└── pest_control
+harvest
+incident
+other
+block_mapping   (system-only, bukan pilihan form aktivitas)
+```
+
+`farm_activities.activity_type_id` menunjuk ke baris paling spesifik. Kategori
+diturunkan dari `parent_id`. Detail table mengikuti `detail_key`:
+
+```text
+planting                  -> planting_details
+irrigation                -> irrigation_details
+follow_up_fertilization   -> fertilization_details
+growth_check              -> plant_observations
+pest_control              -> pesticide_details
+incident                  -> incident_details
+harvest                   -> harvest_details
+block_mapping             -> block_mapping_details
+```
+
+`land_cleaning`, subkategori `soil_preparation`, `weeding`, dan `other` masih
+memakai `detail_key = null`; detail table-nya belum diimplementasikan. API
+aktivitas saat ini masih hanya menerima `block_mapping`.
 
 ## Prinsip form
 

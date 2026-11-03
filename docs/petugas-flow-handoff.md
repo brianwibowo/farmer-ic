@@ -22,6 +22,14 @@ POST /admin/tasks/{task}/reschedule
 `GET /petugas/tasks` is read-only. There is no `store`, `start`, `submit`,
 `approve`, or `reject` endpoint yet.
 
+### Activity taxonomy
+
+`activity_types` is now self-referencing (`parent_id`) with `detail_key`,
+`is_selectable`, `sort_order`, and `is_active`. `farm_activities.activity_type_id`
+points to the most specific selectable row. The current activity API still only
+accepts `block_mapping`; detail tables and request validation for the other
+categories remain part of the Petugas flow.
+
 ### Task data
 
 `planting_cycle_tasks` is the generated follow-up task snapshot:

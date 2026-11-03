@@ -225,7 +225,7 @@ class DailyActivityLogTest extends TestCase
         $this->rejectDatabaseOperation(function (): void {
             FarmActivity::create([
                 'farm_id' => $this->farm->id,
-                'activity_type_id' => ActivityType::firstOrFail()->id,
+                'activity_type_id' => ActivityType::query()->where('code', 'block_mapping')->firstOrFail()->id,
                 'performed_by' => $this->recorder->id,
                 'activity_date' => now(),
             ]);

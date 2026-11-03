@@ -277,9 +277,18 @@ Table sop_template_tasks {
 
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'planting, fertilization, irrigation, growth_check, pesticide, incident, harvest, block_mapping, land_cleaning, soil_preparation']
+  code varchar(50) [not null, unique, note: 'kategori dan subkategori aktivitas']
   name varchar(100) [not null]
   description text
+  parent_id uuid [ref: > activity_types.id, note: 'Null untuk kategori root; parent untuk subkategori']
+  detail_key varchar(50) [note: 'Menentukan detail table; null jika detail belum tersedia']
+  is_selectable boolean [not null, default: true, note: 'False untuk parent kategori dan block_mapping']
+  sort_order smallint [not null, default: 0]
+  is_active boolean [not null, default: true]
+  indexes {
+    parent_id
+  }
+  Note: 'Self-referencing taxonomy. Category = root, subcategory = child. Farm activities point to the most specific selectable row.'
 }
 
 Table farm_activities {
