@@ -173,6 +173,9 @@ suggestions do not replace project tokens, factual content, or this guide.
 Admin layouts reuse `AdminHeader` for section navigation, tenant context, and
 theme switching. Keep its navigation and theme action on one row on small
 phones; long section titles may wrap without pushing controls off screen.
+The theme toggle matches NotificationBell: a 44px circular target, muted/40
+surface, primary-colored 20px icon and muted hover/pressed surface in both themes.
+Keep the accessible action label, tooltip and visible keyboard focus state.
 The dashboard uses two metric columns on phones. Field activities use a labeled
 officer select next to search at compact widths, and an officer panel only when
 there is room for both it and the table. Below the tablet breakpoint, present
@@ -268,6 +271,20 @@ navigation indicator, request loading feedback, keyboard focus, and both themes.
 The Figma page includes both full-color and LoFi variants. Use the active state for the current route, provide an accessible label for every icon, and keep the bar usable on standard, Plus, and Pro Max phone widths.
 
 ## Login and password recovery pages
+
+### Application loading screen
+
+The shared startup screen shows the Farm IC logo/name with a 64px, three-layer
+spiral beneath it. Match the login wordmark: Instrument Sans, 24px semibold,
+32px line-height and tight tracking; Farm uses the foreground token and IC the
+primary token. Keep the vertical logo/name arrangement. Use three concentric
+open SVG arcs with rounded ends and
+the existing startup primary token. Vary rotation speed and reverse the middle
+layer; reduce opacity on the inner layers. Keep the status announcement, error
+recovery and existing dismissal flow. Respect reduced motion by showing static
+arcs. The loading visual follows both themes and fits small phone viewports.
+
+### Authentication layout
 
 - Use the Farmer IC palette for the shared login entry point, regardless of the
   role that will sign in. Retain the same profile on desktop and mobile.

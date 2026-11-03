@@ -76,7 +76,7 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
                     type="button"
                     variant="ghost"
                     size="icon"
-                    class="shrink-0"
+                    class="size-11 shrink-0 rounded-full! bg-muted/40 text-primary hover:bg-muted hover:text-primary active:bg-muted active:text-primary dark:hover:bg-muted"
                     :aria-label="
                         resolvedAppearance === 'dark'
                             ? 'Aktifkan mode terang'
@@ -95,9 +95,10 @@ const { resolvedAppearance, updateAppearance } = useAppearance();
                 >
                     <Sun
                         v-if="resolvedAppearance === 'dark'"
+                        class="size-5"
                         aria-hidden="true"
                     />
-                    <Moon v-else aria-hidden="true" />
+                    <Moon v-else class="size-5" aria-hidden="true" />
                 </Button>
             </div>
         </div>
