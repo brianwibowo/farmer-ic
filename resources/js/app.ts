@@ -16,6 +16,12 @@ void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
+            // The same /settings/profile page supplies its own role-specific
+            // shell. Owner and Petugas receive the Farmer/mobile surface,
+            // while Admin and Superadmin keep the desktop settings shell.
+            case name === 'settings/Profile':
+            case name === 'settings/Security':
+                return null;
             case name.startsWith('petugas/'):
                 return PetugasLayout;
             case name === 'Welcome':

@@ -1,19 +1,34 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Save } from '@lucide/vue';
+import { computed } from 'vue';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import MobileSecurityForm from '@/components/settings/MobileSecurityForm.vue';
+import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
+import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/security';
 
 // oxfmt-ignore
 type Props = {
     passwordRules: string;
+    securityPresentation?: {
+        surface?: string;
+        returnUrl?: string;
+    };
 } ;
 
 const props = defineProps<Props>();
+const page = usePage();
+const presentation = computed(() => ({
+    isMobile: props.securityPresentation?.surface === 'mobile',
+    returnUrl: props.securityPresentation?.returnUrl ?? '/',
+}));
+const breadcrumbs = [{ title: 'Keamanan', href: edit() }];
 
 defineOptions({
     layout: {
@@ -30,11 +45,18 @@ defineOptions({
 <template>
     <Head title="Keamanan" />
 
-    <h1 class="sr-only">Keamanan</h1>
+    <FarmerMobileShell v-if="presentation.isMobile" :show-navigation="false">
+        <MobileSecurityForm
+            :password-rules="props.passwordRules"
+            :return-url="presentation.returnUrl"
+        />
+    </FarmerMobileShell>
 
-    <div
-        class="rounded-xl border border-border bg-card shadow-sm"
-    >
+    <AppLayout v-else :breadcrumbs="breadcrumbs">
+        <SettingsLayout>
+            <h1 class="sr-only">Keamanan</h1>
+
+            <div class="rounded-xl border border-border bg-card shadow-sm">
         <div class="border-b border-border px-5 py-4 sm:px-6">
             <h2 class="admin-section-title">Ubah kata sandi</h2>
             <p class="mt-1 text-sm text-muted-foreground">
@@ -110,5 +132,7 @@ defineOptions({
                 </Button>
             </div>
         </Form>
-    </div>
+            </div>
+        </SettingsLayout>
+    </AppLayout>
 </template>

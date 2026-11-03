@@ -46,6 +46,22 @@ class SecurityTest extends TestCase
             );
     }
 
+    public function test_owner_and_petugas_receive_the_mobile_security_presentation(): void
+    {
+        foreach (['owner', 'petugas'] as $role) {
+            $user = User::factory()->create(['role' => $role]);
+
+            $this->actingAs($user)
+                ->get(route('security.edit'))
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('securityPresentation', [
+                        'surface' => 'mobile',
+                        'returnUrl' => '/settings/profile',
+                    ]));
+        }
+    }
+
     public function test_password_can_be_updated()
     {
         $user = User::factory()->create();

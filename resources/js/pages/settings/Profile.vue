@@ -8,6 +8,10 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import MobileProfileForm from '@/components/settings/MobileProfileForm.vue';
+import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
+import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/profile';
 
 defineOptions({
@@ -23,16 +27,44 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const presentation = computed(() => {
+    const value = page.props.profilePresentation as
+        | { surface?: string; returnUrl?: string }
+        | undefined;
+
+    return {
+        isMobile: value?.surface === 'mobile',
+        returnUrl: value?.returnUrl ?? '/',
+    };
+});
+const profile = computed(() => page.props.profile as {
+    name: string;
+    email: string;
+    phone_number: string | null;
+    avatar: string | null;
+});
+
+const breadcrumbs = [{ title: 'Pengaturan profil', href: edit() }];
 </script>
 
 <template>
     <Head title="Pengaturan profil" />
 
-    <h1 class="sr-only">Pengaturan profil</h1>
-
-    <div
-        class="rounded-xl border border-border bg-card shadow-sm"
+    <FarmerMobileShell
+        v-if="presentation.isMobile"
+        :show-navigation="false"
     >
+        <MobileProfileForm
+            :return-url="presentation.returnUrl"
+            :profile="profile"
+        />
+    </FarmerMobileShell>
+
+    <AppLayout v-else :breadcrumbs="breadcrumbs">
+        <SettingsLayout>
+            <h1 class="sr-only">Pengaturan profil</h1>
+
+            <div class="rounded-xl border border-border bg-card shadow-sm">
         <div class="border-b border-border px-5 py-4 sm:px-6">
             <h2 class="admin-section-title">Profil</h2>
             <p class="mt-1 text-sm text-muted-foreground">
@@ -110,7 +142,9 @@ const user = computed(() => page.props.auth.user);
                 </Button>
             </div>
         </Form>
-    </div>
+            </div>
 
-    <DeleteUser />
+            <DeleteUser />
+        </SettingsLayout>
+    </AppLayout>
 </template>

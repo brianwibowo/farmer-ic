@@ -18,13 +18,21 @@ import {
 import { Label } from '@/components/ui/label';
 
 const passwordInput = useTemplateRef('passwordInput');
+
+withDefaults(defineProps<{ mobile?: boolean }>(), {
+    mobile: false,
+});
 </script>
 
 <template>
     <div
-        class="flex flex-col gap-4 rounded-xl border border-border bg-card px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6"
+        :class="[
+            mobile
+                ? 'flex'
+                : 'flex flex-col gap-4 rounded-xl border border-border bg-card px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6',
+        ]"
     >
-        <div class="min-w-0">
+        <div v-if="!mobile" class="min-w-0">
             <h2 class="admin-section-title">Hapus akun</h2>
             <p class="mt-1 text-sm text-muted-foreground">
                 Hapus akun Anda beserta seluruh data yang terkait.
@@ -35,13 +43,13 @@ const passwordInput = useTemplateRef('passwordInput');
             <DialogTrigger as-child>
                 <Button
                     variant="destructive"
-                    class="shrink-0"
+                    :class="mobile ? 'min-h-11 w-full' : 'shrink-0'"
                     data-test="delete-user-button"
                 >
                     Hapus akun
                 </Button>
             </DialogTrigger>
-            <DialogContent class="admin-dashboard-theme">
+            <DialogContent :class="mobile ? undefined : 'admin-dashboard-theme'">
                 <Form
                     v-bind="ProfileController.destroy.form()"
                     reset-on-success
@@ -57,9 +65,9 @@ const passwordInput = useTemplateRef('passwordInput');
                             Yakin ingin menghapus akun?
                         </DialogTitle>
                         <DialogDescription>
-                            Setelah akun dihapus, seluruh data akan dihapus
-                            secara permanen. Masukkan kata sandi untuk
-                            mengonfirmasi penghapusan akun.
+                            Masukkan kata sandi untuk mengonfirmasi penghapusan
+                            akun. Akun akan dinonaktifkan dan dapat dipulihkan
+                            oleh pihak yang berwenang.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -69,7 +77,7 @@ const passwordInput = useTemplateRef('passwordInput');
                             id="password"
                             name="password"
                             ref="passwordInput"
-                            class="admin-field"
+                            :class="mobile ? 'mobile-profile-field' : 'admin-field'"
                             placeholder="Masukkan kata sandi"
                         />
                         <InputError :message="errors.password" />
