@@ -393,7 +393,11 @@ WHERE i.indrelid = ?::regclass AND a.attname = ? AND i.indisvalid AND i.indpred 
 SQL, [$table, $column['name']]), $table.'.'.$column['name'].' needs an index prefix');
                 }
             }
-            $primaryColumn = str_ends_with($table, '_details') ? 'activity_id' : 'id';
+            $primaryColumn = match (true) {
+                str_ends_with($table, '_details') => 'activity_id',
+                $table === 'administrative_regions' => 'code',
+                default => 'id',
+            };
             $this->assertSame($primaryColumn, $this->database->scalar("SELECT a.attname FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1] WHERE c.contype = 'p' AND c.conrelid = ?::regclass", [$table]));
             $uniqueKeys = array_column($this->database->select(<<<'SQL'
 SELECT string_agg(a.attname, ',' ORDER BY key.position) AS columns

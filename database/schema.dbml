@@ -66,6 +66,18 @@ Table team_invitations {
   updated_at timestamptz
 }
 
+Table administrative_regions {
+  code varchar(8) [pk]
+  name varchar(100) [not null]
+  level smallint [not null]
+  parent_code varchar(8) [ref: > administrative_regions.code]
+  indexes {
+    level
+    parent_code
+  }
+  Note: 'Snapshot wilayah administratif Indonesia: provinsi, kabupaten/kota, kecamatan.'
+}
+
 Table farms {
   id uuid [pk]
   owner_id uuid [ref: > users.id, note: 'Pemilik kebun; bukan akun yang membuat data']
@@ -83,6 +95,7 @@ Table farms {
   updated_at timestamptz
   team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
   land_tenure varchar(20) [note: 'owned | rented | partnership; null for legacy farms until confirmed']
+  district_code varchar(8) [ref: > administrative_regions.code]
   default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default kebun; dipakai otomatis saat Petugas mencatat penanaman']
   Note: 'Tanpa farm_plots. Jika semua owner memantau semua kebun, owner_id boleh dihilangkan.'
 }

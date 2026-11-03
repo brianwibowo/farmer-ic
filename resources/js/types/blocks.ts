@@ -1,4 +1,14 @@
 export type BlockFarm = { id: string; name: string; total_area_ha: string };
+export type BatchCapacity = {
+    farm_total_ha: string;
+    block_total_ha: string;
+    legacy_active_ha: string;
+    farm_batches_ha: string;
+    block_batches_ha: string;
+    farm_remaining_ha: string;
+    block_remaining_ha: string;
+    available_ha: string;
+};
 export type FarmBlock = {
     id: string;
     farm_id: string;

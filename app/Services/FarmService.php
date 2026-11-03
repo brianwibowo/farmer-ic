@@ -22,7 +22,7 @@ class FarmService
      */
     public function paginate(User $user, Team $team, array $filters): LengthAwarePaginator
     {
-        $query = Farm::visibleTo($user, $team);
+        $query = Farm::visibleTo($user, $team)->with('team');
         $search = trim($filters['search'] ?? '');
         if ($search !== '') {
             $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
@@ -65,6 +65,45 @@ class FarmService
             ->map(fn (User $owner): array => ['id' => $owner->id, 'name' => $owner->name]);
     }
 
+    /** @return array{block_area_ha: string, reserved_area_ha: string, minimum_area_ha: string} */
+    public function capacity(Farm $farm, User $user, Team $team): array
+    {
+        $blocks = (string) \App\Models\FarmBlock::visibleTo($user, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha');
+        $usage = PlantingCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->toBase()
+            ->selectRaw("COALESCE(SUM(CASE WHEN planting_round_id IS NULL AND status = 'active' THEN planted_area_ha WHEN planting_round_id IS NOT NULL AND status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS reserved")
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'active' THEN planted_area_ha ELSE 0 END), 0) AS planted")->first();
+
+        return ['block_area_ha' => $blocks, 'reserved_area_ha' => (string) $usage->reserved,
+            'minimum_area_ha' => \App\Support\LandArea::hectares(max(1, \App\Support\LandArea::squareMetres($blocks), \App\Support\LandArea::squareMetres($usage->reserved), \App\Support\LandArea::squareMetres($usage->planted)))];
+    }
+
+    /** @return array{cities: list<string>, provinces: list<string>} */
+    public function locationOptions(User $user, Team $team): array
+    {
+        $farms = Farm::visibleTo($user, $team);
+
+        $values = fn (string $field): array => array_values((clone $farms)->whereNotNull($field)->where($field, '<>', '')->distinct()->orderBy($field)->pluck($field)->map(fn ($value): string => (string) $value)->all());
+
+        return ['cities' => $values('city'), 'provinces' => $values('province')];
+    }
+
+    /** @return list<string> */
+    public function deletionBlockers(Farm $farm, User $user, Team $team): array
+    {
+        Farm::visibleTo($user, $team)->findOrFail($farm->id);
+        $blockers = [];
+        foreach ([\App\Models\FarmBlock::class => 'blok kebun', PlantingCycle::class => 'siklus tanam', \App\Models\DailyActivityLog::class => 'logbook', \App\Models\FarmActivity::class => 'aktivitas', \App\Models\WeatherRecord::class => 'riwayat cuaca', \App\Models\FinancialTransaction::class => 'transaksi', \App\Models\FinancialProjection::class => 'proyeksi', \App\Models\FinancialBudget::class => 'anggaran', \App\Models\OperationalTarget::class => 'target operasional'] as $model => $label) {
+            if ($model::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()) {
+                $blockers[] = $label;
+            }
+        }
+        if (User::visibleTo($user, $team)->where('assigned_farm_id', $farm->id)->exists()) {
+            $blockers[] = 'penugasan Petugas';
+        }
+
+        return $blockers;
+    }
+
     /** @return array<string, mixed> */
     public function detail(Farm $farm, User $user): array
     {
@@ -75,7 +114,10 @@ class FarmService
         $owner = User::visibleTo($user, $team)->whereKey($visible->owner_id)->first(['id', 'name']);
 
         return [
-            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id']),
+            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id']),
+            'region' => $visible->getAttribute('district_code') ? app(AdministrativeRegionService::class)->district($visible->getAttribute('district_code'), $user, $team) : null,
+            'owner_restricted' => $visible->owner_id !== null && $owner === null,
+            'capacity' => $this->capacity($visible, $user, $team),
             'owner_name' => $owner?->name,
             'team_name' => $team->name,
             'active_cycles' => (clone $cycles)->count(),
@@ -90,6 +132,9 @@ class FarmService
     {
         $actor = is_string($user) ? User::query()->findOrFail($user) : $user;
         $farm = new Farm($data);
+        if (array_key_exists('district_code', $data)) {
+            $farm->forceFill(['district_code' => $data['district_code']]);
+        }
         if ($team instanceof Team) {
             $farm->team()->associate($team);
         }
@@ -130,7 +175,11 @@ class FarmService
                     throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh lebih kecil dari total luas tanam aktif.']);
                 }
             }
-            $locked->fill($data)->save();
+            $locked->fill($data);
+            if (array_key_exists('district_code', $data)) {
+                $locked->forceFill(['district_code' => $data['district_code']]);
+            }
+            $locked->save();
 
             return $locked->refresh();
         });

@@ -119,6 +119,7 @@ class ModelAuthorizationTest extends TestCase
             'Farm' => $farm,
             'Membership' => $team->memberships()->where('user_id', $user->id)->firstOrFail(),
             'Role' => Role::query()->firstOrFail(),
+            'AdministrativeRegion' => \App\Models\AdministrativeRegion::find('32') ?? \App\Models\AdministrativeRegion::forceCreate(['code' => '32', 'name' => 'Jawa Barat', 'level' => 1]),
             default => null,
         };
         if ($record !== null) {
@@ -203,7 +204,7 @@ class ModelAuthorizationTest extends TestCase
                 'owner' => true,
                 'superadmin' => true,
                 'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['teams', 'team_invitations'], true),
-                'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'farm_blocks', 'planting_rounds', 'planting_cycle_stages', 'planting_cycle_tasks', 'block_mapping_details', 'daily_activity_logs', 'notifications'], true),
+                'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'farm_blocks', 'planting_rounds', 'planting_cycle_stages', 'planting_cycle_tasks', 'block_mapping_details', 'daily_activity_logs', 'notifications', 'administrative_regions'], true),
             };
             $unlinked = false;
             if ($unlinked) {
@@ -216,7 +217,7 @@ class ModelAuthorizationTest extends TestCase
             $create = match ($role) {
                 'owner' => in_array($prefix, ['ai_conversations', 'ai_messages', 'ai_attachments', 'ai_knowledge_documents'], true),
                 'superadmin' => true,
-                'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages'], true),
+                'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages', 'administrative_regions'], true),
                 'petugas' => in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs', 'planting_rounds'], true),
             };
             $create = $create && ! $unlinked;
@@ -243,9 +244,9 @@ class ModelAuthorizationTest extends TestCase
             $update = ($role === 'superadmin')
                 || ($role === 'owner' && $create)
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true))
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages'], true));
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions'], true));
             $delete = ($role === 'superadmin') || ($role === 'owner' && $create)
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages'], true))
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions'], true))
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true));
             $update = $update && ! $unlinked;
             $delete = $delete && ! $unlinked;
@@ -313,7 +314,7 @@ class ModelAuthorizationTest extends TestCase
         $otherOwner = $this->actor('owner');
         $team = $otherOwner->currentTeam;
         $farm = $this->farm($team);
-        $global = ['activity_types', 'commodities', 'crop_varieties', 'financial_categories', 'roles', 'audit_logs'];
+        $global = ['administrative_regions', 'activity_types', 'commodities', 'crop_varieties', 'financial_categories', 'roles', 'audit_logs'];
 
         foreach ($this->models() as $class) {
             $record = $this->record($class, $otherOwner, $team, $farm);

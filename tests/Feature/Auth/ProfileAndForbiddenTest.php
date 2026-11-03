@@ -17,7 +17,7 @@ class ProfileAndForbiddenTest extends TestCase
     public function test_owner_can_see_minimal_account_identity_without_admin_navigation_on_public_pages(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
-        $this->actingAs($owner)->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($owner)->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('auth.user', null)
             ->where('account', ['name' => $owner->name, 'email' => $owner->email])
             ->where('currentTeam', null)->where('teams', [])
@@ -31,7 +31,8 @@ class ProfileAndForbiddenTest extends TestCase
         $this->get('/')->assertInertia(fn (Assert $page) => $page->where('account.email', $owner->email));
         $this->post('/logout', [], ['X-Inertia' => 'true'])->assertRedirect('/');
         $this->assertGuest();
-        $this->get('/')->assertInertia(fn (Assert $page) => $page->where('account', null));
+        $this->get('/')->assertRedirect('/login');
+        $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('account', null));
         $this->get('/admin/dashboard')->assertRedirect('/login');
         $this->assertDatabaseHas('users', ['id' => $owner->id]);
     }

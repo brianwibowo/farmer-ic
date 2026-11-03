@@ -3,6 +3,8 @@
 namespace Tests\Feature\Blocks;
 
 use App\Enums\TeamRole;
+use App\Models\Commodity;
+use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
@@ -208,6 +210,72 @@ class FarmBlockTest extends TestCase
         $this->constraints();
     }
 
+    private function legacyCapacityBlock(): FarmBlock
+    {
+        $this->farm->forceFill(['total_area_ha' => '12.5000'])->save();
+        $commodity = Commodity::create(['name' => 'Jagung Uji Kapasitas']);
+        $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi Uji Kapasitas']);
+        PlantingCycle::create(['farm_id' => $this->farm->id, 'variety_id' => $variety->id,
+            'planted_at' => '2026-10-01', 'planted_area_ha' => '8.5000', 'status' => 'active']);
+
+        return $this->block('B01', '10');
+    }
+
+    public function test_capacity_summary_explains_active_planting_and_rejects_overallocation(): void
+    {
+        $block = $this->legacyCapacityBlock();
+        $this->get($this->url($block))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('capacity.farm_total_ha', '12.5000')->where('capacity.block_remaining_ha', '10.0000')
+            ->where('capacity.legacy_active_ha', '8.5000')->where('capacity.farm_remaining_ha', '4.0000')
+            ->where('capacity.available_ha', '4.0000'));
+        $this->post($this->url($block).'/batches', ['area_value' => '50000', 'area_unit' => 'm2'])
+            ->assertSessionHasErrors(['reserved_area_ha' => 'Luas batch 5 ha melebihi sisa kapasitas kebun 4 ha. 8,5 ha masih digunakan tanam aktif di luar batch. Maksimal batch baru 4 ha.']);
+        $this->assertSame(1, PlantingCycle::count());
+        $this->assertSame(0, PlantingRound::count());
+        $this->assertNull($block->fresh()->land_clearing_completed_at);
+        $this->post($this->url($block).'/batches', ['area_value' => '40000', 'area_unit' => 'm2'])->assertSessionHasNoErrors()->assertRedirect($this->url($block));
+        $this->assertDatabaseHas('planting_cycles', ['farm_id' => $this->farm->id, 'reserved_area_ha' => '4.0000', 'status' => 'planned', 'planted_area_ha' => '0.0000']);
+        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page->where('capacity.available_ha', '0.0000'));
+        $this->constraints();
+    }
+
+    public function test_unit_inputs_keep_exact_area_and_block_limit(): void
+    {
+        $block = $this->block('B01', '10');
+        foreach ([['0,0001', 'ha', '0.0001'], ['49999', 'm2', '4.9999'], ['5', 'ha', '5.0000']] as [$value, $unit, $expected]) {
+            $this->post($this->url($block).'/batches', ['area_value' => $value, 'area_unit' => $unit])->assertSessionHasNoErrors();
+            $this->assertSame($expected, PlantingCycle::orderByDesc('batch_number')->firstOrFail()->reserved_area_ha);
+        }
+        $this->post($this->url($block).'/batches', ['area_value' => '1', 'area_unit' => 'm2'])
+            ->assertSessionHasErrors(['reserved_area_ha' => 'Luas batch 0,0001 ha melebihi sisa kapasitas blok 0 ha. Maksimal batch baru 0 ha.']);
+        $this->assertSame(3, PlantingCycle::count());
+        $this->constraints();
+    }
+
+    public static function invalidAreaInputs(): array
+    {
+        return [
+            [['area_value' => '0.5', 'area_unit' => 'm2']],
+            [['area_value' => '1.00001', 'area_unit' => 'ha']],
+            [['area_value' => '-1', 'area_unit' => 'ha']],
+            [['area_value' => '5', 'area_unit' => 'meter']],
+            [['area_value' => '5']], [['area_unit' => 'ha']],
+            [['area_value' => '0', 'area_unit' => 'm2']],
+            [['area_value' => '1e4', 'area_unit' => 'ha']],
+            [['area_value' => ['5'], 'area_unit' => 'ha']],
+            [['area_value' => '50000', 'area_unit' => 'm2', 'reserved_area_ha' => '1']],
+        ];
+    }
+
+    #[DataProvider('invalidAreaInputs')]
+    public function test_invalid_or_conflicting_unit_payloads_do_not_create_batches(array $payload): void
+    {
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', $payload)->assertSessionHasErrors();
+        $this->assertDatabaseCount('planting_cycles', 0);
+        $this->assertDatabaseCount('planting_rounds', 0);
+    }
+
     public function test_scoped_lists_totals_search_and_directory_do_not_expose_other_farms(): void
     {
         $this->block('B01', '2');
@@ -276,9 +344,15 @@ class FarmBlockTest extends TestCase
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoFarmBlockSeeder::class]);
         $demo = Farm::where('name', 'Kebun Cileuksa Demo')->firstOrFail();
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();
+        $batchIds = PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all();
+        $this->assertCount(2, $batchIds);
+        $this->assertSame(0, PlantingCycle::where('farm_id', $demo->id)->whereNull('planting_round_id')->count());
+        $this->assertSame(['active', 'planned'], PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('status')->all());
+        $this->assertSame(12, PlantingCycleStage::whereIn('planting_cycle_id', $batchIds)->count());
         $this->seed(DemoFarmBlockSeeder::class);
         $this->assertSame($ids, FarmBlock::where('farm_id', $demo->id)->pluck('id')->all());
         $this->assertSame(2, count($ids));
+        $this->assertSame($batchIds, PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all());
         $this->constraints();
     }
 

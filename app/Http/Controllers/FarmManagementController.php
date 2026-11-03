@@ -12,6 +12,7 @@ use App\Models\Team;
 use App\Services\FarmDeletionService;
 use App\Services\FarmService;
 use App\Services\SopTemplateService;
+use App\Support\RolePermissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -29,28 +30,31 @@ class FarmManagementController extends Controller
 
     public function index(ListFarmsRequest $request): Response
     {
-        $team = $request->user()->currentTeam;
-        Gate::authorize('viewAny', [Farm::class, $team]);
-        abort_unless($team instanceof Team, 403, 'Pilih tim aktif untuk mengelola kebun.');
-        $farms = $this->farms->paginate($request->user(), $team, $request->validated());
+        return app(RolePermissions::class)->withMembershipSnapshot($request->user(), function () use ($request): Response {
+            $team = $request->user()->currentTeam;
+            Gate::authorize('viewAny', [Farm::class, $team]);
+            abort_unless($team instanceof Team, 403, 'Pilih tim aktif untuk mengelola kebun.');
+            $farms = $this->farms->paginate($request->user(), $team, $request->validated());
 
-        return Inertia::render('farms/Index', [
-            'farms' => $farms->through(fn (Farm $farm): array => [
-                ...$farm->only(['id', 'name', 'land_tenure', 'city', 'district', 'province', 'total_area_ha']),
-                'can' => [
-                    'update' => Gate::allows('update', $farm),
-                    'delete' => Gate::allows('delete', $farm),
-                    'forceDelete' => Gate::allows('forceDelete', $farm),
-                ],
-            ]),
-            'summary' => $this->farms->summary($request->user(), $team),
-            'filters' => array_replace([
-                'search' => '', 'city' => '', 'province' => '',
-                'sort' => 'name', 'direction' => 'asc', 'per_page' => 15,
-            ], $request->validated()),
-            'team' => $team->only(['id', 'name']),
-            'can' => ['create' => Gate::allows('create', [Farm::class, $team])],
-        ]);
+            return Inertia::render('farms/Index', [
+                'farms' => $farms->through(fn (Farm $farm): array => [
+                    ...$farm->only(['id', 'name', 'land_tenure', 'city', 'district', 'province', 'total_area_ha']),
+                    'can' => [
+                        'update' => Gate::allows('update', $farm),
+                        'delete' => Gate::allows('delete', $farm),
+                        'forceDelete' => Gate::allows('forceDelete', $farm),
+                    ],
+                ]),
+                'summary' => $this->farms->summary($request->user(), $team),
+                'locationOptions' => $this->farms->locationOptions($request->user(), $team),
+                'filters' => array_replace([
+                    'search' => '', 'city' => '', 'province' => '',
+                    'sort' => 'name', 'direction' => 'asc', 'per_page' => 15,
+                ], $request->validated()),
+                'team' => $team->only(['id', 'name']),
+                'can' => ['create' => Gate::allows('create', [Farm::class, $team])],
+            ]);
+        });
     }
 
     public function create(Request $request): Response
@@ -84,6 +88,7 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Show', [
             'farm' => $this->farms->detail($farm, $request->user()),
+            'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [
                 'update' => Gate::allows('update', $farm),
                 'delete' => Gate::allows('delete', $farm),
@@ -128,6 +133,13 @@ class FarmManagementController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun berhasil dihapus.']);
 
         return to_route('farm-management.index');
+    }
+
+    public function deletionCheck(Request $request, Farm $farm): \Illuminate\Http\JsonResponse
+    {
+        Gate::authorize('delete', $farm);
+
+        return response()->json(['blockers' => $this->farms->deletionBlockers($farm, $request->user(), $farm->team)]);
     }
 
     public function confirmForceDelete(Request $request, Farm $farm, FarmDeletionService $deletion): Response

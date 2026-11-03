@@ -14,7 +14,6 @@ class FarmerGuestPagesTest extends TestCase
     public static function pages(): array
     {
         return [
-            'home' => ['/', 'farmer/Dashboard'],
             'farms' => ['/kebun', 'farmer/Kebun'],
             'farm detail' => ['/kebun/detail', 'farmer/KebunDetail'],
             'farm activities' => ['/kebun/aktivitas', 'farmer/KebunAktivitas'],
@@ -52,10 +51,10 @@ class FarmerGuestPagesTest extends TestCase
         $key = Auth::guard('web')->getName();
         DB::connection()->enableQueryLog();
 
-        $this->withSession([$key => 1])->get('/')
+        $this->withSession([$key => 1])->get('/kebun')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('farmer/Dashboard')
+                ->component('farmer/Kebun')
                 ->where('auth.user', null)
                 ->where('currentTeam', null)
                 ->where('teams', []));

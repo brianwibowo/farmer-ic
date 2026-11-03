@@ -24,9 +24,19 @@ const isNotifications = computed(
 );
 const isAdmin = computed(
     () =>
-        page.url.startsWith('/admin/') ||
-        (isNotifications.value && page.props.navigation?.admin === true),
+        page.url.startsWith('/admin/') || page.props.navigation?.admin === true,
 );
+const adminSection = computed(() => {
+    if (isNotifications.value) {
+        return { title: 'Notifikasi', href: '/notifications' };
+    }
+
+    if (page.url.split('?')[0].startsWith('/settings')) {
+        return { title: 'Pengaturan', href: '/settings/profile' };
+    }
+
+    return { title: 'Dashboard', href: '/admin/dashboard' };
+});
 </script>
 
 <template>
@@ -42,8 +52,8 @@ const isAdmin = computed(
             <AppContent variant="sidebar" class="min-w-0 overflow-x-clip">
                 <AdminHeader
                     v-if="isAdmin"
-                    :title="isNotifications ? 'Notifikasi' : 'Dashboard'"
-                    :href="isNotifications ? '/notifications' : '/admin/dashboard'"
+                    :title="adminSection.title"
+                    :href="adminSection.href"
                     :icon="LayoutGrid"
                     :show-tenant="
                         !isNotifications || page.props.canFilterTenant === true

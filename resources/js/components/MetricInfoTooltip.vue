@@ -11,7 +11,10 @@ import {
 defineProps<{
     label: string;
     description: string;
-    period: string;
+    period?: string;
+    example?: string;
+    contentClass?: string;
+    touchTarget?: boolean;
 }>();
 
 const open = ref(false);
@@ -25,7 +28,8 @@ const open = ref(false);
                     type="button"
                     :aria-label="`Informasi ${label}`"
                     :aria-expanded="open"
-                    class="-mt-1 inline-flex size-6 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-secondary/10 focus-visible:ring-2 focus-visible:ring-current focus-visible:outline-none"
+                    class="inline-flex shrink-0 touch-manipulation items-center justify-center rounded-full transition-colors hover:bg-secondary/10 focus-visible:ring-2 focus-visible:ring-current focus-visible:outline-none"
+                    :class="touchTarget ? '-my-2.5 size-11' : '-mt-1 size-6'"
                     @click="open = !open"
                 >
                     <Info :size="15" :stroke-width="1.8" aria-hidden="true" />
@@ -36,10 +40,16 @@ const open = ref(false);
                 :side-offset="8"
                 :collision-padding="16"
                 class="w-64 max-w-[calc(100vw-2rem)] space-y-2 rounded-xl p-3 text-left text-xs leading-5 text-pretty"
+                :class="contentClass"
             >
                 <p class="font-semibold">{{ label }}</p>
                 <p>{{ description }}</p>
-                <p><span class="font-semibold">Periode:</span> {{ period }}</p>
+                <p v-if="period">
+                    <span class="font-semibold">Periode:</span> {{ period }}
+                </p>
+                <p v-if="example">
+                    <span class="font-semibold">Contoh:</span> {{ example }}
+                </p>
             </TooltipContent>
         </Tooltip>
     </TooltipProvider>

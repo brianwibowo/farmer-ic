@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Farms;
 
 use App\Models\Farm;
+use App\Services\AdministrativeRegionService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -11,6 +13,17 @@ class SaveFarmRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // Region lookup validation must not turn a forbidden mutation into 422.
+        // Reject these payloads early through the same Policy; the controller
+        // remains the explicit authorization boundary before invoking services.
+        if ($this->exists('district_code')) {
+            $farm = $this->route('farm');
+
+            return $farm instanceof Farm
+                ? Gate::allows('update', $farm)
+                : Gate::allows('create', [Farm::class, $this->user()?->currentTeam]);
+        }
+
         return true; // The controller is the HTTP authorization boundary.
     }
 
@@ -37,6 +50,7 @@ class SaveFarmRequest extends FormRequest
             'address' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'city' => ['sometimes', 'nullable', 'string', 'max:100'],
             'district' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'district_code' => ['sometimes', 'nullable', 'string', 'regex:/^\d{2}\.\d{2}\.\d{2}$/'],
             'province' => ['sometimes', 'nullable', 'string', 'max:100'],
             'latitude' => ['sometimes', 'nullable', 'numeric', 'decimal:0,7', 'between:-90,90'],
             'longitude' => ['sometimes', 'nullable', 'numeric', 'decimal:0,7', 'between:-180,180'],
@@ -53,6 +67,18 @@ class SaveFarmRequest extends FormRequest
         return [function (Validator $validator): void {
             $parameter = $this->route('farm');
             $farm = $parameter instanceof Farm ? $parameter : null;
+            if ($this->exists('district_code')) {
+                $code = $this->input('district_code');
+                $team = $farm instanceof Farm ? $farm->team : $this->user()?->currentTeam;
+                $region = is_string($code) && $team ? app(AdministrativeRegionService::class)->district($code, $this->user(), $team) : null;
+                $hasNames = collect(['district', 'city', 'province'])->contains(fn ($key) => filled($this->input($key)));
+                $unchangedLegacy = $farm && $farm->getAttribute('district_code') === null && ! $code
+                    && collect(['district', 'city', 'province'])->every(fn ($key) => ($this->input($key) ?: null) === $farm->getAttribute($key));
+                if ((! $region && ($code || $hasNames) && ! $unchangedLegacy)
+                    || ($region && collect(['district', 'city', 'province'])->contains(fn ($key) => $this->input($key) !== $region[$key]))) {
+                    $validator->errors()->add('district_code', 'Pilih kecamatan, kota/kabupaten, dan provinsi yang sesuai dari daftar wilayah.');
+                }
+            }
             $latitude = $this->exists('latitude') ? $this->input('latitude') : $farm?->latitude;
             $longitude = $this->exists('longitude') ? $this->input('longitude') : $farm?->longitude;
             if (($latitude === null) !== ($longitude === null)) {

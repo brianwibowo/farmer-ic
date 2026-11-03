@@ -93,6 +93,8 @@ onUnmounted(() => {
         <DropdownMenuTrigger as-child>
             <Button
                 data-test="team-switcher-trigger"
+                :aria-label="`Pilih tim: ${currentTeam?.name ?? 'belum dipilih'}`"
+                :title="currentTeam?.name ?? 'Pilih tim'"
                 variant="ghost"
                 :class="
                     props.inHeader
