@@ -292,7 +292,10 @@ class SopTemplateTest extends TestCase
 
         $this->assertTrue(Gate::forUser($owner)->allows('view', $template));
         $this->assertFalse(Gate::forUser($owner)->allows('create', [SopTemplate::class, $this->team]));
-        $this->assertFalse(Gate::forUser($petugas)->allows('view', $template));
+        // SOP reads support derived task generation within the tenant. Portal
+        // admission and SOP mutations remain denied to Petugas.
+        $this->assertTrue(Gate::forUser($petugas)->allows('view', $template));
+        $this->assertFalse(Gate::forUser($petugas)->allows('create', [SopTemplate::class, $this->team]));
 
         $this->actingAs($owner)->post('/admin/sops', [
             'commodity_id' => $this->commodity->id,

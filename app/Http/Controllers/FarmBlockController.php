@@ -118,8 +118,8 @@ class FarmBlockController extends Controller
         Gate::authorize('create', [PlantingCycle::class, $block]);
         // A new round may be derived by this action when the previous one has ended.
         Gate::authorize('create', [PlantingRound::class, $block]);
-        $this->blocks->createBatch($block, $request->user(), $this->team($farm), $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Subblok/batch dibuat. Pengolahan tanah dimulai tanpa persetujuan Admin.']);
+        $result = $this->blocks->prepareBatch($block, $request->user(), $this->team($farm), $request->validated());
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Subblok/batch dibuat. '.\App\Support\TaskGenerationFeedback::message($result['generation'])]);
 
         return to_route('blocks.show', [$farm, $block]);
     }

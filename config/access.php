@@ -206,7 +206,12 @@ return [
 
         'petugas' => [
             'administrative_regions.view' => 'any',
+            'activity_types.view' => 'any',
+            'crop_varieties.view' => 'any',
             'notifications.view' => 'own',
+            'sop_templates.view' => 'any',
+            'sop_template_versions.view' => 'any',
+            'sop_template_tasks.view' => 'any',
             'notifications.update' => 'own',
             'farm_blocks.view' => 'own',
             'planting_rounds.view' => 'own',

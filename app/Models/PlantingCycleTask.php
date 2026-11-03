@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
@@ -71,5 +72,11 @@ class PlantingCycleTask extends FarmerModel
     public function sourceTask(): BelongsTo
     {
         return $this->belongsTo(SopTemplateTask::class, 'sop_template_task_id');
+    }
+
+    /** @return HasMany<FarmActivity, $this> */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(FarmActivity::class, 'planting_cycle_task_id');
     }
 }

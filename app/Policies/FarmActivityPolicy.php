@@ -3,6 +3,11 @@
 namespace App\Policies;
 
 use App\Models\Farm;
+use App\Models\PlantingCycle;
+use App\Models\PlantingCycleTask;
+use App\Models\User;
+use App\Support\TaskActivityFields;
+use Illuminate\Support\Facades\Gate;
 
 class FarmActivityPolicy extends ResourcePolicy
 {
@@ -11,4 +16,50 @@ class FarmActivityPolicy extends ResourcePolicy
     protected ?string $farmPath = 'farm';
 
     protected array $parents = [Farm::class];
+
+    /** Recording planting also updates its trusted cycle and derived schedule. */
+    public function recordPlanting(User $user, PlantingCycle $cycle): bool
+    {
+        $farm = $cycle->farm;
+        if (! Gate::forUser($user)->allows('update', $cycle) || ! $this->create($user, $farm)) {
+            return false;
+        }
+        foreach (['daily_activity_logs', 'activity_photos', 'planting_details'] as $prefix) {
+            foreach (['view', 'create'] as $ability) {
+                $scope = $this->permissions->scope($user, $prefix.'.'.$ability);
+                if ($scope === null || ($scope === 'own' && $user->assignedFarmId() !== $farm->id)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /** Composite task-report use case; all writes share this persisted farm boundary. */
+    public function recordTask(User $user, PlantingCycleTask $task): bool
+    {
+        $farm = $task->plantingCycle->farm;
+        if (! Gate::forUser($user)->allows('view', $task) || ! $this->create($user, $farm)) {
+            return false;
+        }
+        $detail = match (TaskActivityFields::activityCode($task)) {
+            'fertilization' => 'fertilization_details', 'irrigation' => 'irrigation_details',
+            'pesticide' => 'pesticide_details', 'harvest' => 'harvest_details',
+            'growth_check' => 'plant_observations', 'weeding' => null, default => false,
+        };
+        if ($detail === false) {
+            return false;
+        }
+        foreach (array_filter(['daily_activity_logs', 'activity_photos', $detail]) as $prefix) {
+            foreach (['view', 'create'] as $ability) {
+                $scope = $this->permissions->scope($user, $prefix.'.'.$ability);
+                if ($scope === null || ($scope === 'own' && $user->assignedFarmId() !== $farm->id)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
 }

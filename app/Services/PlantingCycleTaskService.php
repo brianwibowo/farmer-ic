@@ -2,199 +2,134 @@
 
 namespace App\Services;
 
+use App\Models\Farm;
 use App\Models\PlantingCycle;
+use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
+use App\Models\SopTemplate;
+use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class PlantingCycleTaskService
 {
-    /** @var array<string, string> */
-    private const STAGE_BY_CATEGORY = [
-        'planting' => 'planting',
-        'maintenance' => 'maintenance',
-        'harvest' => 'harvest',
-    ];
-
     /**
-     * Generate the subblok task snapshot from its farm's default SOP.
+     * Callers authorize the parent-cycle use case before invoking this service.
      *
      * @return array{status: string, created: int, rescheduled: int, version_id: string|null, detail: string|null}
      */
-    public function generateForSubblok(PlantingCycle $subblok): array
+    public function generateForSubblok(PlantingCycle $subblok, User $actor): array
     {
-        return DB::transaction(function () use ($subblok): array {
-            $cycle = PlantingCycle::query()->lockForUpdate()->findOrFail($subblok->id);
-            $farm = $cycle->farm;
-
-            if ($farm === null) {
+        return DB::transaction(function () use ($subblok, $actor): array {
+            $team = $subblok->farm?->team;
+            if ($team === null) {
                 return $this->result('missing_farm');
             }
-
-            $tasks = $cycle->tasks()->get();
+            $farm = Farm::visibleTo($actor, $team)->whereKey($subblok->farm_id)->lockForUpdate()->firstOrFail();
+            $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($subblok->id)->where('farm_id', $farm->id)->lockForUpdate()->firstOrFail();
+            if (! in_array($cycle->status, ['planned', 'active'], true)) {
+                return $this->result('closed_cycle');
+            }
+            $anchor = $cycle->planted_at ?? $cycle->planned_planting_at;
+            if ($anchor === null) {
+                return $this->result('missing_anchor');
+            }
+            $tasks = PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)->lockForUpdate()->get();
             $version = null;
-
             if ($cycle->sop_template_version_id !== null) {
-                $version = SopTemplateVersion::query()
-                    ->with('sopTemplate:id,team_id')
-                    ->find($cycle->sop_template_version_id);
-
-                if (! $version instanceof SopTemplateVersion) {
+                // Resolve the persisted boundary before a scoped version read.
+                $linked = $cycle->sopTemplateVersion;
+                if ($linked === null) {
                     return $this->result('missing_sop_version');
                 }
-
-                if ((int) $version->sopTemplate?->team_id !== (int) $farm->team_id) {
+                if ((int) $linked->sopTemplate->team_id !== (int) $team->id) {
                     return $this->result('invalid_sop_tenant');
                 }
-
-                if ($tasks->isNotEmpty()) {
-                    return $this->result(
-                        'already_generated',
-                        0,
-                        $this->reschedulePending($tasks, $this->anchorDate($cycle)),
-                        $version->id,
-                    );
-                }
-            } else {
-                $template = $farm->defaultSopTemplate;
-
-                if ($template === null) {
-                    return $this->result('missing_sop');
-                }
-
-                if ((int) $template->team_id !== (int) $farm->team_id) {
-                    return $this->result('invalid_sop_tenant');
-                }
-
-                if (! $template->is_active) {
-                    return $this->result('inactive_sop');
-                }
-
-                $version = $template->versions()
-                    ->where('status', 'published')
-                    ->orderByDesc('version')
-                    ->first();
-
-                if (! $version instanceof SopTemplateVersion) {
+                $version = SopTemplateVersion::visibleTo($actor, $team)->whereKey($linked->id)->first();
+                if ($version === null || ! in_array($version->status, ['published', 'retired'], true)) {
                     return $this->result('missing_published_version');
                 }
-
                 if ($tasks->isNotEmpty()) {
-                    $cycle->forceFill(['sop_template_version_id' => $version->id])->save();
-
-                    return $this->result(
-                        'already_generated',
-                        0,
-                        $this->reschedulePending($tasks, $this->anchorDate($cycle)),
-                        $version->id,
-                    );
+                    return $this->result('already_generated', 0, $this->reschedulePending($tasks, $anchor), $version->id);
+                }
+            } else {
+                $linked = $farm->defaultSopTemplate;
+                if ($linked === null) {
+                    return $this->result('missing_sop');
+                }
+                if ((int) $linked->team_id !== (int) $team->id) {
+                    return $this->result('invalid_sop_tenant');
+                }
+                $template = SopTemplate::visibleTo($actor, $team)->whereKey($linked->id)->first();
+                if ($template === null || ! $template->is_active) {
+                    return $this->result('inactive_sop');
+                }
+                $version = SopTemplateVersion::visibleTo($actor, $team)->where('sop_template_id', $template->id)
+                    ->where('status', 'published')->orderByDesc('version')->first();
+                if ($version === null) {
+                    return $this->result('missing_published_version');
                 }
             }
-
-            $sourceTasks = $version->tasks()->get();
-
-            if ($sourceTasks->isEmpty()) {
-                $cycle->forceFill(['sop_template_version_id' => $version->id])->save();
-
-                return $this->result('no_tasks', 0, 0, $version->id);
+            $sources = SopTemplateTask::visibleTo($actor, $team)->where('sop_template_version_id', $version->id)->get();
+            if ($cycle->variety_id !== null && $cycle->variety?->commodity_id !== $version->sopTemplate->commodity_id) {
+                return $this->result('commodity_mismatch');
             }
-
-            $stages = $cycle->stages()->get()->keyBy('code');
-            $anchor = $this->anchorDate($cycle);
+            if ($tasks->isNotEmpty()) {
+                return $this->result('missing_sop_version');
+            }
+            $stages = PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)->get()->keyBy('code');
+            foreach ($sources as $source) {
+                if ($source->activity_category !== 'planting' && ! $stages->has($source->activity_category)) {
+                    return $this->result('missing_stage', 0, 0, $version->id, $source->activity_category);
+                }
+            }
             $created = 0;
-
-            foreach ($sourceTasks as $source) {
-                // Planting is the trigger and the HST anchor, not follow-up work.
-                // It stays in the SOP definition for the planting activity form.
+            foreach ($sources as $source) {
                 if ($source->activity_category === 'planting') {
                     continue;
                 }
-
-                $stageCode = self::STAGE_BY_CATEGORY[$source->activity_category] ?? null;
-                $stage = $stageCode === null ? null : $stages->get($stageCode);
-
-                if ($stage === null) {
-                    return $this->result('missing_stage', $created, 0, $version->id, $source->activity_category);
-                }
-
-                $scheduled = $anchor?->addDays($source->offset_days);
-                $due = $scheduled?->addDays($source->tolerance_days);
-
-                PlantingCycleTask::query()->create([
-                    'planting_cycle_id' => $cycle->id,
-                    'planting_cycle_stage_id' => $stage->id,
-                    'sop_template_task_id' => $source->id,
-                    'activity_category' => $source->activity_category,
-                    'activity_subcategory' => $source->activity_subcategory,
-                    'name' => $source->name,
-                    'instructions' => $source->instructions,
-                    'offset_days' => $source->offset_days,
-                    'tolerance_days' => $source->tolerance_days,
-                    'scheduled_date' => $scheduled?->toDateString(),
-                    'due_date' => $due?->toDateString(),
-                    'is_required' => $source->is_required,
-                    'status' => 'pending',
+                $date = $anchor->addDays($source->offset_days);
+                PlantingCycleTask::create([
+                    'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $stages->get($source->activity_category)->id,
+                    'sop_template_task_id' => $source->id, 'activity_category' => $source->activity_category,
+                    'activity_subcategory' => $source->activity_subcategory, 'name' => $source->name, 'instructions' => $source->instructions,
+                    'offset_days' => $source->offset_days, 'tolerance_days' => $source->tolerance_days,
+                    'scheduled_date' => $date->toDateString(), 'due_date' => $date->addDays($source->tolerance_days)->toDateString(),
+                    'is_required' => $source->is_required, 'status' => 'pending',
                 ]);
                 $created++;
             }
-
             $cycle->forceFill(['sop_template_version_id' => $version->id])->save();
 
-            return $this->result('generated', $created, 0, $version->id);
+            return $this->result($created > 0 ? 'generated' : 'no_tasks', $created, 0, $version->id);
         });
     }
 
-    private function anchorDate(PlantingCycle $cycle): ?CarbonImmutable
-    {
-        return $cycle->planted_at ?? $cycle->planned_planting_at;
-    }
-
     /** @param Collection<int, PlantingCycleTask> $tasks */
-    private function reschedulePending(Collection $tasks, ?CarbonImmutable $anchor): int
+    private function reschedulePending(Collection $tasks, CarbonImmutable $anchor): int
     {
-        $rescheduled = 0;
-
+        $count = 0;
         foreach ($tasks as $task) {
             if ($task->status !== 'pending') {
                 continue;
             }
-
-            $scheduled = $anchor?->addDays($task->offset_days);
-            $due = $scheduled?->addDays($task->tolerance_days);
-            $scheduledDate = $scheduled?->toDateString();
-            $dueDate = $due?->toDateString();
-
-            if ($task->scheduled_date?->toDateString() === $scheduledDate
-                && $task->due_date?->toDateString() === $dueDate) {
-                continue;
+            $date = $anchor->addDays($task->offset_days);
+            $due = $date->addDays($task->tolerance_days);
+            if ($task->scheduled_date?->toDateString() !== $date->toDateString() || $task->due_date?->toDateString() !== $due->toDateString()) {
+                $task->forceFill(['scheduled_date' => $date->toDateString(), 'due_date' => $due->toDateString()])->save();
+                $count++;
             }
-
-            $task->forceFill([
-                'scheduled_date' => $scheduledDate,
-                'due_date' => $dueDate,
-            ])->save();
-            $rescheduled++;
         }
 
-        return $rescheduled;
+        return $count;
     }
 
     /** @return array{status: string, created: int, rescheduled: int, version_id: string|null, detail: string|null} */
-    private function result(
-        string $status,
-        int $created = 0,
-        int $rescheduled = 0,
-        ?string $versionId = null,
-        ?string $detail = null,
-    ): array {
-        return [
-            'status' => $status,
-            'created' => $created,
-            'rescheduled' => $rescheduled,
-            'version_id' => $versionId,
-            'detail' => $detail,
-        ];
+    private function result(string $status, int $created = 0, int $rescheduled = 0, ?string $versionId = null, ?string $detail = null): array
+    {
+        return ['status' => $status, 'created' => $created, 'rescheduled' => $rescheduled, 'version_id' => $versionId, 'detail' => $detail];
     }
 }

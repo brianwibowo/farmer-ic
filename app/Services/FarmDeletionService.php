@@ -89,13 +89,11 @@ class FarmDeletionService
                 DB::table('users')->whereIn('id', $graph['users'])->where('assigned_farm_id', $farm->id)
                     ->update(['assigned_farm_id' => null, 'updated_at' => now()]);
                 foreach ([
-                    'planting_cycle_tasks',
-                    'planting_cycle_stages',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
                     'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos',
                     'block_mapping_details', 'planting_details', 'fertilization_details', 'irrigation_details',
                     'pesticide_details', 'incident_details', 'harvest_details',
-                    'farm_activities', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'planting_rounds', 'farm_blocks',
+                    'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'planting_rounds', 'farm_blocks',
                 ] as $table) {
                     $key = str_ends_with($table, '_details') ? 'activity_id' : 'id';
                     DB::table($table)->whereIn($key, $graph[$table])->delete();
@@ -167,6 +165,7 @@ class FarmDeletionService
         // deletion graph. Such rows block deletion; they are never added to it.
         foreach ([
             ['farm_activities', 'planting_cycle_id', 'planting_cycles'],
+            ['farm_activities', 'planting_cycle_task_id', 'planting_cycle_tasks'],
             ['farm_activities', 'daily_activity_log_id', 'daily_activity_logs'],
             ['plant_observations', 'planting_cycle_id', 'planting_cycles'],
             ['plant_observations', 'activity_id', 'farm_activities'],

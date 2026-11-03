@@ -122,6 +122,17 @@ class DailyActivityLogTest extends TestCase
         $this->getJson($this->url($other))->assertForbidden();
     }
 
+    public function test_mapping_appends_to_the_existing_day_without_overwriting_its_header(): void
+    {
+        $id = $this->postJson($this->url(), $this->payload())->assertCreated()->json('data.id');
+        $data = $this->payload();
+        $data['worker_count'] = 20;
+        $data['notes'] = 'Header tidak boleh ditimpa.';
+        $this->postJson($this->url(), $data)->assertSuccessful()->assertJsonPath('data.id', $id)
+            ->assertJsonPath('data.worker_count', 6)->assertJsonCount(2, 'data.activities')->assertJsonPath('data.activities.1.position', 2);
+        $this->assertDatabaseCount('daily_activity_logs', 1);
+    }
+
     public function test_invalid_header_and_mapping_fields_do_not_create_partial_records(): void
     {
         foreach (

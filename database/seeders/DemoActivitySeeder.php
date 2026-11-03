@@ -36,6 +36,7 @@ class DemoActivitySeeder extends Seeder
         $this->call(BlockMappingActivityTypeSeeder::class);
 
         if (! DailyActivityLog::query()->where('farm_id', $farm->id)->exists()) {
+            \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('create', [DailyActivityLog::class, $farm]);
             app(DailyActivityLogService::class)->create($farm, [
                 'work_date' => '2026-10-27',
                 'start_time' => '08:00',
@@ -128,6 +129,7 @@ class DemoActivitySeeder extends Seeder
         }
 
         DB::transaction(function () use ($farm, $cycle, $user, $type, $description, $detail, $activityDate, $typeCode): void {
+            [$log, $position] = $this->header($farm, $user, $activityDate);
             $activity = FarmActivity::query()->create([
                 'farm_id' => $farm->id,
                 'planting_cycle_id' => $cycle->id,
@@ -136,6 +138,7 @@ class DemoActivitySeeder extends Seeder
                 'activity_date' => CarbonImmutable::parse($activityDate.' 09:00', 'Asia/Jakarta'),
                 'description' => $description,
                 'status' => 'completed',
+                'daily_activity_log_id' => $log->id, 'position' => $position,
             ]);
             $relation = match ($typeCode) {
                 'planting' => 'plantingDetail',
@@ -158,6 +161,7 @@ class DemoActivitySeeder extends Seeder
         }
 
         DB::transaction(function () use ($farm, $cycle, $user, $type): void {
+            [$log, $position] = $this->header($farm, $user, '2026-10-28');
             $activity = FarmActivity::query()->create([
                 'farm_id' => $farm->id,
                 'planting_cycle_id' => $cycle->id,
@@ -166,6 +170,7 @@ class DemoActivitySeeder extends Seeder
                 'activity_date' => CarbonImmutable::parse('2026-10-28 10:00', 'Asia/Jakarta'),
                 'description' => 'Observasi pertumbuhan minggu ke-4',
                 'status' => 'completed',
+                'daily_activity_log_id' => $log->id, 'position' => $position,
             ]);
             $activity->observation()->create([
                 'planting_cycle_id' => $cycle->id,
@@ -181,5 +186,19 @@ class DemoActivitySeeder extends Seeder
                 'notes' => 'Perlu pemantauan ulat pada sisi timur blok.',
             ]);
         });
+    }
+
+    /** @return array{DailyActivityLog, int} */
+    private function header(Farm $farm, User $actor, string $date): array
+    {
+        \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('create', [DailyActivityLog::class, $farm]);
+        Farm::visibleTo($actor, $farm->team)->whereKey($farm->id)->lockForUpdate()->firstOrFail();
+        $headers = app(\App\Services\Activity\DailyActivityHeaderService::class);
+        $log = $headers->resolve($farm, $actor, [
+            'work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 6,
+            'daily_notes' => 'Kegiatan lapangan bersama tim Kebun Cileuksa.',
+        ]);
+
+        return [$log, $headers->nextPosition($log, $actor)];
     }
 }
