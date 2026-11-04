@@ -24,6 +24,13 @@ declare module '@inertiajs/core' {
             auth: Auth;
             account?: AccountProfile | null;
             sidebarOpen: boolean;
+            ownerNavigation?: {
+                farms: boolean;
+                activities: boolean;
+                sops: boolean;
+                users: boolean;
+                finance: boolean;
+            };
             navigation?: {
                 admin: boolean;
                 notifications: boolean;

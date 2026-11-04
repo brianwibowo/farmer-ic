@@ -4,11 +4,13 @@ namespace App\Http\Middleware;
 
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
+use App\Models\FarmActivity;
 use App\Models\FinancialBudget;
 use App\Models\FinancialCategory;
 use App\Models\FinancialProjection;
 use App\Models\FinancialTransaction;
 use App\Models\Notification;
+use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\RolePermissions;
@@ -56,6 +58,14 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'ownerNavigation' => collect([
+                'farms' => Farm::class,
+                'activities' => FarmActivity::class,
+                'sops' => SopTemplate::class,
+                'users' => User::class,
+                'finance' => FinancialTransaction::class,
+            ])->map(fn (string $model): bool => $user !== null && $user->currentTeam !== null
+                && Gate::forUser($user)->allows('viewAny', [$model, $user->currentTeam]))->all(),
             'navigation' => [
                 'admin' => $adminAccess,
                 'logbook' => $adminAccess && $logbookTeam instanceof Team

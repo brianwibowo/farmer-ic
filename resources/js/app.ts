@@ -8,6 +8,7 @@ import SopManagementLayout from '@/layouts/SopManagementLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import PetugasLayout from '@/layouts/PetugasLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { dismissStartupScreen, showStartupError } from '@/lib/startupScreen';
 
@@ -23,6 +24,8 @@ void createInertiaApp({
             case name === 'settings/Profile':
             case name === 'settings/Security':
                 return null;
+            case name.startsWith('owner/'):
+                return OwnerLayout;
             case name.startsWith('petugas/'):
                 return PetugasLayout;
             case name === 'Welcome':

@@ -255,8 +255,15 @@ Use semantic tab markup when switching content in place. Keep the selected indic
 
 ## Farmer/mobile bottom navigation
 
-The existing Owner/farmer bottom bar has five destinations: Beranda, Kebun,
-AI, Keuangan, and Aktivitas. Retain its emphasized AI action.
+The Owner/farmer bottom bar has five destinations: Beranda, Kebun,
+AI, Keuangan, and Lainnya. Retain its emphasized AI action and existing AI
+workflow. Lainnya opens the read-only activity feed, SOP, and user directory.
+Owner screens use the same persisted domain records and metric definitions as
+Admin, presented in the Farmer/mobile profile. Farm detail links to blocks,
+batches, persisted stages, and SOP schedules. Distinguish planned allocation,
+actual planted area, and recorded harvest. Keep missing observations explicit.
+Tenant selection sits below the existing profile header; profile/settings and
+the avatar dropdown remain independent of operational navigation.
 
 The Petugas portal uses four equally sized destinations: Beranda, Kebun,
 Aktivitas, and Laporan. These open the authenticated `/petugas` pages through

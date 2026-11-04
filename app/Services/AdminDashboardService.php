@@ -59,7 +59,11 @@ class AdminDashboardService
             ->whereDate('period_start', '<=', CarbonImmutable::today())
             ->whereDate('period_end', '>=', CarbonImmutable::today());
         $recentActivities = (clone $activityQuery)
-            ->with(['farm:id,name', 'performer:id,name,avatar_url', 'activityType:id,name'])
+            ->with([
+                'farm' => fn ($farms) => $farms->visibleTo($actor, $team)->select(['id', 'name']),
+                'performer' => fn ($users) => $users->visibleTo($actor, $team)->select(['id', 'name', 'avatar_url']),
+                'activityType' => fn ($types) => $types->visibleTo($actor, $team)->select(['id', 'name']),
+            ])
             ->orderByDesc('activity_date')
             ->limit(30)
             ->get();
@@ -72,9 +76,8 @@ class AdminDashboardService
         $officers = User::query()
             ->visibleTo($actor, $team)
             ->when($farmId, fn (Builder $q) => $q->where('assigned_farm_id', $farmId))
-            ->with('role:id,name')
             ->where('is_active', true)
-            ->whereHas('role', fn (Builder $roles) => $roles->where('name', 'petugas'))
+            ->whereHas('role', fn (Builder $roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
             ->orderBy('name')
             ->get(['id', 'role_id', 'name', 'avatar_url'])
             ->map(function (User $officer) use ($activityTotalsByOfficer): array {
@@ -95,7 +98,10 @@ class AdminDashboardService
         $tasks = OperationalTarget::query()
             ->visibleTo($actor, $team)
             ->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId))
-            ->with(['farm:id,name', 'creator:id,name'])
+            ->with([
+                'farm' => fn ($farms) => $farms->visibleTo($actor, $team)->select(['id', 'name']),
+                'creator' => fn ($users) => $users->visibleTo($actor, $team)->select(['id', 'name']),
+            ])
             ->orderByRaw('target_date asc nulls last')
             ->limit(8)
             ->get()
@@ -108,7 +114,7 @@ class AdminDashboardService
                 'status' => $this->taskStatus($task->status),
             ])->values()->all();
 
-        $trendActivities = (clone $activityQuery)->with('activityType:id,code,name')
+        $trendActivities = (clone $activityQuery)->with(['activityType' => fn ($types) => $types->visibleTo($actor, $team)->select(['id', 'code', 'name'])])
             ->whereBetween('activity_date', [$weekStart, $weekEnd])->get();
         $legacyStart = CarbonImmutable::today()->subDays(6);
         $activityCounts = [];
@@ -136,7 +142,10 @@ class AdminDashboardService
             ->visibleTo($actor, $team)
             ->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId))
             ->whereIn('status', ['active', 'harvested'])
-            ->with('variety.commodity')
+            ->with([
+                'variety' => fn ($varieties) => $varieties->visibleTo($actor, $team),
+                'variety.commodity' => fn ($commodities) => $commodities->visibleTo($actor, $team),
+            ])
             ->get();
         $commodities = $commodityCycles
             ->filter(fn (PlantingCycle $cycle): bool => $cycle->variety?->commodity !== null)
