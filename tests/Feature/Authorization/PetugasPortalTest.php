@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Authorization;
 
+use App\Enums\TeamRole;
 use App\Models\Role;
+use App\Models\Farm;
+use App\Models\Team;
 use App\Models\User;
 use App\Support\RolePermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,6 +66,29 @@ class PetugasPortalTest extends TestCase
         $this->post('/login', ['email' => $actor->email, 'password' => 'password'])->assertRedirect('/petugas');
         $this->assertAuthenticatedAs($actor);
         $this->get('/login')->assertRedirect('/petugas');
+    }
+
+    public function test_petugas_kebun_uses_the_assigned_farm_from_the_database(): void
+    {
+        $actor = User::factory()->create(['role' => 'petugas']);
+        $team = Team::factory()->create();
+        $team->members()->attach($actor, ['role' => TeamRole::Member->value]);
+        $actor->switchTeam($team);
+        $farm = new Farm([
+            'name' => 'Kebun Peta Petugas',
+            'land_tenure' => 'owned',
+            'total_area_ha' => '2.5000',
+            'latitude' => -6.5965,
+            'longitude' => 106.9502,
+        ]);
+        $farm->forceFill(['team_id' => $team->id, 'created_by' => $actor->id])->save();
+        $actor->forceFill(['assigned_farm_id' => $farm->id])->save();
+
+        $this->actingAs($actor)->get('/petugas/kebun')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('petugas/Kebun')
+                ->where('farm.id', $farm->id)
+                ->where('farm.latitude', '-6.5965000')
+                ->where('farm.longitude', '106.9502000'));
     }
 
     public function test_allowed_intended_pages_are_retained_and_denied_admin_intent_is_removed(): void

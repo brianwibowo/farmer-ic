@@ -5,6 +5,10 @@ import 'leaflet/dist/leaflet.css';
 import '../../../css/farm-map.css';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import {
+    ESRI_WORLD_IMAGERY_ATTRIBUTION,
+    ESRI_WORLD_IMAGERY_URL,
+} from '@/lib/esriBasemap';
 
 type FarmPoint = {
     id: string;
@@ -95,15 +99,11 @@ async function initialize(): Promise<void> {
             })
             .addTo(map);
         leaflet.control.scale({ imperial: false, maxWidth: 100 }).addTo(map);
-        tiles = leaflet.tileLayer(
-            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            {
+        tiles = leaflet.tileLayer(ESRI_WORLD_IMAGERY_URL, {
                 maxZoom: 18,
                 maxNativeZoom: 19,
-                attribution:
-                    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
-            },
-        );
+                attribution: ESRI_WORLD_IMAGERY_ATTRIBUTION,
+            });
         tiles.on('tileerror', () => {
             tilesUnavailable.value = true;
         });
