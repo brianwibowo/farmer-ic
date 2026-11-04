@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Activity\AdminLogbookController;
 use App\Http\Controllers\Activity\DailyActivityLogController;
+use App\Http\Controllers\AI\AiAttachmentController;
 use App\Http\Controllers\AI\AiConversationController;
 use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Sop\SopTemplateVersionController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureTeamMembership;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -152,9 +154,12 @@ Route::prefix('{current_team}')
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-        Route::get('ai', fn () => Inertia::render('farmer/Index'))->name('ai.page');
+        Route::get('ai', fn (Team $current_team) => Inertia::render('farmer/Index'))
+            ->middleware('can:ai.access,current_team')->name('ai.page');
 
-        Route::prefix('ai')->name('ai.')->group(function () {
+        Route::prefix('ai')->name('ai.')->middleware('can:ai.access,current_team')->group(function () {
+            Route::get('attachments/{attachment}', AiAttachmentController::class)
+                ->whereUuid('attachment')->name('attachments.show');
             Route::get('conversations', [AiConversationController::class, 'index'])->name('conversations.index');
             Route::post('conversations', [AiConversationController::class, 'store'])
                 ->middleware('throttle:30,1')

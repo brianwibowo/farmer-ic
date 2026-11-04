@@ -176,15 +176,32 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                 </div>
                 <div v-if="message.content">
                     <AiInfographicCard
-                        v-if="message.role === 'assistant' && (message.metadata?.is_infographic || message.presentation === 'infographic' || (message.metadata?.route && (message.metadata.route as Record<string, unknown>).intent === 'infographic'))"
+                        v-if="
+                            message.role === 'assistant' &&
+                            (message.metadata?.is_infographic ||
+                                message.presentation === 'infographic' ||
+                                (message.metadata?.route &&
+                                    (
+                                        message.metadata.route as Record<
+                                            string,
+                                            unknown
+                                        >
+                                    ).intent === 'infographic'))
+                        "
                         :content="message.content"
                         :is-streaming="message.status === 'streaming'"
                         :force-visual="true"
                         :metadata="message.metadata"
                         @copied="emit('copied', message.id)"
+                        @copy-error="emit('copyError', $event)"
                     />
                     <AiFinanceCard
-                        v-else-if="message.role === 'assistant' && message.metadata?.route && (message.metadata.route as Record<string, unknown>).domain === 'finance'"
+                        v-else-if="
+                            message.role === 'assistant' &&
+                            message.metadata?.route &&
+                            (message.metadata.route as Record<string, unknown>)
+                                .domain === 'finance'
+                        "
                         :content="message.content"
                         :metadata="message.metadata"
                     />
@@ -195,6 +212,7 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                         :force-visual="message.presentation === 'infographic'"
                         :metadata="message.metadata"
                         @copied="emit('copied', message.id)"
+                        @copy-error="emit('copyError', $event)"
                     />
                     <div
                         v-else
@@ -223,8 +241,11 @@ async function copyMessage(message: ChatMessage): Promise<void> {
                                 : 'Menyiapkan jawaban…')
                         }}</span>
                         <span class="block text-[11px] leading-4">
-                            Jawaban biasanya muncul dalam beberapa detik. Jika
-                            lebih dari 60 detik, Anda bisa menghentikannya.
+                            {{
+                                message.presentation === 'infographic'
+                                    ? 'Pembuatan gambar bisa memerlukan waktu lebih lama. Anda dapat menghentikannya kapan saja.'
+                                    : 'Jawaban biasanya muncul dalam beberapa detik. Jika lebih dari 60 detik, Anda bisa menghentikannya.'
+                            }}
                         </span>
                     </span>
                 </div>

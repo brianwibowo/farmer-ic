@@ -150,10 +150,13 @@ mengarahkan ke Beranda, karena laporan/PDF mock lama tidak dipakai sebagai
 laporan operasional. Matriks izin operasional tidak diperluas: request tambah,
 ubah, hapus, konfigurasi, dan pemulihan tetap mengikuti Policy existing.
 
-Pekerjaan ini tidak mengubah halaman/form profil, keamanan akun, atau pipeline
-AI/RAG. Batas AI yang tercatat pada audit tetap berlaku: jalur AI utama masih
-memerlukan pekerjaan lanjutan untuk pemeriksaan `ai.access` dan penggantian
-sumber demo. Query relasi pada logbook existing juga belum termasuk perbaikan
+Pekerjaan Owner tidak mengubah halaman/form profil atau keamanan akun. QA AI
+lanjutan melindungi halaman dan seluruh endpoint AI dengan `ai.access` khusus
+Owner, Policy resource, serta scope riwayat/pesan/lampiran dan pemilik percakapan.
+Superadmin tetap memiliki bypass pengembang untuk kemampuan selain `ai.access`.
+Sumber demo AI dipertahankan sesuai permintaan; migrasi sumber RAG dan audit
+menyeluruh query layanan retrieval serta job non-HTTP belum termasuk perubahan ini.
+Lihat [alur AI dan batas QA](ai-chat.md). Query relasi pada logbook existing juga belum termasuk perbaikan
 menyeluruh; portal Owner baru membaca aktivitas melalui query terscope sendiri.
 Batas integrasi modul blok tetap tercatat dalam [dokumentasi backend blok](farm-block-backend.md).
 Ikon profil di antarmuka Farmer/Owner/Petugas membuka ringkasan profil tanpa tautan

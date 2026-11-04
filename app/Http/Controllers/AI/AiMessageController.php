@@ -5,11 +5,15 @@ namespace App\Http\Controllers\AI;
 use App\AI\Services\AiChatService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\StoreAiMessageRequest;
+use App\Models\AiAttachment;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\Team;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\StreamedEvent;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AiMessageController extends Controller
@@ -24,26 +28,28 @@ class AiMessageController extends Controller
         Team $current_team,
         ?AiConversation $conversation = null,
     ): JsonResponse|StreamedResponse {
-        if ($conversation !== null) {
-            $conversation = $this->conversations->ownedConversation($current_team, $conversation);
-        } elseif ($request->filled('conversation_id')) {
-            $conversation = AiConversation::query()
-                ->whereKey($request->input('conversation_id'))
-                ->where('team_id', $current_team->id)
-                ->where('user_id', $request->user()->id)
-                ->firstOrFail();
-        } else {
-            $conversation = $this->chat->createConversation($request->user(), $current_team);
-        }
-
         /** @var array<int, UploadedFile> $files */
         $files = $request->file('attachments', []);
-        $userMessage = $this->chat->createUserMessage(
-            $conversation,
-            $request->user(),
-            $request->input('message'),
-            $files,
-        );
+        [$conversation, $userMessage] = DB::transaction(function () use ($request, $current_team, $conversation, $files): array {
+            $actor = $request->user();
+            if ($conversation !== null) {
+                $conversation = $this->conversations->ownedConversation($actor, $current_team, $conversation);
+            } elseif ($request->filled('conversation_id')) {
+                Gate::authorize('viewAny', [AiConversation::class, $current_team]);
+                $conversation = AiConversation::visibleTo($actor, $current_team)
+                    ->whereKey($request->input('conversation_id'))->where('user_id', $actor->id)->firstOrFail();
+                Gate::authorize('view', $conversation);
+            } else {
+                Gate::authorize('create', [AiConversation::class, $current_team]);
+                $conversation = $this->chat->createConversation($actor, $current_team);
+            }
+            Gate::authorize('create', [AiMessage::class, $conversation]);
+            if ($files !== []) {
+                Gate::authorize('create', [AiAttachment::class, $conversation]);
+            }
+
+            return [$conversation, $this->chat->createUserMessage($conversation, $actor, $request->input('message'), $files)];
+        });
 
         $events = $this->chat->streamReply(
             $conversation->fresh(),
