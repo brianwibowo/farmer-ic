@@ -9,6 +9,7 @@ export type FarmerNavKey =
     | 'ai'
     | 'finance'
     | 'activity'
+    | 'more'
     | 'report';
 
 export type FarmerNavItem = {
@@ -34,10 +35,9 @@ const emit = defineEmits<{
 const items: FarmerNavItem[] = [
     { key: 'home', label: 'Beranda', href: '/' },
     { key: 'garden', label: 'Kebun', href: '/kebun' },
-    { key: 'ai', label: 'AI', emphasis: true, href: '/kebun-petani/ai' },
+    { key: 'ai', label: 'AI', emphasis: true, href: '/bypass' },
     { key: 'finance', label: 'Keuangan', href: '/finance' },
-    { key: 'activity', label: 'Aktivitas', href: '/aktivitas' },
-    // { key: 'report', label: 'Laporan', href: '/laporan' },
+    { key: 'more', label: 'Lainnya', href: '/lainnya' },
 ];
 
 const active = computed(() => props.activeKey);

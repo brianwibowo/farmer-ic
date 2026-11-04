@@ -14,13 +14,14 @@ class ProfileAndForbiddenTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_owner_can_see_minimal_account_identity_without_admin_navigation_on_public_pages(): void
+    public function test_owner_keeps_account_identity_without_admin_navigation_on_authenticated_pages(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
         $this->actingAs($owner)->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('auth.user', null)
+            ->component('owner/Farms')
+            ->where('auth.user.id', $owner->id)
             ->where('account', ['name' => $owner->name, 'email' => $owner->email])
-            ->where('currentTeam', null)->where('teams', [])
+            ->where('currentTeam.id', $owner->current_team_id)
             ->where('navigation.admin', false)->where('navigation.farms', false));
     }
 

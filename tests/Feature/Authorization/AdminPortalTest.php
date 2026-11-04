@@ -62,7 +62,7 @@ class AdminPortalTest extends TestCase
                 $this->get('/')->assertRedirect('/petugas');
             } else {
                 $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-                    ->component('farmer/Dashboard')->where('navigation.admin', false)->where('navigation.farms', false));
+                    ->component('owner/Dashboard')->where('navigation.admin', false)->where('navigation.farms', false));
             }
         }
     }
