@@ -195,3 +195,32 @@ batch demo di atasnya. Ini bukan migrasi atau reset data aplikasi lama.
   Migration modul blok siap dijalankan setelah izin tersebut diberikan. Dua
   migration lahan existing juga masih pending; keduanya bukan perubahan file
   dalam pekerjaan ini.
+
+## Dialog dan edit sub blok (3 November 2026)
+
+Konfigurasi blok tersedia langsung dari detail kebun melalui tabel dan dialog.
+URL form lama tetap berfungsi memakai komponen form bersama. Payload dialog
+`return_to=farm` hanya memilih tujuan tetap detail kebun, bukan URL bebas.
+Daftar tersemat, kapasitas, dan status penghapusan memakai `visibleTo` sebelum
+serialisasi. Semua aksi tulis tetap melewati Policy pada controller.
+
+Detail blok menampilkan seluruh tahap, tanggal mulai, dan tanggal selesai setiap
+sub blok tanpa tombol pembuka progres. Form tambah dan ubah sub blok berada dalam
+dialog, dengan validasi luas, konversi ha/m², dan indikator penyimpanan.
+
+`PUT /kebun/{farm}/blocks/{block}/batches/{batch}` memeriksa kecocokan parent
+terpersisten lalu `Gate::authorize('update', $batch)`. Admin/Superadmin dan Petugas
+dalam cakupannya menggunakan grant `planting_cycles.update` existing; Owner tetap
+read-only. Tidak ada perubahan matrix role. Edit hanya untuk batch planned dalam
+blok aktif, tanpa realisasi tanam dan tanpa snapshot jadwal SOP. Field yang dapat
+diubah adalah label, alokasi luas, dan rencana tanggal tanam. Nomor batch, periode,
+status, tahap, dan tanggal progres dipertahankan.
+
+Service mengunci kebun, blok, lalu batch. Reservasi batch yang sedang diedit tidak
+ikut dikurangkan dua kali; reservasi lain dan tanam legacy tetap membatasi luas.
+Label unik dalam periode yang sama. Aksi yang mengubah tahap, menghapus histori,
+atau menjadwalkan ulang SOP tidak ditambahkan oleh revisi ini.
+
+Semua route baru terlindungi dan query baca baru memakai scope. Batas integrasi
+route publik/AI yang dicatat di bagian sebelumnya tetap di luar cakupan revisi;
+pekerjaan ini bukan audit ulang seluruh route dan query aplikasi.

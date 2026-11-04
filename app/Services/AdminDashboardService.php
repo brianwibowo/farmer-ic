@@ -24,6 +24,7 @@ class AdminDashboardService
      * in the admin portal. The service intentionally returns presentation-ready
      * values, while authorization remains at the route/controller boundary.
      *
+     * @param  array{farm_id?: string|null, period?: string|int}  $filters
      * @return array<string, mixed>
      */
     public function summary(User $actor, ?Team $team, array $filters = []): array
@@ -66,6 +67,7 @@ class AdminDashboardService
             ->selectRaw('performed_by, COUNT(*) as activity_count, MAX(activity_date) as latest_activity_at')
             ->groupBy('performed_by')
             ->get()
+            ->toBase()
             ->keyBy('performed_by');
         $officers = User::query()
             ->visibleTo($actor, $team)
@@ -77,15 +79,16 @@ class AdminDashboardService
             ->get(['id', 'role_id', 'name', 'avatar_url'])
             ->map(function (User $officer) use ($activityTotalsByOfficer): array {
                 $summary = $activityTotalsByOfficer->get($officer->id);
+                $latestActivityAt = $summary?->getAttribute('latest_activity_at');
 
                 return [
                     'id' => (string) $officer->id,
                     'name' => $officer->name,
                     'avatarUrl' => $officer->avatar_url,
-                    'activityCount' => (int) ($summary?->activity_count ?? 0),
-                    'latestActivityAt' => $summary?->latest_activity_at === null
+                    'activityCount' => (int) ($summary?->getAttribute('activity_count') ?? 0),
+                    'latestActivityAt' => $latestActivityAt === null
                         ? null
-                        : CarbonImmutable::parse($summary->latest_activity_at)->locale('id')->isoFormat('D MMM YYYY'),
+                        : CarbonImmutable::parse($latestActivityAt)->settings(['locale' => 'id'])->isoFormat('D MMM YYYY'),
                 ];
             })->values()->all();
 
@@ -99,9 +102,9 @@ class AdminDashboardService
             ->map(fn (OperationalTarget $task): array => [
                 'id' => (string) $task->id,
                 'title' => $task->task_name,
-                'farm' => $task->farm?->name ?? 'Kebun tidak tersedia',
-                'assignee' => $task->creator?->name ?? 'Belum ditentukan',
-                'date' => $task->target_date?->locale('id')->isoFormat('D MMM YYYY') ?? 'Tanpa tenggat',
+                'farm' => $task->farm->name ?? 'Kebun tidak tersedia',
+                'assignee' => $task->creator->name ?? 'Belum ditentukan',
+                'date' => $task->target_date?->settings(['locale' => 'id'])->isoFormat('D MMM YYYY') ?? 'Tanpa tenggat',
                 'status' => $this->taskStatus($task->status),
             ])->values()->all();
 
@@ -112,7 +115,7 @@ class AdminDashboardService
         for ($offset = 0; $offset < 7; $offset++) {
             $date = $legacyStart->addDays($offset);
             $activityCounts[] = [
-                'label' => $date->locale('id')->isoFormat('dddd'),
+                'label' => $date->settings(['locale' => 'id'])->isoFormat('dddd'),
                 'value' => $trendActivities->filter(fn (FarmActivity $activity): bool => $activity->activity_date->isSameDay($date))->count(),
             ];
         }
@@ -160,7 +163,7 @@ class AdminDashboardService
             for ($offset = 0; $offset < 7; $offset++) {
                 $date = $legacyStart->addDays($offset);
                 $days[] = [
-                    'label' => $date->locale('id')->isoFormat('dddd'),
+                    'label' => $date->settings(['locale' => 'id'])->isoFormat('dddd'),
                     'value' => $trendActivities->filter(fn (FarmActivity $activity): bool => $activity->farm_id === $farm->id && $activity->activity_date->isSameDay($date))->count(),
                 ];
             }
@@ -201,7 +204,7 @@ class AdminDashboardService
                 ['key' => 'maintenance', 'label' => 'Batch pemeliharaan', 'count' => (int) ($stageCounts['maintenance'] ?? 0), 'description' => 'Batch berjalan dengan tahap pemeliharaan berstatus sedang berlangsung.'],
                 ['key' => 'officers', 'label' => 'Petugas lapangan aktif', 'count' => count($officers), 'description' => 'Akun petugas aktif yang dapat dilihat dalam cakupan akses saat ini.'],
             ],
-            'generatedAt' => CarbonImmutable::now()->locale('id')->isoFormat('D MMMM YYYY'),
+            'generatedAt' => CarbonImmutable::now()->settings(['locale' => 'id'])->isoFormat('D MMMM YYYY'),
             'metrics' => [
                 ['key' => 'farms', 'label' => 'Total kebun', 'value' => (clone $farms)->count(), 'unit' => 'kebun', 'note' => 'Kebun dalam cakupan akses Anda.'],
                 [
@@ -226,7 +229,7 @@ class AdminDashboardService
             'commodities' => $commodities,
             'financial' => [
                 'opexThisMonth' => $this->currency($opexThisMonth),
-                'monthLabel' => $monthStart->locale('id')->isoFormat('MMMM YYYY'),
+                'monthLabel' => $monthStart->settings(['locale' => 'id'])->isoFormat('MMMM YYYY'),
                 'projectionCount' => (clone $currentProjections)->count(),
                 'projectedIncome' => $this->currency($projectedIncome),
                 'projectedExpense' => $this->currency($projectedExpense),
@@ -235,12 +238,12 @@ class AdminDashboardService
             'landMap' => $this->landMap($mapFarms),
             'activities' => $recentActivities->map(fn (FarmActivity $activity): array => [
                 'id' => (string) $activity->id,
-                'title' => $activity->activityType?->name ?? 'Aktivitas lapangan',
+                'title' => $activity->activityType->name ?? 'Aktivitas lapangan',
                 'description' => $activity->description,
-                'farm' => $activity->farm?->name ?? 'Kebun tidak tersedia',
+                'farm' => $activity->farm->name ?? 'Kebun tidak tersedia',
                 'officerId' => (string) $activity->performed_by,
-                'officerName' => $activity->performer?->name ?? 'Petugas tidak tersedia',
-                'date' => $activity->activity_date->locale('id')->isoFormat('D MMM YYYY'),
+                'officerName' => $activity->performer->name ?? 'Petugas tidak tersedia',
+                'date' => $activity->activity_date->settings(['locale' => 'id'])->isoFormat('D MMM YYYY'),
                 'status' => $activity->status ?? 'Belum ada status',
             ])->values()->all(),
             'officers' => $officers,
@@ -248,7 +251,10 @@ class AdminDashboardService
         ];
     }
 
-    /** @param Collection<int, FarmActivity> $activities */
+    /**
+     * @param  Collection<int, FarmActivity>  $activities
+     * @return array{days: list<array{label: string, date: string, values: list<int>, value: int}>, total: int, periodLabel: string, series: list<string>}
+     */
     private function activityTrend(Collection $activities, CarbonImmutable $start, int $period): array
     {
         $bucketSize = $period === 30 ? 5 : 1;
@@ -269,7 +275,7 @@ class AdminDashboardService
                 $values[$index]++;
             }
             $days[] = [
-                'label' => $period === 7 ? $from->locale('id')->isoFormat('ddd') : $from->locale('id')->isoFormat('D MMM'),
+                'label' => $period === 7 ? $from->settings(['locale' => 'id'])->isoFormat('ddd') : $from->settings(['locale' => 'id'])->isoFormat('D MMM'),
                 'date' => $from->toDateString(),
                 'values' => $values,
                 'value' => array_sum($values),
@@ -279,7 +285,7 @@ class AdminDashboardService
         return [
             'days' => $days,
             'total' => array_sum(array_column($days, 'value')),
-            'periodLabel' => $start->locale('id')->isoFormat('D MMM').' – '.CarbonImmutable::today()->locale('id')->isoFormat('D MMM YYYY'),
+            'periodLabel' => $start->settings(['locale' => 'id'])->isoFormat('D MMM').' – '.CarbonImmutable::today()->settings(['locale' => 'id'])->isoFormat('D MMM YYYY'),
             'series' => ['Penanaman', 'Perawatan & lainnya', 'Panen'],
         ];
     }

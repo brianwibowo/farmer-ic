@@ -55,3 +55,14 @@ export function blockDate(value: string | null): string {
           }).format(new Date(value))
         : 'Belum dimulai';
 }
+
+export type BlockFormCapacity = {
+    maximum_area_ha: string;
+    minimum_area_ha: string;
+    running_batches: number;
+};
+export type ManagedBlock = FarmBlock & {
+    capacity: BlockFormCapacity;
+    deletionBlocked: boolean;
+    can: { update: boolean; delete: boolean };
+};

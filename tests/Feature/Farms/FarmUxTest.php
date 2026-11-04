@@ -136,6 +136,10 @@ class FarmUxTest extends TestCase
         $farm = app(FarmService::class)->create(['name' => 'Kebun Pemetaan', 'total_area_ha' => '2'], $this->admin, $this->team);
         $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '1']);
         app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['code' => 'B02', 'name' => 'Blok Nonaktif', 'area_ha' => '1', 'is_active' => false]);
+        $petugas = User::factory()->create(['role' => 'petugas']);
+        $this->team->members()->attach($petugas, ['role' => 'member']);
+        $petugas->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $farm->id])->save();
+        $this->actingAs($petugas);
         $this->get('/kebun/'.$farm->id.'/daily-logs')->assertOk()->assertInertia(fn (Assert $page) => $page->has('blocks', 1)->where('blocks.0.id', $block->id));
         $this->post('/kebun/'.$farm->id.'/daily-logs', [
             'work_date' => '2026-11-02', 'start_time' => '08:00', 'end_time' => '09:00', 'worker_count' => 2,

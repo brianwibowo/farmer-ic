@@ -6,6 +6,7 @@
         sans-serif;
     font-family: var(--font-sans);
     --radius: 0.75rem;
+    --admin-card-radius: 1.25rem;
     --background: #f3f4f6;
     --foreground: #0f172a;
     --card: #ffffff;
@@ -543,10 +544,15 @@
 .admin-dashboard-overview {
     background: var(--admin-overview-background);
 }
+.admin-dashboard-theme .admin-card,
+.admin-dashboard-theme .user-directory,
+.admin-dashboard-theme .user-summary-card {
+    border-radius: var(--admin-card-radius);
+}
 .admin-dashboard-theme .admin-panel,
 .admin-dashboard-theme .dashboard-panel {
     min-width: 0;
-    border-radius: var(--radius);
+    border-radius: var(--admin-card-radius);
     background: var(--card);
     padding: var(--admin-panel-padding);
 }

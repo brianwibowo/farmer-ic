@@ -3,6 +3,7 @@ import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
 import UserManagementLayout from '@/layouts/UserManagementLayout.vue';
+import LogbookLayout from '@/layouts/LogbookLayout.vue';
 import SopManagementLayout from '@/layouts/SopManagementLayout.vue';
 import TaskManagementLayout from '@/layouts/TaskManagementLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -17,6 +18,12 @@ void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
+            // The same /settings/profile page supplies its own role-specific
+            // shell. Owner and Petugas receive the Farmer/mobile surface,
+            // while Admin and Superadmin keep the desktop settings shell.
+            case name === 'settings/Profile':
+            case name === 'settings/Security':
+                return null;
             case name.startsWith('petugas/'):
                 return PetugasLayout;
             case name === 'Welcome':
@@ -31,6 +38,8 @@ void createInertiaApp({
                 return TaskManagementLayout;
             case name.startsWith('users/'):
                 return UserManagementLayout;
+            case name.startsWith('logbook/'):
+                return LogbookLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

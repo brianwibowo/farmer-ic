@@ -209,6 +209,9 @@ class UserManagementService
                 $user->forceFill(['assigned_farm_id' => $farmId ?: null, 'current_team_id' => $currentId]);
                 $user->save();
                 $user->teams()->sync($memberships);
+                Farm::query()->where('pic_user_id', $user->id)
+                    ->when($role->name === 'petugas' && $user->is_active && $farmId, fn ($q) => $q->whereKeyNot($farmId))
+                    ->update(['pic_user_id' => null]);
                 if (! empty($data['password']) && $target !== null && ! $actor->is($user)) {
                     DB::table('sessions')->where('user_id', $user->id)->delete();
                 }
@@ -238,6 +241,7 @@ class UserManagementService
                 $this->ensureAnotherDeveloper($user);
             }
             $user->forceFill(['remember_token' => Str::random(60)])->save();
+            Farm::query()->where('pic_user_id', $user->id)->update(['pic_user_id' => null]);
             $user->delete();
             DB::table('sessions')->where('user_id', $user->id)->delete();
         });

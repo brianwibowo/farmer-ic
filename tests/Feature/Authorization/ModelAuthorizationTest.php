@@ -217,7 +217,7 @@ class ModelAuthorizationTest extends TestCase
             $create = match ($role) {
                 'owner' => in_array($prefix, ['ai_conversations', 'ai_messages', 'ai_attachments', 'ai_knowledge_documents'], true),
                 'superadmin' => true,
-                'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages', 'administrative_regions'], true),
+                'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages', 'administrative_regions', 'daily_activity_logs'], true),
                 'petugas' => in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs', 'planting_rounds'], true),
             };
             $create = $create && ! $unlinked;
@@ -244,9 +244,9 @@ class ModelAuthorizationTest extends TestCase
             $update = ($role === 'superadmin')
                 || ($role === 'owner' && $create)
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true))
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions'], true));
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions', 'daily_activity_logs'], true));
             $delete = ($role === 'superadmin') || ($role === 'owner' && $create)
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions'], true))
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions', 'daily_activity_logs'], true))
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true));
             $update = $update && ! $unlinked;
             $delete = $delete && ! $unlinked;

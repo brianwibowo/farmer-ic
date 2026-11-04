@@ -42,6 +42,9 @@ class SaveFarmRequest extends FormRequest
                 ->where('is_active', true)
                 ->whereIn('id', fn ($members) => $members->select('user_id')->from('team_members')->where('team_id', $teamId))
                 ->whereIn('role_id', fn ($roles) => $roles->select('id')->from('roles')->where('name', 'owner')))],
+            'pic_user_id' => [$this->routeIs('farm-management.*') ? 'sometimes' : 'prohibited', 'nullable', 'uuid'],
+            'target_volume_ton' => ['sometimes', 'nullable', 'numeric', 'decimal:0,3', 'between:0.001,999999999.999'],
+            'commodity_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('commodities', 'id')],
             'default_sop_template_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('sop_templates', 'id')
                 ->where(fn ($query) => $query->where('team_id', $teamId))],
             'created_by' => ['prohibited'],
@@ -67,6 +70,18 @@ class SaveFarmRequest extends FormRequest
         return [function (Validator $validator): void {
             $parameter = $this->route('farm');
             $farm = $parameter instanceof Farm ? $parameter : null;
+            $commodityId = $this->exists('commodity_id') ? $this->input('commodity_id') : $farm?->getAttribute('commodity_id');
+            $sopId = $this->exists('default_sop_template_id') ? $this->input('default_sop_template_id') : $farm?->default_sop_template_id;
+            $team = $farm instanceof Farm ? $farm->team : $this->user()?->currentTeam;
+            if (! $validator->errors()->has('commodity_id') && $this->filled('commodity_id') && $team && ! \App\Models\Commodity::visibleTo($this->user(), $team)->whereKey($commodityId)->exists()) {
+                $validator->errors()->add('commodity_id', 'Komoditas tidak tersedia.');
+            }
+            if (! $validator->errors()->has('commodity_id') && ! $validator->errors()->has('default_sop_template_id') && $sopId && $team && ($this->exists('commodity_id') || $commodityId)) {
+                $matches = \App\Models\SopTemplate::visibleTo($this->user(), $team)->whereKey($sopId)->where('commodity_id', $commodityId)->exists();
+                if (! $matches) {
+                    $validator->errors()->add('default_sop_template_id', 'Pilih SOP yang sesuai dengan komoditas kebun.');
+                }
+            }
             if ($this->exists('district_code')) {
                 $code = $this->input('district_code');
                 $team = $farm instanceof Farm ? $farm->team : $this->user()?->currentTeam;

@@ -7,11 +7,13 @@ import {
     ExternalLink,
     LandPlot,
     MapPin,
-    Pencil,
+    Target,
     Sprout,
+    Pencil,
     Trash2,
 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
+import FarmBlocksTable from '@/components/blocks/FarmBlocksTable.vue';
 import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
 import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
 import {
@@ -20,13 +22,18 @@ import {
     type ManagedFarm,
     type FarmPermissions,
 } from '@/types/farms';
-
+import type { ManagedBlock, BlockFormCapacity } from '@/types/blocks';
 defineOptions({ inheritAttrs: false });
-
 const props = defineProps<{
     farm: ManagedFarm;
+    blocks: ManagedBlock[];
+    blockCapacity: BlockFormCapacity | null;
     deletionBlockers: string[];
-    can: FarmPermissions & { dailyLogs: boolean; blocks: boolean };
+    can: FarmPermissions & {
+        dailyLogs: boolean;
+        blocks: boolean;
+        createBlock: boolean;
+    };
 }>();
 const deleting = ref(false);
 const coordinates = computed<[number, number] | null>(() =>
@@ -34,312 +41,242 @@ const coordinates = computed<[number, number] | null>(() =>
         ? [Number(props.farm.latitude), Number(props.farm.longitude)]
         : null,
 );
+const progressDescriptions: Record<string, string> = {
+    land_clearing: 'sedang dibersihkan',
+    soil_preparation: 'sedang dalam pengolahan tanah',
+    basic_fertilizer: 'sedang dalam pemupukan dasar',
+    planting: 'sedang ditanami',
+    maintenance: 'sedang dalam pemeliharaan',
+    harvest: 'berada di tahap panen',
+    not_started: 'belum memulai pekerjaan',
+};
+const progressStages = computed(() =>
+    props.farm.progress_overview.stages.filter((stage) => stage.count > 0),
+);
 </script>
-
 <template>
     <Head :title="farm.name" />
-    <div class="space-y-6">
-        <Link
-            href="/admin/farm-management"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-            ><ArrowLeft class="size-4" />Daftar kebun</Link
+    <div class="space-y-4">
+        <header
+            class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3"
         >
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="admin-page-title tracking-tight">{{ farm.name }}</h1>
-                <p
-                    class="mt-2 flex items-center gap-1 text-sm text-muted-foreground"
-                >
-                    <MapPin class="size-4 shrink-0" />{{
-                        [farm.city, farm.province].filter(Boolean).join(', ') ||
-                        'Lokasi belum diisi'
-                    }}
-                </p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <Button
-                    v-if="can.forceDelete"
-                    as-child
-                    variant="destructive-outline"
-                    class="h-10 rounded-xl"
+            <div class="flex min-w-0 items-center gap-2">
+                <Button as-child variant="ghost" size="icon" class="shrink-0"
                     ><Link
-                        :href="`/admin/farm-management/${farm.id}/force-delete`"
-                        ><Trash2 />Force delete</Link
-                    ></Button
-                ><Button
-                    v-if="can.delete"
-                    variant="destructive-outline"
-                    class="h-10 rounded-xl"
-                    @click="deleting = true"
-                    ><Trash2 />Hapus</Button
-                ><Button v-if="can.update" as-child class="h-10 rounded-xl"
+                        href="/admin/farm-management"
+                        aria-label="Daftar kebun"
+                        title="Daftar kebun"
+                        ><ArrowLeft class="size-5" /></Link
+                ></Button>
+                <h1 class="admin-page-title min-w-0 break-words">
+                    {{ farm.name }}
+                </h1>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <a
+                    v-if="can.dailyLogs"
+                    :href="`/kebun/${farm.id}/daily-logs`"
+                    class="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                    ><ClipboardList class="size-4" />Logbook</a
+                >
+                <Button v-if="can.update" as-child variant="outline"
                     ><Link :href="`/admin/farm-management/${farm.id}/edit`"
                         ><Pencil />Ubah kebun</Link
                     ></Button
                 >
+                <Button
+                    v-if="can.delete"
+                    variant="destructive-ghost"
+                    size="icon"
+                    aria-label="Hapus kebun"
+                    @click="deleting = true"
+                    ><Trash2
+                /></Button>
             </div>
         </header>
-        <p
-            v-if="can.delete && deletionBlockers.length"
-            class="rounded-xl bg-muted p-4 text-sm text-muted-foreground"
-        >
-            Penghapusan biasa terhalang oleh {{ deletionBlockers.join(', ') }}.
-            Histori tetap dipertahankan.
-        </p>
-        <div class="grid gap-4 sm:grid-cols-3">
-            <section
-                v-for="metric in [
-                    {
-                        label: 'Luas terdaftar',
-                        value: hectares(farm.total_area_ha),
-                        unit: 'ha',
-                        icon: LandPlot,
-                    },
-                    {
-                        label: 'Luas tanam aktif',
-                        value: hectares(farm.active_area_ha),
-                        unit: 'ha',
-                        icon: Sprout,
-                    },
-                    {
-                        label: 'Siklus tanam aktif',
-                        value: farm.active_cycles,
-                        unit: 'siklus',
-                        icon: ClipboardList,
-                    },
-                ]"
-                :key="metric.label"
-                class="rounded-xl border border-border bg-card p-5"
+        <section class="overflow-hidden rounded-xl bg-card">
+            <header class="px-5 pt-4 sm:px-6 sm:pt-5">
+                <h2 class="admin-section-title">Ringkasan kebun</h2>
+            </header>
+            <dl
+                class="grid grid-cols-2 gap-x-6 gap-y-6 p-5 sm:px-6 sm:pt-4 sm:pb-6 lg:grid-cols-4"
             >
-                <div class="flex items-center justify-between">
-                    <h2 class="text-sm text-muted-foreground">
-                        {{ metric.label }}
-                    </h2>
-                    <component :is="metric.icon" class="size-5 text-primary" />
-                </div>
-                <p class="admin-metric-value mt-4">
-                    {{ metric.value }}
-                    <span class="text-xs font-medium text-muted-foreground">{{
-                        metric.unit
-                    }}</span>
-                </p>
-            </section>
-        </div>
-        <section class="rounded-xl border border-border bg-card p-5">
-            <h2 class="admin-section-title">Alokasi lahan</h2>
-            <dl class="mt-4 grid gap-4 sm:grid-cols-3">
                 <div>
-                    <dt class="text-sm text-muted-foreground">
-                        Total blok aktif
+                    <dt
+                        class="flex items-center gap-2 text-sm font-medium text-muted-foreground"
+                    >
+                        <LandPlot
+                            class="size-4 shrink-0 text-primary"
+                            aria-hidden="true"
+                        />Luas kebun
                     </dt>
-                    <dd class="mt-1 font-semibold">
-                        {{ hectares(farm.capacity.block_area_ha) }} ha
+                    <dd class="admin-metric-value mt-2 text-foreground">
+                        {{ hectares(farm.total_area_ha) }}
+                        <span class="text-sm font-normal text-muted-foreground"
+                            >ha</span
+                        >
                     </dd>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Total luas lahan terdaftar.
+                    </p>
                 </div>
                 <div>
-                    <dt class="text-sm text-muted-foreground">
-                        Alokasi tanam berjalan
+                    <dt
+                        class="flex items-center gap-2 text-sm font-medium text-muted-foreground"
+                    >
+                        <MapPin
+                            class="size-4 shrink-0 text-primary"
+                            aria-hidden="true"
+                        />Lokasi kebun
                     </dt>
-                    <dd class="mt-1 font-semibold">
-                        {{ hectares(farm.capacity.reserved_area_ha) }} ha
+                    <dd
+                        class="mt-2 text-xl leading-snug font-bold text-foreground"
+                    >
+                        {{ farm.district ?? farm.city ?? 'Belum diisi' }}
                     </dd>
+                    <p class="mt-1 text-sm leading-5 text-muted-foreground">
+                        {{
+                            [farm.district ? farm.city : null, farm.province]
+                                .filter(Boolean)
+                                .join(', ')
+                        }}
+                    </p>
                 </div>
                 <div>
-                    <dt class="text-sm text-muted-foreground">
-                        Batas minimum luas kebun
+                    <dt
+                        class="flex items-center gap-2 text-sm font-medium text-muted-foreground"
+                    >
+                        <Target
+                            class="size-4 shrink-0 text-primary"
+                            aria-hidden="true"
+                        />Target volume panen
                     </dt>
-                    <dd class="mt-1 font-semibold">
-                        {{ hectares(farm.capacity.minimum_area_ha) }} ha
+                    <dd class="admin-metric-value mt-2 text-foreground">
+                        <template v-if="farm.target_volume_ton"
+                            >{{ hectares(farm.target_volume_ton) }}
+                            <span
+                                class="text-sm font-normal text-muted-foreground"
+                                >ton</span
+                            ></template
+                        ><span
+                            v-else
+                            class="text-sm font-normal text-muted-foreground"
+                            >Belum diisi</span
+                        >
                     </dd>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Target hasil panen yang ditetapkan.
+                    </p>
+                </div>
+                <div>
+                    <dt
+                        class="flex items-center gap-2 text-sm font-medium text-muted-foreground"
+                    >
+                        <Sprout
+                            class="size-4 shrink-0 text-primary"
+                            aria-hidden="true"
+                        />Progres pekerjaan
+                    </dt>
+                    <dd class="admin-metric-value mt-2 text-foreground">
+                        {{ farm.progress_overview.total }}
+                        <span class="text-sm font-medium text-muted-foreground"
+                            >sub blok</span
+                        >
+                    </dd>
+                    <ul
+                        v-if="progressStages.length"
+                        class="mt-2 space-y-2 text-xs leading-5 text-muted-foreground"
+                        aria-label="Tahap pekerjaan sub blok saat ini"
+                    >
+                        <li v-for="stage in progressStages" :key="stage.code">
+                            <strong
+                                class="font-semibold text-foreground tabular-nums"
+                                >{{ stage.count }} sub blok</strong
+                            >
+                            {{
+                                progressDescriptions[stage.code] ??
+                                'belum memulai pekerjaan'
+                            }}.
+                        </li>
+                    </ul>
+                    <p v-else class="mt-1 text-xs text-muted-foreground">
+                        Belum ada progres.
+                    </p>
                 </div>
             </dl>
-            <p class="mt-4 text-xs leading-5 text-muted-foreground">
-                Alokasi mencakup batch persiapan dan aktif, serta tanam aktif
-                lama di luar batch. Luas blok dan alokasi batch saling
-                membatasi; keduanya bukan tambahan luas kebun.
-            </p>
-        </section>
-        <div class="grid items-start gap-5 lg:grid-cols-3">
-            <section
-                class="rounded-xl border border-border bg-card p-5 md:p-6 lg:col-span-2"
+            <dl
+                class="grid gap-x-6 gap-y-4 border-t border-border bg-muted/20 px-5 py-4 sm:grid-cols-3 sm:px-6"
             >
-                <h2 class="admin-section-title">Informasi lahan</h2>
-                <p class="mt-1 text-xs text-muted-foreground">
-                    Identitas dan alamat yang tercatat di sistem.
+                <div>
+                    <dt class="text-xs text-muted-foreground">PIC kebun</dt>
+                    <dd class="mt-1 text-sm font-semibold">{{ farm.pic_name ?? 'Belum ditentukan' }}</dd>
+                    <p class="mt-1 text-xs text-muted-foreground">{{ farm.pic_name ? (farm.pic_phone_number || 'Nomor telepon belum diisi') : '' }}</p>
+                </div>
+                <div>
+                    <dt class="text-xs text-muted-foreground">
+                        Komoditas yang ditanam
+                    </dt>
+                    <dd class="mt-1 text-sm font-semibold">
+                        {{
+                            farm.commodity?.name ??
+                            farm.default_sop?.commodity?.name ??
+                            'Belum dipilih'
+                        }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs text-muted-foreground">Status lahan</dt>
+                    <dd class="mt-1 text-sm font-semibold">
+                        {{ landTenureLabel(farm.land_tenure) }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs text-muted-foreground">
+                        Panduan budidaya (SOP)
+                    </dt>
+                    <dd class="mt-1 text-sm font-semibold">
+                        {{ farm.default_sop?.name ?? 'Belum dipilih' }}
+                    </dd>
+                    <p
+                        v-if="farm.default_sop && !farm.default_sop.is_usable"
+                        class="mt-1 text-xs text-warning"
+                    >
+                        SOP belum siap digunakan.
+                    </p>
+                </div>
+            </dl>
+            <div class="border-t border-border p-4 sm:p-5">
+                <FarmLocationMap :model-value="coordinates" prominent />
+                <p
+                    v-if="farm.address"
+                    class="mt-3 text-xs text-muted-foreground"
+                >
+                    {{ farm.address }}
                 </p>
-                <dl class="mt-6 grid gap-6 sm:grid-cols-2">
-                    <div>
-                        <dt class="text-xs text-muted-foreground">
-                            Nama kebun
-                        </dt>
-                        <dd class="mt-1.5 font-medium">{{ farm.name }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-muted-foreground">Tim</dt>
-                        <dd class="mt-1.5 font-medium">{{ farm.team_name }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-muted-foreground">
-                            Status penguasaan lahan
-                        </dt>
-                        <dd class="mt-1.5 font-medium">
-                            {{ landTenureLabel(farm.land_tenure) }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-muted-foreground">Pemilik</dt>
-                        <dd class="mt-1.5 font-medium">
-                            {{
-                                farm.owner_name ??
-                                (farm.owner_restricted
-                                    ? 'Akses pemilik terbatas'
-                                    : 'Belum ditentukan')
-                            }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-muted-foreground">Provinsi</dt>
-                        <dd class="mt-1.5 font-medium">
-                            {{ farm.province ?? '—' }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-muted-foreground">
-                            Kota / kabupaten
-                        </dt>
-                        <dd class="mt-1.5 font-medium">
-                            {{ farm.city ?? '—' }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-muted-foreground">Kecamatan</dt>
-                        <dd class="mt-1.5 font-medium">
-                            {{ farm.district ?? '—' }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <dt class="text-xs text-muted-foreground">
-                            Alamat lengkap
-                        </dt>
-                        <dd class="mt-1.5 whitespace-pre-line">
-                            {{ farm.address ?? 'Alamat belum diisi.' }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <dt class="text-xs text-muted-foreground">
-                            Referensi foto
-                        </dt>
-                        <dd class="mt-1.5">
-                            <a
-                                v-if="farm.image_url"
-                                :href="farm.image_url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="inline-flex items-center gap-2 text-primary underline"
-                                >Buka tautan foto<ExternalLink
-                                    class="size-3" /></a
-                            ><span v-else class="text-muted-foreground"
-                                >Belum ada tautan foto.</span
-                            >
-                        </dd>
-                    </div>
-                </dl>
-            </section>
-            <div class="space-y-5">
-                <section
-                    v-if="can.blocks"
-                    class="rounded-xl border border-border bg-card p-5"
-                >
-                    <h2 class="admin-section-title">Blok dan batch</h2>
-                    <p class="mt-2 text-sm text-muted-foreground">
-                        Lihat pembagian blok, alokasi subblok, dan timeline
-                        persiapan.
-                    </p>
-                    <Button as-child class="mt-4 h-10 w-full rounded-xl"
-                        ><Link :href="`/kebun/${farm.id}/blocks`"
-                            >Buka blok kebun</Link
-                        ></Button
-                    >
-                </section>
-                <section class="rounded-xl border border-border bg-card p-5">
-                    <div class="mb-3 flex items-center gap-2">
-                        <ClipboardList class="size-5 text-primary" />
-                        <h2 class="admin-section-title">SOP default kebun</h2>
-                    </div>
-                    <template v-if="farm.default_sop">
-                        <p class="font-semibold">{{ farm.default_sop.name }}</p>
-                        <p class="mt-1 text-sm text-muted-foreground">
-                            {{
-                                farm.default_sop.commodity?.name ??
-                                'Komoditas belum diisi'
-                            }}
-                        </p>
-                        <p class="mt-2 text-xs text-muted-foreground">
-                            <template v-if="farm.default_sop.published_version"
-                                >Versi
-                                {{
-                                    farm.default_sop.published_version.version
-                                }}
-                                ·
-                                {{
-                                    farm.default_sop.tasks_count
-                                }}
-                                langkah</template
-                            >
-                            <template v-else
-                                >Belum ada versi published.</template
-                            >
-                        </p>
-                        <p
-                            v-if="!farm.default_sop.is_active"
-                            class="mt-3 rounded-lg bg-warning/10 p-2 text-xs text-warning"
-                        >
-                            Template nonaktif. Petugas tidak dapat memakai SOP
-                            ini.
-                        </p>
-                        <p
-                            v-else-if="!farm.default_sop.published_version"
-                            class="mt-3 rounded-lg bg-warning/10 p-2 text-xs text-warning"
-                        >
-                            Publikasikan versi SOP agar dapat dipakai Petugas.
-                        </p>
-                    </template>
-                    <p v-else class="text-sm leading-6 text-warning">
-                        SOP default belum diatur. Petugas tidak dapat memakai
-                        SOP otomatis sampai Admin memilihnya.
-                    </p>
-                </section>
-                <section class="rounded-xl border border-border bg-card p-5">
-                    <div class="mb-3 flex items-center gap-2">
-                        <MapPin class="size-5 text-primary" />
-                        <h2 class="admin-section-title">Lokasi kebun</h2>
-                    </div>
-                    <FarmLocationMap
-                        v-if="coordinates"
-                        :model-value="coordinates"
-                    />
-                    <p v-else class="text-sm leading-6 text-muted-foreground">
-                        Lokasi kebun belum dipilih. Lengkapi pada halaman ubah
-                        kebun.
-                    </p>
-                </section>
-                <section
-                    v-if="can.dailyLogs"
-                    class="rounded-xl border border-border bg-accent p-5 text-accent-foreground"
-                >
-                    <ClipboardList class="mb-3 size-6" />
-                    <h2 class="admin-section-title">Logbook harian</h2>
-                    <p class="mt-2 text-sm leading-6">
-                        Lihat laporan dan hasil kegiatan yang dicatat untuk
-                        kebun ini.
-                    </p>
-                    <Button as-child class="mt-4 h-10 w-full rounded-xl"
-                        ><Link :href="`/kebun/${farm.id}/daily-logs`"
-                            >Buka logbook</Link
-                        ></Button
-                    >
-                </section>
+                <a
+                    v-if="farm.image_url"
+                    :href="farm.image_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-3 inline-flex min-h-11 items-center gap-2 text-sm text-primary underline underline-offset-4"
+                    >Lihat foto kebun<ExternalLink class="size-4"
+                /></a>
             </div>
+        </section>
+        <FarmBlocksTable
+            v-if="can.blocks"
+            :farm="farm"
+            :blocks="blocks"
+            :capacity="blockCapacity"
+            :can-create="can.createBlock"
+            return-to="farm"
+        />
+        <div v-if="can.forceDelete" class="flex justify-end">
+            <Link
+                :href="`/admin/farm-management/${farm.id}/force-delete`"
+                class="inline-flex min-h-11 items-center text-xs text-error underline underline-offset-4"
+                >Hapus permanen kebun dan data terkait</Link
+            >
         </div>
     </div>
     <DeleteFarmDialog

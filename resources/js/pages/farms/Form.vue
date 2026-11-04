@@ -30,9 +30,10 @@ defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
     farm: ManagedFarm | null;
-    owners: { id: string; name: string }[];
+    commodities: { id: string; name: string }[];
     sops: FarmSopOption[];
     team: { id: number; name: string };
+    picOptions: { id: string; name: string }[];
 }>();
 const regionFields = useTemplateRef<{
     valid: () => boolean;
@@ -40,10 +41,15 @@ const regionFields = useTemplateRef<{
 }>('regionFields');
 const form = useForm({
     name: props.farm?.name ?? '',
+    pic_user_id: props.farm?.pic_user_id ?? '',
     land_tenure: (props.farm?.land_tenure ?? '') as LandTenure | '',
-    owner_id: props.farm?.owner_id ?? '',
+    commodity_id:
+        props.farm?.commodity_id ??
+        props.farm?.default_sop?.commodity?.id ??
+        '',
     default_sop_template_id: props.farm?.default_sop_template_id ?? '',
     total_area_ha: props.farm?.total_area_ha ?? '',
+    target_volume_ton: props.farm?.target_volume_ton ?? '',
     address: props.farm?.address ?? '',
     district: props.farm?.district ?? '',
     city: props.farm?.city ?? '',
@@ -56,9 +62,15 @@ const form = useForm({
 const errorFields = computed<Record<string, { id: string; label: string }>>(
     () => ({
         name: { id: 'farm-name', label: 'Nama kebun' },
+        pic_user_id: { id: 'farm-pic', label: 'PIC kebun' },
         total_area_ha: { id: 'farm-area', label: 'Luas lahan' },
+        target_volume_ton: {
+            id: 'farm-target-volume',
+            label: 'Target volume panen',
+        },
         land_tenure: { id: 'farm-tenure', label: 'Status lahan' },
-        owner_id: { id: 'farm-owner', label: 'Pemilik' },
+        commodity_id: { id: 'farm-commodity', label: 'Komoditas' },
+        default_sop_template_id: { id: 'farm-default-sop', label: 'SOP' },
         district_code: {
             id: regionFields.value?.firstIncompleteId() ?? 'farm-province',
             label: 'Wilayah',
@@ -72,10 +84,20 @@ watch(
     () => [form.district_code, form.city, form.province],
     () => form.clearErrors('district_code', 'district', 'city', 'province'),
 );
-form.transform(({ owner_id, ...data }) =>
-    props.farm && owner_id === props.farm.owner_id
-        ? data
-        : { ...data, owner_id },
+const filteredSops = computed(() =>
+    props.sops.filter((sop) => sop.commodity?.id === form.commodity_id),
+);
+watch(
+    () => form.commodity_id,
+    () => {
+        if (
+            !filteredSops.value.some(
+                (sop) => sop.id === form.default_sop_template_id,
+            )
+        )
+            form.default_sop_template_id = '';
+        form.clearErrors('commodity_id', 'default_sop_template_id');
+    },
 );
 const location = computed<[number, number] | null>({
     get: (): [number, number] | null =>
@@ -145,7 +167,7 @@ function submit(): void {
                 class="min-w-0 space-y-5 disabled:opacity-75"
             >
                 <section
-                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-card rounded-xl bg-card p-5 md:p-6"
                 >
                     <div class="mb-6 flex items-start gap-3">
                         <div class="rounded-xl bg-accent p-2.5 text-primary">
@@ -204,6 +226,29 @@ function submit(): void {
                                 :aria-describedby="field.description"
                         /></FarmField>
                         <FarmField
+                            id="farm-target-volume"
+                            label="Target volume panen (ton)"
+                            :required="!farm"
+                            hint="Target total panen kebun. 1 ton = 1.000 kg."
+                            :error="form.errors.target_volume_ton"
+                            v-slot="field"
+                        >
+                            <input
+                                :id="field.id"
+                                v-model="form.target_volume_ton"
+                                class="admin-field"
+                                type="number"
+                                inputmode="decimal"
+                                :required="!farm"
+                                min="0.001"
+                                max="999999999.999"
+                                step="0.001"
+                                placeholder="Contoh: 80"
+                                :aria-invalid="field.invalid"
+                                :aria-describedby="field.description"
+                            />
+                        </FarmField>
+                        <FarmField
                             id="farm-tenure"
                             label="Status penguasaan lahan"
                             required
@@ -232,54 +277,16 @@ function submit(): void {
                                 >
                             </AppSelect>
                         </FarmField>
-                        <FarmField
-                            id="farm-owner"
-                            label="Pemilik kebun"
-                            :error="form.errors.owner_id"
-                            :hint="
-                                farm?.owner_restricted
-                                    ? 'Pemilik saat ini memiliki akses terbatas. Biarkan pilihan ini untuk mempertahankan penugasan.'
-                                    : owners.length
-                                      ? 'Opsional. Pilih Owner aktif yang menjadi anggota tim kebun.'
-                                      : 'Belum ada Owner yang dapat dipilih sesuai akses kamu.'
-                            "
-                            v-slot="field"
-                            ><AppSelect
-                                :id="field.id"
-                                v-model="form.owner_id"
-                                class="admin-field"
-                                :aria-invalid="field.invalid"
-                                :aria-describedby="field.description"
-                            >
-                                <AppSelectOption value=""
-                                    >Belum ditentukan</AppSelectOption
-                                >
-                                <AppSelectOption
-                                    v-if="
-                                        farm?.owner_id &&
-                                        !owners.some(
-                                            (owner) =>
-                                                owner.id === farm?.owner_id,
-                                        )
-                                    "
-                                    :value="farm.owner_id"
-                                >
-                                    Pertahankan pemilik saat ini · akses
-                                    terbatas
-                                </AppSelectOption>
-                                <AppSelectOption
-                                    v-for="owner in owners"
-                                    :key="owner.id"
-                                    :value="owner.id"
-                                >
-                                    {{ owner.name }}
-                                </AppSelectOption>
-                            </AppSelect></FarmField
-                        >
+                        <FarmField id="farm-pic" label="PIC kebun (opsional)" :error="form.errors.pic_user_id" v-slot="field">
+                            <AppSelect :id="field.id" v-model="form.pic_user_id" class="admin-field" :aria-invalid="field.invalid" :aria-describedby="field.description">
+                                <AppSelectOption value="">Belum ditentukan</AppSelectOption>
+                                <AppSelectOption v-for="pic in picOptions" :key="pic.id" :value="pic.id">{{ pic.name }}</AppSelectOption>
+                            </AppSelect>
+                        </FarmField>
                     </div>
                 </section>
                 <section
-                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-card rounded-xl bg-card p-5 md:p-6"
                 >
                     <div class="mb-6 flex items-start gap-3">
                         <div class="rounded-xl bg-accent p-2.5 text-primary">
@@ -290,22 +297,48 @@ function submit(): void {
                                 SOP default kebun
                             </h2>
                             <p class="mt-1 text-xs text-muted-foreground">
-                                Petugas tidak memilih SOP saat mencatat
-                                penanaman. Sistem memakai SOP ini secara
-                                otomatis.
+                                Pilih komoditas, lalu tentukan SOP penanamannya.
                             </p>
                         </div>
                     </div>
                     <FarmField
+                        id="farm-commodity"
+                        label="Komoditas"
+                        required
+                        :error="form.errors.commodity_id"
+                        v-slot="field"
+                        class="mb-5"
+                    >
+                        <AppSelect
+                            :id="field.id"
+                            v-model="form.commodity_id"
+                            class="admin-field"
+                            required
+                            :aria-invalid="field.invalid"
+                            :aria-describedby="field.description"
+                        >
+                            <AppSelectOption value="" disabled
+                                >Pilih komoditas</AppSelectOption
+                            >
+                            <AppSelectOption
+                                v-for="commodity in commodities"
+                                :key="commodity.id"
+                                :value="commodity.id"
+                                >{{ commodity.name }}</AppSelectOption
+                            >
+                        </AppSelect>
+                    </FarmField>
+                    <FarmField
                         id="farm-default-sop"
                         label="SOP default"
                         :error="form.errors.default_sop_template_id"
-                        hint="Pilih template SOP tenant untuk komoditas kebun ini. Varietas tanam tidak memengaruhi pilihan."
+                        hint="SOP mengikuti komoditas yang dipilih."
                         v-slot="field"
                     >
                         <AppSelect
                             :id="field.id"
                             v-model="form.default_sop_template_id"
+                            :disabled="!form.commodity_id"
                             class="admin-field"
                             :aria-invalid="field.invalid"
                             :aria-describedby="field.description"
@@ -314,7 +347,7 @@ function submit(): void {
                                 >Belum ditentukan</AppSelectOption
                             >
                             <AppSelectOption
-                                v-for="sop in sops"
+                                v-for="sop in filteredSops"
                                 :key="sop.id"
                                 :value="sop.id"
                             >
@@ -327,15 +360,15 @@ function submit(): void {
                         </AppSelect>
                     </FarmField>
                     <p
-                        v-if="!sops.length"
+                        v-if="form.commodity_id && !filteredSops.length"
                         class="mt-4 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning"
                     >
-                        Belum ada template SOP di tenant ini. Buat template
-                        terlebih dahulu di menu SOP.
+                        Belum ada SOP untuk komoditas ini. Tambahkan melalui
+                        menu SOP.
                     </p>
                 </section>
                 <section
-                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-card rounded-xl bg-card p-5 md:p-6"
                 >
                     <h2 class="admin-section-title">Lokasi kebun</h2>
                     <p class="mt-1 mb-6 text-xs text-muted-foreground">
@@ -399,7 +432,7 @@ function submit(): void {
                     </div>
                 </section>
                 <section
-                    class="rounded-xl border border-border bg-card p-5 md:p-6"
+                    class="admin-card rounded-xl bg-card p-5 md:p-6"
                 >
                     <h2 class="admin-section-title mb-5">Dokumentasi kebun</h2>
                     <FarmField

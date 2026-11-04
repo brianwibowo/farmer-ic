@@ -41,6 +41,19 @@ class FarmBlockService
         return $query->orderBy('code')->orderBy('id')->paginate($filters['per_page'] ?? 15)->appends($filters);
     }
 
+    /** @return \Illuminate\Support\Collection<int, FarmBlock> */
+    public function overview(Farm $farm, User $actor, Team $team): \Illuminate\Support\Collection
+    {
+        return FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->orderBy('code')->get()
+            ->map(function (FarmBlock $block) use ($farm, $actor, $team): FarmBlock {
+                $block->setAttribute('capacity', $this->formCapacity($farm, $actor, $team, $block));
+                $block->setAttribute('deletionBlocked', PlantingRound::visibleTo($actor, $team)->where('block_id', $block->id)->exists()
+                    || \App\Models\BlockMappingDetail::visibleTo($actor, $team)->where('block_id', $block->id)->exists());
+
+                return $block;
+            });
+    }
+
     /** @return array{total: int, active: int, active_area_ha: string} */
     public function summary(Farm $farm, User $actor, Team $team): array
     {
@@ -63,9 +76,12 @@ class FarmBlockService
 
         return ['block' => $visible->toArray(), 'rounds' => $rounds->map->only(['id', 'round_number', 'status']),
             'deletionBlocked' => $rounds->isNotEmpty() || \App\Models\BlockMappingDetail::visibleTo($actor, $team)->where('block_id', $visible->id)->exists(),
+            'blockCapacity' => $this->formCapacity($farm, $actor, $team, $visible),
             'capacity' => $this->batchCapacity($farm, $visible, PlantingCycle::visibleTo($actor, $team)->toBase()),
             'batches' => $batches->map(fn (PlantingCycle $batch) => [
                 ...$batch->only(['id', 'planting_round_id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'planned_planting_at', 'planted_at', 'status']),
+                'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
+                'planted_at' => $batch->planted_at?->toDateString(),
                 'stages' => ($stages->get($batch->id) ?? collect())->map->only(['code', 'position', 'status', 'started_at', 'completed_at']),
             ])];
     }
@@ -227,6 +243,35 @@ class FarmBlockService
             }
 
             return $batch->refresh();
+        });
+    }
+
+    public function isBatchEditable(FarmBlock $block, PlantingCycle $batch): bool
+    {
+        return $block->is_active && $batch->status === 'planned' && $batch->planted_at === null && $batch->sop_template_version_id === null;
+    }
+
+    /** @param array<string, mixed> $data */
+    public function updateBatch(FarmBlock $block, PlantingCycle $batch, User $actor, Team $team, array $data): void
+    {
+        DB::transaction(function () use ($block, $batch, $actor, $team, $data): void {
+            $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
+            $lockedBlock = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
+            $locked = PlantingCycle::visibleTo($actor, $team)->whereKey($batch->id)->lockForUpdate()->firstOrFail();
+            if (! $this->isBatchEditable($lockedBlock, $locked)) {
+                throw ValidationException::withMessages(['subblock_label' => 'Sub blok hanya dapat diubah sebelum penanaman dan penjadwalan SOP.']);
+            }
+            $capacity = $this->batchCapacity($farm, $lockedBlock, DB::table('planting_cycles')->where('planting_cycles.id', '<>', $locked->id));
+            $requested = LandArea::squareMetres($data['reserved_area_ha']);
+            if ($requested === null || $requested < 1 || $requested > LandArea::squareMetres($capacity['available_ha'])) {
+                throw ValidationException::withMessages(['reserved_area_ha' => 'Luas sub blok maksimal '.LandArea::label(LandArea::squareMetres($capacity['available_ha'])).'.']);
+            }
+            $label = $data['subblock_label'] ?? $locked->getAttribute('subblock_label');
+            if (DB::table('planting_cycles')->where('planting_round_id', $locked->planting_round_id)->where('id', '<>', $locked->id)->where('subblock_label', $label)->exists()) {
+                throw ValidationException::withMessages(['subblock_label' => 'Label sub blok sudah dipakai pada periode ini.']);
+            }
+            $locked->forceFill(['subblock_label' => $label, 'reserved_area_ha' => $data['reserved_area_ha'],
+                'planned_planting_at' => $data['planned_planting_at'] ?? null])->save();
         });
     }
 

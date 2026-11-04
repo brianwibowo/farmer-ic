@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3';
-import { LoaderCircle, LogOut } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { LoaderCircle, LogOut, Settings } from '@lucide/vue';
 import { computed } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -14,6 +14,7 @@ import {
 import { getInitials } from '@/composables/useInitials';
 import { useLogout } from '@/composables/useLogout';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
+import { edit as editProfile } from '@/routes/profile';
 
 const page = usePage();
 const user = computed(() => page.props.account ?? page.props.auth?.user);
@@ -77,6 +78,12 @@ const { signOut, processing, error } = useLogout();
                         </div>
                         <template v-if="user">
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem as-child class="min-h-11 cursor-pointer rounded-xl">
+                                <Link :href="editProfile()">
+                                    <Settings class="size-4" aria-hidden="true" />
+                                    Pengaturan profil
+                                </Link>
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                                 class="min-h-11 cursor-pointer rounded-xl"
                                 :disabled="processing"
