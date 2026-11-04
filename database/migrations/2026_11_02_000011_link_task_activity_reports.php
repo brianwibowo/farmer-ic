@@ -17,13 +17,23 @@ return new class extends Migration
                 ->references(['id', 'planting_cycle_id'])->on('planting_cycle_tasks')->restrictOnDelete();
         });
         DB::statement('ALTER TABLE farm_activities ADD CONSTRAINT activities_task_cycle_required CHECK (planting_cycle_task_id IS NULL OR (planting_cycle_id IS NOT NULL AND task_details IS NOT NULL))');
-        DB::statement('ALTER TABLE activity_types DROP CONSTRAINT activity_types_code_allowed');
-        DB::statement("ALTER TABLE activity_types ADD CONSTRAINT activity_types_code_allowed CHECK (code IN ('planting','fertilization','irrigation','growth_check','pesticide','incident','harvest','block_mapping','land_cleaning','soil_preparation','weeding'))");
+
+        // The taxonomy migration also owns the activity code constraint and the
+        // detail guard. When it has already run, only add the task-report columns.
+        $taxonomyApplied = Schema::hasColumn('activity_types', 'detail_key');
+
+        if (! $taxonomyApplied) {
+            DB::statement('ALTER TABLE activity_types DROP CONSTRAINT activity_types_code_allowed');
+            DB::statement("ALTER TABLE activity_types ADD CONSTRAINT activity_types_code_allowed CHECK (code IN ('planting','fertilization','irrigation','growth_check','pesticide','incident','harvest','block_mapping','land_cleaning','soil_preparation','weeding'))");
+        }
+
         DB::table('activity_types')->insertOrIgnore(['id' => (string) Illuminate\Support\Str::uuid(), 'code' => 'weeding', 'name' => 'Pendangiran', 'description' => 'Pendangiran sesuai tugas SOP.']);
-        // Preserve the existing typed-detail validator for all existing activity types.
-        DB::statement('DROP FUNCTION IF EXISTS farmer_ic_check_typed_activity_detail(uuid)');
-        DB::statement('ALTER FUNCTION farmer_ic_check_activity_detail(uuid) RENAME TO farmer_ic_check_typed_activity_detail');
-        DB::unprepared(<<<'SQL'
+
+        if (! $taxonomyApplied) {
+            // Preserve the existing typed-detail validator for all existing activity types.
+            DB::statement('DROP FUNCTION IF EXISTS farmer_ic_check_typed_activity_detail(uuid)');
+            DB::statement('ALTER FUNCTION farmer_ic_check_activity_detail(uuid) RENAME TO farmer_ic_check_typed_activity_detail');
+            DB::unprepared(<<<'SQL'
 CREATE OR REPLACE FUNCTION farmer_ic_check_activity_detail(activity_uuid uuid)
 RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
@@ -45,6 +55,7 @@ BEGIN
 END;
 $$;
 SQL);
+        }
     }
 
     public function down(): void
@@ -52,16 +63,28 @@ SQL);
         if (DB::table('farm_activities')->whereNotNull('planting_cycle_task_id')->exists()) {
             throw new LogicException('Cannot roll back persisted task reports.');
         }
-        DB::statement('DROP FUNCTION farmer_ic_check_activity_detail(uuid)');
-        DB::statement('ALTER FUNCTION farmer_ic_check_typed_activity_detail(uuid) RENAME TO farmer_ic_check_activity_detail');
-        DB::table('activity_types')->where('code', 'weeding')->delete();
-        DB::statement('ALTER TABLE activity_types DROP CONSTRAINT activity_types_code_allowed');
-        DB::statement("ALTER TABLE activity_types ADD CONSTRAINT activity_types_code_allowed CHECK (code IN ('planting','fertilization','irrigation','growth_check','pesticide','incident','harvest','block_mapping','land_cleaning','soil_preparation'))");
+
+        if ($this->typedDetailFunctionExists()) {
+            DB::statement('DROP FUNCTION IF EXISTS farmer_ic_check_activity_detail(uuid)');
+            DB::statement('ALTER FUNCTION farmer_ic_check_typed_activity_detail(uuid) RENAME TO farmer_ic_check_activity_detail');
+        }
+
+        if (! Schema::hasColumn('activity_types', 'detail_key')) {
+            DB::table('activity_types')->where('code', 'weeding')->delete();
+            DB::statement('ALTER TABLE activity_types DROP CONSTRAINT activity_types_code_allowed');
+            DB::statement("ALTER TABLE activity_types ADD CONSTRAINT activity_types_code_allowed CHECK (code IN ('planting','fertilization','irrigation','growth_check','pesticide','incident','harvest','block_mapping','land_cleaning','soil_preparation'))");
+        }
+
         DB::statement('ALTER TABLE farm_activities DROP CONSTRAINT activities_task_cycle_required');
         Schema::table('farm_activities', function (Blueprint $table): void {
             $table->dropForeign('activities_task_cycle_fk');
             $table->dropColumn(['planting_cycle_task_id', 'task_details']);
         });
         Schema::table('planting_cycle_tasks', fn (Blueprint $table) => $table->dropUnique('tasks_id_cycle_unique'));
+    }
+
+    private function typedDetailFunctionExists(): bool
+    {
+        return DB::scalar("SELECT to_regprocedure('farmer_ic_check_typed_activity_detail(uuid)')") !== null;
     }
 };

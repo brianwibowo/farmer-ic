@@ -5,21 +5,14 @@ namespace App\Services\Activity;
 use App\Http\Resources\DailyActivityHeaderResource;
 use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
-use App\Models\BlockMappingDetail;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
-use App\Models\FertilizationDetail;
-use App\Models\HarvestDetail;
-use App\Models\IncidentDetail;
-use App\Models\IrrigationDetail;
-use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
-use App\Models\PlantingDetail;
 use App\Models\PlantingRound;
-use App\Models\PlantObservation;
 use App\Models\User;
+use App\Support\ActivityDetailMap;
 
 class DailyActivityReportService
 {
@@ -37,13 +30,7 @@ class DailyActivityReportService
                 $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($activity->planting_cycle_id)->first();
                 $round = $cycle === null ? null : PlantingRound::visibleTo($actor, $team)->whereKey($cycle->getAttribute('planting_round_id'))->first();
                 $block = $round === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($round->block_id)->first();
-                $detailClass = match ($type?->code) {
-                    'planting' => PlantingDetail::class, 'harvest' => HarvestDetail::class,
-                    'irrigation' => IrrigationDetail::class, 'fertilization' => FertilizationDetail::class,
-                    'pesticide' => PesticideDetail::class, 'growth_check' => PlantObservation::class,
-                    'incident' => IncidentDetail::class, 'block_mapping' => BlockMappingDetail::class,
-                    default => null,
-                };
+                $detailClass = ActivityDetailMap::model($type?->detail_key);
                 $detail = $detailClass === null ? null : $detailClass::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
 
                 return [

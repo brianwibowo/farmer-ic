@@ -14,6 +14,7 @@ use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->actor = User::factory()->create(['role' => 'petugas']);
         $this->team->members()->attach($this->actor, ['role' => TeamRole::Member->value]);
         $this->actor->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $this->farm->id])->save();
-        foreach (['irrigation', 'fertilization', 'growth_check', 'pesticide', 'harvest'] as $code) {
+        foreach (['irrigation', 'follow_up_fertilization', 'growth_check', 'pest_control', 'harvest'] as $code) {
             ActivityType::firstOrCreate(['code' => $code], ['name' => $code]);
         }
     }
@@ -290,6 +291,28 @@ class PetugasTaskActivityTest extends TestCase
         }
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
         $this->assertDatabaseCount('farm_activities', 5);
+    }
+
+    public function test_database_rejects_weeding_without_a_task_report(): void
+    {
+        $weeding = ActivityType::query()->where('code', 'weeding')->firstOrFail();
+
+        try {
+            DB::transaction(function () use ($weeding): void {
+                FarmActivity::create([
+                    'farm_id' => $this->farm->id,
+                    'planting_cycle_id' => $this->cycle->id,
+                    'activity_type_id' => $weeding->id,
+                    'performed_by' => $this->actor->id,
+                    'activity_date' => now(),
+                    'obstacle_status' => 'none',
+                ]);
+                DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+            });
+            $this->fail('Expected weeding without a task report to be rejected.');
+        } catch (QueryException $error) {
+            $this->assertSame('23514', (string) $error->getCode());
+        }
     }
 
     public function test_missing_write_grants_and_cross_team_membership_deny_the_report_use_case(): void

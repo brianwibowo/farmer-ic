@@ -116,6 +116,7 @@ return [
             'crop_varieties.update' => 'any',
             'crop_varieties.delete' => 'any',
             'daily_activity_logs.view' => 'any',
+            'daily_activity_logs.update' => 'any',
             'farms.view' => 'any',
             'farms.create' => 'any',
             'farms.update' => 'any',

@@ -59,7 +59,7 @@ class TaskActivityService
                     'position' => $this->headers->nextPosition($log, $actor), 'description' => $data['notes'] ?? null, 'obstacle_status' => 'none',
                 ]);
                 $activity->forceFill(['planting_cycle_task_id' => $task->id, 'task_details' => json_encode($details, JSON_THROW_ON_ERROR)])->save();
-                match ($code) {
+                match ($type->detail_key) {
                     'irrigation' => $activity->irrigationDetail()->create(['water_source' => $details['water_source'], 'irrigation_method' => $details['method'], 'machine_type' => $details['pump'] ?? null, 'duration_hours' => $details['duration_hours']]),
                     'fertilization' => $activity->fertilizationDetail()->create(['fertilization_stage' => 'susulan', 'fertilizer_type' => $details['fertilizer'], 'quantity_kg' => $details['quantity_kg'], 'application_method' => $details['method']]),
                     'pesticide' => $activity->pesticideDetail()->create(['pesticide_category' => $details['control_type'], 'purpose' => $details['target'], 'brand_name' => $details['product'], 'dosage_per_tank' => $details['dosage'], 'tank_size_liters' => $details['water_liters'], 'tank_count' => $details['tank_count']]),

@@ -6,6 +6,7 @@ use App\Models\Farm;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
+use App\Support\ActivityDetailMap;
 use App\Support\TaskActivityFields;
 use Illuminate\Support\Facades\Gate;
 
@@ -43,14 +44,10 @@ class FarmActivityPolicy extends ResourcePolicy
         if (! Gate::forUser($user)->allows('view', $task) || ! $this->create($user, $farm)) {
             return false;
         }
-        $detail = match (TaskActivityFields::activityCode($task)) {
-            'fertilization' => 'fertilization_details', 'irrigation' => 'irrigation_details',
-            'pesticide' => 'pesticide_details', 'harvest' => 'harvest_details',
-            'growth_check' => 'plant_observations', 'weeding' => null, default => false,
-        };
-        if ($detail === false) {
+        if (TaskActivityFields::activityCode($task) === null) {
             return false;
         }
+        $detail = ActivityDetailMap::table(TaskActivityFields::detailKey($task));
         foreach (array_filter(['daily_activity_logs', 'activity_photos', $detail]) as $prefix) {
             foreach (['view', 'create'] as $ability) {
                 $scope = $this->permissions->scope($user, $prefix.'.'.$ability);

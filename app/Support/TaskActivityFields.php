@@ -27,9 +27,24 @@ class TaskActivityFields
 
     public static function activityCode(PlantingCycleTask $task): ?string
     {
-        return $task->activity_category === 'harvest' ? 'harvest' : match ($task->activity_subcategory) {
-            'irrigation' => 'irrigation', 'weeding' => 'weeding', 'follow_up_fertilization' => 'fertilization',
-            'growth_check' => 'growth_check', 'pest_control' => 'pesticide', default => null,
+        if ($task->activity_category === 'harvest') {
+            return 'harvest';
+        }
+
+        return in_array($task->activity_subcategory, ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control'], true)
+            ? $task->activity_subcategory
+            : null;
+    }
+
+    public static function detailKey(PlantingCycleTask $task): ?string
+    {
+        return match (self::activityCode($task)) {
+            'irrigation' => 'irrigation',
+            'follow_up_fertilization' => 'fertilization',
+            'growth_check' => 'growth_check',
+            'pest_control' => 'pesticide',
+            'harvest' => 'harvest',
+            default => null,
         };
     }
 }
