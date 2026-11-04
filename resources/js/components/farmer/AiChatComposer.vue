@@ -84,7 +84,7 @@ function onKeydown(event: KeyboardEvent): void {
                 </button>
             </div>
             <span class="self-center text-[10px] text-muted-foreground"
-                >{{ pendingAttachments.length }}/{ maxAttachmentCount }}</span
+                >{{ pendingAttachments.length }}/{{ maxAttachmentCount }}</span
             >
         </div>
         <div

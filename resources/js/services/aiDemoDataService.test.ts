@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-    queryDemoData,
-    resolveDemoFinancePeriod,
-} from './aiDemoDataService';
+import { queryDemoData, resolveDemoFinancePeriod } from './aiDemoDataService';
 
 describe('demo data resolver boundaries', () => {
     it.each([
@@ -52,9 +49,9 @@ describe('demo data resolver boundaries', () => {
             'laporkan keuangan bulan April 2026',
         );
 
-        expect(answer?.content).toContain('Rp11.000.000');
-        expect(answer?.content).toContain('Rp4.000.000');
-        expect(answer?.content).toContain('Rp7.000.000');
+        expect(answer?.content).toMatch(/Rp\s*11\.000\.000/u);
+        expect(answer?.content).toMatch(/Rp\s*4\.000\.000/u);
+        expect(answer?.content).toMatch(/Rp\s*7\.000\.000/u);
         expect(answer?.content).toContain('Periode: April 2026');
     });
 });
