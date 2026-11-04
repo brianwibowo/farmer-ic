@@ -304,6 +304,25 @@ shared shell's navigation loading feedback, and clear empty states for missing
 assignments or schedules. Do not add a manual refresh button to the home page.
 Never substitute example tasks when the database has no scheduled work.
 
+### Petugas garden
+
+The `/petugas/kebun` page reads the authenticated user's persisted assigned farm.
+Assignment currently applies to a farm, so its visible blocks and subblok/batches
+follow that boundary; do not invent block-level or batch-level assignments.
+Keep the mobile shell, Farmer palette, 12px cards, and concise copy at all widths.
+Show the farm name, land tenure, address/location, area, block count, and batch
+count. Use compact Inertia links to select a block, then display its area,
+description, land-clearing dates, and paginated subblok cards. Retain the selected
+block in pagination links. Scope every related query and total to the assigned
+farm and its team, with controller authorization before service reads.
+
+Subblok cards distinguish reserved area from actual planted area and show batch
+number, subblok label, planting round, status, actual/planned planting date, HST,
+and estimated harvest. Draw stage progress only from persisted stages; it is a
+count of completed stages, never a crop-growth percentage. Missing schedules,
+stages, assignments, blocks, or batches have explicit empty states. This page is
+a read-only overview; loading and navigation errors use the shared Petugas shell.
+
 The Figma page includes both full-color and LoFi variants. Use the active state for the current route, provide an accessible label for every icon, and keep the bar usable on standard, Plus, and Pro Max phone widths.
 
 ## Login and password recovery pages
