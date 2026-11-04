@@ -64,5 +64,8 @@ export type BlockFormCapacity = {
 export type ManagedBlock = FarmBlock & {
     capacity: BlockFormCapacity;
     deletionBlocked: boolean;
-    can: { update: boolean; delete: boolean };
+    batch_capacity: BatchCapacity;
+    batches: PreparationBatch[];
+    rounds: { id: string; round_number: number; status: string }[];
+    can: { update: boolean; delete: boolean; createBatch: boolean };
 };

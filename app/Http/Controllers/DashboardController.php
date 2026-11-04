@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\DashboardRequest;
 use App\Models\Farm;
+use App\Models\Team;
 use App\Models\TeamInvitation;
 use App\Services\AdminDashboardService;
 use App\Support\RolePermissions;
@@ -18,8 +19,11 @@ class DashboardController extends Controller
     public function __invoke(DashboardRequest $request): Response
     {
         $filters = $request->validated();
-        $team = app(RolePermissions::class)->singleTenant($request->user()) ?? $request->user()->currentTeam;
+        $team = Gate::allows('access.global')
+            ? $request->user()->currentTeam
+            : (app(RolePermissions::class)->singleTenant($request->user()) ?? $request->user()->currentTeam);
         Gate::authorize('viewAny', [Farm::class, $team]);
+        abort_unless($team instanceof Team, 403, 'Pilih tenant aktif untuk membuka dashboard.');
         if (! empty($filters['farm_id'])) {
             Gate::authorize('view', Farm::query()->findOrFail($filters['farm_id']));
         }

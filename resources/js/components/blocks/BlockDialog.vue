@@ -15,7 +15,7 @@ const props = defineProps<{
     farm: BlockFarm;
     block: FarmBlock | null;
     capacity: BlockFormCapacity;
-    returnTo?: 'farm';
+    returnTo?: 'farm' | 'blocks';
     theme: string;
 }>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();

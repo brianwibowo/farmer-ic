@@ -19,7 +19,7 @@ const props = defineProps<{
     dialog?: boolean;
     farm: BlockFarm;
     block: FarmBlock | null;
-    returnTo?: 'farm';
+    returnTo?: 'farm' | 'blocks';
     capacity: {
         maximum_area_ha: string;
         minimum_area_ha: string;

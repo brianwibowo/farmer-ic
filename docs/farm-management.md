@@ -36,6 +36,21 @@ The summary describes all visible farms; list filters narrow the table/cards.
 City and province filters use exact matches, while search accepts partial text
 and treats SQL wildcard characters literally. Pagination retains filters.
 
+The list, paginator totals, all three summary values, and city/province choices
+are explicitly restricted to the authenticated user's persisted current team,
+including for Superadmin. Switching teams changes all these values together.
+A tenant without farms returns an empty list, zero totals, and no location
+choices. Search and location filters cannot retrieve another tenant's farms;
+a location filter retained from the previous tenant may return no matches.
+The summary continues to describe the selected tenant regardless of list filters.
+
+This is a selection filter in `FarmService`, applied after `visibleTo`; it does
+not alter the Superadmin `Gate::before`, `access.global`, policies, or global
+query scopes. Superadmin retains direct access to farm records in other tenants,
+including tenants without membership. Switching the active team still requires
+persisted membership. No new route or authorization bypass is introduced; the
+existing authorization coverage outside this module is unchanged.
+
 ## Data and boundaries
 
 The form stores name, total area in hectares, optional owner, address,

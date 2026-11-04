@@ -27,6 +27,7 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps<{
     farm: ManagedFarm;
     blocks: ManagedBlock[];
+    batchPermissions: Record<string, boolean>;
     blockCapacity: BlockFormCapacity | null;
     deletionBlockers: string[];
     can: FarmPermissions & {
@@ -96,7 +97,9 @@ const progressStages = computed(() =>
         </header>
         <section class="overflow-hidden rounded-xl bg-card">
             <header class="px-5 pt-4 sm:px-6 sm:pt-5">
-                <h2 class="admin-section-title">Ringkasan kebun</h2>
+                <h2 class="admin-section-title text-primary">
+                    Ringkasan kebun
+                </h2>
             </header>
             <dl
                 class="grid grid-cols-2 gap-x-6 gap-y-6 p-5 sm:px-6 sm:pt-4 sm:pb-6 lg:grid-cols-4"
@@ -205,12 +208,21 @@ const progressStages = computed(() =>
                 </div>
             </dl>
             <dl
-                class="grid gap-x-6 gap-y-4 border-t border-border bg-muted/20 px-5 py-4 sm:grid-cols-3 sm:px-6"
+                class="grid gap-x-6 gap-y-4 border-t border-border bg-muted/20 px-5 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4"
             >
                 <div>
                     <dt class="text-xs text-muted-foreground">PIC kebun</dt>
-                    <dd class="mt-1 text-sm font-semibold">{{ farm.pic_name ?? 'Belum ditentukan' }}</dd>
-                    <p class="mt-1 text-xs text-muted-foreground">{{ farm.pic_name ? (farm.pic_phone_number || 'Nomor telepon belum diisi') : '' }}</p>
+                    <dd class="mt-1 text-sm font-semibold">
+                        {{ farm.pic_name ?? 'Belum ditentukan' }}
+                    </dd>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        {{
+                            farm.pic_name
+                                ? farm.pic_phone_number ||
+                                  'Nomor telepon belum diisi'
+                                : ''
+                        }}
+                    </p>
                 </div>
                 <div>
                     <dt class="text-xs text-muted-foreground">
@@ -246,6 +258,9 @@ const progressStages = computed(() =>
                 </div>
             </dl>
             <div class="border-t border-border p-4 sm:p-5">
+                <h2 class="mb-4 text-base font-bold text-primary">
+                    Peta lokasi
+                </h2>
                 <FarmLocationMap :model-value="coordinates" prominent />
                 <p
                     v-if="farm.address"
@@ -267,6 +282,7 @@ const progressStages = computed(() =>
             v-if="can.blocks"
             :farm="farm"
             :blocks="blocks"
+            :batch-permissions="batchPermissions"
             :capacity="blockCapacity"
             :can-create="can.createBlock"
             return-to="farm"

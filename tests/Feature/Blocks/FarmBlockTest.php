@@ -89,11 +89,11 @@ class FarmBlockTest extends TestCase
         $batch = PlantingCycle::firstOrFail();
         $stages = PlantingCycleStage::orderBy('position')->get()->toArray();
         $url = $this->url($block).'/batches/'.$batch->id;
-        $this->put($url, ['area_value' => '50000', 'area_unit' => 'm2', 'subblock_label' => ' c ', 'planned_planting_at' => '2026-12-05'])->assertSessionHasNoErrors()->assertRedirect($this->url($block));
+        $this->put($url, ['area_value' => '50000', 'area_unit' => 'm2', 'subblock_label' => ' c ', 'planned_planting_at' => '2026-12-05'])->assertSessionHasNoErrors()->assertRedirect($this->url());
         $this->assertSame('5.0000', $batch->fresh()->getAttribute('reserved_area_ha'));
         $this->assertSame('C', $batch->fresh()->getAttribute('subblock_label'));
         $this->assertSame('2026-12-05', $batch->fresh()->planned_planting_at?->toDateString());
-        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page->where('batches.0.planned_planting_at', '2026-12-05'));
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.batches.0.planned_planting_at', '2026-12-05'));
         $this->assertSame($stages, PlantingCycleStage::orderBy('position')->get()->toArray());
         $this->put($url, ['reserved_area_ha' => '5.0001'])->assertSessionHasErrors('reserved_area_ha');
         $this->put($url, ['reserved_area_ha' => '4', 'status' => 'active', 'farm_id' => $this->farm->id])->assertSessionHasErrors(['status', 'farm_id']);
@@ -113,7 +113,7 @@ class FarmBlockTest extends TestCase
         $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $this->actingAs($actor);
         $allowed = $role !== 'owner';
-        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page->where('batchPermissions.'.$batch->id, $allowed));
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('batchPermissions.'.$batch->id, $allowed));
         $response = $this->put($this->url($block).'/batches/'.$batch->id, ['reserved_area_ha' => '2']);
         $allowed ? $response->assertRedirect() : $response->assertForbidden();
         if ($role === 'petugas') {
@@ -142,6 +142,30 @@ class FarmBlockTest extends TestCase
         $batch->forceFill(['variety_id' => $variety->id, 'planted_at' => '2026-11-03', 'planted_area_ha' => '1', 'status' => 'active'])->save();
         $this->put($url, ['reserved_area_ha' => '2'])->assertSessionHasErrors('subblock_label');
         $this->assertSame('1.0000', $batch->fresh()->getAttribute('reserved_area_ha'));
+        $this->constraints();
+    }
+
+    public function test_batches_are_managed_inline_in_farm_detail_and_block_list(): void
+    {
+        $block = $this->block();
+        $base = $this->url($block).'/batches';
+        $farmDetail = '/admin/farm-management/'.$this->farm->id;
+        $this->post($base, ['area_value' => '10000', 'area_unit' => 'm2', 'planned_planting_at' => '2026-12-05', 'return_to' => 'farm'])->assertSessionHasNoErrors()->assertRedirect($farmDetail);
+        $batch = PlantingCycle::firstOrFail();
+        $this->get($farmDetail)->assertInertia(fn (Assert $page) => $page->has('blocks', 1)
+            ->where('blocks.0.can.createBatch', true)->where('blocks.0.batches.0.id', $batch->id)
+            ->where('blocks.0.batches.0.planned_planting_at', '2026-12-05')->has('blocks.0.batches.0.stages', 6)
+            ->where('blocks.0.batches.0.stages.1.status', 'in_progress')->where('batchPermissions.'.$batch->id, true));
+        $this->put($base.'/'.$batch->id, ['reserved_area_ha' => '2', 'subblock_label' => 'C', 'return_to' => 'farm'])->assertSessionHasNoErrors()->assertRedirect($farmDetail);
+        $this->assertSame('C', $batch->fresh()->getAttribute('subblock_label'));
+        $other = $this->block('B02');
+        $this->post($this->url($other).'/batches', ['reserved_area_ha' => '1', 'return_to' => 'blocks'])->assertRedirect($this->url());
+        $this->get($this->url().'?search=B02')->assertInertia(fn (Assert $page) => $page
+            ->has('blocks.data', 1)->where('blocks.data.0.id', $other->id)->has('blocks.data.0.batches', 1)
+            ->where('blocks.data.0.batches.0.subblock_label', 'A')->has('blocks.data.0.batches.0.stages', 6));
+        $this->post($base, ['reserved_area_ha' => '1', 'return_to' => 'https://example.invalid'])->assertSessionHasErrors('return_to');
+        $this->assertDatabaseCount('planting_cycles', 2);
+        $this->get($this->url($block))->assertRedirect($this->url());
         $this->constraints();
     }
 
@@ -187,7 +211,8 @@ class FarmBlockTest extends TestCase
         $this->assertSame($this->admin->id, $block->created_by);
         $this->assertNotNull($block->land_clearing_started_at);
         $this->assertNull($block->land_clearing_completed_at);
-        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page->component('farmer/blocks/Show')->where('can.update', true)->has('batches', 0));
+        $this->get($this->url($block))->assertRedirect($this->url());
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page->component('farmer/blocks/Index')->where('blocks.data.0.can.update', true)->has('blocks.data.0.batches', 0));
         $this->get($this->url($block).'/edit')->assertInertia(fn (Assert $page) => $page->component('farmer/blocks/Form')->where('block.id', $block->id));
         $this->patch($this->url($block), ['name' => 'Blok Timur'])->assertRedirect($this->url($block));
         $this->assertSame('Blok Timur', $block->refresh()->name);
@@ -215,9 +240,10 @@ class FarmBlockTest extends TestCase
         $this->actingAs($actor);
 
         $this->get($this->url())->assertInertia(fn (Assert $page) => $page
-            ->where('can.create', true)->where('blocks.total', 1)->where('summary.total', 1));
-        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page
-            ->where('can.update', true)->where('can.delete', true));
+            ->where('can.create', true)->where('blocks.total', 1)->where('summary.total', 1)
+            ->where('blocks.data.0.id', $block->id)
+            ->where('blocks.data.0.can.update', true)->where('blocks.data.0.can.delete', true));
+        $this->get($this->url($block))->assertRedirect($this->url());
         $this->get($this->url().'/create')->assertOk();
         $this->get($this->url($block).'/edit')->assertOk();
         $this->post($this->url(), ['code' => 'PIC01', 'name' => 'Blok Kelola PIC', 'area_ha' => '1'])->assertSessionHasNoErrors()->assertRedirect();
@@ -305,7 +331,7 @@ class FarmBlockTest extends TestCase
         $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $this->actingAs($actor);
         $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page->where('can.create', $mutates));
-        $this->get($this->url($block))->assertOk()->assertInertia(fn (Assert $page) => $page->where('can.update', $mutates));
+        $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.can.update', $mutates));
         $this->assertSame($mutates, Gate::forUser($actor)->allows('create', [FarmBlock::class, $this->farm]));
         $this->assertFalse($role !== 'superadmin' && Gate::forUser($actor)->allows('configure', $block));
         $payload = ['code' => 'B02', 'name' => 'Blok Selatan', 'area_ha' => '1'];
@@ -329,7 +355,7 @@ class FarmBlockTest extends TestCase
         $actor = User::factory()->create(['role' => 'petugas']);
         $this->join($actor);
         $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
-        $this->actingAs($actor)->post($this->url($block).'/batches', ['reserved_area_ha' => '1.2500', 'planned_planting_at' => '2026-11-15'])->assertRedirect($this->url($block));
+        $this->actingAs($actor)->post($this->url($block).'/batches', ['reserved_area_ha' => '1.2500', 'planned_planting_at' => '2026-11-15'])->assertRedirect($this->url());
         $first = PlantingCycle::firstOrFail();
         $this->assertSame(1, $first->batch_number);
         $this->assertSame('A', $first->subblock_label);
@@ -345,10 +371,10 @@ class FarmBlockTest extends TestCase
         $this->assertSame($completedAt, $block->refresh()->land_clearing_completed_at->toISOString());
         $this->assertSame(1, PlantingRound::count());
         $this->assertSame(12, PlantingCycleStage::count());
-        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page->where('can.update', false)->where('can.createBatch', true)
-            ->where('batches.0.stages.0.status', 'completed')->where('batches.0.stages.1.status', 'in_progress')
-            ->where('batches.0.stages.2.status', 'upcoming')->where('batches.0.stages.2.started_at', null)
-            ->where('batches.1.batch_number', 2)->where('batches.1.subblock_label', 'B'));
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.can.update', false)->where('blocks.data.0.can.createBatch', true)
+            ->where('blocks.data.0.batches.0.stages.0.status', 'completed')->where('blocks.data.0.batches.0.stages.1.status', 'in_progress')
+            ->where('blocks.data.0.batches.0.stages.2.status', 'upcoming')->where('blocks.data.0.batches.0.stages.2.started_at', null)
+            ->where('blocks.data.0.batches.1.batch_number', 2)->where('blocks.data.0.batches.1.subblock_label', 'B'));
         $this->constraints();
     }
 
@@ -412,18 +438,18 @@ class FarmBlockTest extends TestCase
     public function test_capacity_summary_explains_active_planting_and_rejects_overallocation(): void
     {
         $block = $this->legacyCapacityBlock();
-        $this->get($this->url($block))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('capacity.farm_total_ha', '12.5000')->where('capacity.block_remaining_ha', '10.0000')
-            ->where('capacity.legacy_active_ha', '8.5000')->where('capacity.farm_remaining_ha', '4.0000')
-            ->where('capacity.available_ha', '4.0000'));
+        $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('blocks.data.0.batch_capacity.farm_total_ha', '12.5000')->where('blocks.data.0.batch_capacity.block_remaining_ha', '10.0000')
+            ->where('blocks.data.0.batch_capacity.legacy_active_ha', '8.5000')->where('blocks.data.0.batch_capacity.farm_remaining_ha', '4.0000')
+            ->where('blocks.data.0.batch_capacity.available_ha', '4.0000'));
         $this->post($this->url($block).'/batches', ['area_value' => '50000', 'area_unit' => 'm2'])
             ->assertSessionHasErrors(['reserved_area_ha' => 'Luas batch 5 ha melebihi sisa kapasitas kebun 4 ha. 8,5 ha masih digunakan tanam aktif di luar batch. Maksimal batch baru 4 ha.']);
         $this->assertSame(1, PlantingCycle::count());
         $this->assertSame(0, PlantingRound::count());
         $this->assertNull($block->fresh()->land_clearing_completed_at);
-        $this->post($this->url($block).'/batches', ['area_value' => '40000', 'area_unit' => 'm2'])->assertSessionHasNoErrors()->assertRedirect($this->url($block));
+        $this->post($this->url($block).'/batches', ['area_value' => '40000', 'area_unit' => 'm2'])->assertSessionHasNoErrors()->assertRedirect($this->url());
         $this->assertDatabaseHas('planting_cycles', ['farm_id' => $this->farm->id, 'reserved_area_ha' => '4.0000', 'status' => 'planned', 'planted_area_ha' => '0.0000']);
-        $this->get($this->url($block))->assertInertia(fn (Assert $page) => $page->where('capacity.available_ha', '0.0000'));
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.batch_capacity.available_ha', '0.0000'));
         $this->constraints();
     }
 
