@@ -3,10 +3,9 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Camera, LoaderCircle, Save, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
-import AppSelect from '@/components/selects/AppSelect.vue';
-import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import TaskContext from '@/components/petugas/TaskContext.vue';
 import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
+import ActivityDetailFields from '@/components/petugas/ActivityDetailFields.vue';
 import type { PetugasTask, TaskActivityField } from '@/types/petugas-task';
 
 const props = defineProps<{
@@ -16,14 +15,22 @@ const props = defineProps<{
     workDate: string;
 }>();
 const form = useForm({
+    schema: 'taxonomy',
     work_date: props.workDate,
     start_time: '07:00',
-    end_time: '16:00',
+    end_time: '',
     worker_count: 1,
     daily_notes: '',
     notes: '',
     details: Object.fromEntries(
-        props.fields.map((field) => [field.key, '']),
+        props.fields.map((field) => [
+            field.key,
+            field.key === 'area_unit'
+                ? 'm²'
+                : field.key === 'quantity_unit' || field.key === 'weight_unit'
+                  ? 'kg'
+                  : '',
+        ]),
     ) as Record<string, string>,
     photos: [] as File[],
 });
@@ -63,7 +70,11 @@ function submit(): void {
     clientErrors.value = {};
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto bukti.';
-    if (!existingHeader.value && form.end_time <= form.start_time)
+    if (
+        !existingHeader.value &&
+        form.end_time &&
+        form.end_time <= form.start_time
+    )
         clientErrors.value.end_time =
             'Waktu selesai harus setelah waktu mulai.';
     if (Object.keys(clientErrors.value).length) return;
@@ -94,7 +105,7 @@ function submit(): void {
                 ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
                 tugas</Link
             >
-            <h1 class="mt-3 text-2xl leading-8 font-semibold">
+            <h1 class="mt-3 text-xl leading-7 font-semibold">
                 Catat aktivitas
             </h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
@@ -102,7 +113,12 @@ function submit(): void {
                 lokasi ditentukan dari to-do, bukan dipilih ulang.
             </p>
         </header>
-        <TaskContext :task="task" />
+        <details class="rounded-xl border border-border bg-card p-3">
+            <summary class="cursor-pointer text-sm font-medium">
+                {{ task.name }} · {{ task.subblok.label }}
+            </summary>
+            <TaskContext :task="task" />
+        </details>
         <form class="space-y-4" @submit.prevent="submit">
             <fieldset
                 :disabled="form.processing"
@@ -146,57 +162,11 @@ function submit(): void {
                     class="space-y-4 rounded-xl border border-border bg-card p-4"
                 >
                     <h2 class="text-base font-semibold">Hasil pelaksanaan</h2>
-                    <div
-                        v-for="field in fields"
-                        :key="field.key"
-                        class="space-y-2 text-sm"
-                    >
-                        <label :for="`activity-${field.key}`">{{
-                            field.label
-                        }}</label>
-                        <AppSelect
-                            v-if="field.type === 'select'"
-                            :id="`activity-${field.key}`"
-                            v-model="form.details[field.key]"
-                            :required="!field.optional"
-                            :disabled="form.processing"
-                            :placeholder="`Pilih ${field.label.toLowerCase()}`"
-                            class="task-activity-field"
-                            :aria-invalid="!!errors[`details.${field.key}`]"
-                            :aria-describedby="`error-${field.key}`"
-                        >
-                            <AppSelectOption
-                                v-for="option in field.options"
-                                :key="option"
-                                :value="option"
-                                >{{ option }}</AppSelectOption
-                            >
-                        </AppSelect>
-                        <input
-                            v-else
-                            :id="`activity-${field.key}`"
-                            v-model="form.details[field.key]"
-                            :type="field.type"
-                            :inputmode="
-                                field.type === 'number' ? 'decimal' : 'text'
-                            "
-                            :required="!field.optional"
-                            :maxlength="field.type === 'text' ? 100 : undefined"
-                            :min="field.type === 'number' ? 0 : undefined"
-                            :max="field.max"
-                            :step="field.step"
-                            class="task-activity-field"
-                            :aria-invalid="!!errors[`details.${field.key}`]"
-                            :aria-describedby="`error-${field.key}`"
-                        />
-                        <p
-                            v-if="errors[`details.${field.key}`]"
-                            :id="`error-${field.key}`"
-                            class="text-xs text-error"
-                        >
-                            {{ errors[`details.${field.key}`] }}
-                        </p>
-                    </div>
+                    <ActivityDetailFields
+                        v-model="form.details"
+                        :fields="fields"
+                        :errors="errors"
+                    />
                     <p v-if="errors.details" class="text-sm text-error">
                         {{ errors.details }}
                     </p>

@@ -244,7 +244,7 @@ class ModelAuthorizationTest extends TestCase
             $update = ($role === 'superadmin')
                 || ($role === 'owner' && $create)
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true))
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions', 'daily_activity_logs'], true));
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions'], true));
             $delete = ($role === 'superadmin') || ($role === 'owner' && $create)
                 || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions', 'daily_activity_logs'], true))
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true));

@@ -44,7 +44,18 @@ class StorePlantingActivityRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:5000'],
             'photos' => ['required', 'array', 'list', 'min:1', 'max:5'],
             'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'schema' => ['nullable', 'in:taxonomy'],
         ];
+        if ($this->input('schema') === 'taxonomy') {
+            $rules['area_ha'] = ['prohibited'];
+            $rules['quantity_kg'] = ['prohibited'];
+            $rules['area'] = ['required', 'numeric', 'min:0.0001', 'max:99999999', $this->input('area_unit') === 'm²' ? 'integer' : 'decimal:0,4'];
+            $rules['area_unit'] = ['required', 'in:m²,Ha'];
+            $rules['quantity'] = ['required', 'numeric', 'min:0.001', 'max:999999999'];
+            $rules['quantity_unit'] = ['required', 'in:kg,sak,butir'];
+            $rules['bag_size'] = ['exclude_unless:quantity_unit,sak', 'required', 'numeric', 'min:0.001', 'max:99999'];
+            $rules['depth_cm'] = ['nullable', 'numeric', 'min:0.01', 'max:1000'];
+        }
         foreach (['daily_activity_log_id', 'farm_id', 'team_id', 'planting_cycle_id', 'task_id', 'activity_type_id', 'performed_by', 'recorded_by', 'status', 'planted_at', 'planned_planting_at', 'sop_template_version_id', 'activity_category', 'activity_subcategory'] as $key) {
             $rules[$key] = ['prohibited'];
         }

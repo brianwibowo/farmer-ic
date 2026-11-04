@@ -15,9 +15,10 @@ export type PlantingReport = {
     id: string;
     date: string;
     notes: string | null;
+    input?: { quantity: string | number; quantity_unit: string } | null;
     detail: {
         seed_name: string;
-        quantity_kg: string;
+        quantity_kg: string | null;
         planting_pattern: string | null;
         area_ha: string;
     } | null;

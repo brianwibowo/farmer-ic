@@ -28,8 +28,8 @@ class TaskActivityFields
     public static function activityCode(PlantingCycleTask $task): ?string
     {
         return $task->activity_category === 'harvest' ? 'harvest' : match ($task->activity_subcategory) {
-            'irrigation' => 'irrigation', 'weeding' => 'weeding', 'follow_up_fertilization' => 'fertilization',
-            'growth_check' => 'growth_check', 'pest_control' => 'pesticide', default => null,
+            'irrigation' => 'irrigation', 'weeding' => 'weeding', 'follow_up_fertilization' => 'follow_up_fertilization',
+            'growth_check' => 'growth_check', 'pest_control' => 'pest_control', default => null,
         };
     }
 }

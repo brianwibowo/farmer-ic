@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Http\Controllers\Petugas;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Petugas\StoreVoluntaryActivityRequest;
+use App\Models\ActivityType;
+use App\Models\Farm;
+use App\Models\FarmActivity;
+use App\Models\PlantingCycle;
+use App\Models\PlantingCycleTask;
+use App\Services\Activity\PlantingActivityService;
+use App\Services\Activity\VoluntaryActivityService;
+use App\Support\VoluntaryActivityFields;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class PetugasVoluntaryActivityController extends Controller
+{
+    public function create(Request $request, ActivityType $type, PlantingActivityService $planting): Response
+    {
+        $farm = $this->farm($request);
+        Gate::authorize('recordVoluntary', [FarmActivity::class, $farm, $type]);
+
+        return Inertia::render('petugas/VoluntaryCreate', [
+            'farm' => $farm->only(['id', 'name']), 'type' => $type->only(['id', 'code', 'name']),
+            'fields' => VoluntaryActivityFields::forCode($type->code),
+            'cycles' => $planting->cycles($request->user(), $farm)->filter(fn ($cycle) => in_array($cycle->status, ['planned', 'active'], true))
+                ->map(fn ($cycle) => $planting->context($request->user(), $cycle))->values()->all(),
+            'matchingTasks' => PlantingCycleTask::visibleTo($request->user(), $farm->team)
+                ->whereHas('plantingCycle', fn ($q) => $q->visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id))
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->where(fn ($q) => $type->code === 'harvest' ? $q->where('activity_category', 'harvest') : $q->where('activity_subcategory', $type->code))
+                ->get(['id', 'planting_cycle_id', 'name', 'scheduled_date']),
+            'today' => now('Asia/Jakarta')->toDateString(),
+        ]);
+    }
+
+    public function store(StoreVoluntaryActivityRequest $request, ActivityType $type, VoluntaryActivityService $activities): RedirectResponse
+    {
+        $farm = $this->farm($request);
+        Gate::authorize('recordVoluntary', [FarmActivity::class, $farm, $type]);
+        $data = $request->validated();
+        $cycle = empty($data['cycle_id']) ? null : PlantingCycle::findOrFail($data['cycle_id']);
+        if ($cycle !== null) {
+            Gate::authorize('view', $cycle);
+            abort_unless($cycle->farm_id === $farm->id, 403);
+        }
+        $activity = $activities->record($request->user(), $farm, $type, $cycle, $data);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Laporan aktivitas mandiri tersimpan.']);
+
+        return to_route('petugas.laporan.show', $activity);
+    }
+
+    private function farm(Request $request): Farm
+    {
+        $farm = $request->user()->assignedFarm;
+        abort_unless($farm instanceof Farm, 403);
+        Gate::authorize('view', $farm);
+
+        return $farm;
+    }
+}

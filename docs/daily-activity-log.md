@@ -1,5 +1,10 @@
 # Daily activity log: block mapping
 
+Current shared-header and Petugas UX rules are recorded in
+[`petugas-activity-handoff.md`](petugas-activity-handoff.md), section 8.
+The batch payload below documents the legacy mapping client; new SOP/voluntary
+clients use their dedicated web endpoints and optional daily end time.
+
 ## Desktop admin logbook
 
 The admin sidebar now includes **Logbook**. `/admin/logbook` lists visible farms,
@@ -22,9 +27,10 @@ recorders, activity types and mapping details before aggregation, pagination or
 serialization. Farm visibility also constrains report reads; a report UUID from
 another farm returns 404 inside the authorized parent. Foreign farms return 403.
 The sidebar boolean is computed once in shared props from the same viewAny
-abilities. Admin has only `daily_activity_logs.view`: create, update and delete
-grants are absent. Existing mobile and JSON write endpoints therefore return
-403 for Admin as well. Petugas retains `create = own` for its assigned farm;
+abilities. Admin has `daily_activity_logs.view` and, following the agreed
+4 November shared-header rule, `update = any` for the separate header PATCH.
+Create/delete stay denied and the desktop Logbook remains read-only.
+Petugas retains `create = own` for its assigned farm;
 Owner stays read-only and the existing developer Superadmin bypass is retained.
 
 The desktop has no report form or write route. Petugas records reports through
@@ -125,8 +131,8 @@ send `Accept: application/json` and `Content-Type: application/json`.
   shifts are not part of this first contract. Activity timestamps preserve the
   timezone offset in PostgreSQL.
 - A report contains 1–50 activities. Worker count is once per report, 1–32767.
-  More than one report per farm/day is allowed; no single-report-per-day rule
-  has been assumed.
+  One shared header per farm/day is enforced by a unique constraint; subsequent
+  submissions append activities without overwriting the original header.
 - Dimensions are positive meters, at most 3 decimal places. Spacing is positive
   centimeters, at most 2 decimal places; row and plant spacing must both be
   provided or both absent/null. Rows per bed is optional, a positive integer.

@@ -14,7 +14,7 @@ class PetugasActivityFormTest extends TestCase
     public function test_generic_form_redirects_to_tasks_instead_of_accepting_browser_context(): void
     {
         $actor = User::factory()->create(['role' => 'petugas']);
-        $this->actingAs($actor)->get('/petugas/aktivitas/buat?category=harvest&task_id=forged')->assertRedirect('/petugas/tasks');
+        $this->actingAs($actor)->get('/petugas/aktivitas/buat?category=harvest&task_id=forged')->assertRedirect('/petugas/aktivitas');
     }
 
     public function test_generic_form_remains_authenticated_and_portal_protected(): void

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from '@lucide/vue';
 import { onBeforeUnmount, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,56 @@ const emit = defineEmits<{
 const log = ref<DailyHeader | null>(null);
 const loading = ref(false);
 const failed = ref(false);
+const canUpdate = ref(false);
+const editing = ref(false);
+const edit = useForm({
+    start_time: '',
+    end_time: '',
+    worker_count: 1,
+    daily_notes: '',
+});
+function openEditor(): void {
+    if (!log.value) return;
+    edit.start_time = log.value.start_time;
+    edit.end_time = log.value.end_time ?? '';
+    edit.worker_count = log.value.worker_count;
+    edit.daily_notes = log.value.notes ?? '';
+    editing.value = true;
+    emit('ready', false);
+}
+function cancelEdit(): void {
+    editing.value = false;
+    emit('ready', true);
+}
+function saveHeader(): void {
+    if (!log.value || edit.processing) return;
+    edit.clearErrors();
+    if (
+        !edit.start_time ||
+        (edit.end_time && edit.end_time <= edit.start_time)
+    ) {
+        edit.setError(
+            'end_time',
+            'Isi jam mulai; jam selesai harus setelahnya.',
+        );
+        return;
+    }
+    if (
+        !Number.isInteger(Number(edit.worker_count)) ||
+        Number(edit.worker_count) < 1
+    ) {
+        edit.setError('worker_count', 'Jumlah pekerja minimal 1 orang.');
+        return;
+    }
+    edit.patch(`/kebun/${props.farmId}/daily-logs/${log.value.id}`, {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            editing.value = false;
+            void load();
+        },
+    });
+}
 let controller: AbortController | undefined;
 const fieldClass =
     'block min-h-12 w-full rounded-xl border border-border bg-background px-3 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-error [color-scheme:light] dark:[color-scheme:dark]';
@@ -31,6 +81,7 @@ async function load(): Promise<void> {
     controller = current;
     loading.value = true;
     failed.value = false;
+    editing.value = false;
     log.value = null;
     emit('ready', false);
     emit('existing', false);
@@ -45,9 +96,13 @@ async function load(): Promise<void> {
             },
         );
         if (!response.ok) throw new Error('lookup failed');
-        const result = (await response.json()) as { data: DailyHeader | null };
+        const result = (await response.json()) as {
+            data: DailyHeader | null;
+            canUpdate: boolean;
+        };
         if (current.signal.aborted) return;
         log.value = result.data;
+        canUpdate.value = result.canUpdate;
         emit('existing', log.value !== null);
         emit('ready', true);
     } catch {
@@ -73,7 +128,7 @@ onBeforeUnmount(() => controller?.abort());
         :aria-busy="loading"
     >
         <h2 class="text-base font-semibold">
-            Laporan harian bersama · {{ date || 'Pilih tanggal' }}
+            Info kerja harian · {{ date || 'Pilih tanggal' }}
         </h2>
         <p
             v-if="loading"
@@ -104,7 +159,7 @@ onBeforeUnmount(() => controller?.abort());
                 Informasi harian tidak ditimpa.
             </p>
             <p class="text-sm font-semibold">
-                {{ log.start_time }}–{{ log.end_time }} WIB ·
+                {{ log.start_time }}–{{ log.end_time ?? 'Belum diisi' }} WIB ·
                 {{ log.worker_count }} pekerja
             </p>
             <p
@@ -113,11 +168,88 @@ onBeforeUnmount(() => controller?.abort());
             >
                 {{ log.notes }}
             </p>
+            <Button
+                v-if="canUpdate && !editing"
+                type="button"
+                variant="outline"
+                class="min-h-11"
+                @click="openEditor"
+                >Ubah info harian</Button
+            >
+            <div v-if="editing" class="space-y-3 border-t border-border pt-3">
+                <p class="text-xs text-muted-foreground">
+                    Perubahan berlaku untuk seluruh aktivitas kebun pada tanggal
+                    ini.
+                </p>
+                <label class="block space-y-1 text-sm"
+                    ><span>Jam mulai</span
+                    ><input
+                        v-model="edit.start_time"
+                        type="time"
+                        :disabled="edit.processing"
+                        :class="fieldClass"
+                /></label>
+                <label class="block space-y-1 text-sm"
+                    ><span>Jam selesai (opsional)</span
+                    ><input
+                        v-model="edit.end_time"
+                        type="time"
+                        :disabled="edit.processing"
+                        :class="fieldClass"
+                /></label>
+                <label class="block space-y-1 text-sm"
+                    ><span>Total orang berbeda hari ini</span
+                    ><input
+                        v-model.number="edit.worker_count"
+                        type="number"
+                        min="1"
+                        max="32767"
+                        :disabled="edit.processing"
+                        :class="fieldClass"
+                /></label>
+                <label class="block space-y-1 text-sm"
+                    ><span>Catatan harian</span
+                    ><textarea
+                        v-model="edit.daily_notes"
+                        rows="2"
+                        maxlength="5000"
+                        :disabled="edit.processing"
+                        :class="fieldClass"
+                    />
+                </label>
+                <p
+                    v-for="(message, key) in edit.errors"
+                    :key="key"
+                    role="alert"
+                    class="text-xs text-error"
+                >
+                    {{ message }}
+                </p>
+                <div class="flex gap-2">
+                    <Button
+                        type="button"
+                        :disabled="edit.processing"
+                        @click="saveHeader"
+                        >{{
+                            edit.processing
+                                ? 'Menyimpan…'
+                                : 'Simpan info harian'
+                        }}</Button
+                    ><Button
+                        type="button"
+                        variant="outline"
+                        :disabled="edit.processing"
+                        @click="cancelEdit"
+                        >Batal</Button
+                    >
+                </div>
+            </div>
             <Link
+                v-if="!canUpdate"
                 :href="
                     reportBase
                         ? `${reportBase}/${log.id}`
-                        : `/petugas/aktivitas?work_date=${date}`
+                        : `/petugas/laporan/harian?work_date=${date}`
                 "
                 class="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
                 >Lihat / ubah informasi harian</Link
@@ -145,11 +277,10 @@ onBeforeUnmount(() => controller?.abort());
                     ></label
                 >
                 <label class="space-y-2 text-sm"
-                    ><span>Selesai kerja harian</span
+                    ><span>Jam selesai (boleh menyusul)</span
                     ><input
                         v-model="end"
                         type="time"
-                        required
                         :class="fieldClass"
                         :aria-invalid="!!errors.end_time"
                     /><span

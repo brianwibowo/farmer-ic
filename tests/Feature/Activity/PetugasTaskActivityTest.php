@@ -55,9 +55,87 @@ class PetugasTaskActivityTest extends TestCase
         $this->actor = User::factory()->create(['role' => 'petugas']);
         $this->team->members()->attach($this->actor, ['role' => TeamRole::Member->value]);
         $this->actor->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $this->farm->id])->save();
-        foreach (['irrigation', 'fertilization', 'growth_check', 'pesticide', 'harvest'] as $code) {
+        foreach (['irrigation', 'follow_up_fertilization', 'growth_check', 'pest_control', 'harvest'] as $code) {
             ActivityType::firstOrCreate(['code' => $code], ['name' => $code]);
         }
+    }
+
+    public function test_all_voluntary_categories_persist_details_and_history_without_completing_tasks(): void
+    {
+        $area = ['area' => 1000, 'area_unit' => 'm²'];
+        $cases = [
+            'land_cleaning' => $area + ['method' => 'Manual'],
+            'loosening' => $area + ['method' => 'Cultivator', 'depth_cm' => 10],
+            'beds' => ['bed_count' => 10, 'length_m' => 10, 'width_m' => 1],
+            'liming' => $area + ['material' => 'Dolomit', 'quantity' => 2, 'quantity_unit' => 'sak', 'bag_size' => 25, 'method' => 'Tabur'],
+            'base_fertilization' => $area + ['fertilizer' => 'Kompos', 'quantity' => 1, 'quantity_unit' => 'ton', 'method' => 'Benam'],
+            'irrigation' => $area + ['water_source' => 'Sumur bor', 'method' => 'Pompa', 'pump' => 'Pompa diesel', 'duration_hours' => 2],
+            'weeding' => $area + ['method' => 'Cangkul'],
+            'follow_up_fertilization' => $area + ['fertilizer' => 'NPK', 'quantity' => 2, 'quantity_unit' => 'liter', 'method' => 'Kocor'],
+            'growth_check' => ['phase' => 'Vegetatif', 'height_cm' => 35, 'pest' => 'Aman', 'disease' => 'Ringan'],
+            'pest_control' => $area + ['control_type' => 'Insektisida', 'target' => 'Hama', 'product' => 'Pengendali hayati', 'dosage' => 2, 'water_liters' => 15, 'tank_count' => 2, 'method' => 'Spot'],
+            'harvest' => $area + ['weight' => 500, 'weight_unit' => 'kg'],
+            'incident' => $area + ['incident_category' => 'Cuaca', 'description' => 'Tanaman rebah akibat angin.', 'severity' => 'Sedang', 'immediate_action' => 'Menopang batang.'],
+            'other' => ['description' => 'Membersihkan alat kerja.'],
+        ];
+        $this->actingAs($this->actor);
+        foreach ($cases as $code => $details) {
+            $this->get('/petugas/aktivitas/mandiri/'.$code)->assertOk();
+            $this->post('/petugas/aktivitas/mandiri/'.$code, [...$this->payload(), 'end_time' => null,
+                'cycle_id' => $code === 'other' ? null : $this->cycle->id, 'details' => $details])->assertSessionHasNoErrors()->assertRedirect();
+        }
+        $this->assertDatabaseCount('farm_activities', 13);
+        $this->assertDatabaseCount('daily_activity_logs', 1);
+        $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $this->farm->id, 'end_time' => null]);
+        $this->assertDatabaseHas('harvest_details', ['gross_weight_ton' => '0.500']);
+        $this->assertDatabaseHas('fertilization_details', ['quantity_kg' => null]);
+        $this->assertSame('pending', $this->task->refresh()->status);
+        $this->assertSame(0, FarmActivity::whereNotNull('planting_cycle_task_id')->count());
+        $this->get('/petugas/laporan')->assertInertia(fn (Assert $page) => $page->component('petugas/Laporan')->where('reports.total', 13));
+        $activity = FarmActivity::latest('activity_date')->firstOrFail();
+        $this->get('/petugas/laporan/'.$activity->id)->assertInertia(fn (Assert $page) => $page->component('petugas/ReportShow')->has('log.activities', 1));
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
+    public function test_voluntary_conditional_fields_permissions_and_history_scope(): void
+    {
+        $this->actingAs($this->actor);
+        $data = [...$this->payload(), 'cycle_id' => $this->cycle->id,
+            'details' => ['area' => 500, 'area_unit' => 'm²', 'water_source' => 'Sumur bor', 'method' => 'Pompa', 'duration_hours' => 1]];
+        $this->post('/petugas/aktivitas/mandiri/irrigation', $data)->assertSessionHasErrors('details.pump');
+        $data['details']['pump'] = 'Pompa diesel';
+        $this->post('/petugas/aktivitas/mandiri/irrigation', $data)->assertSessionHasNoErrors();
+        $activity = FarmActivity::firstOrFail();
+        $other = new Farm(['name' => 'Kebun lain', 'land_tenure' => 'owned', 'total_area_ha' => '4']);
+        $other->forceFill(['team_id' => $this->team->id, 'created_by' => $this->actor->id])->save();
+        $this->actor->forceFill(['assigned_farm_id' => $other->id])->save();
+        $this->actor->unsetRelation('assignedFarm');
+        $this->post('/petugas/aktivitas/mandiri/irrigation', $data)->assertForbidden();
+        $this->get('/petugas/laporan/'.$activity->id)->assertForbidden();
+        $this->get('/petugas/laporan')->assertInertia(fn (Assert $page) => $page->where('reports.total', 0));
+        $this->get('/petugas/aktivitas/mandiri/block_mapping')->assertForbidden();
+        $roles = config('access.roles');
+        unset($roles['petugas']['activity_photos.create']);
+        config(['access.roles' => $roles]);
+        $this->get('/petugas/aktivitas/mandiri/other')->assertForbidden();
+        $this->assertDatabaseCount('farm_activities', 1);
+    }
+
+    public function test_taxonomy_sop_form_persists_units_and_keeps_task_pending(): void
+    {
+        $data = [...$this->payload(), 'schema' => 'taxonomy', 'end_time' => null,
+            'details' => ['area' => 1000, 'area_unit' => 'm²', 'water_source' => 'Irigasi', 'method' => 'Irigasi parit', 'duration_hours' => 2]];
+        $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $data)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('irrigation_details', ['water_source' => 'Irigasi']);
+        $this->assertSame('pending', $this->task->refresh()->status);
+        $this->get('/petugas/laporan?source=sop')->assertInertia(fn (Assert $page) => $page->where('reports.total', 1));
+        $this->get('/petugas/laporan?source=mandiri')->assertInertia(fn (Assert $page) => $page->where('reports.total', 0));
+        $data['details']['area'] = 0.0001;
+        $data['details']['area_unit'] = 'Ha';
+        $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $data)->assertSessionHasNoErrors();
+        $data['details']['area'] = 0.5;
+        $data['details']['area_unit'] = 'm²';
+        $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $data)->assertSessionHasErrors('details.area');
     }
 
     private function newTask(array $data = []): PlantingCycleTask
@@ -84,12 +162,12 @@ class PetugasTaskActivityTest extends TestCase
     public function test_real_tasks_and_form_use_persisted_category_and_location(): void
     {
         $this->actingAs($this->actor)->get('/petugas/tasks')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('petugas/Tasks')->has('tasks', 1)->where('tasks.0.id', $this->task->id)
+            ->component('petugas/Aktivitas')->has('tasks', 1)->where('tasks.0.id', $this->task->id)
             ->where('tasks.0.activity_subcategory', 'irrigation')->where('tasks.0.subblok.farm.id', $this->farm->id)
             ->where('tasks.0.can.record', true)->where('summary.today', 1)->missing('isFixture'));
         $this->get('/petugas/tasks/'.$this->task->id.'/aktivitas/buat')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('petugas/ActivityCreate')->where('task.id', $this->task->id)->has('fields', 5));
-        $this->get('/petugas/aktivitas/buat')->assertRedirect('/petugas/tasks');
+            ->component('petugas/ActivityCreate')->where('task.id', $this->task->id)->has('fields', 6));
+        $this->get('/petugas/aktivitas/buat')->assertRedirect('/petugas/aktivitas');
     }
 
     public function test_report_persists_log_details_private_photo_and_link_without_completing_task(): void
@@ -131,7 +209,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertSame('Tim gabungan bekerja di beberapa subblok.', $first->notes);
         $this->assertSame([1, 2], FarmActivity::orderBy('position')->pluck('position')->all());
         $this->assertSame([$this->actor->id, $other->id], FarmActivity::orderBy('position')->pluck('performed_by')->all());
-        $this->get('/petugas/aktivitas')->assertInertia(fn (Assert $page) => $page->component('petugas/Aktivitas')->has('log.activities', 2)->where('log.worker_count', 3)->where('canUpdate', true));
+        $this->get('/petugas/laporan/harian')->assertInertia(fn (Assert $page) => $page->component('petugas/DailyReport')->has('log.activities', 2)->where('log.worker_count', 3)->where('canUpdate', true));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
@@ -144,7 +222,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->post($url, $data)->assertSessionHasNoErrors();
         $data['photos'] = [UploadedFile::fake()->image('pengairan-lain.jpg')];
         $data['work_date'] = now('Asia/Jakarta')->subDay()->toDateString();
-        $this->post($url, $data)->assertSessionHasErrors(['start_time', 'end_time', 'worker_count']);
+        $this->post($url, $data)->assertSessionHasErrors(['start_time', 'worker_count']);
         $this->assertDatabaseCount('daily_activity_logs', 1);
         $this->assertDatabaseCount('farm_activities', 2);
     }
@@ -187,7 +265,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->actor->unsetRelation('assignedFarm');
         $this->getJson($context)->assertForbidden();
         $this->get($url)->assertForbidden();
-        $this->get('/petugas/aktivitas')->assertInertia(fn (Assert $page) => $page->where('log', null));
+        $this->get('/petugas/laporan/harian')->assertInertia(fn (Assert $page) => $page->where('log', null));
     }
 
     public function test_database_unique_constraint_prevents_a_second_header_for_the_same_farm_date(): void

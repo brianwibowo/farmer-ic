@@ -39,8 +39,8 @@ class DailyActivityReportService
                 $block = $round === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($round->block_id)->first();
                 $detailClass = match ($type?->code) {
                     'planting' => PlantingDetail::class, 'harvest' => HarvestDetail::class,
-                    'irrigation' => IrrigationDetail::class, 'fertilization' => FertilizationDetail::class,
-                    'pesticide' => PesticideDetail::class, 'growth_check' => PlantObservation::class,
+                    'irrigation' => IrrigationDetail::class, 'fertilization', 'follow_up_fertilization' => FertilizationDetail::class,
+                    'pesticide', 'pest_control' => PesticideDetail::class, 'growth_check' => PlantObservation::class,
                     'incident' => IncidentDetail::class, 'block_mapping' => BlockMappingDetail::class,
                     default => null,
                 };
@@ -52,7 +52,7 @@ class DailyActivityReportService
                     'subblok' => $cycle?->getAttribute('subblock_label'), 'notes' => $activity->description,
                     'block' => $block?->name,
                     'task_id' => $activity->getAttribute('planting_cycle_task_id'),
-                    'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? [])),
+                    'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? []), $type?->code),
                     'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn (ActivityPhoto $photo) => [
                         'id' => $photo->id, 'url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id]),
                     ])->all(),
@@ -64,7 +64,7 @@ class DailyActivityReportService
     /** @param array<string, mixed> $values
      * @return list<array{label: string, value: mixed}>
      */
-    private function details(array $values): array
+    private function details(array $values, ?string $code = null): array
     {
         $labels = [
             'seed_name' => 'Benih', 'quantity_kg' => 'Jumlah (kg)', 'planting_pattern' => 'Pola tanam', 'area_ha' => 'Luas (ha)',
@@ -76,9 +76,17 @@ class DailyActivityReportService
             'block_name' => 'Blok', 'length_m' => 'Panjang (m)', 'width_m' => 'Lebar (m)', 'incident_category' => 'Kejadian', 'severity' => 'Tingkat',
             'method' => 'Metode pekerjaan', 'depth_cm' => 'Kedalaman (cm)', 'sample_count' => 'Jumlah sampel',
             'fertilizer' => 'Nama pupuk', 'target' => 'Sasaran pekerjaan', 'product' => 'Produk pengendali',
+            'quantity' => 'Jumlah', 'quantity_unit' => 'Satuan jumlah', 'bag_size' => 'Berat per sak (kg)',
+            'area' => 'Luas input', 'area_unit' => 'Satuan luas',
         ];
+        foreach (\App\Support\VoluntaryActivityFields::forCode($code ?? '') as $field) {
+            $labels[$field['key']] ??= $field['label'];
+        }
         $details = [];
         foreach ($labels as $key => $label) {
+            if ($key === 'area_unit' && ! isset($values['area'])) {
+                continue;
+            }
             if ($key === 'method' && (isset($values['irrigation_method']) || isset($values['application_method']))) {
                 continue;
             }

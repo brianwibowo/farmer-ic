@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, LoaderCircle, Save, X } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
@@ -16,18 +16,33 @@ const props = defineProps<{
     canRecord: boolean;
     today: string;
     workDate: string;
+    plantingPattern: string;
 }>();
 const form = useForm({
+    schema: 'taxonomy',
     work_date: props.workDate,
     start_time: '07:00',
-    end_time: '16:00',
+    end_time: '',
     worker_count: '1',
     daily_notes: '',
-    variety_id: '',
-    area_ha: props.cycle.reserved_area_ha,
+    variety_id: props.cycle.variety?.id ?? '',
+    area: String(
+        Math.max(
+            0,
+            Math.round(
+                (Number(props.cycle.reserved_area_ha) -
+                    Number(props.cycle.planted_area_ha ?? 0)) *
+                    10000,
+            ),
+        ),
+    ),
+    area_unit: 'm²',
     seed_name: '',
-    quantity_kg: '',
-    planting_pattern: '',
+    quantity: '',
+    quantity_unit: 'kg',
+    bag_size: '',
+    depth_cm: '',
+    planting_pattern: props.plantingPattern,
     notes: '',
     photos: [] as File[],
 });
@@ -36,9 +51,11 @@ type FieldKey =
     | 'start_time'
     | 'end_time'
     | 'worker_count'
-    | 'area_ha'
+    | 'area'
     | 'seed_name'
-    | 'quantity_kg'
+    | 'quantity'
+    | 'bag_size'
+    | 'depth_cm'
     | 'planting_pattern';
 const fields: {
     key: FieldKey;
@@ -50,21 +67,29 @@ const fields: {
     optional?: boolean;
 }[] = [
     {
-        key: 'area_ha',
-        label: 'Luas tanam aktual (ha)',
+        key: 'area',
+        label: 'Luas tambahan yang ditanam',
         type: 'number',
         min: '0.0001',
-        max: props.cycle.reserved_area_ha,
         step: '0.0001',
     },
     { key: 'seed_name', label: 'Nama benih / produk', type: 'text' },
     {
-        key: 'quantity_kg',
-        label: 'Jumlah benih (kg)',
+        key: 'quantity',
+        label: 'Jumlah benih',
         type: 'number',
         min: '0.001',
         max: '999999999.999',
         step: '0.001',
+    },
+    {
+        key: 'depth_cm',
+        label: 'Kedalaman tanam (cm, opsional)',
+        type: 'number',
+        min: '0.01',
+        max: '1000',
+        step: '0.01',
+        optional: true,
     },
     {
         key: 'planting_pattern',
@@ -75,6 +100,19 @@ const fields: {
 ];
 const clientErrors = ref<Record<string, string>>({});
 const headerReady = ref(false);
+watch(
+    () => form.area_unit,
+    (unit, previous) => {
+        if (unit === previous || !form.area) return;
+        form.area = String(
+            Number(
+                (Number(form.area) * (unit === 'Ha' ? 0.0001 : 10000)).toFixed(
+                    4,
+                ),
+            ),
+        );
+    },
+);
 const existingHeader = ref(false);
 const errors = computed<Record<string, string>>(() => ({
     ...form.errors,
@@ -108,7 +146,11 @@ function submit(): void {
     clientErrors.value = {};
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto penanaman.';
-    if (!existingHeader.value && form.end_time <= form.start_time)
+    if (
+        !existingHeader.value &&
+        form.end_time &&
+        form.end_time <= form.start_time
+    )
         clientErrors.value.end_time =
             'Waktu selesai harus setelah waktu mulai.';
     if (Object.keys(clientErrors.value).length) return;
@@ -126,6 +168,12 @@ function submit(): void {
     ).post(`/petugas/subbloks/${props.cycle.id}/penanaman`, {
         forceFormData: true,
         preserveScroll: true,
+        onSuccess: () => {
+            form.photos = [];
+            form.area = '';
+            form.quantity = '';
+            form.notes = '';
+        },
     });
 }
 </script>
@@ -140,7 +188,7 @@ function submit(): void {
                 ><ArrowLeft class="size-4" aria-hidden="true" />Daftar
                 subblok</Link
             >
-            <h1 class="mt-3 text-2xl leading-8 font-semibold">
+            <h1 class="mt-3 text-xl leading-7 font-semibold">
                 {{
                     canRecord ? 'Catat penanaman aktual' : 'Realisasi penanaman'
                 }}
@@ -160,7 +208,7 @@ function submit(): void {
                 Alokasi {{ cycle.reserved_area_ha }} ha
             </p>
             <p v-if="cycle.planted_at" class="text-sm font-semibold">
-                Tanam aktual: {{ cycle.planted_at }} ·
+                Acuan HST: {{ cycle.planted_at }} · Total ditanam
                 {{ cycle.planted_area_ha }} ha ·
                 {{ cycle.variety?.name ?? 'Varietas tidak tersedia' }}
             </p>
@@ -169,9 +217,10 @@ function submit(): void {
             <p
                 class="rounded-xl border border-border bg-muted/50 p-4 text-sm leading-6"
             >
-                Satu realisasi awal per subblok. Tanggal pelaksanaan menjadi
-                acuan HST, bukan tanggal pengisian laporan. Data yang sudah
-                tersimpan tidak ditimpa melalui form ini.
+                Penanaman dapat dicatat dalam tiga hari kalender sejak tanam
+                pertama. Isi luas tambahan untuk pekerjaan ini. HST mengikuti
+                hari penanaman aktual kedua jika ada; jadwal SOP pending
+                menyesuaikan otomatis.
             </p>
             <p
                 v-if="!varieties.length"
@@ -238,6 +287,49 @@ function submit(): void {
                         >{{ errors.variety_id }}</span
                     ></label
                 >
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="space-y-2 text-sm"
+                        ><span>Satuan luas</span
+                        ><AppSelect
+                            v-model="form.area_unit"
+                            aria-label="Satuan luas"
+                            :class="fieldClass"
+                            ><AppSelectOption value="m²">m²</AppSelectOption
+                            ><AppSelectOption value="Ha"
+                                >Ha</AppSelectOption
+                            ></AppSelect
+                        ></label
+                    ><label class="space-y-2 text-sm"
+                        ><span>Satuan benih</span
+                        ><AppSelect
+                            v-model="form.quantity_unit"
+                            aria-label="Satuan benih"
+                            :class="fieldClass"
+                            ><AppSelectOption value="kg">kg</AppSelectOption
+                            ><AppSelectOption value="sak">sak</AppSelectOption
+                            ><AppSelectOption value="butir"
+                                >butir</AppSelectOption
+                            ></AppSelect
+                        ></label
+                    >
+                </div>
+                <label
+                    v-if="form.quantity_unit === 'sak'"
+                    class="block space-y-2 text-sm"
+                    ><span>Berat per sak (kg) *</span
+                    ><input
+                        v-model="form.bag_size"
+                        type="number"
+                        required
+                        min="0.001"
+                        step="0.001"
+                        max="99999"
+                        :class="fieldClass"
+                /></label>
+                <p v-if="plantingPattern" class="text-xs text-muted-foreground">
+                    Pola tanam terisi dari pemetaan. Koreksi di bawah jika
+                    pelaksanaan berbeda.
+                </p>
                 <label
                     v-for="field in fields"
                     :key="field.key"
@@ -379,14 +471,18 @@ function submit(): void {
             >
                 <h3 class="font-semibold">{{ report.date }}</h3>
                 <Link
-                    :href="`/petugas/aktivitas?work_date=${report.date}`"
+                    :href="`/petugas/laporan/${report.id}`"
                     class="inline-flex min-h-11 items-center text-sm text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
-                    >Lihat laporan harian bersama</Link
+                    >Lihat detail laporan</Link
                 >
                 <p v-if="report.detail" class="text-sm leading-6">
                     {{ report.detail.seed_name }} ·
-                    {{ report.detail.quantity_kg }} kg ·
-                    {{ report.detail.area_ha }} ha<template
+                    {{
+                        report.input
+                            ? `${report.input.quantity} ${report.input.quantity_unit}`
+                            : `${report.detail.quantity_kg ?? '—'} kg`
+                    }}
+                    · {{ report.detail.area_ha }} ha<template
                         v-if="report.detail.planting_pattern"
                     >
                         · {{ report.detail.planting_pattern }}</template

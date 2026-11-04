@@ -52,7 +52,7 @@ $task = App\Models\PlantingCycleTask::create([
     'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan paralel',
     'offset_days' => 2, 'tolerance_days' => 2, 'status' => 'pending', 'is_required' => true,
 ]);
-App\Models\ActivityType::create(['code' => 'irrigation', 'name' => 'Pengairan']);
+App\Models\ActivityType::firstOrCreate(['code' => 'irrigation'], ['name' => 'Pengairan']);
 $secondTask = $task->replicate();
 $secondTask->save();
 $tasks = [$task, $secondTask];

@@ -12,17 +12,23 @@ Daily hours, total workers and general notes belong only to the header. Workers
 are not summed from activity reports. Activity `notes` and `daily_notes` are
 separate inputs. Existing headers are never overwritten by append requests.
 
-The Petugas Aktivitas page is now a date-selectable daily report with an empty
-state, daily summary, all visible activities, each officer, details and private
-photos. Tambah aktivitas leads to SOP tasks or initial planting, retaining the
-selected date. Recording forms check the chosen day's header: reuse its summary
+Aktivitas now opens the concise SOP to-do list directly, with filters and a
+floating + category picker for voluntary reports. Laporan holds paginated farm
+history with source/category/date/search and optional own-input filtering; its
+daily subpage shows the shared summary and private evidence. Recording forms
+check the chosen day's header: reuse its summary
 when present, or request daily information for the first activity. Date lookup
 has loading/error/retry states and cancels stale requests.
 
 New endpoints (authenticated and policy-authorized):
 
 ```text
-GET   /petugas/aktivitas?work_date=YYYY-MM-DD
+GET   /petugas/aktivitas
+GET   /petugas/laporan
+GET   /petugas/laporan/{activity}
+GET   /petugas/laporan/harian?work_date=YYYY-MM-DD
+GET   /petugas/aktivitas/mandiri/{type:code}
+POST  /petugas/aktivitas/mandiri/{type:code}
 GET   /kebun/{farm}/daily-logs/context?work_date=YYYY-MM-DD
 PATCH /kebun/{farm}/daily-logs/{dailyLog}
 GET   /kebun/{farm}/daily-logs/activities/{activity}/photos/{photo}
@@ -30,7 +36,8 @@ GET   /kebun/{farm}/daily-logs/activities/{activity}/photos/{photo}
 
 Assigned Petugas and authorized tenant Admin can edit the shared header from a
 separate Ubah action. Owners remain read-only. Farm, date, original creator and
-activities cannot be reassigned through header edits. Task, planting and legacy
+activities cannot be reassigned. End time may be null until work is finished;
+workers means distinct people across the entire farm workday. Task, planting and legacy
 block-mapping writes all acquire the same exclusive persisted farm lock before
 resolving a header and allocating `max(position) + 1`. A farm/date unique index
 and existing header/position unique constraint also guard the database itself.
@@ -77,15 +84,24 @@ POST /petugas/subbloks/{cycle}/penanaman
 POST /petugas/subbloks/{cycle}/tasks/sync
 ```
 
-Open Aktivitas → Penanaman aktual → select a subblok. A single initial report
+Open Aktivitas → + → Penanaman → select an Admin-prepared subblok. Each report
 records the actual execution date, variety, area, seeds, worker/time information,
 and private photos. It reuses or creates the shared daily log, then creates a `planting` farm activity, its
 `planting_details` and photos, and updates the cycle's `planted_at`, `variety_id`,
 `planted_area_ha` and `status = active` in one transaction. The planting stage
 is completed using the shared daily hours on the reported date; other preparation stages are not
-fabricated or closed automatically. Duplicate submissions cannot overwrite an
-existing actual date or area. Partial/staggered planting and correction flows
-are not implemented.
+fabricated or closed automatically. Multiple reports within three inclusive
+calendar days accumulate planted area up to the reservation. Continued planting
+must use the same variety. `planting_started_on` stores the earliest work date;
+`planted_at` is the second distinct actual date if present, otherwise the first.
+Late submissions for valid work dates remain accepted. Corrections/deletion of
+existing planting reports are not part of this form.
+
+Taxonomy payloads retain m²/Ha, kg/sak/butir and optional depth in `task_details`;
+canonical hectares/kg use existing typed details, with kg null for seed counts.
+Hourly `planting:reconcile-windows` reconciles elapsed windows. Operational saves
+also immediately recalculate HST and pending schedules, retaining SOP snapshots
+and Admin overrides. Running the Laravel scheduler is required.
 
 The service then synchronizes tasks in that same transaction. Actual planting
 is retained if SOP readiness is missing; feedback explains why tasks are deferred.

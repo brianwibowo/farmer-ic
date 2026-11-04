@@ -98,7 +98,7 @@ class DailyActivityLogController extends Controller
         $data = $request->validate(['work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()]]);
         $log = $headers->forDate($farm, $request->user(), $data['work_date']);
 
-        return $log === null ? response()->json(['data' => null]) : new DailyActivityHeaderResource($log);
+        return $log === null ? response()->json(['data' => null, 'canUpdate' => false]) : (new DailyActivityHeaderResource($log))->additional(['canUpdate' => Gate::allows('update', $log)]);
     }
 
     public function update(UpdateDailyActivityLogRequest $request, Farm $farm, string $dailyLog, DailyActivityHeaderService $headers): RedirectResponse

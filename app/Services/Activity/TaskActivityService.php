@@ -38,7 +38,7 @@ class TaskActivityService
                 if ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString()) {
                     throw ValidationException::withMessages(['work_date' => 'Laporan tugas lanjutan harus pada atau setelah tanggal tanam aktual.']);
                 }
-                $details = $data['details'];
+                $details = ($data['schema'] ?? null) === 'taxonomy' ? \App\Support\VoluntaryActivityFields::normalized($data['details']) : $data['details'];
                 $code = TaskActivityFields::activityCode($task);
                 if ($code === null) {
                     throw ValidationException::withMessages(['task' => 'Jenis tugas ini belum mendukung pencatatan.']);
@@ -49,6 +49,12 @@ class TaskActivityService
                 }
                 if (isset($details['area_ha']) && (float) $details['area_ha'] > (float) $cycle->planted_area_ha) {
                     throw ValidationException::withMessages(['details.area_ha' => 'Luas dikerjakan tidak boleh melebihi luas tanam subblok.']);
+                }
+                if ((isset($details['area_ha']) && $details['area_ha'] <= 0) || (isset($details['weight_ton']) && $details['weight_ton'] <= 0)) {
+                    throw ValidationException::withMessages(['details' => 'Luas minimal 1 m² dan berat panen minimal 1 kg.']);
+                }
+                if (($details['quantity_kg'] ?? 0) > 999999999.999) {
+                    throw ValidationException::withMessages(['details.quantity' => 'Jumlah terlalu besar setelah konversi satuan.']);
                 }
                 $log = $this->headers->resolve($farm, $actor, $data);
                 // Timestamp inherits the shared day start, not per-activity hours.
@@ -61,8 +67,8 @@ class TaskActivityService
                 $activity->forceFill(['planting_cycle_task_id' => $task->id, 'task_details' => json_encode($details, JSON_THROW_ON_ERROR)])->save();
                 match ($code) {
                     'irrigation' => $activity->irrigationDetail()->create(['water_source' => $details['water_source'], 'irrigation_method' => $details['method'], 'machine_type' => $details['pump'] ?? null, 'duration_hours' => $details['duration_hours']]),
-                    'fertilization' => $activity->fertilizationDetail()->create(['fertilization_stage' => 'susulan', 'fertilizer_type' => $details['fertilizer'], 'quantity_kg' => $details['quantity_kg'], 'application_method' => $details['method']]),
-                    'pesticide' => $activity->pesticideDetail()->create(['pesticide_category' => $details['control_type'], 'purpose' => $details['target'], 'brand_name' => $details['product'], 'dosage_per_tank' => $details['dosage'], 'tank_size_liters' => $details['water_liters'], 'tank_count' => $details['tank_count']]),
+                    'follow_up_fertilization' => $activity->fertilizationDetail()->create(['fertilization_stage' => 'susulan', 'fertilizer_type' => $details['fertilizer'], 'quantity_kg' => $details['quantity_kg'], 'application_method' => $details['method']]),
+                    'pest_control' => $activity->pesticideDetail()->create(['pesticide_category' => $details['control_type'], 'purpose' => $details['target'], 'brand_name' => $details['product'], 'dosage_per_tank' => $details['dosage'], 'tank_size_liters' => $details['water_liters'], 'tank_count' => $details['tank_count']]),
                     'harvest' => $activity->harvestDetail()->create(['harvested_area_ha' => $details['area_ha'], 'gross_weight_ton' => $details['weight_ton'], 'moisture_percentage' => $details['moisture'] ?? null]),
                     'growth_check' => $activity->observation()->create(['planting_cycle_id' => $cycle->id, 'observed_by' => $actor->id, 'observed_at' => $date, 'growth_phase' => $details['phase'], 'average_height_cm' => $details['height_cm'], 'pest_indication' => $details['pest'], 'disease_indication' => $details['disease']]),
                     default => null,

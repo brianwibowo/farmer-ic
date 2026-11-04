@@ -22,12 +22,12 @@ const activityDate = useActivityDate();
     <Head title="Detail Tugas" />
     <div class="min-w-0 space-y-5 text-foreground">
         <Link
-            :href="`/petugas/tasks${activityDate}`"
+            :href="`/petugas/aktivitas${activityDate}`"
             class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
             to-do</Link
         >
-        <h1 class="text-2xl leading-8 font-semibold">Detail tugas</h1>
+        <h1 class="text-xl leading-7 font-semibold">{{ task.name }}</h1>
         <TaskContext :task="task" />
         <Button v-if="canRecord" as-child class="min-h-12 w-full rounded-xl"
             ><Link
@@ -67,9 +67,9 @@ const activityDate = useActivityDate();
                     Dicatat oleh {{ report.performer_name ?? 'Petugas kebun' }}
                 </p>
                 <Link
-                    :href="`/petugas/aktivitas?work_date=${report.work_date}`"
+                    :href="`/petugas/laporan/${report.id}`"
                     class="inline-flex min-h-11 items-center text-sm text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
-                    >Lihat laporan harian bersama</Link
+                    >Lihat detail laporan</Link
                 >
                 <dl class="space-y-2 text-sm">
                     <div

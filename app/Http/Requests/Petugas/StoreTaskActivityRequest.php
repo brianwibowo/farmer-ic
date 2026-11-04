@@ -64,6 +64,14 @@ class StoreTaskActivityRequest extends FormRequest
             $rules['details.'.$field['key']] = $checks;
         }
 
+        // Existing report clients retain their legacy canonical-unit contract.
+        // The current UI uses the taxonomy form contract with explicit units.
+        $rules['schema'] = ['nullable', 'in:taxonomy'];
+        if ($this->input('schema') === 'taxonomy' && $task instanceof PlantingCycleTask) {
+            $rules = array_filter($rules, fn ($key) => $key !== 'details' && ! str_starts_with($key, 'details.'), ARRAY_FILTER_USE_KEY);
+            $rules += \App\Support\VoluntaryActivityFields::rules(TaskActivityFields::activityCode($task) ?? '');
+        }
+
         return $rules;
     }
 }
