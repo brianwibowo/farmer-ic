@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Owner\OwnerReadRequest;
 use App\Models\Farm;
 use App\Models\Team;
-use App\Services\Owner\OwnerReadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -13,7 +12,7 @@ use Inertia\Response;
 
 class HomeController extends Controller
 {
-    public function __invoke(OwnerReadRequest $request, OwnerReadService $owner): RedirectResponse|Response
+    public function __invoke(OwnerReadRequest $request): RedirectResponse|Response
     {
         if (Gate::allows('admin.access')) {
             return redirect()->route('admin.dashboard');
@@ -33,6 +32,6 @@ class HomeController extends Controller
             abort_unless((int) $farm->team_id === (int) $team->id, 404);
         }
 
-        return Inertia::render('owner/Dashboard', $owner->dashboard($request->user(), $team, $request->validated()));
+        return Inertia::render('owner/Dashboard');
     }
 }

@@ -49,7 +49,10 @@ onUnmounted(() => stop.forEach((unsubscribe) => unsubscribe()));
 </script>
 
 <template>
-    <FarmerMobileShell :active-key="active">
+    <FarmerMobileShell
+        :active-key="active"
+        :landscape-dashboard="active === 'home'"
+    >
         <div class="min-w-0 space-y-5 px-4 pt-4 pb-6" :aria-busy="loading">
             <p
                 v-if="loading || feedback"

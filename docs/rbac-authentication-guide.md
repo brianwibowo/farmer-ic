@@ -126,8 +126,14 @@ Route `/kebun`, `/kebun/{farm}`, `/kebun/{farm}/blok/{block}`, `/aktivitas`,
 detailnya memakai `auth`, `verified`, dan `owner.access`. Controller memeriksa
 Policy resource; `OwnerReadService` membatasi query induk dan relasi turunannya
 dengan `visibleTo($actor, $currentTeam)` sebelum serialisasi, hitungan, dan
-paginasi. Dashboard memakai definisi agregasi yang sama dengan Admin. Semua
-data operasional baru berasal dari database, bukan JSON atau browser storage.
+paginasi. Data operasional berasal dari database, bukan JSON atau browser storage.
+Beranda Owner saat ini menjadi pratinjau desain statis sesuai permintaan diskusi:
+`HomeController` tetap memeriksa akses Owner, tenant, dan Farm, tetapi tidak
+memanggil dataset dashboard. Grafik memakai fixture visual
+`resources/js/data/ownerDashboardDemo.ts`, selalu berlabel Data ilustrasi, dan
+filter kebun/periode bekerja lokal. Fixture ini bukan laporan tenant aktif dan
+tidak disimpan sebagai data operasional. Dashboard Admin dan halaman Owner
+lainnya tetap memakai sumber database masing-masing.
 
 Tenant aktif dapat diganti melalui `POST /owner/tenant/{team:slug}` hanya dengan
 keanggotaan tersimpan dan izin `view` Team. Aksi kembali ke Beranda agar filter

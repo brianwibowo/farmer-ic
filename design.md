@@ -259,12 +259,56 @@ The Owner/farmer bottom bar has three destinations: Beranda, AI, and Lainnya.
 Retain its emphasized, centered AI action and existing AI workflow. Lainnya
 opens Kebun, Keuangan, the read-only activity feed, SOP, and user directory.
 Keep Lainnya selected when visiting these sections and their nested pages.
-Owner screens use the same persisted domain records and metric definitions as
-Admin, presented in the Farmer/mobile profile. Farm detail links to blocks,
+Operational Owner screens use the same persisted domain records and metric
+definitions as Admin, presented in the Farmer/mobile profile. Beranda currently
+has an explicitly labelled static design preview, as requested for discussion.
+Farm detail links to blocks,
 batches, persisted stages, and SOP schedules. Distinguish planned allocation,
 actual planted area, and recorded harvest. Keep missing observations explicit.
 Tenant selection sits below the existing profile header; profile/settings and
 the avatar dropdown remain independent of operational navigation.
+
+### Owner analytical Beranda
+
+Use a chart-led operational overview with short explanations and value labels,
+rather than a grid of numeric KPI cards. Do not include finance on Beranda;
+Keuangan remains available through Lainnya. Keep the existing AI and profile
+flows independent of this dashboard.
+
+For the current design preview, use the deterministic visual fixture in
+`resources/js/data/ownerDashboardDemo.ts`. Always show the Data ilustrasi notice;
+the preview is not a report of the active tenant's records. Farm and period
+filters act locally, with loading feedback. Do not fetch operational dashboard
+data or write the illustration to the database. Other Owner pages continue to
+use their database services. Replace the fixture only when database integration
+is explicitly brought back into scope.
+
+- Present mutually exclusive batch statuses as a labelled donut, with an HTML
+  count list. Put recorded risks and field recommendations near this overview.
+- Use a Gantt-style batch timeline from recorded actual/planned planting dates
+  to recorded estimated harvest dates. Label the estimate and today's marker.
+  Elapsed time is not completion percentage. Do not invent stage durations.
+- Show the next 12 weeks of estimated harvest, summarized into readable periods
+  on phones, with exact weekly data available. Missing estimated weights remain
+  missing; a subtotal of known weights must disclose incomplete coverage.
+- Compare activity counts over adjacent periods of equal length with paired
+  columns and a common zero baseline. Compare registered, actively planted,
+  and planned allocation area as separate horizontal bars in hectares; these
+  areas must not be added together or presented as exclusive shares.
+- Explain empty and incomplete data. Provide keyboard/touch selections and
+  HTML data alternatives; labels and outlines supplement color. Keep 44px
+  controls, readable axes, wrapping legends, and local overflow only for data
+  alternatives that require it.
+- Portrait stays in the Farmer/mobile frame. Only Owner Beranda opts into a
+  wider, two-column layout on short landscape screens, with a compact header.
+  Profile, AI, other Owner screens, and other roles retain their layouts.
+
+These choices follow [ONS chart selection](https://service-manual.ons.gov.uk/data-visualisation/chart-types/choosing-a-chart-type),
+[Carbon Gantt guidance](https://www.carbondesignsystem.com/building-blocks/data-visualization/gantt-charts),
+[EU guidance for smaller screens](https://data.europa.eu/apps/data-visualisation-guide/choosing-charts-the-medium),
+and [W3C alternatives for complex images](https://www.w3.org/WAI/tutorials/images/complex/).
+
+### Petugas bottom navigation
 
 The Petugas portal uses four equally sized destinations: Beranda, Kebun,
 Aktivitas, and Laporan. These open the authenticated `/petugas` pages through

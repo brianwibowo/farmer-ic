@@ -13,6 +13,7 @@ use App\Models\PlantingCycle;
 use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Owner\OwnerReadService;
 use App\Support\RolePermissions;
 use Database\Seeders\DemoActivitySeeder;
 use Database\Seeders\DemoFarmSeeder;
@@ -22,6 +23,7 @@ use Database\Seeders\DemoSopSeeder;
 use Database\Seeders\SopActivityTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 /** HTTP and persistence integration on the guarded, separate PostgreSQL schema. */
@@ -59,15 +61,13 @@ class OwnerPortalTest extends TestCase
         $this->actingAs($this->owner);
     }
 
-    public function test_owner_reads_database_dashboard_farms_blocks_and_monitoring(): void
+    public function test_owner_reads_static_home_and_database_farms_blocks_and_monitoring(): void
     {
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Dashboard')
             ->where('auth.user.id', $this->owner->id)
             ->where('currentTeam.id', $this->team->id)
-            ->where('dashboard.metrics.0.value', 1)
-            ->where('dashboard.cycles.running', 2)
-            ->where('dashboard.farmOptions.0.id', $this->farm->id));
+            ->missing('dashboard'));
 
         $this->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Farms')->where('farms.total', 1)
@@ -85,6 +85,18 @@ class OwnerPortalTest extends TestCase
             ->component('owner/Block')->where('block.id', $block->id)
             ->has('cycles', 1)->has('cycles.0.stages', 6)
             ->where('cycles.0.planted_area_ha', '4.2500'));
+    }
+
+    public function test_owner_home_does_not_request_a_database_dashboard_dataset(): void
+    {
+        $this->mock(OwnerReadService::class, function (MockInterface $mock): void {
+            $mock->shouldNotReceive('dashboard');
+        });
+
+        $this->get('/?farm_id='.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('owner/Dashboard')->missing('dashboard')
+            ->where('auth.user.id', $this->owner->id)
+            ->where('currentTeam.id', $this->team->id));
     }
 
     public function test_owner_reads_all_activity_types_including_records_without_logbooks(): void
@@ -148,8 +160,8 @@ class OwnerPortalTest extends TestCase
 
         $this->actingAs($this->owner)->get('/kebun/'.$this->farm->id)
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('farm.name', 'Kebun Cileuksa Utara'));
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('dashboard.farmOptions.0.name', 'Kebun Cileuksa Utara'));
+        $this->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('farms.data.0.name', 'Kebun Cileuksa Utara'));
     }
 
     public function test_admin_batch_labels_refresh_for_owner_and_owner_cannot_edit_them(): void
@@ -196,7 +208,8 @@ class OwnerPortalTest extends TestCase
         $this->get('/kebun/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('farm.latitude', null)->where('farm.longitude', null)
             ->has('blocks', 0)->has('observations', 0)->where('weather', null));
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.metrics.0.value', 2));
+        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('owner/Dashboard')->missing('dashboard'));
     }
 
     public function test_unrelated_tenant_data_never_enters_lists_options_or_counts(): void
@@ -210,8 +223,8 @@ class OwnerPortalTest extends TestCase
         $this->get('/aktivitas?team_id='.$otherTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('activities.total', 8)->has('farms', 1)
             ->where('activities.data', fn ($rows) => ! collect($rows)->contains('id', $activity->id)));
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('dashboard.metrics.0.value', 1)->has('dashboard.farmOptions', 1));
+        $this->get('/?team_id='.$otherTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('owner/Dashboard')->missing('dashboard')->where('currentTeam.id', $this->team->id));
         $this->assertDenied('/kebun/'.$foreign->id);
         $this->assertDenied('/aktivitas/'.$activity->id);
         $this->get('/?farm_id='.$foreign->id)->assertForbidden();
@@ -270,7 +283,7 @@ class OwnerPortalTest extends TestCase
         $this->owner->refresh()->switchTeam($empty);
 
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('dashboard.metrics.0.value', 0)->has('dashboard.farmOptions', 0)->has('dashboard.activities', 0));
+            ->component('owner/Dashboard')->missing('dashboard')->where('currentTeam.id', $empty->id));
         $this->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('farms.total', 0)->where('summary.count', 0));
         $this->get('/aktivitas')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -354,6 +367,7 @@ class OwnerPortalTest extends TestCase
             ->where('ownerNavigation.farms', false)->where('ownerNavigation.finance', false)
             ->where('ownerNavigation.activities', true)->where('ownerNavigation.users', false)->where('ownerNavigation.sops', false));
         $this->get('/kebun')->assertForbidden();
+        $this->get('/')->assertForbidden();
         $this->get('/finance')->assertForbidden();
         $this->get('/lainnya/pengguna')->assertForbidden();
         $this->get('/lainnya/sop')->assertForbidden();
@@ -376,12 +390,13 @@ class OwnerPortalTest extends TestCase
         $this->get('/lainnya/pengguna')->assertForbidden();
     }
 
-    public function test_revoked_variety_grant_hides_its_nested_commodity_from_dashboard_and_batches(): void
+    public function test_revoked_variety_grant_hides_its_nested_commodity_from_database_views(): void
     {
         $this->revoke(['crop_varieties.view']);
         $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page->has('dashboard.commodities', 0));
+        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('owner/Dashboard')->missing('dashboard'));
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('cycles.0.variety', null));
         $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page

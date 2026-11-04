@@ -10,11 +10,13 @@ import OwnerTenantContext from '@/components/owner/OwnerTenantContext.vue';
 type Props = {
     activeKey?: FarmerNavKey;
     showNavigation?: boolean;
+    landscapeDashboard?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
     activeKey: 'home',
     showNavigation: true,
+    landscapeDashboard: false,
 });
 
 const emit = defineEmits<{
@@ -30,17 +32,19 @@ function select(key: FarmerNavKey): void {
 
 <template>
     <div
+        :class="{ 'owner-dashboard-shell': props.landscapeDashboard }"
         class="flex min-h-dvh w-full justify-center bg-card px-6 pt-6 text-foreground max-[480px]:px-0 max-[480px]:pt-0"
     >
         <section
-            class="relative flex h-[min(874px,calc(100dvh-24px))] w-full max-w-[440px] flex-col overflow-hidden rounded-t-[24px] rounded-b-[20px] bg-card text-card-foreground max-[480px]:h-dvh max-[480px]:max-w-none max-[480px]:rounded-none"
+            class="farmer-shell-frame relative flex h-[min(874px,calc(100dvh-24px))] w-full max-w-[440px] flex-col overflow-hidden rounded-t-[24px] rounded-b-[20px] bg-card text-card-foreground max-[480px]:h-dvh max-[480px]:max-w-none max-[480px]:rounded-none"
         >
             <div
                 v-if="props.activeKey !== 'ai'"
-                class="shrink-0 bg-card px-4 pt-4 pb-2"
+                class="farmer-shell-header shrink-0 bg-card px-4 pt-4 pb-2"
             >
                 <DashboardHeader />
                 <OwnerTenantContext
+                    class="farmer-shell-tenant"
                     v-if="
                         props.showNavigation &&
                         page.props.navigation?.teamSwitcher
@@ -71,6 +75,30 @@ function select(key: FarmerNavKey): void {
 </template>
 
 <style scoped>
+@media (orientation: landscape) and (min-width: 600px) and (max-height: 600px) {
+    .owner-dashboard-shell {
+        padding: 0;
+    }
+    .owner-dashboard-shell .farmer-shell-frame {
+        height: 100dvh;
+        max-width: 1040px;
+        border-radius: 0;
+    }
+    .owner-dashboard-shell .farmer-shell-header {
+        display: grid;
+        grid-template-columns: minmax(140px, 0.8fr) minmax(0, 1.2fr);
+        align-items: center;
+        gap: 24px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+    .owner-dashboard-shell .farmer-shell-tenant {
+        margin-top: 0;
+        border-top: 0;
+        padding-top: 0;
+    }
+}
+
 main {
     scrollbar-width: none;
     -ms-overflow-style: none;
