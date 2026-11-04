@@ -45,7 +45,7 @@ Belum ada:
 
 - endpoint append satu atau beberapa aktivitas ke header yang sudah ada
 - reuse header otomatis di frontend
-- endpoint create/append untuk kategori non-block_mapping dan detail table lengkap
+- endpoint create/append kategori non-block_mapping di UI Petugas
 - upload foto
 - approval/paraf aktivitas
 - tabel master blok (sub-blok menjadi label batch/cycle)
@@ -93,17 +93,24 @@ diturunkan dari `parent_id`. Detail table mengikuti `detail_key`:
 ```text
 planting                  -> planting_details
 irrigation                -> irrigation_details
-follow_up_fertilization   -> fertilization_details
+follow_up_fertilization   -> fertilization_details (stage susulan)
+base_fertilization        -> fertilization_details (stage dasar)
 growth_check              -> plant_observations
 pest_control              -> pesticide_details
 incident                  -> incident_details
 harvest                   -> harvest_details
 block_mapping             -> block_mapping_details
+land_cleaning             -> land_cleaning_details
+loosening                 -> loosening_details
+weeding                   -> weeding_details
+beds                      -> bed_preparation_details
+liming                    -> liming_details
+other                     -> other_details
 ```
 
-`land_cleaning`, subkategori `soil_preparation`, `weeding`, dan `other` masih
-memakai `detail_key = null`; detail table-nya belum diimplementasikan. API
-aktivitas saat ini masih hanya menerima `block_mapping`.
+Semua kategori selectable sudah memiliki typed detail. `soil_preparation` dan
+`maintenance` adalah parent non-selectable sehingga tidak punya detail table.
+Snapshot submit tetap disimpan di `farm_activities.task_details`.
 
 ## Prinsip form
 

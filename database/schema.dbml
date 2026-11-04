@@ -382,6 +382,10 @@ Table fertilization_details {
   subsidy_status varchar(30)
   application_method varchar(150)
   quantity_kg decimal(12,3)
+  area_ha decimal(12,4)
+  quantity_unit varchar(20)
+  sack_size_kg decimal(10,3)
+  Note: 'Dipakai untuk pemupukan susulan dan pemupukan dasar; fertilization_stage membedakan dasar/susulan.'
 }
 
 Table irrigation_details {
@@ -419,6 +423,57 @@ Table harvest_details {
   color varchar(100)
   ripeness varchar(150)
   cleanliness varchar(150)
+}
+
+Table land_cleaning_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4)
+  method varchar(50)
+  product_name varchar(150)
+  dosage_per_tank varchar(100)
+  water_liters decimal(8,2)
+  tank_count int
+}
+
+Table loosening_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4)
+  method varchar(50)
+  depth_cm decimal(8,2)
+}
+
+Table weeding_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4)
+  method varchar(50)
+  depth_cm decimal(8,2)
+}
+
+Table bed_preparation_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  bed_count int
+  length_m decimal(10,3)
+  width_m decimal(10,3)
+  height_cm decimal(8,2)
+  bed_spacing_cm decimal(8,2)
+  area_ha decimal(12,4)
+}
+
+Table liming_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4)
+  material_type varchar(100)
+  brand_name varchar(150)
+  quantity_value decimal(14,3)
+  quantity_unit varchar(20)
+  sack_size_kg decimal(10,3)
+  application_method varchar(150)
+}
+
+Table other_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  description text
+  area_ha decimal(12,4)
 }
 
 Table plant_observations {

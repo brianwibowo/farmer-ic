@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ActivityPhoto;
 use App\Models\AuditLog;
+use App\Models\BedPreparationDetail;
 use App\Models\BlockMappingDetail;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
@@ -17,7 +18,11 @@ use App\Models\FinancialTransaction;
 use App\Models\HarvestDetail;
 use App\Models\IncidentDetail;
 use App\Models\IrrigationDetail;
+use App\Models\LandCleaningDetail;
+use App\Models\LimingDetail;
+use App\Models\LooseningDetail;
 use App\Models\OperationalTarget;
+use App\Models\OtherDetail;
 use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
@@ -27,6 +32,7 @@ use App\Models\PlantingRound;
 use App\Models\PlantObservation;
 use App\Models\User;
 use App\Models\WeatherRecord;
+use App\Models\WeedingDetail;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +51,9 @@ class FarmDeletionService
         'planting_details' => 'Detail penanaman', 'fertilization_details' => 'Detail pemupukan',
         'irrigation_details' => 'Detail penyiraman', 'pesticide_details' => 'Detail pestisida',
         'incident_details' => 'Detail kejadian', 'harvest_details' => 'Detail panen',
+        'land_cleaning_details' => 'Detail pembersihan lahan', 'loosening_details' => 'Detail penggemburan',
+        'weeding_details' => 'Detail pendangiran', 'bed_preparation_details' => 'Detail pembuatan bedengan',
+        'liming_details' => 'Detail penebaran dolomit', 'other_details' => 'Detail aktivitas lainnya',
         'weather_records' => 'Riwayat cuaca', 'operational_targets' => 'Target operasional',
         'financial_transactions' => 'Transaksi keuangan', 'financial_projections' => 'Proyeksi keuangan',
         'financial_budgets' => 'Anggaran keuangan', 'users' => 'Penugasan akun yang akan dilepas',
@@ -92,7 +101,8 @@ class FarmDeletionService
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
                     'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos',
                     'block_mapping_details', 'planting_details', 'fertilization_details', 'irrigation_details',
-                    'pesticide_details', 'incident_details', 'harvest_details',
+                    'pesticide_details', 'incident_details', 'harvest_details', 'land_cleaning_details',
+                    'loosening_details', 'weeding_details', 'bed_preparation_details', 'liming_details', 'other_details',
                     'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'planting_rounds', 'farm_blocks',
                 ] as $table) {
                     $key = str_ends_with($table, '_details') ? 'activity_id' : 'id';
@@ -144,7 +154,11 @@ class FarmDeletionService
         // locked planting cycles. It is an internal child, not a new standalone resource.
         $graph['ai_insights'] = $this->ids(DB::table('ai_insights')->whereIn('planting_cycle_id', $graph['planting_cycles']));
         $graph['activity_photos'] = $this->ids(ActivityPhoto::visibleTo($actor, $team)->whereIn('activity_id', $graph['farm_activities'])->toBase());
-        foreach ([BlockMappingDetail::class, PlantingDetail::class, FertilizationDetail::class, IrrigationDetail::class, PesticideDetail::class, IncidentDetail::class, HarvestDetail::class] as $detail) {
+        foreach ([
+            BlockMappingDetail::class, PlantingDetail::class, FertilizationDetail::class, IrrigationDetail::class,
+            PesticideDetail::class, IncidentDetail::class, HarvestDetail::class, LandCleaningDetail::class,
+            LooseningDetail::class, WeedingDetail::class, BedPreparationDetail::class, LimingDetail::class, OtherDetail::class,
+        ] as $detail) {
             $graph[(new $detail)->getTable()] = $this->ids($detail::visibleTo($actor, $team)->whereIn('activity_id', $graph['farm_activities'])->toBase(), 'activity_id');
         }
         $graph['users'] = $this->ids(User::withTrashed()->visibleTo($actor, $team)->where('assigned_farm_id', $farm->id)->toBase());

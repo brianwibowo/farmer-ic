@@ -139,8 +139,8 @@ submission, review, or approval step.
 Each report reuses or creates its shared daily log and persists one farm activity, typed details where
 available, validated supplementary `task_details`, and 1–5 private photos.
 The task link is protected by a composite FK to the same planting cycle.
-Weeding uses its own reference type and JSON detail, without pretending to be
-another operation. Existing typed-detail integrity checks remain enabled.
+Weeding now writes `weeding_details` as its typed detail while retaining the
+submitted JSON snapshot. Existing typed-detail integrity checks remain enabled.
 Photo reads authorize both activity and photo; failed saves remove new files.
 
 `FarmActivityPolicy::recordTask` is a composite policy ability using existing

@@ -64,6 +64,10 @@ class DailyActivityReportService
             'block_name' => 'Blok', 'length_m' => 'Panjang (m)', 'width_m' => 'Lebar (m)', 'incident_category' => 'Kejadian', 'severity' => 'Tingkat',
             'method' => 'Metode pekerjaan', 'depth_cm' => 'Kedalaman (cm)', 'sample_count' => 'Jumlah sampel',
             'fertilizer' => 'Nama pupuk', 'target' => 'Sasaran pekerjaan', 'product' => 'Produk pengendali',
+            'fertilization_stage' => 'Tahap pemupukan', 'quantity_unit' => 'Satuan jumlah', 'sack_size_kg' => 'Ukuran karung (kg)',
+            'product_name' => 'Produk', 'water_liters' => 'Volume air (liter)', 'bed_count' => 'Jumlah bedengan',
+            'height_cm' => 'Tinggi (cm)', 'bed_spacing_cm' => 'Jarak antar bedengan (cm)',
+            'material_type' => 'Jenis bahan', 'quantity_value' => 'Jumlah bahan', 'description' => 'Deskripsi',
         ];
         $details = [];
         foreach ($labels as $key => $label) {

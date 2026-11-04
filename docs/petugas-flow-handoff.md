@@ -33,9 +33,9 @@ linked report exists.
 
 `activity_types` is now self-referencing (`parent_id`) with `detail_key`,
 `is_selectable`, `sort_order`, and `is_active`. `farm_activities.activity_type_id`
-points to the most specific selectable row. The current activity API still only
-accepts `block_mapping`; detail tables and request validation for the other
-categories remain part of the Petugas flow.
+points to the most specific selectable row. Every selectable category now has
+typed detail storage; the public activity API still creates `block_mapping`
+only, while task and planting flows write their own typed details.
 
 ### Task data
 

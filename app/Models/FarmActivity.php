@@ -137,4 +137,40 @@ class FarmActivity extends FarmerModel
     {
         return $this->hasOne(PlantObservation::class, 'activity_id');
     }
+
+    /** @return HasOne<LandCleaningDetail, $this> */
+    public function landCleaningDetail(): HasOne
+    {
+        return $this->hasOne(LandCleaningDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<LooseningDetail, $this> */
+    public function looseningDetail(): HasOne
+    {
+        return $this->hasOne(LooseningDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<WeedingDetail, $this> */
+    public function weedingDetail(): HasOne
+    {
+        return $this->hasOne(WeedingDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<BedPreparationDetail, $this> */
+    public function bedPreparationDetail(): HasOne
+    {
+        return $this->hasOne(BedPreparationDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<LimingDetail, $this> */
+    public function limingDetail(): HasOne
+    {
+        return $this->hasOne(LimingDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<OtherDetail, $this> */
+    public function otherDetail(): HasOne
+    {
+        return $this->hasOne(OtherDetail::class, 'activity_id');
+    }
 }

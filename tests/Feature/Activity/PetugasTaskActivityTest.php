@@ -308,7 +308,7 @@ class PetugasTaskActivityTest extends TestCase
     public function test_all_generated_task_kinds_persist_correct_details_and_pass_database_integrity(): void
     {
         $cases = [
-            ['weeding', ['area_ha' => '1', 'method' => 'Cangkul', 'depth_cm' => '5'], null],
+            ['weeding', ['area_ha' => '1', 'method' => 'Cangkul', 'depth_cm' => '5'], 'weeding_details'],
             ['follow_up_fertilization', ['area_ha' => '1', 'fertilizer' => 'NPK', 'quantity_kg' => '25', 'method' => 'Tabur'], 'fertilization_details'],
             ['growth_check', ['phase' => 'Vegetatif', 'height_cm' => '60', 'sample_count' => '10', 'pest' => 'Aman', 'disease' => 'Aman'], 'plant_observations'],
             ['pest_control', ['area_ha' => '1', 'control_type' => 'Insektisida', 'target' => 'Ulat', 'product' => 'Produk pengendali', 'dosage' => '20 ml', 'water_liters' => '15', 'tank_count' => '2', 'method' => 'Semprot'], 'pesticide_details'],
@@ -320,15 +320,15 @@ class PetugasTaskActivityTest extends TestCase
             $data['details'] = $details;
             $this->actingAs($this->actor)->post('/petugas/tasks/'.$task->id.'/aktivitas', $data)->assertSessionHasNoErrors()->assertRedirect('/petugas/tasks/'.$task->id);
             $activity = FarmActivity::where('planting_cycle_task_id', $task->id)->firstOrFail();
-            if ($table !== null) {
-                $this->assertDatabaseHas($table, ['activity_id' => $activity->id]);
-            }
+            $this->assertDatabaseHas($table, ['activity_id' => $activity->id]);
         }
+        $weeding = FarmActivity::query()->whereHas('activityType', fn ($query) => $query->where('code', 'weeding'))->firstOrFail();
+        $this->assertDatabaseHas('weeding_details', ['activity_id' => $weeding->id, 'method' => 'Cangkul', 'depth_cm' => 5]);
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
         $this->assertDatabaseCount('farm_activities', 5);
     }
 
-    public function test_database_rejects_weeding_without_a_task_report(): void
+    public function test_database_rejects_weeding_without_a_typed_detail(): void
     {
         $weeding = ActivityType::query()->where('code', 'weeding')->firstOrFail();
 
@@ -344,7 +344,7 @@ class PetugasTaskActivityTest extends TestCase
                 ]);
                 DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
             });
-            $this->fail('Expected weeding without a task report to be rejected.');
+            $this->fail('Expected weeding without a typed detail to be rejected.');
         } catch (QueryException $error) {
             $this->assertSame('23514', (string) $error->getCode());
         }

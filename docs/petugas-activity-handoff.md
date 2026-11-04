@@ -63,6 +63,18 @@ bukan klaim bahwa seluruh lifecycle operasional sudah selesai.
       aktivitas, tidak hanya rincian pemetaan blok.
 - [x] Tema terang/gelap dan layout responsif mengikuti `design.md`.
 
+### Typed detail aktivitas
+
+- [x] Setiap kategori selectable memiliki typed detail table sendiri, kecuali
+      pemupukan dasar dan susulan yang berbagi `fertilization_details` dengan
+      pembeda `fertilization_stage`.
+- [x] Laporan tugas pendangiran menulis `weeding_details` dan tetap menyimpan
+      snapshot `task_details`.
+- [x] Model, policy, access matrix, detail guard, report label, seed, dan DBML
+      mencakup seluruh detail table baru.
+- [ ] Form Petugas untuk kategori persiapan/other belum ditambahkan pada
+      pekerjaan ini; backend dan otorisasinya sudah siap.
+
 ### Penanaman awal dan generasi tugas SOP
 
 - [x] Pencatatan penanaman dimulai dari subblok, bukan tugas SOP turunan.

@@ -40,6 +40,7 @@ class TaskActivityFields
     {
         return match (self::activityCode($task)) {
             'irrigation' => 'irrigation',
+            'weeding' => 'weeding',
             'follow_up_fertilization' => 'fertilization',
             'growth_check' => 'growth_check',
             'pest_control' => 'pesticide',

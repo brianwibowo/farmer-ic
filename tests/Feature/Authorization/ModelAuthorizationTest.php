@@ -40,7 +40,7 @@ class ModelAuthorizationTest extends TestCase
     private const MASTER = ['farms', 'activity_types', 'commodities', 'crop_varieties', 'financial_categories', 'users', 'teams', 'memberships', 'team_invitations'];
 
     /** @var list<string> */
-    private const OPERATIONS = ['farm_activities', 'activity_photos', 'planting_cycles', 'planting_details', 'fertilization_details', 'irrigation_details', 'pesticide_details', 'incident_details', 'harvest_details', 'plant_observations', 'weather_records', 'farm_risks', 'operational_targets'];
+    private const OPERATIONS = ['farm_activities', 'activity_photos', 'planting_cycles', 'planting_details', 'fertilization_details', 'irrigation_details', 'pesticide_details', 'incident_details', 'harvest_details', 'plant_observations', 'land_cleaning_details', 'loosening_details', 'weeding_details', 'bed_preparation_details', 'liming_details', 'other_details', 'weather_records', 'farm_risks', 'operational_targets'];
 
     protected function setUp(): void
     {
@@ -224,7 +224,8 @@ class ModelAuthorizationTest extends TestCase
             $parent = match (class_basename($class)) {
                 'FarmActivity', 'PlantingCycle', 'WeatherRecord', 'FinancialTransaction', 'FinancialBudget', 'FinancialProjection', 'OperationalTarget' => $farm,
                 'PlantObservation', 'FarmRisk' => $this->record(PlantingCycle::class, $user, $team, $farm),
-                'ActivityPhoto', 'PlantingDetail', 'FertilizationDetail', 'IrrigationDetail', 'PesticideDetail', 'IncidentDetail', 'HarvestDetail' => $this->record(FarmActivity::class, $user, $team, $farm),
+                'ActivityPhoto', 'PlantingDetail', 'FertilizationDetail', 'IrrigationDetail', 'PesticideDetail', 'IncidentDetail', 'HarvestDetail',
+                'LandCleaningDetail', 'LooseningDetail', 'WeedingDetail', 'BedPreparationDetail', 'LimingDetail', 'OtherDetail' => $this->record(FarmActivity::class, $user, $team, $farm),
                 'BlockMappingDetail' => $this->record(FarmActivity::class, $user, $team, $farm),
                 'DailyActivityLog' => $farm,
                 'FarmBlock' => $farm,
