@@ -717,7 +717,7 @@ preserved until changed.
 Block pages reuse `FarmManagementLayout` when the backend shared navigation
 permits Farm Management, including the Admin sidebar, header, typography,
 `admin-field` controls, and themed dialog portals. Keep Manajemen Kebun active
-while visiting block routes. Farm detail uses one overview panel: registered area, location, user-entered harvest target in tonnes, and the number of sub blocks at each persisted stage come first; the location map follows within the same panel. The header combines the back action and farm name on one row, with compact top padding so the overview is visible immediately. Use the shared 36px/700 metric style (32px on phones) for area, target, and sub block counts, with a bold location name. Use complete, beginner-friendly labels: Status lahan before Milik sendiri/Sewa/Kerja sama, Komoditas yang ditanam, and Panduan budidaya (SOP). Each progress item names its unit and action, for example 2 sub blok sedang dalam pengolahan tanah. Never show unexplained fragments such as 1 Pengolahan tanah. Team and owner information do not appear in the detail. Logbook is a text link. The block table follows the overview; create/edit actions open a shared dialog and return to that detail. Farm forms choose a commodity before its matching SOP. Sub block create/edit uses a dialog, while each sub block always shows its stages and start/completion dates without a progress disclosure.
+while visiting block routes. Farm detail uses one overview panel: registered area, location, user-entered harvest target in tonnes, and the number of sub blocks at each persisted stage come first; the location map follows within the same panel. The header combines the back action and farm name on one row, with compact top padding so the overview is visible immediately. Use the shared 36px/700 metric style (32px on phones) for area, target, and sub block counts, with a bold location name. Use complete, beginner-friendly labels: Status lahan before Milik sendiri/Sewa/Kerja sama, Komoditas yang ditanam, and Panduan budidaya (SOP). Each progress item names its unit and action, for example 2 sub blok sedang dalam pengolahan tanah. Never show unexplained fragments such as 1 Pengolahan tanah. Team and owner information do not appear in the detail. Logbook is a text link. The block table follows the overview; create/edit actions open a shared dialog and return to that detail. Farm forms choose a commodity before its matching SOP. Sub block create/edit uses a dialog, with stages and start/completion dates visible by default. A per-block collapse control keeps a stage summary and the add action visible when details are collapsed.
 
 Block and sub block editor dialogs use a roomy 768px maximum desktop width, constrained to the viewport on phones. Use card surfaces, semantic tokens, a context header with the existing icon system, a visible capacity summary, two form columns where space permits, and an independently scrolling body. Keep the separated Batal/Simpan footer visible while scrolling; hide duplicate submit/close actions while processing. Retain focus trapping, keyboard dismissal, unsaved-change confirmation, inline errors, and both profile themes. Block forms follow the farm
 form width, and compact list metrics retain their units.
@@ -769,3 +769,29 @@ separate theme.
 - Verify responsive behavior and both themes; report changed pages/components,
   assumptions, and intentionally omitted wireframe content. Run the frontend
   build after implementation changes as required by `AGENTS.md`.
+
+
+### Sub blok di daftar blok
+
+Daftar blok menampilkan identitas, luas, dan status master blok, lalu langsung
+menampilkan daftar sub blok di bawah baris blok tersebut. Setiap batch
+menampilkan label, nomor/periode, alokasi, rencana tanam, serta seluruh tahap dan
+tanggal mulai/selesainya. Tampilkan detail secara default dan sediakan tombol
+Ringkas/Tampilkan detail per blok. Saat diringkas, jumlah sub blok, ringkasan tahap,
+sisa alokasi, dan aksi tambah tetap terlihat. Jangan mengharuskan navigasi ke
+halaman detail. Gunakan BlockBatches, BatchTimeline,
+dan dialog bersama pada daftar blok Admin maupun Farmer. Tambah sub blok berada
+di blok yang bersangkutan dan simpan kembali ke daftar asal. Pertahankan
+pagination/filter, izin backend, empty state, kapasitas, dan histori. Bedakan
+baris identitas blok dengan bg-primary/8, judul tebal text-primary, serta jarak 12px antar
+kelompok blok. Setiap sub blok memakai judul tegas dan definisi terpisah untuk
+luas, tahap saat ini, dan rencana tanam. Letakkan timeline pada area bg-muted/40
+dengan judul Tahap & tanggal progres; tahap mendatang cukup diberi status Belum
+dimulai tanpa teks tanggal kosong berulang. Gunakan jarak dan pemisah internal,
+bukan card di dalam card atau border luar pada profil Admin. Ringkasan kebun dan
+peta tetap satu panel, dengan judul Peta lokasi yang terlihat dan empat kolom
+informasi pendukung pada desktop.
+
+Judul Ringkasan kebun, Peta lokasi, Blok kebun, Sub blok & progres, serta judul
+timeline memakai text-primary sebagai aksen hijau yang konsisten di kedua tema.
+Identitas sub blok dan angka utama memakai text-foreground untuk menjaga hierarki.
