@@ -7,10 +7,8 @@ import {
 export type AdminTaskStatus =
     | 'pending'
     | 'in_progress'
-    | 'submitted'
     | 'completed'
-    | 'skipped'
-    | 'cancelled';
+    | 'skipped';
 
 export type AdminTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
@@ -32,9 +30,10 @@ export type AdminTask = {
     reschedule_reason: string | null;
     rescheduled_at: string | null;
     skip_reason: string | null;
-    cancel_reason: string | null;
     is_required: boolean;
     completed_at: string | null;
+    completed_by: string | null;
+    completion_note: string | null;
     created_at: string | null;
     farm: { id: string; name: string } | null;
     block: { id: string; code: string; name: string } | null;
@@ -91,10 +90,8 @@ export type AdminTaskSummary = {
 export const adminTaskStatusLabels: Record<AdminTaskStatus, string> = {
     pending: 'Belum dimulai',
     in_progress: 'Sedang dikerjakan',
-    submitted: 'Menunggu review',
     completed: 'Selesai',
-    skipped: 'Dilewati',
-    cancelled: 'Dibatalkan',
+    skipped: 'Tidak dikerjakan',
 };
 
 export const adminTaskUrgencyLabels: Record<AdminTaskUrgency, string> = {
@@ -114,8 +111,13 @@ export const adminTaskCategoryOptions: [AdminTaskCategory, string][] = [
     ['harvest', sopActivityCategoryLabels.harvest],
 ];
 
-export function adminTaskCategoryLabel(task: Pick<AdminTask, 'activity_category'>): string {
-    return sopActivityCategoryLabels[task.activity_category] ?? task.activity_category;
+export function adminTaskCategoryLabel(
+    task: Pick<AdminTask, 'activity_category'>,
+): string {
+    return (
+        sopActivityCategoryLabels[task.activity_category] ??
+        task.activity_category
+    );
 }
 
 export function adminTaskSubcategoryLabel(
@@ -131,10 +133,8 @@ export function adminTaskStatusClass(status: AdminTaskStatus): string {
     return {
         pending: 'bg-muted text-muted-foreground',
         in_progress: 'bg-warning/10 text-warning',
-        submitted: 'bg-info/10 text-info',
         completed: 'bg-success/10 text-success',
         skipped: 'bg-muted text-muted-foreground',
-        cancelled: 'bg-error/10 text-error',
     }[status];
 }
 
@@ -149,7 +149,9 @@ export function adminTaskUrgencyClass(urgency: AdminTaskUrgency): string {
 
 export function adminTaskDate(value: string | null): string {
     return value
-        ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value))
+        ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(
+              new Date(value),
+          )
         : '-';
 }
 

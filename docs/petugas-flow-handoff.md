@@ -1,16 +1,15 @@
 # Petugas flow handoff
 
-> **Historical handoff:** Activity creation, planting realization, and shared
-> daily reports have since been implemented and integrated. For the current
+> **Historical handoff:** Activity creation, planting realization, shared daily
+> reports, and direct task completion have since been implemented. For current
 > status and remaining work, read `docs/petugas-activity-handoff.md` and
-> `docs/petugas-task-list-contract.md`. The notes below describe the earlier
-> ownership boundary, not the current absence of those endpoints. Admin
-> skip/cancel/reschedule remains available; Petugas start/submit/review does not.
+> `docs/petugas-task-list-contract.md`. Task approval/review is no longer in
+> scope. Admin skip/reschedule remains available; cancel was merged into skip.
 
 Status: **Ownership split confirmed.** The Petugas flow — activity creation,
-planting logging, task start/submit, and Petugas task actions — is owned by the
-friend. The Admin task-management and read-only Petugas task-list backend are
-already implemented on `feat/admin-sop`.
+planting logging, and task completion — is owned by the friend. The Admin
+task-management and Petugas task-list backend are implemented on
+`feat/admin-sop`.
 
 ## Current backend state
 
@@ -18,16 +17,17 @@ already implemented on `feat/admin-sop`.
 
 ```text
 GET  /petugas/tasks
-GET  /petugas/aktivitas/buat
+GET  /petugas/tasks/{task}
+POST /petugas/tasks/{task}/selesai
 GET  /admin/tasks
 GET  /admin/tasks/{task}
 POST /admin/tasks/{task}/skip
-POST /admin/tasks/{task}/cancel
 POST /admin/tasks/{task}/reschedule
 ```
 
-`GET /petugas/tasks` is read-only. There is no `store`, `start`, `submit`,
-`approve`, or `reject` endpoint yet.
+Task creation remains SOP-generated. There is no `start`, `submit`, `approve`,
+or `reject` endpoint. Completion is a direct Petugas action after at least one
+linked report exists.
 
 ### Activity taxonomy
 
@@ -42,19 +42,21 @@ categories remain part of the Petugas flow.
 `planting_cycle_tasks` is the generated follow-up task snapshot:
 
 ```text
-pending -> in_progress -> submitted -> completed
-                         \-> in_progress (rejected)
-skipped / cancelled are Admin-only terminal states
+pending -> in_progress -> completed
+                    \-> skipped
 ```
+
+`skipped` is the single Admin-only “not done” terminal state with a required
+free-text reason. There is no approval/review state.
 
 Relevant existing services:
 
 ```text
 app/Services/PlantingCycleTaskService.php
-  generateForSubblok(PlantingCycle $subblok)
+  generateForSubblok(PlantingCycle $subblok, User $actor)
 
 app/Services/PlantingCycleTaskManagementService.php
-  skip / cancel / reschedule
+  skip / complete / reschedule
 ```
 
 `generateForSubblok()` is idempotent. It skips planting and creates only
@@ -68,42 +70,26 @@ Call it after the real planting save has set `planted_at` on the subblok.
 
 ### Petugas task response
 
-`PetugasTaskService` returns the UI shape defined in
-`docs/petugas-task-list-contract.md`. Some fields are intentionally
-placeholders until the Petugas submission layer exists:
+`PetugasTaskReadService` returns the UI shape defined in
+`docs/petugas-task-list-contract.md`:
 
 ```text
-linked_activities_count = 0
-latest_submission = null
-can.start  = status === 'pending'
-can.submit = status === 'in_progress'
+linked_activities_count = actual linked reports
+completed_at / completed_by / completion_note
+can.record   = open task with actual planting date
+can.complete = open task, planted, and at least one linked report
 ```
-
-`isFixture` is still present and always `false` for compatibility with the
-existing UI. It can be removed when the UI no longer reads it.
 
 ## Remaining work owned by the friend
 
-1. **Activity creation / planting logging**
-   - Create the activity and detail rows.
-   - Set the subblok’s `planted_at`, variety, planted area, and status.
-   - Call `PlantingCycleTaskService::generateForSubblok()` after the anchor is set.
-
-2. **Task-to-activity linkage**
-   - `farm_activities` currently has no `planting_cycle_task_id`.
-   - Choose either a nullable task FK on `farm_activities` or a dedicated
-     submission table for attempts, evidence, and review notes.
-   - Replace the placeholder `linked_activities_count` and `latest_submission`.
-
-3. **Petugas task actions**
-   - Start: `pending -> in_progress`.
-   - Submit: `in_progress -> submitted`, with linked activity/evidence.
-   - Show rejection feedback and allow resubmission.
-
-4. **Admin review**
-   - Approve: `submitted -> completed`.
-   - Reject: `submitted -> in_progress` with a review note.
-   - Keep Admin skip/cancel/reschedule behavior unchanged.
+1. **Activity creation / planting logging** — implemented.
+2. **Task-to-activity linkage** — implemented through
+   `farm_activities.planting_cycle_task_id` and `task_details`.
+3. **Petugas task completion** — implemented as a direct action. The first
+   report moves `pending` to `in_progress`; completion requires at least one
+   linked report.
+4. **Admin task management** — skip and reschedule remain. Cancel is merged into
+   skip. There is no approve/reject workflow.
 
 ## Files owned by the friend
 
@@ -130,14 +116,14 @@ resources/js/layouts/PetugasLayout.vue
 resources/js/components/farmer/FarmerBottomNav.vue
 ```
 
-## Suggested implementation slice
+## Implemented slice
 
-1. Add the activity/task linkage migration.
-2. Implement planting save and call `generateForSubblok()`.
-3. Add start/submit endpoints and update the task status.
-4. Add approval/rejection endpoints and Admin review UI.
-5. Fill the real `linked_activities_count` and `latest_submission` values.
-6. Remove `isFixture` from the UI and controller once the UI drops it.
+1. Activity/task linkage migration is in place.
+2. Planting save calls `generateForSubblok()`.
+3. Direct completion endpoint updates the task after a linked report exists.
+4. Approval/rejection endpoints and Admin review UI are not in scope.
+5. `linked_activities_count` and completion fields are real.
+6. `isFixture` has been removed.
 
 ## Branch
 

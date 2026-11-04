@@ -1,10 +1,8 @@
 export type PetugasTaskStatus =
     | 'pending'
     | 'in_progress'
-    | 'submitted'
     | 'completed'
-    | 'skipped'
-    | 'cancelled';
+    | 'skipped';
 
 export type PetugasTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
@@ -16,12 +14,6 @@ export type PetugasTaskSubcategory =
     | 'follow_up_fertilization'
     | 'growth_check'
     | 'pest_control';
-
-export type PetugasTaskSubmission = {
-    status: 'submitted' | 'approved' | 'rejected';
-    submitted_at: string | null;
-    review_note: string | null;
-};
 
 export type PetugasTask = {
     id: string;
@@ -36,11 +28,12 @@ export type PetugasTask = {
     due_date: string | null;
     is_required: boolean;
     linked_activities_count: number;
-    latest_submission: PetugasTaskSubmission | null;
+    completed_at: string | null;
+    completed_by: string | null;
+    completion_note: string | null;
     can: {
-        start: boolean;
-        submit: boolean;
         record: boolean;
+        complete: boolean;
     };
     subblok: {
         id: string;

@@ -45,7 +45,7 @@ class PetugasTaskReadService
         $today = CarbonImmutable::today('Asia/Jakarta');
         $effective = $task->effectiveScheduledDate();
         $urgency = match (true) {
-            in_array($task->status, ['completed', 'skipped', 'cancelled'], true) => 'completed',
+            in_array($task->status, ['completed', 'skipped'], true) => 'completed',
             $effective === null => 'upcoming',
             $task->due_date !== null && $task->due_date->toDateString() < $today->toDateString() => 'overdue',
             $effective->toDateString() <= $today->toDateString() => 'today',
@@ -56,9 +56,11 @@ class PetugasTaskReadService
             ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'activity_subcategory', 'offset_days', 'is_required']),
             'scheduled_date' => $effective?->toDateString(),
             'due_date' => $task->due_date?->toDateString(), 'urgency' => $urgency,
+            'completed_at' => $task->completed_at?->toISOString(),
+            'completed_by' => $task->getAttribute('completed_by'),
+            'completion_note' => $task->getAttribute('completion_note'),
             'linked_activities_count' => FarmActivity::visibleTo($actor, $team)->where('planting_cycle_task_id', $task->id)->count(),
-            'latest_submission' => null,
-            'can' => ['start' => false, 'submit' => false, 'record' => false],
+            'can' => ['record' => false, 'complete' => false],
             'subblok' => [
                 'id' => $cycle->id, 'number' => $cycle->getAttribute('batch_number'), 'label' => $cycle->getAttribute('subblock_label'),
                 'planned_planting_at' => $cycle->planned_planting_at?->toDateString(), 'planted_at' => $cycle->planted_at?->toDateString(),

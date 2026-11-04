@@ -207,21 +207,23 @@ Table planting_cycle_tasks {
   scheduled_date date [note: 'Null when the subblok has no planted_at or planned_planting_at']
   due_date date
   is_required boolean [not null, default: true]
-  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | submitted | completed | skipped | cancelled']
+  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | completed | skipped; skipped means deliberately not done']
   completed_at timestamptz
   skip_reason text
   created_at timestamptz
   updated_at timestamptz
-  cancel_reason text
   rescheduled_date date [note: 'Admin override; original scheduled_date remains the SOP/HST target']
   reschedule_reason text
   rescheduled_by uuid [ref: > users.id]
   rescheduled_at timestamptz
+  completed_by uuid [ref: > users.id]
+  completion_note text
   indexes {
     (planting_cycle_id, sop_template_task_id) [unique]
     (id, planting_cycle_id) [unique]
     (planting_cycle_id, scheduled_date, status)
     (planting_cycle_id, offset_days)
+    completed_by
   }
   Note: 'Snapshot of follow-up SOP tasks for one subblok. Planting steps are not materialized; planting is the HST anchor. Generated once per subblok + SOP version. Existing snapshots survive later SOP changes.'
 }

@@ -131,8 +131,9 @@ tidak menulis ulang timestamp aktivitas/tahap.
 - [ ] **Pembatasan sebelum tanggal jadwal SOP.** Saat ini tanggal jadwal adalah
       acuan, bukan pengunci. Laporan panen sebelum jadwal masih memungkinkan.
       Perlu keputusan apakah panen lebih awal ditolak atau diberi pengecualian.
-- [ ] Lifecycle tugas **mulai → ajukan selesai → review/setujui/tolak**.
-      Menyimpan laporan belum mengubah tugas menjadi selesai.
+- [x] Penyelesaian tugas langsung oleh Petugas setelah minimal satu laporan
+      aktivitas. Tidak ada pengajuan, review, atau approval; `completed_by` dan
+      catatan penyelesaian disimpan.
 - [ ] Penyelesaian otomatis tahap panen dan penutupan siklus tanam.
 - [ ] Validasi akumulasi luas seluruh laporan panen. Saat ini luas diperiksa
       per laporan terhadap luas tanam, bukan total beberapa laporan.
@@ -175,9 +176,9 @@ untuk siklus yang sudah ditanam.
 - Jadwal efektif Petugas menghormati `rescheduled_date` dari Admin. Sinkronisasi
   HST memperbarui jadwal dasar tugas pending tanpa menghapus override Admin
   atau membuat due date-nya tidak sesuai override.
-- Task list tanpa assignment menampilkan data kosong. Flag start/submit tetap
-  nonaktif karena endpoint lifecycle Petugas belum diimplementasikan; fixture
-  banner lama tidak digunakan.
+- Task list tanpa assignment menampilkan data kosong. Tombol **Selesaikan
+  tugas** hanya aktif setelah ada minimal satu laporan aktivitas; tidak ada
+  start/submit/review. Fixture banner lama tidak digunakan.
 - Form kategori generik lama tetap digantikan oleh form tugas yang sudah
   menyimpan data backend. Select baru mengikuti primitive bersama dari remote.
 - `docs/petugas-flow-handoff.md` dipertahankan sebagai catatan historis dengan
@@ -232,7 +233,8 @@ untuk siklus yang sudah ditanam.
    restart worker jangka panjang sesuai perubahan konfigurasi/otorisasi.
 6. Buka `/petugas/aktivitas`, pilih tanggal, lalu gunakan **Tambah aktivitas**.
 7. Prioritas berikutnya yang disarankan: sepakati aturan tanggal pelaporan,
-   implementasikan lifecycle/review tugas, lalu akumulasi panen dan penutupan siklus.
+   lalu akumulasi panen dan penutupan siklus. Lifecycle approval/review tidak
+   termasuk rencana.
 
 Jangan menjalankan dua suite yang melakukan reset pada database uji yang sama
 secara bersamaan. Untuk regresi penuh yang lebih lama dari batas waktu PHP CLI,
@@ -241,6 +243,7 @@ database uji terpisah melalui `TEST_DB_DATABASE` serta
 `FARMER_CRUD_TEST_DATABASE` dengan nama yang diizinkan `Tests\Support\TestDatabase`.
 
 File rujukan:
+
 - `docs/petugas-task-list-contract.md`
 - `docs/authorization-scaffolding.md`
 - `app/Services/Activity/DailyActivityHeaderService.php`

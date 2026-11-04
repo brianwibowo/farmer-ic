@@ -23,8 +23,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_required
  * @property string $status
  * @property CarbonImmutable|null $completed_at
+ * @property string|null $completed_by
+ * @property string|null $completion_note
  * @property string|null $skip_reason
- * @property string|null $cancel_reason
  * @property CarbonImmutable|null $rescheduled_date
  * @property string|null $reschedule_reason
  * @property string|null $rescheduled_by
@@ -36,12 +37,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'planting_cycle_id', 'planting_cycle_stage_id', 'sop_template_task_id',
     'activity_category', 'activity_subcategory', 'name', 'instructions',
     'offset_days', 'tolerance_days', 'scheduled_date', 'due_date',
-    'is_required', 'status', 'completed_at', 'skip_reason', 'cancel_reason',
-    'rescheduled_date', 'reschedule_reason', 'rescheduled_by', 'rescheduled_at',
+    'is_required', 'status', 'completed_at', 'completed_by', 'completion_note',
+    'skip_reason', 'rescheduled_date', 'reschedule_reason', 'rescheduled_by', 'rescheduled_at',
 ])]
 class PlantingCycleTask extends FarmerModel
 {
-    public const STATUSES = ['pending', 'in_progress', 'submitted', 'completed', 'skipped', 'cancelled'];
+    public const STATUSES = ['pending', 'in_progress', 'completed', 'skipped'];
 
     public const CATEGORIES = ['maintenance', 'harvest'];
 
@@ -88,6 +89,12 @@ class PlantingCycleTask extends FarmerModel
     public function activities(): HasMany
     {
         return $this->hasMany(FarmActivity::class, 'planting_cycle_task_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function completedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
     }
 
     /** @return BelongsTo<User, $this> */

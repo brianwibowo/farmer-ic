@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\CancelTaskRequest;
 use App\Http\Requests\Admin\ListTasksRequest;
 use App\Http\Requests\Admin\RescheduleTaskRequest;
 use App\Http\Requests\Admin\SkipTaskRequest;
@@ -23,7 +22,7 @@ use Inertia\Response;
 
 class TaskManagementController extends Controller
 {
-    private const TERMINAL_STATUSES = ['completed', 'skipped', 'cancelled'];
+    private const TERMINAL_STATUSES = ['completed', 'skipped'];
 
     public function __construct(private readonly PlantingCycleTaskManagementService $tasks) {}
 
@@ -95,15 +94,6 @@ class TaskManagementController extends Controller
         return back();
     }
 
-    public function cancel(CancelTaskRequest $request, PlantingCycleTask $task): RedirectResponse
-    {
-        Gate::authorize('update', $task);
-        $this->tasks->cancel($task, $request->user(), $request->validated('reason'));
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Tugas dibatalkan.']);
-
-        return back();
-    }
-
     public function reschedule(RescheduleTaskRequest $request, PlantingCycleTask $task): RedirectResponse
     {
         Gate::authorize('update', $task);
@@ -169,7 +159,7 @@ class TaskManagementController extends Controller
 
         return [
             'total' => (clone $query)->count(),
-            'open' => (clone $query)->whereIn('status', ['pending', 'in_progress', 'submitted'])->count(),
+            'open' => (clone $query)->whereIn('status', ['pending', 'in_progress'])->count(),
             'overdue' => (clone $query)->whereNotIn('status', self::TERMINAL_STATUSES)
                 ->whereNotNull('due_date')->where('due_date', '<', $today)->count(),
             'today' => (clone $query)->whereNotIn('status', self::TERMINAL_STATUSES)
@@ -203,9 +193,10 @@ class TaskManagementController extends Controller
             'reschedule_reason' => $task->reschedule_reason,
             'rescheduled_at' => $task->rescheduled_at?->toISOString(),
             'skip_reason' => $task->skip_reason,
-            'cancel_reason' => $task->cancel_reason,
             'is_required' => $task->is_required,
             'completed_at' => $task->completed_at?->toISOString(),
+            'completed_by' => $task->getAttribute('completed_by'),
+            'completion_note' => $task->getAttribute('completion_note'),
             'created_at' => $task->created_at?->toISOString(),
             'farm' => $cycle?->farm?->only(['id', 'name']),
             'block' => $block?->only(['id', 'code', 'name']),

@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Petugas\CompleteTaskRequest;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\PlantingCycleTask;
 use App\Services\PetugasTaskReadService;
+use App\Services\PlantingCycleTaskManagementService;
 use App\Support\TaskActivityFields;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -33,10 +36,15 @@ class PetugasTaskController extends Controller
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [PlantingCycleTask::class, $farm->team]);
         $data = $this->tasks->listing($request->user(), $farm, $status);
-        $data['tasks'] = array_map(fn ($task) => [...$task, 'can' => ['start' => false, 'submit' => false,
-            'record' => Gate::allows('recordTask', [FarmActivity::class, PlantingCycleTask::visibleTo($request->user(), $farm->team)->findOrFail($task['id'])])
-                && in_array($task['status'], ['pending', 'in_progress'], true) && $task['subblok']['planted_at'] !== null,
-        ]], $data['tasks']);
+        $data['tasks'] = array_map(function (array $task) use ($request, $farm): array {
+            $model = PlantingCycleTask::visibleTo($request->user(), $farm->team)->findOrFail($task['id']);
+            $open = in_array($task['status'], ['pending', 'in_progress'], true) && $task['subblok']['planted_at'] !== null;
+
+            return [...$task, 'can' => [
+                'record' => $open && Gate::allows('recordTask', [FarmActivity::class, $model]),
+                'complete' => $open && $task['linked_activities_count'] > 0 && Gate::allows('complete', $model),
+            ]];
+        }, $data['tasks']);
 
         return Inertia::render('petugas/Tasks', [
             ...$data, 'filters' => ['status' => $status], 'farm' => $farm->only(['id', 'name']),
@@ -49,12 +57,28 @@ class PetugasTaskController extends Controller
         Gate::authorize('view', $task);
         abort_unless($task->plantingCycle->farm_id === $request->user()->assigned_farm_id, 403);
 
+        $detail = $this->tasks->detail($request->user(), $task);
+        $open = in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null;
+        $detail['can']['record'] = $open && Gate::allows('recordTask', [FarmActivity::class, $task]);
+        $detail['can']['complete'] = $open && $detail['linked_activities_count'] > 0 && Gate::allows('complete', $task);
+
         return Inertia::render('petugas/TaskShow', [
-            'task' => $this->tasks->detail($request->user(), $task),
+            'task' => $detail,
             'reports' => $this->tasks->reports($request->user(), $task),
             'fields' => TaskActivityFields::forTask($task),
-            'canRecord' => Gate::allows('recordTask', [FarmActivity::class, $task])
-                && in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null,
+            'canRecord' => $detail['can']['record'],
         ]);
+    }
+
+    public function complete(CompleteTaskRequest $request, PlantingCycleTask $task, PlantingCycleTaskManagementService $tasks): RedirectResponse
+    {
+        Gate::authorize('view', $task);
+        abort_unless($task->plantingCycle->farm_id === $request->user()->assigned_farm_id, 403);
+        Gate::authorize('complete', $task);
+        $note = $request->validated('note');
+        $tasks->complete($task, $request->user(), is_string($note) ? $note : null);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Tugas ditandai selesai.']);
+
+        return to_route('petugas.tasks.show', $task);
     }
 }

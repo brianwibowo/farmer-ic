@@ -154,6 +154,9 @@ class TaskManagementTest extends TestCase
 
         $this->get('/admin/tasks?category=planting')
             ->assertSessionHasErrors('category');
+
+        $this->get('/admin/tasks?status=cancelled')
+            ->assertSessionHasErrors('status');
     }
 
     public function test_admin_can_open_task_detail(): void
@@ -170,20 +173,17 @@ class TaskManagementTest extends TestCase
                 ->where('task.can.update', true));
     }
 
-    public function test_admin_can_skip_and_cancel_unfinished_tasks(): void
+    public function test_admin_can_mark_an_unfinished_task_as_not_done(): void
     {
         $skip = $this->task();
-        $cancel = $this->task(['name' => 'Pengendalian hama']);
 
         $this->post('/admin/tasks/'.$skip->id.'/skip', ['reason' => 'Lahan tergenang setelah hujan.'])
-            ->assertRedirect();
-        $this->post('/admin/tasks/'.$cancel->id.'/cancel', ['reason' => 'Subblok dibatalkan.'])
             ->assertRedirect();
 
         $this->assertSame('skipped', $skip->refresh()->status);
         $this->assertSame('Lahan tergenang setelah hujan.', $skip->skip_reason);
-        $this->assertSame('cancelled', $cancel->refresh()->status);
-        $this->assertSame('Subblok dibatalkan.', $cancel->cancel_reason);
+        $this->assertNull($skip->completed_at);
+        $this->assertNull($skip->completed_by);
     }
 
     public function test_admin_can_reschedule_an_unfinished_task_without_changing_the_sop_date(): void

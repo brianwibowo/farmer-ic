@@ -113,7 +113,7 @@ function reset(): void {
                     { label: 'Terbuka', value: summary.open, tone: 'text-primary' },
                     { label: 'Terlambat', value: summary.overdue, tone: 'text-error' },
                     { label: 'Hari ini', value: summary.today, tone: 'text-warning' },
-                    { label: 'Selesai / ditutup', value: summary.completed, tone: 'text-success' },
+                    { label: 'Selesai / tidak dikerjakan', value: summary.completed, tone: 'text-success' },
                 ]"
                 :key="item.label"
                 class="rounded-xl border border-border bg-card p-4"

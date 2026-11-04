@@ -50,8 +50,9 @@ instead of silently merging or deleting them. The user separately authorized
 clearing old local demo reports before this implementation; the migration does
 not repeat that cleanup and does not reset any database.
 
-SOP scheduling-date restrictions, task completion/review, accumulated harvested
-area enforcement and closing cycles are unchanged and not part of this change.
+SOP scheduling-date restrictions, accumulated harvested area enforcement and
+closing cycles are unchanged. Task approval/review is not part of the plan;
+completion is a direct Petugas action.
 
 ## Initial planting and task generation
 
@@ -94,6 +95,7 @@ cannot contradict an already-bound SOP commodity. With no snapshot, a default
 SOP commodity mismatch defers generation until its configuration is corrected.
 
 Task generation now runs:
+
 - when a batch is created through the authenticated block action (`prepareBatch`);
 - when initial planting is saved;
 - when Siapkan tugas is requested for an existing assigned subblok;
@@ -103,8 +105,8 @@ Both dates remain nullable. No tasks or version binding are created without
 either `planted_at` or `planned_planting_at`. For new snapshots the default SOP
 must be active, in the same tenant, and have a published version. Existing
 snapshots retain their bound published/retired version even if the default
-changes. Only pending tasks are rescheduled; work already started/submitted or
-closed is left untouched. A missing stage is detected before any task is inserted.
+changes. Only pending tasks are rescheduled; work already started, completed,
+or skipped is left untouched. A missing stage is detected before any task is inserted.
 
 `PlantingCycleTaskPolicy::synchronize` delegates to the cycle update and task
 listing permissions; it does not grant arbitrary task CRUD. The initial batch
@@ -128,8 +130,10 @@ subblok-based workflow above. Preparation work and incidental activities outside
 a generated task are not submitted through this task-report form.
 
 Recording is available only for pending/in-progress tasks with an actual
-planting date. Multiple reports per task are allowed. Saving does not start,
-submit, complete or approve the task. Task submission/review is still pending.
+planting date. Multiple reports per task are allowed. The first report moves a
+pending task to `in_progress`; it does not complete it. The Petugas explicitly
+presses **Selesaikan tugas** after at least one report exists. There is no
+submission, review, or approval step.
 
 Each report reuses or creates its shared daily log and persists one farm activity, typed details where
 available, validated supplementary `task_details`, and 1–5 private photos.
@@ -203,13 +207,7 @@ type PetugasTask = {
     id: string;
     name: string;
     instructions: string | null;
-    status:
-        | 'pending'
-        | 'in_progress'
-        | 'submitted'
-        | 'completed'
-        | 'skipped'
-        | 'cancelled';
+    status: 'pending' | 'in_progress' | 'completed' | 'skipped';
     urgency: 'overdue' | 'today' | 'upcoming' | 'completed';
     activity_category: 'maintenance' | 'harvest';
     activity_subcategory:
@@ -224,15 +222,12 @@ type PetugasTask = {
     due_date: string | null;
     is_required: boolean;
     linked_activities_count: number;
-    latest_submission: {
-        status: 'submitted' | 'approved' | 'rejected';
-        submitted_at: string | null;
-        review_note: string | null;
-    } | null;
+    completed_at: string | null;
+    completed_by: string | null;
+    completion_note: string | null;
     can: {
-        start: boolean;
-        submit: boolean;
         record: boolean;
+        complete: boolean;
     };
     subblok: {
         id: string;
@@ -283,32 +278,30 @@ The page currently supports:
 - scheduled date
 - linked activity count
 - required indicator
-- submission status
+- completion state
 - empty state
 
 Not implemented yet:
 
-- “Mulai” action
-- “Ajukan selesai” action
-- approval/rejection feedback
 - pagination
 
-Do not add working action buttons until the backend endpoints exist. Disabled
-buttons are fine only if they have an explanatory label.
+The **Selesaikan tugas** action is available only when the task is pending or
+in progress, has an actual planting date, and has at least one linked activity
+report. Completed tasks reject new reports.
 
 ## Backend replacement plan
 
 1. ~~Add stage alignment and `planting_cycle_tasks`.~~ Done.
 2. ~~Generate tasks for a subblok from the farm default SOP.~~ Done.
 3. ~~Replace `fixtureTasks()` with a scoped `PlantingCycleTask` query.~~ Done.
-4. Add `PetugasTaskController@show`.
-5. Add start/submit endpoints and policies.
-6. Add linked activities and submission props.
-7. Remove the fixture banner and `isFixture` prop from the friend-owned UI.
+4. ~~Add `PetugasTaskController@show`.~~ Done.
+5. ~~Add direct completion endpoint and policy.~~ Done.
+6. ~~Add linked activities and completion props.~~ Done.
+7. ~~Remove the fixture banner and `isFixture` prop from the friend-owned UI.~~ Done.
 8. Add pagination once the task volume requires it.
 
-Steps 3, 4, 6 (linked reports only), and 7 are now complete. Start/submit
-endpoints, submission/review records and pagination remain unimplemented.
+Direct completion is implemented. Pagination remains unimplemented. There are
+no start/submit/review records because approval is no longer in scope.
 
 ## Verification
 

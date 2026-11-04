@@ -6,7 +6,6 @@ import {
     LoaderCircle,
     RotateCcw,
     SkipForward,
-    XCircle,
 } from '@lucide/vue';
 import { ref } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
@@ -34,11 +33,9 @@ import {
 const props = defineProps<{ task: AdminTask }>();
 
 const skipOpen = ref(false);
-const cancelOpen = ref(false);
 const rescheduleOpen = ref(false);
 
 const skipForm = useForm({ reason: '' });
-const cancelForm = useForm({ reason: '' });
 const rescheduleForm = useForm({
     rescheduled_date: '',
     reschedule_reason: '',
@@ -52,12 +49,6 @@ function openSkip(): void {
     skipForm.reset();
     skipForm.clearErrors();
     skipOpen.value = true;
-}
-
-function openCancel(): void {
-    cancelForm.reset();
-    cancelForm.clearErrors();
-    cancelOpen.value = true;
 }
 
 function openReschedule(): void {
@@ -74,16 +65,6 @@ function submitSkip(): void {
         onSuccess: () => {
             skipOpen.value = false;
             skipForm.reset();
-        },
-    });
-}
-
-function submitCancel(): void {
-    cancelForm.post(`/admin/tasks/${props.task.id}/cancel`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            cancelOpen.value = false;
-            cancelForm.reset();
         },
     });
 }
@@ -124,10 +105,7 @@ function submitReschedule(): void {
                     <CalendarClock />Jadwalkan ulang
                 </Button>
                 <Button variant="outline" class="h-10 rounded-xl" @click="openSkip">
-                    <SkipForward />Lewati
-                </Button>
-                <Button variant="destructive-outline" class="h-10 rounded-xl" @click="openCancel">
-                    <XCircle />Batalkan
+                    <SkipForward />Tidak dikerjakan
                 </Button>
             </div>
         </header>
@@ -201,12 +179,12 @@ function submitReschedule(): void {
                 </dl>
 
                 <div v-if="task.skip_reason" class="mt-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
-                    <p class="text-xs font-semibold text-warning">Alasan dilewati</p>
+                    <p class="text-xs font-semibold text-warning">Alasan tidak dikerjakan</p>
                     <p class="mt-1 text-sm">{{ task.skip_reason }}</p>
                 </div>
-                <div v-if="task.cancel_reason" class="mt-6 rounded-xl border border-error/30 bg-error/10 p-4">
-                    <p class="text-xs font-semibold text-error">Alasan dibatalkan</p>
-                    <p class="mt-1 text-sm">{{ task.cancel_reason }}</p>
+                <div v-if="task.completion_note" class="mt-6 rounded-xl border border-success/30 bg-success/10 p-4">
+                    <p class="text-xs font-semibold text-success">Catatan penyelesaian</p>
+                    <p class="mt-1 text-sm">{{ task.completion_note }}</p>
                 </div>
                 <div v-if="task.reschedule_reason" class="mt-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
                     <p class="text-xs font-semibold text-warning">Alasan penjadwalan ulang</p>
@@ -220,8 +198,8 @@ function submitReschedule(): void {
             <section class="rounded-xl border border-border bg-card p-5">
                 <h2 class="admin-section-title">Tindakan</h2>
                 <p v-if="task.can.update" class="mt-2 text-sm leading-6 text-muted-foreground">
-                    Tugas masih terbuka. Gunakan tindakan di atas untuk menjadwalkan ulang,
-                    melewati, atau membatalkan tugas.
+                    Tugas masih terbuka. Gunakan tindakan di atas untuk menjadwalkan ulang
+                    atau menandai tugas tidak dikerjakan.
                 </p>
                 <p v-else class="mt-2 text-sm leading-6 text-muted-foreground">
                     Tugas ini tidak dapat diubah karena statusnya sudah
@@ -237,9 +215,9 @@ function submitReschedule(): void {
     <Dialog v-model:open="skipOpen">
         <DialogContent class="admin-dashboard-theme">
             <DialogHeader>
-                <DialogTitle>Lewati tugas?</DialogTitle>
+                <DialogTitle>Tandai tugas tidak dikerjakan?</DialogTitle>
                 <DialogDescription>
-                    Tugas akan ditandai dilewati dan tidak dihitung sebagai pekerjaan selesai.
+                    Tugas akan ditutup sebagai tidak dikerjakan. Alasan tetap tersimpan.
                 </DialogDescription>
             </DialogHeader>
             <form class="space-y-4" @submit.prevent="submitSkip">
@@ -261,41 +239,7 @@ function submitReschedule(): void {
                     <Button type="button" variant="outline" :disabled="skipForm.processing" @click="skipOpen = false">Batal</Button>
                     <Button type="submit" :disabled="skipForm.processing">
                         <LoaderCircle v-if="skipForm.processing" class="animate-spin" />
-                        <SkipForward v-else />Lewati tugas
-                    </Button>
-                </DialogFooter>
-            </form>
-        </DialogContent>
-    </Dialog>
-
-    <Dialog v-model:open="cancelOpen">
-        <DialogContent class="admin-dashboard-theme">
-            <DialogHeader>
-                <DialogTitle>Batalkan tugas?</DialogTitle>
-                <DialogDescription>
-                    Tugas akan ditandai dibatalkan. Tindakan ini tidak menghapus histori.
-                </DialogDescription>
-            </DialogHeader>
-            <form class="space-y-4" @submit.prevent="submitCancel">
-                <FarmField id="cancel-reason" label="Alasan pembatalan" required :error="cancelForm.errors.reason" v-slot="field">
-                    <textarea
-                        :id="field.id"
-                        v-model="cancelForm.reason"
-                        class="admin-field resize-y"
-                        rows="4"
-                        maxlength="2000"
-                        required
-                        placeholder="Contoh: Subblok dibatalkan karena perubahan rencana tanam."
-                        :aria-invalid="field.invalid"
-                        :aria-describedby="field.description"
-                    />
-                </FarmField>
-                <p v-if="statusError(cancelForm.errors)" role="alert" class="text-sm text-error">{{ statusError(cancelForm.errors) }}</p>
-                <DialogFooter>
-                    <Button type="button" variant="outline" :disabled="cancelForm.processing" @click="cancelOpen = false">Batal</Button>
-                    <Button type="submit" variant="destructive" :disabled="cancelForm.processing">
-                        <LoaderCircle v-if="cancelForm.processing" class="animate-spin" />
-                        <XCircle v-else />Batalkan tugas
+                        <SkipForward v-else />Tidak dikerjakan
                     </Button>
                 </DialogFooter>
             </form>

@@ -31,7 +31,7 @@ class TaskActivityService
                 $actor = User::query()->whereKey($actor->id)->sharedLock()->firstOrFail();
                 $task = PlantingCycleTask::visibleTo($actor, $farm->team)->whereKey($task->id)->lockForUpdate()->firstOrFail();
                 if (! in_array($task->status, ['pending', 'in_progress'], true)) {
-                    throw ValidationException::withMessages(['task' => 'Tugas sedang direview atau sudah ditutup. Laporan baru tidak dapat ditambahkan.']);
+                    throw ValidationException::withMessages(['task' => 'Tugas sudah selesai atau ditutup. Laporan baru tidak dapat ditambahkan.']);
                 }
                 $cycle = PlantingCycle::visibleTo($actor, $farm->team)->whereKey($task->planting_cycle_id)
                     ->where('farm_id', $farm->id)->sharedLock()->firstOrFail();
@@ -74,6 +74,10 @@ class TaskActivityService
                     }
                     $paths[] = $path;
                     ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $path]);
+                }
+
+                if ($task->status === 'pending') {
+                    $task->forceFill(['status' => 'in_progress'])->save();
                 }
 
                 // Recording evidence does not approve or complete the task.

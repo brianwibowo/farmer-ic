@@ -54,6 +54,7 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::get('tasks/{task}', [PetugasTaskController::class, 'show'])->whereUuid('task')->name('tasks.show');
     Route::get('tasks/{task}/aktivitas/buat', [PetugasActivityController::class, 'create'])->whereUuid('task')->name('tasks.aktivitas.create');
     Route::post('tasks/{task}/aktivitas', [PetugasActivityController::class, 'store'])->whereUuid('task')->name('tasks.aktivitas.store');
+    Route::post('tasks/{task}/selesai', [PetugasTaskController::class, 'complete'])->whereUuid('task')->name('tasks.complete');
     Route::get('aktivitas/{activity}/foto/{photo}', [PetugasActivityController::class, 'photo'])->whereUuid(['activity', 'photo'])->name('aktivitas.photos');
     Route::get('aktivitas', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'index'])->name('aktivitas');
     Route::redirect('aktivitas/buat', '/petugas/tasks')->name('aktivitas.create');
@@ -121,7 +122,6 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::get('tasks', [TaskManagementController::class, 'index'])->name('tasks.index');
     Route::get('tasks/{task}', [TaskManagementController::class, 'show'])->whereUuid('task')->name('tasks.show');
     Route::post('tasks/{task}/skip', [TaskManagementController::class, 'skip'])->whereUuid('task')->name('tasks.skip');
-    Route::post('tasks/{task}/cancel', [TaskManagementController::class, 'cancel'])->whereUuid('task')->name('tasks.cancel');
     Route::post('tasks/{task}/reschedule', [TaskManagementController::class, 'reschedule'])->whereUuid('task')->name('tasks.reschedule');
 
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');

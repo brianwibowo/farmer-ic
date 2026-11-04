@@ -178,9 +178,8 @@ class PetugasTaskListTest extends TestCase
                 ->where('tasks.0.scheduled_date', $today->subDays(5)->toDateString())
                 ->where('tasks.0.due_date', $today->subDays(4)->toDateString())
                 ->where('tasks.0.linked_activities_count', 0)
-                ->where('tasks.0.latest_submission', null)
-                ->where('tasks.0.can.start', false)
-                ->where('tasks.0.can.submit', false)
+                ->where('tasks.0.can.complete', false)
+                ->where('tasks.0.can.record', false)
                 ->where('tasks.0.subblok.id', $this->subblok->id)
                 ->where('tasks.0.subblok.number', 1)
                 ->where('tasks.0.subblok.label', 'A')
@@ -219,8 +218,7 @@ class PetugasTaskListTest extends TestCase
                 ->has('tasks', 1)
                 ->where('tasks.0.scheduled_date', $today->toDateString())
                 ->where('tasks.0.urgency', 'today')
-                ->where('tasks.0.can.start', false)
-                ->where('tasks.0.can.submit', false));
+                ->where('tasks.0.can.complete', false));
     }
 
     public function test_petugas_without_an_assigned_farm_gets_an_empty_real_list(): void

@@ -47,9 +47,8 @@ Belum ada:
 - reuse header otomatis di frontend
 - endpoint create/append untuk kategori non-block_mapping dan detail table lengkap
 - upload foto
-- approval/paraf
+- approval/paraf aktivitas
 - tabel master blok (sub-blok menjadi label batch/cycle)
-- pengajuan dan approval task SOP
 - pemindahan `worker_count` dari header ke aktivitas
 - penghapusan `notes` harian dan field kendala/solusi/tindakan
 
@@ -157,8 +156,8 @@ Header tidak dipilih manual dari daftar. Sistem mencarinya otomatis.
 
 3. Jika pekerja menekan **Lanjutkan**, satu atau beberapa aktivitas baru otomatis masuk ke header tersebut.
 4. Jika ada aktivitas yang dilakukan di luar rentang waktu header, tampilkan pilihan:
-   - perpanjang waktu selesai header, atau
-   - buat sesi/header baru.
+    - perpanjang waktu selesai header, atau
+    - buat sesi/header baru.
 5. Jika tidak ada header hari ini, form membuat header baru.
 6. Jika pekerja lupa dan membuat header kedua di hari yang sama, jangan blokir. Backend mengizinkan lebih dari satu header per hari; nanti bisa dibuat alat merge atau export per sesi.
 7. Setelah submit, form tetap memakai header yang sama; yang direset hanya baris aktivitas, bukan header.
@@ -204,8 +203,11 @@ Jika Blok B dan sebagian Blok A ditanam dalam selisih 0–3 hari, keduanya masuk
 - SOP mencakup langkah **Perawatan dan Panen**; pembersihan lahan dan pengolahan tanah dikelola sebagai persiapan batch/blok. **Penanaman** dicatat sebagai aktivitas tanam dan menjadi acuan HST, bukan langkah SOP.
 - Saat SOP diterapkan ke subblok, sistem membuat task untuk setiap langkah SOP **Perawatan dan Panen** pada tanggal tanam + offset HST. Sebelum realisasi tanam, `planned_planting_at` menjadi acuan sementara.
 - Task terikat pada batch/sub-blok; cycle diperoleh dari batch.
-- Petugas menyelesaikan task dengan membuat activity log yang terhubung ke task.
-- Jika langkah tidak relevan, admin dapat menonaktifkan atau menandai task sebagai skip (future work).
+- Petugas mencatat activity log yang terhubung ke task. Laporan pertama
+  memindahkan task ke `in_progress`; Petugas menandai `completed` secara
+  eksplisit setelah minimal satu laporan. Tidak ada approval/review.
+- Jika langkah tidak relevan, admin dapat menonaktifkan atau menandai task
+  sebagai `skipped` dengan alasan.
 
 ## Dampak ke Field Management
 
@@ -287,14 +289,14 @@ Catatan implementasi:
 
 Field ini muncul untuk semua aktivitas. `Subkategori` hanya wajib jika kategori yang dipilih memang memiliki subkategori.
 
-| Field             | Type    | Unit  | Wajib       | Catatan                                                                                |
-| ----------------- | ------- | ----- | ----------- | -------------------------------------------------------------------------------------- |
-| Kategori          | select  |       | Ya          | Dari daftar kategori di bawah                                                          |
-| Subkategori       | select  |       | Kondisional | Wajib jika kategori punya subkategori; untuk kategori tanpa subkategori tidak ditampilkan |
+| Field             | Type    | Unit  | Wajib       | Catatan                                                                                                                  |
+| ----------------- | ------- | ----- | ----------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Kategori          | select  |       | Ya          | Dari daftar kategori di bawah                                                                                            |
+| Subkategori       | select  |       | Kondisional | Wajib jika kategori punya subkategori; untuk kategori tanpa subkategori tidak ditampilkan                                |
 | Blok / sub-blok   | select  |       | Kondisional | Wajib untuk aktivitas berbasis blok; opsional untuk Lainnya; master blok perlu tersedia dan sub-blok menjadi label batch |
-| Jumlah pekerja    | integer | orang | Ya          | Dapat berbeda antar aktivitas                                                          |
-| Foto aktivitas    | file    |       | Ya          | Minimal 1 foto; bisa lebih dari satu                                                   |
-| Catatan aktivitas | text    |       | Tidak       | Untuk detail yang tidak masuk field baku                                               |
+| Jumlah pekerja    | integer | orang | Ya          | Dapat berbeda antar aktivitas                                                                                            |
+| Foto aktivitas    | file    |       | Ya          | Minimal 1 foto; bisa lebih dari satu                                                                                     |
+| Catatan aktivitas | text    |       | Tidak       | Untuk detail yang tidak masuk field baku                                                                                 |
 
 Field `Jumlah pekerja`, `Foto`, dan `Catatan` tersedia untuk semua aktivitas lewat field umum. `Foto` wajib minimal satu.
 
@@ -323,11 +325,11 @@ Catatan:
 
 ## 2.1 Penggemburan
 
-| Field       | Type           | Unit    | Wajib       | Catatan                               |
-| ----------- | -------------- | ------- | ----------- | ------------------------------------- |
-| Luas area   | number (float) | m² / Ha | Ya          |                                       |
-| Metode      | select         |         | Ya          | Manual / cultivator / lainnya         |
-| Kedalaman   | number (float) | cm      | Ya          | Contoh: 10 cm                         |
+| Field     | Type           | Unit    | Wajib | Catatan                       |
+| --------- | -------------- | ------- | ----- | ----------------------------- |
+| Luas area | number (float) | m² / Ha | Ya    |                               |
+| Metode    | select         |         | Ya    | Manual / cultivator / lainnya |
+| Kedalaman | number (float) | cm      | Ya    | Contoh: 10 cm                 |
 
 ## 2.2 Pembuatan Bedengan
 
@@ -384,32 +386,32 @@ Catatan:
 
 ## 4.1 Pengairan
 
-| Field       | Type           | Unit       | Wajib       | Catatan                                     |
-| ----------- | -------------- | ---------- | ----------- | ------------------------------------------- |
-| Luas area   | number (float) | m² / Ha    | Ya          |                                             |
-| Sumber air  | select         |            | Ya          | Sumur bor / irigasi / embung / lainnya      |
-| Metode      | select         |            | Ya          | Irigasi parit / sprinkler / pompa / lainnya |
-| Mesin pompa | select / text  |            | Kondisional | Muncul jika memakai pompa                   |
-| Durasi      | number (float) | jam        | Ya          |                                             |
+| Field       | Type           | Unit    | Wajib       | Catatan                                     |
+| ----------- | -------------- | ------- | ----------- | ------------------------------------------- |
+| Luas area   | number (float) | m² / Ha | Ya          |                                             |
+| Sumber air  | select         |         | Ya          | Sumur bor / irigasi / embung / lainnya      |
+| Metode      | select         |         | Ya          | Irigasi parit / sprinkler / pompa / lainnya |
+| Mesin pompa | select / text  |         | Kondisional | Muncul jika memakai pompa                   |
+| Durasi      | number (float) | jam     | Ya          |                                             |
 
 ## 4.2 Pendangiran
 
-| Field       | Type           | Unit    | Wajib       | Catatan                            |
-| ----------- | -------------- | ------- | ----------- | ---------------------------------- |
-| Luas area   | number (float) | m² / Ha | Ya          |                                    |
-| Kedalaman   | number (float) | cm      | Tidak       |                                    |
-| Metode      | select         |         | Ya          | Manual / cangkul / mesin / lainnya |
+| Field     | Type           | Unit    | Wajib | Catatan                            |
+| --------- | -------------- | ------- | ----- | ---------------------------------- |
+| Luas area | number (float) | m² / Ha | Ya    |                                    |
+| Kedalaman | number (float) | cm      | Tidak |                                    |
+| Metode    | select         |         | Ya    | Manual / cangkul / mesin / lainnya |
 
 ## 4.3 Pemupukan Susulan
 
-| Field            | Type           | Unit             | Wajib       | Catatan                                      |
-| ---------------- | -------------- | ---------------- | ----------- | -------------------------------------------- |
-| Luas area        | number (float) | m² / Ha          | Ya          |                                              |
-| Jenis pupuk      | select         |                  | Ya          | Urea / NPK / KCl / lainnya                   |
-| Merek            | text           |                  | Tidak       |                                              |
-| Jumlah           | number (float) | kg / sak / liter | Ya          |                                              |
-| Ukuran sak       | number (float) | kg               | Kondisional | Muncul jika satuan = sak                     |
-| Metode           | select         |                  | Ya          | Tabur / benam / kocor / lainnya              |
+| Field       | Type           | Unit             | Wajib       | Catatan                         |
+| ----------- | -------------- | ---------------- | ----------- | ------------------------------- |
+| Luas area   | number (float) | m² / Ha          | Ya          |                                 |
+| Jenis pupuk | select         |                  | Ya          | Urea / NPK / KCl / lainnya      |
+| Merek       | text           |                  | Tidak       |                                 |
+| Jumlah      | number (float) | kg / sak / liter | Ya          |                                 |
+| Ukuran sak  | number (float) | kg               | Kondisional | Muncul jika satuan = sak        |
+| Metode      | select         |                  | Ya          | Tabur / benam / kocor / lainnya |
 
 ## 4.4 Pengecekan Pertumbuhan
 

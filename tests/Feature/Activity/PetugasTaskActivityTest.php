@@ -102,12 +102,46 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertSame($this->actor->id, $activity->performed_by);
         $this->assertDatabaseHas('daily_activity_logs', ['id' => $activity->daily_activity_log_id, 'worker_count' => 3]);
         $this->assertDatabaseHas('irrigation_details', ['activity_id' => $activity->id, 'water_source' => 'Sumur bor']);
-        $this->assertSame('pending', $this->task->refresh()->status);
+        $this->assertSame('in_progress', $this->task->refresh()->status);
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
         $photo = ActivityPhoto::firstOrFail();
         Storage::disk('local')->assertExists($photo->image_url);
         $this->get('/petugas/aktivitas/'.$activity->id.'/foto/'.$photo->id)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
         $this->get('/petugas/tasks/'.$this->task->id)->assertInertia(fn (Assert $page) => $page->has('reports', 1)->where('task.linked_activities_count', 1));
+    }
+
+    public function test_task_completion_requires_a_report_and_marks_the_task_completed(): void
+    {
+        $url = '/petugas/tasks/'.$this->task->id.'/selesai';
+        $this->actingAs($this->actor)->post($url, ['note' => 'Belum ada laporan.'])
+            ->assertSessionHasErrors('status');
+        $this->assertSame('pending', $this->task->refresh()->status);
+
+        $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertSessionHasNoErrors();
+        $this->post($url, ['note' => 'Pekerjaan selesai dan lahan sudah diperiksa.'])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/petugas/tasks/'.$this->task->id);
+
+        $task = $this->task->refresh();
+        $this->assertSame('completed', $task->status);
+        $this->assertNotNull($task->completed_at);
+        $this->assertSame($this->actor->id, $task->getAttribute('completed_by'));
+        $this->assertSame('Pekerjaan selesai dan lahan sudah diperiksa.', $task->getAttribute('completion_note'));
+
+        $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertForbidden();
+    }
+
+    public function test_completion_rejects_a_second_action_and_another_assigned_farm(): void
+    {
+        $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertSessionHasNoErrors();
+        $url = '/petugas/tasks/'.$this->task->id.'/selesai';
+        $this->post($url, ['note' => 'Selesai.'])->assertSessionHasNoErrors();
+        $this->post($url, ['note' => 'Ulangi.'])->assertSessionHasErrors('status');
+
+        $other = new Farm(['name' => 'Kebun lain', 'land_tenure' => 'owned', 'total_area_ha' => '3']);
+        $other->forceFill(['team_id' => $this->team->id, 'created_by' => $this->actor->id])->save();
+        $this->actor->forceFill(['assigned_farm_id' => $other->id])->save();
+        $this->post($url, ['note' => 'Tidak boleh.'])->assertForbidden();
     }
 
     public function test_two_officers_share_one_header_without_overwriting_daily_information(): void
@@ -255,10 +289,10 @@ class PetugasTaskActivityTest extends TestCase
     public function test_filters_have_unfiltered_scoped_counts_and_closed_tasks_cannot_receive_reports(): void
     {
         $this->task->update(['scheduled_date' => today()->subDays(3), 'due_date' => today()->subDay()]);
-        $this->newTask(['status' => 'cancelled']);
+        $this->newTask(['status' => 'skipped', 'skip_reason' => 'Tidak relevan.']);
         $this->actingAs($this->actor)->get('/petugas/tasks?status=completed')->assertInertia(fn (Assert $page) => $page
             ->has('tasks', 1)->where('summary.overdue', 1)->where('summary.completed', 1));
-        $this->task->update(['status' => 'submitted']);
+        $this->task->update(['status' => 'completed', 'completed_at' => now()]);
         $this->get('/petugas/tasks/'.$this->task->id.'/aktivitas/buat')->assertForbidden();
         $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertForbidden();
     }

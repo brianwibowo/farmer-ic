@@ -38,8 +38,8 @@ const sections: {
     },
     {
         key: 'completed',
-        label: 'Selesai / ditutup',
-        description: 'Pekerjaan selesai, dilewati, atau dibatalkan.',
+        label: 'Selesai / tidak dikerjakan',
+        description: 'Pekerjaan selesai atau ditandai tidak dikerjakan.',
     },
 ];
 
@@ -83,10 +83,8 @@ function statusLabel(status: PetugasTask['status']): string {
     return {
         pending: 'Belum dimulai',
         in_progress: 'Sedang dikerjakan',
-        submitted: 'Menunggu review',
         completed: 'Selesai',
-        skipped: 'Dilewati',
-        cancelled: 'Dibatalkan',
+        skipped: 'Tidak dikerjakan',
     }[status];
 }
 
@@ -94,10 +92,8 @@ function statusClass(status: PetugasTask['status']): string {
     return {
         pending: 'bg-muted text-muted-foreground',
         in_progress: 'bg-warning/10 text-warning',
-        submitted: 'bg-info/10 text-info',
         completed: 'bg-success/10 text-success',
         skipped: 'bg-muted text-muted-foreground',
-        cancelled: 'bg-error/10 text-error',
     }[status];
 }
 </script>
@@ -283,27 +279,10 @@ function statusClass(status: PetugasTask['status']): string {
                 </div>
 
                 <div
-                    class="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 text-xs"
+                    class="mt-3 border-t border-border pt-3 text-xs text-muted-foreground"
                 >
-                    <span class="text-muted-foreground">
-                        {{ categoryLabel(task) }} ·
-                        {{ subcategoryLabel(task) }} ·
-                        {{ task.linked_activities_count }} aktivitas terkait
-                    </span>
-                    <span
-                        v-if="task.latest_submission?.status === 'rejected'"
-                        class="font-medium text-error"
-                    >
-                        Perlu diperbaiki
-                    </span>
-                    <span
-                        v-else-if="
-                            task.latest_submission?.status === 'submitted'
-                        "
-                        class="font-medium text-info"
-                    >
-                        Menunggu approval
-                    </span>
+                    {{ categoryLabel(task) }} · {{ subcategoryLabel(task) }} ·
+                    {{ task.linked_activities_count }} aktivitas terkait
                 </div>
                 <div class="mt-4 flex flex-wrap gap-2">
                     <Link
