@@ -98,13 +98,11 @@ class FarmerIcMigrationsTest extends TestCase
         $this->artisan('migrate', $options)->assertSuccessful();
         try {
             $this->seedFixtures();
-            $this->assertTypedDetailBackfill($options);
+            $this->assertTypedDetailBackfill();
         } finally {
             while ($this->database->transactionLevel() > 0) {
                 $this->database->rollBack();
             }
-            // 000019 was re-applied in a later batch by the backfill test.
-            $this->artisan('migrate:rollback', $options)->assertSuccessful();
             $this->artisan('migrate:rollback', $options)->assertSuccessful();
         }
         $this->assertSame(['migrations'], $this->tableNames());
@@ -712,70 +710,85 @@ SQL, [$table]), 'columns');
         $this->assertFalse($this->database->table('ai_attachments')->where('id', $attachment)->exists());
     }
 
-    /** @param array<string, mixed> $options */
-    private function assertTypedDetailBackfill(array $options): void
+    private function assertTypedDetailBackfill(): void
     {
-        $this->artisan('migrate:rollback', [...$options, '--step' => 1])->assertSuccessful();
+        $migration = require database_path('migrations/2026_11_03_000019_add_typed_detail_tables.php');
+        $stageId = $taskId = $weedingId = $baseId = $otherId = null;
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('farmer_ic_test');
 
-        $stageId = $this->insert('planting_cycle_stages', [
-            'planting_cycle_id' => $this->ids['planting_cycles'],
-            'code' => 'maintenance',
-            'position' => 5,
-            'status' => 'in_progress',
-            'started_at' => now(),
-        ]);
-        $taskId = $this->insert('planting_cycle_tasks', [
-            'planting_cycle_id' => $this->ids['planting_cycles'],
-            'planting_cycle_stage_id' => $stageId,
-            'activity_category' => 'maintenance',
-            'activity_subcategory' => 'weeding',
-            'name' => 'Pendangiran lama',
-        ]);
+        try {
+            $migration->down();
+            $this->assertNull($this->database->table('activity_types')->where('code', 'weeding')->value('detail_key'));
 
-        $weedingId = $this->insert('farm_activities', [
-            'activity_type_id' => $this->types['weeding'],
-            'planting_cycle_id' => $this->ids['planting_cycles'],
-            'planting_cycle_task_id' => $taskId,
-            'task_details' => json_encode(['area_ha' => '1.25', 'method' => 'Cangkul', 'depth_cm' => '5.5'], JSON_THROW_ON_ERROR),
-        ]);
-        $baseId = $this->insert('farm_activities', [
-            'activity_type_id' => $this->types['base_fertilization'],
-            'planting_cycle_id' => $this->ids['planting_cycles'],
-            'task_details' => json_encode([
-                'area_ha' => '2', 'fertilizer' => 'NPK', 'quantity_kg' => '50',
-                'quantity_unit' => 'kg', 'sack_size_kg' => '25', 'method' => 'Tabur',
-            ], JSON_THROW_ON_ERROR),
-        ]);
-        $otherId = $this->insert('farm_activities', [
-            'activity_type_id' => $this->types['other'],
-            'planting_cycle_id' => $this->ids['planting_cycles'],
-            'description' => 'Pembersihan saluran air',
-            'task_details' => json_encode(['area_ha' => '0.25'], JSON_THROW_ON_ERROR),
-        ]);
+            $stageId = $this->insert('planting_cycle_stages', [
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'code' => 'maintenance',
+                'position' => 5,
+                'status' => 'in_progress',
+                'started_at' => now(),
+            ]);
+            $taskId = $this->insert('planting_cycle_tasks', [
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'planting_cycle_stage_id' => $stageId,
+                'activity_category' => 'maintenance',
+                'activity_subcategory' => 'weeding',
+                'name' => 'Pendangiran lama',
+            ]);
 
-        $this->artisan('migrate', $options)->assertSuccessful();
+            $weedingId = $this->insert('farm_activities', [
+                'activity_type_id' => $this->types['weeding'],
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'planting_cycle_task_id' => $taskId,
+                'task_details' => json_encode(['area_ha' => '1.25', 'method' => 'Cangkul', 'depth_cm' => '5.5'], JSON_THROW_ON_ERROR),
+            ]);
+            $baseId = $this->insert('farm_activities', [
+                'activity_type_id' => $this->types['base_fertilization'],
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'task_details' => json_encode([
+                    'area_ha' => '2', 'fertilizer' => 'NPK', 'quantity_kg' => '50',
+                    'quantity_unit' => 'kg', 'sack_size_kg' => '25', 'method' => 'Tabur',
+                ], JSON_THROW_ON_ERROR),
+            ]);
+            $otherId = $this->insert('farm_activities', [
+                'activity_type_id' => $this->types['other'],
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'description' => 'Pembersihan saluran air',
+                'task_details' => json_encode(['area_ha' => '0.25'], JSON_THROW_ON_ERROR),
+            ]);
 
-        $weeding = $this->database->table('weeding_details')->where('activity_id', $weedingId)->first();
-        $this->assertNotNull($weeding);
-        $this->assertSame('1.2500', $weeding->area_ha);
-        $this->assertSame('Cangkul', $weeding->method);
-        $this->assertSame('5.50', $weeding->depth_cm);
+            $migration->up();
 
-        $base = $this->database->table('fertilization_details')->where('activity_id', $baseId)->first();
-        $this->assertNotNull($base);
-        $this->assertSame('dasar', $base->fertilization_stage);
-        $this->assertSame('2.0000', $base->area_ha);
-        $this->assertSame('50.000', $base->quantity_kg);
-        $this->assertSame('kg', $base->quantity_unit);
-        $this->assertSame('25.000', $base->sack_size_kg);
+            $weeding = $this->database->table('weeding_details')->where('activity_id', $weedingId)->first();
+            $this->assertNotNull($weeding);
+            $this->assertSame('1.2500', $weeding->area_ha);
+            $this->assertSame('Cangkul', $weeding->method);
+            $this->assertSame('5.50', $weeding->depth_cm);
 
-        $other = $this->database->table('other_details')->where('activity_id', $otherId)->first();
-        $this->assertNotNull($other);
-        $this->assertSame('Pembersihan saluran air', $other->description);
-        $this->assertSame('0.2500', $other->area_ha);
+            $base = $this->database->table('fertilization_details')->where('activity_id', $baseId)->first();
+            $this->assertNotNull($base);
+            $this->assertSame('dasar', $base->fertilization_stage);
+            $this->assertSame('2.0000', $base->area_ha);
+            $this->assertSame('50.000', $base->quantity_kg);
+            $this->assertSame('kg', $base->quantity_unit);
+            $this->assertSame('25.000', $base->sack_size_kg);
 
-        $this->database->table('farm_activities')->whereIn('id', [$weedingId, $baseId, $otherId])->delete();
-        $this->database->table('planting_cycle_tasks')->where('id', $taskId)->delete();
-        $this->database->table('planting_cycle_stages')->where('id', $stageId)->delete();
+            $other = $this->database->table('other_details')->where('activity_id', $otherId)->first();
+            $this->assertNotNull($other);
+            $this->assertSame('Pembersihan saluran air', $other->description);
+            $this->assertSame('0.2500', $other->area_ha);
+        } finally {
+            $activityIds = array_values(array_filter([$weedingId, $baseId, $otherId]));
+            if ($activityIds !== []) {
+                $this->database->table('farm_activities')->whereIn('id', $activityIds)->delete();
+            }
+            if ($taskId !== null) {
+                $this->database->table('planting_cycle_tasks')->where('id', $taskId)->delete();
+            }
+            if ($stageId !== null) {
+                $this->database->table('planting_cycle_stages')->where('id', $stageId)->delete();
+            }
+            DB::setDefaultConnection($original);
+        }
     }
 }

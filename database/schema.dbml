@@ -139,6 +139,8 @@ Table planting_cycles {
   created_by uuid [ref: > users.id]
   planned_planting_at date [note: 'Rencana tanggal tanam; acuan HST untuk jadwal tugas sebelum realisasi tanam']
   sop_template_version_id uuid [ref: > sop_template_versions.id, note: 'Snapshot versi SOP yang dipakai subblok ini']
+  planting_started_on date [note: 'Tanggal tanam pertama pada window tiga hari; acuan audit rekonsiliasi']
+  planting_window_checked_at timestamptz [note: 'Waktu command rekonsiliasi menutup window penanaman']
   indexes {
     (farm_id, batch_number) [unique]
     (planting_round_id, subblock_label) [unique]
@@ -330,7 +332,7 @@ Table daily_activity_logs {
   recorded_by uuid [not null, ref: > users.id, note: 'Pembuat pertama header bersama; pelaksana tiap aktivitas ada di farm_activities.performed_by']
   work_date date [not null]
   start_time time [not null]
-  end_time time [not null]
+  end_time time
   notes text
   created_at timestamptz [not null]
   updated_at timestamptz
@@ -339,7 +341,7 @@ Table daily_activity_logs {
     (id, farm_id) [unique]
     (farm_id, work_date) [unique]
   }
-  Note: 'Satu header bersama per kebun per tanggal. Jam kerja berlaku untuk sesi harian; jumlah pekerja disimpan per aktivitas dan menambah aktivitas tidak menimpa header.'
+  Note: 'Satu header bersama per kebun per tanggal. Jam mulai wajib; jam selesai boleh menyusul. Jumlah pekerja disimpan per aktivitas dan menambah aktivitas tidak menimpa header.'
 }
 
 Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id, farm_id)

@@ -25,7 +25,7 @@ class PetugasActivityController extends Controller
         $this->authorizeRecord($request, $task);
 
         return Inertia::render('petugas/ActivityCreate', [
-            'task' => $tasks->detail($request->user(), $task), 'fields' => TaskActivityFields::forTask($task),
+            'task' => $tasks->detail($request->user(), $task), 'fields' => \App\Support\VoluntaryActivityFields::forCode(TaskActivityFields::activityCode($task) ?? ''),
             'today' => now('Asia/Jakarta')->toDateString(),
             'workDate' => $request->validate(['work_date' => ['sometimes', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()]])['work_date'] ?? now('Asia/Jakarta')->toDateString(),
         ]);

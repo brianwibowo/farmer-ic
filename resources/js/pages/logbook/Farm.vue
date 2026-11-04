@@ -303,7 +303,7 @@ function reset(): void {
                                 <td
                                     class="px-5 py-4 text-xs whitespace-nowrap text-muted-foreground"
                                 >
-                                    {{ log.start_time }}–{{ log.end_time }}
+                                    {{ log.start_time }}-{{ log.end_time ?? 'Belum diisi' }}
                                 </td>
                                 <td
                                     class="px-5 py-4 font-semibold tabular-nums"
@@ -360,7 +360,7 @@ function reset(): void {
                             {{
                                 log.recorder_name ?? 'Pelapor tidak tersedia'
                             }}
-                            · {{ log.start_time }}–{{ log.end_time }} WIB
+                            · {{ log.start_time }}-{{ log.end_time ?? 'Belum diisi' }} WIB
                         </p>
                         <div class="flex flex-wrap gap-3 text-xs">
                             <span

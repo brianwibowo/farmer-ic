@@ -63,6 +63,76 @@ class PetugasPlantingActivityTest extends TestCase
         ActivityType::firstOrCreate(['code' => 'planting'], ['name' => 'Penanaman']);
     }
 
+    public function test_staged_planting_uses_second_distinct_work_day_and_reconciles_late_reports(): void
+    {
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-04 17:00', 'Asia/Jakarta'));
+        $this->sop();
+        $this->actingAs($this->actor);
+        foreach (['2026-10-26', '2026-10-28'] as $date) {
+            $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.4', 'work_date' => $date, 'end_time' => null])->assertSessionHasNoErrors();
+        }
+        $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
+        $this->assertSame('2026-10-28', $this->cycle->refresh()->planted_at->toDateString());
+        $this->assertSame('2026-11-04', $task->scheduled_date->toDateString());
+        $this->artisan('planting:reconcile-windows')->assertSuccessful();
+        $this->assertNotNull($this->cycle->refresh()->getAttribute('planting_window_checked_at'));
+        $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.4', 'work_date' => '2026-10-27'])->assertSessionHasNoErrors();
+        $this->assertSame('2026-10-27', $this->cycle->refresh()->planted_at->toDateString());
+        $this->assertSame('2026-10-26', $this->cycle->getAttribute('planting_started_on'));
+        $this->assertSame('1.2000', $this->cycle->planted_area_ha);
+        $this->assertSame('2026-11-03', $task->refresh()->scheduled_date->toDateString());
+        $this->assertDatabaseCount('planting_cycle_tasks', 2);
+        $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.1', 'work_date' => '2026-10-29'])->assertSessionHasErrors('work_date');
+        $this->assertDatabaseCount('farm_activities', 3);
+        $this->artisan('planting:reconcile-windows')->assertSuccessful();
+        $this->artisan('planting:reconcile-windows')->assertSuccessful();
+        $this->assertDatabaseCount('planting_cycle_tasks', 2);
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
+    public function test_repeated_same_day_planting_does_not_advance_hst_and_later_day_preserves_overrides(): void
+    {
+        $this->sop();
+        $this->actingAs($this->actor);
+        $date = now('Asia/Jakarta')->subDays(2)->toDateString();
+        for ($i = 0; $i < 2; $i++) {
+            $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.3'])->assertSessionHasNoErrors();
+        }
+        $this->assertSame($date, $this->cycle->refresh()->planted_at->toDateString());
+        $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
+        $override = now('Asia/Jakarta')->addDays(10)->toDateString();
+        $task->update(['rescheduled_date' => $override, 'reschedule_reason' => 'Ketersediaan air', 'rescheduled_by' => $this->admin->id, 'rescheduled_at' => now()]);
+        $closed = $this->cycle->tasks()->where('activity_category', 'harvest')->firstOrFail();
+        $old = $closed->scheduled_date->toDateString();
+        $closed->update(['status' => 'completed', 'completed_at' => now()]);
+        $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.3', 'work_date' => now('Asia/Jakarta')->subDay()->toDateString()])->assertSessionHasNoErrors();
+        $this->assertSame($override, $task->refresh()->effectiveScheduledDate()->toDateString());
+        $this->assertSame($old, $closed->refresh()->scheduled_date->toDateString());
+        $this->assertSame(now('Asia/Jakarta')->subDay()->toDateString(), $this->cycle->refresh()->planted_at->toDateString());
+    }
+
+    public function test_taxonomy_planting_converts_units_and_accepts_an_earlier_late_report(): void
+    {
+        $this->sop();
+        $this->actingAs($this->actor);
+        $data = $this->payload();
+        unset($data['area_ha'], $data['quantity_kg']);
+        $data = [...$data, 'schema' => 'taxonomy', 'area' => 1000, 'area_unit' => 'm²',
+            'quantity' => 2, 'quantity_unit' => 'sak', 'bag_size' => 5, 'depth_cm' => 3, 'end_time' => null];
+        $this->post($this->url(), $data)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('planting_details', ['area_ha' => '0.1000', 'quantity_kg' => '10.000']);
+        $date = \Carbon\CarbonImmutable::parse($data['work_date'])->subDay()->toDateString();
+        $this->post($this->url(), [...$data, 'work_date' => $date, 'quantity_unit' => 'butir', 'quantity' => 200])->assertSessionHasNoErrors();
+        $this->assertSame($data['work_date'], $this->cycle->refresh()->planted_at->toDateString());
+        $this->assertSame($date, $this->cycle->getAttribute('planting_started_on'));
+        $this->assertSame('0.2000', $this->cycle->planted_area_ha);
+        $this->assertDatabaseHas('planting_details', ['quantity_kg' => null]);
+        $this->post($this->url(), [...$data, 'quantity_unit' => 'butir', 'quantity' => 1.5])->assertSessionHasErrors('quantity');
+        $this->post($this->url(), [...$data, 'quantity_unit' => 'sak', 'bag_size' => null])->assertSessionHasErrors('bag_size');
+        $this->assertDatabaseCount('farm_activities', 2);
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
     private function sop(): SopTemplate
     {
         $service = app(SopTemplateService::class);
@@ -112,7 +182,7 @@ class PetugasPlantingActivityTest extends TestCase
         $photo = ActivityPhoto::firstOrFail();
         Storage::disk('local')->assertExists($photo->image_url);
         $this->get('/petugas/aktivitas/'.$activity->id.'/foto/'.$photo->id)->assertOk();
-        $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('canRecord', false)->has('reports', 1));
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('canRecord', true)->has('reports', 1));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
@@ -146,7 +216,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame(1, FarmActivity::distinct()->count('daily_activity_log_id'));
         $this->assertDatabaseCount('planting_details', 1);
         $this->assertDatabaseCount('irrigation_details', 1);
-        $this->get('/petugas/aktivitas?work_date='.$data['work_date'])->assertInertia(fn (Assert $page) => $page->has('log.activities', 2)->where('log.activities.0.worker_count', 4)->where('log.activities.1.worker_count', 4));
+        $this->get('/petugas/laporan/harian?work_date='.$data['work_date'])->assertInertia(fn (Assert $page) => $page->has('log.activities', 2)->where('log.activities.0.worker_count', 4)->where('log.activities.1.worker_count', 4));
     }
 
     public function test_actual_date_reschedules_only_pending_tasks_without_changing_the_snapshot(): void
@@ -210,7 +280,7 @@ class PetugasPlantingActivityTest extends TestCase
         $date = $this->cycle->refresh()->planted_at->toDateString();
         $data = $this->payload();
         $data['work_date'] = now('Asia/Jakarta')->toDateString();
-        $this->post($this->url(), $data)->assertSessionHasErrors('cycle');
+        $this->post($this->url(), $data)->assertSessionHasErrors('area_ha');
         $this->assertDatabaseCount('farm_activities', 1);
         $this->assertSame($date, $this->cycle->refresh()->planted_at->toDateString());
     }

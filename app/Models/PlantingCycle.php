@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $planned_planting_at
  * @property CarbonImmutable|null $planted_at
  * @property string|null $sop_template_version_id
+ * @property string|null $planting_started_on
+ * @property string|null $planting_window_checked_at
  * @property CarbonImmutable|null $estimated_harvest_at
  * @property string $planted_area_ha
  * @property string|null $estimated_weight_ton

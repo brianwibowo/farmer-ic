@@ -26,7 +26,7 @@ export type LogbookRow = {
     id: string;
     work_date: string;
     start_time: string;
-    end_time: string;
+    end_time: string | null;
     notes: string | null;
     recorder_name: string | null;
     activities_count: number;

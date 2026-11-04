@@ -55,7 +55,7 @@ type DailyLog = {
     farm_id: string;
     work_date: string;
     start_time: string;
-    end_time: string;
+    end_time: string | null;
     timezone: string;
     recorded_by: string;
     recorder_name: string | null;
@@ -748,7 +748,7 @@ function detailUrl(log: DailyLog): string {
                                     {{ log.work_date }}
                                 </p>
                                 <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ log.start_time }}-{{ log.end_time }} WIB
+                                    {{ log.start_time }}-{{ log.end_time ?? 'Belum diisi' }} WIB
                                 </p>
                             </div>
                             <Link

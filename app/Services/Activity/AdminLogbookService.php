@@ -60,7 +60,7 @@ class AdminLogbookService
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, array{id: string, notes: string|null, work_date: string, start_time: string, end_time: string, recorder_name: string|null, activities_count: int, obstacle_count: int}>
+     * @return LengthAwarePaginator<int, array{id: string, notes: string|null, work_date: string, start_time: string, end_time: string|null, recorder_name: string|null, activities_count: int, obstacle_count: int}>
      */
     public function paginate(Farm $farm, User $actor, Team $team, array $filters): LengthAwarePaginator
     {
@@ -85,7 +85,7 @@ class AdminLogbookService
                 ...$log->only(['id', 'notes']),
                 'work_date' => $log->work_date->format('Y-m-d'),
                 'start_time' => substr($log->start_time, 0, 5),
-                'end_time' => substr($log->end_time, 0, 5),
+                'end_time' => $log->end_time === null ? null : substr($log->end_time, 0, 5),
                 'recorder_name' => $log->recorder?->name,
                 'activities_count' => (int) $log->getAttribute('activities_count'),
                 'obstacle_count' => (int) $log->getAttribute('obstacle_count'),

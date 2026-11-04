@@ -56,9 +56,13 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::post('tasks/{task}/aktivitas', [PetugasActivityController::class, 'store'])->whereUuid('task')->name('tasks.aktivitas.store');
     Route::post('tasks/{task}/selesai', [PetugasTaskController::class, 'complete'])->whereUuid('task')->name('tasks.complete');
     Route::get('aktivitas/{activity}/foto/{photo}', [PetugasActivityController::class, 'photo'])->whereUuid(['activity', 'photo'])->name('aktivitas.photos');
-    Route::get('aktivitas', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'index'])->name('aktivitas');
-    Route::redirect('aktivitas/buat', '/petugas/tasks')->name('aktivitas.create');
-    Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
+    Route::get('aktivitas', [PetugasTaskController::class, 'index'])->name('aktivitas');
+    Route::redirect('aktivitas/buat', '/petugas/aktivitas')->name('aktivitas.create');
+    Route::get('aktivitas/mandiri/{type:code}', [\App\Http\Controllers\Petugas\PetugasVoluntaryActivityController::class, 'create'])->name('voluntary.create');
+    Route::post('aktivitas/mandiri/{type:code}', [\App\Http\Controllers\Petugas\PetugasVoluntaryActivityController::class, 'store'])->name('voluntary.store');
+    Route::get('laporan', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'history'])->name('laporan');
+    Route::get('laporan/harian', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'index'])->name('laporan.daily');
+    Route::get('laporan/{activity}', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'show'])->whereUuid('activity')->name('laporan.show');
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {

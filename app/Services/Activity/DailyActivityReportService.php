@@ -13,6 +13,7 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingRound;
 use App\Models\User;
 use App\Support\ActivityDetailMap;
+use App\Support\VoluntaryActivityFields;
 
 class DailyActivityReportService
 {
@@ -40,7 +41,7 @@ class DailyActivityReportService
                     'subblok' => $cycle?->getAttribute('subblock_label'), 'notes' => $activity->description,
                     'block' => $block?->name,
                     'task_id' => $activity->getAttribute('planting_cycle_task_id'),
-                    'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? [])),
+                    'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? []), $type?->code),
                     'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn (ActivityPhoto $photo) => [
                         'id' => $photo->id, 'url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id]),
                     ])->all(),
@@ -52,7 +53,7 @@ class DailyActivityReportService
     /** @param array<string, mixed> $values
      * @return list<array{label: string, value: mixed}>
      */
-    private function details(array $values): array
+    private function details(array $values, ?string $code = null): array
     {
         $labels = [
             'seed_name' => 'Benih', 'quantity_kg' => 'Jumlah (kg)', 'planting_pattern' => 'Pola tanam', 'area_ha' => 'Luas (ha)',
@@ -68,9 +69,16 @@ class DailyActivityReportService
             'product_name' => 'Produk', 'water_liters' => 'Volume air (liter)', 'bed_count' => 'Jumlah bedengan',
             'height_cm' => 'Tinggi (cm)', 'bed_spacing_cm' => 'Jarak antar bedengan (cm)',
             'material_type' => 'Jenis bahan', 'quantity_value' => 'Jumlah bahan', 'description' => 'Deskripsi',
+            'quantity' => 'Jumlah', 'bag_size' => 'Berat per sak (kg)', 'area' => 'Luas input', 'area_unit' => 'Satuan luas',
         ];
+        foreach (VoluntaryActivityFields::forCode($code ?? '') as $field) {
+            $labels[$field['key']] ??= $field['label'];
+        }
         $details = [];
         foreach ($labels as $key => $label) {
+            if ($key === 'area_unit' && ! isset($values['area'])) {
+                continue;
+            }
             if ($key === 'method' && (isset($values['irrigation_method']) || isset($values['application_method']))) {
                 continue;
             }

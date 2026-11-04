@@ -3,7 +3,7 @@ export type DailyHeader = {
     farm_id: string;
     work_date: string;
     start_time: string;
-    end_time: string;
+    end_time: string | null;
     notes: string | null;
     recorded_by: string;
     recorder_name?: string | null;

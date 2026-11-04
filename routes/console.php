@@ -3,6 +3,8 @@
 use App\Models\TeamInvitation;
 use Illuminate\Support\Facades\Schedule;
 
+Schedule::command('planting:reconcile-windows')->hourly()->timezone('Asia/Jakarta')->withoutOverlapping(10);
+
 Schedule::call(function () {
     TeamInvitation::query()
         ->whereNotNull('expires_at')

@@ -16,7 +16,7 @@ class DailyActivityHeaderService
     {
         return [
             'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
             'daily_notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
@@ -42,7 +42,7 @@ class DailyActivityHeaderService
 
         return DailyActivityLog::create([
             'farm_id' => $farm->id, 'work_date' => $data['work_date'], 'recorded_by' => $actor->id,
-            'start_time' => $header['start_time'], 'end_time' => $header['end_time'],
+            'start_time' => $header['start_time'], 'end_time' => $header['end_time'] ?? null,
             'notes' => $header['daily_notes'] ?? null,
         ]);
     }
@@ -61,7 +61,7 @@ class DailyActivityHeaderService
             $locked = DailyActivityLog::visibleTo($actor, $farm->team)->whereKey($log->id)->lockForUpdate()->firstOrFail();
             $header = Validator::make($data, self::rules())->validate();
             $locked->update([
-                'start_time' => $header['start_time'], 'end_time' => $header['end_time'],
+                'start_time' => $header['start_time'], 'end_time' => $header['end_time'] ?? null,
                 'notes' => $header['daily_notes'] ?? null,
             ]);
         });

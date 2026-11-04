@@ -89,9 +89,12 @@ class AdminLogbookTest extends TestCase
         $this->post($url, $this->payload('2026-10-28'))->assertStatus(405);
         $this->post('/kebun/'.$this->farm->id.'/daily-logs', $this->payload('2026-10-28'))->assertForbidden();
         $this->postJson('/api/kebun/'.$this->farm->id.'/daily-logs', $this->payload('2026-10-28'))->assertForbidden();
-        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('create', [DailyActivityLog::class, $this->farm]));
+        // Admin logbook remains read-only; the separate shared-header edit is allowed.
         $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('update', $log));
-        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('delete', $log));
+        foreach (['create', 'delete'] as $ability) {
+            $subject = $ability === 'create' ? [DailyActivityLog::class, $this->farm] : $log;
+            $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows($ability, $subject));
+        }
         $this->get('/kebun/'.$this->farm->id.'/daily-logs')->assertOk()->assertInertia(fn (Assert $page) => $page->where('can.create', false));
         $this->assertDatabaseCount('daily_activity_logs', 1);
     }

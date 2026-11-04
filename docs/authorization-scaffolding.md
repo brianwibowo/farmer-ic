@@ -15,11 +15,22 @@ User, ActivityType and BlockMappingDetail policies. Its three GET routes under
 controller resource authorization. `AdminLogbookService` scopes directory rows,
 report totals, activity counts, recorder options and detail relationships with
 `visibleTo` before serialization. No new model prefixes or wildcard grants are
-introduced. Admin is read-only for DailyActivityLog: its create/update/delete
-grants are removed, including access through existing mobile/JSON endpoints.
+introduced. The Admin logbook UI remains read-only and DailyActivityLog
+create/delete are denied. The 4 November shared-header decision restores
+`daily_activity_logs.update = any` for a separate authorized header edit;
+it does not grant activity creation or deletion through the logbook.
 Petugas retains own-farm recording access; the developer Superadmin bypass stays.
 See `docs/daily-activity-log.md` for the route map; all new routes and queries are
 protected. Mobile recording still uses its existing controller and service.
+
+Petugas to-dos, report history/detail and voluntary forms are guarded by their
+resource policies and assigned-farm boundary. `FarmActivityPolicy::recordVoluntary`
+requires a persisted selectable active category, farm create permission, and
+view/create grants for the shared header, private photos and applicable typed
+detail. `visibleTo` is applied before report pagination/totals and serialization.
+The staged-planting command authorizes `recordPlanting` and `synchronize` as each
+persisted assigned actor before scoped cycle reconciliation. See the current
+route/storage/verification checkpoint in `petugas-activity-handoff.md`, section 8.
 
 - `AppServiceProvider`: framework defaults only.
 - `AiServiceProvider`: existing AI/RAG container bindings, preserved as before.

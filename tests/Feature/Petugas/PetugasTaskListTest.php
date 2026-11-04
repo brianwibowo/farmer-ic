@@ -166,7 +166,7 @@ class PetugasTaskListTest extends TestCase
             ->get('/petugas/tasks')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('petugas/Tasks')
+                ->component('petugas/Aktivitas')
                 ->missing('isFixture')
                 ->where('filters.status', 'all')
                 ->has('tasks', 3)
@@ -213,7 +213,7 @@ class PetugasTaskListTest extends TestCase
             ->get('/petugas/tasks?status=today')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('petugas/Tasks')
+                ->component('petugas/Aktivitas')
                 ->where('filters.status', 'today')
                 ->has('tasks', 1)
                 ->where('tasks.0.scheduled_date', $today->toDateString())
@@ -231,7 +231,7 @@ class PetugasTaskListTest extends TestCase
             ->get('/petugas/tasks?status=not-a-status')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('petugas/Tasks')
+                ->component('petugas/Aktivitas')
                 ->missing('isFixture')
                 ->where('filters.status', 'all')
                 ->has('tasks', 0));

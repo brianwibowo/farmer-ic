@@ -59,7 +59,7 @@ defineProps<{ farm: LogbookFarm; log: LogbookDetail }>();
                                 },
                                 {
                                     label: 'Waktu kerja (WIB)',
-                                    value: log.start_time + '–' + log.end_time,
+                                    value: log.start_time + '-' + (log.end_time ?? 'Belum diisi'),
                                     icon: Clock3,
                                 },
                                 {

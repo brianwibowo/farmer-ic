@@ -30,7 +30,7 @@ class PetugasPlantingController extends Controller
             'farm' => $farm->only(['id', 'name']),
             'cycles' => $planting->cycles($request->user(), $farm)->map(fn (PlantingCycle $cycle) => [
                 ...$planting->context($request->user(), $cycle),
-                'canRecord' => $cycle->status === 'planned' && $cycle->planted_at === null && Gate::allows('recordPlanting', [FarmActivity::class, $cycle]),
+                'canRecord' => in_array($cycle->status, ['planned', 'active'], true) && Gate::allows('recordPlanting', [FarmActivity::class, $cycle]),
                 'canSync' => in_array($cycle->status, ['planned', 'active'], true) && Gate::allows('synchronize', [PlantingCycleTask::class, $cycle]),
             ])->all(),
         ]);
@@ -43,7 +43,7 @@ class PetugasPlantingController extends Controller
         return Inertia::render('petugas/PlantingCreate', [
             ...$planting->formData($request->user(), $cycle),
             'farm' => $cycle->farm->only(['id', 'name']),
-            'canRecord' => $cycle->status === 'planned' && $cycle->planted_at === null && Gate::allows('recordPlanting', [FarmActivity::class, $cycle]),
+            'canRecord' => in_array($cycle->status, ['planned', 'active'], true) && Gate::allows('recordPlanting', [FarmActivity::class, $cycle]),
             'today' => now('Asia/Jakarta')->toDateString(),
             'workDate' => $request->validate(['work_date' => ['sometimes', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()]])['work_date'] ?? now('Asia/Jakarta')->toDateString(),
         ]);

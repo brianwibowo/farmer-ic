@@ -35,8 +35,8 @@ function synchronize(id: string): void {
                 ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
                 aktivitas</Link
             >
-            <h1 class="mt-3 text-2xl leading-8 font-semibold">
-                Penanaman subblok
+            <h1 class="mt-3 text-xl leading-7 font-semibold">
+                Catat penanaman
             </h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
                 {{ farm.name }} · Catat tanggal tanam yang benar-benar terjadi,
@@ -46,16 +46,15 @@ function synchronize(id: string): void {
         <p
             class="rounded-xl border border-border bg-muted/50 p-4 text-sm leading-6"
         >
-            Tugas memakai tanggal aktual jika tersedia, atau tanggal rencana.
-            Tanpa keduanya, tugas belum dibuat. Gunakan Siapkan tugas untuk
-            subblok lama setelah SOP default siap.
+            Pilih subblok yang disiapkan Admin. Penanaman lanjutan dibatasi tiga
+            hari kalender sejak tanggal pelaksanaan pertama.
         </p>
         <p
             v-if="!cycles.length"
             class="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground"
         >
-            Belum ada subblok untuk kebun penugasan Anda. Buat subblok melalui
-            pengelolaan blok atau hubungi admin.
+            Belum ada subblok untuk kebun penugasan Anda. Hubungi Admin untuk
+            menyiapkannya.
         </p>
         <article
             v-for="cycle in cycles"
@@ -68,7 +67,7 @@ function synchronize(id: string): void {
                     aria-hidden="true"
                 />
                 <div class="min-w-0">
-                    <h2 class="text-lg leading-7 font-semibold">
+                    <h2 class="text-base leading-6 font-semibold">
                         {{ cycle.block.name }} · {{ cycle.subblock_label }}
                     </h2>
                     <p class="text-xs text-muted-foreground">
@@ -83,25 +82,38 @@ function synchronize(id: string): void {
                     </p>
                 </div>
             </div>
-            <dl class="space-y-2 text-sm">
-                <div>
-                    <dt class="text-xs text-muted-foreground">Rencana tanam</dt>
-                    <dd>
-                        {{ cycle.planned_planting_at ?? 'Belum ditentukan' }}
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">Tanam aktual</dt>
-                    <dd>{{ cycle.planted_at ?? 'Belum dicatat' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">Luas</dt>
-                    <dd>
-                        Alokasi {{ cycle.reserved_area_ha }} ha · Realisasi
-                        {{ cycle.planted_area_ha }} ha
-                    </dd>
-                </div>
-            </dl>
+            <details>
+                <summary
+                    class="cursor-pointer py-2 text-xs text-muted-foreground"
+                >
+                    Rencana, realisasi, dan luas
+                </summary>
+                <dl class="space-y-2 text-sm">
+                    <div>
+                        <dt class="text-xs text-muted-foreground">
+                            Rencana tanam
+                        </dt>
+                        <dd>
+                            {{
+                                cycle.planned_planting_at ?? 'Belum ditentukan'
+                            }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">
+                            Tanam aktual
+                        </dt>
+                        <dd>{{ cycle.planted_at ?? 'Belum dicatat' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Luas</dt>
+                        <dd>
+                            Alokasi {{ cycle.reserved_area_ha }} ha · Realisasi
+                            {{ cycle.planted_area_ha }} ha
+                        </dd>
+                    </div>
+                </dl>
+            </details>
             <div class="flex flex-wrap gap-2">
                 <Button as-child variant="outline" class="min-h-11 rounded-xl"
                     ><Link
@@ -129,7 +141,7 @@ function synchronize(id: string): void {
             </div>
         </article>
         <Button as-child variant="outline" class="min-h-11 w-full rounded-xl"
-            ><Link href="/petugas/tasks">Lihat to-do kebun</Link></Button
+            ><Link href="/petugas/aktivitas">Lihat to-do kebun</Link></Button
         >
     </div>
 </template>

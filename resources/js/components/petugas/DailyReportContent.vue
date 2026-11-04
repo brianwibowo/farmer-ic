@@ -27,7 +27,7 @@ watch(
         if (!log) return;
         header.defaults({
             start_time: log.start_time,
-            end_time: log.end_time,
+            end_time: log.end_time ?? '',
             daily_notes: log.notes ?? '',
         });
         header.reset();
@@ -38,7 +38,7 @@ watch(
 function save(): void {
     if (!props.log || header.processing) return;
     header.clearErrors();
-    if (header.end_time <= header.start_time) {
+    if (header.end_time && header.end_time <= header.start_time) {
         header.setError('end_time', 'Waktu selesai harus setelah waktu mulai.');
         return;
     }
@@ -76,7 +76,7 @@ function save(): void {
                 >
             </div>
             <p class="text-base font-semibold">
-                {{ log.start_time }}–{{ log.end_time }} WIB
+                {{ log.start_time }}–{{ log.end_time ?? 'Belum diisi' }} WIB
             </p>
             <p
                 v-if="log.notes"
@@ -109,7 +109,6 @@ function save(): void {
                             ><span>Selesai kerja harian</span
                             ><input
                                 v-model="header.end_time"
-                                required
                                 type="time"
                                 :class="fieldClass"
                                 :aria-invalid="!!header.errors.end_time"
@@ -241,7 +240,7 @@ function save(): void {
                 class="grid gap-2 rounded-xl border border-border bg-card p-3"
             >
                 <Button as-child variant="outline" class="min-h-12 rounded-xl"
-                    ><Link :href="`/petugas/tasks?work_date=${date}`"
+                    ><Link :href="`/petugas/aktivitas?work_date=${date}`"
                         >Dari tugas SOP</Link
                     ></Button
                 ><Button as-child variant="outline" class="min-h-12 rounded-xl"
