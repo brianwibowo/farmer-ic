@@ -19,7 +19,7 @@ const farm = computed(
 
 <template>
     <FarmManagementLayout v-if="page.props.navigation?.farms">
-        <div class="space-y-6">
+        <div class="space-y-[18px]">
             <Link
                 :href="
                     farm
@@ -31,7 +31,7 @@ const farm = computed(
                     farm ? `Manajemen Kebun / ${farm.name}` : 'Manajemen Kebun'
                 }}</Link
             >
-            <div class="space-y-6"><slot /></div>
+            <div class="space-y-[18px]"><slot /></div>
         </div>
     </FarmManagementLayout>
     <div

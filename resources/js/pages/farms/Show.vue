@@ -56,7 +56,7 @@ const progressStages = computed(() =>
 </script>
 <template>
     <Head :title="farm.name" />
-    <div class="space-y-4">
+    <div class="space-y-[18px]">
         <header
             class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3"
         >

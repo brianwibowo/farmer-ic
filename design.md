@@ -276,6 +276,34 @@ Empty pages show their title and an honest placeholder without fabricated
 operational records, metrics, or inactive action buttons. Keep the active
 navigation indicator, request loading feedback, keyboard focus, and both themes.
 
+### Petugas home
+
+The `/petugas` home shows a date and personal greeting, the assigned farm, then
+three equal stat cards: Pra Tanam, Penanaman, and Panen. Count persisted batches
+(`planting_cycles` linked to a planting round): planned, active (including
+maintenance), and harvested, respectively. Use a prominent bold number and an
+explicit batch unit. Retain the Farmer palette and 12px card corners.
+Keep the initial view concise: no descriptive sentences below the stat numbers
+or task heading. Use short status labels, a compact completed/total count, and
+one-line empty messages. Keep SOP instructions and required markers on the
+activity screen rather than adding explanatory copy to the overview.
+
+Below the cards, show today's persisted SOP tasks for the assigned farm, using
+the Asia/Jakarta calendar date. Include pending, in-progress, submitted, and
+completed tasks; omit skipped/cancelled tasks and cancelled batches. Each task
+shows its status, block/batch, and actual HST when a planting date exists.
+Render each task as a full-card Inertia link with a trailing right arrow,
+keyboard focus, and a subtle hover state; do not use an accordion or dropdown.
+While the activity workflow is being implemented, link to the existing
+`/petugas/aktivitas?task_id=<UUID>` page and retain the selected task ID for
+future integration. The activity page does not yet consume this parameter.
+Its eventual backend must resolve and authorize the task; a query parameter
+alone never grants access. Navigation must not change the task's status.
+This overview does not change task status. Use pagination for long lists, the
+shared shell's navigation loading feedback, and clear empty states for missing
+assignments or schedules. Do not add a manual refresh button to the home page.
+Never substitute example tasks when the database has no scheduled work.
+
 The Figma page includes both full-color and LoFi variants. Use the active state for the current route, provide an accessible label for every icon, and keep the bar usable on standard, Plus, and Pro Max phone widths.
 
 ## Login and password recovery pages
@@ -477,6 +505,14 @@ and admin-panel. Content and metric cards share 20px corners through
 use `admin-panel` or `dashboard-panel`. Keep button/input corners at 12px and
 sidebar menu corners at 6px. Panels use 18px desktop padding and 16px phone
 padding; section gaps are 18px. Page padding is 24px desktop and 16px phone.
+Use the shared `admin-page-content` wrapper once per page, including Dashboard,
+Farm Management, User Management, SOP, Logbook, admin Notifications and Settings.
+It owns the 1536px maximum width, centered positioning and padding on all four
+sides (16px below 768px, 24px from 768px upward). `AdminHeader` uses the matching
+`admin-navbar-content` width and horizontal padding to align its title with page
+content. Do not add per-route top padding or another padded page wrapper.
+Keep 18px between top-level page sections. Narrow form columns may retain their
+readable inner width, without adding another outer page padding.
 Keep admin-field controls, loading/empty/error states and existing permissions.
 
 On admin section index pages, show the section title only in the sticky navbar.

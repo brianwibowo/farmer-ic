@@ -19,7 +19,7 @@ import { Toaster } from '@/components/ui/sonner';
                     href="/admin/user-management"
                     :icon="Users"
                 />
-                <div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6">
+                <div class="admin-page-content">
                     <slot />
                 </div>
             </AppContent>

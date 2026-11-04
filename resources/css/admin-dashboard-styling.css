@@ -60,7 +60,35 @@
     --admin-section-title-size: 1rem;
     --admin-metric-value-size: 2.25rem;
     --admin-content-gap: 1.125rem;
+    --admin-page-padding: 1rem;
+    --admin-page-max-width: 96rem;
     --admin-panel-padding: 1.125rem;
+}
+
+@media (min-width: 768px) {
+    .admin-dashboard-theme {
+        --admin-page-padding: 1.5rem;
+    }
+}
+
+.admin-dashboard-theme .admin-page-content {
+    width: 100%;
+    min-width: 0;
+    max-width: var(--admin-page-max-width);
+    margin-inline: auto;
+    padding: var(--admin-page-padding);
+}
+
+.admin-dashboard-theme .admin-navbar-content {
+    display: flex;
+    width: 100%;
+    min-height: 4rem;
+    max-width: var(--admin-page-max-width);
+    margin-inline: auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.75rem var(--admin-page-padding);
 }
 
 .dark .admin-dashboard-theme {
