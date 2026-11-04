@@ -13,7 +13,12 @@ defineProps<{ cycle: OwnerCycle }>();
     >
         <div class="flex flex-wrap items-start justify-between gap-2">
             <div class="min-w-0">
-                <h3 class="font-semibold break-words">{{ cycle.label }}</h3>
+                <h3 class="font-semibold break-words">
+                    {{ cycle.label
+                    }}{{
+                        cycle.subblock_label ? ` · ${cycle.subblock_label}` : ''
+                    }}
+                </h3>
                 <p class="mt-1 text-xs text-muted-foreground">
                     {{
                         cycle.variety

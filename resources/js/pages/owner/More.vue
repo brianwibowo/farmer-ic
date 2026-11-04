@@ -1,17 +1,37 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Activity, ArrowRight, BookOpen, UsersRound } from '@lucide/vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import {
+    Activity,
+    ArrowRight,
+    BookOpen,
+    Sprout,
+    UsersRound,
+    WalletCards,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import OwnerReadEmpty from '@/components/owner/OwnerReadEmpty.vue';
 
-const props = defineProps<{
-    can: { activities: boolean; sops: boolean; users: boolean };
-}>();
+const page = usePage();
 const entries = computed(() =>
     [
         {
-            allowed: props.can.activities,
+            allowed: page.props.ownerNavigation?.farms,
+            title: 'Kebun',
+            description: 'Daftar kebun, blok, dan perkembangan tanam.',
+            href: '/kebun',
+            icon: Sprout,
+        },
+        {
+            allowed: page.props.ownerNavigation?.finance,
+            title: 'Keuangan',
+            description:
+                'Ringkasan pemasukan, pengeluaran, dan catatan transaksi.',
+            href: '/finance',
+            icon: WalletCards,
+        },
+        {
+            allowed: page.props.ownerNavigation?.activities,
             title: 'Aktivitas',
             description:
                 'Catatan pekerjaan, petugas, dan dokumentasi lapangan.',
@@ -19,14 +39,14 @@ const entries = computed(() =>
             icon: Activity,
         },
         {
-            allowed: props.can.sops,
+            allowed: page.props.ownerNavigation?.sops,
             title: 'SOP',
             description: 'Panduan kerja, versi, dan jadwal kegiatan kebun.',
             href: '/lainnya/sop',
             icon: BookOpen,
         },
         {
-            allowed: props.can.users,
+            allowed: page.props.ownerNavigation?.users,
             title: 'Data pengguna',
             description:
                 'Anggota tim dan penugasan kebun yang dapat Anda lihat.',
@@ -42,7 +62,7 @@ const entries = computed(() =>
     <div class="space-y-5">
         <OwnerPageHeader
             title="Lainnya"
-            description="Informasi tim dan kegiatan untuk melengkapi pemantauan kebun Anda."
+            description="Jelajahi kebun, keuangan, kegiatan, dan informasi tim Anda."
         />
         <div v-if="entries.length" class="space-y-3">
             <Link

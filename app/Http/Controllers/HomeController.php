@@ -28,7 +28,7 @@ class HomeController extends Controller
         abort_unless($team instanceof Team, 403);
         Gate::authorize('viewAny', [Farm::class, $team]);
         if ($request->filled('farm_id')) {
-            $farm = Farm::query()->findOrFail($request->validated('farm_id'));
+            $farm = Farm::query()->whereKey($request->validated('farm_id'))->firstOrFail();
             Gate::authorize('view', $farm);
             abort_unless((int) $farm->team_id === (int) $team->id, 404);
         }

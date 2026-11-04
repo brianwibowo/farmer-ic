@@ -255,9 +255,10 @@ Use semantic tab markup when switching content in place. Keep the selected indic
 
 ## Farmer/mobile bottom navigation
 
-The Owner/farmer bottom bar has five destinations: Beranda, Kebun,
-AI, Keuangan, and Lainnya. Retain its emphasized AI action and existing AI
-workflow. Lainnya opens the read-only activity feed, SOP, and user directory.
+The Owner/farmer bottom bar has three destinations: Beranda, AI, and Lainnya.
+Retain its emphasized, centered AI action and existing AI workflow. Lainnya
+opens Kebun, Keuangan, the read-only activity feed, SOP, and user directory.
+Keep Lainnya selected when visiting these sections and their nested pages.
 Owner screens use the same persisted domain records and metric definitions as
 Admin, presented in the Farmer/mobile profile. Farm detail links to blocks,
 batches, persisted stages, and SOP schedules. Distinguish planned allocation,

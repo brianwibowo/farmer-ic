@@ -32,6 +32,13 @@ onMounted(() => {
         router.on('networkError', () => {
             failed.value = true;
             feedback.value = 'Koneksi terputus. Silakan coba lagi.';
+            return false;
+        }),
+        router.on('httpException', () => {
+            failed.value = true;
+            feedback.value =
+                'Halaman belum berhasil dimuat. Silakan coba lagi.';
+            return false;
         }),
         router.on('finish', () => {
             loading.value = false;

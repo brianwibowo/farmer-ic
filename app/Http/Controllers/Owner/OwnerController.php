@@ -99,17 +99,9 @@ class OwnerController extends Controller
         return Inertia::render('owner/User', ['managedUser' => $this->reads->user($request->user(), $this->team($request), $managedUser)]);
     }
 
-    public function more(Request $request): Response
+    public function more(): Response
     {
-        $team = $request->user()->currentTeam;
-
-        return Inertia::render('owner/More', [
-            'can' => [
-                'activities' => $team instanceof Team && Gate::allows('viewAny', [FarmActivity::class, $team]),
-                'sops' => $team instanceof Team && Gate::allows('viewAny', [SopTemplate::class, $team]),
-                'users' => $team instanceof Team && Gate::allows('viewAny', [User::class, $team]),
-            ],
-        ]);
+        return Inertia::render('owner/More');
     }
 
     private function team(Request $request): Team
@@ -123,7 +115,7 @@ class OwnerController extends Controller
     private function authorizeFarmFilter(OwnerReadRequest $request): void
     {
         if ($request->filled('farm_id')) {
-            $farm = Farm::query()->findOrFail($request->validated('farm_id'));
+            $farm = Farm::query()->whereKey($request->validated('farm_id'))->firstOrFail();
             Gate::authorize('view', $farm);
             abort_unless((int) $farm->team_id === (int) $this->team($request)->id, 404);
         }

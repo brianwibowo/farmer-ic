@@ -100,8 +100,8 @@ Service tetap memakai `visibleTo()`.
 Navigasi menerima boolean `navigation.admin` dan `navigation.farms` dari server.
 Route utama `/` menggunakan auth/verified. Guest diarahkan ke `/login`;
 Admin/Superadmin yang sudah login diarahkan ke `/admin/dashboard`, Petugas ke
-`/petugas`, sedangkan Owner menerima dashboard Inertia `farmer/Dashboard`
-dengan identitas sesi sebenarnya. Gate `owner.access` membatasi dashboard ini
+`/petugas`, sedangkan Owner menerima dashboard Inertia `owner/Dashboard`
+dengan identitas sesi dan data database sebenarnya. Gate `owner.access` membatasi dashboard ini
 ke role Owner yang dikenal; role tidak valid atau Admin tanpa tenant yang sah
 ditolak dengan 403. Gate ini hanya untuk admission halaman, bukan izin data.
 Login mengarahkan Admin/SuperAdmin ke `/admin/dashboard`, Owner ke `/`, dan
@@ -115,12 +115,41 @@ URL portal Petugas; Superadmin dapat melihatnya melalui bypass existing.
 Verifikasi email mengikuti konfigurasi autentikasi existing: fitur verifikasi
 email belum diaktifkan dan User belum mengimplementasikan MustVerifyEmail,
 sehingga middleware verified saat ini belum mewajibkan verifikasi email.
-Halaman portal Petugas ini masih berupa kerangka: belum mengambil data blok,
-aktivitas, atau laporan. Tidak ada query operasional baru. Halaman demo publik
-existing `/kebun`, `/kebun/detail`, `/kebun/aktivitas`, `/aktivitas`,
-`/rincian-aktivitas`, dan `/laporan` tetap publik; portal baru tidak menggantikan
-route-route tersebut. Batas integrasi AI dan modul blok tetap tercatat dalam
-[dokumentasi backend blok](farm-block-backend.md).
+Halaman Beranda/Kebun/Aktivitas/Laporan Petugas masih berupa kerangka; daftar
+tugasnya menggunakan fixture dan form aktivitas belum menyimpan seluruh alur
+operasional. Ini tidak menjadi sumber data untuk portal Owner.
+
+Portal Owner menggunakan navbar Beranda, AI, dan Lainnya. Menu Lainnya memuat
+Kebun, Keuangan, Aktivitas, SOP, dan Data pengguna sesuai izin dari backend.
+Route `/kebun`, `/kebun/{farm}`, `/kebun/{farm}/blok/{block}`, `/aktivitas`,
+`/aktivitas/{activity}`, serta `/lainnya/sop` dan `/lainnya/pengguna` beserta
+detailnya memakai `auth`, `verified`, dan `owner.access`. Controller memeriksa
+Policy resource; `OwnerReadService` membatasi query induk dan relasi turunannya
+dengan `visibleTo($actor, $currentTeam)` sebelum serialisasi, hitungan, dan
+paginasi. Dashboard memakai definisi agregasi yang sama dengan Admin. Semua
+data operasional baru berasal dari database, bukan JSON atau browser storage.
+
+Tenant aktif dapat diganti melalui `POST /owner/tenant/{team:slug}` hanya dengan
+keanggotaan tersimpan dan izin `view` Team. Aksi kembali ke Beranda agar filter
+atau detail tenant sebelumnya tidak terbawa. Filter `team_id` dari klien tidak
+mengganti konteks. Detail dan filter farm tenant lain ditolak, termasuk farm
+dari tenant lain yang juga diikuti Owner sampai pengguna mengganti tenant aktif.
+Direktori Owner baru mengikuti tenant aktif; User Management existing tetap
+mendukung baca lintas tenant keanggotaan melalui aturan khusus yang sudah ada.
+
+URL demo lama `/kebun/detail`, `/kebun/aktivitas`, dan `/rincian-aktivitas` kini
+memerlukan login/Owner dan mengarahkan ke halaman baru. ID fixture lama kembali
+ke daftar; UUID valid tetap diperiksa oleh Controller tujuan. `/laporan`
+mengarahkan ke Beranda, karena laporan/PDF mock lama tidak dipakai sebagai
+laporan operasional. Matriks izin operasional tidak diperluas: request tambah,
+ubah, hapus, konfigurasi, dan pemulihan tetap mengikuti Policy existing.
+
+Pekerjaan ini tidak mengubah halaman/form profil, keamanan akun, atau pipeline
+AI/RAG. Batas AI yang tercatat pada audit tetap berlaku: jalur AI utama masih
+memerlukan pekerjaan lanjutan untuk pemeriksaan `ai.access` dan penggantian
+sumber demo. Query relasi pada logbook existing juga belum termasuk perbaikan
+menyeluruh; portal Owner baru membaca aktivitas melalui query terscope sendiri.
+Batas integrasi modul blok tetap tercatat dalam [dokumentasi backend blok](farm-block-backend.md).
 Ikon profil di antarmuka Farmer/Owner/Petugas membuka ringkasan profil tanpa tautan
 ke area admin. Route admin lama tanpa prefix sudah dihapus.
 

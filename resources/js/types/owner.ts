@@ -32,6 +32,7 @@ export type OwnerCycle = {
     id: string;
     label: string;
     batch_number: number | null;
+    subblock_label: string | null;
     status: string;
     reserved_area_ha: string | null;
     planted_area_ha: string;
@@ -67,6 +68,7 @@ export const ownerStatus: Record<string, string> = {
     open: 'Terbuka',
     resolved: 'Ditangani',
     closed: 'Ditutup',
+    monitoring: 'Dalam pemantauan',
 };
 export function ownerDate(value?: string | null): string {
     return value

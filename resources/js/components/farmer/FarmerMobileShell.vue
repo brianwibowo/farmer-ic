@@ -41,7 +41,10 @@ function select(key: FarmerNavKey): void {
             >
                 <DashboardHeader />
                 <OwnerTenantContext
-                    v-if="page.props.navigation?.teamSwitcher"
+                    v-if="
+                        props.showNavigation &&
+                        page.props.navigation?.teamSwitcher
+                    "
                 />
             </div>
 

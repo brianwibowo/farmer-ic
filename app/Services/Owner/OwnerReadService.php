@@ -21,6 +21,7 @@ use App\Services\FarmService;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class OwnerReadService
 {
@@ -201,7 +202,7 @@ class OwnerReadService
             foreach ($labels as $field => $label) {
                 $value = $record->getAttribute($field);
                 if ($value !== null && $value !== '') {
-                    $details[] = ['label' => $label, 'value' => (string) $value];
+                    $details[] = ['label' => $label, 'value' => $this->detailValue($record, $field, $value)];
                 }
             }
         }
@@ -398,6 +399,26 @@ class OwnerReadService
             'role' => $role instanceof Role ? $role->name : null,
             'assigned_farm' => $user->assignedFarm?->only(['id', 'name']),
         ];
+    }
+
+    private function detailValue(Model $record, string $field, mixed $value): string
+    {
+        $cast = $record->getCasts()[$field] ?? '';
+        [$type, $precision] = array_pad(explode(':', $cast, 2), 2, null);
+        if (! in_array($type, ['decimal', 'integer', 'int', 'float', 'double', 'real'], true) || ! is_numeric($value)) {
+            return (string) $value;
+        }
+
+        $parts = explode('e', strtolower((string) $value), 2);
+        $fractionLength = strlen(explode('.', $parts[0], 2)[1] ?? '');
+        $decimals = match ($type) {
+            'decimal' => (int) $precision,
+            'integer', 'int' => 0,
+            default => max(0, $fractionLength - (int) ($parts[1] ?? 0)),
+        };
+        $formatted = number_format((float) $value, $decimals, ',', '.');
+
+        return $decimals > 0 ? rtrim(rtrim($formatted, '0'), ',') : $formatted;
     }
 
     private function timestamp(mixed $value): ?string

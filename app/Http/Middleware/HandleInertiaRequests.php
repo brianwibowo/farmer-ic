@@ -68,6 +68,7 @@ class HandleInertiaRequests extends Middleware
                 && Gate::forUser($user)->allows('viewAny', [$model, $user->currentTeam]))->all(),
             'navigation' => [
                 'admin' => $adminAccess,
+                'petugas' => $user !== null && Gate::forUser($user)->allows('petugas.access'),
                 'logbook' => $adminAccess && $logbookTeam instanceof Team
                     && Gate::forUser($user)->allows('viewAny', [Farm::class, $logbookTeam])
                     && Gate::forUser($user)->allows('viewAny', [DailyActivityLog::class, $logbookTeam]),

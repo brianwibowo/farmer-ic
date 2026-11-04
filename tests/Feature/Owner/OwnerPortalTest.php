@@ -9,6 +9,7 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\FinancialCategory;
 use App\Models\FinancialTransaction;
+use App\Models\PlantingCycle;
 use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
@@ -98,6 +99,8 @@ class OwnerPortalTest extends TestCase
             ->where('activity.farm.id', $this->farm->id)
             ->where('activity.performer.id', $this->petugas->id)
             ->has('activity.photos', 1)
+            ->where('activity.details', fn ($details) => collect($details)->contains(fn ($detail) => $detail['label'] === 'Jumlah benih (kg)' && $detail['value'] === '18,5')
+                && collect($details)->contains(fn ($detail) => $detail['label'] === 'Luas tanam (ha)' && $detail['value'] === '4,25'))
             ->where('activity.log', null));
     }
 
@@ -121,7 +124,9 @@ class OwnerPortalTest extends TestCase
     {
         $sop = SopTemplate::query()->where('team_id', $this->team->id)->firstOrFail();
         $this->get('/lainnya')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/More')->where('can.activities', true)->where('can.sops', true)->where('can.users', true));
+            ->component('owner/More')
+            ->where('ownerNavigation.farms', true)->where('ownerNavigation.finance', true)
+            ->where('ownerNavigation.activities', true)->where('ownerNavigation.sops', true)->where('ownerNavigation.users', true));
         $this->get('/lainnya/sop')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Sops')->where('sops.total', 1)->where('sops.data.0.id', $sop->id));
         $this->get('/lainnya/sop/'.$sop->id)->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -145,6 +150,21 @@ class OwnerPortalTest extends TestCase
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('farm.name', 'Kebun Cileuksa Utara'));
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.farmOptions.0.name', 'Kebun Cileuksa Utara'));
+    }
+
+    public function test_admin_batch_labels_refresh_for_owner_and_owner_cannot_edit_them(): void
+    {
+        $batch = PlantingCycle::query()->where('farm_id', $this->farm->id)->where('status', 'planned')->firstOrFail();
+        $block = $batch->plantingRound->block;
+        $url = '/kebun/'.$this->farm->id.'/blocks/'.$block->id.'/batches/'.$batch->id;
+        $data = ['reserved_area_ha' => $batch->reserved_area_ha, 'subblock_label' => 'SELATAN-02'];
+
+        $this->actingAs($this->admin)->put($url, $data)->assertRedirect();
+        $this->actingAs($this->owner)->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)
+            ->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('cycles.0.subblock_label', 'SELATAN-02'));
+        $this->put($url, [...$data, 'subblock_label' => 'SELATAN-03'])->assertForbidden();
+        $this->assertSame('SELATAN-02', $batch->fresh()->subblock_label);
     }
 
     public function test_persisted_petugas_logbook_activity_appears_in_owner_feed(): void
@@ -267,7 +287,8 @@ class OwnerPortalTest extends TestCase
             $this->get($url)->assertForbidden();
         }
         $this->get('/lainnya')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('can.activities', false)->where('can.sops', false)->where('can.users', false));
+            ->where('ownerNavigation.farms', false)->where('ownerNavigation.finance', false)
+            ->where('ownerNavigation.activities', false)->where('ownerNavigation.sops', false)->where('ownerNavigation.users', false));
     }
 
     public function test_unrelated_sops_and_people_are_not_serialized_or_accessible(): void
@@ -328,9 +349,12 @@ class OwnerPortalTest extends TestCase
 
     public function test_missing_grants_hide_menu_entries_and_return_real_forbidden_responses(): void
     {
-        $this->revoke(['users.view', 'sop_templates.view']);
+        $this->revoke(['farms.view', 'financial_transactions.view', 'users.view', 'sop_templates.view']);
         $this->get('/lainnya')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('can.activities', true)->where('can.users', false)->where('can.sops', false));
+            ->where('ownerNavigation.farms', false)->where('ownerNavigation.finance', false)
+            ->where('ownerNavigation.activities', true)->where('ownerNavigation.users', false)->where('ownerNavigation.sops', false));
+        $this->get('/kebun')->assertForbidden();
+        $this->get('/finance')->assertForbidden();
         $this->get('/lainnya/pengguna')->assertForbidden();
         $this->get('/lainnya/sop')->assertForbidden();
     }
@@ -346,8 +370,7 @@ class OwnerPortalTest extends TestCase
         $this->get('/lainnya')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('ownerNavigation.activities', false)
             ->where('ownerNavigation.sops', false)
-            ->where('ownerNavigation.users', false)
-            ->where('can.activities', false)->where('can.sops', false)->where('can.users', false));
+            ->where('ownerNavigation.users', false));
         $this->get('/aktivitas')->assertForbidden();
         $this->get('/lainnya/sop')->assertForbidden();
         $this->get('/lainnya/pengguna')->assertForbidden();
