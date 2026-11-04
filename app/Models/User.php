@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\HasTeams;
 use App\Concerns\HasVisibleScope;
+use App\Support\RolePermissions;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -84,6 +85,22 @@ class User extends Authenticatable
         $farmId = $this->getAttribute('assigned_farm_id');
 
         return $farmId === null ? null : (string) $farmId;
+    }
+
+    public function isPic(): bool
+    {
+        if (app(RolePermissions::class)->roleName($this) !== 'petugas' || $this->assignedFarmId() === null) {
+            return false;
+        }
+
+        $farm = $this->assignedFarm;
+        if ($farm === null || (string) $farm->getKey() !== $this->assignedFarmId()) {
+            return false;
+        }
+
+        $picUserId = $farm->getAttribute('pic_user_id');
+
+        return $picUserId !== null && (string) $picUserId === (string) $this->getKey();
     }
 
     /** @return HasMany<Farm, $this> */

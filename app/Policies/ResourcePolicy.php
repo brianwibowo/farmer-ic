@@ -33,6 +33,8 @@ abstract class ResourcePolicy
 
     protected bool $ai = false;
 
+    protected bool $ownWritesRequirePic = false;
+
     /** @var list<class-string<Model>> */
     protected array $parents = [Team::class];
 
@@ -108,7 +110,11 @@ abstract class ResourcePolicy
     {
         return $this->permissions->scope($user, $this->resource.'.'.$action) !== null
             && (! $this->ai || $this->permissions->scope($user, 'ai.access') === 'any')
-            && $this->permissions->withinTeam($user, $team);
+            && $this->permissions->withinTeam($user, $team)
+            && (! $this->ownWritesRequirePic || $action === 'view'
+                || $this->permissions->scope($user, $this->resource.'.'.$action) !== 'own'
+                // Reload so a revoked PIC assignment cannot survive a cached relation.
+                || $user->load('assignedFarm')->isPic());
     }
 
     protected function allowsRecord(\App\Models\User $user, Model $record, string $action): bool
