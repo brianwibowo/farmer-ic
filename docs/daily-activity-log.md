@@ -98,11 +98,11 @@ send `Accept: application/json` and `Content-Type: application/json`.
   "work_date": "2026-10-27",
   "start_time": "08:00",
   "end_time": "16:00",
-  "worker_count": 6,
   "notes": "Pemetaan awal untuk persiapan bedengan.",
   "activities": [
     {
       "type": "block_mapping",
+      "worker_count": 6,
       "block_mapping": {
         "block_name": "Blok 1",
         "length_m": 35,

@@ -320,7 +320,8 @@ Table farm_activities {
   action_taken text
   planting_cycle_task_id uuid [note: 'Composite FK with planting_cycle_id; nullable for non-task activities']
   task_details jsonb [note: 'Validated task-specific measurements; required for task-linked reports. Weeding uses these details; other types also retain their existing typed detail.']
-  Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Tipe aktivitas menentukan satu detail yang tepat; task-linked weeding uses task_details instead.'
+  worker_count int [note: 'Jumlah pekerja untuk aktivitas ini; nullable untuk data lama']
+  Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Tipe aktivitas menentukan satu detail yang tepat; task-linked weeding uses task_details instead. Jumlah pekerja disimpan per aktivitas, bukan di header harian.'
 }
 
 Table daily_activity_logs {
@@ -330,7 +331,6 @@ Table daily_activity_logs {
   work_date date [not null]
   start_time time [not null]
   end_time time [not null]
-  worker_count int [not null]
   notes text
   created_at timestamptz [not null]
   updated_at timestamptz
@@ -339,7 +339,7 @@ Table daily_activity_logs {
     (id, farm_id) [unique]
     (farm_id, work_date) [unique]
   }
-  Note: 'Satu header bersama per kebun per tanggal. Jam kerja dan total pekerja berlaku untuk keseluruhan hari; menambah aktivitas tidak menimpa header.'
+  Note: 'Satu header bersama per kebun per tanggal. Jam kerja berlaku untuk sesi harian; jumlah pekerja disimpan per aktivitas dan menambah aktivitas tidak menimpa header.'
 }
 
 Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id, farm_id)

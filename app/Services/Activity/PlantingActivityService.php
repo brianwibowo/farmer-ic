@@ -112,7 +112,8 @@ class PlantingActivityService
                 $activity = FarmActivity::create([
                     'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'activity_type_id' => $type->id,
                     'performed_by' => $actor->id, 'activity_date' => $started, 'daily_activity_log_id' => $log->id,
-                    'position' => $this->headers->nextPosition($log, $actor), 'description' => $data['notes'] ?? null, 'obstacle_status' => 'none',
+                    'position' => $this->headers->nextPosition($log, $actor), 'worker_count' => (int) $data['worker_count'],
+                    'description' => $data['notes'] ?? null, 'obstacle_status' => 'none',
                 ]);
                 $activity->plantingDetail()->create(['seed_name' => $data['seed_name'], 'quantity_kg' => $data['quantity_kg'], 'planting_pattern' => $data['planting_pattern'] ?? null, 'area_ha' => $data['area_ha']]);
                 foreach ($data['photos'] as $photo) {

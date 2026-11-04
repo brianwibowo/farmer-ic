@@ -35,6 +35,7 @@ class DailyActivityReportService
 
                 return [
                     'id' => $activity->id, 'name' => $type->name ?? 'Aktivitas', 'position' => $activity->position,
+                    'worker_count' => $activity->worker_count,
                     'performed_by' => $activity->performed_by, 'performer_name' => $activity->performer?->name,
                     'subblok' => $cycle?->getAttribute('subblock_label'), 'notes' => $activity->description,
                     'block' => $block?->name,

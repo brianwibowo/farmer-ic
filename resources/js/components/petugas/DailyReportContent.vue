@@ -17,7 +17,6 @@ const adding = ref(false);
 const header = useForm({
     start_time: '',
     end_time: '',
-    worker_count: 1,
     daily_notes: '',
 });
 const fieldClass =
@@ -29,7 +28,6 @@ watch(
         header.defaults({
             start_time: log.start_time,
             end_time: log.end_time,
-            worker_count: log.worker_count,
             daily_notes: log.notes ?? '',
         });
         header.reset();
@@ -78,8 +76,7 @@ function save(): void {
                 >
             </div>
             <p class="text-base font-semibold">
-                {{ log.start_time }}–{{ log.end_time }} WIB ·
-                {{ log.worker_count }} pekerja
+                {{ log.start_time }}–{{ log.end_time }} WIB
             </p>
             <p
                 v-if="log.notes"
@@ -118,18 +115,6 @@ function save(): void {
                                 :aria-invalid="!!header.errors.end_time"
                         /></label>
                     </div>
-                    <label class="block space-y-2 text-sm"
-                        ><span>Total pekerja harian</span
-                        ><input
-                            v-model.number="header.worker_count"
-                            required
-                            type="number"
-                            min="1"
-                            max="32767"
-                            step="1"
-                            :class="fieldClass"
-                            :aria-invalid="!!header.errors.worker_count"
-                    /></label>
                     <label class="block space-y-2 text-sm"
                         ><span>Catatan umum hari ini</span
                         ><textarea
@@ -188,7 +173,9 @@ function save(): void {
                     </h3>
                     <p class="mt-1 text-xs leading-5 text-muted-foreground">
                         {{ activity.performer_name ?? 'Petugas kebun'
-                        }}<template v-if="activity.subblok">
+                        }}<template v-if="activity.worker_count !== null">
+                            · {{ activity.worker_count }} pekerja</template
+                        ><template v-if="activity.subblok">
                             ·
                             {{
                                 activity.block ? `${activity.block} · ` : ''

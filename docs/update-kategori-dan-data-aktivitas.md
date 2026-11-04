@@ -6,9 +6,9 @@ Dokumen ini adalah acuan untuk field input form aktivitas, aturan blok/sub-blok,
 
 - Activity log tetap berupa **aktivitas individual**, bukan rekap harian.
 - Satu submit boleh berisi **satu atau beberapa aktivitas**; setiap baris tetap menjadi satu aktivitas individual.
-- **Header harian adalah sesi yang dapat dipakai ulang**, bukan laporan akhir hari. Header dibuat saat aktivitas pertama dan dipakai lagi untuk tanggal, farm, dan akun inputter yang sama.
+- **Header harian adalah sesi yang dapat dipakai ulang**, bukan laporan akhir hari. Header dibuat saat aktivitas pertama dan dipakai lagi untuk tanggal dan farm yang sama.
 - Block mapping tetap form terpisah; batch bukan lagi pengecualian khusus block mapping.
-- Beberapa aktivitas pada tanggal, farm, dan inputter yang sama memakai **header harian yang sama** agar pekerja tidak mengisi tanggal dan waktu berulang kali.
+- Beberapa aktivitas pada tanggal dan farm yang sama memakai **header harian yang sama** agar pekerja tidak mengisi tanggal dan waktu berulang kali.
 - Scheduled tasks **tidak dibagi daily/weekly/monthly**. Task dibuat dari langkah **SOP modular** pada offset **HST** tertentu.
 - Field dibagi menjadi **blok**. Jika penanaman hanya mencakup sebagian blok, bagian yang ditanami menjadi **sub-blok**.
 - Blok/sub-blok yang ditanam dalam **selisih 0–3 hari dari tanggal tanam pertama pada cycle tersebut** dianggap satu **cycle** dan memakai **HST yang sama**. Penanaman setelah window tersebut membentuk sub-blok dan cycle/HST baru. Satu batch/sub-blok tidak boleh mengangkangi window; bagian setelah window harus menjadi batch/sub-blok baru.
@@ -18,7 +18,7 @@ Dokumen ini adalah acuan untuk field input form aktivitas, aturan blok/sub-blok,
 - HOK **tidak dipakai lagi** dan dihapus dari form.
 - Foto dokumentasi **wajib minimal satu** per aktivitas.
 - Paraf/approval adalah **post-activity**, bukan input pekerja.
-- Setiap pekerja bisa memiliki akun sendiri, tetapi biasanya **satu petugas ditunjuk untuk menginput log tim**. Header terikat pada akun inputter, farm, dan tanggal.
+- Setiap pekerja bisa memiliki akun sendiri, tetapi biasanya **satu petugas ditunjuk untuk menginput log tim**. Header terikat pada farm dan tanggal, lalu dipakai bersama oleh Petugas berwenang pada kebun tersebut.
 - Block adalah unit field management; sub-blok adalah bagian blok yang ditanami pada batch/cycle. Block mapping mencatat dimensi dan layout; master blok perlu tersedia, sedangkan sub-blok menjadi label batch, bukan master permanen.
 - Block mapping tidak lagi menjadi kategori aktivitas; block mapping tetap menjadi form field management terpisah.
 - Form harus ringan. Field yang jarang dipakai disembunyikan di bagian "Detail tambahan".
@@ -49,10 +49,12 @@ Belum ada:
 - upload foto
 - approval/paraf aktivitas
 - tabel master blok (sub-blok menjadi label batch/cycle)
-- pemindahan `worker_count` dari header ke aktivitas
 - penghapusan `notes` harian dan field kendala/solusi/tindakan
 
-Backend saat ini masih menyimpan `worker_count` dan `notes` di `daily_activity_logs`, serta `obstacles`, `proposed_solution`, dan `action_taken` di `farm_activities`. Form target memindahkan jumlah pekerja ke aktivitas dan menghapus field-field tersebut kecuali `Tindakan segera` khusus insiden.
+Backend menyimpan `notes` di `daily_activity_logs` dan `worker_count` di
+`farm_activities`, serta masih menyimpan `obstacles`, `proposed_solution`, dan
+`action_taken` di `farm_activities` untuk form lama. Form target menghapus
+field-field tersebut kecuali `Tindakan segera` khusus insiden.
 
 ## Hierarki Kategori Aktivitas
 
@@ -120,7 +122,7 @@ aktivitas saat ini masih hanya menerima `block_mapping`.
 
 ## Header Harian
 
-Header ini adalah target form. Header adalah sesi yang dapat dipakai ulang, bukan rekap akhir hari. Backend saat ini masih menyimpan jumlah pekerja dan catatan di header; keduanya perlu dipindah/dihapus.
+Header ini adalah target form. Header adalah sesi yang dapat dipakai ulang, bukan rekap akhir hari. Header menyimpan jam kerja dan catatan umum; jumlah pekerja disimpan pada masing-masing aktivitas.
 
 | Field         | Type | Unit | Wajib       | Catatan                                                       |
 | ------------- | ---- | ---- | ----------- | ------------------------------------------------------------- |
@@ -146,8 +148,7 @@ Header tidak dipilih manual dari daftar. Sistem mencarinya otomatis.
 1. Saat pekerja membuka form aktivitas, cari header untuk:
     - tanggal kerja yang sama
     - farm yang sama
-    - akun inputter yang sama
-    - header terbaru pada tanggal tersebut (urut `created_at`, lalu `id`); MVP tidak memakai status open/closed
+    - header tersebut dipakai bersama oleh Petugas yang berwenang pada kebun
 
 2. Jika ditemukan, tampilkan banner ringan:
 
@@ -159,17 +160,17 @@ Header tidak dipilih manual dari daftar. Sistem mencarinya otomatis.
     - perpanjang waktu selesai header, atau
     - buat sesi/header baru.
 5. Jika tidak ada header hari ini, form membuat header baru.
-6. Jika pekerja lupa dan membuat header kedua di hari yang sama, jangan blokir. Backend mengizinkan lebih dari satu header per hari; nanti bisa dibuat alat merge atau export per sesi.
+6. Header unik per `(farm_id, work_date)`. Petugas lain yang menambahkan aktivitas memakai header yang sama; data header tidak ditimpa.
 7. Setelah submit, form tetap memakai header yang sama; yang direset hanya baris aktivitas, bukan header.
 
 Catatan kepemilikan header:
 
-- Header terikat pada `farm_id`, `recorded_by`, dan `work_date`.
-- Setiap pekerja bisa memiliki akun sendiri, tetapi biasanya satu petugas ditunjuk menginput seluruh log tim. Header mengikuti akun inputter, bukan seluruh pekerja.
-- Jika dua pekerja berbeda menginput log pada hari yang sama, saat ini akan terbentuk dua header. Keputusan apakah header harus dibagi per tim atau per akun masih perlu dikonfirmasi.
-- Backend mengizinkan lebih dari satu header per hari; pilih yang terbaru atau tampilkan sebagai sesi terpisah.
+- Header terikat pada `farm_id` dan `work_date`.
+- `recorded_by` mencatat pembuat pertama; seluruh Petugas berwenang pada kebun memakai header yang sama.
+- Jumlah pekerja tidak disimpan di header; setiap aktivitas menyimpan `worker_count` sendiri.
+- Perubahan header dilakukan melalui aksi terpisah dan tidak memindahkan aktivitas.
 
-Catatan: untuk MVP, waktu header adalah rentang sesi kerja. Jika aktivitas berikutnya dilakukan di luar rentang itu, cukup perpanjang `end_time` atau buat sesi baru. `farm_activities.activity_date` tetap ada di schema, tetapi form batch memakai tanggal header + waktu mulai header untuk semua aktivitas; input waktu per aktivitas bisa ditambahkan nanti jika dibutuhkan.
+Catatan: untuk MVP, waktu header adalah rentang sesi kerja. Jika aktivitas berikutnya dilakukan di luar rentang itu, cukup perpanjang `end_time`. `farm_activities.activity_date` tetap ada di schema, tetapi form batch memakai tanggal header + waktu mulai header untuk semua aktivitas; input waktu per aktivitas bisa ditambahkan nanti jika dibutuhkan.
 
 ## Block, Sub-blok, Siklus, dan HST
 

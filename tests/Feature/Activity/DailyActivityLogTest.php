@@ -84,7 +84,7 @@ class DailyActivityLogTest extends TestCase
         $payload['activities'][1]['block_mapping']['block_name'] = 'Blok 2';
         $this->assertAuthenticated();
         $response = $this->postJson($this->url(), $payload)->assertCreated()
-            ->assertJsonPath('data.worker_count', 6)->assertJsonPath('data.recorded_by', $this->recorder->id)
+            ->assertJsonPath('data.activities.0.worker_count', 6)->assertJsonPath('data.recorded_by', $this->recorder->id)
             ->assertJsonPath('data.recorder_name', 'Budi Santoso')->assertJsonPath('data.start_time', '08:00')
             ->assertJsonCount(2, 'data.activities')->assertJsonPath('data.activities.0.block_mapping.length_m', '35.000')
             ->assertJsonPath('data.activities.0.block_mapping.row_spacing_cm', '40.00')
@@ -129,7 +129,7 @@ class DailyActivityLogTest extends TestCase
         $data['worker_count'] = 20;
         $data['notes'] = 'Header tidak boleh ditimpa.';
         $this->postJson($this->url(), $data)->assertSuccessful()->assertJsonPath('data.id', $id)
-            ->assertJsonPath('data.worker_count', 6)->assertJsonCount(2, 'data.activities')->assertJsonPath('data.activities.1.position', 2);
+            ->assertJsonPath('data.activities.1.worker_count', 20)->assertJsonCount(2, 'data.activities')->assertJsonPath('data.activities.1.position', 2);
         $this->assertDatabaseCount('daily_activity_logs', 1);
     }
 

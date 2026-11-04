@@ -11,8 +11,8 @@ bukan klaim bahwa seluruh lifecycle operasional sudah selesai.
 
 - `daily_activity_logs` adalah **header bersama per kebun + tanggal kerja**,
   bukan per aktivitas dan bukan per Petugas.
-- Jam kerja keseluruhan hari, jumlah pekerja, dan catatan umum berada di header.
-  Jumlah pekerja tidak dipisahkan atau dijumlahkan otomatis dari aktivitas.
+- Jam kerja dan catatan umum berada di header. Jumlah pekerja disimpan per
+  aktivitas (`farm_activities.worker_count`) dan boleh berbeda antar aktivitas.
 - `recorded_by` pada header merupakan pembuat pertama laporan harian.
 - `farm_activities.performed_by` tetap mencatat Petugas masing-masing aktivitas.
 - Menambahkan aktivitas tidak menimpa informasi header yang sudah ada.
@@ -31,8 +31,8 @@ bukan klaim bahwa seluruh lifecycle operasional sudah selesai.
 - [x] Aktivitas berikutnya pada kebun dan tanggal yang sama memakai header itu,
       termasuk aktivitas dari Petugas lain yang ditugaskan ke kebun tersebut.
 - [x] Alur tugas SOP, penanaman awal, dan pemetaan blok memakai mekanisme yang sama.
-- [x] Jam, jumlah pekerja, catatan umum, dan pembuat pertama tidak ditimpa oleh
-      penyimpanan aktivitas berikutnya.
+- [x] Jam, catatan umum, dan pembuat pertama tidak ditimpa oleh penyimpanan
+      aktivitas berikutnya; jumlah pekerja tetap tersimpan per aktivitas.
 - [x] Catatan aktivitas terpisah dari catatan umum harian (`daily_notes` pada
       form SOP/penanaman; form pemetaan lama memakai `notes` untuk header).
 - [x] Pengubahan header tersedia sebagai aksi terpisah; tidak dapat mengubah
@@ -47,7 +47,8 @@ bukan klaim bahwa seluruh lifecycle operasional sudah selesai.
 ### UI Petugas dan logbook
 
 - [x] `/petugas/aktivitas` menjadi halaman laporan harian dengan pilihan tanggal.
-- [x] Ringkasan jam, jumlah pekerja, catatan umum, dan pembuat pertama.
+- [x] Ringkasan jam, catatan umum, dan pembuat pertama; jumlah pekerja tampil
+      pada masing-masing aktivitas.
 - [x] Daftar seluruh aktivitas yang terlihat, nama pelaksana, blok/subblok,
       rincian pekerjaan, dan foto privat.
 - [x] Aksi **Ubah** untuk header bersama.
@@ -206,8 +207,8 @@ untuk siklus yang sudah ditanam.
   lintas kebun/tenant, field konteks palsu, dan constraint database.
 - `npm.cmd run build`, `npm.cmd run types:check`, PHPStan terarah, Pint, dan
   lint/format frontend yang diubah: lulus.
-- Browser: penyimpanan aktivitas/foto, pemakaian ulang header, pengubahan jumlah
-  pekerja, empty state, dan pemeriksaan terang/gelap pada lebar 320–1280 px.
+- Browser: penyimpanan aktivitas/foto, pemakaian ulang header, jumlah pekerja
+  per aktivitas, empty state, dan pemeriksaan terang/gelap pada lebar 320-1280 px.
 - Tidak ada warning/error console pada pemeriksaan halaman yang diuji.
 - Build masih memberi warning font opsional `fontaine` dan chunk lebih dari
   500 kB; tidak ada paket baru yang dipasang.

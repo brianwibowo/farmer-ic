@@ -98,6 +98,7 @@ class DailyActivityLogService
                     'activity_type_id' => $type->id,
                     'activity_date' => $startedAt,
                     'position' => $position + $index,
+                    'worker_count' => (int) $data['worker_count'],
                     'description' => $item['notes'] ?? null,
                     'obstacle_status' => $item['obstacle_status'],
                     'obstacles' => $item['obstacles'] ?? null,

@@ -8,9 +8,10 @@ Status: **Database-backed tasks, task-linked reports, and initial planting reali
 header per activity or officer. The database enforces
 `daily_logs_farm_date_unique (farm_id, work_date)`. `recorded_by` is the first
 creator; `farm_activities.performed_by` remains the actual reporting officer.
-Daily hours, total workers and general notes belong only to the header. Workers
-are not summed from activity reports. Activity `notes` and `daily_notes` are
-separate inputs. Existing headers are never overwritten by append requests.
+Daily hours and general notes belong to the header. Worker count is stored on
+each `farm_activities` row and may differ between activities; it is not a header
+field. Activity `notes` and `daily_notes` are separate inputs. Existing headers
+are never overwritten by append requests.
 
 The Petugas Aktivitas page is now a date-selectable daily report with an empty
 state, daily summary, all visible activities, each officer, details and private

@@ -13,7 +13,6 @@ import {
     Plus,
     Save,
     Trash2,
-    Users,
 } from '@lucide/vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
@@ -42,6 +41,7 @@ type Activity = {
     type: string | null;
     name: string | null;
     position: number;
+    worker_count: number | null;
     notes: string | null;
     obstacle_status: 'none' | 'reported' | 'not_recorded';
     obstacles: string | null;
@@ -57,7 +57,6 @@ type DailyLog = {
     start_time: string;
     end_time: string;
     timezone: string;
-    worker_count: number;
     recorded_by: string;
     recorder_name: string | null;
     notes: string | null;
@@ -180,7 +179,6 @@ function submit(): void {
                   ...data,
                   start_time: undefined,
                   end_time: undefined,
-                  worker_count: undefined,
                   notes: undefined,
               }
             : data,
@@ -306,7 +304,6 @@ function detailUrl(log: DailyLog): string {
                         :key="headerVersion"
                         v-model:start="form.start_time"
                         v-model:end="form.end_time"
-                        v-model:workers="form.worker_count"
                         v-model:notes="form.notes"
                         :farm-id="farm.id"
                         :date="form.work_date"
@@ -317,6 +314,23 @@ function detailUrl(log: DailyLog): string {
                     />
 
                     <div class="space-y-3">
+                        <label
+                            class="block space-y-1.5 text-xs font-medium text-foreground"
+                            ><span>Jumlah pekerja untuk kegiatan pemetaan</span
+                            ><input
+                                v-model.number="form.worker_count"
+                                type="number"
+                                min="1"
+                                max="32767"
+                                step="1"
+                                class="form-input"
+                            /><p
+                                v-if="fieldError('worker_count')"
+                                class="form-error"
+                            >
+                                {{ fieldError('worker_count') }}
+                            </p></label
+                        >
                         <div class="flex items-center justify-between gap-3">
                             <div>
                                 <h3
@@ -734,8 +748,7 @@ function detailUrl(log: DailyLog): string {
                                     {{ log.work_date }}
                                 </p>
                                 <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ log.start_time }}–{{ log.end_time }} WIB
-                                    · {{ log.worker_count }} pekerja
+                                    {{ log.start_time }}-{{ log.end_time }} WIB
                                 </p>
                             </div>
                             <Link
@@ -757,7 +770,9 @@ function detailUrl(log: DailyLog): string {
                                     activity.block_mapping?.block_name ??
                                     activity.name ??
                                     'Aktivitas'
-                                }}
+                                }}<template v-if="activity.worker_count !== null">
+                                    · {{ activity.worker_count }} pekerja</template
+                                >
                             </span>
                         </div>
                         <p

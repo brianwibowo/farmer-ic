@@ -13,7 +13,6 @@ const props = defineProps<{
 }>();
 const start = defineModel<string>('start', { required: true });
 const end = defineModel<string>('end', { required: true });
-const workers = defineModel<string | number>('workers', { required: true });
 const notes = defineModel<string>('notes', { required: true });
 const emit = defineEmits<{
     ready: [value: boolean];
@@ -104,8 +103,7 @@ onBeforeUnmount(() => controller?.abort());
                 Informasi harian tidak ditimpa.
             </p>
             <p class="text-sm font-semibold">
-                {{ log.start_time }}–{{ log.end_time }} WIB ·
-                {{ log.worker_count }} pekerja
+                {{ log.start_time }}–{{ log.end_time }} WIB
             </p>
             <p
                 v-if="log.notes"
@@ -159,23 +157,6 @@ onBeforeUnmount(() => controller?.abort());
                     ></label
                 >
             </div>
-            <label class="block space-y-2 text-sm"
-                ><span>Total pekerja harian</span
-                ><input
-                    v-model="workers"
-                    type="number"
-                    min="1"
-                    max="32767"
-                    step="1"
-                    required
-                    :class="fieldClass"
-                    :aria-invalid="!!errors.worker_count"
-                /><span
-                    v-if="errors.worker_count"
-                    class="block text-xs text-error"
-                    >{{ errors.worker_count }}</span
-                ></label
-            >
             <label class="block space-y-2 text-sm"
                 ><span>Catatan umum hari ini (opsional)</span
                 ><textarea

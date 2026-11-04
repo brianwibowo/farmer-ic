@@ -149,6 +149,7 @@ function completedAtLabel(value: string | null): string {
                 <h3 class="text-base font-semibold">{{ report.work_date }}</h3>
                 <p class="text-xs text-muted-foreground">
                     Dicatat oleh {{ report.performer_name ?? 'Petugas kebun' }}
+                    · {{ report.worker_count }} pekerja
                 </p>
                 <Link
                     :href="`/petugas/aktivitas?work_date=${report.work_date}`"

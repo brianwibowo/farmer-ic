@@ -83,7 +83,7 @@ class PetugasTaskReadService
                 return [
                     'id' => $activity->id, 'work_date' => $log?->work_date->toDateString(),
                     'performer_name' => $activity->performer?->name,
-                    'start_time' => $log?->start_time, 'end_time' => $log?->end_time, 'worker_count' => $log?->worker_count,
+                    'start_time' => $log?->start_time, 'end_time' => $log?->end_time, 'worker_count' => $activity->worker_count,
                     'notes' => $activity->description, 'details' => json_decode((string) $activity->getAttribute('task_details'), true),
                     'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn ($photo) => [
                         'id' => $photo->id, 'url' => route('petugas.aktivitas.photos', ['activity' => $activity->id, 'photo' => $photo->id]),

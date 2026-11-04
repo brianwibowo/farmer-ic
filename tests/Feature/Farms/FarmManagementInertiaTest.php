@@ -413,7 +413,7 @@ class FarmManagementInertiaTest extends TestCase
         $farm = $this->farm();
         DB::table('daily_activity_logs')->insert([
             'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $this->admin->id,
-            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 2, 'created_at' => now(),
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
         ]);
         $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors('delete');
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
@@ -461,7 +461,7 @@ class FarmManagementInertiaTest extends TestCase
         ]);
         DB::table('daily_activity_logs')->insert([
             'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $worker->id,
-            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 1, 'created_at' => now(),
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
         ]);
         $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
             'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',

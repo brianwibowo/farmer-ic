@@ -101,8 +101,9 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame('active', $cycle->status);
         $this->assertSame('1.5000', $cycle->planted_area_ha);
         $this->assertSame($this->variety->id, $cycle->variety_id);
-        $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $this->farm->id, 'recorded_by' => $this->actor->id, 'worker_count' => 4]);
+        $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $this->farm->id, 'recorded_by' => $this->actor->id]);
         $activity = FarmActivity::firstOrFail();
+        $this->assertSame(4, $activity->worker_count);
         $this->assertNull($activity->getAttribute('planting_cycle_task_id'));
         $this->assertDatabaseHas('planting_details', ['activity_id' => $activity->id, 'seed_name' => $data['seed_name']]);
         $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $cycle->id, 'code' => 'planting', 'status' => 'completed']);
@@ -136,7 +137,7 @@ class PetugasPlantingActivityTest extends TestCase
         ActivityType::firstOrCreate(['code' => 'irrigation'], ['name' => 'Pengairan']);
         $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
         $this->post('/petugas/tasks/'.$task->id.'/aktivitas', [
-            'work_date' => $data['work_date'], 'notes' => 'Pengairan setelah tanam.',
+            'work_date' => $data['work_date'], 'worker_count' => 4, 'notes' => 'Pengairan setelah tanam.',
             'details' => ['area_ha' => '1', 'water_source' => 'Sumur', 'method' => 'Pompa', 'duration_hours' => '1'],
             'photos' => [UploadedFile::fake()->image('pengairan.jpg')],
         ])->assertSessionHasNoErrors();
@@ -145,7 +146,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame(1, FarmActivity::distinct()->count('daily_activity_log_id'));
         $this->assertDatabaseCount('planting_details', 1);
         $this->assertDatabaseCount('irrigation_details', 1);
-        $this->get('/petugas/aktivitas?work_date='.$data['work_date'])->assertInertia(fn (Assert $page) => $page->has('log.activities', 2)->where('log.worker_count', 4));
+        $this->get('/petugas/aktivitas?work_date='.$data['work_date'])->assertInertia(fn (Assert $page) => $page->has('log.activities', 2)->where('log.activities.0.worker_count', 4)->where('log.activities.1.worker_count', 4));
     }
 
     public function test_actual_date_reschedules_only_pending_tasks_without_changing_the_snapshot(): void

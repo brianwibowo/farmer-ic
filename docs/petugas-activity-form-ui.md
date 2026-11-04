@@ -194,7 +194,7 @@ Target flow dari dokumen kategori aktivitas:
 4. Aktivitas berikutnya dapat di-append ke header sama.
 5. Jika dari SOP, simpan relasi task ke activity log.
 
-Backend saat ini masih berbeda: daily-activity-log.md mendukung batch block_mapping dan menyimpan worker_count serta notes pada header. Jangan memaksa payload UI ini ke endpoint lama. Tentukan kontrak, migration additive, Resource/props, Policy, Request, Service, dan tests terlebih dahulu.
+Backend menyimpan `worker_count` per aktivitas (`farm_activities`) dan `notes` umum pada header harian bersama. Form Petugas mengirim jumlah pekerja bersama data aktivitas; jumlah tersebut bukan lagi field header.
 
 ### Ketentuan keamanan dan integritas
 

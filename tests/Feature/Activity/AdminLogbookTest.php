@@ -116,7 +116,7 @@ class AdminLogbookTest extends TestCase
         $invalid['activities'][0]['block_mapping']['length_m'] = -1;
         $this->post($url, $invalid)->assertSessionHasErrors('activities.0.block_mapping.length_m');
         $this->actingAs($this->admin)->get('/admin/logbook/'.$this->farm->id.'/'.$log->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('log.recorder_name', $petugas->name)->where('log.worker_count', 6));
+            ->where('log.recorder_name', $petugas->name)->where('log.activities.0.worker_count', 6));
         $this->assertDatabaseCount('daily_activity_logs', 1);
     }
 

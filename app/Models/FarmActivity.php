@@ -21,12 +21,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $updated_at
  * @property string|null $daily_activity_log_id
  * @property int|null $position
+ * @property int|null $worker_count
  * @property string $obstacle_status
  * @property string|null $obstacles
  * @property string|null $proposed_solution
  * @property string|null $action_taken
  */
-#[Fillable(['farm_id', 'planting_cycle_id', 'activity_type_id', 'performed_by', 'activity_date', 'description', 'status', 'daily_activity_log_id', 'position', 'obstacle_status', 'obstacles', 'proposed_solution', 'action_taken'])]
+#[Fillable(['farm_id', 'planting_cycle_id', 'activity_type_id', 'performed_by', 'activity_date', 'description', 'status', 'daily_activity_log_id', 'position', 'worker_count', 'obstacle_status', 'obstacles', 'proposed_solution', 'action_taken'])]
 class FarmActivity extends FarmerModel
 {
     protected $table = 'farm_activities';
@@ -43,6 +44,7 @@ class FarmActivity extends FarmerModel
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
             'position' => 'integer',
+            'worker_count' => 'integer',
         ];
     }
 

@@ -127,7 +127,7 @@ class DemoActivitySeeder extends Seeder
                 'activity_date' => CarbonImmutable::parse($activityDate.' 09:00', 'Asia/Jakarta'),
                 'description' => $description,
                 'status' => 'completed',
-                'daily_activity_log_id' => $log->id, 'position' => $position,
+                'daily_activity_log_id' => $log->id, 'position' => $position, 'worker_count' => 6,
             ]);
             $relation = match ($typeCode) {
                 'planting' => 'plantingDetail',
@@ -159,7 +159,7 @@ class DemoActivitySeeder extends Seeder
                 'activity_date' => CarbonImmutable::parse('2026-10-28 10:00', 'Asia/Jakarta'),
                 'description' => 'Observasi pertumbuhan minggu ke-4',
                 'status' => 'completed',
-                'daily_activity_log_id' => $log->id, 'position' => $position,
+                'daily_activity_log_id' => $log->id, 'position' => $position, 'worker_count' => 6,
             ]);
             $activity->observation()->create([
                 'planting_cycle_id' => $cycle->id,
@@ -184,7 +184,7 @@ class DemoActivitySeeder extends Seeder
         Farm::visibleTo($actor, $farm->team)->whereKey($farm->id)->lockForUpdate()->firstOrFail();
         $headers = app(\App\Services\Activity\DailyActivityHeaderService::class);
         $log = $headers->resolve($farm, $actor, [
-            'work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 6,
+            'work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00',
             'daily_notes' => 'Kegiatan lapangan bersama tim Kebun Cileuksa.',
         ]);
 

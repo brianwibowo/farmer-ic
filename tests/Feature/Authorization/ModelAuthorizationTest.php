@@ -135,7 +135,7 @@ class ModelAuthorizationTest extends TestCase
             'Commodity' => ['name' => 'Commodity '.$farm->id],
             'CropVariety' => ['commodity_id' => $this->record(Commodity::class, $user, $team, $farm)->getKey(), 'name' => 'Variety '.$farm->id],
             'FarmActivity' => ['farm_id' => $farm->id, 'activity_type_id' => $this->record(\App\Models\ActivityType::class, $user, $team, $farm)->getKey(), 'performed_by' => $user->id, 'activity_date' => now(), 'created_at' => now()],
-            'DailyActivityLog' => ['farm_id' => $farm->id, 'recorded_by' => $user->id, 'work_date' => today(), 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 1, 'created_at' => now()],
+            'DailyActivityLog' => ['farm_id' => $farm->id, 'recorded_by' => $user->id, 'work_date' => today(), 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now()],
             'BlockMappingDetail' => ['block_name' => 'Block 1', 'length_m' => '10', 'width_m' => '10'],
             'FarmBlock' => ['farm_id' => $farm->id, 'code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '1.0000', 'created_by' => $user->id, 'land_clearing_started_at' => now(), 'created_at' => now(), 'updated_at' => now()],
             'PlantingRound' => ['block_id' => $this->record(\App\Models\FarmBlock::class, $user, $team, $farm)->id, 'round_number' => 1, 'status' => 'active', 'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now()],

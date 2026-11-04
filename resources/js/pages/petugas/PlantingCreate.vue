@@ -119,7 +119,6 @@ function submit(): void {
                   ...data,
                   start_time: undefined,
                   end_time: undefined,
-                  worker_count: undefined,
                   daily_notes: undefined,
               }
             : data,
@@ -204,7 +203,6 @@ function submit(): void {
                 <DailyHeaderContext
                     v-model:start="form.start_time"
                     v-model:end="form.end_time"
-                    v-model:workers="form.worker_count"
                     v-model:notes="form.daily_notes"
                     :farm-id="farm.id"
                     :date="form.work_date"
@@ -212,6 +210,23 @@ function submit(): void {
                     @ready="headerReady = $event"
                     @existing="existingHeader = $event"
                 />
+                <label class="block space-y-2 text-sm"
+                    ><span>Jumlah pekerja untuk aktivitas ini</span
+                    ><input
+                        v-model="form.worker_count"
+                        type="number"
+                        min="1"
+                        max="32767"
+                        step="1"
+                        required
+                        :class="fieldClass"
+                        :aria-invalid="!!errors.worker_count"
+                    /><span
+                        v-if="errors.worker_count"
+                        class="block text-xs text-error"
+                        >{{ errors.worker_count }}</span
+                    ></label
+                >
                 <label class="block space-y-2 text-sm"
                     ><span>Varietas</span
                     ><AppSelect

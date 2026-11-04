@@ -69,8 +69,11 @@ foreach ($processes as $process) {
     }
 }
 $log = App\Models\DailyActivityLog::visibleTo($actors[0], $team)->sole();
-$positions = App\Models\FarmActivity::visibleTo($actors[0], $team)->where('daily_activity_log_id', $log->id)->orderBy('position')->pluck('position')->all();
-if ($positions !== [1, 2] || $log->worker_count !== ($log->recorded_by === $actors[0]->id ? 3 : 8)) {
-    throw new RuntimeException('Concurrent appends duplicated/overwrote the header or position.');
+$activities = App\Models\FarmActivity::visibleTo($actors[0], $team)->where('daily_activity_log_id', $log->id)->orderBy('position')->get();
+$positions = $activities->pluck('position')->all();
+$workerCounts = $activities->pluck('worker_count')->all();
+sort($workerCounts);
+if ($positions !== [1, 2] || $workerCounts !== [3, 8]) {
+    throw new RuntimeException('Concurrent appends duplicated/overwrote the header, position, or activity worker count.');
 }
-echo json_encode(['headers' => 1, 'activities' => 2, 'positions' => $positions], JSON_THROW_ON_ERROR).PHP_EOL;
+echo json_encode(['headers' => 1, 'activities' => 2, 'positions' => $positions, 'workers' => $workerCounts], JSON_THROW_ON_ERROR).PHP_EOL;

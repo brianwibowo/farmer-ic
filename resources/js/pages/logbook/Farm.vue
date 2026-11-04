@@ -267,7 +267,6 @@ function reset(): void {
                                 <th scope="col" class="px-5 py-3">
                                     Waktu kerja
                                 </th>
-                                <th scope="col" class="px-5 py-3">Pekerja</th>
                                 <th scope="col" class="px-5 py-3">Kegiatan</th>
                                 <th scope="col" class="px-5 py-3">
                                     Kendala tercatat
@@ -305,11 +304,6 @@ function reset(): void {
                                     class="px-5 py-4 text-xs whitespace-nowrap text-muted-foreground"
                                 >
                                     {{ log.start_time }}–{{ log.end_time }}
-                                </td>
-                                <td
-                                    class="px-5 py-4 font-semibold tabular-nums"
-                                >
-                                    {{ log.worker_count }}
                                 </td>
                                 <td
                                     class="px-5 py-4 font-semibold tabular-nums"
@@ -370,9 +364,6 @@ function reset(): void {
                         </p>
                         <div class="flex flex-wrap gap-3 text-xs">
                             <span
-                                ><strong>{{ log.worker_count }}</strong>
-                                pekerja</span
-                            ><span
                                 ><strong>{{ log.activities_count }}</strong>
                                 kegiatan</span
                             ><span

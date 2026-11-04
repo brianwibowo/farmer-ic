@@ -4,7 +4,6 @@ export type DailyHeader = {
     work_date: string;
     start_time: string;
     end_time: string;
-    worker_count: number;
     notes: string | null;
     recorded_by: string;
     recorder_name?: string | null;
@@ -15,6 +14,7 @@ export type DailyReport = DailyHeader & {
         id: string;
         name: string;
         position: number;
+        worker_count: number | null;
         performed_by: string;
         performer_name: string | null;
         subblok: string | null;

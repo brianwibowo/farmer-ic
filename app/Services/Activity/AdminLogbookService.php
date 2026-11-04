@@ -60,7 +60,7 @@ class AdminLogbookService
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, array{id: string, worker_count: int, notes: string|null, work_date: string, start_time: string, end_time: string, recorder_name: string|null, activities_count: int, obstacle_count: int}>
+     * @return LengthAwarePaginator<int, array{id: string, notes: string|null, work_date: string, start_time: string, end_time: string, recorder_name: string|null, activities_count: int, obstacle_count: int}>
      */
     public function paginate(Farm $farm, User $actor, Team $team, array $filters): LengthAwarePaginator
     {
@@ -82,7 +82,7 @@ class AdminLogbookService
         return $query->orderByDesc('work_date')->orderByDesc('created_at')->orderBy('id')
             ->paginate($filters['per_page'] ?? 15)->appends($filters)
             ->through(fn (DailyActivityLog $log): array => [
-                ...$log->only(['id', 'worker_count', 'notes']),
+                ...$log->only(['id', 'notes']),
                 'work_date' => $log->work_date->format('Y-m-d'),
                 'start_time' => substr($log->start_time, 0, 5),
                 'end_time' => substr($log->end_time, 0, 5),

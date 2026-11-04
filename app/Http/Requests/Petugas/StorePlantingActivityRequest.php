@@ -34,7 +34,7 @@ class StorePlantingActivityRequest extends FormRequest
             'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
-            'worker_count' => ['nullable', 'integer', 'between:1,32767'],
+            'worker_count' => ['required', 'integer', 'between:1,32767'],
             'daily_notes' => ['nullable', 'string', 'max:5000'],
             'variety_id' => ['required', 'uuid'],
             'area_ha' => ['required', 'numeric', 'decimal:0,4', 'between:0.0001,99999999.9999'],

@@ -56,7 +56,8 @@ class TaskActivityService
                 $activity = new FarmActivity([
                     'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'activity_type_id' => $type->id,
                     'performed_by' => $actor->id, 'activity_date' => $date, 'daily_activity_log_id' => $log->id,
-                    'position' => $this->headers->nextPosition($log, $actor), 'description' => $data['notes'] ?? null, 'obstacle_status' => 'none',
+                    'position' => $this->headers->nextPosition($log, $actor), 'worker_count' => (int) $data['worker_count'],
+                    'description' => $data['notes'] ?? null, 'obstacle_status' => 'none',
                 ]);
                 $activity->forceFill(['planting_cycle_task_id' => $task->id, 'task_details' => json_encode($details, JSON_THROW_ON_ERROR)])->save();
                 match ($type->detail_key) {

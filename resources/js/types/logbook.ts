@@ -27,7 +27,6 @@ export type LogbookRow = {
     work_date: string;
     start_time: string;
     end_time: string;
-    worker_count: number;
     notes: string | null;
     recorder_name: string | null;
     activities_count: number;
@@ -37,6 +36,7 @@ export type LogbookActivity = {
     id: string;
     type: string | null;
     position: number;
+    worker_count: number | null;
     notes: string | null;
     obstacle_status: 'none' | 'reported' | 'not_recorded';
     obstacles: string | null;

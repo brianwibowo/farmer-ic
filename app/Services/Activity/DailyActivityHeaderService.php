@@ -17,7 +17,6 @@ class DailyActivityHeaderService
         return [
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
-            'worker_count' => ['required', 'integer', 'between:1,32767'],
             'daily_notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
@@ -44,7 +43,7 @@ class DailyActivityHeaderService
         return DailyActivityLog::create([
             'farm_id' => $farm->id, 'work_date' => $data['work_date'], 'recorded_by' => $actor->id,
             'start_time' => $header['start_time'], 'end_time' => $header['end_time'],
-            'worker_count' => $header['worker_count'], 'notes' => $header['daily_notes'] ?? null,
+            'notes' => $header['daily_notes'] ?? null,
         ]);
     }
 
@@ -63,7 +62,7 @@ class DailyActivityHeaderService
             $header = Validator::make($data, self::rules())->validate();
             $locked->update([
                 'start_time' => $header['start_time'], 'end_time' => $header['end_time'],
-                'worker_count' => $header['worker_count'], 'notes' => $header['daily_notes'] ?? null,
+                'notes' => $header['daily_notes'] ?? null,
             ]);
         });
     }

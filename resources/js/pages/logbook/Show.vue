@@ -6,7 +6,6 @@ import {
     Clock3,
     LandPlot,
     UserRound,
-    Users,
 } from '@lucide/vue';
 import LogbookActivities from '@/components/logbook/LogbookActivities.vue';
 import {
@@ -62,11 +61,6 @@ defineProps<{ farm: LogbookFarm; log: LogbookDetail }>();
                                     label: 'Waktu kerja (WIB)',
                                     value: log.start_time + '–' + log.end_time,
                                     icon: Clock3,
-                                },
-                                {
-                                    label: 'Jumlah pekerja',
-                                    value: log.worker_count + ' orang',
-                                    icon: Users,
                                 },
                                 {
                                     label: 'Pelapor',
