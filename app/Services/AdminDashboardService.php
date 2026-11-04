@@ -27,35 +27,39 @@ class AdminDashboardService
      * @param  array{farm_id?: string|null, period?: string|int}  $filters
      * @return array<string, mixed>
      */
-    public function summary(User $actor, ?Team $team, array $filters = []): array
+    public function summary(User $actor, Team $team, array $filters = []): array
     {
         $farmId = $filters['farm_id'] ?? null;
         $period = (int) ($filters['period'] ?? 7);
-        $farmOptions = Farm::query()->visibleTo($actor, $team)->orderBy('name')->get(['id', 'name']);
-        $farms = Farm::query()->visibleTo($actor, $team)->when($farmId, fn (Builder $q) => $q->whereKey($farmId));
+        $tenantFarms = Farm::query()->visibleTo($actor, $team)->where('team_id', $team->id);
+        $farmOptions = (clone $tenantFarms)->orderBy('name')->get(['id', 'name']);
+        // A farm filter retained after switching tenants must not select foreign data.
+        if ($farmId !== null && ! $farmOptions->contains('id', $farmId)) {
+            $farmId = null;
+        }
+        $farms = (clone $tenantFarms)->when($farmId, fn (Builder $q) => $q->whereKey($farmId));
+        $farmIds = (clone $farms)->select('farms.id');
         $weekStart = CarbonImmutable::today()->subDays($period - 1);
         $weekEnd = CarbonImmutable::today()->endOfDay();
         $monthStart = CarbonImmutable::today()->startOfMonth();
         $monthEnd = CarbonImmutable::today()->endOfMonth();
 
-        $activityQuery = FarmActivity::query()->visibleTo($actor, $team)->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId));
-        $mappedBlocks = FarmBlock::query()->visibleTo($actor, $team)->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId))->count();
-        $cycles = PlantingCycle::query()->visibleTo($actor, $team)->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId));
-        $activeCycles = PlantingCycle::query()
-            ->visibleTo($actor, $team)
-            ->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId))
-            ->where('status', 'active');
+        $activityQuery = FarmActivity::query()->visibleTo($actor, $team)->whereIn('farm_id', $farmIds);
+        $blocks = FarmBlock::query()->visibleTo($actor, $team)->whereIn('farm_id', $farmIds);
+        $mappedBlocks = (clone $blocks)->count();
+        $cycles = PlantingCycle::query()->visibleTo($actor, $team)->whereIn('farm_id', $farmIds);
+        $activeCycles = (clone $cycles)->where('status', 'active');
         $openRisks = FarmRisk::query()
             ->visibleTo($actor, $team)
-            ->when($farmId, fn (Builder $q) => $q->whereHas('plantingCycle', fn (Builder $cycles) => $cycles->where('farm_id', $farmId)))
+            ->whereIn('planting_cycle_id', (clone $cycles)->select('planting_cycles.id'))
             ->where(function (Builder $query): void {
                 $query->whereNull('status')
                     ->orWhereNotIn('status', ['resolved', 'closed']);
             });
-        $financialTransactions = FinancialTransaction::query()->visibleTo($actor, $team)->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId));
+        $financialTransactions = FinancialTransaction::query()->visibleTo($actor, $team)->whereIn('farm_id', $farmIds);
         $currentProjections = FinancialProjection::query()
             ->visibleTo($actor, $team)
-            ->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId))
+            ->whereIn('farm_id', $farmIds)
             ->whereDate('period_start', '<=', CarbonImmutable::today())
             ->whereDate('period_end', '>=', CarbonImmutable::today());
         $recentActivities = (clone $activityQuery)
@@ -71,6 +75,7 @@ class AdminDashboardService
             ->keyBy('performed_by');
         $officers = User::query()
             ->visibleTo($actor, $team)
+            ->whereHas('teams', fn (Builder $teams) => $teams->whereKey($team->id))
             ->when($farmId, fn (Builder $q) => $q->where('assigned_farm_id', $farmId))
             ->with('role:id,name')
             ->where('is_active', true)
@@ -94,7 +99,7 @@ class AdminDashboardService
 
         $tasks = OperationalTarget::query()
             ->visibleTo($actor, $team)
-            ->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId))
+            ->whereIn('farm_id', $farmIds)
             ->with(['farm:id,name', 'creator:id,name'])
             ->orderByRaw('target_date asc nulls last')
             ->limit(8)
@@ -134,7 +139,7 @@ class AdminDashboardService
             ->get(['id', 'name', 'city', 'total_area_ha', 'latitude', 'longitude']);
         $commodityCycles = PlantingCycle::query()
             ->visibleTo($actor, $team)
-            ->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId))
+            ->whereIn('farm_id', $farmIds)
             ->whereIn('status', ['active', 'harvested'])
             ->with('variety.commodity')
             ->get();
@@ -179,9 +184,7 @@ class AdminDashboardService
             ->selectRaw('code, COUNT(*) as total')->groupBy('code')->pluck('total', 'code');
         $stageNames = ['soil_preparation' => 'Persiapan tanah', 'basic_fertilizer' => 'Pupuk dasar', 'planting' => 'Penanaman', 'maintenance' => 'Pemeliharaan', 'harvest' => 'Panen'];
         $stages = collect($stageNames)->map(fn (string $label, string $code): array => ['code' => $code, 'label' => $label, 'count' => (int) ($stageCounts[$code] ?? 0)])->values()->all();
-        $landClearing = FarmBlock::query()->visibleTo($actor, $team)
-            ->when($farmId, fn (Builder $q) => $q->where('farm_id', $farmId))
-            ->where('is_active', true)->whereNull('land_clearing_completed_at')->count();
+        $landClearing = (clone $blocks)->where('is_active', true)->whereNull('land_clearing_completed_at')->count();
         $timelineUnknown = max(0, $runningCount - array_sum(array_column($stages, 'count')));
         $trend = $this->activityTrend($trendActivities, $weekStart, $period);
 
