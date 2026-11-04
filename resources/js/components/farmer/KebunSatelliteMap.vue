@@ -5,6 +5,10 @@ import 'leaflet/dist/leaflet.css';
 import '../../../css/farm-map.css';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { FARM_MAP_MAX_ZOOM, SATELLITE_MIN_ZOOM } from '@/lib/farmMap';
+import {
+    ESRI_WORLD_IMAGERY_ATTRIBUTION,
+    ESRI_WORLD_IMAGERY_URL,
+} from '@/lib/esriBasemap';
 
 const props = defineProps<{ position: [number, number]; name: string }>();
 const container = ref<HTMLDivElement>();
@@ -54,15 +58,11 @@ async function initialize(): Promise<void> {
             })
             .addTo(map);
         leaflet.control.scale({ imperial: false, maxWidth: 100 }).addTo(map);
-        tiles = leaflet.tileLayer(
-            'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            {
+        tiles = leaflet.tileLayer(ESRI_WORLD_IMAGERY_URL, {
                 maxZoom: FARM_MAP_MAX_ZOOM,
                 maxNativeZoom: FARM_MAP_MAX_ZOOM,
-                attribution:
-                    'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
-            },
-        );
+                attribution: ESRI_WORLD_IMAGERY_ATTRIBUTION,
+            });
         tiles.on('tileload', () => {
             error.value = '';
             stopLoading();
