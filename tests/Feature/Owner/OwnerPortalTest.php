@@ -59,6 +59,20 @@ class OwnerPortalTest extends TestCase
         $this->actingAs($this->owner);
     }
 
+    public function test_projection_page_is_owner_only_and_has_no_operational_data(): void
+    {
+        $this->get('/proyeksi')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('owner/Projection')
+            ->missing('dashboard')->missing('projections'));
+
+        foreach ([$this->admin, $this->petugas] as $actor) {
+            $this->actingAs($actor)->get('/proyeksi')->assertForbidden();
+        }
+
+        $this->app['auth']->guard()->logout();
+        $this->get('/proyeksi')->assertRedirect(route('login'));
+    }
+
     public function test_owner_reads_database_dashboard_farms_blocks_and_monitoring(): void
     {
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page

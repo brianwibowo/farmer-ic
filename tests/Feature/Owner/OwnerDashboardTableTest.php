@@ -120,6 +120,48 @@ class OwnerDashboardTableTest extends TestCase
             ->where('dashboard.metrics.0.value', 1)->where('dashboard.filters.farm_id', $first->id));
     }
 
+    public function test_owner_pie_includes_every_scoped_commodity_while_admin_keeps_its_top_three(): void
+    {
+        $first = $this->farm('Kebun Komoditas A', '20.0000');
+        $second = $this->farm('Kebun Komoditas B', '5.0000');
+        $foreignTeam = Team::factory()->create(['is_personal' => false]);
+        $foreign = $this->farm('Kebun Komoditas Rahasia', '999.0000', null, $foreignTeam);
+        foreach ([
+            [$first, 'Jagung', 'BISI-18', 'active', '2.0000'],
+            [$first, 'Jagung', 'BISI-18', 'harvested', '3.0000'],
+            [$first, 'Kedelai', 'Anjasmoro', 'active', '3.0000'],
+            [$first, 'Padi', 'Ciherang', 'harvested', '2.0000'],
+            [$first, 'Kacang', 'Gajah', 'active', '1.0000'],
+            [$second, 'Padi', 'Ciherang', 'active', '0.5000'],
+            [$second, 'Ubi', 'Cilembu', 'active', '0.2500'],
+            [$first, 'Kentang rencana', 'Granola', 'planned', '100.0000'],
+            [$first, 'Tomat batal', 'Servo', 'cancelled', '100.0000'],
+            [$foreign, 'Komoditas rahasia', 'Varietas rahasia', 'active', '999.0000'],
+        ] as [$farm, $commodity, $variety, $status, $area]) {
+            $this->cycle($farm, $commodity, $variety, $status)->update(['planted_area_ha' => $area]);
+        }
+
+        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('dashboard.commodities', 5)
+            ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('areaValue', 'name')->all() === [
+                'Jagung' => 5, 'Kedelai' => 3, 'Padi' => 2.5, 'Kacang' => 1, 'Ubi' => 0.25,
+            ])
+            ->where('dashboard.commodities.0.plantedArea', '5')
+            ->where('dashboard.commodities.0.cycleCount', 2)
+            ->where('dashboard.commodities.2.plantedArea', '2,5')
+            ->where('dashboard.commodities.2.cycleCount', 2));
+
+        $this->get('/?farm_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('dashboard.commodities', 2)
+            ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('areaValue', 'name')->all() === [
+                'Padi' => 0.5, 'Ubi' => 0.25,
+            ]));
+
+        $this->actingAs($this->admin)->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('dashboard.commodities', 3)
+            ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('name')->all() === ['Jagung', 'Kedelai', 'Padi']));
+    }
+
     public function test_other_tenants_never_enter_rows_crops_resume_or_total_and_foreign_links_deny(): void
     {
         $own = $this->farm('Kebun Terlihat', '3.2500');

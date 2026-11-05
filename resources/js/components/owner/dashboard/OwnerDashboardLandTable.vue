@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { ArrowUpRight } from '@lucide/vue';
 import { ownerArea, ownerDate, ownerStatus } from '@/types/owner';
 import type { OwnerDashboardLandTable } from '@/types/owner-dashboard';
 
@@ -12,13 +13,17 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
         aria-labelledby="owner-land-heading"
         :aria-busy="loading"
     >
-        <header class="flex items-center justify-between gap-3 px-4 py-3">
+        <header
+            class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3"
+        >
             <h2 id="owner-land-heading" class="text-base font-semibold">
                 Ringkasan lahan
             </h2>
-            <span class="shrink-0 text-xs text-muted-foreground"
-                >{{ table.total }} kebun</span
-            >
+            <Link
+                href="/proyeksi"
+                class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                >Lihat detail<ArrowUpRight class="size-4" aria-hidden="true"
+            /></Link>
         </header>
         <div
             role="region"

@@ -108,7 +108,7 @@ modul lain tidak diaudit ulang.
   OwnerLayout yang mengaktifkan prop tersebut, sehingga portal Petugas dan
   alur profil/AI mempertahankan perilakunya.
 
-## Responsivitas Owner untuk tablet, laptop, dan TV
+## Responsivitas Owner untuk tablet, laptop, dan TV (versi sebelum revisi Proyeksi)
 
 OwnerLayout mengaktifkan prop adaptif pada shell yang sama; halaman, tabel,
 peta, dan state filter tidak dirender dua kali. Ponsel di bawah 640px tetap
@@ -138,3 +138,48 @@ Verifikasi browser pada 5 November 2026:
   terang/gelap desktop tidak menimbulkan overflow; 18 tile peta terisi.
 - Pemeriksaan console browser tidak menemukan warning/error. Perubahan
   ini tidak mengubah backend, permission, AI, atau formulir profil.
+
+## Revisi Beranda dan navigasi Proyeksi (5 November 2026)
+
+Beranda sekarang menampilkan Total lahan dan Luas lahan dari `landTable.total`
+serta `landTable.total_area_ha`, tabel Ringkasan lahan selebar konten, lalu
+pie Komoditas di kiri dan Peta lahan di kanan mulai 768px (bertumpuk pada layar
+lebih sempit). Total lahan adalah jumlah record Farm dalam scope dan filter
+aktif, bukan jumlah blok/subblok. Tabel mempertahankan header dan Site sticky,
+tautan site/resume dan total hektar. `Lihat detail` di kanan atas tabel menuju
+`/proyeksi`. Filter kebun dan refresh tetap aktif; filter periode dan panel
+aktivitas/siklus/tahap/batch tidak lagi ditampilkan pada Beranda.
+
+Pie memakai seluruh `dashboard.commodities`, berdasarkan `areaValue` (jumlah
+planted_area_ha pada siklus active/harvested), dengan nama/ha/persentase sebagai
+legend. OwnerReadService memanggil summary dengan `commodityLimit: null`,
+sedangkan Admin tetap menggunakan default tiga komoditas. Query visibleTo,
+scope tenant dan farm filter tidak berubah. Komoditas planned/cancelled atau
+tenant lain tetap tidak masuk. Nol/tidak ada luas tanam menghasilkan empty
+state. Persentase terhadap total luas tanam komoditas, bukan total luas Farm.
+
+Navigasi Owner menjadi Beranda, Proyeksi, Lainnya. Proyeksi adalah halaman
+kosong yang jujur, tanpa query operasional, di grup route `auth`, `verified`,
+`can:owner.access`. Keuangan disembunyikan dari Lainnya. Route/layanan AI dan
+keuangan tetap dipertahankan, bersama formulir profil dan navigasi Petugas.
+Tidak ada perubahan grant maupun query/rute baru yang tidak diproteksi.
+
+Verifikasi revisi:
+
+- 47 tes backend / 1.445 assertion lolos (Owner, dashboard dan pemilihan
+  tenant), termasuk akses `/proyeksi`, distribusi lima komoditas Owner,
+  Admin tetap tiga komoditas, filter kebun dan penolakan data tenant lain.
+- Smoke render SFC pie asli: 5 kasus lolos, mencakup satu komoditas 100%,
+  komposisi 6/4 menjadi 60%/40%, lima sektor, serta dataset kosong/nol.
+  Tidak ada output NaN/Infinity.
+- Browser memeriksa 11 viewport dari 320×568 sampai 3840×2160, termasuk
+  tablet portrait dan ponsel landscape. Dua metrik, satu tabel, satu pie dan
+  satu peta; tidak ada overflow horizontal halaman. Pie/peta berdampingan
+  mulai 768px, dengan urutan komoditas lalu peta pada layar sempit.
+- Lihat detail dan navigasi Proyeksi membuka placeholder dengan status aktif
+  yang sesuai. Menu Lainnya tidak menampilkan AI/Keuangan. Site membuka
+  detail kebun Owner; filter farm_id dan refresh berhasil. Freeze Site tetap
+  pada offset 0px setelah scroll horizontal 444px.
+- Tema terang/gelap, lint, Vue typecheck dan build lolos. Browser tidak
+  mencatat warning/error; build masih memberi peringatan ukuran chunk besar
+  yang sudah ada pada modul lain. Tidak ada perubahan formulir profil.

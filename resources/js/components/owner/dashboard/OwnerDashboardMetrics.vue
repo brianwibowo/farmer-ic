@@ -1,29 +1,37 @@
 <script setup lang="ts">
-import { LandPlot, Ruler, Sprout } from '@lucide/vue';
+import { LandPlot, Ruler } from '@lucide/vue';
 import { computed } from 'vue';
-import type { DashboardData } from '@/types/dashboard';
+import { ownerArea } from '@/types/owner';
+import type { OwnerDashboardLandTable } from '@/types/owner-dashboard';
 
-const props = defineProps<{ dashboard: DashboardData }>();
-const metrics = computed(() =>
-    props.dashboard.metrics.filter((metric) => metric.key !== 'risks'),
-);
-const activeAreaNote = computed(
-    () =>
-        props.dashboard.metrics.find((metric) => metric.key === 'cycles')?.note,
-);
-const icons = { farms: LandPlot, area: Ruler, cycles: Sprout, risks: Sprout };
+const props = defineProps<{ table: OwnerDashboardLandTable }>();
+const metrics = computed(() => [
+    {
+        key: 'farms',
+        label: 'Total lahan',
+        value: ownerArea(props.table.total),
+        unit: 'lahan',
+        icon: LandPlot,
+    },
+    {
+        key: 'area',
+        label: 'Luas lahan',
+        value: ownerArea(props.table.total_area_ha),
+        unit: 'ha',
+        icon: Ruler,
+    },
+]);
 </script>
 
 <template>
     <section
-        class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-6"
-        aria-label="Ringkasan kebun"
+        class="grid min-w-0 grid-cols-2 gap-3 lg:gap-6"
+        aria-label="Ringkasan total lahan"
     >
         <article
             v-for="metric in metrics"
             :key="metric.key"
             class="min-w-0 rounded-xl border border-border bg-card p-3.5 lg:p-5"
-            :class="metric.key === 'cycles' ? 'col-span-2 sm:col-span-1' : ''"
         >
             <div class="flex items-start justify-between gap-2">
                 <h2
@@ -32,7 +40,7 @@ const icons = { farms: LandPlot, area: Ruler, cycles: Sprout, risks: Sprout };
                     {{ metric.label }}
                 </h2>
                 <component
-                    :is="icons[metric.key]"
+                    :is="metric.icon"
                     class="mt-0.5 size-4 shrink-0 text-secondary dark:text-primary"
                     aria-hidden="true"
                 />
@@ -45,25 +53,6 @@ const icons = { farms: LandPlot, area: Ruler, cycles: Sprout, risks: Sprout };
                     metric.unit
                 }}</span>
             </p>
-            <p
-                class="mt-2 text-xs leading-5 text-muted-foreground lg:text-sm lg:leading-6"
-            >
-                <template v-if="metric.key === 'cycles'"
-                    >{{ dashboard.cycles.planned }} persiapan ·
-                    {{ dashboard.cycles.active }} aktif</template
-                >
-                <template v-else-if="metric.key === 'area' && activeAreaNote">{{
-                    activeAreaNote
-                }}</template>
-                <template v-else>{{ metric.note }}</template>
-            </p>
         </article>
-        <p
-            v-if="!metrics.length"
-            role="status"
-            class="col-span-2 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground sm:col-span-3"
-        >
-            Ringkasan kebun belum tersedia.
-        </p>
     </section>
 </template>

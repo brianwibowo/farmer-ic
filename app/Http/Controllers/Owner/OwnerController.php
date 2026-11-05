@@ -104,6 +104,11 @@ class OwnerController extends Controller
         return Inertia::render('owner/More');
     }
 
+    public function projection(): Response
+    {
+        return Inertia::render('owner/Projection');
+    }
+
     private function team(Request $request): Team
     {
         $team = $request->user()->currentTeam;

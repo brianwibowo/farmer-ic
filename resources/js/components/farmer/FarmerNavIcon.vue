@@ -32,6 +32,9 @@ defineProps<{ name: FarmerNavKey }>();
                 d="m25 1 1.2 3.2 3.3 1.3-3.3 1.2L25 10l-1.3-3.3-3.2-1.2 3.2-1.3L25 1ZM25 23l1.1 2.9L29 27l-2.9 1.1L25 31l-1.1-2.9L21 27l2.9-1.1L25 23Z"
             />
         </template>
+        <template v-else-if="name === 'projection'">
+            <path d="M5 4v23h23M10 21l6-7 5 3 7-10M22 7h6v6" />
+        </template>
         <template v-else-if="name === 'finance'">
             <path
                 d="M9 17a9 9 0 1 1 17 3M19 6v10M22 8.5c-.8-1.4-5-1.7-5 1s5 1 5 3.5-4.2 2.4-5.5 1M2 21l4-1 8 3h4a2 2 0 0 0 0-4h-4M2 28l7 2a5 5 0 0 0 4-.5l13-8a2 2 0 0 0-2-3l-6 3"

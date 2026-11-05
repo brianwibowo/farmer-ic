@@ -25,9 +25,10 @@ class AdminDashboardService
      * values, while authorization remains at the route/controller boundary.
      *
      * @param  array{farm_id?: string|null, period?: string|int}  $filters
+     * @param  int|null  $commodityLimit  Null returns every scoped commodity for complete charts.
      * @return array<string, mixed>
      */
-    public function summary(User $actor, Team $team, array $filters = []): array
+    public function summary(User $actor, Team $team, array $filters = [], ?int $commodityLimit = 3): array
     {
         $farmId = $filters['farm_id'] ?? null;
         $period = (int) ($filters['period'] ?? 7);
@@ -152,7 +153,7 @@ class AdminDashboardService
                 'variety.commodity' => fn ($commodities) => $commodities->visibleTo($actor, $team),
             ])
             ->get();
-        $commodities = $commodityCycles
+        $commoditySummaries = $commodityCycles
             ->filter(fn (PlantingCycle $cycle): bool => $cycle->variety?->commodity !== null)
             ->groupBy(fn (PlantingCycle $cycle): string => (string) $cycle->variety->commodity->id)
             ->map(function (Collection $cycles): array {
@@ -167,8 +168,8 @@ class AdminDashboardService
                     'cycleCount' => $cycles->count(),
                 ];
             })
-            ->sortByDesc(fn (array $commodity): float => (float) str_replace(',', '.', str_replace('.', '', $commodity['plantedArea'])))
-            ->take(3)
+            ->sortByDesc(fn (array $commodity): float => (float) str_replace(',', '.', str_replace('.', '', $commodity['plantedArea'])));
+        $commodities = ($commodityLimit === null ? $commoditySummaries : $commoditySummaries->take($commodityLimit))
             ->values()
             ->all();
 

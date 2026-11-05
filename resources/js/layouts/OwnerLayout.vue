@@ -9,6 +9,8 @@ const page = usePage();
 const active = computed<FarmerNavKey>(() => {
     const path = page.url.split('?')[0].replace(/\/$/, '') || '/';
     if (path === '/') return 'home';
+    if (path === '/proyeksi' || path.startsWith('/proyeksi/'))
+        return 'projection';
     if (path === '/kebun' || path.startsWith('/kebun/')) return 'garden';
     return 'more';
 });

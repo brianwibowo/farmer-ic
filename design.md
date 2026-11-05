@@ -255,9 +255,11 @@ Use semantic tab markup when switching content in place. Keep the selected indic
 
 ## Farmer/mobile bottom navigation
 
-The Owner/farmer bottom bar has three destinations: Beranda, AI, and Lainnya.
-Retain its emphasized, centered AI action and existing AI workflow. Lainnya
-opens Kebun, Keuangan, the read-only activity feed, SOP, and user directory.
+The Owner/farmer bottom bar has three destinations: Beranda, Proyeksi, and
+Lainnya. Proyeksi replaces the emphasized center AI entry and opens an honest
+empty placeholder at `/proyeksi`. Hide AI navigation without removing its
+existing backend/workflow. Lainnya opens Kebun, the read-only activity feed,
+SOP, and user directory. Hide its Keuangan entry without removing finance routes.
 Keep Lainnya selected when visiting these sections and their nested pages.
 Owner screens use the same persisted domain records and metric definitions as
 Admin, presented in the Farmer/mobile profile. Farm detail links to blocks,
@@ -277,17 +279,25 @@ use a full-height Owner desktop canvas with horizontal header navigation and a
 Petugas, the existing AI page and profile forms independent. Render the page
 slot once so maps, data, filter state and IDs are not duplicated.
 Use AdminDashboardService summary definitions and active-tenant/farm filters,
-with the Farmer palette and mobile cards. Show Total kebun, Luas terkelola and
-Batch berjalan; omit Risiko terbuka, Perlu perhatian and the entire OPEX/finance
-panel. Place the land table immediately below the metrics (the former activity
-chart position), then Aktivitas lahan in the former attention position. Follow
-with Siklus tanam, Tahap penanaman, Komoditas tertanam, Denah kebun and the
-filterable Aktivitas lapangan list. Phones keep one column. Tablets use three
-metric columns and two planting columns; desktop uses three planting columns.
-At 1280px+, place the table and activity chart side by side when both exist,
-with enough space for the full table. Filters align horizontally on desktop.
-Activity results use one mobile list, two desktop columns and three on wide
-screens. Increase desktop/TV metric and table type sizes without changing data.
+with the Farmer palette. Show only two metrics: Total lahan (Farm count) and
+Luas lahan (hectares), using the same filtered totals as the land table.
+Place the full-width table immediately below the metrics, with a `Lihat detail`
+link at its upper right pointing to `/proyeksi`. Below it, put the Komoditas
+pie chart on the left and Peta lahan on the right from 768px; stack chart then
+map on phones/narrow tablets. Keep the two metric columns at every width.
+Remove batch, risk, attention, finance, planting-stage/cycle, activity-chart and
+activity-list panels from this home. Their read pages remain available through
+Lainnya where applicable. Retain the farm filter/refresh; remove the activity
+period filter because this home no longer shows the activity trend.
+Increase desktop/TV metric and table type sizes without changing data.
+
+The commodity pie uses the complete scoped commodity distribution (active or
+harvested cycles' planted hectares); do not apply Admin's top-three card limit.
+Provide a text legend with name, hectares and percentage, semantic chart colors,
+an accessible description and an honest empty state for missing/zero area.
+One commodity is a full pie. The percentage describes planted commodity area,
+not all managed land or planned allocation. Keep the same farm filter for table,
+metrics, pie and map, and one DOM instance for each visual.
 
 The single live table has Site / lahan, Luas (ha), Legalitas, Jenis tanaman,
 Progress and Resume. Its own bounded scroll region allows both axes while
@@ -303,8 +313,8 @@ Read farms, crop/variety, persisted batch stages and latest activity from scoped
 database queries; no fixture or browser-storage fallback. Legalitas currently
 shows the stored land-tenure label; the schema has no TNI/POLRI institution field.
 Missing fields remain explicit. Progress is a completed-stage count across
-running batches, not an invented crop-growth percentage. The period filter affects
-the activity chart; resume and activity lists are latest records with dates.
+running batches, not an invented crop-growth percentage. Resume is the latest
+record with its own date, independent of legacy activity-period query parameters.
 Preserve Owner profile, AI and existing authorization; keep empty/loading/error
 states, working filters, touch/keyboard scrolling and both themes.
 

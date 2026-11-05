@@ -35,7 +35,8 @@ class OwnerReadService
      */
     public function dashboard(User $actor, Team $team, array $filters = []): array
     {
-        $dashboard = $this->dashboard->summary($actor, $team, $filters);
+        // A pie chart must include the full scoped distribution, not Admin's top-three cards.
+        $dashboard = $this->dashboard->summary($actor, $team, $filters, commodityLimit: null);
         $farmId = $dashboard['filters']['farm_id'];
 
         return [
