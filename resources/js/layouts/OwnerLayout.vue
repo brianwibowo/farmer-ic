@@ -25,9 +25,6 @@ onMounted(() => {
             feedback.value = '';
             failed.value = false;
         }),
-        router.on('success', () => {
-            feedback.value = 'Data berhasil dimuat.';
-        }),
         router.on('error', () => {
             failed.value = true;
             feedback.value = 'Periksa filter lalu coba lagi.';

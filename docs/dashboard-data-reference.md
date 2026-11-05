@@ -158,13 +158,24 @@ scope tenant dan farm filter tidak berubah. Komoditas planned/cancelled atau
 tenant lain tetap tidak masuk. Nol/tidak ada luas tanam menghasilkan empty
 state. Persentase terhadap total luas tanam komoditas, bukan total luas Farm.
 
-Navigasi Owner menjadi Beranda, Proyeksi, Lainnya. Proyeksi adalah halaman
-kosong yang jujur, tanpa query operasional, di grup route `auth`, `verified`,
-`can:owner.access`. Keuangan disembunyikan dari Lainnya. Route/layanan AI dan
+Navigasi Owner menjadi Beranda, Proyeksi, Lainnya. Proyeksi memakai route
+`/proyeksi` (`owner.projection`), action `OwnerController::projection`, dan
+halaman Inertia `owner/Projection`. Ringkasan lahan dan navigasi membuka halaman
+yang sama; filter Cycle/Tahun tetap memakai URL tersebut. Controller memeriksa
+policy Farm sebelum `HarvestProjectionService` membaca data melalui `visibleTo`
+dan batas tenant aktif. Grup route tetap `auth`, `verified`, `can:owner.access`.
+Keuangan disembunyikan dari Lainnya. Route/layanan AI dan
 keuangan tetap dipertahankan, bersama formulir profil dan navigasi Petugas.
 Tidak ada perubahan grant maupun query/rute baru yang tidak diproteksi.
 
-Verifikasi revisi:
+Proyeksi per cycle menggunakan total luas Farm (ha) × 40 ton untuk Jagung,
+× 100 ton untuk Rumput, dan × 45 ton untuk Sorgum. Satu Farm dihitung sekali
+per jenis tanaman aktif, meskipun memiliki beberapa batch tanaman yang sama.
+Proyeksi tahun mengalikan hasil per cycle dengan 3, 5, dan 3 secara berurutan.
+Card dan tabel memakai kalkulator backend yang sama. Path lama
+`/kebun/proyeksi` tidak didaftarkan sebagai halaman terpisah.
+
+Verifikasi revisi Beranda sebelum integrasi data halaman Proyeksi:
 
 - 47 tes backend / 1.445 assertion lolos (Owner, dashboard dan pemilihan
   tenant), termasuk akses `/proyeksi`, distribusi lima komoditas Owner,

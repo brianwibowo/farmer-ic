@@ -256,8 +256,12 @@ Use semantic tab markup when switching content in place. Keep the selected indic
 ## Farmer/mobile bottom navigation
 
 The Owner/farmer bottom bar has three destinations: Beranda, Proyeksi, and
-Lainnya. Proyeksi replaces the emphasized center AI entry and opens an honest
-empty placeholder at `/proyeksi`. Hide AI navigation without removing its
+Lainnya. Proyeksi replaces the emphasized center AI entry and opens the read-only
+harvest projection at `/proyeksi` (`owner.projection`). It shares the same page
+as the land table's Lihat detail link, with Cycle/Year filters and scoped backend
+data. Keep the period switch at the right of the Total Proyeksi Panen title in
+one row; let the title wrap on narrow phones without displacing the switch.
+Hide AI navigation without removing its
 existing backend/workflow. Lainnya opens Kebun, the read-only activity feed,
 SOP, and user directory. Hide its Keuangan entry without removing finance routes.
 Keep Lainnya selected when visiting these sections and their nested pages.
