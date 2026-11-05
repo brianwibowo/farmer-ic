@@ -156,8 +156,12 @@ tidak menulis ulang timestamp aktivitas/tahap.
       aktivitas. Tidak ada pengajuan, review, atau approval; `completed_by` dan
       catatan penyelesaian disimpan.
 - [ ] Penyelesaian otomatis tahap panen dan penutupan siklus tanam.
-- [ ] Validasi akumulasi luas seluruh laporan panen. Saat ini luas diperiksa
-      per laporan terhadap luas tanam, bukan total beberapa laporan.
+- [x] Validasi akumulasi luas seluruh laporan panen. Laporan SOP dan mandiri
+      memakai aturan yang sama: total luas panen sebelumnya ditambah luas baru
+      tidak boleh melebihi `planting_cycles.planted_area_ha`. Siklus dikunci
+      eksklusif saat laporan panen ditulis agar dua laporan bersamaan tidak
+      memakai sisa luas yang sama. Galat muncul pada `details.area` untuk
+      payload taxonomy dan `details.area_ha` untuk payload tugas legacy.
 - [ ] Integrasi hasil panen ke stok gudang, penjualan, dan transaksi keuangan.
 - [ ] Koreksi realisasi tanam awal dan penanaman bertahap/parsial.
 - [ ] Alur khusus aktivitas insidental/persiapan di luar jalur yang sudah ada.
@@ -315,8 +319,8 @@ untuk siklus yang sudah ditanam.
    restart worker jangka panjang sesuai perubahan konfigurasi/otorisasi.
 6. Buka `/petugas/aktivitas`, pilih tanggal, lalu gunakan **Tambah aktivitas**.
 7. Prioritas berikutnya yang disarankan: sepakati aturan tanggal pelaporan,
-   lalu akumulasi panen dan penutupan siklus. Lifecycle approval/review tidak
-   termasuk rencana.
+   lalu penutupan tahap panen dan siklus. Akumulasi luas panen sudah divalidasi.
+   Lifecycle approval/review tidak termasuk rencana.
 
 Jangan menjalankan dua suite yang melakukan reset pada database uji yang sama
 secara bersamaan. Untuk regresi penuh yang lebih lama dari batas waktu PHP CLI,
@@ -460,8 +464,9 @@ File rujukan:
    seluruh suite regresi lulus. Suite terarah terakhir: 164 lulus, 4.486 assertions.
 4. Gunakan lifecycle teman: laporan pertama menjadi `in_progress`, lalu Petugas
    menyelesaikan tugas langsung. Pengguna tidak meminta alur review.
-5. Akumulasi panen, penutupan siklus, integrasi stok/keuangan, koreksi laporan
+5. Penutupan tahap panen/siklus, integrasi stok/keuangan, koreksi laporan
    tanam, dan penyulaman tetap menjadi pekerjaan lanjutan yang perlu disepakati.
+   Akumulasi luas panen sudah divalidasi untuk laporan SOP dan mandiri.
 
 Perintah regresi terarah yang digunakan (PowerShell, database uji terpisah):
 

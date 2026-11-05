@@ -9,6 +9,7 @@ use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\HarvestDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\Team;
@@ -108,6 +109,75 @@ class PetugasTaskActivityTest extends TestCase
             'details' => ['area' => 100, 'area_unit' => 'm²', 'weight' => 500, 'weight_unit' => 'kg']])->assertSessionHasNoErrors();
     }
 
+    public function test_partial_harvests_accumulate_and_exact_remaining_area_is_allowed(): void
+    {
+        $this->task->forceFill(['status' => 'completed', 'completed_at' => now()])->save();
+        $this->actingAs($this->actor);
+        $base = [...$this->payload(), 'cycle_id' => $this->cycle->id];
+
+        $this->post('/petugas/aktivitas/mandiri/harvest', [...$base, 'details' => [
+            'area' => '0.5', 'area_unit' => 'Ha', 'weight' => '1000', 'weight_unit' => 'kg',
+        ]])->assertSessionHasNoErrors();
+        $this->post('/petugas/aktivitas/mandiri/harvest', [...$base, 'details' => [
+            'area' => '1.5', 'area_unit' => 'Ha', 'weight' => '2000', 'weight_unit' => 'kg',
+        ]])->assertSessionHasNoErrors();
+
+        $this->assertSame(2.0, (float) HarvestDetail::query()->sum('harvested_area_ha'));
+
+        $this->post('/petugas/aktivitas/mandiri/harvest', [...$base, 'details' => [
+            'area' => '1', 'area_unit' => 'm²', 'weight' => '1', 'weight_unit' => 'kg',
+        ]])->assertSessionHasErrors('details.area');
+
+        $this->assertDatabaseCount('harvest_details', 2);
+    }
+
+    public function test_sop_harvest_rejects_area_above_remaining_planted_area(): void
+    {
+        $this->task->forceFill(['status' => 'completed', 'completed_at' => now()])->save();
+        $harvest = $this->newHarvestTask();
+        $this->actingAs($this->actor);
+        $url = '/petugas/tasks/'.$harvest->id.'/aktivitas';
+
+        $this->post($url, [...$this->payload(), 'details' => [
+            'area_ha' => '1.2500', 'weight_ton' => '1.500', 'method' => 'Manual',
+        ]])->assertSessionHasNoErrors();
+
+        $this->post($url, [...$this->payload(), 'details' => [
+            'area_ha' => '0.7501', 'weight_ton' => '1.000', 'method' => 'Manual',
+        ]])->assertSessionHasErrors('details.area_ha');
+        $this->assertDatabaseCount('harvest_details', 1);
+
+        $this->post($url, [...$this->payload(), 'details' => [
+            'area_ha' => '0.7500', 'weight_ton' => '1.000', 'method' => 'Manual',
+        ]])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('harvest_details', 2);
+        $this->assertSame(2.0, (float) HarvestDetail::query()->sum('harvested_area_ha'));
+    }
+
+    public function test_voluntary_and_sop_harvest_share_the_cumulative_limit(): void
+    {
+        $this->task->forceFill(['status' => 'completed', 'completed_at' => now()])->save();
+        $harvest = $this->newHarvestTask();
+        $this->actingAs($this->actor);
+
+        $this->post('/petugas/aktivitas/mandiri/harvest', [...$this->payload(), 'cycle_id' => $this->cycle->id, 'details' => [
+            'area' => '1.75', 'area_unit' => 'Ha', 'weight' => '3000', 'weight_unit' => 'kg',
+        ]])->assertSessionHasNoErrors();
+
+        $taxonomy = [...$this->payload(), 'schema' => 'taxonomy', 'details' => [
+            'area' => '0.2501', 'area_unit' => 'Ha', 'weight' => '100', 'weight_unit' => 'kg', 'method' => 'Manual',
+        ]];
+        $url = '/petugas/tasks/'.$harvest->id.'/aktivitas';
+
+        $this->post($url, $taxonomy)->assertSessionHasErrors('details.area');
+        $this->assertDatabaseCount('harvest_details', 1);
+
+        $taxonomy['details']['area'] = '0.25';
+        $this->post($url, $taxonomy)->assertSessionHasNoErrors();
+        $this->assertSame(2.0, (float) HarvestDetail::query()->sum('harvested_area_ha'));
+    }
+
     public function test_all_voluntary_categories_persist_details_and_history_without_completing_tasks(): void
     {
         // This category persistence test isolates typed detail writes; sequence is
@@ -200,6 +270,16 @@ class PetugasTaskActivityTest extends TestCase
             'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan awal',
             'offset_days' => 7, 'tolerance_days' => 2, 'scheduled_date' => today(), 'due_date' => today()->addDays(2),
             'status' => 'pending', 'is_required' => true, ...$data,
+        ]);
+    }
+
+    private function newHarvestTask(): PlantingCycleTask
+    {
+        return $this->newTask([
+            'planting_cycle_stage_id' => $this->cycle->stages()->where('code', 'harvest')->firstOrFail()->id,
+            'activity_category' => 'harvest',
+            'activity_subcategory' => null,
+            'name' => 'Panen',
         ]);
     }
 

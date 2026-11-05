@@ -17,7 +17,11 @@ use Throwable;
 
 class VoluntaryActivityService
 {
-    public function __construct(private readonly DailyActivityHeaderService $headers, private readonly ActivitySequenceService $sequence) {}
+    public function __construct(
+        private readonly DailyActivityHeaderService $headers,
+        private readonly ActivitySequenceService $sequence,
+        private readonly HarvestGuard $harvest,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public function record(User $actor, Farm $farm, ActivityType $type, ?PlantingCycle $cycle, array $data): FarmActivity
@@ -40,14 +44,16 @@ class VoluntaryActivityService
                     }
                 }
                 $d = VoluntaryActivityFields::normalized($data['details']);
-                if (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->getAttribute('reserved_area_ha')))) {
+                if ($type->code === 'harvest') {
+                    if ($cycle === null) {
+                        throw ValidationException::withMessages(['cycle_id' => 'Pilih subblok untuk laporan panen.']);
+                    }
+                    $this->harvest->ensureValid($actor, $team, $cycle, $d);
+                } elseif (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->getAttribute('reserved_area_ha')))) {
                     throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi alokasi subblok.']);
                 }
                 if (($d['quantity_kg'] ?? 0) > 999999999.999) {
                     throw ValidationException::withMessages(['details.quantity' => 'Jumlah terlalu besar setelah konversi satuan.']);
-                }
-                if (isset($d['weight_ton']) && $d['weight_ton'] <= 0) {
-                    throw ValidationException::withMessages(['details.weight' => 'Berat panen minimal 1 kg.']);
                 }
                 $log = $this->headers->resolve($farm, $actor, $data);
                 $date = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');

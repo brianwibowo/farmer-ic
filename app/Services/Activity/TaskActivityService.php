@@ -19,7 +19,11 @@ use Throwable;
 
 class TaskActivityService
 {
-    public function __construct(private readonly DailyActivityHeaderService $headers, private readonly ActivitySequenceService $sequence) {}
+    public function __construct(
+        private readonly DailyActivityHeaderService $headers,
+        private readonly ActivitySequenceService $sequence,
+        private readonly HarvestGuard $harvest,
+    ) {}
 
     /** @param array<string, mixed> $data Validated task-specific fields and files. */
     public function create(User $actor, PlantingCycleTask $task, array $data): FarmActivity
@@ -34,26 +38,39 @@ class TaskActivityService
                 if (! in_array($task->status, ['pending', 'in_progress'], true)) {
                     throw ValidationException::withMessages(['task' => 'Tugas sudah selesai atau ditutup. Laporan baru tidak dapat ditambahkan.']);
                 }
-                $cycle = PlantingCycle::visibleTo($actor, $farm->team)->whereKey($task->planting_cycle_id)
-                    ->where('farm_id', $farm->id)->sharedLock()->firstOrFail();
-                if ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString()) {
-                    throw ValidationException::withMessages(['work_date' => 'Laporan tugas lanjutan harus pada atau setelah tanggal tanam aktual.']);
-                }
-                $details = ($data['schema'] ?? null) === 'taxonomy' ? VoluntaryActivityFields::normalized($data['details']) : $data['details'];
                 $code = TaskActivityFields::activityCode($task);
                 if ($code === null) {
                     throw ValidationException::withMessages(['task' => 'Jenis tugas ini belum mendukung pencatatan.']);
                 }
+                $cycleQuery = PlantingCycle::visibleTo($actor, $farm->team)->whereKey($task->planting_cycle_id)
+                    ->where('farm_id', $farm->id);
+                $cycle = ($code === 'harvest' ? $cycleQuery->lockForUpdate() : $cycleQuery->sharedLock())->firstOrFail();
+                if ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString()) {
+                    throw ValidationException::withMessages(['work_date' => 'Laporan tugas lanjutan harus pada atau setelah tanggal tanam aktual.']);
+                }
+                $details = ($data['schema'] ?? null) === 'taxonomy' ? VoluntaryActivityFields::normalized($data['details']) : $data['details'];
                 $this->sequence->ensureAllowed($actor, $cycle, $code, 'task');
                 $type = ActivityType::visibleTo($actor, $farm->team)->where('code', $code)->first();
                 if ($type === null) {
                     throw ValidationException::withMessages(['task' => 'Referensi jenis aktivitas belum tersedia. Hubungi admin.']);
                 }
-                if (isset($details['area_ha']) && (float) $details['area_ha'] > (float) $cycle->planted_area_ha) {
-                    throw ValidationException::withMessages(['details.area_ha' => 'Luas dikerjakan tidak boleh melebihi luas tanam subblok.']);
-                }
-                if ((isset($details['area_ha']) && $details['area_ha'] <= 0) || (isset($details['weight_ton']) && $details['weight_ton'] <= 0)) {
-                    throw ValidationException::withMessages(['details' => 'Luas minimal 1 m² dan berat panen minimal 1 kg.']);
+                if ($code === 'harvest') {
+                    $taxonomy = ($data['schema'] ?? null) === 'taxonomy';
+                    $this->harvest->ensureValid(
+                        $actor,
+                        $farm->team,
+                        $cycle,
+                        $details,
+                        $taxonomy ? 'details.area' : 'details.area_ha',
+                        $taxonomy ? 'details.weight' : 'details.weight_ton',
+                    );
+                } else {
+                    if (isset($details['area_ha']) && (float) $details['area_ha'] > (float) $cycle->planted_area_ha) {
+                        throw ValidationException::withMessages(['details.area_ha' => 'Luas dikerjakan tidak boleh melebihi luas tanam subblok.']);
+                    }
+                    if ((isset($details['area_ha']) && $details['area_ha'] <= 0) || (isset($details['weight_ton']) && $details['weight_ton'] <= 0)) {
+                        throw ValidationException::withMessages(['details' => 'Luas minimal 1 m² dan berat panen minimal 1 kg.']);
+                    }
                 }
                 if (($details['quantity_kg'] ?? 0) > 999999999.999) {
                     throw ValidationException::withMessages(['details.quantity' => 'Jumlah terlalu besar setelah konversi satuan.']);
