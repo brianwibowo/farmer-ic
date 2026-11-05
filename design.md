@@ -585,6 +585,15 @@ and show activity cards. Farm selection applies to the entire overview; the
 Use persisted stage statuses for the planting breakdown. Show batches without
 a recorded running stage explicitly, and keep land clearing at block level.
 The map represents saved coordinate points, not invented parcel boundaries.
+Place the map beside a weather card at wide desktop widths, using a 3:1 ratio
+and a readable minimum weather column; stack weather below the map on smaller
+screens. The weather card follows the selected farm and offers its own farm
+selector when the overview includes several farms. Show current model weather,
+rain probability, humidity, wind and three upcoming hourly forecasts from
+Open-Meteo, with attribution, the data time and retrieval time in the location's
+timezone. Load weather independently, refresh every 15 minutes while visible,
+and resume overdue refreshes when returning to the page. Keep missing coordinates,
+loading, unavailable and explicitly stale cached data states honest in both themes.
 Activity bars use stable type codes for planting/harvest and a labeled group
 for maintenance and other activities. Do not display fabricated trend deltas.
 
