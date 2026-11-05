@@ -1,12 +1,13 @@
 # Handoff Petugas: Aktivitas, Penanaman, SOP, dan Laporan Harian
 
-Tanggal checkpoint terbaru: **4 November 2026**
+Tanggal checkpoint terbaru: **5 November 2026**
 Branch: **`feat/admin-sop`**
 
 Dokumen ini merangkum hasil diskusi dan implementasi untuk dilanjutkan pada
 sesi berikutnya. Status di bawah merupakan kondisi pada checkpoint ini,
 bukan klaim bahwa seluruh lifecycle operasional sudah selesai. Bagian 1–7 memuat
-checkpoint historis; bagian 8 adalah status terbaru yang menggantikan aturan lama.
+checkpoint historis; bagian 8 diperbarui sesuai hasil merge dan keputusan pengguna
+5 November, dan menggantikan aturan lama yang bertentangan.
 
 **Ringkasan penyerahan:** implementasi Aktivitas/to-do, riwayat Laporan, input
 mandiri seluruh kategori, header bersama, dan penanaman bertahap sudah selesai
@@ -166,7 +167,7 @@ tidak menulis ulang timestamp aktivitas/tahap.
 Header bersama tidak menambahkan workflow pengajuan/persetujuan laporan harian.
 Tidak ada keputusan untuk memasukkan workflow itu dalam implementasi ini.
 
-### Klarifikasi diskusi UX — 4 November 2026 (status terbaru di bagian 8)
+### Klarifikasi diskusi UX — 4 November 2026 (historis; digantikan bagian 8)
 
 - **Keputusan sementara lifecycle tugas:** menyimpan laporan SOP tetap tidak
   menyelesaikan tugas atau otomatis mengubahnya menjadi menunggu review.
@@ -336,7 +337,7 @@ File rujukan:
 - `resources/js/components/petugas/DailyHeaderContext.vue`
 - `resources/js/components/petugas/DailyReportContent.vue`
 
-## 8. Implementasi UX dan penanaman bertahap — 4 November 2026
+## 8. Implementasi UX dan penanaman bertahap — diperbarui 5 November 2026
 
 ### Halaman dan alur aktif
 
@@ -362,17 +363,22 @@ File rujukan:
 
 ### Data, header, dan HST
 
-- Satu header per kebun/tanggal, lintas Petugas; jam selesai nullable. Jam mulai,
-  jumlah orang berbeda, serta catatan harian tetap pada header. Editor inline
+- Satu header per kebun/tanggal, lintas Petugas; jam selesai nullable. Jam mulai
+  dan catatan harian tetap pada header; jumlah pekerja dicatat per aktivitas. Editor inline
   memakai PATCH terpisah ke `/kebun/{farm}/daily-logs/{dailyLog}`.
 - Admin kembali memiliki `daily_activity_logs.update`; create/delete dan UI
   Logbook Admin tetap read-only. Owner tidak memperoleh hak tulis.
 - Kategori mandiri disimpan transaksional dengan foto privat, validasi kondisional,
-  satuan asli dalam `farm_activities.task_details`, dan tabel detail yang tersedia.
-  Tidak ada tabel detail placeholder baru.
+  satuan asli dalam `farm_activities.task_details`, dan typed detail per kategori.
+  Pemupukan dasar dan susulan berbagi tabel dengan pembeda tahap.
 - Form SOP menggunakan `schema: taxonomy`; payload legacy dengan satuan kanonis
-  tetap diterima. Laporan tidak mengubah status tugas menjadi `submitted`/`completed`.
-  Pertanyaan dan rekomendasi lifecycle pada bagian 4 tetap terbuka.
+  tetap diterima, tetapi jumlah pekerja kini wajib per laporan. Laporan pertama
+  mengubah tugas `pending` menjadi `in_progress`. Setelah minimal satu laporan,
+  Petugas dapat menyelesaikan tugas secara langsung; setelah `completed` laporan
+  baru ditolak. Tidak ada pengajuan atau review. Pengguna menyetujui alur ini.
+- Migrasi jumlah pekerja menyalin angka header lama ke setiap aktivitas sebelum
+  menghapus kolom header. Salinan tersebut bukan bukti jumlah pekerja aktual
+  setiap aktivitas dan tidak boleh dijumlahkan sebagai total orang berbeda.
 - Penanaman menerima m²/Ha dan benih kg/sak/butir; berat per sak diperlukan,
   butir harus bulat dan tidak diperlakukan sebagai kg. Kedalaman opsional;
   pola tanam dari pemetaan bila tersedia dapat dikoreksi.
@@ -411,7 +417,7 @@ File rujukan:
   foto, scoped totals, 403 lintas kebun, header bersama/concurrency, status tugas
   tetap pending, tanggal tanam berbeda/berulang/terlambat, rekonsiliasi tanpa
   duplikat, dan perlindungan override Admin.
-- Browser pada database terpisah berhasil menyimpan laporan mandiri, SOP, dan
+- Sebelum merge teman, browser pada database terpisah berhasil menyimpan laporan mandiri, SOP, dan
   penanaman dengan foto, membuka detail hasil simpan, memakai ulang header, serta mengisi
   jam selesai melalui editor terpisah. Validasi minimal satu foto terbukti.
 - Percobaan suite penuh terhenti oleh timeout PHP 120 detik ketika teardown
@@ -452,9 +458,8 @@ File rujukan:
    termasuk viewport ponsel dan desktop; pemeriksaan DOM bukan penggantinya.
 3. Investigasi timeout teardown `NotificationCommitTest` sebelum menyatakan
    seluruh suite regresi lulus. Suite terarah terakhir: 164 lulus, 4.486 assertions.
-4. Sepakati lifecycle tugas: pencatatan progres vs aksi **Ajukan selesai**,
-   lalu review Admin. Implementasi saat ini sengaja tidak mengubah status tugas
-   ketika laporan disimpan, sesuai keputusan pengguna.
+4. Gunakan lifecycle teman: laporan pertama menjadi `in_progress`, lalu Petugas
+   menyelesaikan tugas langsung. Pengguna tidak meminta alur review.
 5. Akumulasi panen, penutupan siklus, integrasi stok/keuangan, koreksi laporan
    tanam, dan penyulaman tetap menjadi pekerjaan lanjutan yang perlu disepakati.
 
@@ -465,3 +470,33 @@ $env:TEST_DB_DATABASE='farmer_ic_crud_test_petugas_verification'
 $env:FARMER_CRUD_TEST_DATABASE='farmer_ic_crud_test_petugas_verification'
 php -d max_execution_time=0 vendor/bin/phpunit tests/Feature/Activity tests/Feature/Petugas tests/Feature/Sop tests/Feature/Authorization tests/Feature/Blocks --display-skipped
 ```
+
+### Hasil pemeriksaan setelah merge teman
+
+- Commit `ee71777` terintegrasi dalam merge `3e55a09`; migrasi 000016–000019
+  telah dijalankan pada database lokal sesuai output pengguna.
+- Tes terarah setelah merge: **167 lulus, 4.903 assertions** pada PostgreSQL uji
+  terpisah; TypeScript dan build lulus. Suite penuh belum diklaim lulus.
+- Pengguna memilih mengikuti implementasi teman untuk taxonomy, lifecycle,
+  pekerja per aktivitas, dan typed detail. Tidak ada tombol finalisasi penanaman
+  yang diminta; alur penanaman bertahap tetap seperti saat ini.
+- Urutan Petugas: pembersihan lahan → minimal satu jenis pengolahan tanah →
+  penanaman → perawatan → panen. Laporan tersimpan membuka tahap berikutnya;
+  tidak ada tombol finalisasi penanaman. Sebelum panen, semua tugas SOP perawatan
+  pada subblok harus `completed` atau `skipped`; jika tidak ada tugas, panen
+  tidak ditahan oleh syarat SOP ini. Insiden/Lainnya dapat dicatat kapan saja.
+  Subblok yang sudah ditanam tetap dapat melanjutkan meski laporan persiapan lama
+  tidak ada. Pembersihan dan pengolahan dicocokkan pada subblok yang sama.
+- Pemeriksaan urutan dijalankan di `ActivitySequenceService` untuk penyimpanan
+  mandiri, penanaman dan laporan tugas SOP. Halaman menampilkan alasan ketika
+  pengolahan, penanaman atau panen tertahan; pemeriksaan server tetap berlaku
+  untuk request langsung. Laporan perawatan dan panen tetap harus pada atau
+  setelah tanggal acuan tanam yang ada. Pengiriman laporan yang datang terlambat
+  dan penjadwalan ulang HST mengikuti aturan sebelumnya.
+- Verifikasi aturan urutan: **170 tes terarah lulus, 4.934 assertions**. Tes baru
+  mencakup urutan penyimpanan lewat HTTP, insiden bebas urutan, panen mandiri dan
+  SOP, status pending/in_progress/skipped/completed, serta tanpa tugas perawatan.
+  Tes lama yang fokus transaksi penanaman/HST dan detail per kategori mengisolasi
+  pengujian tersebut dengan mock aturan urutan; tes urutan baru menggunakan
+  service nyata. TypeScript dan build frontend lulus. Pemeriksaan browser/visual
+  light/dark untuk perubahan urutan belum dijalankan.

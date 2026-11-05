@@ -8,7 +8,11 @@ import type { PlantingCycleContext } from '@/types/planting';
 
 defineProps<{
     farm: { id: string; name: string };
-    cycles: (PlantingCycleContext & { canRecord: boolean; canSync: boolean })[];
+    cycles: (PlantingCycleContext & {
+        canRecord: boolean;
+        canSync: boolean;
+        blockedReason: string | null;
+    })[];
 }>();
 const syncForm = useForm({});
 const activityDate = useActivityDate();
@@ -82,6 +86,12 @@ function synchronize(id: string): void {
                     </p>
                 </div>
             </div>
+            <p
+                v-if="cycle.blockedReason"
+                class="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm"
+            >
+                {{ cycle.blockedReason }}
+            </p>
             <details>
                 <summary
                     class="cursor-pointer py-2 text-xs text-muted-foreground"

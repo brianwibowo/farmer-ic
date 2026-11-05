@@ -9,6 +9,7 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
+use App\Services\Activity\ActivitySequenceService;
 use App\Services\Activity\PlantingActivityService;
 use App\Services\Activity\VoluntaryActivityService;
 use App\Support\VoluntaryActivityFields;
@@ -20,7 +21,7 @@ use Inertia\Response;
 
 class PetugasVoluntaryActivityController extends Controller
 {
-    public function create(Request $request, ActivityType $type, PlantingActivityService $planting): Response
+    public function create(Request $request, ActivityType $type, PlantingActivityService $planting, ActivitySequenceService $sequence): Response
     {
         $farm = $this->farm($request);
         Gate::authorize('recordVoluntary', [FarmActivity::class, $farm, $type]);
@@ -29,7 +30,7 @@ class PetugasVoluntaryActivityController extends Controller
             'farm' => $farm->only(['id', 'name']), 'type' => $type->only(['id', 'code', 'name']),
             'fields' => VoluntaryActivityFields::forCode($type->code),
             'cycles' => $planting->cycles($request->user(), $farm)->filter(fn ($cycle) => in_array($cycle->status, ['planned', 'active'], true))
-                ->map(fn ($cycle) => $planting->context($request->user(), $cycle))->values()->all(),
+                ->map(fn ($cycle) => [...$planting->context($request->user(), $cycle), 'blocked_reason' => $sequence->blockedReason($request->user(), $cycle, $type->code)])->values()->all(),
             'matchingTasks' => PlantingCycleTask::visibleTo($request->user(), $farm->team)
                 ->whereHas('plantingCycle', fn ($q) => $q->visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id))
                 ->whereIn('status', ['pending', 'in_progress'])

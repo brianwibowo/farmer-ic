@@ -18,6 +18,7 @@ const props = defineProps<{
         subblock_label: string;
         block: { name: string };
         reserved_area_ha: string;
+        blocked_reason: string | null;
     }[];
     matchingTasks: {
         id: string;
@@ -52,6 +53,11 @@ const clientError = ref('');
 const matches = computed(() =>
     props.matchingTasks.filter((t) => t.planting_cycle_id === form.cycle_id),
 );
+const blockedReason = computed(
+    () =>
+        props.cycles.find((cycle) => cycle.id === form.cycle_id)
+            ?.blocked_reason ?? null,
+);
 const fieldClass =
     'block min-h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [color-scheme:light] dark:[color-scheme:dark]';
 function photos(event: Event): void {
@@ -72,7 +78,7 @@ function photos(event: Event): void {
     input.value = '';
 }
 function submit(): void {
-    if (form.processing || !ready.value) return;
+    if (form.processing || !ready.value || blockedReason.value) return;
     clientError.value = '';
     if (!form.photos.length) {
         clientError.value = 'Tambahkan minimal satu foto dokumentasi.';
@@ -167,6 +173,13 @@ function submit(): void {
                     >
                         Belum ada subblok aktif. Hubungi Admin untuk
                         menyiapkannya.
+                    </p>
+                    <p
+                        v-if="blockedReason"
+                        role="status"
+                        class="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm"
+                    >
+                        {{ blockedReason }}
                     </p>
                     <div
                         v-if="matches.length"
@@ -282,7 +295,7 @@ function submit(): void {
                 </p>
             </div>
             <button
-                :disabled="form.processing || !ready"
+                :disabled="form.processing || !ready || !!blockedReason"
                 type="submit"
                 class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-secondary px-4 font-semibold text-secondary-foreground disabled:opacity-50"
             >

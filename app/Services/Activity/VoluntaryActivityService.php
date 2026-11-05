@@ -17,7 +17,7 @@ use Throwable;
 
 class VoluntaryActivityService
 {
-    public function __construct(private readonly DailyActivityHeaderService $headers) {}
+    public function __construct(private readonly DailyActivityHeaderService $headers, private readonly ActivitySequenceService $sequence) {}
 
     /** @param array<string, mixed> $data */
     public function record(User $actor, Farm $farm, ActivityType $type, ?PlantingCycle $cycle, array $data): FarmActivity
@@ -33,6 +33,7 @@ class VoluntaryActivityService
                     if (! in_array($cycle->status, ['planned', 'active'], true)) {
                         throw ValidationException::withMessages(['cycle_id' => 'Subblok sudah ditutup.']);
                     }
+                    $this->sequence->ensureAllowed($actor, $cycle, $type->code);
                     if (in_array($type->code, ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control', 'harvest'], true)
                         && ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString())) {
                         throw ValidationException::withMessages(['work_date' => 'Perawatan dan panen dicatat pada atau setelah tanggal acuan tanam.']);

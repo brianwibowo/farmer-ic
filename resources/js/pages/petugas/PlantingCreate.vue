@@ -17,6 +17,7 @@ const props = defineProps<{
     today: string;
     workDate: string;
     plantingPattern: string;
+    blockedReason: string | null;
 }>();
 const form = useForm({
     schema: 'taxonomy',
@@ -212,6 +213,13 @@ function submit(): void {
                 {{ cycle.variety?.name ?? 'Varietas tidak tersedia' }}
             </p>
         </section>
+        <p
+            v-if="blockedReason"
+            role="status"
+            class="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm"
+        >
+            {{ blockedReason }}
+        </p>
         <form v-if="canRecord" class="space-y-4" @submit.prevent="submit">
             <p
                 class="rounded-xl border border-border bg-muted/50 p-4 text-sm leading-6"
@@ -447,7 +455,12 @@ function submit(): void {
             <Button
                 type="submit"
                 class="min-h-12 w-full rounded-xl"
-                :disabled="form.processing || !varieties.length || !headerReady"
+                :disabled="
+                    form.processing ||
+                    !varieties.length ||
+                    !headerReady ||
+                    !!blockedReason
+                "
                 ><LoaderCircle
                     v-if="form.processing"
                     class="size-4 animate-spin motion-reduce:animate-none"

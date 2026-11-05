@@ -23,7 +23,7 @@ use Throwable;
 
 class PlantingActivityService
 {
-    public function __construct(private readonly PlantingCycleTaskService $tasks, private readonly DailyActivityHeaderService $headers) {}
+    public function __construct(private readonly PlantingCycleTaskService $tasks, private readonly DailyActivityHeaderService $headers, private readonly ActivitySequenceService $sequence) {}
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, PlantingCycle> */
     public function cycles(User $actor, Farm $farm): \Illuminate\Database\Eloquent\Collection
@@ -108,6 +108,7 @@ class PlantingActivityService
                 if (! in_array($cycle->status, ['planned', 'active'], true)) {
                     throw ValidationException::withMessages(['cycle' => 'Subblok sudah ditutup.']);
                 }
+                $this->sequence->ensureAllowed($actor, $cycle, 'planting', 'cycle');
                 $dates = $this->plantingDates($actor, $cycle);
                 $dates[] = $data['work_date'];
                 $dates = array_values(array_unique($dates));

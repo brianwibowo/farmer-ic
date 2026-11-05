@@ -19,7 +19,7 @@ use Throwable;
 
 class TaskActivityService
 {
-    public function __construct(private readonly DailyActivityHeaderService $headers) {}
+    public function __construct(private readonly DailyActivityHeaderService $headers, private readonly ActivitySequenceService $sequence) {}
 
     /** @param array<string, mixed> $data Validated task-specific fields and files. */
     public function create(User $actor, PlantingCycleTask $task, array $data): FarmActivity
@@ -44,6 +44,7 @@ class TaskActivityService
                 if ($code === null) {
                     throw ValidationException::withMessages(['task' => 'Jenis tugas ini belum mendukung pencatatan.']);
                 }
+                $this->sequence->ensureAllowed($actor, $cycle, $code, 'task');
                 $type = ActivityType::visibleTo($actor, $farm->team)->where('code', $code)->first();
                 if ($type === null) {
                     throw ValidationException::withMessages(['task' => 'Referensi jenis aktivitas belum tersedia. Hubungi admin.']);

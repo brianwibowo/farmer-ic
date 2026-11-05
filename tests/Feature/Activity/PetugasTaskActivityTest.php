@@ -61,8 +61,61 @@ class PetugasTaskActivityTest extends TestCase
         }
     }
 
+    public function test_activity_sequence_enforces_prerequisites_and_allows_exceptions(): void
+    {
+        $this->actingAs($this->actor);
+        $this->cycle->forceFill(['planted_at' => null, 'planted_area_ha' => 0, 'status' => 'planned'])->save();
+        $base = [...$this->payload(), 'cycle_id' => $this->cycle->id];
+        $planting = ['work_date' => today()->toDateString(), 'start_time' => '07:00', 'worker_count' => 3,
+            'variety_id' => $this->cycle->variety_id, 'area_ha' => 1, 'seed_name' => 'Bisi 18', 'quantity_kg' => 5,
+            'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
+        $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';
+        $this->post($plantingUrl, $planting)->assertSessionHasErrors('cycle');
+        $soil = [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual', 'depth_cm' => 10]];
+        $this->post('/petugas/aktivitas/mandiri/loosening', $soil)->assertSessionHasErrors('cycle_id');
+        $this->post('/petugas/aktivitas/mandiri/incident', [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'incident_category' => 'Cuaca', 'description' => 'Hujan lebat', 'severity' => 'Ringan']])->assertSessionHasNoErrors();
+        $this->post('/petugas/aktivitas/mandiri/land_cleaning', [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual']])->assertSessionHasNoErrors();
+        $reason = app(\App\Services\Activity\ActivitySequenceService::class)->blockedReason($this->actor, $this->cycle->refresh(), 'planting');
+        $this->assertStringContainsString('pengolahan tanah', $reason);
+        $this->post($plantingUrl, $planting)->assertSessionHasErrors('cycle');
+        $this->post('/petugas/aktivitas/mandiri/loosening', $soil)->assertSessionHasNoErrors();
+        $this->assertNull(app(\App\Services\Activity\ActivitySequenceService::class)->blockedReason($this->actor, $this->cycle->refresh(), 'planting'));
+        $this->post($plantingUrl, $planting)->assertSessionHasNoErrors();
+        $harvest = [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'weight' => 500, 'weight_unit' => 'kg']];
+        $this->post('/petugas/aktivitas/mandiri/harvest', $harvest)->assertSessionHasErrors('cycle_id');
+        $this->task->update(['status' => 'in_progress']);
+        $this->post('/petugas/aktivitas/mandiri/harvest', $harvest)->assertSessionHasErrors('cycle_id');
+        $this->task->update(['status' => 'skipped']);
+        $this->post('/petugas/aktivitas/mandiri/harvest', $harvest)->assertSessionHasNoErrors();
+    }
+
+    public function test_sop_harvest_is_blocked_until_maintenance_tasks_finish(): void
+    {
+        $harvest = $this->newTask(['planting_cycle_stage_id' => $this->cycle->stages()->where('code', 'harvest')->firstOrFail()->id,
+            'activity_category' => 'harvest', 'activity_subcategory' => null, 'name' => 'Panen']);
+        $data = [...$this->payload(), 'details' => ['area_ha' => 1, 'weight_ton' => 1, 'method' => 'Manual']];
+        $url = '/petugas/tasks/'.$harvest->id.'/aktivitas';
+        $this->actingAs($this->actor)->post($url, $data)->assertSessionHasErrors('task');
+        $this->get('/petugas/tasks/'.$harvest->id)->assertInertia(fn (Assert $page) => $page->where('canRecord', false)->where('blockedReason', 'Selesaikan seluruh tugas SOP perawatan atau minta Admin melewati tugas yang tidak diperlukan sebelum panen.'));
+        $this->task->forceFill(['status' => 'completed', 'completed_at' => now()])->save();
+        $this->post($url, $data)->assertSessionHasNoErrors();
+    }
+
+    public function test_no_maintenance_tasks_do_not_block_harvest(): void
+    {
+        $this->task->delete();
+        $this->actingAs($this->actor)->post('/petugas/aktivitas/mandiri/harvest', [...$this->payload(), 'cycle_id' => $this->cycle->id,
+            'details' => ['area' => 100, 'area_unit' => 'm²', 'weight' => 500, 'weight_unit' => 'kg']])->assertSessionHasNoErrors();
+    }
+
     public function test_all_voluntary_categories_persist_details_and_history_without_completing_tasks(): void
     {
+        // This category persistence test isolates typed detail writes; sequence is
+        // exercised by test_activity_sequence_enforces_prerequisites_and_allows_exceptions.
+        $this->mock(\App\Services\Activity\ActivitySequenceService::class, function ($mock): void {
+            $mock->shouldReceive('ensureAllowed')->andReturnNull()->byDefault();
+            $mock->shouldReceive('blockedReason')->andReturnNull()->byDefault();
+        });
         $area = ['area' => 1000, 'area_unit' => 'm²'];
         $cases = [
             'land_cleaning' => $area + ['method' => 'Manual'],
@@ -385,6 +438,10 @@ class PetugasTaskActivityTest extends TestCase
 
     public function test_all_generated_task_kinds_persist_correct_details_and_pass_database_integrity(): void
     {
+        $this->mock(\App\Services\Activity\ActivitySequenceService::class, function ($mock): void {
+            $mock->shouldReceive('ensureAllowed')->andReturnNull()->byDefault();
+            $mock->shouldReceive('blockedReason')->andReturnNull()->byDefault();
+        });
         $cases = [
             ['weeding', ['area_ha' => '1', 'method' => 'Cangkul', 'depth_cm' => '5'], 'weeding_details'],
             ['follow_up_fertilization', ['area_ha' => '1', 'fertilizer' => 'NPK', 'quantity_kg' => '25', 'method' => 'Tabur'], 'fertilization_details'],

@@ -45,6 +45,12 @@ class PetugasPlantingActivityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // These legacy tests isolate planting, transactions and HST; prerequisite
+        // ordering is exercised separately through the real HTTP sequence test.
+        $this->mock(\App\Services\Activity\ActivitySequenceService::class, function ($mock): void {
+            $mock->shouldReceive('ensureAllowed')->andReturnNull()->byDefault();
+            $mock->shouldReceive('blockedReason')->andReturnNull()->byDefault();
+        });
         Storage::fake('local');
         $this->team = Team::factory()->create(['is_personal' => false]);
         $this->admin = User::factory()->create(['role' => 'admin']);

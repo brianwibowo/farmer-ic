@@ -15,6 +15,7 @@ const props = defineProps<{
     reports: TaskActivityReport[];
     fields: TaskActivityField[];
     canRecord: boolean;
+    blockedReason: string | null;
 }>();
 const activityDate = useActivityDate();
 const completionForm = useForm({ note: '' });
@@ -59,13 +60,14 @@ function completedAtLabel(value: string | null): string {
             class="rounded-xl border border-border bg-muted p-3 text-sm leading-6"
         >
             {{
-                task.subblok.planted_at === null
+                blockedReason ??
+                (task.subblok.planted_at === null
                     ? 'Pencatatan tersedia setelah tanggal tanam aktual dicatat.'
                     : task.status === 'completed'
                       ? 'Tugas ini sudah selesai. Laporan baru tidak dapat ditambahkan.'
                       : task.status === 'skipped'
                         ? 'Tugas ini ditandai tidak dikerjakan.'
-                        : 'Tugas sudah ditutup. Pencatatan baru tidak tersedia.'
+                        : 'Tugas sudah ditutup. Pencatatan baru tidak tersedia.')
             }}
         </p>
         <section
@@ -148,8 +150,9 @@ function completedAtLabel(value: string | null): string {
             >
                 <h3 class="text-base font-semibold">{{ report.work_date }}</h3>
                 <p class="text-xs text-muted-foreground">
-                    Dicatat oleh {{ report.performer_name ?? 'Petugas kebun' }}
-                    · {{ report.worker_count }} pekerja
+                    Dicatat oleh
+                    {{ report.performer_name ?? 'Petugas kebun' }} ·
+                    {{ report.worker_count }} pekerja
                 </p>
                 <Link
                     :href="`/petugas/laporan/${report.id}`"
