@@ -65,8 +65,14 @@ const entries = computed(() =>
             title="Lainnya"
             description="Jelajahi kebun, keuangan, kegiatan, dan informasi tim Anda."
         />
-        <OwnerTenantContext v-if="page.props.navigation?.teamSwitcher" />
-        <div v-if="entries.length" class="space-y-3">
+        <OwnerTenantContext
+            v-if="page.props.navigation?.teamSwitcher"
+            class="sm:max-w-xl"
+        />
+        <div
+            v-if="entries.length"
+            class="space-y-3 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0 xl:grid-cols-3"
+        >
             <Link
                 v-for="entry in entries"
                 :key="entry.href"

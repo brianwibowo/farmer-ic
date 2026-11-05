@@ -41,6 +41,8 @@ const { signOut, processing, error } = useLogout();
                 class="h-9 w-auto min-w-0 object-contain dark:brightness-0 dark:invert"
             />
 
+            <slot name="navigation" />
+
             <div class="flex shrink-0 items-center gap-2">
                 <button
                     v-if="props.showAppearanceToggle"

@@ -107,3 +107,34 @@ modul lain tidak diaudit ulang.
   selector tersedia di Lainnya. Toggle tema berada sebelum lonceng dan hanya
   OwnerLayout yang mengaktifkan prop tersebut, sehingga portal Petugas dan
   alur profil/AI mempertahankan perilakunya.
+
+## Responsivitas Owner untuk tablet, laptop, dan TV
+
+OwnerLayout mengaktifkan prop adaptif pada shell yang sama; halaman, tabel,
+peta, dan state filter tidak dirender dua kali. Ponsel di bawah 640px tetap
+menggunakan tampilan sebelumnya. Pada 640–1023px canvas melebar untuk tablet,
+dengan navigasi bawah. Mulai 1024px tersedia navigasi header dan layout desktop;
+lebar maksimal 2240px membatasi baris pada layar TV. Shell lain, AI, profil,
+query database dan otorisasi tidak berubah.
+
+Dashboard menggunakan 3 kolom metrik mulai tablet, card penanaman 2 kolom tablet / 3 kolom desktop,
+dan tabel/grafik berdampingan mulai 1280px. Kolom tabel desktop proporsional,
+dengan header/Site tetap sticky. Aktivitas memakai satu DOM list dengan grid
+2–3 kolom desktop. Tidak ada pengenalan perangkat berbasis user-agent.
+
+Verifikasi browser pada 5 November 2026:
+
+- 14 viewport: 320×568, 390×844, 430×932, 844×390, 640×960,
+  768×1024, 1023×768, 1024×768, 1280×800, 1366×768, 1440×900,
+  1920×1080, 2560×1440, dan 3840×2160. Tidak ada overflow horizontal
+  pada halaman/main; overflow tabel tetap lokal pada layar sempit.
+- Setiap ukuran hanya memiliki satu tabel dan satu instance Leaflet.
+  Navigasi bawah tampil sebelum 1024px, navigasi header mulai 1024px.
+- Pada ponsel, tabel berhasil digeser horizontal 444px dan Site tetap di
+  posisi kiri. Pada landscape 844×390, header tetap di posisi atas saat
+  scroll vertikal 44px. Tautan Site membuka detail kebun yang sesuai.
+- Navigasi Lainnya/Beranda, filter periode 30 hari, refresh dengan feedback
+  sukses, pencarian aktivitas kosong dan reset filter berfungsi. Tema
+  terang/gelap desktop tidak menimbulkan overflow; 18 tile peta terisi.
+- Pemeriksaan console browser tidak menemukan warning/error. Perubahan
+  ini tidak mengubah backend, permission, AI, atau formulir profil.

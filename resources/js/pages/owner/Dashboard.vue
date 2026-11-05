@@ -37,63 +37,71 @@ const updatedAt = computed(() => props.dashboard.generatedAt);
 
 <template>
     <Head title="Beranda Owner" />
-    <div class="min-w-0 space-y-4" :aria-busy="loading">
-        <header>
-            <h1 class="text-xl leading-7 font-semibold break-words">
-                Selamat datang<template v-if="welcomeName"
-                    >,
-                    <span class="text-secondary dark:text-primary">{{
-                        welcomeName
-                    }}</span></template
-                >!
-            </h1>
-        </header>
-        <form
-            class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2"
-            @submit.prevent="submit()"
-        >
-            <label class="col-span-2 block min-w-0 text-xs font-medium"
-                ><span class="mb-1.5 block">Kebun</span>
-                <AppSelect
-                    id="owner-overview-farm"
-                    v-model="filters.farm_id"
-                    :disabled="loading"
-                    @change="submit()"
-                    ><AppSelectOption value="">Semua kebun</AppSelectOption
-                    ><AppSelectOption
-                        v-for="farm in dashboard.farmOptions"
-                        :key="farm.id"
-                        :value="farm.id"
-                        >{{ farm.name }}</AppSelectOption
-                    ></AppSelect
+    <div
+        class="owner-dashboard min-w-0 space-y-4 lg:space-y-6"
+        :aria-busy="loading"
+    >
+        <div class="owner-dashboard-header grid gap-4">
+            <header>
+                <h1
+                    class="text-xl leading-7 font-semibold break-words lg:text-2xl lg:leading-9 2xl:text-3xl"
                 >
-            </label>
-            <label class="block min-w-0 text-xs font-medium"
-                ><span class="mb-1.5 block">Periode aktivitas</span
-                ><AppSelect
-                    id="owner-overview-period"
-                    v-model="filters.period"
-                    :disabled="loading"
-                    @change="submit()"
-                    ><AppSelectOption value="7">7 hari terakhir</AppSelectOption
-                    ><AppSelectOption value="30"
-                        >30 hari terakhir</AppSelectOption
-                    ></AppSelect
-                ></label
+                    Selamat datang<template v-if="welcomeName"
+                        >,
+                        <span class="text-secondary dark:text-primary">{{
+                            welcomeName
+                        }}</span></template
+                    >!
+                </h1>
+            </header>
+            <form
+                class="owner-dashboard-filters grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2"
+                @submit.prevent="submit()"
             >
-            <Button
-                type="submit"
-                variant="outline"
-                size="icon"
-                class="min-h-11 min-w-11"
-                :disabled="loading"
-                aria-label="Perbarui Beranda"
-                ><RefreshCw
-                    class="size-4"
-                    :class="loading ? 'motion-safe:animate-spin' : ''"
-                    aria-hidden="true"
-            /></Button>
-        </form>
+                <label class="col-span-2 block min-w-0 text-xs font-medium"
+                    ><span class="mb-1.5 block">Kebun</span>
+                    <AppSelect
+                        id="owner-overview-farm"
+                        v-model="filters.farm_id"
+                        :disabled="loading"
+                        @change="submit()"
+                        ><AppSelectOption value="">Semua kebun</AppSelectOption
+                        ><AppSelectOption
+                            v-for="farm in dashboard.farmOptions"
+                            :key="farm.id"
+                            :value="farm.id"
+                            >{{ farm.name }}</AppSelectOption
+                        ></AppSelect
+                    >
+                </label>
+                <label class="block min-w-0 text-xs font-medium"
+                    ><span class="mb-1.5 block">Periode aktivitas</span
+                    ><AppSelect
+                        id="owner-overview-period"
+                        v-model="filters.period"
+                        :disabled="loading"
+                        @change="submit()"
+                        ><AppSelectOption value="7"
+                            >7 hari terakhir</AppSelectOption
+                        ><AppSelectOption value="30"
+                            >30 hari terakhir</AppSelectOption
+                        ></AppSelect
+                    ></label
+                >
+                <Button
+                    type="submit"
+                    variant="outline"
+                    size="icon"
+                    class="min-h-11 min-w-11"
+                    :disabled="loading"
+                    aria-label="Perbarui Beranda"
+                    ><RefreshCw
+                        class="size-4"
+                        :class="loading ? 'motion-safe:animate-spin' : ''"
+                        aria-hidden="true"
+                /></Button>
+            </form>
+        </div>
         <p
             v-if="loading || error || feedback"
             :role="error ? 'alert' : 'status'"
@@ -103,11 +111,18 @@ const updatedAt = computed(() => props.dashboard.generatedAt);
             {{ loading ? 'Memuat ringkasan kebun…' : error || feedback }}
         </p>
         <OwnerDashboardMetrics :dashboard="dashboard" />
-        <OwnerDashboardLandTable :table="landTable" :loading="loading" />
-        <OwnerDashboardActivityChart
-            v-if="page.props.ownerNavigation?.activities"
-            :trend="dashboard.trend"
-        />
+        <div
+            class="owner-dashboard-overview grid min-w-0 items-start gap-4 lg:gap-6"
+            :class="{
+                'owner-has-trend': page.props.ownerNavigation?.activities,
+            }"
+        >
+            <OwnerDashboardLandTable :table="landTable" :loading="loading" />
+            <OwnerDashboardActivityChart
+                v-if="page.props.ownerNavigation?.activities"
+                :trend="dashboard.trend"
+            />
+        </div>
         <OwnerDashboardPlantingOverview
             :cycles="dashboard.cycles"
             :commodities="dashboard.commodities"
@@ -126,7 +141,10 @@ const updatedAt = computed(() => props.dashboard.generatedAt);
                     >Lihat kebun</Link
                 >
             </div>
-            <DashboardFarmMap :farms="dashboard.landMap.farms" class="h-56!" />
+            <DashboardFarmMap
+                :farms="dashboard.landMap.farms"
+                class="h-56! lg:h-80! 2xl:h-96!"
+            />
             <p class="mt-3 text-xs leading-5 text-muted-foreground">
                 {{
                     dashboard.landMap.hasCoordinates
@@ -145,3 +163,24 @@ const updatedAt = computed(() => props.dashboard.generatedAt);
         />
     </div>
 </template>
+
+<style scoped>
+@media (min-width: 1024px) {
+    .owner-dashboard-header {
+        grid-template-columns: minmax(0, 1fr) minmax(420px, 540px);
+        align-items: end;
+        gap: 24px;
+    }
+    .owner-dashboard-filters {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    }
+    .owner-dashboard-filters > label:first-child {
+        grid-column: auto;
+    }
+}
+@media (min-width: 1280px) {
+    .owner-dashboard-overview.owner-has-trend {
+        grid-template-columns: minmax(0, 2.3fr) minmax(300px, 1fr);
+    }
+}
+</style>

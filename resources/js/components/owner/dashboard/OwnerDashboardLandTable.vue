@@ -26,10 +26,15 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
             tabindex="0"
             class="owner-land-scroll isolate overflow-auto overscroll-x-contain border-y border-border focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
             :class="loading ? 'opacity-60' : ''"
-            style="max-height: min(24rem, max(8rem, calc(100dvh - 250px)))"
+            style="
+                max-height: var(
+                    --owner-land-max-height,
+                    min(24rem, max(8rem, calc(100dvh - 250px)))
+                );
+            "
         >
             <table
-                class="w-full min-w-[800px] table-fixed border-separate border-spacing-0 text-left text-sm leading-5 text-foreground"
+                class="w-full min-w-[800px] table-fixed border-separate border-spacing-0 text-left text-sm leading-5 text-foreground 2xl:text-base 2xl:leading-6"
             >
                 <caption class="sr-only">
                     Data kebun pada tenant dan filter terpilih, dengan total
@@ -39,11 +44,11 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
                     hektar.
                 </caption>
                 <colgroup>
-                    <col class="w-[120px]" />
-                    <col class="w-[88px]" />
-                    <col class="w-[120px]" />
-                    <col class="w-36" />
-                    <col class="w-40" />
+                    <col class="w-[120px] lg:w-[18%]" />
+                    <col class="w-[88px] lg:w-[10%]" />
+                    <col class="w-[120px] lg:w-[12%]" />
+                    <col class="w-36 lg:w-[16%]" />
+                    <col class="w-40 lg:w-[20%]" />
                     <col />
                 </colgroup>
                 <thead>
@@ -195,7 +200,7 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
             </table>
         </div>
         <footer
-            class="flex flex-wrap justify-end gap-x-2 px-4 py-3 text-sm font-semibold tabular-nums"
+            class="flex flex-wrap justify-end gap-x-2 px-4 py-3 text-sm font-semibold tabular-nums lg:text-base"
             aria-label="Total luas lahan sesuai filter"
         >
             <span>Total</span
@@ -203,3 +208,11 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
         </footer>
     </section>
 </template>
+
+<style scoped>
+@media (min-width: 1024px) {
+    .owner-land-scroll {
+        --owner-land-max-height: min(36rem, 60dvh);
+    }
+}
+</style>

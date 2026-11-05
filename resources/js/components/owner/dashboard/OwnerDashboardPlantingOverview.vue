@@ -25,13 +25,19 @@ const commodityTotal = computed(() =>
 </script>
 
 <template>
-    <section class="min-w-0 space-y-4" aria-label="Ringkasan penanaman">
+    <section
+        class="min-w-0 space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0 lg:grid-cols-3 lg:gap-6"
+        aria-label="Ringkasan penanaman"
+    >
         <article
-            class="rounded-xl border border-border bg-card p-4"
+            class="rounded-xl border border-border bg-card p-4 lg:p-5"
             aria-labelledby="owner-cycle-overview"
         >
             <div class="flex items-center justify-between gap-2">
-                <h2 id="owner-cycle-overview" class="text-base font-semibold">
+                <h2
+                    id="owner-cycle-overview"
+                    class="text-base font-semibold 2xl:text-lg"
+                >
                     Siklus tanam
                 </h2>
                 <RefreshCw
@@ -66,7 +72,7 @@ const commodityTotal = computed(() =>
                     </div>
                 </dl>
                 <div
-                    class="relative grid size-32 shrink-0 place-items-center rounded-full"
+                    class="relative grid size-32 shrink-0 place-items-center rounded-full 2xl:size-40"
                     :style="ring"
                     role="img"
                     :aria-label="`${cycles.running} batch berjalan dan ${cycles.harvested} batch sudah panen. ${runningPercent}% masih berjalan.`"
@@ -94,11 +100,14 @@ const commodityTotal = computed(() =>
             </p>
         </article>
         <article
-            class="rounded-xl border border-border bg-card p-4"
+            class="rounded-xl border border-border bg-card p-4 lg:p-5"
             aria-labelledby="owner-stage-overview"
         >
             <div class="flex items-center justify-between gap-2">
-                <h2 id="owner-stage-overview" class="text-base font-semibold">
+                <h2
+                    id="owner-stage-overview"
+                    class="text-base font-semibold 2xl:text-lg"
+                >
                     Tahap penanaman
                 </h2>
                 <Sprout
@@ -145,11 +154,14 @@ const commodityTotal = computed(() =>
             </p>
         </article>
         <article
-            class="rounded-xl border border-border bg-card p-4"
+            class="rounded-xl border border-border bg-card p-4 sm:col-span-2 lg:col-span-1 lg:p-5"
             aria-labelledby="owner-crop-overview"
         >
             <div class="flex items-center justify-between gap-2">
-                <h2 id="owner-crop-overview" class="text-base font-semibold">
+                <h2
+                    id="owner-crop-overview"
+                    class="text-base font-semibold 2xl:text-lg"
+                >
                     Komoditas tertanam
                 </h2>
                 <Leaf class="size-4 text-muted-foreground" aria-hidden="true" />

@@ -269,21 +269,33 @@ the profile/settings forms and avatar dropdown behavior.
 
 ### Owner database Beranda
 
-Owner Beranda keeps the existing Farmer/mobile frame at every viewport width,
-including portrait and landscape. Do not widen it into the Admin/tablet shell.
+Owner Beranda is adaptive while retaining the Farmer palette and existing
+phone design. Below 640px keep the existing mobile frame/navigation. From
+640–1023px use a fluid tablet canvas and bottom navigation. At 1024px and wider,
+use a full-height Owner desktop canvas with horizontal header navigation and a
+2240px content limit for large/TV screens. This is an OwnerLayout opt-in; keep
+Petugas, the existing AI page and profile forms independent. Render the page
+slot once so maps, data, filter state and IDs are not duplicated.
 Use AdminDashboardService summary definitions and active-tenant/farm filters,
 with the Farmer palette and mobile cards. Show Total kebun, Luas terkelola and
 Batch berjalan; omit Risiko terbuka, Perlu perhatian and the entire OPEX/finance
 panel. Place the land table immediately below the metrics (the former activity
 chart position), then Aktivitas lahan in the former attention position. Follow
 with Siklus tanam, Tahap penanaman, Komoditas tertanam, Denah kebun and the
-filterable Aktivitas lapangan list. Keep all content in one mobile column.
+filterable Aktivitas lapangan list. Phones keep one column. Tablets use three
+metric columns and two planting columns; desktop uses three planting columns.
+At 1280px+, place the table and activity chart side by side when both exist,
+with enough space for the full table. Filters align horizontally on desktop.
+Activity results use one mobile list, two desktop columns and three on wide
+screens. Increase desktop/TV metric and table type sizes without changing data.
 
 The single live table has Site / lahan, Luas (ha), Legalitas, Jenis tanaman,
 Progress and Resume. Its own bounded scroll region allows both axes while
 keeping the header row and first Site/lahan column sticky, with opaque themed
 surfaces and the intersection above both. The table may overflow locally; the
-page must not. Keep the current filtered total hectares visible below the table.
+page must not. Desktop columns use proportional widths and a taller scroll
+region; mobile column widths and freeze behavior stay unchanged. Keep the
+current filtered total hectares visible below the table.
 Site names link to the read-only Owner farm detail, and resume links to its
 actual latest activity. Never send Owners to Admin routes.
 

@@ -88,7 +88,9 @@ function statusTone(status: string): string {
                 >Lihat semua<ArrowUpRight class="size-3.5" aria-hidden="true"
             /></Link>
         </header>
-        <div class="space-y-3 border-y border-border bg-muted/30 p-4">
+        <div
+            class="space-y-3 border-y border-border bg-muted/30 p-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0 lg:p-5"
+        >
             <div>
                 <label
                     for="owner-dashboard-officer"
@@ -130,7 +132,9 @@ function statusTone(status: string): string {
                     />
                 </div>
             </div>
-            <div class="flex flex-wrap items-center justify-between gap-2">
+            <div
+                class="flex flex-wrap items-center justify-between gap-2 sm:col-span-2"
+            >
                 <p
                     role="status"
                     aria-live="polite"
@@ -153,13 +157,17 @@ function statusTone(status: string): string {
         <div id="owner-dashboard-activity-results">
             <ul
                 v-if="filtered.length"
-                class="divide-y divide-border"
+                class="divide-y divide-border lg:grid lg:grid-cols-2 lg:gap-4 lg:divide-y-0 lg:p-4 2xl:grid-cols-3"
                 aria-label="Daftar aktivitas lapangan"
             >
-                <li v-for="activity in filtered" :key="activity.id">
+                <li
+                    v-for="activity in filtered"
+                    :key="activity.id"
+                    class="min-w-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border"
+                >
                     <Link
                         :href="`/aktivitas/${encodeURIComponent(activity.id)}`"
-                        class="block min-w-0 space-y-3 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                        class="block min-w-0 space-y-3 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none lg:h-full lg:p-5"
                     >
                         <div
                             class="flex flex-wrap items-start justify-between gap-2"
