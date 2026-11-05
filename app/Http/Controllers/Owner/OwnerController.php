@@ -28,7 +28,8 @@ class OwnerController extends Controller
         Gate::authorize('viewAny', [Farm::class, $team]);
         $this->authorizeFarmFilter($request);
 
-        return Inertia::render('owner/Dashboard', $this->reads->dashboard($request->user(), $team, $request->validated()));
+        // The Owner dashboard temporarily always shows every visible farm in the active tenant.
+        return Inertia::render('owner/Dashboard', $this->reads->dashboard($request->user(), $team, $request->safe()->except(['farm_id'])));
     }
 
     public function farms(OwnerReadRequest $request): Response

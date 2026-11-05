@@ -104,7 +104,7 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.total_area_ha', '12.3750'));
     }
 
-    public function test_farm_filter_scopes_table_rows_total_and_admin_summary_together(): void
+    public function test_dashboard_always_shows_all_visible_farms_even_with_a_previous_farm_filter(): void
     {
         $first = $this->farm('Kebun A', '10.1250', 'owned');
         $second = $this->farm('Kebun B', '2.8750', 'rented');
@@ -114,10 +114,13 @@ class OwnerDashboardTableTest extends TestCase
             ->has('landTable.rows', 2)->where('landTable.total_area_ha', '13.0000')
             ->where('landTable.rows.0.resume.id', $firstReport->id)
             ->where('landTable.rows.1.resume.id', $secondReport->id));
-        $this->get('/?farm_id='.$first->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->has('landTable.rows', 1)->where('landTable.total', 1)
-            ->where('landTable.rows.0.id', $first->id)->where('landTable.total_area_ha', '10.1250')
-            ->where('dashboard.metrics.0.value', 1)->where('dashboard.filters.farm_id', $first->id));
+        foreach ([$first, $second] as $previous) {
+            $this->get('/?farm_id='.$previous->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->has('landTable.rows', 2)->where('landTable.total', 2)
+                ->where('landTable.rows.0.id', $first->id)->where('landTable.rows.1.id', $second->id)
+                ->where('landTable.total_area_ha', '13.0000')->has('dashboard.landMap.farms', 2)
+                ->where('dashboard.metrics.0.value', 2)->where('dashboard.filters.farm_id', null));
+        }
     }
 
     public function test_owner_pie_includes_every_scoped_commodity_while_admin_keeps_its_top_three(): void
@@ -152,9 +155,9 @@ class OwnerDashboardTableTest extends TestCase
             ->where('dashboard.commodities.2.cycleCount', 2));
 
         $this->get('/?farm_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->has('dashboard.commodities', 2)
+            ->has('dashboard.commodities', 5)
             ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('areaValue', 'name')->all() === [
-                'Padi' => 0.5, 'Ubi' => 0.25,
+                'Jagung' => 5, 'Kedelai' => 3, 'Padi' => 2.5, 'Kacang' => 1, 'Ubi' => 0.25,
             ]));
 
         $this->actingAs($this->admin)->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
