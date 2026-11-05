@@ -54,7 +54,7 @@ class HomePageTest extends TestCase
         $owner = User::factory()->create(['role' => 'owner']);
 
         $this->actingAs($owner)->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('farmer/Dashboard')
+            ->component('owner/Dashboard')
             ->where('auth.user.id', $owner->id)
             ->where('account', ['name' => $owner->name, 'email' => $owner->email])
             ->where('currentTeam.id', $owner->current_team_id)

@@ -2,19 +2,23 @@
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { LoaderCircle, Plus } from '@lucide/vue';
-import { ref, computed } from 'vue';
-import BlockDialog from '@/components/blocks/BlockDialog.vue';
+import { LoaderCircle } from '@lucide/vue';
+import { computed } from 'vue';
+import FarmBlocksTable from '@/components/blocks/FarmBlocksTable.vue';
 import { Button } from '@/components/ui/button';
 import BlockLayout from '@/layouts/BlockLayout.vue';
-import type { BlockFarm, FarmBlock, BlockFormCapacity } from '@/types/blocks';
+import type {
+    BlockFarm,
+    ManagedBlock,
+    BlockFormCapacity,
+} from '@/types/blocks';
 import { hectares } from '@/types/farms';
 
 defineOptions({ layout: BlockLayout, inheritAttrs: false });
 const props = defineProps<{
     farm: BlockFarm;
     blocks: {
-        data: FarmBlock[];
+        data: ManagedBlock[];
         total: number;
         current_page: number;
         last_page: number;
@@ -22,11 +26,11 @@ const props = defineProps<{
         next_page_url: string | null;
     };
     blockCapacity: BlockFormCapacity;
+    batchPermissions: Record<string, boolean>;
     summary: { total: number; active: number; active_area_ha: string };
     filters: { search: string; status: string; per_page: number };
     can: { create: boolean };
 }>();
-const creating = ref(false);
 const page = usePage();
 const theme = computed(() =>
     page.props.navigation?.farms ? 'admin-dashboard-theme' : 'farm-block-theme',
@@ -59,12 +63,6 @@ function search(): void {
                 penanamannya.
             </p>
         </div>
-        <Button
-            v-if="can.create"
-            class="block-action h-10"
-            @click="creating = true"
-            ><Plus />Tambah blok</Button
-        >
     </header>
     <div class="grid grid-cols-3 gap-2 sm:gap-4">
         <section
@@ -155,60 +153,18 @@ function search(): void {
             >Reset filter</Button
         >
     </form>
-    <div
-        v-if="blocks.data.length"
-        class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
-    >
-        <Link
-            v-for="block in blocks.data"
-            :key="block.id"
-            :href="`/kebun/${farm.id}/blocks/${block.id}`"
-            class="rounded-xl border border-border bg-card p-5 transition hover:border-primary focus-visible:outline-2 focus-visible:outline-ring"
-            ><div class="flex flex-wrap items-center justify-between gap-2">
-                <span
-                    class="text-xs font-semibold tracking-wide text-muted-foreground"
-                    >{{ block.code }}</span
-                ><span class="rounded-full bg-muted px-3 py-1 text-xs">{{
-                    block.is_active ? 'Aktif' : 'Nonaktif'
-                }}</span>
-            </div>
-            <h2 class="mt-3 text-xl font-semibold">{{ block.name }}</h2>
-            <p class="mt-2 text-sm">{{ hectares(block.area_ha) }} ha</p>
-            <p class="mt-4 text-xs text-muted-foreground">
-                {{
-                    block.land_clearing_completed_at
-                        ? 'Land Clearing selesai · Lihat timeline batch'
-                        : 'Land Clearing berlangsung'
-                }}
-            </p></Link
-        >
-    </div>
-    <section
-        v-else
-        class="rounded-xl border border-dashed border-border bg-card p-8 text-center"
-    >
-        <h2 class="admin-section-title text-lg font-semibold">
-            Belum ada blok yang ditampilkan
-        </h2>
-        <p class="mt-2 text-sm text-muted-foreground">
-            {{
-                summary.total
-                    ? 'Coba ubah pencarian atau filter status.'
-                    : can.create
-                      ? 'Tambahkan blok pertama untuk mulai mencatat persiapan lahan.'
-                      : 'Admin belum menambahkan blok pada kebun ini.'
-            }}
-        </p>
-        <Button
-            v-if="filters.search || filters.status !== 'all'"
-            type="button"
-            variant="outline"
-            class="mt-4"
-            :disabled="filters.processing"
-            @click="reset"
-            >Reset filter</Button
-        >
-    </section>
+    <FarmBlocksTable
+        :farm="farm"
+        :blocks="blocks.data"
+        :batch-permissions="batchPermissions"
+        :capacity="blockCapacity"
+        :can-create="can.create"
+        :theme="theme"
+        :total="blocks.total"
+        :client-pagination="false"
+        :searchable="false"
+        return-to="blocks"
+    />
     <nav
         v-if="blocks.last_page > 1"
         aria-label="Halaman daftar blok"
@@ -230,11 +186,4 @@ function search(): void {
             >
         </div>
     </nav>
-    <BlockDialog
-        v-model:open="creating"
-        :farm="farm"
-        :block="null"
-        :capacity="blockCapacity"
-        :theme="theme"
-    />
 </template>

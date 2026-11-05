@@ -6,7 +6,7 @@ minimal disediakan agar backend dapat digunakan langsung melalui form Inertia.
 
 ## Alur yang tersedia
 
-1. Admin membuat master blok dalam kebunnya. `land_clearing_started_at` diisi
+1. Admin atau Petugas PIC membuat master blok dalam kebunnya. `land_clearing_started_at` diisi
    server; Land Clearing langsung berlangsung, termasuk bila blok disimpan
    nonaktif untuk sementara.
 2. Petugas pada kebun tugasnya atau Admin membuat subblok/batch dengan alokasi
@@ -40,6 +40,13 @@ modul panen diimplementasikan; satu laporan tidak boleh otomatis menutup batch.
 
 ## Route dan halaman
 
+Petugas membaca blok pada farm penugasannya dengan `farm_blocks.view = own`.
+Grant `farm_blocks.create/update/delete = own` juga mensyaratkan `isPic()` pada
+farm penugasan melalui FarmBlockPolicy. Farm target tetap harus sesuai penugasan
+dan keanggotaan tenant. Petugas non-PIC tetap hanya membaca master blok; aturan
+batch terpisah tidak berubah. Admin tetap CRUD dalam tenant, Owner hanya baca,
+dan Superadmin memakai bypass yang sudah ada.
+
 Seluruh route memakai `auth` dan `verified`. Semua aksi controller memeriksa
 Gate sebelum service; hasil baca memakai `visibleTo` sebelum serialisasi,
 pagination, jumlah dan total. Parameter block harus milik farm di URL.
@@ -66,7 +73,7 @@ membuka `/blocks`; halaman demo kebun publik belum diganti dengan direktori ini.
 
 | Resource | Owner | Admin | Petugas | Superadmin |
 | --- | --- | --- | --- | --- |
-| Master blok | Baca dalam tenant terkait | CRUD dalam tenant | Baca kebun tugas | Semua |
+| Master blok | Baca dalam tenant terkait | CRUD dalam tenant | Baca kebun tugas; CRUD hanya PIC kebun tugas | Semua |
 | Periode | Baca | Baca; buat otomatis bersama batch | Baca; buat otomatis pada kebun tugas | Semua |
 | Batch persiapan | Baca | Buat sesuai izin planting_cycles existing | Buat pada kebun tugas | Semua |
 | Timeline | Baca | Baca | Baca kebun tugas | Semua |
@@ -224,3 +231,27 @@ atau menjadwalkan ulang SOP tidak ditambahkan oleh revisi ini.
 Semua route baru terlindungi dan query baca baru memakai scope. Batas integrasi
 route publik/AI yang dicatat di bagian sebelumnya tetap di luar cakupan revisi;
 pekerjaan ini bukan audit ulang seluruh route dan query aplikasi.
+
+## Sub blok langsung di daftar blok (4 November 2026)
+
+Create/edit sub blok dan enam tahap beserta tanggalnya sekarang tersedia langsung
+di daftar blok, baik tabel blok pada Detail Kebun Admin maupun halaman
+`/kebun/{farm}/blocks` untuk pengguna yang diizinkan. Komponen BlockBatches memakai
+BatchDialog dan BatchTimeline yang sama; tidak ada lagi halaman detail tersendiri
+untuk pengelolaan sub blok. `farmer/blocks/Show.vue` dihapus. GET URL detail lama
+masih memeriksa kecocokan parent dan Policy view sebelum redirect ke daftar blok.
+Form CRUD master blok lama tetap kompatibel.
+
+`FarmBlockService::overview` memuat periode, batch, tahap, kapasitas, dan hambatan
+penghapusan secara batch melalui scope masing-masing model. Metadata dipasang
+ke blok yang terlihat saja, termasuk saat pencarian dan pagination. HTTP
+controller tetap menghitung seluruh boolean izin; service tidak memutuskan
+role/permission. Batas kapasitas, histori, dan aturan edit batch existing tetap
+berlaku. Tidak ada grant atau migration baru.
+
+Form mengirim return_to=farm atau return_to=blocks agar simpan kembali ke daftar
+asal. Untuk batch, kedua nilai divalidasi; keduanya hanya memilih tujuan route
+tetap, tidak menerima URL eksternal. Tanpa konteks, mutasi batch kembali ke daftar
+blok. Semua route baca/tulis terkait tetap terlindungi; query baru tidak
+menggantikan scope dengan ID browser. Route/query di luar dashboard dan modul
+kebun/blok tetap mengikuti batas audit sebelumnya.

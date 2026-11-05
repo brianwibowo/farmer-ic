@@ -121,7 +121,7 @@ function reset(): void {
 
 <template>
     <Head title="Farm Management" />
-    <div class="space-y-6">
+    <div class="space-y-[18px]">
         <div class="grid grid-cols-3 gap-2 sm:gap-4">
             <div
                 v-for="item in [

@@ -13,6 +13,7 @@ import type { BatchCapacity, PreparationBatch } from '@/types/blocks';
 const props = defineProps<{
     open: boolean;
     context: string;
+    returnTo?: 'farm' | 'blocks';
     base: string;
     capacity: BatchCapacity;
     batch: PreparationBatch | null;
@@ -68,6 +69,7 @@ function close(open: boolean): void {
                 class="min-h-0 flex-1"
                 v-if="open"
                 ref="fields"
+                :return-to="returnTo"
                 :base="base"
                 :capacity="capacity"
                 :batch="batch"

@@ -242,6 +242,10 @@ return [
             'sop_template_tasks.view' => 'any',
             'notifications.update' => 'own',
             'farm_blocks.view' => 'own',
+            // Own-farm writes additionally require PIC status in FarmBlockPolicy.
+            'farm_blocks.create' => 'own',
+            'farm_blocks.update' => 'own',
+            'farm_blocks.delete' => 'own',
             'planting_rounds.view' => 'own',
             'planting_rounds.create' => 'own',
             'planting_cycle_stages.view' => 'own',

@@ -62,7 +62,7 @@ function submit(): void {
 
 <template>
     <Head :title="template ? `Ubah ${template.name}` : 'Tambah SOP'" />
-    <div class="mx-auto max-w-4xl space-y-6">
+    <div class="mx-auto max-w-4xl space-y-[18px]">
         <Link
             :href="backUrl"
             class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"

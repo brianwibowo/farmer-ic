@@ -18,7 +18,11 @@ use App\Http\Controllers\Finance\FinancialProjectionController;
 use App\Http\Controllers\Finance\FinancialTransactionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Owner\OwnerController;
+use App\Http\Controllers\Owner\OwnerTenantController;
 use App\Http\Controllers\Petugas\PetugasActivityController;
+use App\Http\Controllers\Petugas\PetugasGardenController;
+use App\Http\Controllers\Petugas\PetugasHomeController;
 use App\Http\Controllers\Petugas\PetugasPlantingController;
 use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\Sop\SopTemplateController;
@@ -30,22 +34,42 @@ use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 Route::get('/', HomeController::class)->middleware(['auth', 'verified'])->name('home');
 
-// Remaining public demo pages do not provision users or resolve the legacy team-based session.
-// AI API routes below keep their existing authentication and team middleware.
-Route::inertia('kebun/detail', 'farmer/KebunDetail')->defaults('farmer_guest', true)->name('kebun.detail');
-Route::inertia('kebun/aktivitas', 'farmer/KebunAktivitas')->defaults('farmer_guest', true)->name('kebun.aktivitas');
-Route::inertia('/kebun', 'farmer/Kebun')->defaults('farmer_guest', true)->name('kebun');
-Route::inertia('/aktivitas', 'farmer/Aktivitas')->defaults('farmer_guest', true)->name('aktivitas');
-Route::inertia('/rincian-aktivitas', 'farmer/RincianAktivitas')->defaults('farmer_guest', true)->name('rincian-aktivitas');
-Route::inertia('/laporan', 'farmer/Laporan')->defaults('farmer_guest', true)->name('laporan');
+Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): void {
+    Route::get('kebun', [OwnerController::class, 'farms'])->name('kebun');
+    Route::get('kebun/detail', function (Request $request) {
+        $id = (string) $request->query('id', '');
+
+        return Str::isUuid($id) ? to_route('owner.farms.show', $id) : to_route('kebun');
+    })->name('kebun.detail');
+    Route::get('kebun/aktivitas', fn (Request $request) => to_route('aktivitas',
+        Str::isUuid((string) $request->query('id', '')) ? ['farm_id' => $request->query('id')] : []))->name('kebun.aktivitas');
+    Route::get('kebun/{farm}', [OwnerController::class, 'farm'])->whereUuid('farm')->name('owner.farms.show');
+    Route::get('kebun/{farm}/blok/{block}', [OwnerController::class, 'block'])
+        ->whereUuid(['farm', 'block'])->name('owner.blocks.show');
+    Route::get('aktivitas', [OwnerController::class, 'activities'])->name('aktivitas');
+    Route::get('aktivitas/{activity}', [OwnerController::class, 'activity'])->whereUuid('activity')->name('owner.activities.show');
+    Route::get('rincian-aktivitas', function (Request $request) {
+        $id = (string) $request->query('id', '');
+
+        return Str::isUuid($id) ? to_route('owner.activities.show', $id) : to_route('aktivitas');
+    })->name('rincian-aktivitas');
+    Route::redirect('laporan', '/')->name('laporan');
+    Route::get('lainnya', [OwnerController::class, 'more'])->name('owner.more');
+    Route::get('lainnya/sop', [OwnerController::class, 'sops'])->name('owner.sops.index');
+    Route::get('lainnya/sop/{sopTemplate}', [OwnerController::class, 'sop'])->whereUuid('sopTemplate')->name('owner.sops.show');
+    Route::get('lainnya/pengguna', [OwnerController::class, 'users'])->name('owner.users.index');
+    Route::get('lainnya/pengguna/{managedUser}', [OwnerController::class, 'user'])->whereUuid('managedUser')->name('owner.users.show');
+    Route::post('owner/tenant/{team:slug}', OwnerTenantController::class)->name('owner.tenant.switch');
+});
 
 Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
-    Route::inertia('/', 'petugas/Home')->name('home');
-    Route::inertia('kebun', 'petugas/Kebun')->name('kebun');
+    Route::get('/', PetugasHomeController::class)->name('home');
+    Route::get('kebun', PetugasGardenController::class)->name('kebun');
     Route::get('penanaman', [PetugasPlantingController::class, 'index'])->name('planting.index');
     Route::get('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'show'])->whereUuid('cycle')->name('planting.show');
     Route::post('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'store'])->whereUuid('cycle')->name('planting.store');

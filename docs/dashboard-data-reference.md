@@ -2,8 +2,8 @@
 
 `GET /admin/dashboard` dijalankan oleh `DashboardController` dan membentuk
 prop `dashboard` melalui `App\Services\AdminDashboardService`. Seluruh query
-berjalan dengan `visibleTo($actor, $team)`, sehingga data hanya berasal dari
-kebun yang dapat dilihat oleh pengguna pada team aktifnya. Route tetap dilindungi
+berjalan dengan `visibleTo($actor, $team)` dan pembatasan eksplisit ke ID kebun
+dalam tenant terpilih, termasuk untuk Superadmin. Route tetap dilindungi
 oleh `auth`, `verified`, dan Gate `admin.access`.
 
 | Bagian dashboard | Tabel/model sumber | Kolom dan perhitungan |
@@ -12,8 +12,8 @@ oleh `auth`, `verified`, dan Gate `admin.access`.
 | Luas terkelola | `farms` / `Farm` | `SUM(total_area_ha)`. |
 | Siklus aktif dan area aktif | `planting_cycles` / `PlantingCycle` | Baris `status = 'active'`; `COUNT(id)` dan `SUM(planted_area_ha)`. |
 | Komoditas tertanam | `planting_cycles` → `crop_varieties` → `commodities` | Cycle dengan status `active` atau `harvested`, dikelompokkan per `commodities.id`; nilai kartu adalah `SUM(planting_cycles.planted_area_ha)`. Dashboard menampilkan maksimal tiga komoditas terbesar dan empty card bila data kurang dari tiga. |
-| Blok dipetakan | `block_mapping_details` → `farm_activities` → `farms` | `COUNT(block_mapping_details.activity_id)` dalam scope kebun yang dapat dilihat. Ini adalah catatan pemetaan blok, bukan master blok. |
-| Total sub-blok | Belum tersedia | Tidak ada master/tabel sub-blok yang menjadi sumber kebenaran. Dashboard menampilkan `—`, bukan angka perkiraan. |
+| Blok terdaftar | `farm_blocks` / `FarmBlock` | Jumlah master blok dalam kebun terpilih; bukan jumlah laporan pemetaan. |
+| Total sub-blok | `planting_cycles` / `PlantingCycle` | Jumlah siklus dengan planting_round_id, dalam kebun terpilih. |
 | Risiko terbuka | `farm_risks` / `FarmRisk` | Risiko dengan `status` kosong atau bukan `resolved`/`closed`. |
 | Tren aktivitas tujuh hari dan filter kebun | `farm_activities` / `FarmActivity`, `farms` / `Farm` | `COUNT(id)` per `activity_date`, dari hari ini mundur enam hari. Server mengirim seri global dan per `farm_id` dalam scope; filter dashboard memilih seri kebun tanpa meminta atau menyimpan data baru di browser. |
 | Kebun aktif minggu ini | `farm_activities` / `FarmActivity` | `COUNT(DISTINCT farm_id)` dengan `activity_date` dalam tujuh hari terakhir. |
@@ -38,3 +38,29 @@ Untuk peta batas lahan yang presisi, domain perlu menambahkan tabel/model blok
 atau polygon (misalnya `farm_blocks` dengan `farm_id` dan GeoJSON/pasangan titik
 koordinat), migration, policy, scope `visibleTo`, serta editor peta. Jangan
 menganggap denah dashboard saat ini sebagai batas kadaster.
+
+## Pemilihan tenant dashboard (4 November 2026)
+
+Superadmin menggunakan tenant aktif yang tersimpan pada `current_team_id`.
+Admin tetap memakai satu tenant non-personal yang sah sesuai batas akses
+existing. Superadmin tanpa tenant aktif mendapat 403. Pemilihan tenant dashboard
+bukan pengurangan izin global Superadmin: Gate::before, access.global, dan akses
+langsung ke record tenant lain tetap berlaku.
+
+Service terlebih dahulu membatasi Farm dengan visibleTo dan farms.team_id,
+lalu memakai subquery ID kebun tersebut untuk aktivitas, blok, siklus, risiko,
+target, transaksi, proyeksi, komoditas, grafik, dan peta. Pembatasan dilakukan
+sebelum limit, agregasi, dan serialisasi. Petugas dibatasi ke keanggotaan tenant
+tersebut; filter kebun juga membatasi penugasannya. Transaksi tanpa kebun tidak
+masuk ringkasan tenant. Tenant tanpa kebun mengembalikan aktivitas/peta kosong,
+angka dan keuangan nol. Petugas aktif yang menjadi anggota tenant tetap dapat
+terdaftar meskipun belum ditugaskan ke kebun.
+
+Filter farm_id yang masih menunjuk tenant sebelumnya dikosongkan dalam props
+response ketika tidak terdapat pada pilihan kebun tenant aktif. Pemeriksaan
+Policy controller tetap berlaku; actor biasa tetap mendapat 403 pada record
+yang tidak boleh dilihat. Ringkasan langsung membaca database, termasuk
+FarmActivity yang dibuat oleh logbook; tidak ada fallback JSON atau browser
+storage. Route dashboard tetap terlindungi dan semua query baca yang disentuh
+memakai visibleTo serta batas tenant eksplisit. Modul lain di luar perubahan
+ini tidak diaudit ulang.

@@ -30,7 +30,7 @@ function submit(): void {
 
 <template>
     <Head :title="`Force delete ${farm.name}`" />
-    <div class="mx-auto min-w-0 max-w-3xl space-y-6 break-words">
+    <div class="mx-auto min-w-0 max-w-3xl space-y-[18px] break-words">
         <Link :href="backUrl" class="inline-flex items-center gap-2 rounded text-sm font-medium text-muted-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"><ArrowLeft class="size-4" />Kembali</Link>
         <header class="space-y-2"><p class="text-xs font-semibold tracking-widest text-error uppercase">Khusus SuperAdmin</p><h1 class="admin-page-title">Force delete kebun</h1><p class="text-sm leading-6 text-muted-foreground">Periksa dampak penghapusan permanen untuk <strong class="text-foreground">{{ farm.name }}</strong>.</p></header>
         <div role="note" class="flex items-start gap-3 rounded-xl border border-error/30 bg-error/10 p-4 text-error"><AlertTriangle class="mt-0.5 size-5 shrink-0" /><p class="text-sm leading-6">Kebun dan data di bawah akan dihapus permanen. Data tidak dapat dipulihkan melalui aplikasi. Akun pengguna, tenant, master data, chat AI, dan audit log tetap disimpan. File asli pada layanan eksternal tidak ikut dihapus.</p></div>

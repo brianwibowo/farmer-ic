@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Link, useForm } from '@inertiajs/vue3';
-import {
-    ArrowUpRight,
-    LoaderCircle,
-    Pencil,
-    Plus,
-    Search,
-    Trash2,
-} from '@lucide/vue';
+import { useForm } from '@inertiajs/vue3';
+import { LoaderCircle, Pencil, Plus, Search, Trash2 } from '@lucide/vue';
 import BlockDialog from './BlockDialog.vue';
+import BlockBatches from './BlockBatches.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -25,14 +19,21 @@ import type {
     ManagedBlock,
 } from '@/types/blocks';
 import { hectares } from '@/types/farms';
-const props = defineProps<{
-    farm: BlockFarm;
-    blocks: ManagedBlock[];
-    capacity: BlockFormCapacity | null;
-    canCreate: boolean;
-    theme?: string;
-    returnTo?: 'farm';
-}>();
+const props = withDefaults(
+    defineProps<{
+        farm: BlockFarm;
+        blocks: ManagedBlock[];
+        capacity: BlockFormCapacity | null;
+        canCreate: boolean;
+        theme?: string;
+        returnTo?: 'farm' | 'blocks';
+        batchPermissions: Record<string, boolean>;
+        clientPagination?: boolean;
+        searchable?: boolean;
+        total?: number;
+    }>(),
+    { clientPagination: true, searchable: true },
+);
 const editing = ref(false);
 const selected = ref<ManagedBlock | null>(null);
 const deleting = ref<ManagedBlock | null>(null);
@@ -46,10 +47,17 @@ const filtered = computed(() =>
     ),
 );
 const lastPage = computed(() =>
-    Math.max(1, Math.ceil(filtered.value.length / 10)),
+    props.clientPagination
+        ? Math.max(1, Math.ceil(filtered.value.length / 10))
+        : 1,
 );
 const rows = computed(() =>
-    filtered.value.slice((currentPage.value - 1) * 10, currentPage.value * 10),
+    props.clientPagination
+        ? filtered.value.slice(
+              (currentPage.value - 1) * 10,
+              currentPage.value * 10,
+          )
+        : filtered.value,
 );
 watch(search, () => (currentPage.value = 1));
 watch(
@@ -76,11 +84,11 @@ function remove(): void {
             class="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6"
         >
             <div>
-                <h2 class="admin-section-title">
+                <h2 class="admin-section-title text-primary">
                     Blok kebun
                     <span
                         class="ml-1 text-sm font-normal text-muted-foreground"
-                        >{{ blocks.length }}</span
+                        >{{ total ?? blocks.length }}</span
                     >
                 </h2>
             </div>
@@ -88,7 +96,7 @@ function remove(): void {
                 ><Plus />Tambah blok</Button
             >
         </header>
-        <div v-if="blocks.length > 5" class="px-5 pb-4 sm:px-6">
+        <div v-if="searchable && blocks.length > 5" class="px-5 pb-4 sm:px-6">
             <label class="relative block"
                 ><span class="sr-only">Cari blok</span
                 ><Search
@@ -129,19 +137,18 @@ function remove(): void {
                         </th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-border">
-                    <tr
-                        v-for="block in rows"
-                        :key="block.id"
-                        class="hover:bg-muted/30"
-                    >
+                <tbody
+                    v-for="block in rows"
+                    :key="block.id"
+                    class="border-b-[12px] border-background last:border-b-0"
+                >
+                    <tr class="bg-primary/8">
                         <td class="px-5 py-4 sm:px-6">
-                            <Link
-                                :href="`/kebun/${farm.id}/blocks/${block.id}`"
-                                class="inline-flex min-h-11 items-center gap-2 font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-                                >{{ block.name
-                                }}<ArrowUpRight class="size-4 shrink-0"
-                            /></Link>
+                            <h3
+                                class="text-base font-bold text-primary sm:text-lg"
+                            >
+                                {{ block.name }}
+                            </h3>
                             <p class="text-xs text-muted-foreground">
                                 {{ block.code
                                 }}<span class="sm:hidden">
@@ -152,7 +159,9 @@ function remove(): void {
                                 >
                             </p>
                         </td>
-                        <td class="px-3 py-4 whitespace-nowrap tabular-nums">
+                        <td
+                            class="px-3 py-4 font-bold whitespace-nowrap tabular-nums"
+                        >
                             {{ hectares(block.area_ha) }} ha
                         </td>
                         <td class="hidden px-3 py-4 sm:table-cell">
@@ -190,7 +199,20 @@ function remove(): void {
                             </div>
                         </td>
                     </tr>
-                    <tr v-if="!rows.length">
+                    <tr>
+                        <td colspan="4" class="px-5 py-6 sm:px-6 sm:py-7">
+                            <BlockBatches
+                                :farm="farm"
+                                :block="block"
+                                :batch-permissions="batchPermissions"
+                                :theme="theme ?? 'admin-dashboard-theme'"
+                                :return-to="returnTo ?? 'blocks'"
+                            />
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody v-if="!rows.length">
+                    <tr>
                         <td
                             colspan="4"
                             class="p-6 text-center text-muted-foreground"

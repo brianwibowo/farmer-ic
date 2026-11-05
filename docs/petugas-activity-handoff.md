@@ -500,3 +500,20 @@ php -d max_execution_time=0 vendor/bin/phpunit tests/Feature/Activity tests/Feat
   pengujian tersebut dengan mock aturan urutan; tes urutan baru menggunakan
   service nyata. TypeScript dan build frontend lulus. Pemeriksaan browser/visual
   light/dark untuk perubahan urutan belum dijalankan.
+
+### Integrasi `dev` setelah pembatasan urutan
+
+- Beranda dan Kebun Petugas memakai controller/database dari `dev`; route tugas,
+  aktivitas, laporan, dan penanaman di branch ini tetap tersedia. Kartu tugas
+  Beranda menuju detail tugas `/petugas/tasks/{task}` dan jadwal hari ini
+  menghormati `rescheduled_date` yang diatur Admin.
+- Detail aktivitas Owner membaca jumlah pekerja dari aktivitas, menangani jam
+  selesai yang belum diisi, memakai route foto privat yang diotorisasi, serta
+  membaca typed detail tambahan. Status tugas Beranda mengikuti lifecycle aktif
+  `pending`, `in_progress`, `completed` (dan `skipped` untuk tugas yang dilewati).
+- Rute Owner/Petugas baru dari `dev` menggunakan otorisasi dan scoped reads yang
+  tersedia di branch `dev`. AI/RAG dan modul lain tidak diaudit keamanan secara
+  menyeluruh dalam merge ini; tidak ada klaim audit seluruh aplikasi.
+- Verifikasi merge: 218 tes Activity/Petugas/SOP/Authorization/Blocks/Owner
+  lulus; setelah penyesuaian jadwal efektif, 33 tes Owner dan Beranda Petugas
+  lulus. Tes tambahan AI/Farms/Auth/Dashboard/Farmer: 125 lulus, satu dilewati.

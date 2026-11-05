@@ -3,10 +3,9 @@ import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerBottomNav, {
     type FarmerNavKey,
 } from '@/components/farmer/FarmerBottomNav.vue';
-import { ref, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { router } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
+import OwnerTenantContext from '@/components/owner/OwnerTenantContext.vue';
 
 type Props = {
     activeKey?: FarmerNavKey;
@@ -22,55 +21,9 @@ const emit = defineEmits<{
     select: [key: FarmerNavKey];
 }>();
 
-const selectedKey = ref<FarmerNavKey>(props.activeKey);
-
-const upcomingPages: Partial<Record<FarmerNavKey, string>> = {};
-watch(
-    () => props.activeKey,
-    (key) => {
-        selectedKey.value = key;
-    },
-);
+const page = usePage();
 
 function select(key: FarmerNavKey): void {
-    if (key === 'ai') {
-        router.visit('/bypass');
-        return;
-    }
-    if (key === 'home' && window.location.pathname !== '/') {
-        router.visit('/');
-        return;
-    }
-    if (key === 'finance' && window.location.pathname !== '/finance') {
-        router.visit('/finance');
-        return;
-    }
-
-    if (key === 'activity' && window.location.pathname !== '/aktivitas') {
-        router.visit('/aktivitas');
-        return;
-    }
-
-    if (key === 'report' && window.location.pathname !== '/laporan') {
-        router.visit('/laporan');
-        return;
-    }
-
-    if (upcomingPages[key]) {
-        toast.info(`Halaman ${upcomingPages[key]} sedang disiapkan.`);
-        return;
-    }
-
-    selectedKey.value = key;
-
-    if (key === 'garden' && window.location.pathname !== '/kebun') {
-        void router.visit('/kebun');
-    }
-
-    if (key === 'finance' && window.location.pathname !== '/finance') {
-        void router.visit('/finance');
-    }
-
     emit('select', key);
 }
 </script>
@@ -87,6 +40,12 @@ function select(key: FarmerNavKey): void {
                 class="shrink-0 bg-card px-4 pt-4 pb-2"
             >
                 <DashboardHeader />
+                <OwnerTenantContext
+                    v-if="
+                        props.showNavigation &&
+                        page.props.navigation?.teamSwitcher
+                    "
+                />
             </div>
 
             <main
@@ -101,7 +60,10 @@ function select(key: FarmerNavKey): void {
             </main>
 
             <slot v-if="props.showNavigation" name="navigation">
-                <FarmerBottomNav :active-key="selectedKey" @select="select" />
+                <FarmerBottomNav
+                    :active-key="props.activeKey"
+                    @select="select"
+                />
             </slot>
             <Toaster />
         </section>

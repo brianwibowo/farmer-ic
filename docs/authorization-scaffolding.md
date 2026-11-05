@@ -66,8 +66,16 @@ record writes are application-wide because those tables have no team boundary;
 they still require a grant and team membership. Abilities without grants deny,
 including `configure` and `forceDelete`.
 
-Block preparation adds read-only `farm_blocks` access for Petugas and master CRUD
-for Admin. `planting_rounds` may be created as part of authorized batch creation,
+Block preparation grants `farm_blocks.view = own` to assigned Petugas, and
+`create/update/delete = own` only when `User::isPic()` confirms PIC status on
+their assigned farm. `FarmBlockPolicy` opts into the shared
+`ResourcePolicy::$ownWritesRequirePic` constraint. Each write check reloads
+`assignedFarm` so cached PIC status cannot retain revoked access. The normal
+persisted parent/record farm, membership, assignment and view checks still apply;
+PIC status never bypasses a missing grant or changes `own` for other models.
+Admin retains `any` CRUD; Owner retains read-only access and Superadmin its
+existing bypass. `visibleTo` still includes assigned-farm blocks for non-PIC
+Petugas, since reading does not require PIC. `planting_rounds` may be created as part of authorized batch creation,
 but has no direct update/delete grants. `planting_cycle_stages` is read-only for
 ordinary roles and initialized internally by the batch service. See
 [farm-block-backend.md](farm-block-backend.md) for the complete route and scope map.

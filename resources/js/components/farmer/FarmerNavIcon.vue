@@ -41,6 +41,12 @@ defineProps<{ name: FarmerNavKey }>();
             <rect x="3" y="3" width="26" height="26" rx="7" />
             <path d="m8 19 6-6 4 4 6-6" />
         </template>
+        <template v-else-if="name === 'more'">
+            <rect x="4" y="4" width="9" height="9" rx="2" />
+            <rect x="19" y="4" width="9" height="9" rx="2" />
+            <rect x="4" y="19" width="9" height="9" rx="2" />
+            <rect x="19" y="19" width="9" height="9" rx="2" />
+        </template>
         <template v-else>
             <rect x="6" y="3" width="20" height="26" rx="3" />
             <path d="M10 9h12M10 14h12M10 19h7M10 24h9" />

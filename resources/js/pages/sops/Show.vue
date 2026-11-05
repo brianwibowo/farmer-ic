@@ -161,7 +161,7 @@ function statusClass(status: SopVersion['status']): string {
 
 <template>
     <Head :title="template.name" />
-    <div class="space-y-6">
+    <div class="space-y-[18px]">
         <Link
             href="/admin/sops"
             class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"

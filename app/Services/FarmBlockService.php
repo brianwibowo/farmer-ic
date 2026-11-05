@@ -10,8 +10,8 @@ use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\LandArea;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -38,20 +38,57 @@ class FarmBlockService
             $query->where('is_active', $filters['status'] === 'active');
         }
 
-        return $query->orderBy('code')->orderBy('id')->paginate($filters['per_page'] ?? 15)->appends($filters);
+        $paginator = $query->orderBy('code')->orderBy('id')->paginate($filters['per_page'] ?? 15)->appends($filters);
+        $paginator->setCollection($this->overview($farm, $actor, $team, $paginator->getCollection()));
+
+        return $paginator;
     }
 
-    /** @return \Illuminate\Support\Collection<int, FarmBlock> */
-    public function overview(Farm $farm, User $actor, Team $team): \Illuminate\Support\Collection
+    /**
+     * @param  \Illuminate\Support\Collection<int, FarmBlock>|null  $selected
+     * @return \Illuminate\Support\Collection<int, FarmBlock>
+     */
+    public function overview(Farm $farm, User $actor, Team $team, ?\Illuminate\Support\Collection $selected = null): \Illuminate\Support\Collection
     {
-        return FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->orderBy('code')->get()
-            ->map(function (FarmBlock $block) use ($farm, $actor, $team): FarmBlock {
-                $block->setAttribute('capacity', $this->formCapacity($farm, $actor, $team, $block));
-                $block->setAttribute('deletionBlocked', PlantingRound::visibleTo($actor, $team)->where('block_id', $block->id)->exists()
-                    || \App\Models\BlockMappingDetail::visibleTo($actor, $team)->where('block_id', $block->id)->exists());
+        $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->when($selected !== null, fn ($query) => $query->whereIn('id', $selected->pluck('id')))->orderBy('code')->get();
+        if ($blocks->isEmpty()) {
+            return $blocks;
+        }
+        $rounds = PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->orderBy('round_number')->get();
+        $batches = PlantingCycle::visibleTo($actor, $team)->whereIn('planting_round_id', $rounds->modelKeys())->orderBy('batch_number')->get();
+        $stages = PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())->orderBy('position')->get()->groupBy('planting_cycle_id');
+        $mapped = \App\Models\BlockMappingDetail::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->distinct()->pluck('block_id');
+        $activeArea = LandArea::squareMetres(FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha')) ?? 0;
+        $farmCapacity = $this->batchCapacity($farm, $blocks->firstOrFail(), PlantingCycle::visibleTo($actor, $team)->toBase());
 
-                return $block;
-            });
+        return $blocks->map(function (FarmBlock $block) use ($farm, $rounds, $batches, $stages, $mapped, $activeArea, $farmCapacity): FarmBlock {
+            $blockRounds = $rounds->where('block_id', $block->id);
+            $blockBatches = $batches->whereIn('planting_round_id', $blockRounds->modelKeys());
+            $running = $blockBatches->whereIn('status', ['planned', 'active']);
+            $reserved = $running->sum(fn (PlantingCycle $batch): int => LandArea::squareMetres($batch->getAttribute('reserved_area_ha')) ?? 0);
+            $area = LandArea::squareMetres($block->area_ha) ?? 0;
+            $remaining = max(0, $area - $reserved);
+            $block->setRelation('farm', $farm)->makeHidden('farm');
+            $block->setAttribute('capacity', [
+                'maximum_area_ha' => LandArea::hectares(max(0, (LandArea::squareMetres($farm->total_area_ha) ?? 0) - $activeArea + ($block->is_active ? $area : 0))),
+                'minimum_area_ha' => LandArea::hectares(max(1, $reserved)), 'running_batches' => $running->count(),
+            ]);
+            $block->setAttribute('batch_capacity', [
+                ...$farmCapacity, 'block_total_ha' => LandArea::hectares($area), 'block_batches_ha' => LandArea::hectares($reserved),
+                'block_remaining_ha' => LandArea::hectares($remaining),
+                'available_ha' => LandArea::hectares(min($remaining, LandArea::squareMetres($farmCapacity['farm_remaining_ha']) ?? 0)),
+            ]);
+            $block->setAttribute('deletionBlocked', $blockRounds->isNotEmpty() || $mapped->contains($block->id));
+            $block->setAttribute('rounds', $blockRounds->map->only(['id', 'round_number', 'status'])->values());
+            $block->setAttribute('batches', $blockBatches->map(fn (PlantingCycle $batch): array => [
+                ...$batch->only(['id', 'planting_round_id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
+                'planned_planting_at' => $batch->planned_planting_at?->toDateString(), 'planted_at' => $batch->planted_at?->toDateString(),
+                'stages' => ($stages->get($batch->id) ?? collect())->map->only(['code', 'position', 'status', 'started_at', 'completed_at'])->values(),
+            ])->values());
+
+            return $block;
+        });
     }
 
     /** @return array{total: int, active: int, active_area_ha: string} */

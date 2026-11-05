@@ -5,6 +5,10 @@ import type { Map as LeafletMap, Marker, TileLayer } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../../../css/farm-map.css';
 import { Button } from '@/components/ui/button';
+import {
+    ESRI_WORLD_IMAGERY_ATTRIBUTION,
+    ESRI_WORLD_IMAGERY_URL,
+} from '@/lib/esriBasemap';
 
 const props = withDefaults(defineProps<{
     modelValue: [number, number] | null;
@@ -108,9 +112,9 @@ async function initialize(): Promise<void> {
             const point = event.latlng.wrap();
             selectPoint(point.lat, point.lng);
         });
-        tiles = leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        tiles = leaflet.tileLayer(ESRI_WORLD_IMAGERY_URL, {
             maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+            attribution: ESRI_WORLD_IMAGERY_ATTRIBUTION,
         });
         tiles.on('load', stopLoading);
         tiles.on('tileerror', () => {

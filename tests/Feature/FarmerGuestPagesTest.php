@@ -2,74 +2,48 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Inertia\Testing\AssertableInertia as Assert;
+use App\Models\Team;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/** The former public Owner demos now require the existing Laravel login. */
 class FarmerGuestPagesTest extends TestCase
 {
-    /** @return array<string, array{string, string}> */
+    use RefreshDatabase;
+
+    /** @return array<string, array{string}> */
     public static function pages(): array
     {
         return [
-            'farms' => ['/kebun', 'farmer/Kebun'],
-            'farm detail' => ['/kebun/detail', 'farmer/KebunDetail'],
-            'farm activities' => ['/kebun/aktivitas', 'farmer/KebunAktivitas'],
-            'activities' => ['/aktivitas', 'farmer/Aktivitas'],
-            'activity detail' => ['/rincian-aktivitas', 'farmer/RincianAktivitas'],
-            'reports' => ['/laporan', 'farmer/Laporan'],
-            'AI interface' => ['/bypass', 'farmer/Index'],
+            'farms' => ['/kebun'],
+            'legacy farm detail' => ['/kebun/detail'],
+            'legacy farm activities' => ['/kebun/aktivitas'],
+            'activities' => ['/aktivitas'],
+            'legacy activity detail' => ['/rincian-aktivitas'],
+            'retired reports' => ['/laporan'],
+            'more' => ['/lainnya'],
+            'SOP' => ['/lainnya/sop'],
+            'users' => ['/lainnya/pengguna'],
+            'AI interface' => ['/bypass'],
+            'finance' => ['/finance'],
         ];
     }
 
     #[DataProvider('pages')]
-    public function test_pages_open_without_provisioning_users_or_teams(string $url, string $component): void
+    public function test_owner_pages_require_login_without_provisioning_demo_identity(string $url): void
     {
-        if ($url === '/bypass') {
-            $this->get($url)->assertRedirect(route('login'));
-
-            return;
-        }
-
-        // No migrations: any legacy user/team lookup or insert makes this fail.
-        DB::connection()->enableQueryLog();
-
-        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component($component)
-            ->where('auth.user', null)
-            ->where('currentTeam', null)
-            ->where('teams', []));
+        $this->get($url)->assertRedirect(route('login'));
 
         $this->assertGuest();
-        $this->assertSame([], DB::connection()->getQueryLog());
-    }
-
-    public function test_old_login_session_does_not_trigger_legacy_user_queries_on_public_pages(): void
-    {
-        $key = Auth::guard('web')->getName();
-        DB::connection()->enableQueryLog();
-
-        $this->withSession([$key => 1])->get('/kebun')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('farmer/Kebun')
-                ->where('auth.user', null)
-                ->where('currentTeam', null)
-                ->where('teams', []));
-
-        $this->assertSame([], DB::connection()->getQueryLog());
+        $this->assertSame(0, User::query()->count());
+        $this->assertSame(0, Team::query()->count());
     }
 
     public function test_existing_ai_api_still_requires_authentication(): void
     {
         $this->postJson('/kebun-petani/ai/messages', ['message' => 'Kondisi kebun'])
             ->assertUnauthorized();
-    }
-
-    public function test_finance_database_page_requires_authentication(): void
-    {
-        $this->get('/finance')->assertRedirect(route('login'));
     }
 }
