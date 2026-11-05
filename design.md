@@ -291,13 +291,24 @@ Lainnya where applicable. Retain the farm filter/refresh; remove the activity
 period filter because this home no longer shows the activity trend.
 Increase desktop/TV metric and table type sizes without changing data.
 
-The commodity pie uses the complete scoped commodity distribution (active or
+The commodity donut uses the complete scoped commodity distribution (active or
 harvested cycles' planted hectares); do not apply Admin's top-three card limit.
-Provide a text legend with name, hectares and percentage, semantic chart colors,
-an accessible description and an honest empty state for missing/zero area.
-One commodity is a full pie. The percentage describes planted commodity area,
-not all managed land or planned allocation. Keep the same farm filter for table,
-metrics, pie and map, and one DOM instance for each visual.
+Show total planted hectares in its center, percentage labels on sectors of at
+least 8%, and a compact largest-commodity summary. Keep all values in the legend,
+including sectors too small for on-ring labels. Each legend row is a native
+toggle button with a subtle themed surface, colored initial badge, name, hectare
+value, percentage badge and a thin proportional bar. Selection shows a check,
+highlights the matching sector and updates the center; provide a real reset-to-
+total button. Mouse/focus previews are temporary; deliberate selection is
+announced to assistive technology and cleared if filtering removes that crop.
+Use semantic chart colors, an accessible text summary, 44px-or-larger targets,
+visible focus and an honest empty state for missing/zero area. The SVG is a
+visual counterpart to the keyboard/touch controls in the legend. One commodity
+is a full ring. The chart and legend stack in narrow cards and align horizontally
+when the card itself has enough room (container query), independent of the page
+viewport. The percentage describes planted commodity area, not all managed land
+or planned allocation. Keep the same farm filter for table, metrics, chart and
+map, and one DOM instance for each visual.
 
 The single live table has Site / lahan, Luas (ha), Legalitas, Jenis tanaman,
 Progress and Resume. Its own bounded scroll region allows both axes while

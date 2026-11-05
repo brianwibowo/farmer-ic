@@ -95,3 +95,66 @@ Data can be checked through the authenticated `/finance` and
 database records directly, including the seeded categories, budgets, and
 projections. The AI finance snapshot retains its separately labeled knowledge
 demo data and is not connected to these database transactions.
+
+## Optional Owner presentation portfolio
+
+After the normal demo identity and Cileuksa prerequisites exist, add the varied
+Owner scenario after applying any pending additive migrations:
+
+```sh
+php artisan migrate
+php artisan db:seed --class=DemoOwnerPortfolioSeeder
+```
+
+This is a separate optional scenario, not part of `DatabaseSeeder`. Run it only
+against the intended local demo database; the seeder itself accepts only
+`local`/`testing` and requires the persisted `farm-ic-demo` tenant and its demo
+identities. It does not call `DemoIdentitySeeder`, change passwords/profiles,
+switch active tenants, reassign Petugas, truncate tables, or reset demo data.
+It uses the existing persisted demo Superadmin with native policy checks for
+fixture writes; Owner remains read-only. All new records belong to that demo
+tenant. The complete portfolio is inserted in one transaction.
+
+| New site | Land (ha) | Land tenure | Commodity/variety | Batch snapshot |
+| --- | ---: | --- | --- | --- |
+| Kebun Sukamaju Demo | 8 | Owned | Padi / Ciherang | 3.25 ha active; 1.75 ha harvested |
+| Kebun Cibogo Demo | 6.5 | Partnership | Kedelai / Anjasmoro | 3 ha active |
+| Kebun Mekarsari Demo | 4 | Rented | Cabai keriting / Kencana | 1.5 ha active |
+| Kebun Cikeas Demo | 10 | Partnership | Jagung / Bisi 18 | 4 ha active; 2 ha planned |
+| Kebun Cisarua Demo | 3.5 | Owned | Tomat / Servo | 1.25 ha harvested; 0.75 ha planned |
+
+The fixed demonstration snapshot is **5 November 2026**. It includes coordinates,
+two permanent blocks per new site, persisted planting rounds/batches, all six
+batch stages, published commodity SOPs and scheduled task snapshots. Matching
+activity detail records, growth observations, selected risks, local placeholder
+documentation and demo weather fill the Owner farm/block/activity detail pages.
+The added scenario contains 10 blocks, 8 batches, 48 stage rows, 5 published
+SOPs, 48 batch task snapshots, 25 activities with matching detail records,
+6 observations, 6 labeled local illustrations, 5 weather records and 2 risks.
+The sample coordinates, weather and observations are fictional presentation
+fixtures rather than cadastral measurements or live monitoring.
+
+On the unchanged Cileuksa baseline, Owner shows **6 sites / 44.5 ha**. The pie
+contains five commodities totaling **19 ha** planted across active/harvested
+cycles: Jagung 8.25, Padi 5, Kedelai 3, Cabai keriting 1.5 and Tomat 1.25 ha.
+Planned allocations do not enter planted-area percentages. Table totals and
+pie values still come from the normal scoped database services and farm filter.
+Site names open Owner farm detail, blocks open their batch stages/SOP tasks,
+and Resume opens the actual latest activity. Proyeksi remains empty.
+
+Stable tenant-bound fixture IDs and existing-record checks make reruns
+non-duplicating and preserve later edits. Existing farms (including Cileuksa)
+and unrelated tenant data are retained. To restore edited demo records, use an
+explicitly reviewed demo-data reset workflow rather than rerunning this seeder.
+
+Verification on 5 November 2026: 99 integrated PostgreSQL tests / 2,447
+assertions passed across Owner, dashboard, blocks and SOP task generation.
+The six focused portfolio tests cover populated/detail HTTP pages, scope,
+idempotency, preserved existing users/farm edits, guards and rollback after
+a late detail-write failure. Pint, targeted PHPStan and frontend build passed.
+The local demo database was brought up to date with the four existing additive
+Farm migrations before the scenario was seeded. Browser QA confirmed six rows,
+five pie sectors and six map markers on 320px/390px phones, 768px tablet,
+844px landscape and 1440px desktop. Horizontal/vertical table freeze, farm and
+batch navigation, expanded SOP tasks and harvest detail worked. Both themes
+were checked without console warnings/errors; no UI/profile/AI files changed.
