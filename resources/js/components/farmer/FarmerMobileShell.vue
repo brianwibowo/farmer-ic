@@ -4,24 +4,22 @@ import FarmerBottomNav, {
     type FarmerNavKey,
 } from '@/components/farmer/FarmerBottomNav.vue';
 import { Toaster } from '@/components/ui/sonner';
-import { usePage } from '@inertiajs/vue3';
-import OwnerTenantContext from '@/components/owner/OwnerTenantContext.vue';
 
 type Props = {
     activeKey?: FarmerNavKey;
     showNavigation?: boolean;
+    showAppearanceToggle?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
     activeKey: 'home',
     showNavigation: true,
+    showAppearanceToggle: false,
 });
 
 const emit = defineEmits<{
     select: [key: FarmerNavKey];
 }>();
-
-const page = usePage();
 
 function select(key: FarmerNavKey): void {
     emit('select', key);
@@ -39,12 +37,8 @@ function select(key: FarmerNavKey): void {
                 v-if="props.activeKey !== 'ai'"
                 class="shrink-0 bg-card px-4 pt-4 pb-2"
             >
-                <DashboardHeader />
-                <OwnerTenantContext
-                    v-if="
-                        props.showNavigation &&
-                        page.props.navigation?.teamSwitcher
-                    "
+                <DashboardHeader
+                    :show-appearance-toggle="props.showAppearanceToggle"
                 />
             </div>
 

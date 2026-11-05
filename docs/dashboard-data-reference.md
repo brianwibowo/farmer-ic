@@ -64,3 +64,46 @@ FarmActivity yang dibuat oleh logbook; tidak ada fallback JSON atau browser
 storage. Route dashboard tetap terlindungi dan semua query baca yang disentuh
 memakai visibleTo serta batas tenant eksplisit. Modul lain di luar perubahan
 ini tidak diaudit ulang.
+
+## Beranda Owner dan tabel lahan (5 November 2026)
+
+`GET /` melalui HomeController memeriksa Owner admission, Farm.viewAny dan
+filter kebun, lalu memakai OwnerReadService. Ringkasan tetap berasal dari
+AdminDashboardService, dengan tambahan prop `landTable` untuk tabel live.
+Semua pembacaan terkait menggunakan visibleTo dan kebun dalam tenant aktif
+sebelum agregasi atau serialisasi. Owner hanya membaca data.
+
+| Kolom | Sumber dan makna |
+| --- | --- |
+| Site / lahan | farms.name, tautan `/kebun/{id}` ke detail Owner. |
+| Luas (ha) | farms.total_area_ha; total adalah SUM dengan scope/filter yang sama, bukan data contoh. |
+| Legalitas | farms.land_tenure: Milik sendiri, Sewa, Kerja sama, atau nilai tersimpan. Belum ada field institusi TNI/POLRI; nilai kosong tidak direka. |
+| Jenis tanaman | Siklus active/harvested → varietas → komoditas, sama dengan definisi komoditas tertanam Admin. |
+| Progress | Jumlah tahap completed/seluruh tahap pada batch planned/active, nama tahap in_progress, dan jumlah batch berjalan. Bukan persentase pertumbuhan tanaman. |
+| Resume | Satu aktivitas terbaru per kebun beserta jenis/deskripsi, tanggal, status dan tautan `/aktivitas/{id}`. Jenis yang tidak boleh dilihat tetap null. |
+
+Filter farm_id dan perpindahan tenant memperbarui tabel, total dan ringkasan
+bersama. Periode 7/30 hari hanya memengaruhi grafik aktivitas; resume tetap
+laporan terakhir yang memiliki timestamp sendiri. Tidak ada perubahan role,
+izin mutasi, schema, atau sumber AI. Rute/kueri yang disentuh tetap diproteksi;
+modul lain tidak diaudit ulang.
+
+### Verifikasi perubahan Owner
+
+- 90 tes backend / 4.307 assertion lolos: Owner, dashboard Admin, pemilihan
+  tenant dan authorization. Termasuk perubahan Farm melalui endpoint Admin
+  yang terbaca pada permintaan Owner berikutnya, aggregate total terfilter,
+  satu resume terakhir per kebun, data terkait yang dicabut izinnya, dan
+  penolakan tautan/filter tenant lain.
+- Build, Vue typecheck, lint frontend, Pint dan PHPStan terarah lolos.
+- QA browser menggunakan akun Owner dan data database existing: site membuka
+  detail Owner yang benar; total 12,5 ha sesuai ringkasan Admin. Periode 30 hari,
+  filter kebun, pencarian tanpa hasil dan reset aktivitas berfungsi.
+- Di portrait 375×812, tabel digeser 459 px: Site dan header pertama tetap
+  pada posisi kiri yang sama. Di landscape 844×390, konten tabel digulir
+  vertikal sementara offset header tetap 1 px; frame tetap 440 px dan halaman
+  tidak meluber. Header juga diperiksa pada 320×568.
+- Tema terang/gelap diperiksa. Header Owner tidak lagi berisi tenant selector;
+  selector tersedia di Lainnya. Toggle tema berada sebelum lonceng dan hanya
+  OwnerLayout yang mengaktifkan prop tersebut, sehingga portal Petugas dan
+  alur profil/AI mempertahankan perilakunya.

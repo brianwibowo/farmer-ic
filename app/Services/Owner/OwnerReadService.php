@@ -35,7 +35,112 @@ class OwnerReadService
      */
     public function dashboard(User $actor, Team $team, array $filters = []): array
     {
-        return ['dashboard' => $this->dashboard->summary($actor, $team, $filters)];
+        $dashboard = $this->dashboard->summary($actor, $team, $filters);
+        $farmId = $dashboard['filters']['farm_id'];
+
+        return [
+            'dashboard' => $dashboard,
+            'landTable' => $this->dashboardLandTable($actor, $team, $farmId),
+        ];
+    }
+
+    /**
+     * The table uses the dashboard's resolved farm filter, not a client-supplied
+     * tenant. The period affects the activity chart only; resume is the latest
+     * persisted report for each farm and carries its own timestamp.
+     *
+     * @return array<string, mixed>
+     */
+    private function dashboardLandTable(User $actor, Team $team, ?string $farmId): array
+    {
+        $query = Farm::visibleTo($actor, $team)->where('team_id', $team->id)
+            ->when($farmId !== null, fn (Builder $farms) => $farms->whereKey($farmId));
+        $totalArea = (string) (clone $query)->sum('total_area_ha');
+        $farms = $query->with([
+            // Laravel's eager-loading limit selects one report per parent,
+            // rather than one report for the entire farm collection.
+            'activities' => fn ($activities) => $activities->visibleTo($actor, $team)
+                ->orderByDesc('activity_date')->orderByDesc('created_at')->orderByDesc('id')->limit(1)
+                ->with(['activityType' => fn ($types) => $types->visibleTo($actor, $team)]),
+        ])->orderBy('name')->orderBy('id')->get(['id', 'name', 'land_tenure', 'total_area_ha']);
+        $cyclesByFarm = PlantingCycle::visibleTo($actor, $team)
+            ->whereIn('farm_id', $farms->modelKeys())
+            ->whereIn('status', ['planned', 'active', 'harvested'])
+            ->with([
+                'variety' => fn ($varieties) => $varieties->visibleTo($actor, $team)
+                    ->with(['commodity' => fn ($commodities) => $commodities->visibleTo($actor, $team)]),
+                'stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')->orderBy('id'),
+            ])->get()->groupBy('farm_id');
+
+        $rows = [];
+        foreach ($farms as $farm) {
+            $cycles = $cyclesByFarm->get($farm->id, collect());
+            $running = $cycles->whereIn('status', ['planned', 'active']);
+            $stages = $running->flatMap(fn (PlantingCycle $cycle) => $cycle->stages);
+            $currentStages = $stages->filter(fn (PlantingCycleStage $stage): bool => $stage->getAttribute('status') === 'in_progress')
+                ->map(fn (PlantingCycleStage $stage): string => $this->stageName((string) $stage->getAttribute('code')))
+                ->unique()->values()->all();
+            $crops = [];
+            // Match Admin's "Komoditas tertanam": planned/cancelled cycles
+            // never become evidence that a crop has already been planted.
+            foreach ($cycles->whereIn('status', ['active', 'harvested']) as $cycle) {
+                $variety = $cycle->variety;
+                $commodity = $variety?->commodity;
+                if ($commodity === null) {
+                    continue;
+                }
+                $key = (string) $commodity->id;
+                $crops[$key] ??= ['id' => $key, 'name' => $commodity->name, 'varieties' => []];
+                if (! in_array($variety->name, $crops[$key]['varieties'], true)) {
+                    $crops[$key]['varieties'][] = $variety->name;
+                }
+            }
+            $crops = array_values($crops);
+            usort($crops, fn (array $first, array $second): int => strcmp($first['name'], $second['name']));
+            $latest = $farm->activities->first();
+            $rows[] = [
+                'id' => (string) $farm->id,
+                'name' => $farm->name,
+                'detail_url' => '/kebun/'.$farm->id,
+                'area_ha' => $farm->total_area_ha,
+                // No institution/legal-document field exists in this schema.
+                // Report the actual land-tenure value; never invent TNI/POLRI.
+                'legality' => match ($farm->land_tenure) {
+                    'owned' => 'Milik sendiri', 'rented' => 'Sewa', 'partnership' => 'Kerja sama',
+                    default => $farm->land_tenure,
+                },
+                'crops' => $crops,
+                'progress' => [
+                    'completed_stages' => $stages->filter(fn (PlantingCycleStage $stage): bool => $stage->getAttribute('status') === 'completed')->count(),
+                    'total_stages' => $stages->count(),
+                    'current_stages' => $currentStages,
+                    'running_batches' => $running->count(),
+                ],
+                'resume' => $latest === null ? null : [
+                    'id' => (string) $latest->id,
+                    'title' => $latest->activityType?->name,
+                    'description' => $latest->description,
+                    'date' => $latest->activity_date->toIso8601String(),
+                    'status' => $latest->status,
+                    'detail_url' => '/aktivitas/'.$latest->id,
+                ],
+            ];
+        }
+
+        return ['rows' => $rows, 'total_area_ha' => $totalArea, 'total' => $farms->count()];
+    }
+
+    private function stageName(string $code): string
+    {
+        return match ($code) {
+            'land_clearing' => 'Pembersihan lahan',
+            'soil_preparation' => 'Persiapan tanah',
+            'basic_fertilizer' => 'Pupuk dasar',
+            'planting' => 'Penanaman',
+            'maintenance' => 'Pemeliharaan',
+            'harvest' => 'Panen',
+            default => 'Tahap lainnya',
+        };
     }
 
     /** @param array<string, mixed> $filters

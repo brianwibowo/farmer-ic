@@ -11,6 +11,7 @@ import {
 import { computed } from 'vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import OwnerReadEmpty from '@/components/owner/OwnerReadEmpty.vue';
+import OwnerTenantContext from '@/components/owner/OwnerTenantContext.vue';
 
 const page = usePage();
 const entries = computed(() =>
@@ -64,6 +65,7 @@ const entries = computed(() =>
             title="Lainnya"
             description="Jelajahi kebun, keuangan, kegiatan, dan informasi tim Anda."
         />
+        <OwnerTenantContext v-if="page.props.navigation?.teamSwitcher" />
         <div v-if="entries.length" class="space-y-3">
             <Link
                 v-for="entry in entries"

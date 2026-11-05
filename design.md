@@ -263,8 +263,38 @@ Owner screens use the same persisted domain records and metric definitions as
 Admin, presented in the Farmer/mobile profile. Farm detail links to blocks,
 batches, persisted stages, and SOP schedules. Distinguish planned allocation,
 actual planted area, and recorded harvest. Keep missing observations explicit.
-Tenant selection sits below the existing profile header; profile/settings and
-the avatar dropdown remain independent of operational navigation.
+Tenant selection appears only inside Lainnya, not in the shared header. The
+Owner theme action sits immediately left of the notification bell. Preserve
+the profile/settings forms and avatar dropdown behavior.
+
+### Owner database Beranda
+
+Owner Beranda keeps the existing Farmer/mobile frame at every viewport width,
+including portrait and landscape. Do not widen it into the Admin/tablet shell.
+Use AdminDashboardService summary definitions and active-tenant/farm filters,
+with the Farmer palette and mobile cards. Show Total kebun, Luas terkelola and
+Batch berjalan; omit Risiko terbuka, Perlu perhatian and the entire OPEX/finance
+panel. Place the land table immediately below the metrics (the former activity
+chart position), then Aktivitas lahan in the former attention position. Follow
+with Siklus tanam, Tahap penanaman, Komoditas tertanam, Denah kebun and the
+filterable Aktivitas lapangan list. Keep all content in one mobile column.
+
+The single live table has Site / lahan, Luas (ha), Legalitas, Jenis tanaman,
+Progress and Resume. Its own bounded scroll region allows both axes while
+keeping the header row and first Site/lahan column sticky, with opaque themed
+surfaces and the intersection above both. The table may overflow locally; the
+page must not. Keep the current filtered total hectares visible below the table.
+Site names link to the read-only Owner farm detail, and resume links to its
+actual latest activity. Never send Owners to Admin routes.
+
+Read farms, crop/variety, persisted batch stages and latest activity from scoped
+database queries; no fixture or browser-storage fallback. Legalitas currently
+shows the stored land-tenure label; the schema has no TNI/POLRI institution field.
+Missing fields remain explicit. Progress is a completed-stage count across
+running batches, not an invented crop-growth percentage. The period filter affects
+the activity chart; resume and activity lists are latest records with dates.
+Preserve Owner profile, AI and existing authorization; keep empty/loading/error
+states, working filters, touch/keyboard scrolling and both themes.
 
 The Petugas portal uses four equally sized destinations: Beranda, Kebun,
 Aktivitas, and Laporan. These open the authenticated `/petugas` pages through
