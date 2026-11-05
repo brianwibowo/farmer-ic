@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { LandPlot, MapPin } from '@lucide/vue';
 import { computed } from 'vue';
+import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
 import { landTenureLabel } from '@/types/farms';
 import type { PetugasGarden } from '@/types/petugas-garden';
 import { gardenArea } from '@/types/petugas-garden';
@@ -14,6 +15,22 @@ const location = computed(() =>
         .filter(Boolean)
         .join(', '),
 );
+const coordinates = computed<[number, number] | null>(() => {
+    if (props.farm.latitude === null || props.farm.longitude === null)
+        return null;
+
+    const latitude = Number(props.farm.latitude);
+    const longitude = Number(props.farm.longitude);
+    if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        Math.abs(latitude) > 90 ||
+        Math.abs(longitude) > 180
+    )
+        return null;
+
+    return [latitude, longitude];
+});
 </script>
 
 <template>
@@ -75,5 +92,13 @@ const location = computed(() =>
                 </dd>
             </div>
         </dl>
+        <div class="space-y-3 border-t border-border pt-4">
+            <h3
+                class="text-base font-semibold text-secondary dark:text-primary"
+            >
+                Peta lokasi
+            </h3>
+            <FarmLocationMap :model-value="coordinates" />
+        </div>
     </section>
 </template>

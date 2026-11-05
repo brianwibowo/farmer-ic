@@ -65,7 +65,7 @@ class PetugasGardenService
         }
 
         return [
-            'farm' => $farm->only(['id', 'name', 'land_tenure', 'address', 'city', 'district', 'province', 'total_area_ha']),
+            'farm' => $farm->only(['id', 'name', 'land_tenure', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude']),
             'summary' => ['blocks' => $blocks->count(), 'batches' => (int) $roundCounts->sum()],
             'blocks' => $blocks->map($blockPayload)->all(),
             'selected_block' => $selected === null ? null : $blockPayload($selected),

@@ -42,6 +42,8 @@ export type PetugasGarden = {
         district: string | null;
         province: string | null;
         total_area_ha: string;
+        latitude: string | null;
+        longitude: string | null;
     } | null;
     summary: { blocks: number; batches: number };
     blocks: GardenBlock[];

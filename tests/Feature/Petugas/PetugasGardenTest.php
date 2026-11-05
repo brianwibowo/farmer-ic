@@ -84,6 +84,7 @@ class PetugasGardenTest extends TestCase
 
     public function test_overview_and_totals_only_include_the_assigned_farm_and_persisted_stages(): void
     {
+        $this->farm->update(['latitude' => -6.5965, 'longitude' => 106.9502]);
         $north = $this->block($this->farm);
         $south = $this->block($this->farm, 'B02');
         $active = $this->batch($north, 'active');
@@ -100,6 +101,7 @@ class PetugasGardenTest extends TestCase
             ->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('petugas/Kebun')->where('garden.farm.id', $this->farm->id)
             ->where('garden.farm.address', 'Jalan Kebun Utara')->where('garden.farm.total_area_ha', '10.0000')
+            ->where('garden.farm.latitude', '-6.5965000')->where('garden.farm.longitude', '106.9502000')
             ->where('garden.summary', ['blocks' => 2, 'batches' => 3])->has('garden.blocks', 2)
             ->where('garden.selected_block.id', $north->id)->where('garden.selected_block.batches_count', 2)
             ->where('garden.batches.total', 2)->has('garden.batches.data', 2)
@@ -155,6 +157,7 @@ class PetugasGardenTest extends TestCase
     {
         $this->actingAs($this->petugas)->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('garden.farm.id', $this->farm->id)->where('garden.summary', ['blocks' => 0, 'batches' => 0])
+            ->where('garden.farm.latitude', null)->where('garden.farm.longitude', null)
             ->has('garden.blocks', 0)->has('garden.batches.data', 0)->where('garden.selected_block', null));
         $this->petugas->forceFill(['assigned_farm_id' => null])->save();
         $this->petugas->unsetRelation('assignedFarm');
