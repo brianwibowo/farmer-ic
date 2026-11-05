@@ -59,11 +59,14 @@ class OwnerPortalTest extends TestCase
         $this->actingAs($this->owner);
     }
 
-    public function test_projection_page_is_owner_only_and_has_no_operational_data(): void
+    public function test_projection_page_is_owner_only_and_receives_scoped_harvest_data(): void
     {
         $this->get('/proyeksi')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Projection')
-            ->missing('dashboard')->missing('projections'));
+            ->has('projection.cards', 3)
+            ->where('projection.period', 'cycle')
+            ->where('urls.index', '/proyeksi')
+            ->where('urls.home', '/'));
 
         foreach ([$this->admin, $this->petugas] as $actor) {
             $this->actingAs($actor)->get('/proyeksi')->assertForbidden();

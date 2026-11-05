@@ -7,8 +7,6 @@ import OwnerDashboardCommodityChart from '@/components/owner/dashboard/OwnerDash
 import OwnerDashboardFarmPreview from '@/components/owner/dashboard/OwnerDashboardFarmPreview.vue';
 import OwnerDashboardLandTable from '@/components/owner/dashboard/OwnerDashboardLandTable.vue';
 import OwnerDashboardMetrics from '@/components/owner/dashboard/OwnerDashboardMetrics.vue';
-import AppSelect from '@/components/selects/AppSelect.vue';
-import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Button } from '@/components/ui/button';
 import { useOwnerReadFilters } from '@/composables/useOwnerReadFilters';
 import type {
@@ -22,16 +20,7 @@ const props = defineProps<{
 }>();
 const page = usePage();
 const welcomeName = computed(() => page.props.auth.user?.name?.trim() ?? '');
-const { filters, loading, error, feedback, submit, sync } = useOwnerReadFilters(
-    '/',
-    {
-        farm_id: props.dashboard.filters.farm_id ?? '',
-    },
-);
-watch(
-    () => props.dashboard.filters,
-    (value) => sync({ farm_id: value.farm_id ?? '' }),
-);
+const { loading, error, feedback, submit } = useOwnerReadFilters('/', {});
 const updatedAt = computed(() => props.dashboard.generatedAt);
 const selectedMapFarmId = ref<string | null>(null);
 const selectedMapFarm = computed(() =>
@@ -60,8 +49,10 @@ watch(
         class="owner-dashboard min-w-0 space-y-4 lg:space-y-6"
         :aria-busy="loading"
     >
-        <div class="owner-dashboard-header grid gap-4">
-            <header>
+        <div
+            class="owner-dashboard-header flex items-center justify-between gap-3"
+        >
+            <header class="min-w-0">
                 <h1
                     class="text-xl leading-7 font-semibold break-words lg:text-2xl lg:leading-9 2xl:text-3xl"
                 >
@@ -73,39 +64,19 @@ watch(
                     >!
                 </h1>
             </header>
-            <form
-                class="owner-dashboard-filters grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2"
-                @submit.prevent="submit()"
-            >
-                <label class="block min-w-0 text-xs font-medium"
-                    ><span class="mb-1.5 block">Kebun</span>
-                    <AppSelect
-                        id="owner-overview-farm"
-                        v-model="filters.farm_id"
-                        :disabled="loading"
-                        @change="submit()"
-                        ><AppSelectOption value="">Semua kebun</AppSelectOption
-                        ><AppSelectOption
-                            v-for="farm in dashboard.farmOptions"
-                            :key="farm.id"
-                            :value="farm.id"
-                            >{{ farm.name }}</AppSelectOption
-                        ></AppSelect
-                    >
-                </label>
-                <Button
-                    type="submit"
-                    variant="outline"
-                    size="icon"
-                    class="min-h-11 min-w-11"
-                    :disabled="loading"
-                    aria-label="Perbarui Beranda"
-                    ><RefreshCw
-                        class="size-4"
-                        :class="loading ? 'motion-safe:animate-spin' : ''"
-                        aria-hidden="true"
-                /></Button>
-            </form>
+            <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                class="min-h-11 min-w-11 shrink-0"
+                :disabled="loading"
+                aria-label="Perbarui Beranda"
+                @click="submit()"
+                ><RefreshCw
+                    class="size-4"
+                    :class="loading ? 'motion-safe:animate-spin' : ''"
+                    aria-hidden="true"
+            /></Button>
         </div>
         <p
             v-if="loading || error || feedback"
@@ -166,13 +137,3 @@ watch(
         />
     </div>
 </template>
-
-<style scoped>
-@media (min-width: 1024px) {
-    .owner-dashboard-header {
-        grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
-        align-items: end;
-        gap: 24px;
-    }
-}
-</style>

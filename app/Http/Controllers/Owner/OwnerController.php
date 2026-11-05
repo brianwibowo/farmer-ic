@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Owner\HarvestProjectionRequest;
 use App\Http\Requests\Owner\OwnerReadRequest;
 use App\Models\Farm;
 use App\Models\FarmActivity;
@@ -10,6 +11,7 @@ use App\Models\FarmBlock;
 use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Owner\HarvestProjectionService;
 use App\Services\Owner\OwnerReadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -26,7 +28,8 @@ class OwnerController extends Controller
         Gate::authorize('viewAny', [Farm::class, $team]);
         $this->authorizeFarmFilter($request);
 
-        return Inertia::render('owner/Dashboard', $this->reads->dashboard($request->user(), $team, $request->validated()));
+        // The Owner dashboard temporarily always shows every visible farm in the active tenant.
+        return Inertia::render('owner/Dashboard', $this->reads->dashboard($request->user(), $team, $request->safe()->except(['farm_id'])));
     }
 
     public function farms(OwnerReadRequest $request): Response
@@ -104,9 +107,19 @@ class OwnerController extends Controller
         return Inertia::render('owner/More');
     }
 
-    public function projection(): Response
+    public function projection(HarvestProjectionRequest $request, HarvestProjectionService $projections): Response
     {
-        return Inertia::render('owner/Projection');
+        $team = $this->team($request);
+        Gate::authorize('viewAny', [Farm::class, $team]);
+        $this->authorizeFarmFilter($request);
+
+        return Inertia::render('owner/Projection', [
+            'projection' => $projections->summary($request->user(), $team, $request->validated('period', 'cycle'), $request->validated('farm_id')),
+            'urls' => [
+                'index' => route('owner.projection', [], false),
+                'home' => route('home', [], false),
+            ],
+        ]);
     }
 
     private function team(Request $request): Team
@@ -117,7 +130,7 @@ class OwnerController extends Controller
         return $team;
     }
 
-    private function authorizeFarmFilter(OwnerReadRequest $request): void
+    private function authorizeFarmFilter(OwnerReadRequest|HarvestProjectionRequest $request): void
     {
         if ($request->filled('farm_id')) {
             $farm = Farm::query()->whereKey($request->validated('farm_id'))->firstOrFail();
