@@ -1,25 +1,27 @@
-# Demo seed data
+# Seed data for stakeholder presentations
 
-Run the complete local demo seed after migrations:
+For a fresh local installation, run the complete seed after migrations:
 
 ```sh
 php artisan --env=local db:seed
 ```
 
-The seeder is repeatable. It creates or updates the four role accounts below,
-one non-personal team, one assigned demo farm, crop master data, an active
+The complete seeder creates or updates the four role accounts below, including
+their passwords and current tenant. It is not the command for renaming existing
+presentation data. It also creates one non-personal team named `Hijauan`, one
+assigned farm, crop master data, an active
 planting cycle, activity and daily-log records, monitoring data, finance data,
 operational targets, and a notification. Existing records outside the named
 demo records are left untouched.
 
-| Role | Email | Password |
+| Role / display name | Email | Password |
 | --- | --- | --- |
 | SuperAdmin | `superadmin@farmer-ic.test` | `SuperAdmin123!` |
 | Owner | `owner@farmer-ic.test` | `Owner123!` |
 | Admin | `admin@farmer-ic.test` | `Admin123!` |
 | Petugas | `petugas@farmer-ic.test` | `Petugas123!` |
 
-The Petugas account is assigned to `Kebun Cileuksa Demo`. Use that account to
+The Petugas account is assigned to `Kebun Cileuksa`. Use that account to
 open the daily-log Inertia page:
 
 ```text
@@ -34,6 +36,38 @@ These credentials are development fixtures only. Do not use them in a shared,
 staging, or production environment, and do not copy their passwords into real
 accounts.
 
+## Refresh existing presentation names safely
+
+For an existing local installation, use only the additive name refresh:
+
+```sh
+php artisan --env=local db:seed --database=pgsql --class=PresentationNamesSeeder
+```
+
+It requires the existing active seeded Superadmin and its persisted membership
+in the non-personal tenant with legacy technical slug `farm-ic-demo`. It runs
+inside a transaction with the tenant locked and native policy authorization.
+The tenant display name becomes `Hijauan`; the technical slug stays unchanged.
+The four seeded account display names become `SuperAdmin`, `Owner`, `Admin`,
+and `Petugas`. The six recognized farm names lose their `Demo` suffix and
+recognized child descriptions, batch labels, fertilizer/pesticide names,
+weather source labels, and illustration captions are updated in place.
+Batch labels become `A`, `H`, and `P`. Illustrations remain explicitly labelled
+as illustrations rather than actual field photos.
+
+This command neither recreates fixture records nor resets accounts. IDs,
+relationships, credentials, memberships, current teams, Petugas assignments,
+profile fields other than the requested display names, dates, land areas, and
+financial amounts remain intact. Other tenants and unrecognized custom content
+are left untouched. Repeating the command makes no further changes. It is
+restricted to `local` and `testing`. Do not run the complete `DatabaseSeeder`
+or `DemoIdentitySeeder` merely to refresh names, because those seeders update
+account credentials and assignments.
+
+Names of existing seeder classes, test fixtures, internal UUID namespaces,
+account email addresses, and the legacy tenant slug remain technical identifiers
+for compatibility; they are not visible product labels.
+
 ## Seeder sections
 
 - `DemoIdentitySeeder`: roles, users, team membership, and current team.
@@ -47,6 +81,8 @@ accounts.
   budget.
 - `DemoOperationsSeeder`: operational targets, a petugas notification, and an
   audit-log entry.
+- `PresentationNamesSeeder`: additive display-copy refresh for existing fixture
+  records without resetting identities or operational data.
 
 ## Finance dummy data
 
@@ -54,7 +90,7 @@ accounts.
 across August–October 2026, 6 category budgets for October–December, and 3
 projections. Transactions cover seed, fertilizer, labor, pest control, irrigation,
 transport, equipment rental, maintenance, harvest sales, and seedling sales.
-All operational records belong to `Kebun Cileuksa Demo` in `farm-ic-demo`.
+All operational records belong to `Kebun Cileuksa` in `farm-ic-demo`.
 October expenses link to its October planting cycle; historical transactions
 and harvest sales remain farm-level records rather than claiming that cycle's
 future harvest. Projection periods are August, September, and October–January.
@@ -117,11 +153,11 @@ tenant. The complete portfolio is inserted in one transaction.
 
 | New site | Land (ha) | Land tenure | Commodity/variety | Batch snapshot |
 | --- | ---: | --- | --- | --- |
-| Kebun Sukamaju Demo | 8 | Owned | Padi / Ciherang | 3.25 ha active; 1.75 ha harvested |
-| Kebun Cibogo Demo | 6.5 | Partnership | Kedelai / Anjasmoro | 3 ha active |
-| Kebun Mekarsari Demo | 4 | Rented | Cabai keriting / Kencana | 1.5 ha active |
-| Kebun Cikeas Demo | 10 | Partnership | Jagung / Bisi 18 | 4 ha active; 2 ha planned |
-| Kebun Cisarua Demo | 3.5 | Owned | Tomat / Servo | 1.25 ha harvested; 0.75 ha planned |
+| Kebun Sukamaju | 8 | Owned | Padi / Ciherang | 3.25 ha active; 1.75 ha harvested |
+| Kebun Cibogo | 6.5 | Partnership | Kedelai / Anjasmoro | 3 ha active |
+| Kebun Mekarsari | 4 | Rented | Cabai keriting / Kencana | 1.5 ha active |
+| Kebun Cikeas | 10 | Partnership | Jagung / Bisi 18 | 4 ha active; 2 ha planned |
+| Kebun Cisarua | 3.5 | Owned | Tomat / Servo | 1.25 ha harvested; 0.75 ha planned |
 
 The fixed demonstration snapshot is **5 November 2026**. It includes coordinates,
 two permanent blocks per new site, persisted planting rounds/batches, all six

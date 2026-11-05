@@ -320,6 +320,22 @@ current filtered total hectares visible below the table.
 Site names link to the read-only Owner farm detail, and resume links to its
 actual latest activity. Never send Owners to Admin routes.
 
+Owner Beranda map markers open a farm summary dialog instead of a small Leaflet
+text bubble. Match the farm-preview hierarchy: name, location/hectares and close
+action; selected farm's satellite map; Jenis tanaman with varieties; PIC yang
+ditugaskan; and the full-width Detail kebun link. Omit health/condition and
+financial projection panels. Use the same scoped crops as the table. PIC is the
+persisted farm PIC with a matching active Petugas assignment/membership; missing
+data is stated honestly. This interaction is opt-in so other map usages keep
+their existing behavior. Marker hit targets are 44px without enlarging the dot,
+and support click, Enter and Space. Dialogs trap focus, close with Escape/X and
+return focus to the originating marker. Keep header/footer visible and the
+middle region keyboard-scrollable within the viewport in portrait/landscape.
+Mount the selected map only while the dialog exists, pass a stable farm array,
+and cancel superseded asynchronous map initialization to prevent duplicate
+Leaflet containers or stale error/loading updates. Owner maps refit points when
+their containers resize.
+
 Read farms, crop/variety, persisted batch stages and latest activity from scoped
 database queries; no fixture or browser-storage fallback. Legalitas currently
 shows the stored land-tenure label; the schema has no TNI/POLRI institution field.
@@ -456,8 +472,12 @@ Dashboard menggunakan arsitektur **2 Kolom Utama** dengan pendekatan *Clean, Mod
 
 The shared admin sidebar follows a full-height, left-aligned layout with a thin
 border, a 260px expanded width, and a 68px icon rail when collapsed. Use
-the login page's `logo.png` mark with the live text **Farm IC** in its header:
-a 42px mark, 10px gap and 24px semibold text, with IC using the primary token.
+the supplied `public/images/logo-hijauan.jpeg` mark with the live text
+**Hijauan** in its header. Preserve the square aspect ratio and natural logo
+colors in both themes; do not invert or recolor the JPEG. Use a rounded image
+tile and a nearby wordmark rather than stretching the mark horizontally.
+The login header uses a 42px mark and 24px semibold text; the expanded sidebar
+uses a 40px mark and 20px semibold text with an 8px gap.
 On the collapsed icon rail, show only the 40px mark. Keep the
 collapse/expand action in the sidebar header; the mobile drawer has its own
 visible close action. The desktop navbar has no sidebar toggle or adjacent

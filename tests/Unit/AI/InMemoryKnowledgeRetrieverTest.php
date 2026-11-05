@@ -49,4 +49,24 @@ class InMemoryKnowledgeRetrieverTest extends TestCase
         $this->assertSame('demo-agronomy-guides', $results[0]['metadata']['document_id']);
         $this->assertStringContainsString('kedelai', strtolower((string) $results[0]['content']));
     }
+
+    public function test_reference_labels_preserve_document_identity_and_evidence(): void
+    {
+        $document = [
+            'id' => 'demo-finance-origin-dev:chunk:0',
+            'title' => 'Finance demo origin/dev',
+            'source' => 'Knowledge base Farmer IC · farmDemoData.json origin/dev',
+            'content' => 'Nilai referensi: 123456',
+            'score' => 0.9,
+            'metadata' => ['document_id' => 'demo-finance-origin-dev', 'version' => 'demo-v1'],
+        ];
+
+        $display = (new KnowledgeService)->displayDocuments([$document])[0];
+
+        $this->assertSame('Dataset referensi keuangan', $display['title']);
+        $this->assertSame('Dataset referensi pertanian', $display['source']);
+        foreach (['id', 'content', 'score', 'metadata'] as $key) {
+            $this->assertSame($document[$key], $display[$key]);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import BrandLogo from '@/components/BrandLogo.vue';
 import { home } from '@/routes';
 
 defineProps<{
@@ -20,19 +21,13 @@ const year = new Date().getFullYear();
             <header class="mx-auto w-full max-w-sm">
                 <Link
                     :href="home()"
-                    aria-label="Farm IC home"
+                    aria-label="Beranda Hijauan"
                     class="inline-flex items-center gap-2.5 rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
                 >
-                    <img
-                        src="/images/logo.png"
-                        alt=""
-                        width="42"
-                        height="42"
-                        class="size-[42px] object-contain dark:brightness-0 dark:invert"
+                    <BrandLogo
+                        mark-class="size-[42px]"
+                        wordmark-class="text-2xl"
                     />
-                    <span class="text-2xl font-semibold tracking-tight"
-                        >Farm <span class="text-primary">IC</span></span
-                    >
                 </Link>
             </header>
 
@@ -54,13 +49,13 @@ const year = new Date().getFullYear();
 
             <footer class="mx-auto w-full max-w-sm">
                 <p class="text-xs leading-5 text-muted-foreground">
-                    &copy; {{ year }} Farm IC. All rights reserved.
+                    &copy; {{ year }} Hijauan. All rights reserved.
                 </p>
             </footer>
         </div>
 
         <aside
-            aria-label="Farm IC"
+            aria-label="Hijauan"
             class="relative hidden min-h-[calc(100dvh-2rem)] overflow-hidden rounded-xl bg-surface lg:block"
         >
             <img

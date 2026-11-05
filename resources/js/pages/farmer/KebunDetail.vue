@@ -249,7 +249,7 @@ watch(kebunId, () => void loadDetail());
                             src: detail.image,
                             alt: `Tanaman ${detail.crop} di ${detail.name}`,
                             title: 'Foto kebun',
-                            caption: 'Foto kebun dari data demo.',
+                            caption: 'Foto kebun dari data referensi.',
                         })
                     "
                 >
@@ -332,7 +332,7 @@ watch(kebunId, () => void loadDetail());
                 <h2 class="text-sm font-semibold text-card-foreground">Kondisi tanaman · {{ detail.healthStatus }}</h2>
                 <p class="mt-2 text-sm leading-6 text-muted-foreground">{{ detail.plantCondition }}</p>
                 <p class="mt-4 text-xs text-muted-foreground">Proyeksi pendapatan kebun</p><p class="mt-1 text-xl font-semibold text-success">{{ formatRupiah(detail.projectedRevenue) }}</p>
-                <p class="mt-1 text-xs text-muted-foreground">Estimasi demo · Tanam {{ detail.plantedAt }}</p>
+                <p class="mt-1 text-xs text-muted-foreground">Estimasi referensi · Tanam {{ detail.plantedAt }}</p>
             </section> -->
 
             <section

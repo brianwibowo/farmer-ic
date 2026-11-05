@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="/css/startup-screen.css">
-        <link rel="preload" href="/images/logo.png" as="image" type="image/png">
+        <link rel="preload" href="/images/logo-hijauan.jpeg" as="image" type="image/jpeg">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
@@ -32,8 +32,8 @@
             }
         </style>
 
-        <link rel="icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}" sizes="any" type="image/x-icon">
-        <link rel="apple-touch-icon" href="/images/logo.png">
+        <link rel="icon" href="{{ asset('images/logo-hijauan.jpeg') }}?v={{ filemtime(public_path('images/logo-hijauan.jpeg')) }}" type="image/jpeg">
+        <link rel="apple-touch-icon" href="/images/logo-hijauan.jpeg">
 
         @fonts
 

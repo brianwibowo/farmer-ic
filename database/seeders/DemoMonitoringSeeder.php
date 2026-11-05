@@ -16,9 +16,12 @@ class DemoMonitoringSeeder extends Seeder
 {
     public function run(): void
     {
-        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
-        $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
         $petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
+        $team = $petugas->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
+        \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('viewAny', [Farm::class, $team]);
+        $farm = Farm::visibleTo($petugas, $team)->where('team_id', $team->id)
+            ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->firstOrFail();
+        $cycle = PlantingCycle::visibleTo($petugas, $team)->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
         $observation = PlantObservation::query()->where('planting_cycle_id', $cycle->id)->first();
 
         if ($observation) {
@@ -42,7 +45,7 @@ class DemoMonitoringSeeder extends Seeder
             'condition' => 'Cerah berawan',
             'temperature_c' => 28.40,
             'humidity_percentage' => 72.00,
-            'data_source' => 'Stasiun cuaca demo',
+            'data_source' => 'Stasiun cuaca',
         ])->save();
 
         if ($observation && ! DB::table('ai_insights')->where('planting_cycle_id', $cycle->id)->exists()) {

@@ -1,3 +1,18 @@
+import type { DashboardData } from './dashboard';
+
+export type OwnerDashboardMapFarm =
+    DashboardData['landMap']['farms'][number] & {
+        crops: Array<{ id: string; name: string; varieties: string[] }>;
+        pic: { id: string; name: string } | null;
+        detail_url: string;
+    };
+
+export type OwnerDashboardData = Omit<DashboardData, 'landMap'> & {
+    landMap: Omit<DashboardData['landMap'], 'farms'> & {
+        farms: OwnerDashboardMapFarm[];
+    };
+};
+
 export type OwnerDashboardLandTable = {
     rows: Array<{
         id: string;

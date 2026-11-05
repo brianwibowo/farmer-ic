@@ -38,11 +38,52 @@ class OwnerReadService
         // A pie chart must include the full scoped distribution, not Admin's top-three cards.
         $dashboard = $this->dashboard->summary($actor, $team, $filters, commodityLimit: null);
         $farmId = $dashboard['filters']['farm_id'];
+        $landTable = $this->dashboardLandTable($actor, $team, $farmId);
+        $dashboard['landMap']['farms'] = $this->dashboardMapFarms($actor, $team, $dashboard['landMap']['farms'], $landTable['rows']);
 
         return [
             'dashboard' => $dashboard,
-            'landTable' => $this->dashboardLandTable($actor, $team, $farmId),
+            'landTable' => $landTable,
         ];
+    }
+
+    /**
+     * Reuse the table's crop definition and Owner links. PIC information is a
+     * separate scoped batch read: an assignment alone never makes someone PIC.
+     *
+     * @param  list<array<string, mixed>>  $mapFarms
+     * @param  list<array<string, mixed>>  $landRows
+     * @return list<array<string, mixed>>
+     */
+    private function dashboardMapFarms(User $actor, Team $team, array $mapFarms, array $landRows): array
+    {
+        $rows = collect($landRows)->keyBy('id');
+        $farmIds = array_column($mapFarms, 'id');
+        $farms = Farm::visibleTo($actor, $team)->where('team_id', $team->id)
+            ->whereIn('id', $farmIds)->get(['id', 'pic_user_id'])->keyBy('id');
+        $pics = User::visibleTo($actor, $team)
+            ->whereIn('id', $farms->pluck('pic_user_id')->filter())
+            ->whereIn('assigned_farm_id', $farmIds)->where('is_active', true)
+            ->whereHas('role', fn ($roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
+            ->whereHas('teams', fn ($teams) => $teams->visibleTo($actor, $team)
+                ->whereKey($team->id)->where('is_personal', false))
+            ->get(['id', 'name', 'assigned_farm_id'])->keyBy('id');
+
+        return array_map(function (array $farm) use ($rows, $farms, $pics): array {
+            $row = $rows->get($farm['id']);
+            $persisted = $farms->get($farm['id']);
+            $pic = $persisted?->pic_user_id === null ? null : $pics->get($persisted->pic_user_id);
+            if ($pic !== null && (string) $pic->getAttribute('assigned_farm_id') !== $farm['id']) {
+                $pic = null;
+            }
+
+            return [
+                ...$farm,
+                'crops' => $row['crops'] ?? [],
+                'pic' => $pic?->only(['id', 'name']),
+                'detail_url' => $row['detail_url'] ?? '/kebun/'.$farm['id'],
+            ];
+        }, $mapFarms);
     }
 
     /**

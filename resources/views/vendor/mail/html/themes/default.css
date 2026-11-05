@@ -112,9 +112,19 @@ img {
 /* Logo */
 
 .logo {
-    margin-top: 15px;
-    max-height: 75px;
-    width: 90%;
+    height: 72px;
+    width: 72px;
+    object-fit: contain;
+    border-radius: 12px;
+    vertical-align: middle;
+}
+
+.brand-name {
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+    font-size: 24px;
+    font-weight: 700;
 }
 
 /* Body */

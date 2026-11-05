@@ -8,6 +8,7 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class FinanceSnapshotServiceTest extends TestCase
@@ -22,7 +23,7 @@ class FinanceSnapshotServiceTest extends TestCase
         $this->assertSame(60000000, $snapshot['expense']);
         $this->assertSame(110000000, $snapshot['net']);
         $this->assertSame(24, $snapshot['transaction_count']);
-        $this->assertSame('farmDemoData.json origin/dev', $snapshot['source']);
+        $this->assertSame('Dataset referensi keuangan', $snapshot['source']);
 
         $april = array_values(array_filter(
             $snapshot['transactions'],
@@ -90,6 +91,42 @@ class FinanceSnapshotServiceTest extends TestCase
         $this->assertSame(24, $snapshot['transaction_count']);
         $this->assertSame(170000000, $snapshot['income']);
         $this->assertSame(60000000, $snapshot['expense']);
+    }
+
+    /** @return array<string, array{string}> */
+    public static function referenceFinanceTitles(): array
+    {
+        return [
+            'current title' => ['Dataset referensi keuangan'],
+            'legacy title' => ['Finance demo origin/dev'],
+        ];
+    }
+
+    #[DataProvider('referenceFinanceTitles')]
+    public function test_snapshot_reads_current_and_legacy_reference_document_titles(string $title): void
+    {
+        $user = User::factory()->create();
+        $finance = ['transactions' => [['type' => 'income', 'amount' => 123456]]];
+        $content = json_encode($finance, JSON_THROW_ON_ERROR);
+
+        AiKnowledgeDocument::query()->create([
+            'team_id' => $user->currentTeam->id,
+            'created_by' => $user->id,
+            'title' => $title,
+            'content' => $content,
+            'status' => AiKnowledgeDocument::STATUS_PUBLISHED,
+            'source' => 'farmDemoData.json origin/dev',
+            'content_hash' => hash('sha256', $content),
+            'version' => 1,
+            'published_at' => now(),
+            'domain' => 'finance',
+        ]);
+
+        $snapshot = (new FinanceSnapshotService)->snapshot($user->currentTeam);
+
+        $this->assertSame(123456, $snapshot['income']);
+        $this->assertSame(1, $snapshot['transaction_count']);
+        $this->assertSame('Dataset referensi keuangan', $snapshot['source']);
     }
 
     public function test_image_period_rejects_missing_year_and_returns_verified_month_values(): void

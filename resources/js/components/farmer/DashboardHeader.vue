@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, LogOut, Moon, Settings, Sun } from '@lucide/vue';
 import { computed } from 'vue';
+import BrandLogo from '@/components/BrandLogo.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
@@ -35,11 +36,7 @@ const { signOut, processing, error } = useLogout();
 <template>
     <header class="py-1">
         <div class="flex items-center justify-between gap-3">
-            <img
-                src="/images/logo-dashboard.png"
-                alt="Farm IC"
-                class="h-9 w-auto min-w-0 object-contain dark:brightness-0 dark:invert"
-            />
+            <BrandLogo class="shrink-0" />
 
             <slot name="navigation" />
 
@@ -104,7 +101,7 @@ const { signOut, processing, error } = useLogout();
                                 {{ user.email }}
                             </p>
                             <p v-else class="text-xs text-muted-foreground">
-                                Profil tampilan demo
+                                Profil pengguna
                             </p>
                         </div>
                         <template v-if="user">

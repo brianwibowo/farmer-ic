@@ -32,13 +32,13 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
     public function run(): void
     {
         if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Portofolio demo hanya dapat diisi pada environment local atau testing.');
+            throw new RuntimeException('Portofolio hanya dapat diisi pada environment local atau testing.');
         }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
         $team = $actor?->teams()->where('slug', 'farm-ic-demo')->first();
         if ($actor === null || $team === null) {
-            throw new RuntimeException('Identitas demo belum tersedia. Jalankan DemoIdentitySeeder dan DemoOwnerPortfolioSeeder terlebih dahulu.');
+            throw new RuntimeException('Identitas seed belum tersedia. Jalankan DemoIdentitySeeder dan DemoOwnerPortfolioSeeder terlebih dahulu.');
         }
         Gate::forUser($actor)->authorize('viewAny', [User::class, $team]);
         $performer = User::visibleTo($actor, $team)->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])
@@ -56,7 +56,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                     }
                     Gate::forUser($actor)->authorize('viewAny', [PlantingCycle::class, $team]);
                     $cycle = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
-                        ->where('subblock_label', $batch['subblock_label'])->firstOrFail();
+                        ->whereIn('subblock_label', [$batch['subblock_label'], 'DEMO-'.$batch['subblock_label']])->firstOrFail();
                     $this->batchActivities($farm, $cycle, $site, $batch, $actor, $performer, $team);
                 }
             }
@@ -83,7 +83,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $this->activity($farm, $cycle, $key, 'fertilization', $fertilized,
             'Pemupukan susulan '.$site['commodity'].' '.$batch['subblock_label'], [
                 'fertilization_stage' => 'Susulan vegetatif', 'fertilizer_type' => 'NPK 15-15-15',
-                'brand_name' => 'NPK contoh portofolio demo', 'subsidy_status' => 'non_subsidized',
+                'brand_name' => 'NPK contoh portofolio', 'subsidy_status' => 'non_subsidized',
                 'application_method' => 'Aplikasi larikan di sisi barisan', 'quantity_kg' => $area * 150,
             ], $actor, $performer, $team);
         if ($batch['status'] === 'active') {
@@ -98,7 +98,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             $this->activity($farm, $cycle, $key, 'pesticide', '2026-11-04',
                 'Pengendalian kutu daun cabai '.$batch['subblock_label'], [
                     'pesticide_category' => 'Biologis', 'purpose' => 'Pengendalian kutu daun',
-                    'brand_name' => 'Agens hayati contoh demo', 'active_ingredient' => 'Beauveria bassiana',
+                    'brand_name' => 'Agens hayati contoh', 'active_ingredient' => 'Beauveria bassiana',
                     'dosage_per_tank' => 'Catatan aplikasi contoh, bukan rekomendasi dosis', 'tank_size_liters' => 16, 'tank_count' => 4,
                 ], $actor, $performer, $team);
         }
@@ -119,7 +119,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                     'cibogo' => 28, 'mekarsari' => 68, 'cikeas' => 75, default => 52
                 },
                 'plant_condition' => $site['key'] === 'mekarsari' ? 'Mayoritas tanaman sehat; sebagian pucuk memerlukan pemantauan kutu daun.' : 'Pertumbuhan seragam dan daun berwarna hijau.',
-                'notes' => 'Observasi contoh portofolio demo pada petak ukur; bukan hasil analisis AI.',
+                'notes' => 'Observasi contoh portofolio pada petak ukur; bukan hasil analisis AI.',
             ], $actor, $performer, $team);
         if (in_array($site['key'], ['mekarsari', 'cikeas'], true)) {
             $this->record(FarmRisk::class, DemoOwnerPortfolioData::id($team, 'risk:'.$key), [
@@ -132,7 +132,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             ], $cycle, $actor, $team);
         }
         $this->record(ActivityPhoto::class, DemoOwnerPortfolioData::id($team, 'photo:'.$key), [
-            'activity_id' => $observation->id, 'label' => 'Ilustrasi lahan demo',
+            'activity_id' => $observation->id, 'label' => 'Ilustrasi lahan',
             'caption' => 'Ilustrasi lokal untuk contoh portofolio '.$site['name'].'; bukan foto lapangan aktual.',
             'image_url' => '/images/kebun-placeholder.svg', 'uploaded_at' => $this->at($observed),
         ], $observation, $actor, $team);
@@ -157,7 +157,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             $type = ActivityType::create(['code' => $code, 'name' => match ($code) {
                 'planting' => 'Penanaman', 'fertilization' => 'Pemupukan', 'irrigation' => 'Irigasi',
                 'growth_check' => 'Pengecekan Pertumbuhan', 'pesticide' => 'Pengendalian Hama', 'harvest' => 'Panen',
-                default => throw new LogicException('Jenis aktivitas portofolio demo tidak didukung: '.$code),
+                default => throw new LogicException('Jenis aktivitas portofolio tidak didukung: '.$code),
             }]);
         }
         /** @var FarmActivity $activity */
@@ -171,7 +171,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                 'planting' => PlantingDetail::class, 'fertilization' => FertilizationDetail::class,
                 'irrigation' => IrrigationDetail::class, 'pesticide' => PesticideDetail::class,
                 'harvest' => HarvestDetail::class, 'growth_check' => PlantObservation::class,
-                default => throw new LogicException('Jenis detail portofolio demo tidak didukung: '.$code),
+                default => throw new LogicException('Jenis detail portofolio tidak didukung: '.$code),
             };
             Gate::forUser($actor)->authorize('create', [$model, $code === 'growth_check' ? $cycle : $activity]);
             $payload = ['activity_id' => $activity->id, ...$detail];
@@ -194,7 +194,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $this->record(WeatherRecord::class, DemoOwnerPortfolioData::id($team, 'weather:'.$key), [
             'farm_id' => $farm->id, 'recorded_at' => $this->at(DemoOwnerPortfolioData::SNAPSHOT_DATE),
             'condition' => $condition, 'temperature_c' => $temperature, 'humidity_percentage' => $humidity,
-            'data_source' => 'Stasiun contoh portofolio demo',
+            'data_source' => 'Stasiun contoh portofolio',
         ], $farm, $actor, $team);
     }
 
@@ -208,7 +208,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         if ($existing !== null) {
             foreach (['farm_id', 'planting_cycle_id', 'activity_id', 'observation_id'] as $foreignKey) {
                 if (isset($data[$foreignKey]) && (string) $existing->getAttribute($foreignKey) !== (string) $data[$foreignKey]) {
-                    throw new RuntimeException('ID portofolio demo sudah digunakan oleh relasi lain.');
+                    throw new RuntimeException('ID portofolio sudah digunakan oleh relasi lain.');
                 }
             }
 

@@ -183,3 +183,69 @@ Verifikasi revisi:
 - Tema terang/gelap, lint, Vue typecheck dan build lolos. Browser tidak
   mencatat warning/error; build masih memberi peringatan ukuran chunk besar
   yang sudah ada pada modul lain. Tidak ada perubahan formulir profil.
+
+## Penyempurnaan visual Komoditas (5 November 2026)
+
+Komoditas kini berupa donut dengan total luas tanam di tengah, persentase pada
+irisan minimal 8%, serta ringkasan komoditas terbesar. Legenda memakai tombol
+berupa baris yang konsisten, badge warna/inisial (centang ketika dipilih),
+badge persentase dan bar proporsi. Pilihan menyorot irisan dan memperbarui
+ringkasan tengah; `Tampilkan total` menghapus pilihan. Preview mouse/fokus
+bersifat sementara, dan pilihan yang hilang akibat filter dibersihkan.
+Tidak ada perubahan pada data, perhitungan backend, profil atau AI.
+
+Lint, Vue typecheck dan build lolos. Smoke render SFC asli mencakup enam kasus:
+distribusi 5 komoditas/19 ha, satu komoditas 100%, pembagian 60/40, kosong,
+nol, dan persentase sangat kecil tanpa NaN/Infinity. Browser diperiksa pada
+320, 390, 430, 768, 844 (landscape), 1024, 1440 dan 2560px; tidak ada overflow
+halaman/card, dan tombol legenda memiliki tinggi minimal 68px. Pilihan melalui
+keyboard/sentuhan, reset, tema terang/gelap, serta filter Sukamaju (satu Padi,
+5 ha, 100%) berfungsi. Pilihan Jagung dibersihkan ketika berpindah ke filter
+tersebut. Browser tidak mencatat warning/error.
+
+## Ringkasan lahan pada peta dan identitas Hijauan (5 November 2026)
+
+Marker pada Beranda Owner membuka dialog dengan nama/lokasi/luas, peta satelit
+lahan terpilih, jenis tanaman beserta varietas, PIC yang ditugaskan, dan tautan
+Detail kebun. Kondisi tanaman dan proyeksi pendapatan tidak ditampilkan pada
+dialog. Jenis tanaman berasal dari baris tabel yang sama. PIC memakai
+`farms.pic_user_id` yang memiliki penugasan Petugas aktif pada lahan dan tenant
+tersebut; PIC kosong dinyatakan apa adanya, tanpa mengambil pengguna lain.
+Perubahan payload hanya berlaku untuk Owner dan mempertahankan scope/filter.
+
+Array lahan pada dialog stabil dan inisialisasi Leaflet memiliki nomor generasi:
+proses lama tidak boleh membuat/menghapus peta milik proses terbaru. Ini
+mengatasi kegagalan buka pertama yang sebelumnya baru pulih setelah Coba lagi.
+Marker mempunyai target 44px dan mendukung Enter/Space. Header/footer dialog
+tetap terlihat; bagian tengah dapat digeser dengan sentuhan atau keyboard.
+Escape mengembalikan fokus ke marker. Peta Owner menyesuaikan bingkai ketika
+ukuran container berubah.
+
+Logo resmi disimpan di `public/images/logo-hijauan.jpeg` dan dipakai pada
+header, sidebar, autentikasi, startup, ikon browser, email, dan laporan. Warna
+asli JPEG dipertahankan pada kedua tema. Nama tampilan dan teks sumber telah
+dibersihkan dari label Demo. Data lama diperbarui dengan
+`PresentationNamesSeeder`, sementara seed baru menghasilkan nama bersih.
+Petunjuk perintah dan kompatibilitas identitas teknis ada pada
+`docs/demo-seed-credentials.md`.
+
+Verifikasi akhir:
+
+- 62 tes Owner/dashboard, 2.068 assertion lulus pada PostgreSQL terpisah;
+  meliputi scope lintas tenant, PIC yang tidak sah, kompatibilitas Admin,
+  pembaruan nama idempoten, serta penjagaan akun dan nilai operasional.
+- 78 tes AI, 349 assertion lulus, termasuk judul sumber lama/baru.
+  Tes frontend AI juga lulus 38/38. Dataset tetap disebut sebagai referensi.
+- Pembaruan database lokal menjaga fingerprint seluruh field selain teks
+  yang diminta: akun/kredensial/relasi/tanggal/angka tetap, enam lahan
+  berjumlah 44,5 ha dan komoditas tertanam tetap 19 ha.
+- Browser: buka pertama dan buka-tutup enam lahan tanpa Coba lagi, navigasi
+  detail sesuai lahan, pemulihan fokus, dan hanya satu peta setelah dialog
+  ditutup. Portrait 320/390/430px, tablet 768px, landscape 844×390 dan desktop
+  1440px diperiksa; dialog muat pada viewport dan scroll tengah berfungsi.
+  Tema terang/gelap dan logo berfungsi; Beranda/Lainnya tanpa label Demo.
+- Vue typecheck dan build lulus. Peringatan chunk besar Laporan yang sudah
+  ada tetap muncul. Tidak ada perubahan grant, route, atau formulir profil.
+- Pemeriksaan akhir lint frontend, Pint dan PHPStan pada service/seeder yang
+  diubah lulus. Unit referensi AI diulang setelah penyesuaian tipe dokumen:
+  10 tes / 48 assertion lulus.

@@ -371,7 +371,7 @@ async function loadActivities(): Promise<void> {
 async function resetDemoData(): Promise<void> {
     clearDemoStorage();
     clearFilters();
-    resetMessage.value = 'Data demo aktivitas telah direset.';
+    resetMessage.value = 'Data contoh aktivitas telah direset.';
     await loadActivities();
 }
 
@@ -453,7 +453,7 @@ onBeforeUnmount(() => {
                     class="shrink-0 text-xs font-medium text-success underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     @click="void resetDemoData()"
                 >
-                    Reset demo
+                    Reset data contoh
                 </button>
             </div>
 

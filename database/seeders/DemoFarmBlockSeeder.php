@@ -20,14 +20,14 @@ class DemoFarmBlockSeeder extends Seeder
     public function run(): void
     {
         if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Blok demo hanya dapat diisi pada environment local atau testing.');
+            throw new RuntimeException('Blok percontohan hanya dapat diisi pada environment local atau testing.');
         }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
         $team = $actor->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
         Gate::forUser($actor)->authorize('viewAny', [Farm::class, $team]);
         Gate::forUser($actor)->authorize('viewAny', [FarmBlock::class, $team]);
         DB::transaction(function () use ($actor, $team): void {
-            $farm = Farm::visibleTo($actor, $team)->where('name', 'Kebun Cileuksa Demo')->lockForUpdate()->firstOrFail();
+            $farm = Farm::visibleTo($actor, $team)->whereIn('name', DemoFarmSeeder::FARM_NAMES)->lockForUpdate()->firstOrFail();
             Gate::forUser($actor)->authorize('create', [FarmBlock::class, $farm]);
             foreach ([['B01', 'Blok Utara', '10.0000'], ['B02', 'Blok Selatan', '2.5000']] as [$code, $name, $area]) {
                 if (! FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $code)->exists()) {
@@ -41,7 +41,7 @@ class DemoFarmBlockSeeder extends Seeder
             // cycles are retained; rerunning a seeder must not rewrite history.
             $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id);
             if ((clone $cycles)->whereNull('planting_round_id')->exists()) {
-                $this->command->warn('Siklus demo lama dipertahankan. Rekonsiliasi diperlukan sebelum menambahkan batch seed baru.');
+                $this->command->warn('Siklus tanam lama dipertahankan. Rekonsiliasi diperlukan sebelum menambahkan batch seed baru.');
 
                 return;
             }

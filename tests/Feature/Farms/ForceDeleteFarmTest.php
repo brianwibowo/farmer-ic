@@ -27,7 +27,7 @@ class ForceDeleteFarmTest extends TestCase
     {
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
-        $this->farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $this->farm = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
         $this->developer = User::query()->where('email', 'superadmin@farmer-ic.test')->firstOrFail();
         $this->actingAs($this->developer);
     }

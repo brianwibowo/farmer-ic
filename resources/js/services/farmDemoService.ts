@@ -263,7 +263,7 @@ export async function getDashboardFinancialSummary(): Promise<DashboardFinancial
         projectedExpenses: state.finance.totalExpense,
         information: {
             income: {
-                description: `Total pendapatan kebun dalam data keuangan pada periode ini.${includesPlans('income') ? ' Data demo juga mencakup transaksi pendapatan yang masih direncanakan.' : ''}`,
+                description: `Total pendapatan kebun dalam data keuangan pada periode ini.${includesPlans('income') ? ' Data referensi juga mencakup transaksi pendapatan yang masih direncanakan.' : ''}`,
                 period: incomePeriod,
             },
             projectedIncome: {
@@ -272,12 +272,12 @@ export async function getDashboardFinancialSummary(): Promise<DashboardFinancial
                 period: harvestPeriod,
             },
             expenses: {
-                description: `Total biaya kebun dalam data keuangan pada periode ini.${includesPlans('expense') ? ' Data demo juga mencakup transaksi pengeluaran yang masih direncanakan.' : ''}`,
+                description: `Total biaya kebun dalam data keuangan pada periode ini.${includesPlans('expense') ? ' Data referensi juga mencakup transaksi pengeluaran yang masih direncanakan.' : ''}`,
                 period: expensePeriod,
             },
             projectedExpenses: {
                 description:
-                    'Estimasi biaya kebun. Pada data demo saat ini, nilainya menggunakan total pengeluaran pada periode ini sebagai acuan.',
+                    'Estimasi biaya kebun. Pada data referensi saat ini, nilainya menggunakan total pengeluaran pada periode ini sebagai acuan.',
                 period: expensePeriod,
             },
         },

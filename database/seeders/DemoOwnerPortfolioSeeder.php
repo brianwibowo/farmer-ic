@@ -31,13 +31,13 @@ class DemoOwnerPortfolioSeeder extends Seeder
     public function run(): void
     {
         if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Portofolio Owner demo hanya dapat diisi pada environment local atau testing.');
+            throw new RuntimeException('Portofolio Owner hanya dapat diisi pada environment local atau testing.');
         }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
         $team = $actor?->teams()->where('slug', 'farm-ic-demo')->where('is_personal', false)->first();
         if (! $actor instanceof User || ! $team instanceof Team) {
-            throw new RuntimeException('Identitas Superadmin dan tenant farm-ic-demo belum tersedia. Jalankan demo dasar terlebih dahulu.');
+            throw new RuntimeException('Identitas Superadmin dan tenant farm-ic-demo belum tersedia. Jalankan seed dasar terlebih dahulu.');
         }
         Gate::forUser($actor)->authorize('view', $team);
         Gate::forUser($actor)->authorize('viewAny', [User::class, $team]);
@@ -45,7 +45,7 @@ class DemoOwnerPortfolioSeeder extends Seeder
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'owner'))
             ->whereHas('teams', fn ($teams) => $teams->whereKey($team->id))->first();
         if (! $owner instanceof User) {
-            throw new RuntimeException('Owner demo harus sudah menjadi anggota tenant farm-ic-demo. Identitas tidak diubah oleh seeder portofolio.');
+            throw new RuntimeException('Owner harus sudah menjadi anggota tenant farm-ic-demo. Identitas tidak diubah oleh seeder portofolio.');
         }
 
         DB::transaction(function () use ($actor, $owner, $team): void {
@@ -260,7 +260,7 @@ class DemoOwnerPortfolioSeeder extends Seeder
         // Integrity collision detection deliberately does not expose or reuse a
         // row hidden by the trusted tenant/parent query above.
         if ($model::query()->whereKey($id)->exists()) {
-            throw new RuntimeException('ID fixture portofolio sudah digunakan di luar parent demo yang diharapkan. Tidak ada data yang dipindahkan atau ditimpa.');
+            throw new RuntimeException('ID fixture portofolio sudah digunakan di luar parent fixture yang diharapkan. Tidak ada data yang dipindahkan atau ditimpa.');
         }
     }
 }

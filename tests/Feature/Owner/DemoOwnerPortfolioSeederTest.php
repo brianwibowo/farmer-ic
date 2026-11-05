@@ -133,7 +133,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
     public function test_rerun_preserves_ids_manual_edits_original_farm_and_all_demo_accounts(): void
     {
         $this->prerequisites();
-        $original = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $original = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
         $originalAttributes = $original->getRawOriginal();
         $accounts = User::query()->orderBy('id')->get()->map(fn (User $user) => $user->getRawOriginal())->all();
         $this->seed(DemoOwnerPortfolioSeeder::class);
@@ -158,7 +158,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
     {
         $this->prerequisites();
         $foreignTeam = Team::factory()->create(['name' => 'Tenant Pembanding', 'is_personal' => false]);
-        $foreign = new Farm(['name' => 'Kebun Sukamaju Demo', 'total_area_ha' => '999.0000', 'land_tenure' => 'rented']);
+        $foreign = new Farm(['name' => 'Kebun Sukamaju', 'total_area_ha' => '999.0000', 'land_tenure' => 'rented']);
         $foreign->forceFill([
             'team_id' => $foreignTeam->id,
             'created_by' => User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])->firstOrFail()->id,

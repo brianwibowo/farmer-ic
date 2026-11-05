@@ -2,7 +2,8 @@
 <tr>
 <td class="header">
 <a href="{{ $url }}" style="display: inline-block;">
-<img src="{{ asset('images/logo-email.png') }}" class="logo" alt="Farmer IC">
+<img src="{{ asset('images/logo-hijauan.jpeg') }}" class="logo" alt="" width="72" height="72">
+<span class="brand-name">Hijauan</span>
 </a>
 </td>
 </tr>

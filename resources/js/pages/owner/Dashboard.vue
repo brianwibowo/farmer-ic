@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { RefreshCw } from '@lucide/vue';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
 import OwnerDashboardCommodityChart from '@/components/owner/dashboard/OwnerDashboardCommodityChart.vue';
+import OwnerDashboardFarmPreview from '@/components/owner/dashboard/OwnerDashboardFarmPreview.vue';
 import OwnerDashboardLandTable from '@/components/owner/dashboard/OwnerDashboardLandTable.vue';
 import OwnerDashboardMetrics from '@/components/owner/dashboard/OwnerDashboardMetrics.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Button } from '@/components/ui/button';
 import { useOwnerReadFilters } from '@/composables/useOwnerReadFilters';
-import type { DashboardData } from '@/types/dashboard';
-import type { OwnerDashboardLandTable as OwnerLandTableData } from '@/types/owner-dashboard';
+import type {
+    OwnerDashboardData,
+    OwnerDashboardLandTable as OwnerLandTableData,
+} from '@/types/owner-dashboard';
 
 const props = defineProps<{
-    dashboard: DashboardData;
+    dashboard: OwnerDashboardData;
     landTable: OwnerLandTableData;
 }>();
 const page = usePage();
@@ -30,6 +33,25 @@ watch(
     (value) => sync({ farm_id: value.farm_id ?? '' }),
 );
 const updatedAt = computed(() => props.dashboard.generatedAt);
+const selectedMapFarmId = ref<string | null>(null);
+const selectedMapFarm = computed(() =>
+    props.dashboard.landMap.farms.find(
+        (farm) => farm.id === selectedMapFarmId.value,
+    ),
+);
+const mapPreviewOpen = computed({
+    get: () => selectedMapFarm.value !== undefined,
+    set: (open: boolean) => {
+        if (!open) selectedMapFarmId.value = null;
+    },
+});
+watch(
+    () => props.dashboard.landMap.farms,
+    (farms) => {
+        if (!farms.some((farm) => farm.id === selectedMapFarmId.value))
+            selectedMapFarmId.value = null;
+    },
+);
 </script>
 
 <template>
@@ -120,7 +142,10 @@ const updatedAt = computed(() => props.dashboard.generatedAt);
                 </div>
                 <DashboardFarmMap
                     :farms="dashboard.landMap.farms"
+                    selectable
+                    fit-on-resize
                     class="mt-0! h-64! grow lg:h-80! 2xl:h-96!"
+                    @select="selectedMapFarmId = $event"
                 />
                 <p class="mt-3 text-xs leading-5 text-muted-foreground">
                     {{
@@ -134,6 +159,11 @@ const updatedAt = computed(() => props.dashboard.generatedAt);
         <p class="text-xs leading-5 text-muted-foreground">
             Diperbarui {{ updatedAt }}
         </p>
+        <OwnerDashboardFarmPreview
+            v-if="selectedMapFarm"
+            v-model:open="mapPreviewOpen"
+            :farm="selectedMapFarm"
+        />
     </div>
 </template>
 
