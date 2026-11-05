@@ -111,7 +111,7 @@ function loadDashboard(): void {
         admin-theme
     />
     <div
-        class="admin-dashboard-overview mx-auto w-full max-w-screen-2xl space-y-[18px] p-4 md:p-6"
+        class="admin-page-content admin-dashboard-overview space-y-[18px]"
         :aria-busy="refreshing"
     >
         <header class="flex flex-wrap items-center justify-between gap-4">

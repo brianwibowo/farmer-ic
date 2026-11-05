@@ -54,12 +54,20 @@ class AiMessageController extends Controller
         return response()->eventStream(
             function () use ($events): iterable {
                 $executionTimeout = (int) config('ai.openrouter.execution_timeout', 120);
-                if ($executionTimeout > 0) {
-                    set_time_limit($executionTimeout);
-                }
+                $previousExecutionTimeout = (int) ini_get('max_execution_time');
 
-                foreach ($events as $event) {
-                    yield new StreamedEvent($event['event'], $event['data']);
+                try {
+                    if ($executionTimeout > 0) {
+                        set_time_limit($executionTimeout);
+                    }
+
+                    foreach ($events as $event) {
+                        yield new StreamedEvent($event['event'], $event['data']);
+                    }
+                } finally {
+                    if ($executionTimeout > 0) {
+                        set_time_limit($previousExecutionTimeout);
+                    }
                 }
             },
             [

@@ -14,8 +14,12 @@ import { Toaster } from '@/components/ui/sonner';
         <AppShell variant="sidebar" admin>
             <AppSidebar admin-theme />
             <AppContent variant="sidebar" class="min-w-0 bg-background">
-                <AdminHeader title="SOP" href="/admin/sops" :icon="ClipboardList" />
-                <div class="mx-auto w-full max-w-screen-2xl p-4 md:p-6 lg:p-8">
+                <AdminHeader
+                    title="SOP"
+                    href="/admin/sops"
+                    :icon="ClipboardList"
+                />
+                <div class="admin-page-content">
                     <slot />
                 </div>
             </AppContent>

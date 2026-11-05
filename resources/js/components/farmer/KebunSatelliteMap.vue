@@ -59,10 +59,10 @@ async function initialize(): Promise<void> {
             .addTo(map);
         leaflet.control.scale({ imperial: false, maxWidth: 100 }).addTo(map);
         tiles = leaflet.tileLayer(ESRI_WORLD_IMAGERY_URL, {
-                maxZoom: FARM_MAP_MAX_ZOOM,
-                maxNativeZoom: FARM_MAP_MAX_ZOOM,
-                attribution: ESRI_WORLD_IMAGERY_ATTRIBUTION,
-            });
+            maxZoom: FARM_MAP_MAX_ZOOM,
+            maxNativeZoom: FARM_MAP_MAX_ZOOM,
+            attribution: ESRI_WORLD_IMAGERY_ATTRIBUTION,
+        });
         tiles.on('tileload', () => {
             error.value = '';
             stopLoading();

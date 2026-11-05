@@ -238,8 +238,12 @@ onUnmounted(() => {
     <Head title="Notifikasi" />
     <component :is="layout">
         <div
-            class="mx-auto w-full max-w-4xl space-y-5 px-4 py-5 text-foreground md:p-6"
-            :class="{ 'admin-dashboard-theme': page.props.navigation?.admin }"
+            class="space-y-[18px] text-foreground"
+            :class="
+                page.props.navigation?.admin
+                    ? 'admin-dashboard-theme admin-page-content'
+                    : 'mx-auto w-full max-w-4xl px-4 py-5 md:p-6'
+            "
             :aria-busy="loading || pending !== null"
         >
             <header

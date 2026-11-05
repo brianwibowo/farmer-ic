@@ -1,7 +1,7 @@
 /**
  * Shared satellite basemap configuration for every Leaflet farm map.
- * Esri World Imagery is a display layer only; farm coordinates remain sourced
- * from the authorized Laravel props and are never sent to Esri by this module.
+ * Farm coordinates come from authorized Laravel props. Leaflet requests Esri
+ * tiles for the visible map area; Esri is only the satellite basemap provider.
  */
 export const ESRI_WORLD_IMAGERY_URL =
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';

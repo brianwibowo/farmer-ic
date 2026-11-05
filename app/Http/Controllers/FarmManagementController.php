@@ -9,6 +9,7 @@ use App\Models\Commodity;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmBlock;
+use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmDeletionService;
@@ -93,7 +94,9 @@ class FarmManagementController extends Controller
 
         return Inertia::render('farms/Show', [
             'farm' => $this->farms->detail($farm, $request->user()),
-            'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]) ? $this->blocks->overview($farm, $request->user(), $farm->team)->map(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block)]]) : [],
+            'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]) ? $this->blocks->overview($farm, $request->user(), $farm->team)->map(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block), 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block]) && Gate::allows('create', [\App\Models\PlantingRound::class, $block])]]) : [],
+            'batchPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('planting_round_id')
+                ->with(['farm.team', 'plantingRound.block'])->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $batch->plantingRound?->block !== null && $this->blocks->isBatchEditable($batch->plantingRound->block, $batch)]),
             'blockCapacity' => Gate::allows('create', [FarmBlock::class, $farm]) ? $this->blocks->formCapacity($farm, $request->user(), $farm->team) : null,
             'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [

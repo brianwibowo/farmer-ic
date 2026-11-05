@@ -20,7 +20,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Owner\OwnerController;
 use App\Http\Controllers\Owner\OwnerTenantController;
 use App\Http\Controllers\Petugas\PetugasActivityController;
-use App\Http\Controllers\Petugas\PetugasFarmController;
+use App\Http\Controllers\Petugas\PetugasGardenController;
+use App\Http\Controllers\Petugas\PetugasHomeController;
 use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
@@ -65,8 +66,8 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
 });
 
 Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
-    Route::inertia('/', 'petugas/Home')->name('home');
-    Route::get('kebun', [PetugasFarmController::class, 'show'])->name('kebun');
+    Route::get('/', PetugasHomeController::class)->name('home');
+    Route::get('kebun', PetugasGardenController::class)->name('kebun');
     Route::get('tasks', [PetugasTaskController::class, 'index'])->name('tasks.index');
     Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
     Route::get('aktivitas/buat', [PetugasActivityController::class, 'create'])->name('aktivitas.create');

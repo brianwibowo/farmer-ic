@@ -22,7 +22,7 @@ class FarmService
      */
     public function paginate(User $user, Team $team, array $filters): LengthAwarePaginator
     {
-        $query = Farm::visibleTo($user, $team)->with('team');
+        $query = Farm::visibleTo($user, $team)->where('team_id', $team->id)->with('team');
         $search = trim($filters['search'] ?? '');
         if ($search !== '') {
             $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
@@ -46,7 +46,7 @@ class FarmService
     /** @return array{count: int, area_ha: string, cities: int} */
     public function summary(User $user, Team $team): array
     {
-        $query = Farm::visibleTo($user, $team);
+        $query = Farm::visibleTo($user, $team)->where('team_id', $team->id);
 
         return [
             'count' => (clone $query)->count(),
@@ -90,7 +90,7 @@ class FarmService
     /** @return array{cities: list<string>, provinces: list<string>} */
     public function locationOptions(User $user, Team $team): array
     {
-        $farms = Farm::visibleTo($user, $team);
+        $farms = Farm::visibleTo($user, $team)->where('team_id', $team->id);
 
         $values = fn (string $field): array => array_values((clone $farms)->whereNotNull($field)->where($field, '<>', '')->distinct()->orderBy($field)->pluck($field)->map(fn ($value): string => (string) $value)->all());
 

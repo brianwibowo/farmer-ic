@@ -16,6 +16,7 @@ import { hectares } from '@/types/farms';
 import type { BatchCapacity, PreparationBatch } from '@/types/blocks';
 const props = defineProps<{
     dialog?: boolean;
+    returnTo?: 'farm' | 'blocks';
     base: string;
     capacity: BatchCapacity;
     batch: PreparationBatch | null;
@@ -23,6 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: []; cancel: [] }>();
 const base = props.base;
 const batchForm = useForm({
+    return_to: props.returnTo ?? 'blocks',
     area_value: props.batch?.reserved_area_ha ?? '',
     area_unit: 'ha' as AreaUnit,
     subblock_label: props.batch?.subblock_label ?? '',

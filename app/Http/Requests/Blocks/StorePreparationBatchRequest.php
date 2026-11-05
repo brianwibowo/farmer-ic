@@ -39,6 +39,7 @@ class StorePreparationBatchRequest extends FormRequest
         $metres = $this->input('area_unit') === 'm2';
 
         return [
+            'return_to' => ['sometimes', 'nullable', Rule::in(['farm', 'blocks'])],
             'area_value' => [Rule::requiredIf($unitInput), 'numeric', $metres ? 'decimal:0' : 'decimal:0,4', $metres ? 'between:1,999999999999' : 'between:0.0001,99999999.9999'],
             'area_unit' => [Rule::requiredIf($unitInput), Rule::in(['ha', 'm2'])],
             'reserved_area_ha' => [$unitInput ? 'nullable' : 'required', 'numeric', 'decimal:0,4', 'between:0.0001,99999999.9999'],

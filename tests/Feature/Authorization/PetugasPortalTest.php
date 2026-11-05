@@ -3,8 +3,8 @@
 namespace Tests\Feature\Authorization;
 
 use App\Enums\TeamRole;
-use App\Models\Role;
 use App\Models\Farm;
+use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\RolePermissions;
@@ -86,9 +86,9 @@ class PetugasPortalTest extends TestCase
 
         $this->actingAs($actor)->get('/petugas/kebun')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('petugas/Kebun')
-                ->where('farm.id', $farm->id)
-                ->where('farm.latitude', '-6.5965000')
-                ->where('farm.longitude', '106.9502000'));
+                ->where('garden.farm.id', $farm->id)
+                ->where('garden.farm.latitude', '-6.5965000')
+                ->where('garden.farm.longitude', '106.9502000'));
     }
 
     public function test_allowed_intended_pages_are_retained_and_denied_admin_intent_is_removed(): void
