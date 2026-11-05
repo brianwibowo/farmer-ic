@@ -7,6 +7,7 @@ use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
 use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DashboardWeatherController;
 use App\Http\Controllers\FarmBlockController;
 use App\Http\Controllers\FarmManagementController;
 use App\Http\Controllers\Finance\FinanceController;
@@ -112,6 +113,8 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
 Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
     Route::get('dashboard', DashboardController::class)->name('admin.dashboard');
+    Route::get('dashboard/weather/{farm}', DashboardWeatherController::class)
+        ->whereUuid('farm')->middleware('throttle:30,1')->name('admin.dashboard.weather');
     Route::get('logbook', [AdminLogbookController::class, 'index'])->name('admin.logbook.index');
     Route::get('logbook/{farm}', [AdminLogbookController::class, 'farm'])->whereUuid('farm')->name('admin.logbook.farm');
     Route::get('logbook/{farm}/{dailyLog}', [AdminLogbookController::class, 'show'])->whereUuid(['farm', 'dailyLog'])->name('admin.logbook.show');
