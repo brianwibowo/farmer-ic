@@ -10,11 +10,13 @@ import OwnerTenantContext from '@/components/owner/OwnerTenantContext.vue';
 type Props = {
     activeKey?: FarmerNavKey;
     showNavigation?: boolean;
+    dashboardTheme?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
     activeKey: 'home',
     showNavigation: true,
+    dashboardTheme: false,
 });
 
 const emit = defineEmits<{
@@ -30,16 +32,27 @@ function select(key: FarmerNavKey): void {
 
 <template>
     <div
-        class="flex min-h-dvh w-full justify-center bg-card px-6 pt-6 text-foreground max-[480px]:px-0 max-[480px]:pt-0"
+        class="flex min-h-dvh w-full justify-center px-6 pt-6 text-foreground max-[480px]:px-0 max-[480px]:pt-0"
+        :class="
+            props.dashboardTheme
+                ? 'admin-dashboard-theme petugas-dashboard-theme bg-background font-sans text-sm'
+                : 'bg-card'
+        "
     >
         <section
-            class="relative flex h-[min(874px,calc(100dvh-24px))] w-full max-w-[440px] flex-col overflow-hidden rounded-t-[24px] rounded-b-[20px] bg-card text-card-foreground max-[480px]:h-dvh max-[480px]:max-w-none max-[480px]:rounded-none"
+            class="relative flex h-[min(874px,calc(100dvh-24px))] w-full max-w-[440px] flex-col overflow-hidden rounded-t-[24px] rounded-b-[20px] text-card-foreground max-[480px]:h-dvh max-[480px]:max-w-none max-[480px]:rounded-none"
+            :class="
+                props.dashboardTheme
+                    ? 'petugas-mobile-frame bg-background'
+                    : 'bg-card'
+            "
         >
             <div
                 v-if="props.activeKey !== 'ai'"
                 class="shrink-0 bg-card px-4 pt-4 pb-2"
+                :class="{ 'petugas-mobile-header': props.dashboardTheme }"
             >
-                <DashboardHeader />
+                <DashboardHeader :dashboard-theme="props.dashboardTheme" />
                 <OwnerTenantContext
                     v-if="
                         props.showNavigation &&
@@ -62,10 +75,15 @@ function select(key: FarmerNavKey): void {
             <slot v-if="props.showNavigation" name="navigation">
                 <FarmerBottomNav
                     :active-key="props.activeKey"
+                    :dashboard-theme="props.dashboardTheme"
                     @select="select"
                 />
             </slot>
-            <Toaster />
+            <Toaster
+                :class="
+                    props.dashboardTheme ? 'admin-dashboard-theme' : undefined
+                "
+            />
         </section>
     </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { ClipboardList, FileText, House, LandPlot } from '@lucide/vue';
+import { computed, type Component } from 'vue';
 import FarmerNavIcon from './FarmerNavIcon.vue';
 
 export type FarmerNavKey =
@@ -22,11 +23,20 @@ export type FarmerNavItem = {
 type Props = {
     activeKey?: FarmerNavKey;
     items?: FarmerNavItem[];
+    dashboardTheme?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
     activeKey: 'home',
+    dashboardTheme: false,
 });
+
+const dashboardIcons: Partial<Record<FarmerNavKey, Component>> = {
+    home: House,
+    garden: LandPlot,
+    activity: ClipboardList,
+    report: FileText,
+};
 
 const emit = defineEmits<{
     select: [key: FarmerNavKey];
@@ -90,7 +100,12 @@ function select(key: FarmerNavKey): void {
 <template>
     <nav
         aria-label="Navigasi utama"
-        class="farmer-bottom-nav relative z-10 shrink-0 rounded-t-[18px] bg-card px-2"
+        class="farmer-bottom-nav relative z-10 shrink-0 bg-card px-2"
+        :class="
+            props.dashboardTheme
+                ? 'petugas-bottom-nav border-t border-border'
+                : 'rounded-t-[18px]'
+        "
     >
         <ul
             class="grid h-[76px] items-end"
@@ -125,7 +140,14 @@ function select(key: FarmerNavKey): void {
                     ]"
                     @click="select(item.key)"
                 >
+                    <component
+                        v-if="props.dashboardTheme && dashboardIcons[item.key]"
+                        :is="dashboardIcons[item.key]"
+                        class="size-5"
+                        aria-hidden="true"
+                    />
                     <FarmerNavIcon
+                        v-else
                         :name="item.key"
                         :class="item.emphasis ? 'size-8' : 'size-7'"
                     />
@@ -141,5 +163,19 @@ function select(key: FarmerNavKey): void {
     padding-bottom: env(safe-area-inset-bottom, 0px);
     box-shadow: 0 3px 14px
         color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+.farmer-bottom-nav.petugas-bottom-nav {
+    box-shadow: none;
+}
+
+.petugas-bottom-nav ul {
+    height: 4.5rem;
+}
+
+.petugas-bottom-nav a,
+.petugas-bottom-nav button {
+    font-size: 0.75rem;
+    line-height: 1rem;
 }
 </style>

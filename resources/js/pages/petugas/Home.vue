@@ -40,14 +40,14 @@ const cards = computed(() => [
 
 <template>
     <Head title="Beranda · Petugas" />
-    <div class="space-y-5">
+    <div class="space-y-[var(--admin-content-gap)]">
         <header>
             <p class="text-xs leading-5 text-muted-foreground">{{ date }}</p>
-            <h1 class="mt-1 text-xl leading-7 font-semibold tracking-tight">
+            <h1
+                class="petugas-welcome mt-1 text-xl leading-7 font-medium tracking-tight"
+            >
                 Selamat datang,
-                <span class="text-secondary dark:text-primary"
-                    >{{ name }}!</span
-                >
+                <span class="font-bold text-primary">{{ name }}!</span>
             </h1>
         </header>
         <div
@@ -59,24 +59,28 @@ const cards = computed(() => [
             }}</span>
         </div>
         <section
-            class="grid grid-cols-3 gap-2"
+            class="petugas-home-metrics grid grid-cols-3 gap-2"
             aria-label="Ringkasan batch kebun"
         >
             <article
                 v-for="card in cards"
                 :key="card.label"
-                class="min-w-0 rounded-xl border border-border bg-card p-3"
+                class="petugas-card petugas-metric-card min-w-0"
             >
                 <component
                     :is="card.icon"
-                    class="mb-3 size-5 text-secondary dark:text-primary"
+                    class="mb-3 size-5 text-primary"
                     aria-hidden="true"
                 />
-                <h2 class="text-xs leading-5 font-medium">{{ card.label }}</h2>
-                <p class="mt-1 text-[28px] leading-9 font-bold tabular-nums">
+                <h2
+                    class="text-xs leading-5 font-semibold min-[360px]:text-[13px]"
+                >
+                    {{ card.label }}
+                </h2>
+                <p class="petugas-metric-value mt-1">
                     {{ new Intl.NumberFormat('id-ID').format(card.value)
                     }}<span
-                        class="ml-1 text-[11px] font-normal text-muted-foreground"
+                        class="mt-0.5 block text-xs leading-4 font-normal text-muted-foreground"
                         >batch</span
                     >
                 </p>
@@ -84,7 +88,7 @@ const cards = computed(() => [
         </section>
         <section aria-labelledby="home-today-tasks" class="space-y-3">
             <header class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <h2 id="home-today-tasks" class="text-lg font-semibold">
+                <h2 id="home-today-tasks" class="admin-section-title">
                     To-do hari ini
                 </h2>
                 <span
@@ -98,7 +102,7 @@ const cards = computed(() => [
             </header>
             <div
                 v-if="!home.farm"
-                class="rounded-xl border border-dashed border-border bg-card px-5 py-9 text-center"
+                class="petugas-card petugas-empty px-5 py-9 text-center"
             >
                 <LandPlot
                     class="mx-auto size-9 text-secondary dark:text-primary"
@@ -113,7 +117,7 @@ const cards = computed(() => [
             </div>
             <div
                 v-else-if="!home.tasks.total"
-                class="rounded-xl border border-dashed border-border bg-card px-5 py-9 text-center"
+                class="petugas-card petugas-empty px-5 py-9 text-center"
             >
                 <ClipboardList
                     class="mx-auto size-9 text-secondary dark:text-primary"

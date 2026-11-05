@@ -16,6 +16,10 @@ import { useLogout } from '@/composables/useLogout';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { edit as editProfile } from '@/routes/profile';
 
+withDefaults(defineProps<{ dashboardTheme?: boolean }>(), {
+    dashboardTheme: false,
+});
+
 const page = usePage();
 const user = computed(() => page.props.account ?? page.props.auth?.user);
 const name = computed(() => user.value?.name?.trim() || 'Petani IC');
@@ -25,7 +29,22 @@ const { signOut, processing, error } = useLogout();
 <template>
     <header class="py-1">
         <div class="flex items-center justify-between gap-3">
+            <Link
+                v-if="dashboardTheme"
+                href="/petugas"
+                aria-label="Beranda Farm IC"
+                class="flex min-w-0 items-center gap-2 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                ><img
+                    src="/images/logo.png"
+                    alt=""
+                    class="size-9 shrink-0 object-contain dark:brightness-0 dark:invert"
+                /><span
+                    class="text-lg font-semibold tracking-tight whitespace-nowrap"
+                    >Farm <span class="text-primary">IC</span></span
+                ></Link
+            >
             <img
+                v-else
                 src="/images/logo-dashboard.png"
                 alt="Farm IC"
                 class="h-9 w-auto min-w-0 object-contain dark:brightness-0 dark:invert"
@@ -59,6 +78,7 @@ const { signOut, processing, error } = useLogout();
                         align="end"
                         :side-offset="8"
                         class="w-64 max-w-[calc(100vw-2rem)] rounded-xl p-2"
+                        :class="{ 'admin-dashboard-theme': dashboardTheme }"
                     >
                         <DropdownMenuLabel>Profil</DropdownMenuLabel>
                         <DropdownMenuSeparator />
@@ -78,9 +98,15 @@ const { signOut, processing, error } = useLogout();
                         </div>
                         <template v-if="user">
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem as-child class="min-h-11 cursor-pointer rounded-xl">
+                            <DropdownMenuItem
+                                as-child
+                                class="min-h-11 cursor-pointer rounded-xl"
+                            >
                                 <Link :href="editProfile()">
-                                    <Settings class="size-4" aria-hidden="true" />
+                                    <Settings
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
                                     Pengaturan profil
                                 </Link>
                             </DropdownMenuItem>

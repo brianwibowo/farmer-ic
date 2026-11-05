@@ -49,7 +49,7 @@ const status = {
     <Link
         :href="`/petugas/aktivitas?task_id=${encodeURIComponent(task.id)}`"
         :aria-label="`Lihat aktivitas untuk ${task.name}`"
-        class="group flex min-h-20 items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+        class="petugas-card group flex min-h-20 items-start gap-3 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
     >
         <span
             class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full"

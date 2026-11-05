@@ -1,0 +1,80 @@
+/* Petugas shares the admin palette/font; only its mobile composition differs. */
+.petugas-dashboard-theme {
+    --admin-panel-padding: 1rem;
+}
+
+.petugas-dashboard-theme .petugas-mobile-header {
+    border-bottom: 1px solid var(--border);
+    padding-block: 0.75rem;
+}
+
+.petugas-dashboard-theme .petugas-card {
+    border: 0;
+    border-radius: var(--admin-card-radius);
+    background: var(--card);
+    box-shadow: none;
+}
+
+.petugas-dashboard-theme .petugas-empty {
+    border: 1px dashed var(--border);
+}
+
+.petugas-dashboard-theme a.petugas-card:hover {
+    background: color-mix(in srgb, var(--card) 85%, var(--accent));
+}
+
+.petugas-dashboard-theme .petugas-page-content h1:not(.petugas-welcome) {
+    font-size: 1.625rem;
+    line-height: 1.3;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+.petugas-dashboard-theme .petugas-metric-value {
+    font-size: 2rem;
+    line-height: 1.25;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.petugas-dashboard-theme .petugas-metric-card {
+    padding: 0.875rem 0.75rem;
+}
+
+.petugas-dashboard-theme .petugas-field {
+    background: var(--card);
+    font-size: 1rem;
+}
+
+.petugas-dashboard-theme .petugas-field:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.petugas-dashboard-theme .petugas-field::placeholder {
+    color: var(--muted-foreground);
+    opacity: 1;
+}
+
+.petugas-dashboard-theme .petugas-label {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+}
+
+@media (max-width: 359px) {
+    .petugas-dashboard-theme .petugas-metric-card {
+        padding-inline: 0.625rem;
+    }
+
+    .petugas-dashboard-theme .petugas-home-metrics .petugas-metric-value {
+        font-size: 1.75rem;
+    }
+}
+
+@media (min-width: 481px) {
+    .petugas-dashboard-theme .petugas-mobile-frame {
+        outline: 1px solid var(--border);
+    }
+}

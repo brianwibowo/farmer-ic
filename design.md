@@ -11,9 +11,12 @@ Read this document before implementing or changing any UI.
 - **Shared components:** use the button, input, dialog, tab, pagination,
   accessibility, and state requirements below across all screen sizes.
 - **Farmer/mobile profile:** use the Farmer IC palette and mobile typography for
-  field-worker screens and the existing farmer interface. Keep this profile when
+  the Owner/farmer interface. Keep this profile when
   those screens are opened on desktop; viewport width alone does not change the
   product's colors or font.
+- **Petugas/mobile profile:** retain the phone-width shell and four-item bottom
+  navigation, while sharing the admin dashboard's palette, Plus Jakarta Sans,
+  component surfaces, typography hierarchy, and 20px content-card corners.
 - **Desktop admin profile:** use the desktop layout, extended palette, and
   desktop typography for admin dashboards with dense operational data, including
   land management and warehousing. Adapt these pages to smaller viewports using
@@ -276,13 +279,35 @@ Empty pages show their title and an honest placeholder without fabricated
 operational records, metrics, or inactive action buttons. Keep the active
 navigation indicator, request loading feedback, keyboard focus, and both themes.
 
+### Shared dashboard components for Petugas
+
+Petugas opts into `FarmerMobileShell`'s `dashboardTheme` presentation prop.
+Reuse `admin-dashboard-theme` for the existing light/dark semantic tokens and
+Plus Jakarta Sans; keep mobile-only spacing and type adjustments in
+`resources/css/petugas-dashboard-styling.css`, scoped by
+`petugas-dashboard-theme`. Do not duplicate the admin color palette or change
+the Owner/farmer profile. Header/profile portals and toasts must carry the same
+theme, and bottom navigation uses the admin Lucide icon family with 12px labels.
+
+Use the admin neutral canvas, white/dark-card surfaces, emerald accents, 18px
+section gaps, and 16px content padding at every viewport. Use `petugas-card` for
+20px content/stat/task cards with minimal outlines and no decorative shadows;
+add `petugas-empty` for dashed empty states. Buttons, fields, map frames, and
+icon containers retain the shared 12px radius. Page headings are 26px/700,
+section headings 16px/600, record headings 18px/700, body text 14px, supporting
+text 12px, and metric values 32px/700 through `petugas-metric-value`. The narrow
+three-column home metrics may use 28px values and 12px labels below 360px.
+Keep the home welcome sentence at 20px/500 with the user's name bold emerald.
+Retain concise copy, existing data, assignment scopes, navigation destinations,
+and request states. Styling a prototype form does not imply working persistence.
+
 ### Petugas home
 
 The `/petugas` home shows a date and personal greeting, the assigned farm, then
 three equal stat cards: Pra Tanam, Penanaman, and Panen. Count persisted batches
 (`planting_cycles` linked to a planting round): planned, active (including
 maintenance), and harvested, respectively. Use a prominent bold number and an
-explicit batch unit. Retain the Farmer palette and 12px card corners.
+explicit batch unit. Use the shared Petugas/admin styling described above.
 Keep the initial view concise: no descriptive sentences below the stat numbers
 or task heading. Use short status labels, a compact completed/total count, and
 one-line empty messages. Keep SOP instructions and required markers on the
@@ -309,7 +334,7 @@ Never substitute example tasks when the database has no scheduled work.
 The `/petugas/kebun` page reads the authenticated user's persisted assigned farm.
 Assignment currently applies to a farm, so its visible blocks and subblok/batches
 follow that boundary; do not invent block-level or batch-level assignments.
-Keep the mobile shell, Farmer palette, 12px cards, and concise copy at all widths.
+Keep the mobile shell, shared Petugas/admin components, and concise copy at all widths.
 Show the farm name, land tenure, address/location, area, block count, and batch
 count. Use compact Inertia links to select a block, then display its area,
 description, land-clearing dates, and paginated subblok cards. Retain the selected

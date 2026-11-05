@@ -54,9 +54,9 @@ onUnmounted(() => unsubscribe.forEach((stop) => stop()));
 </script>
 
 <template>
-    <FarmerMobileShell :active-key="activeKey">
+    <FarmerMobileShell :active-key="activeKey" dashboard-theme>
         <div
-            class="flex min-h-full flex-col px-4 pt-4 pb-6"
+            class="petugas-page-content flex min-h-full flex-col px-4 pt-4 pb-6"
             :aria-busy="navigating"
         >
             <p
@@ -79,6 +79,7 @@ onUnmounted(() => unsubscribe.forEach((stop) => stop()));
             <FarmerBottomNav
                 :items="items"
                 :active-key="activeKey"
+                dashboard-theme
                 class="[&_[aria-current=page]]:font-semibold [&_[aria-current=page]]:text-secondary dark:[&_[aria-current=page]]:text-primary"
             />
         </template>
