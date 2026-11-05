@@ -16,9 +16,16 @@ import { useLogout } from '@/composables/useLogout';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { edit as editProfile } from '@/routes/profile';
 
-withDefaults(defineProps<{ dashboardTheme?: boolean }>(), {
-    dashboardTheme: false,
-});
+withDefaults(
+    defineProps<{
+        dashboardTheme?: boolean;
+        showBrand?: boolean;
+    }>(),
+    {
+        dashboardTheme: false,
+        showBrand: true,
+    },
+);
 
 const page = usePage();
 const user = computed(() => page.props.account ?? page.props.auth?.user);
@@ -29,8 +36,9 @@ const { signOut, processing, error } = useLogout();
 <template>
     <header class="py-1">
         <div class="flex items-center justify-between gap-3">
+            <div v-if="$slots.default" class="min-w-0 flex-1"><slot /></div>
             <Link
-                v-if="dashboardTheme"
+                v-else-if="showBrand && dashboardTheme"
                 href="/petugas"
                 aria-label="Beranda Farm IC"
                 class="flex min-w-0 items-center gap-2 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -44,7 +52,7 @@ const { signOut, processing, error } = useLogout();
                 ></Link
             >
             <img
-                v-else
+                v-else-if="showBrand"
                 src="/images/logo-dashboard.png"
                 alt="Farm IC"
                 class="h-9 w-auto min-w-0 object-contain dark:brightness-0 dark:invert"
@@ -58,7 +66,7 @@ const { signOut, processing, error } = useLogout();
                         <button
                             type="button"
                             aria-label="Buka profil"
-                            class="rounded-full transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+                            class="shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
                         >
                             <Avatar class="size-11 rounded-full">
                                 <AvatarImage

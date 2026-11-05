@@ -68,6 +68,8 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
 
 Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
     Route::get('/', PetugasHomeController::class)->name('home');
+    Route::get('weather/{farm}', DashboardWeatherController::class)
+        ->whereUuid('farm')->middleware('throttle:30,1')->name('weather');
     Route::get('kebun', PetugasGardenController::class)->name('kebun');
     Route::get('tasks', [PetugasTaskController::class, 'index'])->name('tasks.index');
     Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');

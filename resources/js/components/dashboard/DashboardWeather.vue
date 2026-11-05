@@ -19,10 +19,21 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Button } from '@/components/ui/button';
-import type { DashboardData } from '@/types/dashboard';
 import type { FarmWeather } from '@/types/weather';
 
-const props = defineProps<{ farms: DashboardData['landMap']['farms'] }>();
+const props = withDefaults(
+    defineProps<{
+        farms: {
+            id: string;
+            name: string;
+            latitude?: number | null;
+            longitude?: number | null;
+        }[];
+        compact?: boolean;
+        weatherBaseUrl?: string;
+    }>(),
+    { compact: false, weatherBaseUrl: '/admin/dashboard/weather' },
+);
 const selectedId = ref('');
 const weather = ref<FarmWeather | null>(null);
 const loading = ref(false);
@@ -50,7 +61,7 @@ watch(
         if (!farms.some((farm) => farm.id === selectedId.value)) {
             selectedId.value =
                 farms.find(
-                    (farm) => farm.latitude !== null && farm.longitude !== null,
+                    (farm) => farm.latitude != null && farm.longitude != null,
                 )?.id ??
                 farms[0]?.id ??
                 '';
@@ -121,7 +132,7 @@ async function loadWeather(manual = false): Promise<void> {
     const timeout = setTimeout(() => current.abort(), 12000);
     try {
         const response = await fetch(
-            `/admin/dashboard/weather/${encodeURIComponent(farm.id)}`,
+            `${props.weatherBaseUrl}/${encodeURIComponent(farm.id)}`,
             {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
@@ -191,6 +202,63 @@ onBeforeUnmount(() => {
 
 <template>
     <section
+        v-if="compact"
+        class="flex min-w-0 items-center gap-2"
+        aria-label="Cuaca kebun"
+        :aria-busy="loading"
+        aria-live="polite"
+    >
+        <LoaderCircle
+            v-if="loading && !forecast"
+            class="size-7 shrink-0 animate-spin motion-reduce:animate-none"
+            aria-hidden="true"
+        />
+        <component
+            v-else
+            :is="forecast ? currentCondition.icon : Cloud"
+            class="size-7 shrink-0"
+            :stroke-width="1.5"
+            aria-hidden="true"
+        />
+        <div v-if="forecast" class="min-w-0">
+            <p class="text-xl leading-6 font-bold tabular-nums">
+                {{ number(forecast.temperature, '°C')
+                }}<span
+                    v-if="error || weather?.status === 'stale'"
+                    class="ml-1 text-[10px] font-medium"
+                    >Terakhir</span
+                >
+            </p>
+            <p
+                class="truncate text-xs leading-4"
+                :title="currentCondition.label"
+            >
+                {{ currentCondition.label }}
+            </p>
+        </div>
+        <p v-else-if="loading" class="text-xs leading-5">Memuat cuaca…</p>
+        <p v-else-if="!selectedFarm" class="text-xs leading-5">
+            Belum ada kebun
+        </p>
+        <p
+            v-else-if="weather?.status === 'missing_coordinates'"
+            class="text-xs leading-5"
+        >
+            Koordinat kebun belum diisi
+        </p>
+        <button
+            v-else
+            type="button"
+            class="min-h-11 min-w-0 rounded-lg text-left text-xs leading-5 focus-visible:outline-2 focus-visible:outline-ring"
+            @click="void loadWeather()"
+        >
+            Cuaca belum tersedia<span class="block underline underline-offset-2"
+                >Coba lagi</span
+            >
+        </button>
+    </section>
+    <section
+        v-else
         class="dashboard-panel flex min-w-0 flex-col"
         aria-labelledby="weather-heading"
         :aria-busy="loading"

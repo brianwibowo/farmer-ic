@@ -97,6 +97,13 @@ Izin baca Farm mereka tetap berlaku di jalur yang sesuai; Policy resource tidak
 diubah untuk membatasi portal. Controller tetap memeriksa Policy Farm dan
 Service tetap memakai `visibleTo()`.
 
+Cuaca beranda Petugas menggunakan `GET /petugas/weather/{farm}` dengan
+`auth`, `verified`, dan `petugas.access`. Controller cuaca yang sama dengan
+dashboard Admin memeriksa `Farm::viewAny` dan `Farm::view`; service menerapkan
+`visibleTo()` sebelum membaca koordinat atau cache. Petugas hanya dapat membaca
+cuaca kebun penugasannya dalam tenant yang sah. Parameter koordinat atau tim
+dari klien tidak digunakan sebagai sumber data maupun bukti izin.
+
 Navigasi menerima boolean `navigation.admin` dan `navigation.farms` dari server.
 Route utama `/` menggunakan auth/verified. Guest diarahkan ke `/login`;
 Admin/Superadmin yang sudah login diarahkan ke `/admin/dashboard`, Petugas ke
@@ -413,15 +420,15 @@ Contoh Vue:
 ```vue
 <script setup lang="ts">
 defineProps<{
-  farm: Farm;
-  can: { update: boolean; delete: boolean };
+    farm: Farm;
+    can: { update: boolean; delete: boolean };
 }>();
 </script>
 
 <template>
-  <Link v-if="can.update" :href="route('farms.edit', farm.id)">
-    Ubah farm
-  </Link>
+    <Link v-if="can.update" :href="route('farms.edit', farm.id)">
+        Ubah farm
+    </Link>
 </template>
 ```
 

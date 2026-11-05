@@ -11,12 +11,16 @@ type Props = {
     activeKey?: FarmerNavKey;
     showNavigation?: boolean;
     dashboardTheme?: boolean;
+    showHeader?: boolean;
+    flushContent?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
     activeKey: 'home',
     showNavigation: true,
     dashboardTheme: false,
+    showHeader: true,
+    flushContent: false,
 });
 
 const emit = defineEmits<{
@@ -48,7 +52,7 @@ function select(key: FarmerNavKey): void {
             "
         >
             <div
-                v-if="props.activeKey !== 'ai'"
+                v-if="props.showHeader && props.activeKey !== 'ai'"
                 class="shrink-0 bg-card px-4 pt-4 pb-2"
                 :class="{ 'petugas-mobile-header': props.dashboardTheme }"
             >
@@ -66,7 +70,9 @@ function select(key: FarmerNavKey): void {
                 :class="
                     props.activeKey === 'ai'
                         ? 'overflow-hidden pb-0'
-                        : 'scroll-pb-8 overflow-y-auto pb-8'
+                        : props.flushContent
+                          ? 'overflow-y-auto pb-0'
+                          : 'scroll-pb-8 overflow-y-auto pb-8'
                 "
             >
                 <slot />

@@ -179,6 +179,55 @@ class DashboardWeatherTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_petugas_weather_uses_assigned_farm_and_ignores_supplied_coordinates(): void
+    {
+        Http::fake(['api.open-meteo.com/*' => Http::response($this->payload())]);
+        $petugas = User::factory()->create(['role' => 'petugas']);
+        $this->team->members()->attach($petugas, ['role' => TeamRole::Member->value]);
+        $petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
+        $petugas->switchTeam($this->team);
+
+        $this->actingAs($petugas)->getJson('/petugas/weather/'.$this->farm->id.'?latitude=10&longitude=20&team_id=999')
+            ->assertOk()->assertJsonPath('data.status', 'ready')->assertJsonPath('data.forecast.temperature', 29);
+        Http::assertSent(fn (Request $request): bool => $request['latitude'] === -6.59 && $request['longitude'] === 106.95);
+    }
+
+    public function test_petugas_cannot_read_unassigned_or_cross_team_weather_even_with_warm_cache(): void
+    {
+        Http::fake(['api.open-meteo.com/*' => Http::response($this->payload())]);
+        $this->getJson($this->endpoint())->assertOk();
+        $petugas = User::factory()->create(['role' => 'petugas']);
+        $this->team->members()->attach($petugas, ['role' => TeamRole::Member->value]);
+        $petugas->switchTeam($this->team);
+        $url = '/petugas/weather/'.$this->farm->id;
+        $this->actingAs($petugas)->getJson($url.'?farm_id='.$this->farm->id)->assertForbidden();
+
+        $petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
+        $this->actingAs($petugas->fresh())->getJson($url)->assertOk();
+        $otherTeam = Team::factory()->create(['is_personal' => false]);
+        $this->farm->forceFill(['team_id' => $otherTeam->id])->save();
+        $this->actingAs($petugas->fresh())->getJson($url)->assertForbidden();
+        Http::assertSentCount(1);
+    }
+
+    public function test_petugas_weather_denies_missing_grant_and_other_portal_roles(): void
+    {
+        Http::fake(['api.open-meteo.com/*' => Http::response($this->payload())]);
+        $url = '/petugas/weather/'.$this->farm->id;
+        $this->getJson($url)->assertForbidden();
+        $petugas = User::factory()->create(['role' => 'petugas']);
+        $this->team->members()->attach($petugas, ['role' => TeamRole::Member->value]);
+        $petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
+        $petugas->switchTeam($this->team);
+        $grants = config('access.roles.petugas');
+        unset($grants['farms.view']);
+        config(['access.roles.petugas' => $grants]);
+        $this->actingAs($petugas)->getJson($url)->assertForbidden();
+        auth()->logout();
+        $this->getJson($url)->assertUnauthorized();
+        Http::assertNothingSent();
+    }
+
     private function endpoint(): string
     {
         return '/admin/dashboard/weather/'.$this->farm->id;

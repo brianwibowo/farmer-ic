@@ -1,6 +1,74 @@
 /* Petugas shares the admin palette/font; only its mobile composition differs. */
 .petugas-dashboard-theme {
     --admin-panel-padding: 1rem;
+    --petugas-home-hero-from: var(--admin-primary-pressed);
+    --petugas-home-hero-mid: var(--primary);
+    --petugas-home-hero-to: color-mix(
+        in srgb,
+        var(--primary) 90%,
+        var(--admin-chart-secondary)
+    );
+    --petugas-home-hero-foreground: var(--primary-foreground);
+}
+
+.dark .petugas-dashboard-theme {
+    --petugas-home-hero-from: var(--primary-foreground);
+    --petugas-home-hero-mid: var(--admin-chart-tertiary);
+    --petugas-home-hero-to: color-mix(
+        in srgb,
+        var(--admin-chart-tertiary) 80%,
+        var(--primary)
+    );
+    --petugas-home-hero-foreground: var(--foreground);
+}
+
+.petugas-home-content {
+    flex: 1;
+}
+
+.petugas-home {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    background: var(--petugas-home-hero-to);
+}
+
+.petugas-home-hero {
+    min-height: 15.25rem;
+    flex-shrink: 0;
+    padding: 1.5rem 1rem 2.5rem;
+    background: linear-gradient(
+        135deg,
+        var(--petugas-home-hero-from) 0%,
+        var(--petugas-home-hero-mid) 52%,
+        var(--petugas-home-hero-to) 100%
+    );
+    color: var(--petugas-home-hero-foreground);
+}
+
+.petugas-home-hero-metrics {
+    margin-top: 1.5rem;
+}
+
+.petugas-home-actions {
+    --primary: var(--petugas-home-hero-foreground);
+    --primary-foreground: var(--petugas-home-hero-from);
+    --secondary: var(--petugas-home-hero-foreground);
+    --muted: color-mix(
+        in srgb,
+        var(--petugas-home-hero-foreground) 20%,
+        transparent
+    );
+    --ring: var(--petugas-home-hero-foreground);
+}
+
+.petugas-home-tasks {
+    position: relative;
+    flex: 1;
+    margin-top: -1.25rem;
+    border-radius: var(--admin-card-radius) var(--admin-card-radius) 0 0;
+    padding: 1.5rem 1.25rem 2rem;
+    background: var(--background);
 }
 
 .petugas-dashboard-theme .petugas-mobile-header {
@@ -37,10 +105,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-.petugas-dashboard-theme .petugas-metric-card {
-    padding: 0.875rem 0.75rem;
-}
-
 .petugas-dashboard-theme .petugas-field {
     background: var(--card);
     font-size: 1rem;
@@ -61,16 +125,6 @@
     font-size: 0.875rem;
     line-height: 1.25rem;
     font-weight: 500;
-}
-
-@media (max-width: 359px) {
-    .petugas-dashboard-theme .petugas-metric-card {
-        padding-inline: 0.625rem;
-    }
-
-    .petugas-dashboard-theme .petugas-home-metrics .petugas-metric-value {
-        font-size: 1.75rem;
-    }
 }
 
 @media (min-width: 481px) {

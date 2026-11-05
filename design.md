@@ -296,22 +296,58 @@ add `petugas-empty` for dashed empty states. Buttons, fields, map frames, and
 icon containers retain the shared 12px radius. Page headings are 26px/700,
 section headings 16px/600, record headings 18px/700, body text 14px, supporting
 text 12px, and metric values 32px/700 through `petugas-metric-value`. The narrow
-three-column home metrics may use 28px values and 12px labels below 360px.
-Keep the home welcome sentence at 20px/500 with the user's name bold emerald.
+three-column home metrics use 12px labels below 360px.
+The home hero uses a compact weather summary and high-contrast controls.
 Retain concise copy, existing data, assignment scopes, navigation destinations,
 and request states. Styling a prototype form does not imply working persistence.
 
 ### Petugas home
 
-The `/petugas` home shows a date and personal greeting, the assigned farm, then
-three equal stat cards: Pra Tanam, Penanaman, and Panen. Count persisted batches
+The `/petugas` home follows the supplied two-part mobile composition: a full-width
+three-stop emerald gradient hero, darker at the upper left and lighter at the
+lower right, with a compact weather header and three unboxed statistic
+columns, then a light/dark canvas panel with 20px rounded upper corners that fills
+the remaining height. Keep Pra Tanam, Penanaman, and Panen as the three labels;
+the repeated labels in the reference are placeholders. Count persisted batches
 (`planting_cycles` linked to a planting round): planned, active (including
 maintenance), and harvested, respectively. Use a prominent bold number and an
-explicit batch unit. Use the shared Petugas/admin styling described above.
+explicit Batch unit. Use existing semantic theme tokens for the hero gradient
+and readable foreground in both themes. Center each metric column's Lucide icon,
+label, number, and Batch unit. Use three equal columns with no extra column gap
+or nested horizontal padding; share the header's 16px left/right page inset.
+The metric groups hug their content: anchor Pra Tanam to the left inset and
+Panen to the right inset, with Penanaman centered. Keep the icon, value, and
+unit centered within each group rather than centering the outer groups in
+their full grid columns.
+Place the icon to the left of the number on the
+same centered row, with the Batch unit below. Use Tractor for Pra Tanam, Sprout for Penanaman,
+and Wheat for Panen. Keep the header concise without a farm location badge.
+Omit individual metric card
+surfaces and the visible date in this home variant. Hide the
+shared outer header only for the Home page so the hero reaches the top. Reuse
+`DashboardHeader` with `showBrand=false` inside the hero. Its leading slot
+contains `DashboardWeather` in compact mode for the assigned farm, showing
+the condition icon, temperature, and condition label, without a provider label
+in the compact header. The full admin weather panel retains its source link.
+Keep notification and profile controls together on the right. Omit the user's
+name and welcome sentence from the header; identity remains in the profile menu.
+Reuse the admin weather service, cache, polling, and failure states through the
+protected `/petugas/weather/{farm}` route; never fetch the provider directly
+from the browser or substitute dummy weather. Show concise loading, missing
+coordinates, unavailable/retry, and stale-data states without a refresh button.
+Use high-contrast translucent controls; preserve
+the live unread count, profile dropdown, settings link, and normal logout flow;
+retain the four-destination bottom navigation. Other Petugas pages keep their
+normal header and content insets. The to-do panel scrolls naturally with the page
+and has a concise unboxed empty state. Use the shared Petugas/admin font,
+status styles, and task-link components described above.
 Keep the initial view concise: no descriptive sentences below the stat numbers
 or task heading. Use short status labels, a compact completed/total count, and
 one-line empty messages. Keep SOP instructions and required markers on the
 activity screen rather than adding explanatory copy to the overview.
+When tasks exist, show a thin completion bar below the to-do heading, using the
+same completed/total task counts as the adjacent label. Do not add filler text
+or invented statistics to occupy space.
 
 Below the cards, show today's persisted SOP tasks for the assigned farm, using
 the Asia/Jakarta calendar date. Include pending, in-progress, submitted, and
@@ -394,25 +430,25 @@ Palette and typography differences are intentional profile differences.
 
 ### Desktop architecture and layout
 
-Dashboard menggunakan arsitektur **2 Kolom Utama** dengan pendekatan *Clean, Modern, dan Simplified* untuk menangani data kompleks tanpa mengorbankan fungsionalitas UI/UX.
+Dashboard menggunakan arsitektur **2 Kolom Utama** dengan pendekatan _Clean, Modern, dan Simplified_ untuk menangani data kompleks tanpa mengorbankan fungsionalitas UI/UX.
 
-* **Column 1 (Sidebar Navigation):** Panel navigasi vertikal statis di sisi kiri.
-  * **Top Section:** Logo Aplikasi.
-  * **Middle Section:** Daftar Menu Utama.
-  * **Menu Item States:**
-    * *Default/Inactive:* Teks, ikon, dan label kelompok memakai
-      `--sidebar-foreground`: hitam pada tema terang dan terang pada tema gelap.
-      Background transparan.
-    * *Hover:* Teks dan Ikon berubah menjadi `brand-300`, Background `brand-100`.
-    * *Active:* Emerald solid melalui `--admin-sidebar-active` yang memakai
-      `--primary`, dengan teks dan ikon `--primary-foreground`. Pasangan token
-      terang/gelap menjaga kontras.
-* **Column 2 (Main Content Area):** Area kerja dinamis di sisi kanan.
-  * **Top Header (Navbar):** Sticky di bagian paling atas Column 2 saat halaman
-    digulir (memuat Global Search, Profile, Notifikasi). Gunakan `top: 0`, latar
-    surface yang opak, dan lapisan di bawah overlay drawer/dialog.
-  * **Dynamic Content:** Konten yang berubah-ubah (Tabel, Metric Card, Form) dirender tepat di bawah Navbar.
-* **Corner Radius:** `20px` untuk card konten/statistik melalui `--admin-card-radius`; `12px` untuk tombol, input, dan modal melalui token radius dasar.
+- **Column 1 (Sidebar Navigation):** Panel navigasi vertikal statis di sisi kiri.
+    - **Top Section:** Logo Aplikasi.
+    - **Middle Section:** Daftar Menu Utama.
+    - **Menu Item States:**
+        - _Default/Inactive:_ Teks, ikon, dan label kelompok memakai
+          `--sidebar-foreground`: hitam pada tema terang dan terang pada tema gelap.
+          Background transparan.
+        - _Hover:_ Teks dan Ikon berubah menjadi `brand-300`, Background `brand-100`.
+        - _Active:_ Emerald solid melalui `--admin-sidebar-active` yang memakai
+          `--primary`, dengan teks dan ikon `--primary-foreground`. Pasangan token
+          terang/gelap menjaga kontras.
+- **Column 2 (Main Content Area):** Area kerja dinamis di sisi kanan.
+    - **Top Header (Navbar):** Sticky di bagian paling atas Column 2 saat halaman
+      digulir (memuat Global Search, Profile, Notifikasi). Gunakan `top: 0`, latar
+      surface yang opak, dan lapisan di bawah overlay drawer/dialog.
+    - **Dynamic Content:** Konten yang berubah-ubah (Tabel, Metric Card, Form) dirender tepat di bawah Navbar.
+- **Corner Radius:** `20px` untuk card konten/statistik melalui `--admin-card-radius`; `12px` untuk tombol, input, dan modal melalui token radius dasar.
 
 ### Desktop sidebar navigation
 
@@ -461,72 +497,72 @@ Sistem warna menggunakan skala 50–900 untuk mendukung status dinamis, validasi
 
 Digunakan untuk aksi utama, tombol primer, dan status aktif.
 
-* `brand-50`  : `#F0FDF4` | `brand-100` : `#D1FAE5` | `brand-200` : `#A7F3D0`
-* `brand-300` : `#6EE7B7` *(Hover Text/Icon di Sidebar)*
-* `brand-400` : `#34D399` | `brand-500` : `#10B981` *(Base)*
-* `brand-600` : `#059669` | `brand-700` : `#047857`
-* `brand-800` : `#065F46` | `brand-900` : `#064E3B`
+- `brand-50` : `#F0FDF4` | `brand-100` : `#D1FAE5` | `brand-200` : `#A7F3D0`
+- `brand-300` : `#6EE7B7` _(Hover Text/Icon di Sidebar)_
+- `brand-400` : `#34D399` | `brand-500` : `#10B981` _(Base)_
+- `brand-600` : `#059669` | `brand-700` : `#047857`
+- `brand-800` : `#065F46` | `brand-900` : `#064E3B`
 
 #### Neutral Slate (Surface & Typography)
 
 Digunakan untuk latar belakang, teks pembacaan, dan batas antarmuka.
 
-* `neutral-0`   : `#FFFFFF` | `neutral-50`  : `#F8FAFC` | `neutral-100` : `#F1F5F9`
-* `neutral-200` : `#E2E8F0` | `neutral-300` : `#CBD5E1` | `neutral-400` : `#94A3B8`
-* `neutral-500` : `#64748B` *(Inactive Sidebar)*
-* `neutral-600` : `#475569` | `neutral-700` : `#334155`
-* `neutral-800` : `#1E293B` | `neutral-900` : `#0F172A`
+- `neutral-0` : `#FFFFFF` | `neutral-50` : `#F8FAFC` | `neutral-100` : `#F1F5F9`
+- `neutral-200` : `#E2E8F0` | `neutral-300` : `#CBD5E1` | `neutral-400` : `#94A3B8`
+- `neutral-500` : `#64748B` _(Inactive Sidebar)_
+- `neutral-600` : `#475569` | `neutral-700` : `#334155`
+- `neutral-800` : `#1E293B` | `neutral-900` : `#0F172A`
 
 #### Semantic: Warning (Amber)
 
 Untuk status menipis, peringatan, atau aksi tertunda.
 
-* `warning-50`  : `#FEFCE8` | `warning-100` : `#FEF9C3` | `warning-200` : `#FEF08A`
-* `warning-300` : `#FDE047` | `warning-400` : `#FACC15` | `warning-500` : `#EAB308` *(Base)*
-* `warning-600` : `#CA8A04` | `warning-700` : `#A16207`
-* `warning-800` : `#854D0E` | `warning-900` : `#713F12`
+- `warning-50` : `#FEFCE8` | `warning-100` : `#FEF9C3` | `warning-200` : `#FEF08A`
+- `warning-300` : `#FDE047` | `warning-400` : `#FACC15` | `warning-500` : `#EAB308` _(Base)_
+- `warning-600` : `#CA8A04` | `warning-700` : `#A16207`
+- `warning-800` : `#854D0E` | `warning-900` : `#713F12`
 
 #### Semantic: Danger (Rose Red)
 
 Untuk validasi error, stok habis, atau aksi destruktif (hapus).
 
-* `danger-50`  : `#FEF2F2` | `danger-100` : `#FEE2E2` | `danger-200` : `#FECACA`
-* `danger-300` : `#FCA5A5` | `danger-400` : `#F87171` | `danger-500` : `#EF4444` *(Base)*
-* `danger-600` : `#DC2626` | `danger-700` : `#B91C1C`
-* `danger-800` : `#991B1B` | `danger-900` : `#7F1D1D`
+- `danger-50` : `#FEF2F2` | `danger-100` : `#FEE2E2` | `danger-200` : `#FECACA`
+- `danger-300` : `#FCA5A5` | `danger-400` : `#F87171` | `danger-500` : `#EF4444` _(Base)_
+- `danger-600` : `#DC2626` | `danger-700` : `#B91C1C`
+- `danger-800` : `#991B1B` | `danger-900` : `#7F1D1D`
 
 #### Semantic: Info (Sky Blue)
 
 Untuk instruksi, data transit, dan informasi netral.
 
-* `info-50`  : `#F0F9FF` | `info-100` : `#E0F2FE` | `info-200` : `#BAE6FD`
-* `info-300` : `#7DD3FC` | `info-400` : `#38BDF8` | `info-500` : `#0EA5E9` *(Base)*
-* `info-600` : `#0284C7` | `info-700` : `#0369A1`
-* `info-800` : `#075985` | `info-900` : `#0C4A6E`
+- `info-50` : `#F0F9FF` | `info-100` : `#E0F2FE` | `info-200` : `#BAE6FD`
+- `info-300` : `#7DD3FC` | `info-400` : `#38BDF8` | `info-500` : `#0EA5E9` _(Base)_
+- `info-600` : `#0284C7` | `info-700` : `#0369A1`
+- `info-800` : `#075985` | `info-900` : `#0C4A6E`
 
 ### Desktop typography: Plus Jakarta Sans
 
-Tipografi didasarkan pada skala *Golden Ratio* (~1.618) menggunakan **Plus Jakarta Sans** untuk menjaga harmoni proporsi antara *Heading* dan *Body*. Base size (*Body Default*) adalah `14px` untuk kepadatan data desktop.
+Tipografi didasarkan pada skala _Golden Ratio_ (~1.618) menggunakan **Plus Jakarta Sans** untuk menjaga harmoni proporsi antara _Heading_ dan _Body_. Base size (_Body Default_) adalah `14px` untuk kepadatan data desktop.
 
 #### Font weights
 
-* `Regular` (400): Untuk paragraf panjang, deskripsi, dan catatan.
-* `Medium` (500): Untuk label input, badge, dan teks tombol standar.
-* `SemiBold` (600): Untuk sub-judul, *table headers*, dan *highlight* penting.
-* `Bold` (700): Untuk angka utama (KPI Metric), *Headline* H1/H2, dan *primary actions*.
+- `Regular` (400): Untuk paragraf panjang, deskripsi, dan catatan.
+- `Medium` (500): Untuk label input, badge, dan teks tombol standar.
+- `SemiBold` (600): Untuk sub-judul, _table headers_, dan _highlight_ penting.
+- `Bold` (700): Untuk angka utama (KPI Metric), _Headline_ H1/H2, dan _primary actions_.
 
 #### Size and line-height scale
 
-| Style | Size (px) | Line Height (px) | Weight | Penggunaan UI |
-| :--- | :---: | :---: | :--- | :--- |
-| **H1 Display** | `48px` | `60px` | Bold | Angka KPI Ekstra Besar, Judul Halaman Utama |
-| **H2 Title** | `32px` | `40px` | Bold | Angka Metric Card, Judul Modal Utama |
-| **H3 Subtitle** | `24px` | `32px` | SemiBold | Judul Section, Card Header |
-| **H4 Heading** | `20px` | `28px` | SemiBold | Sub-section, Judul Pop-up ringan |
-| **Body 1 (Large)**| `16px` | `24px` | Medium/Reg | Teks informasi utama, Alert Banner |
-| **Body 2 (Base)** | `14px` | `20px` | Medium/Reg | **Standar Dashboard** (Teks tabel, Label input) |
-| **Caption 1** | `12px` | `16px` | Medium/Reg | Metadata, Helper text, Tooltips, Status trend |
-| **Caption 2** | `10px` | `14px` | Medium | Label super kecil (jarang digunakan) |
+| Style              | Size (px) | Line Height (px) | Weight     | Penggunaan UI                                   |
+| :----------------- | :-------: | :--------------: | :--------- | :---------------------------------------------- |
+| **H1 Display**     |  `48px`   |      `60px`      | Bold       | Angka KPI Ekstra Besar, Judul Halaman Utama     |
+| **H2 Title**       |  `32px`   |      `40px`      | Bold       | Angka Metric Card, Judul Modal Utama            |
+| **H3 Subtitle**    |  `24px`   |      `32px`      | SemiBold   | Judul Section, Card Header                      |
+| **H4 Heading**     |  `20px`   |      `28px`      | SemiBold   | Sub-section, Judul Pop-up ringan                |
+| **Body 1 (Large)** |  `16px`   |      `24px`      | Medium/Reg | Teks informasi utama, Alert Banner              |
+| **Body 2 (Base)**  |  `14px`   |      `20px`      | Medium/Reg | **Standar Dashboard** (Teks tabel, Label input) |
+| **Caption 1**      |  `12px`   |      `16px`      | Medium/Reg | Metadata, Helper text, Tooltips, Status trend   |
+| **Caption 2**      |  `10px`   |      `14px`      | Medium     | Label super kecil (jarang digunakan)            |
 
 The application loads Plus Jakarta Sans through vite.config.ts. The scoped
 admin font token uses this family while the Farmer/mobile profile keeps its
@@ -709,12 +745,12 @@ available to field workers and its routes are not repurposed.
 
 ### Desktop task-list tables
 
-Dirancang dengan konsep *Clean & Simplified* khusus untuk pengelolaan *task* / to-do harian.
+Dirancang dengan konsep _Clean & Simplified_ khusus untuk pengelolaan _task_ / to-do harian.
 
-* **Visual:** Tanpa garis batas vertikal (*borderless columns*). Gunakan *bottom border* horizontal (`1px solid neutral-100`) untuk memisahkan baris.
-* **Header:** Teks `Caption 1` (12px), `SemiBold`, warna `neutral-500`, latar belakang `neutral-50`.
-* **Data Row:** Tinggi minimal `48px`. *Hover state* merubah background menjadi `neutral-50`.
-* **Status Badges:** Gunakan *pill-shaped badges* (radius-full) dengan warna token Semantik 50 (BG) dan 700 (Teks) untuk status *To-Do*, *In Progress*, *Done*.
+- **Visual:** Tanpa garis batas vertikal (_borderless columns_). Gunakan _bottom border_ horizontal (`1px solid neutral-100`) untuk memisahkan baris.
+- **Header:** Teks `Caption 1` (12px), `SemiBold`, warna `neutral-500`, latar belakang `neutral-50`.
+- **Data Row:** Tinggi minimal `48px`. _Hover state_ merubah background menjadi `neutral-50`.
+- **Status Badges:** Gunakan _pill-shaped badges_ (radius-full) dengan warna token Semantik 50 (BG) dan 700 (Teks) untuk status _To-Do_, _In Progress_, _Done_.
 
 ### Desktop component sizing and navigation
 
@@ -735,17 +771,17 @@ Dirancang dengan konsep *Clean & Simplified* khusus untuk pengelolaan *task* / t
 
 Use semantic aliases rather than unregistered ramp classes in page templates:
 
-| Design role | Desktop design value | Semantic implementation |
-| --- | --- | --- |
-| Inactive sidebar label/icon | Black in light mode; light in dark mode | `text-sidebar-foreground` |
-| Sidebar hover background | `brand-100` | `hover:bg-sidebar-accent` |
-| Sidebar hover label/icon | `brand-300` | Scoped sidebar hover foreground token |
-| Sidebar active background | Emerald solid | `--admin-sidebar-active` / `--primary` |
-| Sidebar active label/icon | Contrasting foreground | `--admin-sidebar-active-foreground` / `--primary-foreground` |
-| Dividers and table separators | `neutral-200` / `neutral-100` | `border-border` / scoped subtle border token |
-| Page/card surfaces | `neutral-50` / `neutral-0` | `bg-background` / `bg-card` |
-| Error and destructive states | `danger-*` | `text-error`, `bg-error`, `text-error-foreground` |
-| Warning and information states | `warning-*` / `info-*` | Existing semantic warning/info utilities |
+| Design role                    | Desktop design value                    | Semantic implementation                                      |
+| ------------------------------ | --------------------------------------- | ------------------------------------------------------------ |
+| Inactive sidebar label/icon    | Black in light mode; light in dark mode | `text-sidebar-foreground`                                    |
+| Sidebar hover background       | `brand-100`                             | `hover:bg-sidebar-accent`                                    |
+| Sidebar hover label/icon       | `brand-300`                             | Scoped sidebar hover foreground token                        |
+| Sidebar active background      | Emerald solid                           | `--admin-sidebar-active` / `--primary`                       |
+| Sidebar active label/icon      | Contrasting foreground                  | `--admin-sidebar-active-foreground` / `--primary-foreground` |
+| Dividers and table separators  | `neutral-200` / `neutral-100`           | `border-border` / scoped subtle border token                 |
+| Page/card surfaces             | `neutral-50` / `neutral-0`              | `bg-background` / `bg-card`                                  |
+| Error and destructive states   | `danger-*`                              | `text-error`, `bg-error`, `text-error-foreground`            |
+| Warning and information states | `warning-*` / `info-*`                  | Existing semantic warning/info utilities                     |
 
 Scope aliases to the desktop shell, supply light/dark values centrally, and check
 foreground/background contrast. Preserve the intended sidebar hover treatment
@@ -866,7 +902,6 @@ separate theme.
 - Verify responsive behavior and both themes; report changed pages/components,
   assumptions, and intentionally omitted wireframe content. Run the frontend
   build after implementation changes as required by `AGENTS.md`.
-
 
 ### Sub blok di daftar blok
 
