@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
             </h2>
             <span
                 class="rounded-full bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground"
-                >Area demo</span
+                >Area referensi</span
             >
         </div>
 

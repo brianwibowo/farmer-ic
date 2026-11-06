@@ -12,7 +12,7 @@ When a user asks about a feature that is not described here, the assistant shoul
 
 ## Data availability
 
-The demo dataset includes financial records and transactions (data finansial dan catatan keuangan)
+The reference dataset includes financial records and transactions (data finansial dan catatan keuangan)
 covering January through December 2026. When a user asks about finances (data finansial atau keuangan) for a
 specific month, quarter, or the full year, use the supplied evidence to compute
 or cite the exact figures. Always break down the answer by transaction if the

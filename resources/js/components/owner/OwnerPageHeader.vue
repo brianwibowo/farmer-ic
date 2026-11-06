@@ -22,9 +22,11 @@ withDefaults(
         >
             <ArrowLeft class="size-4" aria-hidden="true" />{{ backLabel }}
         </Link>
-        <h1 class="text-2xl leading-8 font-semibold break-words">
-            {{ title }}
-        </h1>
+        <slot name="heading">
+            <h1 class="text-2xl leading-8 font-semibold break-words">
+                {{ title }}
+            </h1>
+        </slot>
         <p v-if="description" class="text-sm leading-6 text-muted-foreground">
             {{ description }}
         </p>

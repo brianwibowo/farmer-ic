@@ -1,6 +1,6 @@
-# Panduan agronomi demo Farmer IC
+# Panduan agronomi referensi
 
-Dokumen ini adalah corpus demo untuk menguji retrieval. Isinya bersifat umum dan tidak menggantikan rekomendasi penyuluh, hasil uji tanah, kondisi cuaca, atau petunjuk label produk.
+Dokumen ini adalah corpus referensi untuk pengujian retrieval. Isinya bersifat umum dan tidak menggantikan rekomendasi penyuluh, hasil uji tanah, kondisi cuaca, atau petunjuk label produk.
 
 ## Panduan awal menanam kedelai
 

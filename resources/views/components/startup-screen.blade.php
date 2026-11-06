@@ -1,7 +1,7 @@
-<div id="startup-screen" class="startup-screen" role="status" aria-live="polite" aria-label="Memuat aplikasi Farm IC">
+<div id="startup-screen" class="startup-screen" role="status" aria-live="polite" aria-label="Memuat aplikasi Hijauan">
     <div class="startup-screen__brand">
-        <img class="startup-screen__logo" src="/images/logo.png" width="150" height="150" alt="" fetchpriority="high">
-        <p class="startup-screen__name">Farm <span>IC</span></p>
+        <img class="startup-screen__logo" src="/images/logo-hijauan.jpeg" width="150" height="150" alt="" fetchpriority="high">
+        <p class="startup-screen__name">Hijauan</p>
         <svg class="startup-screen__spiral" width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
             <circle cx="32" cy="32" r="28" pathLength="100" stroke-dasharray="72 28" />
             <circle cx="32" cy="32" r="19" pathLength="100" stroke-dasharray="67 33" />
@@ -12,7 +12,7 @@
         <p>Aplikasi belum siap. Silakan coba muat ulang.</p>
         <button id="startup-retry" type="button">Muat ulang</button>
     </div>
-    <noscript><p class="startup-screen__error">Aktifkan JavaScript untuk membuka Farm IC.</p></noscript>
+    <noscript><p class="startup-screen__error">Aktifkan JavaScript untuk membuka Hijauan.</p></noscript>
 </div>
 <script>
     (() => {

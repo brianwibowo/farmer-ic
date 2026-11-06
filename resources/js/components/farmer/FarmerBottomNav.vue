@@ -7,6 +7,7 @@ export type FarmerNavKey =
     | 'home'
     | 'garden'
     | 'ai'
+    | 'projection'
     | 'finance'
     | 'activity'
     | 'more'
@@ -34,7 +35,7 @@ const emit = defineEmits<{
 
 const ownerItems: FarmerNavItem[] = [
     { key: 'home', label: 'Beranda', href: '/' },
-    { key: 'ai', label: 'AI', emphasis: true, href: '/bypass' },
+    { key: 'projection', label: 'Proyeksi', emphasis: true, href: '/proyeksi' },
     { key: 'more', label: 'Lainnya', href: '/lainnya' },
 ];
 

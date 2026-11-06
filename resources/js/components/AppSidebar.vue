@@ -15,6 +15,8 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import BrandLogo from '@/components/BrandLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -151,24 +153,17 @@ const footerNavItems: NavItem[] = [
                 <Link
                     :href="dashboardUrl"
                     class="admin-sidebar-brand"
-                    aria-label="Farm IC — Beranda"
+                    aria-label="Hijauan — Beranda"
                     @success="setOpenMobile(false)"
                 >
-                    <img
+                    <AppLogoIcon
                         v-if="isCollapsed"
-                        src="/images/logo.png"
-                        alt=""
-                        width="40"
-                        height="40"
-                        class="admin-sidebar-mark dark:brightness-0 dark:invert"
+                        class="admin-sidebar-mark"
                     />
-                    <img
+                    <BrandLogo
                         v-else
-                        src="/images/logo-dashboard.png"
-                        alt=""
-                        width="1920"
-                        height="730"
-                        class="admin-sidebar-wordmark dark:brightness-0 dark:invert"
+                        mark-class="size-10"
+                        wordmark-class="text-xl"
                     />
                 </Link>
                 <Button

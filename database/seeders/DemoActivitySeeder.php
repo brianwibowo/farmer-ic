@@ -18,9 +18,12 @@ class DemoActivitySeeder extends Seeder
 {
     public function run(): void
     {
-        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
         $petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
-        $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
+        $team = $petugas->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
+        \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('viewAny', [Farm::class, $team]);
+        $farm = Farm::visibleTo($petugas, $team)->where('team_id', $team->id)
+            ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->firstOrFail();
+        $cycle = PlantingCycle::visibleTo($petugas, $team)->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
 
         $this->call(BlockMappingActivityTypeSeeder::class);
 
@@ -32,7 +35,7 @@ class DemoActivitySeeder extends Seeder
                 'end_time' => '16:00',
                 'worker_count' => 6,
                 'recorded_by' => $petugas->id,
-                'notes' => 'Pemetaan awal untuk persiapan bedengan demo.',
+                'notes' => 'Pemetaan awal untuk persiapan bedengan.',
                 'activities' => [[
                     'type' => 'block_mapping',
                     'block_mapping' => [
@@ -60,7 +63,7 @@ class DemoActivitySeeder extends Seeder
         $this->seedActivityWithDetail($farm, $cycle, $petugas, 'follow_up_fertilization', 'Pemupukan dasar Blok 1', [
             'fertilization_stage' => 'Pemupukan dasar',
             'fertilizer_type' => 'NPK 15-15-15',
-            'brand_name' => 'NPK Demo',
+            'brand_name' => 'NPK',
             'subsidy_status' => 'non_subsidized',
             'application_method' => 'Tabur di sisi bedeng',
             'quantity_kg' => 125.000,
@@ -74,7 +77,7 @@ class DemoActivitySeeder extends Seeder
         $this->seedActivityWithDetail($farm, $cycle, $petugas, 'pest_control', 'Pengendalian ulat Blok 1', [
             'pesticide_category' => 'Biologis',
             'purpose' => 'Pengendalian ulat daun',
-            'brand_name' => 'Bt Demo',
+            'brand_name' => 'Bt',
             'active_ingredient' => 'Bacillus thuringiensis',
             'dosage_per_tank' => '25 ml / 14 liter',
             'tank_size_liters' => 14.00,
@@ -136,7 +139,7 @@ class DemoActivitySeeder extends Seeder
                 'pest_control' => 'pesticideDetail',
                 'incident' => 'incidentDetail',
                 'harvest' => 'harvestDetail',
-                default => throw new \LogicException("Unsupported demo activity type {$typeCode}"),
+                default => throw new \LogicException("Unsupported seeded activity type {$typeCode}"),
             };
             $activity->{$relation}()->create($detail);
         });

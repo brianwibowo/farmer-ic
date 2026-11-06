@@ -27,7 +27,7 @@ class ForceDeleteFarmTest extends TestCase
     {
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
-        $this->farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $this->farm = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
         $this->developer = User::query()->where('email', 'superadmin@farmer-ic.test')->firstOrFail();
         $this->actingAs($this->developer);
     }
@@ -73,6 +73,9 @@ class ForceDeleteFarmTest extends TestCase
             $masterBefore[$table] = DB::table($table)->count();
         }
         $auditIds = AuditLog::query()->pluck('id')->all();
+        $groupTotals = collect($summary['groups'])->mapWithKeys(fn (array $group) => [
+            $group['key'] => DB::table($group['key'])->count(),
+        ]);
         $this->delete($this->url(), $this->payload($summary))->assertRedirect('/admin/farm-management');
         // RefreshDatabase wraps HTTP requests in a transaction; explicitly run the
         // real PostgreSQL deferred checks that would run at an HTTP commit.
@@ -83,7 +86,7 @@ class ForceDeleteFarmTest extends TestCase
             if (in_array($group['key'], ['farms', 'users', 'weather_records'], true)) {
                 continue;
             }
-            $this->assertDatabaseCount($group['key'], 0);
+            $this->assertDatabaseCount($group['key'], $groupTotals[$group['key']] - $group['count']);
         }
         $this->assertDatabaseHas('farms', ['id' => $other->id]);
         $this->assertDatabaseHas('weather_records', ['id' => $weatherId, 'farm_id' => $other->id]);
@@ -175,6 +178,9 @@ class ForceDeleteFarmTest extends TestCase
     public function test_audit_write_failure_rolls_back_all_deletes_and_assignment_changes(): void
     {
         $summary = $this->summary();
+        $groupTotals = collect($summary['groups'])->mapWithKeys(fn (array $group) => [
+            $group['key'] => DB::table($group['key'])->count(),
+        ]);
         DB::unprepared("CREATE FUNCTION test_reject_force_delete_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action = 'force_delete' THEN RAISE EXCEPTION 'Audit unavailable' USING ERRCODE = '23514'; END IF; RETURN NEW; END $$");
         DB::statement('CREATE TRIGGER test_reject_force_delete_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION test_reject_force_delete_audit()');
         try {
@@ -185,7 +191,7 @@ class ForceDeleteFarmTest extends TestCase
                 if ($group['key'] === 'users') {
                     continue; // The summary counts assignments, not every user account.
                 }
-                $this->assertSame($group['count'], DB::table($group['key'])->count(), $group['key'].' must roll back');
+                $this->assertSame($groupTotals[$group['key']], DB::table($group['key'])->count(), $group['key'].' must roll back');
             }
             $this->assertSame(0, AuditLog::query()->where('action', 'force_delete')->count());
         } finally {

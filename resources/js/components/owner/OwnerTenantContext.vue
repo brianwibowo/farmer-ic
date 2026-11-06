@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
-import { Moon, Sun } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Button } from '@/components/ui/button';
-import { useAppearance } from '@/composables/useAppearance';
 
 const page = usePage();
 const teams = computed(() =>
@@ -18,7 +15,6 @@ const selected = computed(
 );
 const switching = ref(false);
 const error = ref('');
-const { resolvedAppearance, updateAppearance } = useAppearance();
 function switchTeam(value: string | number | boolean | null | undefined): void {
     if (typeof value !== 'string' || !value || value === selected.value) return;
     switching.value = true;
@@ -49,7 +45,7 @@ function switchTeam(value: string | number | boolean | null | undefined): void {
 
 <template>
     <div
-        class="mt-3 space-y-2 border-t border-border pt-3"
+        class="space-y-2 rounded-xl border border-border bg-card p-4"
         :aria-busy="switching"
     >
         <div class="flex items-end gap-2">
@@ -80,22 +76,6 @@ function switchTeam(value: string | number | boolean | null | undefined): void {
                     >
                 </AppSelect>
             </div>
-            <Button
-                variant="outline"
-                size="icon"
-                class="size-11 shrink-0"
-                :aria-label="
-                    resolvedAppearance === 'dark'
-                        ? 'Aktifkan mode terang'
-                        : 'Aktifkan mode gelap'
-                "
-                @click="
-                    updateAppearance(
-                        resolvedAppearance === 'dark' ? 'light' : 'dark',
-                    )
-                "
-                ><Sun v-if="resolvedAppearance === 'dark'" /><Moon v-else
-            /></Button>
         </div>
         <p v-if="error" role="alert" class="text-xs text-error">{{ error }}</p>
         <p v-if="switching" role="status" class="text-xs text-muted-foreground">

@@ -33,6 +33,6 @@ class HomeController extends Controller
             abort_unless((int) $farm->team_id === (int) $team->id, 404);
         }
 
-        return Inertia::render('owner/Dashboard', $owner->dashboard($request->user(), $team, $request->validated()));
+        return Inertia::render('owner/Dashboard', $owner->dashboard($request->user(), $team, $request->safe()->except(['farm_id'])));
     }
 }

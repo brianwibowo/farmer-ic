@@ -6,11 +6,11 @@ import {
     BookOpen,
     Sprout,
     UsersRound,
-    WalletCards,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import OwnerReadEmpty from '@/components/owner/OwnerReadEmpty.vue';
+import OwnerTenantContext from '@/components/owner/OwnerTenantContext.vue';
 
 const page = usePage();
 const entries = computed(() =>
@@ -21,14 +21,6 @@ const entries = computed(() =>
             description: 'Daftar kebun, blok, dan perkembangan tanam.',
             href: '/kebun',
             icon: Sprout,
-        },
-        {
-            allowed: page.props.ownerNavigation?.finance,
-            title: 'Keuangan',
-            description:
-                'Ringkasan pemasukan, pengeluaran, dan catatan transaksi.',
-            href: '/finance',
-            icon: WalletCards,
         },
         {
             allowed: page.props.ownerNavigation?.activities,
@@ -62,9 +54,16 @@ const entries = computed(() =>
     <div class="space-y-5">
         <OwnerPageHeader
             title="Lainnya"
-            description="Jelajahi kebun, keuangan, kegiatan, dan informasi tim Anda."
+            description="Jelajahi kebun, kegiatan, dan informasi tim Anda."
         />
-        <div v-if="entries.length" class="space-y-3">
+        <OwnerTenantContext
+            v-if="page.props.navigation?.teamSwitcher"
+            class="sm:max-w-xl"
+        />
+        <div
+            v-if="entries.length"
+            class="space-y-3 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0 xl:grid-cols-3"
+        >
             <Link
                 v-for="entry in entries"
                 :key="entry.href"

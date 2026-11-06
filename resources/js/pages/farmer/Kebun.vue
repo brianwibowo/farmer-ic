@@ -81,7 +81,7 @@ async function loadKebun(): Promise<void> {
 
 async function resetDemoData(): Promise<void> {
     clearDemoStorage();
-    resetMessage.value = 'Data demo kebun telah direset.';
+    resetMessage.value = 'Data contoh kebun telah direset.';
     await loadKebun();
 }
 
@@ -135,7 +135,7 @@ onBeforeUnmount(() => {
                     class="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-success hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     @click="void resetDemoData()"
                 >
-                    Reset demo
+                    Reset data contoh
                 </button>
             </header>
 

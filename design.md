@@ -255,16 +255,99 @@ Use semantic tab markup when switching content in place. Keep the selected indic
 
 ## Farmer/mobile bottom navigation
 
-The Owner/farmer bottom bar has three destinations: Beranda, AI, and Lainnya.
-Retain its emphasized, centered AI action and existing AI workflow. Lainnya
-opens Kebun, Keuangan, the read-only activity feed, SOP, and user directory.
+The Owner/farmer bottom bar has three destinations: Beranda, Proyeksi, and
+Lainnya. Proyeksi replaces the emphasized center AI entry and opens the read-only
+harvest projection at `/proyeksi` (`owner.projection`). It shares the same page
+as the land table's Lihat detail link, with Cycle/Year filters and scoped backend
+data. Keep the period switch at the right of the Total Proyeksi Panen title in
+one row; let the title wrap on narrow phones without displacing the switch.
+Hide AI navigation without removing its
+existing backend/workflow. Lainnya opens Kebun, the read-only activity feed,
+SOP, and user directory. Hide its Keuangan entry without removing finance routes.
 Keep Lainnya selected when visiting these sections and their nested pages.
 Owner screens use the same persisted domain records and metric definitions as
 Admin, presented in the Farmer/mobile profile. Farm detail links to blocks,
 batches, persisted stages, and SOP schedules. Distinguish planned allocation,
 actual planted area, and recorded harvest. Keep missing observations explicit.
-Tenant selection sits below the existing profile header; profile/settings and
-the avatar dropdown remain independent of operational navigation.
+Tenant selection appears only inside Lainnya, not in the shared header. The
+Owner theme action sits immediately left of the notification bell. Preserve
+the profile/settings forms and avatar dropdown behavior.
+
+### Owner database Beranda
+
+Owner Beranda is adaptive while retaining the Farmer palette and existing
+phone design. Below 640px keep the existing mobile frame/navigation. From
+640–1023px use a fluid tablet canvas and bottom navigation. At 1024px and wider,
+use a full-height Owner desktop canvas with horizontal header navigation and a
+2240px content limit for large/TV screens. This is an OwnerLayout opt-in; keep
+Petugas, the existing AI page and profile forms independent. Render the page
+slot once so maps, data, filter state and IDs are not duplicated.
+Use AdminDashboardService summary definitions and active-tenant/farm filters,
+with the Farmer palette. Show only two metrics: Total lahan (Farm count) and
+Luas lahan (hectares), using the same filtered totals as the land table.
+Place the full-width table immediately below the metrics, with a `Lihat detail`
+link at its upper right pointing to `/proyeksi`. Below it, put the Komoditas
+pie chart on the left and Peta lahan on the right from 768px; stack chart then
+map on phones/narrow tablets. Keep the two metric columns at every width.
+Remove batch, risk, attention, finance, planting-stage/cycle, activity-chart and
+activity-list panels from this home. Their read pages remain available through
+Lainnya where applicable. Retain the farm filter/refresh; remove the activity
+period filter because this home no longer shows the activity trend.
+Increase desktop/TV metric and table type sizes without changing data.
+
+The commodity donut uses the complete scoped commodity distribution (active or
+harvested cycles' planted hectares); do not apply Admin's top-three card limit.
+Show total planted hectares in its center, percentage labels on sectors of at
+least 8%, and a compact largest-commodity summary. Keep all values in the legend,
+including sectors too small for on-ring labels. Each legend row is a native
+toggle button with a subtle themed surface, colored initial badge, name, hectare
+value, percentage badge and a thin proportional bar. Selection shows a check,
+highlights the matching sector and updates the center; provide a real reset-to-
+total button. Mouse/focus previews are temporary; deliberate selection is
+announced to assistive technology and cleared if filtering removes that crop.
+Use semantic chart colors, an accessible text summary, 44px-or-larger targets,
+visible focus and an honest empty state for missing/zero area. The SVG is a
+visual counterpart to the keyboard/touch controls in the legend. One commodity
+is a full ring. The chart and legend stack in narrow cards and align horizontally
+when the card itself has enough room (container query), independent of the page
+viewport. The percentage describes planted commodity area, not all managed land
+or planned allocation. Keep the same farm filter for table, metrics, chart and
+map, and one DOM instance for each visual.
+
+The single live table has Site / lahan, Luas (ha), Legalitas, Jenis tanaman,
+Progress and Resume. Its own bounded scroll region allows both axes while
+keeping the header row and first Site/lahan column sticky, with opaque themed
+surfaces and the intersection above both. The table may overflow locally; the
+page must not. Desktop columns use proportional widths and a taller scroll
+region; mobile column widths and freeze behavior stay unchanged. Keep the
+current filtered total hectares visible below the table.
+Site names link to the read-only Owner farm detail, and resume links to its
+actual latest activity. Never send Owners to Admin routes.
+
+Owner Beranda map markers open a farm summary dialog instead of a small Leaflet
+text bubble. Match the farm-preview hierarchy: name, location/hectares and close
+action; selected farm's satellite map; Jenis tanaman with varieties; PIC yang
+ditugaskan; and the full-width Detail kebun link. Omit health/condition and
+financial projection panels. Use the same scoped crops as the table. PIC is the
+persisted farm PIC with a matching active Petugas assignment/membership; missing
+data is stated honestly. This interaction is opt-in so other map usages keep
+their existing behavior. Marker hit targets are 44px without enlarging the dot,
+and support click, Enter and Space. Dialogs trap focus, close with Escape/X and
+return focus to the originating marker. Keep header/footer visible and the
+middle region keyboard-scrollable within the viewport in portrait/landscape.
+Mount the selected map only while the dialog exists, pass a stable farm array,
+and cancel superseded asynchronous map initialization to prevent duplicate
+Leaflet containers or stale error/loading updates. Owner maps refit points when
+their containers resize.
+
+Read farms, crop/variety, persisted batch stages and latest activity from scoped
+database queries; no fixture or browser-storage fallback. Legalitas currently
+shows the stored land-tenure label; the schema has no TNI/POLRI institution field.
+Missing fields remain explicit. Progress is a completed-stage count across
+running batches, not an invented crop-growth percentage. Resume is the latest
+record with its own date, independent of legacy activity-period query parameters.
+Preserve Owner profile, AI and existing authorization; keep empty/loading/error
+states, working filters, touch/keyboard scrolling and both themes.
 
 The Petugas portal uses four equally sized destinations: Beranda, Kebun,
 Aktivitas, and Laporan. These open the authenticated `/petugas` pages through
@@ -393,8 +476,12 @@ Dashboard menggunakan arsitektur **2 Kolom Utama** dengan pendekatan *Clean, Mod
 
 The shared admin sidebar follows a full-height, left-aligned layout with a thin
 border, a 260px expanded width, and a 68px icon rail when collapsed. Use
-the login page's `logo.png` mark with the live text **Farm IC** in its header:
-a 42px mark, 10px gap and 24px semibold text, with IC using the primary token.
+the supplied `public/images/logo-hijauan.jpeg` mark with the live text
+**Hijauan** in its header. Preserve the square aspect ratio and natural logo
+colors in both themes; do not invert or recolor the JPEG. Use a rounded image
+tile and a nearby wordmark rather than stretching the mark horizontally.
+The login header uses a 42px mark and 24px semibold text; the expanded sidebar
+uses a 40px mark and 20px semibold text with an 8px gap.
 On the collapsed icon rail, show only the 40px mark. Keep the
 collapse/expand action in the sidebar header; the mobile drawer has its own
 visible close action. The desktop navbar has no sidebar toggle or adjacent

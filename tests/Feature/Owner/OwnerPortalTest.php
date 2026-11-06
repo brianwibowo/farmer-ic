@@ -55,8 +55,25 @@ class OwnerPortalTest extends TestCase
         $this->admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
         $this->petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
         $this->team = Team::query()->where('slug', 'farm-ic-demo')->firstOrFail();
-        $this->farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $this->farm = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
         $this->actingAs($this->owner);
+    }
+
+    public function test_projection_page_is_owner_only_and_receives_scoped_harvest_data(): void
+    {
+        $this->get('/proyeksi')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('owner/Projection')
+            ->has('projection.cards', 3)
+            ->where('projection.period', 'cycle')
+            ->where('urls.index', '/proyeksi')
+            ->where('urls.home', '/'));
+
+        foreach ([$this->admin, $this->petugas] as $actor) {
+            $this->actingAs($actor)->get('/proyeksi')->assertForbidden();
+        }
+
+        $this->app['auth']->guard()->logout();
+        $this->get('/proyeksi')->assertRedirect(route('login'));
     }
 
     public function test_owner_reads_database_dashboard_farms_blocks_and_monitoring(): void
@@ -72,7 +89,7 @@ class OwnerPortalTest extends TestCase
         $this->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Farms')->where('farms.total', 1)
             ->where('farms.data.0.id', $this->farm->id)
-            ->where('farms.data.0.name', 'Kebun Cileuksa Demo')
+            ->where('farms.data.0.name', 'Kebun Cileuksa')
             ->where('summary.count', 1));
 
         $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -332,7 +349,7 @@ class OwnerPortalTest extends TestCase
         $this->patch('/admin/farm-management/'.$this->farm->id, ['name' => 'Tidak boleh berubah'])->assertForbidden();
         $this->delete('/admin/sops/'.$sop->id)->assertForbidden();
         $this->delete('/admin/user-management/'.$this->petugas->id)->assertForbidden();
-        $this->assertSame('Kebun Cileuksa Demo', $this->farm->fresh()->name);
+        $this->assertSame('Kebun Cileuksa', $this->farm->fresh()->name);
     }
 
     public function test_revoked_child_grants_remove_photos_stages_tasks_and_sop_versions(): void

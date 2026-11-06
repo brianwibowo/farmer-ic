@@ -58,7 +58,7 @@ class DemoFinanceSeederTest extends TestCase
     public function test_rerunning_finance_preserves_existing_seed_ids_edits_and_unrelated_records(): void
     {
         $this->prerequisites();
-        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $farm = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
         $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
         $category = FinancialCategory::create(['name' => 'Benih', 'transaction_type' => 'expense']);
         // A row created by the earlier three-transaction seeder must be reused.
@@ -106,7 +106,7 @@ class DemoFinanceSeederTest extends TestCase
     public function test_same_named_farm_in_another_team_cannot_be_used_as_the_demo_parent(): void
     {
         $this->prerequisites();
-        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $farm = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
         $farm->forceFill(['team_id' => Team::factory()->create()->id])->save();
         try {
             $this->seed(DemoFinanceSeeder::class);

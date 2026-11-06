@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { Moon, Sun } from '@lucide/vue';
+import BrandLogo from '@/components/BrandLogo.vue';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
 import { useAppearance } from '@/composables/useAppearance';
@@ -49,11 +50,7 @@ const farm = computed(
                     <Link
                         href="/"
                         class="flex shrink-0 items-center gap-2 rounded-xl font-semibold focus-visible:outline-2 focus-visible:outline-ring"
-                        ><img
-                            src="/images/logo.png"
-                            alt=""
-                            class="size-9 object-contain dark:brightness-0 dark:invert"
-                        />Farm IC</Link
+                        ><BrandLogo /></Link
                     >
                     <span aria-hidden="true" class="text-muted-foreground"
                         >/</span

@@ -13,9 +13,12 @@ class DemoOperationsSeeder extends Seeder
 {
     public function run(): void
     {
-        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->firstOrFail();
-        $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
         $petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
+        $team = $petugas->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
+        \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('viewAny', [Farm::class, $team]);
+        $farm = Farm::visibleTo($petugas, $team)->where('team_id', $team->id)
+            ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->firstOrFail();
+        $cycle = PlantingCycle::visibleTo($petugas, $team)->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
 
         OperationalTarget::query()->firstOrCreate([
             'farm_id' => $farm->id,

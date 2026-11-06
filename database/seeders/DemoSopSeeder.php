@@ -13,6 +13,7 @@ use App\Services\FarmBlockService;
 use App\Services\PlantingCycleTaskService;
 use App\Services\SopTemplateService;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Gate;
 use Throwable;
 
 class DemoSopSeeder extends Seeder
@@ -21,8 +22,10 @@ class DemoSopSeeder extends Seeder
     {
         $team = Team::query()->where('slug', 'farm-ic-demo')->firstOrFail();
         $commodity = Commodity::query()->where('name', 'Jagung')->firstOrFail();
-        $farm = Farm::query()->where('name', 'Kebun Cileuksa Demo')->first();
         $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
+        Gate::forUser($admin)->authorize('viewAny', [Farm::class, $team]);
+        $farm = Farm::visibleTo($admin, $team)->where('team_id', $team->id)
+            ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->first();
 
         $template = SopTemplate::query()->firstOrCreate([
             'team_id' => $team->id,
@@ -92,7 +95,7 @@ class DemoSopSeeder extends Seeder
             try {
                 $subblok = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
                     'reserved_area_ha' => '2.5000',
-                    'subblock_label' => 'DEMO',
+                    'subblock_label' => 'A',
                     'planned_planting_at' => today()->addDays(3)->toDateString(),
                 ]);
             } catch (Throwable) {
