@@ -225,7 +225,7 @@ async function resetDemoData(): Promise<void> {
     filters.year = 2026;
     filters.kebunId = 'all';
     filters.commodity = 'all';
-    statusMessage.value = 'Data demo laporan telah direset.';
+    statusMessage.value = 'Data contoh laporan telah direset.';
     await loadReport();
 }
 

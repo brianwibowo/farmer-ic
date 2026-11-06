@@ -14,11 +14,11 @@ defineProps<Props>();
 
 <template>
     <img
-        src="/images/logo.png"
+        src="/images/logo-hijauan.jpeg"
         alt=""
-        width="2000"
-        height="2000"
-        class="object-contain dark:brightness-0 dark:invert"
+        width="1280"
+        height="1280"
+        class="shrink-0 rounded-md object-contain"
         :class="className"
         v-bind="$attrs"
     />

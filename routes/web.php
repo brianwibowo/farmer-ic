@@ -58,6 +58,7 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
     })->name('rincian-aktivitas');
     Route::redirect('laporan', '/')->name('laporan');
     Route::get('lainnya', [OwnerController::class, 'more'])->name('owner.more');
+    Route::get('proyeksi', [OwnerController::class, 'projection'])->name('owner.projection');
     Route::get('lainnya/sop', [OwnerController::class, 'sops'])->name('owner.sops.index');
     Route::get('lainnya/sop/{sopTemplate}', [OwnerController::class, 'sop'])->whereUuid('sopTemplate')->name('owner.sops.show');
     Route::get('lainnya/pengguna', [OwnerController::class, 'users'])->name('owner.users.index');

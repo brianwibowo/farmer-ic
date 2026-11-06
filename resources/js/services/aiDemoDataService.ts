@@ -194,23 +194,23 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 function formatRupiah(value: number): string {
-    return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
         maximumFractionDigits: 0,
     }).format(value);
 }
 
 function normalize(value: string): string {
-    return value.toLocaleLowerCase("id-ID").replace(/\s+/g, " ").trim();
+    return value.toLocaleLowerCase('id-ID').replace(/\s+/g, ' ').trim();
 }
 
 function unavailableFinanceAnswer(period: DemoFinancePeriod): AiDemoDataAnswer {
     return {
-        source: 'Data demo keuangan · farmDemoData origin/dev',
+        source: 'Dataset referensi keuangan',
         content: [
             '### 💰 Data Keuangan Tidak Tersedia',
-            `Data keuangan untuk **${period.label}** tidak tersedia di **farmDemoData.json**.`,
+            `Data keuangan untuk **${period.label}** tidak tersedia di **dataset referensi**.`,
             'Saya tidak menampilkan angka atau membuat ringkasan agar tidak mengarang data.',
             '',
             `> 📌 **Periode tersedia:** ${availableFinanceScopeLabel()}.`,
@@ -282,7 +282,8 @@ export async function queryDemoData(
                       Number(transaction.date.year) === quarterYear &&
                       quarterMonths.has(
                           Object.keys(financeMonthLabels).indexOf(
-                              canonicalFinanceMonth(transaction.date.month) ?? '',
+                              canonicalFinanceMonth(transaction.date.month) ??
+                                  '',
                           ) + 1,
                       ),
               )
@@ -315,42 +316,43 @@ export async function queryDemoData(
             : `Periode: ${period.label}`;
         const scopeLine = allGardens
             ? `Cakupan: seluruh kebun (${farmDemoSeedData.kebun.length} kebun)`
-            : "Cakupan: data keuangan yang tersedia";
+            : 'Cakupan: data keuangan yang tersedia';
         const totals = quarter
             ? [
                   `**Pendapatan:** ${formatRupiah(income)}`,
                   `**Pengeluaran:** ${formatRupiah(expense)}`,
                   `**Laba bersih:** ${formatRupiah(income - expense)}`,
-              ].join(" | ")
+              ].join(' | ')
             : [
                   `**Pendapatan:** ${formatRupiah(income)}`,
                   `**Pengeluaran:** ${formatRupiah(expense)}`,
                   `**Laba bersih:** ${formatRupiah(income - expense)}`,
               ].join(' | ');
         return {
-            source: 'Data demo keuangan · farmDemoData origin/dev',
+            source: 'Dataset referensi keuangan',
             content: [
-                "### 💰 Ringkasan Keuangan Kebun",
+                '### 💰 Ringkasan Keuangan Kebun',
                 `> 📊 ${totals} | ⏳ **${financeScope}**`,
-                `> 🌱 **${scopeLine}** | 📌 **Sumber:** Data demo`,
+                `> 🌱 **${scopeLine}** | 📌 **Sumber:** Data referensi`,
                 '',
                 ...(quarter
                     ? [
-                          "Rincian bulanan:",
-                          ...quarter.points.map((point) =>
-                              `- **${point.label}:** pendapatan ${formatRupiah(point.revenue)}, pengeluaran ${formatRupiah(point.expense)}, laba ${formatRupiah(point.net)}`,
+                          'Rincian bulanan:',
+                          ...quarter.points.map(
+                              (point) =>
+                                  `- **${point.label}:** pendapatan ${formatRupiah(point.revenue)}, pengeluaran ${formatRupiah(point.expense)}, laba ${formatRupiah(point.net)}`,
                           ),
                       ]
                     : [
-                          "Transaksi terbaru:",
+                          'Transaksi terbaru:',
                           ...latest.map(
                               (item, index) =>
-                                  `${index + 1}. **${item.description}**: ${item.type === "expense" ? "Pengeluaran " : ""}${formatRupiah(item.amount)}`,
+                                  `${index + 1}. **${item.description}**: ${item.type === 'expense' ? 'Pengeluaran ' : ''}${formatRupiah(item.amount)}`,
                           ),
                       ]),
-                "",
-                "> 💡 **Tips Petani:** Bandingkan pemasukan dan biaya operasional per komoditas sebelum menentukan target panen berikutnya.",
-            ].join("\n"),
+                '',
+                '> 💡 **Tips Petani:** Bandingkan pemasukan dan biaya operasional per komoditas sebelum menentukan target panen berikutnya.',
+            ].join('\n'),
         };
     }
 
@@ -358,18 +360,18 @@ export async function queryDemoData(
         const logs = (await listActivityLogs()).slice(0, 3);
         const entries = logs.slice(0, 3);
         return {
-            source: 'Data demo aktivitas · farmDemoData origin/dev',
+            source: 'Dataset referensi aktivitas',
             content: [
-                "### 🧾 Aktivitas Kebun Terbaru",
-                `> 📌 **Catatan:** ${entries.length} aktivitas | ⏳ **Status:** Tersedia | 📊 **Sumber:** Data demo`,
-                "",
+                '### 🧾 Aktivitas Kebun Terbaru',
+                `> 📌 **Catatan:** ${entries.length} aktivitas | ⏳ **Status:** Tersedia | 📊 **Sumber:** Data referensi`,
+                '',
                 ...entries.map(
                     (item, index) =>
                         `${index + 1}. **${item.typeLabel}**: ${item.kebunName} · ${item.city}`,
                 ),
-                "",
-                "> 💡 **Tips Petani:** Buka rincian aktivitas untuk memeriksa foto, petugas, dan catatan lapangan sebelum mengambil keputusan.",
-            ].join("\n"),
+                '',
+                '> 💡 **Tips Petani:** Buka rincian aktivitas untuk memeriksa foto, petugas, dan catatan lapangan sebelum mengambil keputusan.',
+            ].join('\n'),
         };
     }
 
@@ -383,7 +385,7 @@ export async function queryDemoData(
 
         if (specific) {
             return {
-                source: `Data demo kebun · ${specific.name}`,
+                source: `Dataset referensi kebun · ${specific.name}`,
                 content: [
                     `### 🌱 Kondisi ${specific.name}`,
                     `> 🌾 **Komoditas:** ${specific.seedType} (${specific.seedTypeDetail || 'Varietas Unggul'}) | 🩺 **Status:** ${specific.healthStatus}`,
@@ -399,18 +401,18 @@ export async function queryDemoData(
 
         const attention = kebun.filter((item) => item.healthStatus !== 'Sehat');
         return {
-            source: 'Data demo kebun · seed prototipe',
+            source: 'Dataset referensi kebun',
             content: [
-                "### 🌱 Kondisi Kebun Petani",
+                '### 🌱 Kondisi Kebun Petani',
                 `> 🌾 **Total kebun:** ${kebun.length} | ✅ **Sehat:** ${kebun.length - attention.length} | ⚠️ **Perlu perhatian/Kritis:** ${attention.length}`,
-                "",
+                '',
                 ...kebun.map(
                     (item, index) =>
-                        `${index + 1}. **${item.name}**: ${item.seedType}${item.seedTypeDetail ? " (" + item.seedTypeDetail + ")" : ""} · ${item.healthStatus} · ${item.city} (${item.usedHectare}/${item.availableHectare} ha)`,
+                        `${index + 1}. **${item.name}**: ${item.seedType}${item.seedTypeDetail ? ' (' + item.seedTypeDetail + ')' : ''} · ${item.healthStatus} · ${item.city} (${item.usedHectare}/${item.availableHectare} ha)`,
                 ),
-                "",
+                '',
                 '> 💡 **Tips:** Sebutkan nama kebun tertentu (misal: *"Kondisi kebun Sumber Makmur"*) untuk melihat rincian lokasi dan varietas benihnya.',
-            ].join("\n"),
+            ].join('\n'),
         };
     }
 

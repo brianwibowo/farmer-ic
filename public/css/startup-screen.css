@@ -47,10 +47,7 @@ body:has(.startup-screen) {
     width: 150px;
     height: 150px;
     object-fit: contain;
-}
-
-html.dark .startup-screen__logo {
-    filter: brightness(0) invert(1);
+    border-radius: 12px;
 }
 
 .startup-screen__name {

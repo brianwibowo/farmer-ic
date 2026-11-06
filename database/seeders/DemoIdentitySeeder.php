@@ -13,17 +13,17 @@ class DemoIdentitySeeder extends Seeder
 {
     /** @var array<string, array{name: string, email: string, password: string}> */
     public const ACCOUNTS = [
-        'superadmin' => ['name' => 'SuperAdmin Demo', 'email' => 'superadmin@farmer-ic.test', 'password' => 'SuperAdmin123!'],
-        'owner' => ['name' => 'Owner Demo', 'email' => 'owner@farmer-ic.test', 'password' => 'Owner123!'],
-        'admin' => ['name' => 'Admin Demo', 'email' => 'admin@farmer-ic.test', 'password' => 'Admin123!'],
-        'petugas' => ['name' => 'Petugas Demo', 'email' => 'petugas@farmer-ic.test', 'password' => 'Petugas123!'],
+        'superadmin' => ['name' => 'SuperAdmin', 'email' => 'superadmin@farmer-ic.test', 'password' => 'SuperAdmin123!'],
+        'owner' => ['name' => 'Owner', 'email' => 'owner@farmer-ic.test', 'password' => 'Owner123!'],
+        'admin' => ['name' => 'Admin', 'email' => 'admin@farmer-ic.test', 'password' => 'Admin123!'],
+        'petugas' => ['name' => 'Petugas', 'email' => 'petugas@farmer-ic.test', 'password' => 'Petugas123!'],
     ];
 
     public function run(): void
     {
         $roles = [];
         foreach ([
-            'superadmin' => 'Akses pengembang untuk seluruh area demo.',
+            'superadmin' => 'Akses pengembang untuk seluruh area aplikasi.',
             'owner' => 'Pemilik usaha tani dengan akses baca dan AI.',
             'admin' => 'Pengelola operasional kebun.',
             'petugas' => 'Petugas lapangan dengan assignment satu kebun.',
@@ -48,7 +48,7 @@ class DemoIdentitySeeder extends Seeder
         if ($team->trashed()) {
             $team->restore();
         }
-        $team->forceFill(['name' => 'Farm IC Demo', 'is_personal' => false])->save();
+        $team->forceFill(['name' => 'Hijauan', 'is_personal' => false])->saveQuietly();
 
         $teamRoles = [
             'superadmin' => TeamRole::Owner->value,

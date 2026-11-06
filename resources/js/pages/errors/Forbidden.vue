@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, LoaderCircle, LogOut, ShieldAlert } from '@lucide/vue';
+import BrandLogo from '@/components/BrandLogo.vue';
 import { Button } from '@/components/ui/button';
 import { useLogout } from '@/composables/useLogout';
 import { home, login } from '@/routes';
@@ -13,7 +14,7 @@ const { signOut, processing, error } = useLogout();
     <Head title="Akses tidak diizinkan" />
     <main class="flex min-h-dvh items-center justify-center bg-background px-4 py-10 text-foreground sm:px-6">
         <section class="w-full max-w-lg rounded-xl border border-border bg-card p-6 text-center shadow-sm sm:p-10" aria-labelledby="forbidden-heading">
-            <img src="/images/logo-dashboard.png" alt="Farm IC" class="mx-auto mb-8 h-9 w-auto dark:brightness-0 dark:invert" />
+            <BrandLogo class="mx-auto mb-8" />
             <div class="mx-auto flex size-16 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <ShieldAlert class="size-8" aria-hidden="true" />
             </div>

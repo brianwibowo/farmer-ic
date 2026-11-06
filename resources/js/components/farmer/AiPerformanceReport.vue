@@ -84,7 +84,7 @@ function modeLabel(mode: AiMetricEvent['mode']): string {
             <div>
                 <h2 class="text-base font-semibold">Performa chatbot</h2>
                 <p class="text-[11px] text-muted-foreground">
-                    Telemetry lokal untuk demo ini
+                    Telemetri lokal sesi ini
                 </p>
             </div>
             <button
@@ -92,7 +92,7 @@ function modeLabel(mode: AiMetricEvent['mode']): string {
                 class="ml-auto flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
                 @click="emit('reset')"
             >
-                <RotateCcw :size="13" /> Reset demo data
+                <RotateCcw :size="13" /> Reset data contoh
             </button>
         </header>
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { LoaderCircle, LogOut, Settings } from '@lucide/vue';
+import { LoaderCircle, LogOut, Moon, Settings, Sun } from '@lucide/vue';
 import { computed } from 'vue';
+import BrandLogo from '@/components/BrandLogo.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
@@ -11,11 +12,21 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAppearance } from '@/composables/useAppearance';
 import { getInitials } from '@/composables/useInitials';
 import { useLogout } from '@/composables/useLogout';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { edit as editProfile } from '@/routes/profile';
 
+const props = withDefaults(defineProps<{ showAppearanceToggle?: boolean }>(), {
+    showAppearanceToggle: false,
+});
+const { resolvedAppearance, updateAppearance } = useAppearance();
+const appearanceAction = computed(() =>
+    resolvedAppearance.value === 'dark'
+        ? 'Aktifkan mode terang'
+        : 'Aktifkan mode gelap',
+);
 const page = usePage();
 const user = computed(() => page.props.account ?? page.props.auth?.user);
 const name = computed(() => user.value?.name?.trim() || 'Petani IC');
@@ -25,13 +36,30 @@ const { signOut, processing, error } = useLogout();
 <template>
     <header class="py-1">
         <div class="flex items-center justify-between gap-3">
-            <img
-                src="/images/logo-dashboard.png"
-                alt="Farm IC"
-                class="h-9 w-auto min-w-0 object-contain dark:brightness-0 dark:invert"
-            />
+            <BrandLogo class="shrink-0" />
+
+            <slot name="navigation" />
 
             <div class="flex shrink-0 items-center gap-2">
+                <button
+                    v-if="props.showAppearanceToggle"
+                    type="button"
+                    :aria-label="appearanceAction"
+                    :title="appearanceAction"
+                    class="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-muted/40 text-primary transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                    @click="
+                        updateAppearance(
+                            resolvedAppearance === 'dark' ? 'light' : 'dark',
+                        )
+                    "
+                >
+                    <Sun
+                        v-if="resolvedAppearance === 'dark'"
+                        class="size-5"
+                        aria-hidden="true"
+                    />
+                    <Moon v-else class="size-5" aria-hidden="true" />
+                </button>
                 <NotificationBell />
 
                 <DropdownMenu>
@@ -73,14 +101,20 @@ const { signOut, processing, error } = useLogout();
                                 {{ user.email }}
                             </p>
                             <p v-else class="text-xs text-muted-foreground">
-                                Profil tampilan demo
+                                Profil pengguna
                             </p>
                         </div>
                         <template v-if="user">
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem as-child class="min-h-11 cursor-pointer rounded-xl">
+                            <DropdownMenuItem
+                                as-child
+                                class="min-h-11 cursor-pointer rounded-xl"
+                            >
                                 <Link :href="editProfile()">
-                                    <Settings class="size-4" aria-hidden="true" />
+                                    <Settings
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
                                     Pengaturan profil
                                 </Link>
                             </DropdownMenuItem>

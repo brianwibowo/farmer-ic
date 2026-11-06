@@ -20,23 +20,23 @@ class DemoFinanceSeeder extends Seeder
     public function run(): void
     {
         if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Data finance demo hanya dapat diisi pada environment local atau testing.');
+            throw new RuntimeException('Data keuangan hanya dapat diisi pada environment local atau testing.');
         }
 
         $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->first();
         $team = $admin?->teams()->where('slug', 'farm-ic-demo')->first();
         if ($admin === null || $team === null) {
-            throw new RuntimeException('Identitas demo belum tersedia. Jalankan DemoIdentitySeeder lalu DemoFarmSeeder terlebih dahulu.');
+            throw new RuntimeException('Identitas seed belum tersedia. Jalankan DemoIdentitySeeder lalu DemoFarmSeeder terlebih dahulu.');
         }
 
         DB::transaction(function () use ($admin, $team): void {
             // Serialize reruns against this named demo farm, never another team's farm.
             $farm = Farm::visibleTo($admin, $team)->where('team_id', $team->id)
-                ->where('name', 'Kebun Cileuksa Demo')->lockForUpdate()->first();
+                ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->lockForUpdate()->first();
             $cycle = $farm === null ? null : PlantingCycle::visibleTo($admin, $team)
                 ->where('farm_id', $farm->id)->whereDate('planted_at', '2026-10-01')->orderBy('id')->first();
             if ($farm === null || $cycle === null) {
-                throw new RuntimeException('Kebun atau siklus tanam demo belum tersedia. Jalankan DemoFarmSeeder terlebih dahulu.');
+                throw new RuntimeException('Kebun atau siklus tanam belum tersedia. Jalankan DemoFarmSeeder terlebih dahulu.');
             }
 
             // A seeder is a non-HTTP entry point: authorize the persisted actor/parents.
@@ -54,6 +54,16 @@ class DemoFinanceSeeder extends Seeder
 
             foreach ($this->transactions() as [$date, $category, $amount, $description]) {
                 $catalog = $categories[$category];
+                if ($description === 'Pembelian benih jagung Bisi 18 untuk siklus') {
+                    $legacy = FinancialTransaction::visibleTo($admin, $team)->where('farm_id', $farm->id)
+                        ->where('category_id', $catalog->id)->whereDate('transaction_date', $date)
+                        ->where('description', $description.' demo')->first();
+                    if ($legacy !== null) {
+                        Gate::forUser($admin)->authorize('update', $legacy);
+                        $legacy->timestamps = false;
+                        $legacy->forceFill(['description' => $description])->save();
+                    }
+                }
                 // Natural keys retain the three original fixtures and preserve edits on reruns.
                 FinancialTransaction::visibleTo($admin, $team)->firstOrCreate([
                     'farm_id' => $farm->id,
@@ -135,7 +145,7 @@ class DemoFinanceSeeder extends Seeder
             ['2026-09-23', 'Pemeliharaan', '350000.00', 'Perbaikan cangkul dan perawatan alat semprot kebun'],
             ['2026-09-25', 'Penjualan hasil panen', '22500000.00', 'Pelunasan penjualan jagung musim sebelumnya periode September'],
             ['2026-09-29', 'Penjualan bibit', '1675000.00', 'Penjualan bibit siap tanam kepada petani sekitar Cileuksa'],
-            ['2026-10-01', 'Benih', '1850000.00', 'Pembelian benih jagung Bisi 18 untuk siklus demo'],
+            ['2026-10-01', 'Benih', '1850000.00', 'Pembelian benih jagung Bisi 18 untuk siklus'],
             ['2026-10-03', 'Sewa alat', '1450000.00', 'Sewa alat pengolahan lahan dan pembentukan bedengan jagung'],
             ['2026-10-07', 'Tenaga kerja', '2700000.00', 'Upah penanaman dan penyulaman jagung Bisi 18'],
             ['2026-10-12', 'Irigasi', '600000.00', 'Operasional penyiraman awal siklus jagung Oktober'],
