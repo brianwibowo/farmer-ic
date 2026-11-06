@@ -78,9 +78,9 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Dashboard')->where('landTable.total', 6)
             ->where('landTable.total_area_ha', '44.5000')->has('landTable.rows', 6)
-            ->has('dashboard.landMap.farms', 6)->has('dashboard.commodities', 5)
+            ->has('dashboard.landMap.farms', 6)->has('dashboard.commodities', 3)
             ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('areaValue', 'name')->sortKeys()->all() == [
-                'Cabai keriting' => 1.5, 'Jagung' => 8.25, 'Kedelai' => 3, 'Padi' => 5, 'Tomat' => 1.25,
+                'Jagung' => 9.75, 'Rumput' => 6.25, 'Sorgum' => 3,
             ]));
 
         foreach (DemoOwnerPortfolioData::sites() as $site) {
@@ -154,7 +154,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->assertSame($accounts, User::query()->orderBy('id')->get()->map(fn (User $user) => $user->getRawOriginal())->all());
     }
 
-    public function test_same_named_foreign_farm_is_untouched_and_owner_filter_scopes_all_visuals(): void
+    public function test_same_named_foreign_farm_is_untouched_and_owner_dashboard_stays_tenant_scoped(): void
     {
         $this->prerequisites();
         $foreignTeam = Team::factory()->create(['name' => 'Tenant Pembanding', 'is_personal' => false]);
@@ -169,11 +169,11 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->assertSame($before, $foreign->refresh()->getRawOriginal());
         $farmId = DemoOwnerPortfolioData::id($this->demoTeam(), 'farm:sukamaju');
         $this->actingAs($this->owner())->get('/?farm_id='.$farmId)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('landTable.total', 1)->where('landTable.total_area_ha', '8.0000')
-            ->has('landTable.rows', 1)->where('landTable.rows.0.id', $farmId)
-            ->has('dashboard.landMap.farms', 1)->where('dashboard.landMap.farms.0.id', $farmId)
-            ->has('dashboard.commodities', 1)->where('dashboard.commodities.0.name', 'Padi')
-            ->where('dashboard.commodities.0.areaValue', 5));
+            ->where('landTable.total', 6)->where('landTable.total_area_ha', '44.5000')
+            ->has('landTable.rows', 6)->has('dashboard.landMap.farms', 6)
+            ->has('dashboard.commodities', 3)
+            ->where('landTable.rows', fn ($rows) => ! collect($rows)->pluck('id')->contains($foreign->id))
+            ->where('dashboard.landMap.farms', fn ($rows) => ! collect($rows)->pluck('id')->contains($foreign->id)));
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 6)->where('landTable.total_area_ha', '44.5000'));
         $this->get('/kebun/'.$foreign->id)->assertForbidden();

@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 
-/** Optional, additive scenario. Never changes demo identities or existing farms. */
+/** Additive Owner scenario included in DatabaseSeeder; also runnable independently. */
 class DemoOwnerPortfolioSeeder extends Seeder
 {
     public function run(): void

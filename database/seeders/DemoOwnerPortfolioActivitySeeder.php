@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Gate;
 use LogicException;
 use RuntimeException;
 
-/** Additive, fixed-date operational detail for the optional Owner portfolio. */
+/** Additive, fixed-date operational detail called by DemoOwnerPortfolioSeeder. */
 class DemoOwnerPortfolioActivitySeeder extends Seeder
 {
     public function run(): void
@@ -71,13 +71,14 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $key = $site['key'].':'.$batch['key'];
         $planted = CarbonImmutable::parse($batch['planted_at'], 'Asia/Jakarta');
         $area = (float) $batch['planted_area_ha'];
-        $seedRate = match ($site['key']) {
-            'sukamaju' => 25, 'cibogo' => 45, 'cikeas' => 20, 'mekarsari' => 0.075, default => 0.06,
+        $seedRate = match ($site['commodity']) {
+            'Jagung' => 20, 'Sorgum' => 10, 'Rumput' => null,
         };
         $this->activity($farm, $cycle, $key, 'planting', $planted->toDateString(),
             'Penanaman '.$site['commodity'].' '.$batch['subblock_label'], [
-                'seed_name' => $site['commodity'].' '.$site['variety'], 'quantity_kg' => $area * $seedRate,
-                'planting_pattern' => $site['key'] === 'sukamaju' ? 'Jajar legowo 2:1' : 'Barisan teratur mengikuti bedengan', 'area_ha' => $area,
+                'seed_name' => ($site['commodity'] === 'Rumput' ? 'Stek rumput ' : $site['commodity'].' ').$site['variety'],
+                'quantity_kg' => $seedRate === null ? null : $area * $seedRate,
+                'planting_pattern' => $site['commodity'] === 'Rumput' ? 'Barisan stek mengikuti petak tanam' : 'Barisan teratur mengikuti bedengan', 'area_ha' => $area,
             ], $actor, $performer, $team);
         $fertilized = $site['key'] === 'cibogo' ? '2026-11-04' : $planted->addDays(14)->toDateString();
         $this->activity($farm, $cycle, $key, 'fertilization', $fertilized,
@@ -89,14 +90,14 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         if ($batch['status'] === 'active') {
             $this->activity($farm, $cycle, $key, 'irrigation', '2026-11-03',
                 'Pengairan '.$site['commodity'].' '.$batch['subblock_label'], [
-                    'water_source' => $site['key'] === 'sukamaju' ? 'Saluran irigasi sawah' : 'Embung kebun',
+                    'water_source' => $site['key'] === 'sukamaju' ? 'Saluran irigasi kebun' : 'Embung kebun',
                     'irrigation_method' => $site['key'] === 'mekarsari' ? 'Irigasi tetes' : 'Pengairan saluran terkontrol',
                     'machine_type' => 'Pompa listrik', 'duration_hours' => $site['key'] === 'sukamaju' ? 3 : 1.5,
                 ], $actor, $performer, $team);
         }
         if ($site['key'] === 'mekarsari') {
             $this->activity($farm, $cycle, $key, 'pesticide', '2026-11-04',
-                'Pengendalian kutu daun cabai '.$batch['subblock_label'], [
+                'Pengendalian kutu daun jagung '.$batch['subblock_label'], [
                     'pesticide_category' => 'Biologis', 'purpose' => 'Pengendalian kutu daun',
                     'brand_name' => 'Agens hayati contoh', 'active_ingredient' => 'Beauveria bassiana',
                     'dosage_per_tank' => 'Catatan aplikasi contoh, bukan rekomendasi dosis', 'tank_size_liters' => 16, 'tank_count' => 4,
@@ -140,9 +141,9 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             $this->activity($farm, $cycle, $key, 'harvest', $batch['harvested_at'],
                 'Panen '.$site['commodity'].' '.$batch['subblock_label'], [
                     'harvested_area_ha' => $area, 'gross_weight_ton' => $batch['estimated_weight_ton'],
-                    'moisture_percentage' => $site['key'] === 'sukamaju' ? 22 : null,
-                    'color' => $site['key'] === 'sukamaju' ? 'Kuning keemasan' : 'Merah merata',
-                    'ripeness' => 'Matang panen', 'cleanliness' => 'Bersih setelah sortasi',
+                    'moisture_percentage' => null,
+                    'color' => $site['commodity'] === 'Rumput' ? 'Hijau segar' : 'Kuning keemasan',
+                    'ripeness' => $site['commodity'] === 'Rumput' ? 'Siap potong' : 'Matang panen', 'cleanliness' => 'Bersih setelah sortasi',
                 ], $actor, $performer, $team);
         }
     }

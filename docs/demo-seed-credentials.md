@@ -3,7 +3,7 @@
 For a fresh local installation, run the complete seed after migrations:
 
 ```sh
-php artisan --env=local db:seed
+php artisan --env=local db:seed --database=pgsql
 ```
 
 The complete seeder creates or updates the four role accounts below, including
@@ -11,8 +11,17 @@ their passwords and current tenant. It is not the command for renaming existing
 presentation data. It also creates one non-personal team named `Hijauan`, one
 assigned farm, crop master data, an active
 planting cycle, activity and daily-log records, monitoring data, finance data,
-operational targets, and a notification. Existing records outside the named
-demo records are left untouched.
+operational targets, and a notification. It then adds the five Owner portfolio
+farms and their operational details, and refreshes recognized legacy presentation
+names. All seeders run through this command, including dependent seeders called
+by their parents. Existing records outside the named demo records are left
+untouched. The complete seed accepts only `local` or `testing`, rejecting other
+environments before writing any records.
+
+Fresh seeds create only three commodities: `Jagung`, `Rumput`, and `Sorgum`,
+with the presentation varieties `Bisi 18`, `Pakchong`, and `Bioguma 1`.
+Existing portfolio records are preserved on reruns; changing these fixtures does
+not convert or delete commodities, varieties or farm history already in a database.
 
 | Role / display name | Email | Password |
 | --- | --- | --- |
@@ -82,7 +91,11 @@ for compatibility; they are not visible product labels.
 - `DemoOperationsSeeder`: operational targets, a petugas notification, and an
   audit-log entry.
 - `PresentationNamesSeeder`: additive display-copy refresh for existing fixture
-  records without resetting identities or operational data.
+  records without resetting identities or operational data; runs last.
+- `DemoOwnerPortfolioSeeder`: five additional Owner farms, blocks, batches and
+  SOPs; automatically calls `DemoOwnerPortfolioActivitySeeder` for their details.
+- `DemoFarmBlockSeeder` and `BlockMappingActivityTypeSeeder` run automatically
+  through `DemoFarmSeeder` and `DemoActivitySeeder`, respectively.
 
 ## Finance dummy data
 
@@ -132,18 +145,25 @@ database records directly, including the seeded categories, budgets, and
 projections. The AI finance snapshot retains its separately labeled knowledge
 demo data and is not connected to these database transactions.
 
-## Optional Owner presentation portfolio
+## Owner presentation portfolio
 
-After the normal demo identity and Cileuksa prerequisites exist, add the varied
-Owner scenario after applying any pending additive migrations:
+The complete `db:seed` command includes this scenario automatically after the
+base identity, Cileuksa, SOP, monitoring, finance and operations seeders. No
+additional seed command is required. Apply pending additive migrations first:
 
 ```sh
-php artisan migrate
-php artisan db:seed --class=DemoOwnerPortfolioSeeder
+php artisan --env=local migrate --database=pgsql
+php artisan --env=local db:seed --database=pgsql
 ```
 
-This is a separate optional scenario, not part of `DatabaseSeeder`. Run it only
-against the intended local demo database; the seeder itself accepts only
+For an existing demo database that only needs the portfolio, the targeted command
+remains available without rerunning identity or finance fixtures:
+
+```sh
+php artisan --env=local db:seed --database=pgsql --class=DemoOwnerPortfolioSeeder
+```
+
+Run it only against the intended local demo database; the seeder accepts only
 `local`/`testing` and requires the persisted `farm-ic-demo` tenant and its demo
 identities. It does not call `DemoIdentitySeeder`, change passwords/profiles,
 switch active tenants, reassign Petugas, truncate tables, or reset demo data.
@@ -153,11 +173,11 @@ tenant. The complete portfolio is inserted in one transaction.
 
 | New site | Land (ha) | Land tenure | Commodity/variety | Batch snapshot |
 | --- | ---: | --- | --- | --- |
-| Kebun Sukamaju | 8 | Owned | Padi / Ciherang | 3.25 ha active; 1.75 ha harvested |
-| Kebun Cibogo | 6.5 | Partnership | Kedelai / Anjasmoro | 3 ha active |
-| Kebun Mekarsari | 4 | Rented | Cabai keriting / Kencana | 1.5 ha active |
+| Kebun Sukamaju | 8 | Owned | Rumput / Pakchong | 3.25 ha active; 1.75 ha harvested |
+| Kebun Cibogo | 6.5 | Partnership | Sorgum / Bioguma 1 | 3 ha active |
+| Kebun Mekarsari | 4 | Rented | Jagung / Bisi 18 | 1.5 ha active |
 | Kebun Cikeas | 10 | Partnership | Jagung / Bisi 18 | 4 ha active; 2 ha planned |
-| Kebun Cisarua | 3.5 | Owned | Tomat / Servo | 1.25 ha harvested; 0.75 ha planned |
+| Kebun Cisarua | 3.5 | Owned | Rumput / Pakchong | 1.25 ha harvested; 0.75 ha planned |
 
 The fixed demonstration snapshot is **5 November 2026**. It includes coordinates,
 two permanent blocks per new site, persisted planting rounds/batches, all six
@@ -171,8 +191,8 @@ The sample coordinates, weather and observations are fictional presentation
 fixtures rather than cadastral measurements or live monitoring.
 
 On the unchanged Cileuksa baseline, Owner shows **6 sites / 44.5 ha**. The pie
-contains five commodities totaling **19 ha** planted across active/harvested
-cycles: Jagung 8.25, Padi 5, Kedelai 3, Cabai keriting 1.5 and Tomat 1.25 ha.
+contains three commodities totaling **19 ha** planted across active/harvested
+cycles: Jagung 9.75, Rumput 6.25 and Sorgum 3 ha.
 Planned allocations do not enter planted-area percentages. Table totals and
 pie values still come from the normal scoped database services and farm filter.
 Site names open Owner farm detail, blocks open their batch stages/SOP tasks,
