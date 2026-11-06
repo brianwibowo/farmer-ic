@@ -115,8 +115,8 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             $this->assertNotNull($batch->sop_template_version_id);
         }
         $detailTypes = [
-            'planting' => 'plantingDetail', 'fertilization' => 'fertilizationDetail',
-            'irrigation' => 'irrigationDetail', 'pesticide' => 'pesticideDetail',
+            'planting' => 'plantingDetail', 'follow_up_fertilization' => 'fertilizationDetail',
+            'irrigation' => 'irrigationDetail', 'pest_control' => 'pesticideDetail',
             'harvest' => 'harvestDetail', 'growth_check' => 'observation',
         ];
         $activities = FarmActivity::query()->whereIn('farm_id', $farmIds)

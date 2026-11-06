@@ -134,7 +134,8 @@ class DemoOwnerPortfolioSeeder extends Seeder
         Gate::forUser($actor)->authorize('create', [SopTemplateVersion::class, $template]);
         $version = $template->versions()->create(['version' => 1, 'status' => 'draft', 'notes' => 'Snapshot presentasi 5 November 2026.', 'created_by' => $actor->id]);
         $tasks = [
-            ['planting', null, 'Penanaman '.$site['variety'], 0, 'Catat varietas, luas tanam dan kondisi awal pada batch.'],
+            // Planting is recorded through the planting activity, not authored
+            // as an SOP step (see 2026_11_03_000014).
             ['maintenance', 'irrigation', 'Pemeriksaan pengairan '.$site['commodity'], 7, 'Periksa saluran dan kelembapan tanah; catat kondisi pengairan pada laporan lapangan.'],
             ['maintenance', 'weeding', 'Penyiangan area tanam '.$site['commodity'], 14, 'Bersihkan gulma pada area tanam tanpa merusak perakaran; dokumentasikan area yang ditangani.'],
             ['maintenance', 'growth_check', 'Pengamatan pertumbuhan '.$site['commodity'], 21, 'Catat fase tumbuh, tinggi sampel dan kondisi kesehatan tanaman.'],
@@ -187,8 +188,11 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 'planned_planting_at' => $data['planned_planting_at'],
             ]);
             Gate::forUser($actor)->authorize('update', $batch);
+            // Generate historical tasks while the batch is still active. The
+            // task service deliberately refuses to build tasks for closed cycles.
+            $generationStatus = $data['status'] === 'harvested' ? 'active' : $data['status'];
             $batch->forceFill([
-                'status' => $data['status'], 'variety_id' => $data['status'] === 'planned' ? null : $variety->id,
+                'status' => $generationStatus, 'variety_id' => $data['status'] === 'planned' ? null : $variety->id,
                 'planted_at' => $data['planted_at'], 'planted_area_ha' => $data['planted_area_ha'],
                 'estimated_harvest_at' => $data['estimated_harvest_at'], 'estimated_weight_ton' => $data['estimated_weight_ton'],
             ])->save();
@@ -199,7 +203,10 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 $stage->forceFill(['status' => $status, 'started_at' => $started, 'completed_at' => $completed])->save();
             }
             Gate::forUser($actor)->authorize('create', [PlantingCycleTask::class, $batch]);
-            app(PlantingCycleTaskService::class)->generateForSubblok($batch);
+            app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor);
+            if ($data['status'] === 'harvested') {
+                $batch->forceFill(['status' => 'harvested'])->save();
+            }
             $this->taskStatuses($actor, $team, $batch, $data['status']);
         }
         foreach (PlantingRound::visibleTo($actor, $team)->whereIn('block_id', collect($blocks)->pluck('id'))->get() as $round) {
