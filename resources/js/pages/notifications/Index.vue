@@ -319,7 +319,7 @@ onUnmounted(() => {
                     class="space-y-4"
                 >
                     <div
-                        class="grid min-w-0 gap-4 @xs:grid-cols-2"
+                        class="grid min-w-0 gap-4 @md:grid-cols-2"
                         :class="{ '@xl:grid-cols-3': props.canFilterTenant }"
                     >
                         <div class="min-w-0 space-y-1.5">
@@ -371,7 +371,7 @@ onUnmounted(() => {
                         </div>
                         <div
                             v-if="props.canFilterTenant"
-                            class="min-w-0 space-y-1.5 @xs:col-span-2 @xl:col-span-1"
+                            class="min-w-0 space-y-1.5 md:col-span-2 xl:col-span-1"
                         >
                             <label
                                 for="notification-tenant"
