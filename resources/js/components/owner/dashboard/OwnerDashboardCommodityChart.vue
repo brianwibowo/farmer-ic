@@ -170,7 +170,8 @@ function clearSelection(): void {
                                     ? 'opacity-30'
                                     : 'opacity-100'
                             "
-                            class="motion-safe:transition-opacity"
+                            class="cursor-pointer motion-safe:transition-opacity"
+                            @click="toggleSelection(crop.id)"
                             @pointerenter="preview(crop.id, $event)"
                             @pointerleave="previewId = null"
                         >
