@@ -54,12 +54,18 @@ confirm the exact old/demo resources before removing them after the cutover.
 Preparation on 8 November 2026 created the separate `farmer_ic_app` database
 and applied 47 migrations to it. The migration files used from the existing demo
 image were compared byte-for-byte (after newline normalization) with the local
-files. At the stakeholder's explicit request, the existing demo Superadmin's
-identity and password hash were copied along with four roles and one tenant;
-no farm or other demo user was copied. The copied password is a publicly known
-development fixture: it must not be mistaken for a secret. Login and User
-Management were verified only on a temporary loopback-bound test container.
-No environment file, running service or public proxy was changed; the new
+files. At the stakeholder's explicit request, the complete presentation demo was
+then seeded in an isolated `testing` sandbox and promoted atomically to
+`farmer_ic_app`. The existing Superadmin, role and tenant IDs were preserved.
+The seeded database contains the four demo accounts, six farms, and 24 finance
+transactions. The current seeder creates no notification, although the demo
+credentials guide still describes one. The accounts use publicly known fixture
+passwords, not secrets.
+All four logins and role-specific pages were verified only on a temporary
+loopback-bound test container. The prior bootstrap-only database remains
+temporarily as `farmer_ic_bootstrap_20261108_a1f97d`; it is not the live demo
+database and may be reviewed separately during post-cutover cleanup.
+No environment file, running service or public proxy was changed; the seeded
 database is not yet used by the live app. Check its status before continuing.
 
 The image tagged `farmer-ic:verify-snapshot-20261108-f5b8c2` was built on the
@@ -80,10 +86,9 @@ were removed afterward. This is not a test of a committed release image.
 
 An empty database has no usable accounts or roles. `DatabaseSeeder` deliberately
 refuses production/staging and its sample accounts have public development
-passwords. The isolated Superadmin above is an explicit stakeholder-requested
-exception, not a secure deployment default. Resolve its public-access risk and
-agree on any additional user/demo-data provisioning before switching traffic.
-Schema migration alone does not make the site usable.
+passwords. The demo credentials above are an explicit stakeholder-requested
+exception for this presentation, not a secure deployment default. Schema
+migration alone does not create the accounts or demo data.
 
 ## Local Docker (fresh demo database only)
 
@@ -130,13 +135,12 @@ manual and demo-only; do not run it on a real-data database. Do not treat the
 JSON fixture as authoritative current farm or finance data. Review and adapt
 the indexing flow before enabling it for real data.
 
-This is a **cutover blocker**, not just an indexing concern:
+**Existing AI limitation, outside this CI/CD and Docker work:**
 `FarmSnapshotService` reads the bundled farm JSON, `FinanceSnapshotService`
 can fall back to bundled finance JSON, and `KnowledgeService` includes demo
 documents in in-memory retrieval. Disabling vector search alone does not remove
-those paths. Before using AI with the new operational database, replace or
-explicitly disable these paths and verify tenant-scoped current-data answers;
-do not represent the JSON fixtures as live records.
+those paths. These references must not be represented as live database records;
+supporting tenant-scoped, current-data answers requires separate work.
 
 ## GitHub Actions
 
