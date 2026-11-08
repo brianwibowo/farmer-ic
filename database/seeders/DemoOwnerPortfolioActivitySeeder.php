@@ -73,6 +73,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $area = (float) $batch['planted_area_ha'];
         $seedRate = match ($site['commodity']) {
             'Jagung' => 20, 'Sorgum' => 10, 'Rumput' => null,
+            default => throw new LogicException('Komoditas portofolio tidak didukung.'),
         };
         $this->activity($farm, $cycle, $key, 'planting', $planted->toDateString(),
             'Penanaman '.$site['commodity'].' '.$batch['subblock_label'], [

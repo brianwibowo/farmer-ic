@@ -1,226 +1,270 @@
 # Docker and VPS deployment
 
-The production image builds the Vue assets and PHP dependencies in separate
-stages, then runs Laravel from Apache with PHP 8.5. The app binds to
-`127.0.0.1:8080`; an existing reverse proxy can terminate HTTPS for
-`farmer.icdigital.io`. The production Compose file also joins the app to the
-external `outline_default` network (override with `PROXY_NETWORK`) so a proxy
-running in the Outline Compose project can reach the app at
-`http://farmer-ic-app:80`. SQLite and uploaded files live in named volumes;
-the application key is supplied through the deployment secret.
+The current application uses PHP 8.5, PostgreSQL and UUID domain/user IDs. The
+image builds PHP dependencies and Wayfinder helpers with PHP 8.5, builds Vue
+with Node 22, and runs Apache, workers and the scheduler from the same image.
+The image includes `pcntl` for queue timeouts. Container startup caches Laravel
+configuration, routes and views; **it never runs migrations or creates an
+application key**.
 
-The AI message endpoint uses Server-Sent Events. The included Caddy config
-routes those responses with buffering disabled so generated text can reach the
-browser incrementally. If another reverse proxy is used, configure its
-equivalent streaming/flush behavior for `/{team}/ai/messages`.
+## Important: existing VPS stacks
 
-## Wayfinder helpers for native local development
+A read-only inspection on 8 November 2026 found two separate app stacks:
 
-The Vite config does not automatically regenerate Wayfinder. After changing
-Laravel routes or controller signatures, run this on the local development host:
+- `farmer-ic-app-1` uses `.env.production` and the legacy `farmer_ic` database
+  with integer user IDs. The current UUID migrations overlap its old tables.
+- `farmer.icdigital.io` currently points through `https-portal` to the separate
+  `farmer-ic-demo-public-ac487036` container. It uses the UUID database
+  `farmer_ic_demo_staging_ac487036`, with its own storage, Redis prefix and
+  Qdrant collection. Its image is tagged `staging-c9a6dca-ac487036-v3`.
 
-```sh
-npm run routes:generate
-```
+The proxy's live configuration uses the untracked
+`compose.public-demo-ac487036.yaml` overlay. The proposed production workflow
+and manual command below use the base Compose file alone: if allowed to proceed,
+they would reconfigure the public domain to point to `farmer-ic-app-1` instead
+of the currently public demo. **Do not run them until the intended public stack,
+database and proxy configuration have been explicitly chosen and reviewed.**
 
-This runs `php artisan wayfinder:generate --with-form`. The `--with-form` option
-is required because login, password reset, settings, and team forms call the
-generated `.form()` helpers. Running the generator without that option removes
-those helpers and prevents Vue from rendering the affected pages. Then start
-the normal development server with `npm run dev`, or reload it if already running.
-The Docker PHP build stage already uses `--with-form`.
+Both databases share the same PostgreSQL service. Never reset the shared service
+or run the UUID migrations directly against the legacy database. For a disposable
+demo whose owner has explicitly confirmed that its data is not needed, plan a
+separate demo-only database and cutover; do not assume other stacks are disposable.
+If data must be preserved, back it up and test migration and rollback on an
+isolated copy. Approval is required before changing the live schema or traffic.
+The pending-migration check below is a safety gate, not proof of compatibility.
 
-## Run with Docker locally
+Do not use `git clean`, forced checkout, `--remove-orphans`, volume removal or
+image pruning as routine deployment steps. Review old notification jobs with
+the old code before starting new consumers; WhatsApp retries can send duplicates.
 
-```sh
-cp .env.docker.example .env.docker
-docker compose --env-file .env.docker up --build
-```
+### Intended target
 
-The app is available at <http://localhost:8080>. Stop it with
-`docker compose down`; add `-v` only when you intentionally want to remove the
-SQLite and storage volumes. For a stable local session across container
-recreation, add an `APP_KEY` value to `.env.docker`.
+The intended destination is one `farmer-ic` Compose stack, not one container
+for all processes. Its app, workers, scheduler, PostgreSQL, Redis, Qdrant and
+HTTPS proxy remain separate services. The `farmer-ic-demo-*` containers and
+their database are temporary and must remain available until the replacement
+has been verified and the public route has been switched.
 
-### Run the local vector/RAG stack (PostgreSQL + Redis + Qdrant)
+The stakeholder confirmed the existing application/demo data does not need to
+be retained and did not request a backup. This does not authorize deleting the
+shared PostgreSQL service, its volume, other databases, or unrelated containers.
+Plan the new stack against an explicitly identified empty database; separately
+confirm the exact old/demo resources before removing them after the cutover.
 
-The base Compose file keeps the app self-contained with SQLite. To match production with PostgreSQL 17, Redis 7 queue worker, and Qdrant vector retrieval, run:
+Preparation on 8 November 2026 created the separate `farmer_ic_app` database
+and applied 47 migrations to it. The migration files used from the existing demo
+image were compared byte-for-byte (after newline normalization) with the local
+files. At the stakeholder's explicit request, the existing demo Superadmin's
+identity and password hash were copied along with four roles and one tenant;
+no farm or other demo user was copied. The copied password is a publicly known
+development fixture: it must not be mistaken for a secret. Login and User
+Management were verified only on a temporary loopback-bound test container.
+No environment file, running service or public proxy was changed; the new
+database is not yet used by the live app. Check its status before continuing.
 
-```sh
-docker compose --env-file .env.docker \
-  -f compose.yaml -f compose.rag.yaml up --build
-```
+The image tagged `farmer-ic:verify-snapshot-20261108-f5b8c2` was built on the
+VPS from an uncommitted local working-tree snapshot. Its PHP extensions, assets,
+entrypoint, schema preflight, loopback login/logout, and worker connections were
+checked, but it is **not** a CI-tested release image or an active service.
+Use a reviewed commit and a successful CI run for the release. The current
+proposed workflow publishes the image smoke-tested by CI to GHCR and deploys it
+by immutable digest; it no longer rebuilds the image on the VPS. This GHCR
+publishing and deployment flow has not yet run against GitHub for this change.
 
-The override starts:
-- **PostgreSQL 17** (`127.0.0.1:5432`) with database `farmer_ic`
-- **Redis 7** (`127.0.0.1:6379`) for queue and cache
-- **Qdrant** (`127.0.0.1:6333`) for vector embeddings
-- **Worker** running `queue:work` for `ai-index` background jobs
-- **App** configured to connect to PostgreSQL, Redis, and Qdrant
+An isolated Compose smoke test on 8 November 2026 used that snapshot with the
+new release-target script mounted read-only, a unique temporary Compose project,
+and disposable PostgreSQL/Redis/Qdrant volumes. It verified empty/pending schema
+rejection, migrations on the disposable database, release-target checks,
+application/worker startup and Apache health. Only the test project's resources
+were removed afterward. This is not a test of a committed release image.
 
-The Laravel container enables vector retrieval by default in this override. Set
-`AI_RAG_VECTOR_ENABLED=false` in `.env.docker` to keep the in-memory retriever
-while retaining the services. Set `QDRANT_IMAGE` when testing a
-different pinned Qdrant image; avoid using an unpinned image for production.
+An empty database has no usable accounts or roles. `DatabaseSeeder` deliberately
+refuses production/staging and its sample accounts have public development
+passwords. The isolated Superadmin above is an explicit stakeholder-requested
+exception, not a secure deployment default. Resolve its public-access risk and
+agree on any additional user/demo-data provisioning before switching traffic.
+Schema migration alone does not make the site usable.
 
-The host VPS does not need PHP or Composer installed. Run Laravel commands through Docker. The `indexer` one-shot service performs the migration, full demo/knowledge sync, Qdrant rebuild, and preflight check:
+## Local Docker (fresh demo database only)
 
-```sh
-docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm indexer
-```
+Create `.env.docker` from `.env.docker.example`. Generate a **new local-only**
+key with `php artisan key:generate --show` (or `openssl rand -base64 32`,
+prefixed with `base64:`) and set `APP_KEY` in that file. Use the same stable key
+for the app, both workers and scheduler; losing or changing it invalidates
+encrypted data and sessions. Do not reuse the VPS key locally.
 
-For an already-running app container, use:
-
-```sh
-docker compose --env-file .env.production -f compose.production.yaml exec app php artisan ai:health --json
-docker compose --env-file .env.production -f compose.production.yaml exec app php artisan ai:preflight --json
-```
-
-Do not run `php artisan` directly on the VPS host; PHP is inside the application image.
-
-Vector retrieval also needs the server-side embedding key and model settings
-from `.env.docker`. The Qdrant data can be removed with:
-
-```sh
-docker compose -f compose.yaml -f compose.rag.yaml down -v
-```
-
-This deletes only the local index, which is designed to be rebuilt from the
-knowledge source.
-
-Add the OpenRouter key to `.env.docker` before starting the container. The
-file is ignored by Git and is read by Compose at runtime:
-
-```dotenv
-OPENROUTER_API_KEY=your-server-side-key
-# Optional OpenRouter enterprise alias or model ID approved for this account.
-# AI_PRIMARY_MODEL wins when set; leave both empty to use the fast Flash default.
-AI_ENTERPRISE_MODEL=
-AI_PRIMARY_MODEL=google/gemini-3.8-flash
-AI_TEXT_FALLBACK_MODELS=google/gemini-3.7-flash,openai/gpt-6-luna
-AI_VISION_FALLBACK_MODELS=google/gemini-3.7-flash,inclusionai/ling-3.0-flash-vl
-# Optional low-latency text profile. Enable only after comparing answer
-# quality and retrieval citation integrity on the live golden prompts.
-AI_FAST_TEXT_MODEL=
-AI_PREFER_FAST_TEXT_MODEL=false
-AI_STT_MODEL=qwen/qwen3.8-omni-flash
-AI_STT_FALLBACK_MODELS=google/gemini-3.8-flash
-AI_TTS_MODEL=
-AI_TTS_VOICE=
-AI_VOICE_ENABLED=true
-```
-
-## GitHub configuration
-
-The `CI` workflow runs PHP, TypeScript, lint, tests, and the Vite build. The
-`Deploy` workflow runs only after a successful `CI` run on `main`, fetches the
-tested commit on the VPS, builds the Docker image there, and restarts the app.
-
-Create these **GitHub Actions secrets** before enabling deployment:
-
-| Secret            | Purpose                                                        |
-| ----------------- | -------------------------------------------------------------- |
-| `VPS_HOST`        | VPS hostname or IP address                                     |
-| `VPS_PORT`        | SSH port (for example `12323`)                                 |
-| `VPS_USER`        | SSH user                                                       |
-| `VPS_PASSWORD`    | SSH password, if password authentication is enabled            |
-| `VPS_DEPLOY_PATH` | Absolute directory for Compose files, such as `/home/clouduser/farmer-ic` |
-| `APP_KEY`         | Laravel key generated with `php artisan key:generate --show`   |
-| `OPENROUTER_API_KEY` | OpenRouter key used by the server-side AI integration          |
-
-The SSH password and application key are read only from GitHub Secrets. Do not
-put them in this repository, workflow files, or a committed `.env` file.
-
-For AI features, provide `OPENROUTER_API_KEY` through the runtime environment
-file on the server. Keep it server-only; it is never a `VITE_` variable.
-
-The deploy workflow preserves `.env.production` between releases. Create it
-once on the VPS with mode `600` and keep the runtime configuration there:
+For a fresh, disposable local database:
 
 ```sh
-cd /srv/farmer-ic
-touch .env.production
-chmod 600 .env.production
-nano .env.production
+docker compose --env-file .env.docker build app
+docker compose --env-file .env.docker up -d --wait postgres
+docker compose --env-file .env.docker run --rm --no-deps app php artisan migrate --force --no-interaction
+docker compose --env-file .env.docker up -d --wait --no-build
 ```
 
-At minimum it should contain `APP_URL`, `APP_KEY`,
-`OPENROUTER_API_KEY`, and the model settings from the local example above.
-Set `AI_PRIMARY_MODEL` explicitly to the model that passed the quality gate.
-Use `AI_ENTERPRISE_MODEL` only when you intentionally want that model or alias
-to be the default. There is no silent remapping of the Flash primary, so a
-latency regression remains visible in the trace. Verify every fallback ID
-against the account's OpenRouter model list before deployment.
+The app listens on <http://localhost:8080>. PostgreSQL is required; a legacy
+SQLite volume is not migrated or removed. On an existing database, review its
+schema and pending migrations instead of blindly running the fresh-demo command.
+Seed only a disposable demo database using the separately documented procedure
+in `docs/demo-seed-credentials.md`.
 
-Run the P2 offline gate before a release and keep its JSON report as a build
-artifact:
+The base stack uses a PostgreSQL-backed general worker for `ai-index,default`,
+one notification worker for `notifications,whatsapp`, and a scheduler. To use
+Redis and Qdrant locally, use the same commands with both Compose files:
 
 ```sh
-php artisan ai:eval --retriever=in-memory \
-  --output=storage/app/private/ai-evals/eval-150.json
-
-# On subsequent changes, compare against the accepted baseline.
-php artisan ai:eval --retriever=in-memory \
-  --baseline=storage/app/private/ai-evals/baseline-v1.json \
-  --output=storage/app/private/ai-evals/eval-150.json
+docker compose --env-file .env.docker -f compose.yaml -f compose.rag.yaml build app
+docker compose --env-file .env.docker -f compose.yaml -f compose.rag.yaml up -d --wait postgres redis qdrant
+docker compose --env-file .env.docker -f compose.yaml -f compose.rag.yaml run --rm --no-deps app php artisan migrate --force --no-interaction
+docker compose --env-file .env.docker -f compose.yaml -f compose.rag.yaml up -d --wait --no-build
 ```
 
-When Qdrant and embeddings are available, repeat with
-`--retriever=vector` and compare Hit@1 and p95 latency before switching the
-runtime flag.
-The workflow supplies `APP_KEY` from GitHub Secrets only when the file does
-not already contain one. When `OPENROUTER_API_KEY` is present as a GitHub
-Secret, the workflow writes it to `.env.production` without exposing it to the
-frontend. A manually managed `.env.production` remains supported.
+In this override the general queue and cache use Redis; notification jobs
+remain on the database connection. Qdrant and Redis are bound to loopback.
+Configure the embedding provider and credentials before enabling vector RAG.
 
-To deploy manually after updating `.env.production`:
+`ai:knowledge:index-vector`, including its `--status` option, currently syncs
+JSON demo knowledge before doing its work. It can write/publish demo documents
+and is **not** a read-only status check. The production `indexer` service is
+manual and demo-only; do not run it on a real-data database. Do not treat the
+JSON fixture as authoritative current farm or finance data. Review and adapt
+the indexing flow before enabling it for real data.
 
-```sh
-docker compose --env-file .env.production -f compose.production.yaml build --pull app
-docker compose --env-file .env.production -f compose.production.yaml up -d --no-build --remove-orphans app
-docker compose --env-file .env.production -f compose.production.yaml logs --tail=100 app
-```
+This is a **cutover blocker**, not just an indexing concern:
+`FarmSnapshotService` reads the bundled farm JSON, `FinanceSnapshotService`
+can fall back to bundled finance JSON, and `KnowledgeService` includes demo
+documents in in-memory retrieval. Disabling vector search alone does not remove
+those paths. Before using AI with the new operational database, replace or
+explicitly disable these paths and verify tenant-scoped current-data answers;
+do not represent the JSON fixtures as live records.
 
-The container entrypoint runs migrations, caches config/routes/views, and
-creates the private storage link during startup. Verify the application health
-endpoint at `/up` and then open `https://your-domain/{team-slug}/ai` after
-logging in.
+## GitHub Actions
 
-## VPS bootstrap
+CI runs on pushes to `dev` and `main`, and on pull requests. It regenerates
+gitignored Wayfinder helpers with `--with-form`, checks PHP/TypeScript/lint,
+runs Vitest and Laravel's isolated PostgreSQL test suites, builds the frontend,
+and builds and smoke-tests the production image with a disposable database.
+The smoke test intentionally migrates only its isolated CI database.
 
-Install Docker Engine and the Compose plugin on the VPS, then create the
-deployment directory and grant the SSH user access to Docker:
+Deploy is currently disabled on GitHub. The proposed workflow also requires the
+repository variable `PRODUCTION_DEPLOY_ENABLED` to be exactly `true`; leave it
+unset until cutover is approved. After a successful **push** CI run on `main`,
+the Docker job pushes the tested image to `ghcr.io/<owner>/<repository>` with a
+commit tag and stores its immutable digest as a CI artifact. The enabled Deploy
+workflow downloads that artifact from the triggering successful CI run, checks
+its repository and commit, and pulls that digest on the VPS only if the commit
+is still the tip of `main`. It checks the configured Redis/Qdrant namespaces,
+actual PostgreSQL target, and pending migrations with that image before
+restarting services. It stops if the target is wrong or inaccessible, has no
+migration table, or has pending migrations. The CI digest artifact is retained
+for 30 days; package retention is managed separately in GHCR.
+The workflow does not apply migrations. A failed check leaves existing running
+containers in place, although the VPS Git working tree has been updated to the
+new commit. The check requires the database and its Docker network to be running.
 
-```sh
-sudo mkdir -p /srv/farmer-ic
-sudo chown -R "$USER":"$USER" /srv/farmer-ic
-sudo usermod -aG docker "$USER"
-```
+Configure GitHub secrets `VPS_HOST`, `VPS_PORT`, `VPS_USER`, and either `VPS_KEY`
+(or `SSH_PRIVATE_KEY`) or `VPS_PASSWORD`. Defaults are
+`farmer.icdigital.io:12320` and `clouduser`; an explicitly configured secret
+overrides a default. Set `VPS_HOST_FINGERPRINT` to the independently verified
+SSH host-key fingerprint to verify the server identity. `VPS_DEPLOY_PATH`
+defaults to `/home/clouduser/farmer-ic`.
+The existing `APP_KEY` in `.env.production` takes priority; the `APP_KEY` GitHub
+secret is only a fallback if it is absent. A nonempty `OPENROUTER_API_KEY` GitHub
+secret overrides the file for the deployed containers without modifying the
+file. If relying on GitHub-only values, also supply them securely when running
+Compose manually. Never print resolved Compose configuration containing secrets.
 
-Log in again so the group change takes effect. The default deploy starts only
-the app and binds it to `127.0.0.1:8080`. If Nginx or Apache already owns ports
-80/443, proxy the domain to that port. Check the current owner with:
+The Docker CI job needs permission to publish GHCR packages. Deploy uses its
+short-lived GitHub token with package-read access and an isolated temporary
+Docker login on the VPS; the login is removed afterward. Ensure the package is
+linked to this repository and the repository's Actions token can read it, or a
+private-package pull will fail before services restart. Verify GHCR visibility,
+organization policy, registry connectivity and token permissions before enabling
+Deploy. Pushing to `dev` runs CI but does not publish a release image.
 
-```sh
-sudo ss -ltnp | grep -E ':(80|443)\\b'
-```
+## VPS runtime settings
 
-If the existing proxy is `https-portal`, add this route to its `DOMAINS`
-setting and recreate that service:
+Keep `.env.production` outside Git, restricted to the deployment user. Set the
+**approved** database connection and credentials explicitly, including
+`DB_CONNECTION=pgsql`, `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`,
+and the `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` used by the existing
+PostgreSQL container. Do not assume changing those values migrates data. Set a
+stable `APP_KEY`, `APP_URL` and, if used, the server-only OpenRouter key.
+
+The current VPS file still points to the legacy `farmer_ic` database and must
+not be used for the new release unchanged. At the approved cutover, configure:
 
 ```text
-farmer.icdigital.io -> http://farmer-ic-app:80
+DB_CONNECTION=pgsql
+DB_HOST=farmer-ic-postgres
+DB_PORT=5432
+DB_DATABASE=farmer_ic_app
+REDIS_HOST=redis
+REDIS_PREFIX=farmer_ic_app_
+QDRANT_URL=http://qdrant:6333
+QDRANT_COLLECTION=farmer_ic_app_knowledge
 ```
 
-The proxy and app must share the network named by `PROXY_NETWORK` (the default
-is `outline_default`).
+The release gate disallows `DB_URL` and `REDIS_URL` because they can override the
+checked host/database values. It also requires Redis port 6379, the default Redis
+queue connection and the default PostgreSQL queue connection (or `pgsql`).
+Do not change `.env.production` while the legacy services still rely on it
+without a cutover plan. The namespaces above are distinct from the existing
+legacy and demo settings. The `app_release_storage` volume is separate from the
+legacy `app_storage` and demo volumes; neither old volume is deleted or copied.
+The gate checks configuration and the actual PostgreSQL connection, but does not
+prove Redis/Qdrant connectivity, AI retrieval quality, or secret correctness.
+During preparation on 8 November 2026, both running stacks' Redis prefixes and
+Qdrant collections were checked against these proposed values. The proposed
+Redis prefix had no keys in databases 0 or 1, Qdrant's health endpoint returned
+HTTP 200, and the proposed collection did not yet exist (HTTP 404). These are
+point-in-time checks, not evidence that indexing or retrieval works.
 
-The first successful `Deploy` workflow clones the repository, checks out the
-tested commit, builds on the VPS, and starts the app. To use the included Caddy
-instead of an existing web server, first free ports 80/443, open them in the
-firewall, then run:
+`QUEUE_CONNECTION` and `NOTIFICATION_QUEUE_CONNECTION` must be `database` or
+`redis`; the general and notification workers use their respective configured
+connections. The notification connection defaults to `database` to preserve
+the existing queue. `DB_QUEUE_RETRY_AFTER` and `REDIS_QUEUE_RETRY_AFTER` default
+to 240 seconds and must exceed the 180-second general worker timeout. Run only
+one notification worker for Fonnte validation. Worker stop-grace periods allow
+the current job to finish, but cannot eliminate duplicate WhatsApp messages
+after crashes or interruptions. WhatsApp remains off unless
+explicitly configured and approved; see `docs/operational-notifications.md`.
+
+The base Compose stack includes `https-portal` on ports 80/443, app on loopback port
+8080, PostgreSQL, Redis and Qdrant. Ensure those ports, the database, Docker
+network, proxy and backups are prepared separately before enabling deployment.
+The HTTPS portal resolves the app via Docker DNS. AI streams use SSE: verify
+proxy buffering/flush behavior in the actual environment before a release.
+
+## Manual deploy after an approved cutover
+
+First resolve the existing proxy overlay and intended database as described
+above. These commands do not preserve the currently public demo route. Use the
+reviewed CI artifact's immutable GHCR digest for all app containers. Authenticate
+to GHCR securely if the image is private; do not put a token in shell history.
+The following performs the same **read-only migration gate** before replacement;
+it does not create or migrate a database. Run from the deployment directory
+with the infrastructure services already healthy:
 
 ```sh
-cd /home/clouduser/farmer-ic
-docker compose --env-file .env.production --profile proxy -f compose.production.yaml up -d caddy
+set -e
+export APP_IMAGE_REF='ghcr.io/<owner>/<repository>@sha256:<tested-image-digest>'
+docker compose --env-file .env.production -f compose.production.yaml --profile rag pull app
+docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php docker/verify-release-target.php farmer_ic_app farmer-ic-postgres redis farmer_ic_app_ http://qdrant:6333 farmer_ic_app_knowledge
+docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php artisan migrate:status --pending=1 --no-interaction
+docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --wait --wait-timeout 120 --no-build --no-deps app worker notifications scheduler https-portal
+docker compose --env-file .env.production -f compose.production.yaml --profile rag ps
 ```
+
+If the gate fails, stop and investigate; do not bypass it with an automatic
+`migrate`, `migrate:fresh`, or `--graceful`. Check `/up`, authenticated pages,
+worker/scheduler logs, queues and AI streaming after deployment. A healthy
+`/up` by itself does not establish database, queue, RAG or business correctness.
+Rollback requires a compatible schema and the saved image/configuration; it
+does not undo migrations or restore data automatically.
+
+## Native development
+
+Wayfinder output is partly gitignored. Regenerate it after route/controller
+changes with `npm run routes:generate`; `--with-form` is required by the forms.
+The Docker and CI builds generate these helpers independently.

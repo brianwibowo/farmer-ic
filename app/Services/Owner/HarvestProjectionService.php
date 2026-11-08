@@ -67,7 +67,12 @@ class HarvestProjectionService
         ];
     }
 
-    /** @return array{projection_ton: ?float, missing_count: int, batch_count: int} */
+    /**
+     * @param  Collection<int, PlantingCycle>  $cycles
+     * @param  Collection<string, string>  $farmAreas
+     * @param  array{name: string, ton_per_ha: int, cycles_per_year: int}|null  $rate
+     * @return array{projection_ton: ?float, missing_count: int, batch_count: int}
+     */
     private function projection(Collection $cycles, Collection $farmAreas, string $period, ?array $rate): array
     {
         // Whole-farm area contributes once per crop, even with multiple active

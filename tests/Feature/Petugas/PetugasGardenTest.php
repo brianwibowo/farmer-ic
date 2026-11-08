@@ -133,6 +133,24 @@ class PetugasGardenTest extends TestCase
             ->where('garden.batches.current_page', 2)->has('garden.batches.data', 1)->where('garden.batches.data.0.id', $first->id));
     }
 
+    public function test_block_clearing_timestamps_are_iso_formatted_and_nullable(): void
+    {
+        $block = $this->block($this->farm);
+        $startedAt = $block->getAttribute('land_clearing_started_at');
+        $this->assertInstanceOf(CarbonImmutable::class, $startedAt);
+
+        $this->actingAs($this->petugas)->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('garden.blocks.0.land_clearing_started_at', $startedAt->toIso8601String())
+            ->where('garden.blocks.0.land_clearing_completed_at', null));
+
+        $block->forceFill(['land_clearing_completed_at' => $startedAt->addHour()])->save();
+        $completedAt = $block->refresh()->getAttribute('land_clearing_completed_at');
+        $this->assertInstanceOf(CarbonImmutable::class, $completedAt);
+        $this->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('garden.blocks.0.land_clearing_started_at', $startedAt->toIso8601String())
+            ->where('garden.blocks.0.land_clearing_completed_at', $completedAt->toIso8601String()));
+    }
+
     public function test_previous_rounds_remain_distinct_when_subblock_labels_are_reused(): void
     {
         $block = $this->block($this->farm);

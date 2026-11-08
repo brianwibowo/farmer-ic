@@ -1,28 +1,91 @@
+# Local PostgreSQL stack. Existing SQLite volumes are not migrated or removed.
+x-app-environment: &app-environment
+    APP_ENV: local
+    APP_DEBUG: 'false'
+    APP_KEY: ${APP_KEY:?Set a stable APP_KEY in .env.docker}
+    APP_URL: ${APP_URL:-http://localhost:8080}
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: ${POSTGRES_DB:-farmer_ic}
+    DB_USERNAME: ${POSTGRES_USER:-farmer_ic}
+    DB_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    SESSION_DRIVER: file
+    CACHE_STORE: file
+    QUEUE_CONNECTION: database
+    NOTIFICATION_QUEUE_CONNECTION: database
+    DB_QUEUE_RETRY_AFTER: 240
+    REDIS_QUEUE_RETRY_AFTER: 240
+
+x-app-service: &app-service
+    image: farmer-ic:local
+    env_file:
+        - path: .env.docker
+          required: false
+    environment: *app-environment
+    volumes:
+        - app_storage:/var/www/html/storage
+    depends_on:
+        postgres:
+            condition: service_healthy
+    restart: unless-stopped
+
 services:
     app:
+        <<: *app-service
         build:
             context: .
             dockerfile: Dockerfile
-        image: farmer-ic:local
         ports:
             - '${APP_PORT:-8080}:80'
-        env_file:
-            - path: .env.docker
-              required: false
+
+    worker:
+        <<: *app-service
+        command: php artisan queue:work database --queue=ai-index,default --sleep=2 --tries=3 --timeout=180
+        stop_grace_period: 190s
+        healthcheck:
+            test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "queue:work"']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+
+    notifications:
+        <<: *app-service
+        command: php artisan queue:work database --queue=notifications,whatsapp --sleep=1 --tries=3 --timeout=30 --max-time=3600
+        stop_grace_period: 40s
+        healthcheck:
+            test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "queue:work"']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+
+    scheduler:
+        <<: *app-service
+        command: php artisan schedule:work --no-interaction
+        healthcheck:
+            test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "schedule:work"']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+
+    postgres:
+        image: postgres:17-alpine
+        ports:
+            - '127.0.0.1:${DB_PORT:-5432}:5432'
         environment:
-            APP_ENV: production
-            APP_DEBUG: 'false'
-            APP_URL: ${APP_URL:-http://localhost:8080}
-            DB_CONNECTION: sqlite
-            DB_DATABASE: /var/lib/farmer-ic/database.sqlite
-            SESSION_DRIVER: file
-            CACHE_STORE: file
-            QUEUE_CONNECTION: sync
+            POSTGRES_DB: ${POSTGRES_DB:-farmer_ic}
+            POSTGRES_USER: ${POSTGRES_USER:-farmer_ic}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
         volumes:
-            - app_storage:/var/www/html/storage
-            - app_database:/var/lib/farmer-ic
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-farmer_ic}']
+            interval: 5s
+            timeout: 3s
+            retries: 5
         restart: unless-stopped
 
 volumes:
     app_storage:
     app_database:
+    postgres_data:

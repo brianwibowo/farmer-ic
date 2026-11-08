@@ -7,6 +7,8 @@ on:
 
 permissions:
     contents: read
+    actions: read
+    packages: read
 
 concurrency:
     group: deploy-production
@@ -14,33 +16,65 @@ concurrency:
 
 jobs:
     deploy:
-        name: Build on VPS and deploy
+        name: Deploy tested commit on VPS
         if: >-
+            vars.PRODUCTION_DEPLOY_ENABLED == 'true' &&
             github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'push' &&
             github.event.workflow_run.head_branch == 'main'
         runs-on: ubuntu-latest
 
         steps:
-            - name: Build and restart on VPS
+            - name: Check out the tested commit
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.workflow_run.head_sha }}
+
+            - name: Download the tested image reference
+              uses: actions/download-artifact@v4
+              with:
+                  name: release-image-${{ github.event.workflow_run.head_sha }}
+                  path: ${{ runner.temp }}/release-image
+                  run-id: ${{ github.event.workflow_run.id }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Verify the image reference
+              id: image
+              env:
+                  TESTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
+              run: |
+                  set -eu
+                  image_ref=$(python3 docker/release-image-metadata.py verify \
+                    --repository "$GITHUB_REPOSITORY" --revision "$TESTED_COMMIT" \
+                    --metadata "$RUNNER_TEMP/release-image/release-image.json")
+                  printf 'image_ref=%s\n' "$image_ref" >> "$GITHUB_OUTPUT"
+
+            - name: Pull tested image, check schema and deploy
               uses: appleboy/ssh-action@v1.2.2
               env:
                   VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/home/clouduser/farmer-ic' }}
                   REPOSITORY: ${{ github.repository }}
                   COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+                  RELEASE_IMAGE_REF: ${{ steps.image.outputs.image_ref }}
+                  REGISTRY_USER: ${{ github.actor }}
+                  REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   APP_KEY: ${{ secrets.APP_KEY }}
                   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
               with:
-                  host: ${{ secrets.VPS_HOST || '43.231.129.222' }}
-                  port: ${{ secrets.VPS_PORT || '12323' }}
+                  host: ${{ secrets.VPS_HOST || 'farmer.icdigital.io' }}
+                  port: ${{ secrets.VPS_PORT || '12320' }}
                   username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || 'clouduser' }}
                   password: ${{ secrets.VPS_PASSWORD }}
                   key: ${{ secrets.VPS_KEY || secrets.SSH_PRIVATE_KEY }}
-                  envs: VPS_DEPLOY_PATH,REPOSITORY,COMMIT_SHA,APP_KEY,OPENROUTER_API_KEY
+                  fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+                  command_timeout: 30m
+                  envs: VPS_DEPLOY_PATH,REPOSITORY,COMMIT_SHA,RELEASE_IMAGE_REF,REGISTRY_USER,REGISTRY_TOKEN,APP_KEY,OPENROUTER_API_KEY
                   script: |
                       set -eu
 
                       command -v docker >/dev/null 2>&1 || { echo 'Docker is not installed on the VPS.' >&2; exit 1; }
                       command -v git >/dev/null 2>&1 || { echo 'Git is not installed on the VPS.' >&2; exit 1; }
+                      command -v curl >/dev/null 2>&1 || { echo 'curl is not installed on the VPS.' >&2; exit 1; }
 
                       mkdir -p "$VPS_DEPLOY_PATH"
                       if [ ! -d "$VPS_DEPLOY_PATH/.git" ]; then
@@ -50,60 +84,71 @@ jobs:
                         git -C "$VPS_DEPLOY_PATH" remote add origin "https://github.com/$REPOSITORY.git"
                       fi
 
-                      # The previous deploy copied Compose files outside Git;
-                      # remove those stale untracked files but keep secrets.
-                      git -C "$VPS_DEPLOY_PATH" clean -fd -e .env.production
-                      git -C "$VPS_DEPLOY_PATH" fetch --depth 1 origin "$COMMIT_SHA"
-                      git -C "$VPS_DEPLOY_PATH" checkout -f -B deploy "$COMMIT_SHA"
-                      cd "$VPS_DEPLOY_PATH"
+                      # Do not deploy an older CI run after main has advanced.
+                      git -C "$VPS_DEPLOY_PATH" fetch --depth 1 origin main
+                      if [ "$(git -C "$VPS_DEPLOY_PATH" rev-parse FETCH_HEAD)" != "$COMMIT_SHA" ]; then
+                        echo 'A newer main commit exists; skipping this deployment.'
+                        exit 0
+                      fi
 
-                      touch .env.production
-                      chmod 600 .env.production
-                      if [ -z "${APP_KEY:-}" ] && ! grep -q '^APP_KEY=.' .env.production; then
-                        echo 'APP_KEY secret is required for the first deployment' >&2
+                      # Git refuses conflicting local changes. Never clean or force
+                      # checkout: the VPS also contains an independent demo stack.
+                      git -C "$VPS_DEPLOY_PATH" checkout --detach "$COMMIT_SHA"
+                      cd "$VPS_DEPLOY_PATH"
+                      if [ ! -f .env.production ]; then
+                        echo 'Create .env.production with the existing database configuration before deploying.' >&2
                         exit 1
                       fi
-                      if ! grep -q '^APP_KEY=.' .env.production; then
-                        printf 'APP_KEY=%s\n' "$APP_KEY" >> .env.production
+
+                      # Keep the existing encryption key when present; changing it
+                      # can invalidate sessions and encrypted data. A GitHub key is
+                      # a fallback only, matching the previous deployment behavior.
+                      if grep -q '^APP_KEY=.' .env.production; then
+                        unset APP_KEY
+                      elif [ -z "${APP_KEY:-}" ]; then
+                        echo 'APP_KEY is required in .env.production or GitHub Secrets.' >&2
+                        exit 1
+                      fi
+                      # An empty GitHub secret must not shadow the server's value.
+                      if [ -z "${OPENROUTER_API_KEY:-}" ]; then unset OPENROUTER_API_KEY; fi
+                      # Use an ephemeral registry login; do not leave the job
+                      # token in the deployment user's Docker configuration.
+                      umask 077
+                      DOCKER_CONFIG=$(mktemp -d "${TMPDIR:-/tmp}/farmer-ic-registry.XXXXXXXXXX")
+                      export DOCKER_CONFIG
+                      cleanup_registry_login() {
+                        rm -f "$DOCKER_CONFIG/config.json"
+                        rmdir "$DOCKER_CONFIG" 2>/dev/null || true
+                      }
+                      trap cleanup_registry_login EXIT
+                      printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin >/dev/null
+                      unset REGISTRY_TOKEN
+                      export APP_IMAGE_REF="$RELEASE_IMAGE_REF"
+
+                      docker compose --env-file .env.production -f compose.production.yaml --profile rag pull app
+
+                      # Verify the actual connection and isolated namespaces, not
+                      # just values that a DB_URL/REDIS_URL could override.
+                      if ! docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php docker/verify-release-target.php farmer_ic_app farmer-ic-postgres redis farmer_ic_app_ http://qdrant:6333 farmer_ic_app_knowledge; then
+                        echo 'Release target verification failed; no services were restarted.' >&2
+                        exit 1
                       fi
 
-                      if [ -n "${OPENROUTER_API_KEY:-}" ]; then
-                        if grep -q '^OPENROUTER_API_KEY=' .env.production; then
-                          sed -i "s#^OPENROUTER_API_KEY=.*#OPENROUTER_API_KEY=$OPENROUTER_API_KEY#" .env.production
-                        else
-                          printf 'OPENROUTER_API_KEY=%s\n' "$OPENROUTER_API_KEY" >> .env.production
-                        fi
+                      # Read-only gate: the current UUID schema is incompatible
+                      # with the old integer-user database. Never migrate here.
+                      if ! docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php artisan migrate:status --pending=1 --no-interaction; then
+                        echo 'Schema check failed or migrations are pending. Review the database and migration plan; no services were restarted.' >&2
+                        exit 1
                       fi
 
-                      # Keep production on the unique Postgres alias instead of
-                      # the shared "postgres" name from the Outline network.
-                      if grep -q '^DB_HOST=' .env.production; then
-                        sed -i 's/^DB_HOST=.*/DB_HOST=farmer-ic-postgres/' .env.production
-                      else
-                        printf 'DB_HOST=farmer-ic-postgres\n' >> .env.production
-                      fi
+                      # Keep all unrelated services, containers, files and volumes.
+                      docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --wait --wait-timeout 120 --no-build --no-deps app worker notifications scheduler https-portal
 
-                      # Laravel supports "phpredis" or "predis", not "redis".
-                      if grep -q '^REDIS_CLIENT=' .env.production; then
-                        sed -i 's/^REDIS_CLIENT=.*/REDIS_CLIENT=phpredis/' .env.production
-                      else
-                        printf 'REDIS_CLIENT=phpredis\n' >> .env.production
-                      fi
-
-                      export APP_IMAGE=farmer-ic
-                      export APP_TAG="$COMMIT_SHA"
-                      docker compose --env-file .env.production -f compose.production.yaml --profile rag build --pull app
-                      docker ps -aq --filter 'name=farmer-ic-app-1' | xargs -r docker rm -f
-                      docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --no-build --remove-orphans app worker scheduler postgres redis qdrant https-portal
-                      # The portal resolves the app container per request
-                      # (DYNAMIC_UPSTREAM), so it does not need to be restarted
-                      # after the app is recreated. Just wait until the public
-                      # endpoint answers again before reporting success.
                       for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
                         if curl -fsSk -o /dev/null --max-time 5 \
                           --resolve farmer.icdigital.io:443:127.0.0.1 \
                           https://farmer.icdigital.io/up; then
-                          break
+                          exit 0
                         fi
                         if [ "$attempt" = 15 ]; then
                           echo 'Public endpoint did not become healthy after deploy' >&2
@@ -112,4 +157,3 @@ jobs:
                         fi
                         sleep 2
                       done
-                      docker image prune --force

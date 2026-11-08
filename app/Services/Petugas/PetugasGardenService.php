@@ -9,9 +9,12 @@ use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use DateTimeInterface;
+use UnexpectedValueException;
 
 class PetugasGardenService
 {
+    /** @return array<string, mixed> */
     public function overview(User $actor, ?Farm $farm, ?Team $team, ?FarmBlock $selected = null, int $page = 1): array
     {
         $empty = [
@@ -35,8 +38,8 @@ class PetugasGardenService
         $blockPayload = fn (FarmBlock $block): array => [
             ...$block->only(['id', 'code', 'name', 'area_ha', 'description', 'is_active']),
             'batches_count' => (int) ($blockCounts[$block->id] ?? 0),
-            'land_clearing_started_at' => $block->land_clearing_started_at?->toIso8601String(),
-            'land_clearing_completed_at' => $block->land_clearing_completed_at?->toIso8601String(),
+            'land_clearing_started_at' => $this->clearingTimestamp($block, 'land_clearing_started_at'),
+            'land_clearing_completed_at' => $this->clearingTimestamp($block, 'land_clearing_completed_at'),
         ];
         $batches = $empty['batches'];
         if ($selected !== null) {
@@ -71,5 +74,18 @@ class PetugasGardenService
             'selected_block' => $selected === null ? null : $blockPayload($selected),
             'batches' => $batches,
         ];
+    }
+
+    private function clearingTimestamp(FarmBlock $block, string $attribute): ?string
+    {
+        $date = $block->getAttribute($attribute);
+        if ($date === null) {
+            return null;
+        }
+        if (! $date instanceof DateTimeInterface) {
+            throw new UnexpectedValueException('Farm block clearing timestamps must be cast to dates.');
+        }
+
+        return $date->format(DateTimeInterface::ATOM);
     }
 }
