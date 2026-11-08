@@ -36,7 +36,7 @@ final class IndexKnowledgeDocument implements ShouldQueue
     public int $timeout = 180;
 
     public function __construct(
-        public readonly int $documentId,
+        public readonly string $documentId,
         public readonly bool $force = false,
     ) {
         $this->onQueue('ai-index');
@@ -184,7 +184,7 @@ final class IndexKnowledgeDocument implements ShouldQueue
                         'vector' => $vectors_data[$i],
                         'payload' => [
                             'chunk_id' => $chunk->getKey(),
-                            'document_id' => (int) $document->getKey(),
+                            'document_id' => (string) $document->getKey(),
                             'title' => $chunk->metadata['title'] ?? $document->title,
                             'source' => $chunk->metadata['source'] ?? ($document->source ?: 'Knowledge team Farmer IC'),
                             'content' => $chunk->content,

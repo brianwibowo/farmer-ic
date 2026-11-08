@@ -1,0 +1,632 @@
+<?php
+
+namespace Tests\Feature\Farms;
+
+use App\Enums\TeamRole;
+use App\Models\Commodity;
+use App\Models\Farm;
+use App\Models\Role;
+use App\Models\Team;
+use App\Models\User;
+use App\Services\FarmService;
+use App\Services\SopTemplateService;
+use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+class FarmManagementInertiaTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Team $team;
+
+    private User $admin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->team = Team::query()->create(['name' => 'Tim Farm Management', 'is_personal' => false]);
+        $this->admin = $this->actor('admin', $this->team);
+        $this->actingAs($this->admin);
+    }
+
+    public function test_pic_assignment_is_optional_scoped_and_assigns_the_worker(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $worker->update(['phone_number' => '081234567890']);
+        $otherTeam = Team::query()->create(['name' => 'Tenant Lain', 'is_personal' => false]);
+        $outsider = $this->actor('petugas', $otherTeam);
+        $otherFarm = $this->farm(['name' => 'Kebun Lain']);
+        $busy = $this->actor('petugas', $this->team);
+        $busy->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
+
+        $this->get('/admin/farm-management/create')->assertInertia(fn (Assert $page) => $page
+            ->has('picOptions', 1)->where('picOptions.0.id', $worker->id));
+        $this->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $this->assertSame($farm->id, $worker->fresh()->assignedFarmId());
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->get($url)->assertInertia(fn (Assert $page) => $page
+            ->where('farm.pic_name', $worker->name)->where('farm.pic_phone_number', '081234567890'));
+        $this->patch($url, ['pic_user_id' => $busy->id])->assertSessionHasErrors('pic_user_id');
+        $this->patch($url, ['pic_user_id' => $outsider->id])->assertSessionHasErrors('pic_user_id');
+        $this->patch($url, ['pic_user_id' => null])->assertSessionHasNoErrors();
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+        $this->assertSame($farm->id, $worker->fresh()->assignedFarmId());
+    }
+
+    public function test_pic_is_cleared_when_worker_is_deleted(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $this->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $this->delete('/admin/user-management/'.$worker->id)->assertSessionHasNoErrors();
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+    }
+
+    public function test_pic_options_do_not_add_queries_per_worker_on_create_and_edit(): void
+    {
+        config(['inertia.ssr.enabled' => false]);
+        $farm = $this->farm();
+        $first = $this->actor('petugas', $this->team);
+        $first->forceFill(['assigned_farm_id' => $farm->id])->save();
+        $otherFarm = $this->farm(['name' => 'Kebun lain']);
+        $busy = $this->actor('petugas', $this->team);
+        $busy->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
+        $superadmin = $this->actor('superadmin', $this->team);
+        $urls = ['/admin/farm-management/create', '/admin/farm-management/'.$farm->id.'/edit'];
+        $counts = [];
+
+        foreach ([1, 20] as $size) {
+            if ($size === 20) {
+                for ($i = 0; $i < 19; $i++) {
+                    $this->actor('petugas', $this->team);
+                }
+            }
+            foreach ([$this->admin, $superadmin] as $actor) {
+                foreach ($urls as $url) {
+                    $this->actingAs($actor->fresh());
+                    $connection = DB::connection();
+                    $connection->flushQueryLog();
+                    $connection->enableQueryLog();
+                    try {
+                        $response = $this->get($url)->assertOk();
+                        $counts[$actor->id][$url][$size] = count($connection->getQueryLog());
+                    } finally {
+                        $connection->disableQueryLog();
+                        $connection->flushQueryLog();
+                    }
+                    $expected = $size - (str_ends_with($url, '/create') ? 1 : 0);
+                    $response->assertInertia(fn (Assert $page) => $page
+                        ->has('picOptions', $expected)
+                        ->where('picOptions', fn ($options) => collect($options)->every(fn ($option) => $option['id'] !== $busy->id)));
+                }
+            }
+        }
+        foreach ($counts as $requests) {
+            foreach ($requests as $queryCounts) {
+                $this->assertSame($queryCounts[1], $queryCounts[20], 'Query count must not grow with PIC options.');
+            }
+        }
+    }
+
+    public function test_reassignment_clears_pic_and_superadmin_can_assign(): void
+    {
+        $worker = $this->actor('petugas', $this->team);
+        $superadmin = $this->actor('superadmin', $this->team);
+        $this->actingAs($superadmin)->post('/admin/farm-management', $this->payload(['pic_user_id' => $worker->id]))->assertSessionHasNoErrors();
+        $farm = Farm::where('pic_user_id', $worker->id)->firstOrFail();
+        $other = $this->farm(['name' => 'Kebun Baru']);
+        app(\App\Services\UserManagementService::class)->save($superadmin, [
+            'name' => $worker->name, 'email' => $worker->email, 'role' => 'petugas',
+            'team_ids' => [$this->team->id], 'assigned_farm_id' => $other->id,
+        ], $worker);
+        $this->assertNull($farm->fresh()->getAttribute('pic_user_id'));
+        $this->assertSame($other->id, $worker->fresh()->assignedFarmId());
+
+        $this->actingAs($superadmin)->patch('/admin/farm-management/'.$other->id, ['pic_user_id' => $worker->id])->assertSessionHasNoErrors();
+        app(\App\Services\UserManagementService::class)->save($superadmin, [
+            'name' => $worker->name, 'email' => $worker->email, 'role' => 'admin',
+            'team_ids' => [$this->team->id], 'assigned_farm_id' => null,
+        ], $worker->fresh());
+        $this->assertNull($other->fresh()->getAttribute('pic_user_id'));
+    }
+
+    public function test_commodity_persists_without_a_sop_and_mismatched_sop_is_rejected(): void
+    {
+        $corn = Commodity::create(['name' => 'Jagung']);
+        $chili = Commodity::create(['name' => 'Cabai']);
+        $sop = app(SopTemplateService::class)->create($this->admin, $this->team, [
+            'commodity_id' => $corn->id, 'name' => 'SOP Jagung', 'is_active' => true,
+        ]);
+        $this->post('/admin/farm-management', $this->payload(['commodity_id' => $chili->id]))->assertSessionHasNoErrors();
+        $farm = Farm::firstOrFail();
+        $this->patch('/admin/farm-management/'.$farm->id, ['commodity_id' => 'invalid-id'])->assertSessionHasErrors('commodity_id');
+        $this->patch('/admin/farm-management/'.$farm->id, ['commodity_id' => $corn->id, 'default_sop_template_id' => 'invalid-id'])->assertSessionHasErrors('default_sop_template_id');
+        $this->assertSame($chili->id, $farm->getAttribute('commodity_id'));
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->patch($url, ['default_sop_template_id' => $sop->id])->assertSessionHasErrors('default_sop_template_id');
+        $this->patch($url, ['commodity_id' => $corn->id, 'default_sop_template_id' => $sop->id])->assertSessionHasNoErrors();
+        $this->patch($url, ['commodity_id' => $chili->id])->assertSessionHasErrors('default_sop_template_id');
+        $this->assertSame($corn->id, $farm->fresh()->getAttribute('commodity_id'));
+        $this->get($url.'/edit')->assertInertia(fn (Assert $page) => $page->where('farm.commodity.id', $corn->id)->has('commodities', 2)->missing('owners'));
+        $this->patch($url, ['commodity_id' => $chili->id, 'default_sop_template_id' => null])->assertSessionHasNoErrors();
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.commodity.id', $chili->id)->where('farm.default_sop', null));
+    }
+
+    public function test_farm_detail_has_scoped_blocks_and_dialog_mutations_return_to_the_farm(): void
+    {
+        $farm = app(FarmService::class)->create($this->payload(), $this->admin, $this->team);
+        $other = app(FarmService::class)->create($this->payload(['name' => 'Kebun Lain']), $this->admin, $this->team);
+        $base = '/kebun/'.$farm->id.'/blocks';
+        $detail = '/admin/farm-management/'.$farm->id;
+        $this->post($base, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '2', 'return_to' => 'farm'])->assertRedirect($detail);
+        $block = \App\Models\FarmBlock::firstOrFail();
+        app(\App\Services\FarmBlockService::class)->create($other, $this->admin, $this->team, ['code' => 'B99', 'name' => 'Blok Kebun Lain', 'area_ha' => '1']);
+        $this->get($detail)->assertInertia(fn (Assert $page) => $page->has('blocks', 1)->where('blocks.0.id', $block->id)
+            ->where('blocks.0.can.update', true)->where('can.createBlock', true)->where('blocks.0.deletionBlocked', false));
+        $this->patch($base.'/'.$block->id, ['name' => 'Blok Barat', 'return_to' => 'farm'])->assertRedirect($detail);
+        $this->assertSame('Blok Barat', $block->fresh()->name);
+        $this->delete($base.'/'.$block->id, ['return_to' => 'farm'])->assertRedirect($detail);
+        $this->assertDatabaseMissing('farm_blocks', ['id' => $block->id]);
+    }
+
+    public function test_target_volume_and_progress_are_persisted_and_scoped_to_current_farm_rounds(): void
+    {
+        $this->post('/admin/farm-management', $this->payload(['target_volume_ton' => '80.125']))->assertSessionHasNoErrors();
+        $farm = Farm::firstOrFail();
+        $blocks = app(\App\Services\FarmBlockService::class);
+        $block = $blocks->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+        $first = $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $otherFarm = app(FarmService::class)->create($this->payload(['name' => 'Kebun Lain']), $this->admin, $this->team);
+        $otherBlock = $blocks->create($otherFarm, $this->admin, $this->team, ['code' => 'B99', 'name' => 'Blok Lain', 'area_ha' => '2']);
+        $blocks->createBatch($otherBlock, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.target_volume_ton', '80.125')
+            ->where('farm.progress_overview.total', 2)->where('farm.progress_overview.stages.1.code', 'soil_preparation')->where('farm.progress_overview.stages.1.count', 2));
+        foreach ([0, -1, '0.0001', 'invalid'] as $invalid) {
+            $this->patch($url, ['target_volume_ton' => $invalid])->assertSessionHasErrors('target_volume_ton');
+        }
+        $this->patch($url, ['target_volume_ton' => '125.500'])->assertSessionHasNoErrors();
+        $this->assertSame('125.500', $farm->fresh()->getAttribute('target_volume_ton'));
+        \App\Models\PlantingCycle::where('planting_round_id', $first->planting_round_id)->update(['status' => 'cancelled']);
+        $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.progress_overview.total', 1)->where('farm.progress_overview.stages.1.count', 1));
+        $worker = $this->actor('petugas', $this->team);
+        $worker->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
+        $this->assertSame(0, app(FarmService::class)->progressOverview($farm, $worker, $this->team)['total']);
+        $this->assertSame(1, app(FarmService::class)->progressOverview($otherFarm, $worker, $this->team)['total']);
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
+    public function test_guest_is_redirected_to_login(): void
+    {
+        auth()->logout();
+        $this->get('/admin/farm-management')->assertRedirect('/login');
+        $this->get('/admin/farm-management/create')->assertRedirect('/login');
+    }
+
+    public function test_admin_can_create_edit_read_and_delete_through_inertia(): void
+    {
+        $this->get('/admin/farm-management/create')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Form')->where('farm', null)->where('team.id', $this->team->id));
+        $this->post('/admin/farm-management', $this->payload())->assertRedirect();
+        $farm = Farm::query()->firstOrFail();
+        $this->assertSame($this->team->id, $farm->team_id);
+        $this->assertSame($this->admin->id, $farm->created_by);
+        $this->get('/admin/farm-management/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Show')->where('farm.name', 'Kebun Pertiwi')->where('can.update', true));
+        $this->get('/admin/farm-management/'.$farm->id.'/edit')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Form')->where('farm.id', $farm->id));
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload(['name' => 'Kebun Pertiwi Utara']))
+            ->assertRedirect('/admin/farm-management/'.$farm->id);
+        $this->assertSame('Kebun Pertiwi Utara', $farm->fresh()->name);
+        $this->delete('/admin/farm-management/'.$farm->id)->assertRedirect('/admin/farm-management');
+        $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
+    }
+
+    public function test_admin_can_set_a_team_sop_as_the_farm_default(): void
+    {
+        $commodity = Commodity::query()->create(['name' => 'Jagung']);
+        $sop = app(SopTemplateService::class)->create($this->admin, $this->team, [
+            'commodity_id' => $commodity->id,
+            'name' => 'SOP Jagung',
+            'description' => null,
+            'is_active' => true,
+        ]);
+
+        $this->post('/admin/farm-management', $this->payload(['default_sop_template_id' => $sop->id]))
+            ->assertRedirect();
+        $farm = Farm::query()->firstOrFail();
+        $this->assertSame($sop->id, $farm->default_sop_template_id);
+        $this->get('/admin/farm-management/create')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('farms/Form')
+                ->where('sops.0.id', $sop->id)
+                ->where('sops.0.commodity.name', 'Jagung'));
+        $this->get('/admin/farm-management/'.$farm->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('farms/Show')
+                ->where('farm.default_sop.id', $sop->id)
+                ->where('farm.default_sop.commodity.name', 'Jagung'));
+
+        $otherTeam = Team::query()->create(['name' => 'Tim lain']);
+        $foreign = app(SopTemplateService::class)->create($this->admin, $otherTeam, [
+            'commodity_id' => $commodity->id,
+            'name' => 'SOP Tim Lain',
+            'description' => null,
+            'is_active' => true,
+        ]);
+        $this->from('/admin/farm-management/'.$farm->id.'/edit')
+            ->put('/admin/farm-management/'.$farm->id, $this->payload(['default_sop_template_id' => $foreign->id]))
+            ->assertSessionHasErrors('default_sop_template_id');
+        $this->assertSame($sop->id, $farm->fresh()->default_sop_template_id);
+    }
+
+    public function test_lists_summary_filters_and_pagination_are_scoped_to_the_team(): void
+    {
+        $this->farm(['name' => 'Jagung 100%', 'total_area_ha' => '5']);
+        $this->farm(['name' => 'Kebun Selatan', 'total_area_ha' => '8']);
+        $otherTeam = Team::query()->create(['name' => 'Tim lain']);
+        app(FarmService::class)->create($this->payload(['name' => 'Rahasia', 'total_area_ha' => '100']), $this->admin, $otherTeam);
+        $this->get('/admin/farm-management?per_page=1')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Index')->has('farms.data', 1)->where('farms.total', 2)
+            ->where('summary.count', 2)->where('summary.area_ha', '13.0000')->where('summary.cities', 1));
+        $this->get('/admin/farm-management?search=%25')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('farms.total', 1)->where('farms.data.0.name', 'Jagung 100%'));
+        $this->get('/admin/farm-management?sort=total_area_ha&direction=desc')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('farms.data.0.name', 'Kebun Selatan'));
+    }
+
+    public function test_admin_list_queries_do_not_grow_with_the_page_size(): void
+    {
+        config(['inertia.ssr.enabled' => false]);
+        for ($i = 1; $i <= 100; $i++) {
+            $this->farm(['name' => sprintf('Kebun %03d', $i), 'total_area_ha' => '1']);
+        }
+        $otherTeam = Team::query()->create(['name' => 'Tim privat', 'is_personal' => false]);
+        app(FarmService::class)->create($this->payload(['name' => 'Kebun privat', 'total_area_ha' => '1000']), $this->admin, $otherTeam);
+
+        // Warm framework caches, then use a fresh actor for each full HTTP request.
+        $this->actingAs($this->admin->fresh())->get('/admin/farm-management')->assertOk();
+        $counts = [];
+        foreach ([1, 15, 100] as $size) {
+            $this->actingAs($this->admin->fresh());
+            $connection = DB::connection();
+            $connection->flushQueryLog();
+            $connection->enableQueryLog();
+            try {
+                $response = $this->get('/admin/farm-management?per_page='.$size)->assertOk();
+                $counts[$size] = count($connection->getQueryLog());
+            } finally {
+                $connection->disableQueryLog();
+                $connection->flushQueryLog();
+            }
+            $response->assertInertia(fn (Assert $page) => $page
+                ->component('farms/Index')->has('farms.data', $size)->where('farms.total', 100)
+                ->where('summary.count', 100)->where('summary.area_ha', '100.0000')
+                ->where('can.create', true)
+                ->where('farms.data', fn ($rows) => collect($rows)->every(fn ($row) => $row['name'] !== 'Kebun privat'
+                    && $row['can'] === ['update' => true, 'delete' => true, 'forceDelete' => false]
+                    && ! array_key_exists('team', $row))));
+        }
+
+        $this->assertSame($counts[1], $counts[15], 'Queries must not grow per farm row.');
+        $this->assertSame($counts[1], $counts[100], 'Large pages must retain constant query count.');
+    }
+
+    public function test_listing_does_not_reuse_membership_after_it_is_revoked(): void
+    {
+        $farm = $this->farm();
+        $this->get('/admin/farm-management')->assertOk();
+        $this->team->members()->detach($this->admin);
+
+        // Reuse the same authenticated model to catch stale permission snapshots.
+        $this->get('/admin/farm-management')->assertForbidden();
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload(['name' => 'Tidak diizinkan']))->assertForbidden();
+        $this->assertSame('Kebun Pertiwi', $farm->fresh()->name);
+    }
+
+    public function test_owner_and_petugas_cannot_enter_admin_even_with_farm_read_permission(): void
+    {
+        $farm = $this->farm();
+        $second = $this->farm(['name' => 'Kebun kedua']);
+        $owner = $this->actor('owner', $this->team);
+        $this->assertTrue(Gate::forUser($owner)->allows('view', $farm));
+        $this->actingAs($owner)->get('/admin/farm-management')->assertForbidden();
+        $this->get('/admin/farm-management/'.$farm->id)->assertForbidden();
+        $this->get('/admin/farm-management/create')->assertForbidden();
+        $this->post('/admin/farm-management', $this->payload())->assertForbidden();
+        $this->get('/admin/farm-management/'.$farm->id.'/edit')->assertForbidden();
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload())->assertForbidden();
+        $this->delete('/admin/farm-management/'.$farm->id)->assertForbidden();
+        $worker = $this->actor('petugas', $this->team);
+        $worker->forceFill(['assigned_farm_id' => $farm->id])->save();
+        $this->assertTrue(Gate::forUser($worker)->allows('view', $farm));
+        $this->assertFalse(Gate::forUser($worker)->allows('view', $second));
+        $this->assertSame(1, app(FarmService::class)->paginate($worker, $this->team, [])->total());
+        $this->actingAs($worker)->get('/admin/farm-management')->assertForbidden();
+        $this->get('/admin/farm-management/'.$farm->id)->assertForbidden();
+        $this->get('/admin/farm-management/'.$second->id)->assertForbidden();
+        $this->post('/admin/farm-management', $this->payload())->assertForbidden();
+    }
+
+    public function test_cross_team_records_and_forged_tenant_or_creator_are_rejected(): void
+    {
+        $otherTeam = Team::query()->create(['name' => 'Tim privat']);
+        $other = app(FarmService::class)->create($this->payload(), $this->admin, $otherTeam);
+        $this->get('/admin/farm-management/'.$other->id)->assertForbidden();
+        $this->get('/admin/farm-management/'.$other->id.'/edit')->assertForbidden();
+        $this->put('/admin/farm-management/'.$other->id, $this->payload())->assertForbidden();
+        $this->delete('/admin/farm-management/'.$other->id)->assertForbidden();
+        $this->post('/admin/farm-management', $this->payload(['team_id' => $otherTeam->id, 'created_by' => $this->admin->id]))
+            ->assertSessionHasErrors(['team_id', 'created_by']);
+        $foreignOwner = $this->actor('owner', $otherTeam);
+        $this->post('/admin/farm-management', $this->payload(['owner_id' => $foreignOwner->id]))->assertSessionHasErrors('owner_id');
+        $this->actor('owner', $this->team);
+        $this->get('/admin/farm-management/create')->assertInertia(fn (Assert $page) => $page
+            // Admin user visibility intentionally excludes Owner and Superadmin records.
+            ->missing('owners'));
+    }
+
+    public function test_web_validation_uses_session_errors_and_preserves_records(): void
+    {
+        $this->from('/admin/farm-management/create')->post('/admin/farm-management', $this->payload([
+            'total_area_ha' => 0, 'latitude' => '-6.25',
+        ]))->assertRedirect('/admin/farm-management/create')->assertSessionHasErrors(['total_area_ha', 'latitude']);
+        $this->assertDatabaseCount('farms', 0);
+        $farm = $this->farm();
+        $commodity = (string) Str::uuid();
+        $variety = (string) Str::uuid();
+        DB::table('commodities')->insert(['id' => $commodity, 'name' => 'Jagung']);
+        DB::table('crop_varieties')->insert(['id' => $variety, 'name' => 'Bisi', 'commodity_id' => $commodity]);
+        DB::table('planting_cycles')->insert([
+            'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'variety_id' => $variety,
+            'planted_at' => '2026-10-01', 'planted_area_ha' => 3, 'status' => 'active', 'created_at' => now(),
+        ]);
+        $this->from('/admin/farm-management/'.$farm->id.'/edit')->put('/admin/farm-management/'.$farm->id, $this->payload(['total_area_ha' => 2]))
+            ->assertSessionHasErrors('total_area_ha');
+        $this->assertSame('12.5000', $farm->fresh()->total_area_ha);
+        $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)->assertRedirect('/admin/farm-management')->assertSessionHasErrors('delete');
+        $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+    }
+
+    public function test_superadmin_can_manage_farms_and_a_missing_current_team_is_rejected(): void
+    {
+        $developer = $this->actor('superadmin', $this->team);
+        $this->actingAs($developer)->get('/admin/farm-management')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('can.create', true)->where('filters.sort', 'name'));
+        $this->post('/admin/farm-management', $this->payload())->assertRedirect();
+        $this->admin->forceFill(['current_team_id' => null])->save();
+        $this->actingAs($this->admin)->get('/admin/farm-management')->assertForbidden();
+    }
+
+    public function test_existing_daily_log_without_activities_also_blocks_deletion(): void
+    {
+        $farm = $this->farm();
+        DB::table('daily_activity_logs')->insert([
+            'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $this->admin->id,
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 2, 'created_at' => now(),
+        ]);
+        $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors('delete');
+        $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+    }
+
+    public function test_assigned_active_inactive_and_soft_deleted_workers_block_deletion_until_released(): void
+    {
+        $farm = $this->farm();
+        $workers = [];
+        foreach (['active', 'inactive', 'deleted'] as $state) {
+            $worker = $this->actor('petugas', $this->team);
+            $worker->forceFill(['assigned_farm_id' => $farm->id, 'is_active' => $state !== 'inactive'])->save();
+            if ($state === 'deleted') {
+                $worker->delete();
+            }
+            $workers[] = $worker->id;
+            $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)
+                ->assertRedirect('/admin/farm-management')->assertSessionHasErrors([
+                    'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.',
+                ]);
+            $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+            $this->assertSame($farm->id, DB::table('users')->where('id', $worker->id)->value('assigned_farm_id'));
+            // Isolate each state so a previous active account cannot hide a missing check.
+            DB::table('users')->where('id', $worker->id)->update(['assigned_farm_id' => null]);
+        }
+        $this->delete('/admin/farm-management/'.$farm->id)->assertRedirect('/admin/farm-management');
+        $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
+        $this->assertSame(3, DB::table('users')->whereIn('id', $workers)->count());
+    }
+
+    public function test_all_blocking_categories_are_reported_and_completed_history_remains_protected(): void
+    {
+        $farm = $this->farm();
+        // A previously opened page does not authorize deleting newly added records.
+        $this->get('/admin/farm-management/'.$farm->id)->assertOk();
+        $worker = $this->actor('petugas', $this->team);
+        $worker->forceFill(['assigned_farm_id' => $farm->id])->save();
+        $commodity = (string) Str::uuid();
+        $variety = (string) Str::uuid();
+        DB::table('commodities')->insert(['id' => $commodity, 'name' => 'Jagung']);
+        DB::table('crop_varieties')->insert(['id' => $variety, 'commodity_id' => $commodity, 'name' => 'Bisi 18']);
+        DB::table('planting_cycles')->insert([
+            'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'variety_id' => $variety,
+            'planted_at' => '2026-06-01', 'planted_area_ha' => 3, 'status' => 'harvested', 'created_at' => now(),
+        ]);
+        DB::table('daily_activity_logs')->insert([
+            'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $worker->id,
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 1, 'created_at' => now(),
+        ]);
+        $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
+            'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',
+        ]);
+        $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+        $this->assertDatabaseHas('planting_cycles', ['farm_id' => $farm->id, 'status' => 'harvested']);
+        $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $farm->id]);
+        $worker->forceFill(['assigned_farm_id' => null])->save();
+        $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
+            'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: siklus tanam, logbook harian. Histori operasional tetap dipertahankan.',
+        ]);
+    }
+
+    public function test_superadmin_cannot_bypass_assignment_integrity_guard(): void
+    {
+        $farm = $this->farm();
+        $worker = $this->actor('petugas', $this->team);
+        $worker->forceFill(['assigned_farm_id' => $farm->id])->save();
+        $this->actingAs($this->actor('superadmin', $this->team));
+        $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors('delete');
+        $this->assertDatabaseHas('farms', ['id' => $farm->id]);
+        $this->assertSame($farm->id, $worker->fresh()->assigned_farm_id);
+    }
+
+    public function test_empty_farms_can_be_deleted_regardless_of_land_tenure(): void
+    {
+        foreach ([null, 'owned', 'rented', 'partnership'] as $tenure) {
+            $farm = $this->farm(['land_tenure' => $tenure]);
+            $this->delete('/admin/farm-management/'.$farm->id)->assertRedirect('/admin/farm-management');
+            $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
+        }
+    }
+
+    public function test_tenure_and_selected_pin_are_persisted_and_returned_on_all_farm_pages(): void
+    {
+        foreach (['owned', 'rented', 'partnership'] as $tenure) {
+            $response = $this->post('/admin/farm-management', $this->payload([
+                'name' => 'Kebun '.$tenure, 'land_tenure' => $tenure,
+                'latitude' => '-6.5965123', 'longitude' => '106.9502123',
+            ]))->assertRedirect();
+            $farm = Farm::query()->where('name', 'Kebun '.$tenure)->firstOrFail();
+            $response->assertRedirect('/admin/farm-management/'.$farm->id);
+            $this->assertSame($tenure, $farm->land_tenure);
+            foreach (['', '/edit'] as $suffix) {
+                $this->get('/admin/farm-management/'.$farm->id.$suffix)->assertInertia(fn (Assert $page) => $page
+                    ->where('farm.land_tenure', $tenure)->where('farm.latitude', '-6.5965123')->where('farm.longitude', '106.9502123'));
+            }
+        }
+        $this->get('/admin/farm-management')->assertInertia(fn (Assert $page) => $page
+            ->where('farms.data.0.land_tenure', 'owned')->where('farms.data.1.land_tenure', 'partnership')->where('farms.data.2.land_tenure', 'rented'));
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload([
+            'land_tenure' => 'owned', 'latitude' => null, 'longitude' => null,
+        ]))->assertRedirect();
+        $this->assertSame('owned', $farm->fresh()->land_tenure);
+        $this->assertNull($farm->fresh()->latitude);
+        $this->assertNull($farm->fresh()->longitude);
+    }
+
+    public function test_new_farms_require_a_recognized_tenure_and_invalid_changes_preserve_data(): void
+    {
+        foreach ([null, '', 'freehold', ['owned']] as $invalid) {
+            $this->post('/admin/farm-management', $this->payload(['land_tenure' => $invalid]))
+                ->assertSessionHasErrors('land_tenure');
+        }
+        $missing = $this->payload();
+        unset($missing['land_tenure']);
+        $this->post('/admin/farm-management', $missing)->assertSessionHasErrors('land_tenure');
+        $this->assertDatabaseCount('farms', 0);
+        $farm = $this->farm();
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload([
+            'land_tenure' => 'invalid', 'latitude' => 91, 'longitude' => 181,
+        ]))->assertSessionHasErrors(['land_tenure', 'latitude', 'longitude']);
+        $this->assertSame('owned', $farm->fresh()->land_tenure);
+        $this->assertNull($farm->fresh()->latitude);
+    }
+
+    public function test_legacy_tenure_is_not_guessed_and_can_be_completed_later(): void
+    {
+        $data = $this->payload();
+        unset($data['land_tenure']);
+        $farm = app(FarmService::class)->create($data, $this->admin, $this->team);
+        $this->assertNull($farm->land_tenure);
+        $this->get('/admin/farm-management/'.$farm->id)->assertInertia(fn (Assert $page) => $page->where('farm.land_tenure', null));
+        $this->patch('/admin/farm-management/'.$farm->id, ['name' => 'Kebun historis'])->assertRedirect();
+        $this->assertNull($farm->fresh()->land_tenure);
+        $this->patch('/admin/farm-management/'.$farm->id, ['land_tenure' => 'partnership'])->assertRedirect();
+        $this->assertSame('partnership', $farm->fresh()->land_tenure);
+    }
+
+    public function test_additive_tenure_migration_preserves_existing_farms_and_enforces_values(): void
+    {
+        $farm = $this->farm(['latitude' => '-6.5965000', 'longitude' => '106.9502000']);
+        $migration = require database_path('migrations/2026_10_29_130000_add_land_tenure_to_farms_table.php');
+        $migration->down();
+        $migration->up();
+        $farm->refresh();
+        $this->assertNull($farm->land_tenure);
+        $this->assertSame('Kebun Pertiwi', $farm->name);
+        $this->assertSame('-6.5965000', $farm->latitude);
+        $this->assertSame('106.9502000', $farm->longitude);
+        try {
+            DB::transaction(fn () => DB::table('farms')->where('id', $farm->id)->update(['land_tenure' => 'invalid']));
+            $this->fail('PostgreSQL must reject an unrecognized tenure.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23514', (string) $exception->getCode());
+        }
+        $this->assertNull($farm->fresh()->land_tenure);
+    }
+
+    public function test_partnership_upgrade_preserves_tenures_and_rollback_does_not_relabel_farms(): void
+    {
+        $migration = require database_path('migrations/2026_10_29_140000_allow_partnership_land_tenure_on_farms.php');
+        $legacy = $this->farm(['land_tenure' => null]);
+        $owned = $this->farm(['land_tenure' => 'owned']);
+        $rented = $this->farm(['land_tenure' => 'rented']);
+        $migration->down();
+        try {
+            DB::transaction(fn () => DB::table('farms')->where('id', $owned->id)->update(['land_tenure' => 'partnership']));
+            $this->fail('The previous constraint must reject partnership.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23514', (string) $exception->getCode());
+        }
+        $migration->up();
+        $this->assertNull($legacy->fresh()->land_tenure);
+        $this->assertSame('owned', $owned->fresh()->land_tenure);
+        $this->assertSame('rented', $rented->fresh()->land_tenure);
+        $partnership = $this->farm(['land_tenure' => 'partnership']);
+        foreach (['invalid', 'cooperative'] as $invalid) {
+            try {
+                DB::transaction(fn () => DB::table('farms')->where('id', $partnership->id)->update(['land_tenure' => $invalid]));
+                $this->fail('The expanded constraint must reject unknown values.');
+            } catch (QueryException $exception) {
+                $this->assertSame('23514', (string) $exception->getCode());
+            }
+        }
+        try {
+            DB::transaction(fn () => $migration->down());
+            $this->fail('Rollback must refuse existing partnership farms.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23514', (string) $exception->getCode());
+        }
+        $this->assertSame('partnership', $partnership->fresh()->land_tenure);
+        // Failed rollback keeps the expanded constraint available for new records.
+        $this->assertSame('partnership', $this->farm(['land_tenure' => 'partnership'])->fresh()->land_tenure);
+    }
+
+    private function actor(string $role, Team $team): User
+    {
+        $record = Role::query()->firstOrCreate(['name' => $role]);
+        $user = new User(['name' => ucfirst($role), 'email' => Str::uuid().'@example.test', 'password' => 'password']);
+        $user->forceFill(['role_id' => $record->id, 'current_team_id' => $team->id, 'email_verified_at' => now()])->save();
+        $team->members()->attach($user, ['role' => TeamRole::Member->value]);
+
+        return $user;
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function farm(array $overrides = []): Farm
+    {
+        return app(FarmService::class)->create($this->payload($overrides), $this->admin, $this->team);
+    }
+
+    /** @param array<string, mixed> $overrides @return array<string, mixed> */
+    private function payload(array $overrides = []): array
+    {
+        return array_replace(['name' => 'Kebun Pertiwi', 'land_tenure' => 'owned', 'total_area_ha' => '12.5000', 'city' => 'Bogor', 'province' => 'Jawa Barat'], $overrides);
+    }
+}

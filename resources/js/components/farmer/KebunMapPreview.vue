@@ -103,7 +103,7 @@ const rupiah = (value: number) =>
                         {{ rupiah(kebun.projectedRevenue) }}
                     </p>
                     <p class="mt-1 text-[11px] text-muted-foreground">
-                        Estimasi demo · Panen {{ kebun.harvestAt }}
+                        Estimasi referensi · Panen {{ kebun.harvestAt }}
                     </p>
                 </section>
                 <Link

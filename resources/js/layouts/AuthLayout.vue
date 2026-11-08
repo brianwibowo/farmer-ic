@@ -1,14 +1,24 @@
 <script setup lang="ts">
-import AuthLayout from '@/layouts/auth/AuthSimpleLayout.vue';
+import AuthLoginLayout from '@/layouts/auth/AuthLoginLayout.vue';
+import AuthSimpleLayout from '@/layouts/auth/AuthSimpleLayout.vue';
 
-const { title = '', description = '' } = defineProps<{
+const {
+    title = '',
+    description = '',
+    variant = 'simple',
+} = defineProps<{
     title?: string;
     description?: string;
+    variant?: 'simple' | 'login';
 }>();
 </script>
 
 <template>
-    <AuthLayout :title="title" :description="description">
+    <component
+        :is="variant === 'login' ? AuthLoginLayout : AuthSimpleLayout"
+        :title="title"
+        :description="description"
+    >
         <slot />
-    </AuthLayout>
+    </component>
 </template>

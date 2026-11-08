@@ -11,10 +11,11 @@ import {
 } from '@/data/farmDemo';
 import type { ActivityLog } from '@/data/activityLogs';
 import type { FinanceTransaction } from '@/data/farmerFinance';
+import { getGrowthProfile, getGrowthStageAtPercent } from '@/data/growthStages';
 
 // Bump the demo snapshot version whenever the unified JSON seed changes so an
 // existing browser session receives the latest demo data.
-const storageKey = 'farm_state_v17';
+const storageKey = 'farm_state_v19';
 
 export type DashboardFinancialSummary = {
     income: number;
@@ -262,7 +263,7 @@ export async function getDashboardFinancialSummary(): Promise<DashboardFinancial
         projectedExpenses: state.finance.totalExpense,
         information: {
             income: {
-                description: `Total pendapatan kebun dalam data keuangan pada periode ini.${includesPlans('income') ? ' Data demo juga mencakup transaksi pendapatan yang masih direncanakan.' : ''}`,
+                description: `Total pendapatan kebun dalam data keuangan pada periode ini.${includesPlans('income') ? ' Data referensi juga mencakup transaksi pendapatan yang masih direncanakan.' : ''}`,
                 period: incomePeriod,
             },
             projectedIncome: {
@@ -271,12 +272,12 @@ export async function getDashboardFinancialSummary(): Promise<DashboardFinancial
                 period: harvestPeriod,
             },
             expenses: {
-                description: `Total biaya kebun dalam data keuangan pada periode ini.${includesPlans('expense') ? ' Data demo juga mencakup transaksi pengeluaran yang masih direncanakan.' : ''}`,
+                description: `Total biaya kebun dalam data keuangan pada periode ini.${includesPlans('expense') ? ' Data referensi juga mencakup transaksi pengeluaran yang masih direncanakan.' : ''}`,
                 period: expensePeriod,
             },
             projectedExpenses: {
                 description:
-                    'Estimasi biaya kebun. Pada data demo saat ini, nilainya menggunakan total pengeluaran pada periode ini sebagai acuan.',
+                    'Estimasi biaya kebun. Pada data referensi saat ini, nilainya menggunakan total pengeluaran pada periode ini sebagai acuan.',
                 period: expensePeriod,
             },
         },
@@ -609,25 +610,29 @@ export function buildFarmReport(
                 .reduce((total, transaction) => total + transaction.amount, 0),
         };
     });
-    const financeFarms = kebunWithInsight.map(({ item, insight }) => ({
-        id: item.id,
-        name: item.name,
-        crop: item.seedType === 'Rumput' ? 'Rumput odot' : item.seedType,
-        phase:
-            insight.growth >= 80
-                ? 'Menjelang panen'
-                : insight.growth >= 60
-                  ? 'Vegetatif aktif'
-                  : 'Pertumbuhan awal',
-        revenue: insight.revenue,
-        expenses: insight.expenses,
-        roi: insight.expenses
-            ? Math.round(
-                  ((insight.revenue - insight.expenses) / insight.expenses) *
-                      100,
-              )
-            : 0,
-    }));
+    const financeFarms = kebunWithInsight.map(({ item, insight }) => {
+        const profile = getGrowthProfile(item.seedType, item.seedTypeDetail);
+        const phase = getGrowthStageAtPercent(
+            profile,
+            insight.growth,
+        ).shortLabel;
+
+        return {
+            id: item.id,
+            name: item.name,
+            crop: item.seedType === 'Rumput' ? 'Rumput odot' : item.seedType,
+            phase,
+            revenue: insight.revenue,
+            expenses: insight.expenses,
+            roi: insight.expenses
+                ? Math.round(
+                      ((insight.revenue - insight.expenses) /
+                          insight.expenses) *
+                          100,
+                  )
+                : 0,
+        };
+    });
 
     const harvestItems = kebunWithInsight
         .map(({ item, insight }) => {
@@ -663,10 +668,10 @@ export function buildFarmReport(
         .slice(0, 3);
     const stageLabels = [
         'Kecambah',
-        'Bibit awal',
-        'Vegetatif aktif',
+        'Vegetatif',
         'Pembungaan',
-        'Pengisian & panen',
+        'Reproduktif',
+        'Panen',
     ];
     const growthStages = stageLabels.map((label, index) => ({
         label,

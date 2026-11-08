@@ -16,29 +16,37 @@ class DashboardTest extends TestCase
 
     public function test_guests_are_redirected_to_the_login_page()
     {
-        $user = User::factory()->create();
-        $team = $user->currentTeam;
-
-        $response = $this->get(route('dashboard'));
+        $response = $this->get(route('admin.dashboard'));
         $response->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_users_can_visit_the_dashboard()
+    public function test_admins_can_visit_the_dashboard()
     {
-        $user = User::factory()->create();
-        $team = $user->currentTeam;
+        $user = $this->tenantAdmin();
 
         $response = $this
             ->actingAs($user)
-            ->get(route('dashboard'));
+            ->get(route('admin.dashboard'));
 
         $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard')
+            ->has('dashboard.metrics', 4)
+            ->has('dashboard.activity.days', 7)
+            ->has('dashboard.activity.farms')
+            ->has('dashboard.commodities')
+            ->has('dashboard.financial')
+            ->has('dashboard.landMap.farms')
+            ->has('dashboard.activities')
+            ->has('dashboard.officers')
+            ->has('dashboard.tasks')
+        );
     }
 
     public function test_dashboard_includes_pending_invitations_for_the_authenticated_user()
     {
         $owner = User::factory()->create(['name' => 'Taylor Otwell']);
-        $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $invitedUser = $this->tenantAdmin(['email' => 'invited@example.com']);
         $team = Team::factory()->create(['name' => 'Laravel Team']);
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -51,7 +59,7 @@ class DashboardTest extends TestCase
 
         $response = $this
             ->actingAs($invitedUser)
-            ->get(route('dashboard'));
+            ->get(route('admin.dashboard'));
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
@@ -68,7 +76,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_does_not_include_accepted_invitations()
     {
         $owner = User::factory()->create();
-        $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $invitedUser = $this->tenantAdmin(['email' => 'invited@example.com']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -81,7 +89,7 @@ class DashboardTest extends TestCase
 
         $response = $this
             ->actingAs($invitedUser)
-            ->get(route('dashboard'));
+            ->get(route('admin.dashboard'));
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
@@ -93,7 +101,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_excludes_expired_invitations_without_deleting_them()
     {
         $owner = User::factory()->create();
-        $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $invitedUser = $this->tenantAdmin(['email' => 'invited@example.com']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -106,7 +114,7 @@ class DashboardTest extends TestCase
 
         $response = $this
             ->actingAs($invitedUser)
-            ->get(route('dashboard'));
+            ->get(route('admin.dashboard'));
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
@@ -122,7 +130,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_does_not_include_or_delete_other_users_invitations()
     {
         $owner = User::factory()->create();
-        $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
+        $invitedUser = $this->tenantAdmin(['email' => 'invited@example.com']);
         $team = Team::factory()->create();
 
         $team->members()->attach($owner, ['role' => TeamRole::Owner->value]);
@@ -135,7 +143,7 @@ class DashboardTest extends TestCase
 
         $response = $this
             ->actingAs($invitedUser)
-            ->get(route('dashboard'));
+            ->get(route('admin.dashboard'));
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
@@ -146,5 +154,16 @@ class DashboardTest extends TestCase
         $this->assertDatabaseHas('team_invitations', [
             'id' => $invitation->id,
         ]);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function tenantAdmin(array $attributes = []): User
+    {
+        $user = User::factory()->create([...$attributes, 'role' => 'admin']);
+        $team = Team::factory()->create(['is_personal' => false]);
+        $team->members()->attach($user, ['role' => TeamRole::Member->value]);
+        $user->switchTeam($team);
+
+        return $user;
     }
 }

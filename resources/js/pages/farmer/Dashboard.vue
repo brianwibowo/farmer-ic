@@ -3,8 +3,7 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
 import KebunMap from '@/components/farmer/KebunMap.vue';
-import { dashboard } from '@/routes';
-import type { DashboardInvitation, Team } from '@/types';
+import type { DashboardInvitation } from '@/types';
 
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import FinancialOverviewDashboard from '@/components/farmer/FinancialOverviewDashboard.vue';
@@ -21,16 +20,14 @@ defineProps<{
 }>();
 
 defineOptions({
-    layout: (props: { currentTeam?: Team | null }) => ({
+    layout: {
         breadcrumbs: [
             {
                 title: 'Dashboard',
-                href: props.currentTeam
-                    ? dashboard(props.currentTeam.slug)
-                    : '/',
+                href: '/',
             },
         ],
-    }),
+    },
 });
 </script>
 

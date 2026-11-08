@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
-use Laravel\Fortify\Features;
 use Tests\TestCase;
 
 class SecurityTest extends TestCase
@@ -15,28 +14,22 @@ class SecurityTest extends TestCase
 
     public function test_security_page_is_displayed()
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
-
+        // The implemented screen is password settings; 2FA being disabled must not skip it.
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->get(route('security.edit'))
+            ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/Security')
-                ->where('canManageTwoFactor', true)
-                ->where('twoFactorEnabled', false),
+                ->has('passwordRules')
+                ->missing('canManageTwoFactor')
+                ->missing('twoFactorEnabled'),
             );
     }
 
     public function test_security_page_renders_without_two_factor_when_feature_is_disabled()
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
         config(['fortify.features' => []]);
 
         $user = User::factory()->create();
@@ -46,10 +39,27 @@ class SecurityTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/Security')
-                ->where('canManageTwoFactor', false)
+                ->has('passwordRules')
+                ->missing('canManageTwoFactor')
                 ->missing('twoFactorEnabled')
                 ->missing('requiresConfirmation'),
             );
+    }
+
+    public function test_owner_and_petugas_receive_the_mobile_security_presentation(): void
+    {
+        foreach (['owner', 'petugas'] as $role) {
+            $user = User::factory()->create(['role' => $role]);
+
+            $this->actingAs($user)
+                ->get(route('security.edit'))
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('securityPresentation', [
+                        'surface' => 'mobile',
+                        'returnUrl' => '/settings/profile',
+                    ]));
+        }
     }
 
     public function test_password_can_be_updated()

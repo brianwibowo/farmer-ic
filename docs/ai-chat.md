@@ -54,9 +54,10 @@ first and falls back to the browser voice if that request is unavailable.
 
 ## Streaming deployment
 
-Chat responses use Server-Sent Events. The included `Caddyfile` disables
-reverse-proxy buffering for AI message streams. Any alternate reverse proxy
-must provide equivalent flush behavior for `/{team}/ai/messages`.
+Chat responses use Server-Sent Events. The production Compose stack uses
+`https-portal`; verify that its actual Nginx configuration flushes
+`/{team}/ai/messages` responses without buffering before a release. An HTTP
+health check alone does not verify streaming behavior.
 
 ## Verification
 

@@ -25,7 +25,7 @@ class KnowledgeService
             ->orderBy('id')
             ->get(['id', 'title', 'content', 'content_hash']) ?? collect();
         $adaptive = $published
-            ->map(fn (AiKnowledgeDocument $document): string => "## {$document->title}\n{$document->content}")
+            ->map(fn (AiKnowledgeDocument $document): string => '## '.$this->demoData->displayTitle($document->title)."\n{$document->content}")
             ->implode("\n\n");
 
         return [
@@ -72,9 +72,9 @@ class KnowledgeService
         if ($demoGuides !== null) {
             $documents[] = [
                 'id' => 'demo-agronomy-guides',
-                'title' => 'Panduan agronomi demo Farmer IC',
+                'title' => 'Panduan agronomi referensi',
                 'content' => $demoGuides,
-                'source' => 'Knowledge base Farmer IC · demo agronomy guide',
+                'source' => 'Basis pengetahuan · panduan agronomi referensi',
                 'version' => 'demo-v1',
             ];
         }
@@ -87,9 +87,9 @@ class KnowledgeService
         foreach ($published as $document) {
             $documents[] = [
                 'id' => $document->id,
-                'title' => $document->title,
+                'title' => $this->demoData->displayTitle($document->title),
                 'content' => $document->content,
-                'source' => $document->source ?: 'Knowledge team Farmer IC',
+                'source' => $this->displaySource($document->source ?: 'Knowledge team Farmer IC'),
                 'version' => $document->version,
             ];
         }
@@ -99,12 +99,41 @@ class KnowledgeService
                 'id' => $document['id'],
                 'title' => $document['title'],
                 'content' => $document['content'],
-                'source' => 'Knowledge base Farmer IC · farmDemoData.json origin/dev',
+                'source' => 'Dataset referensi pertanian',
                 'version' => 'origin-dev-v2',
             ];
         }
 
         return $documents;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $documents
+     * @return array<int, array<string, mixed>>
+     */
+    public function displayDocuments(array $documents): array
+    {
+        return array_map(function (array $document): array {
+            if (isset($document['title'])) {
+                $document['title'] = $this->demoData->displayTitle((string) $document['title']);
+            }
+            if (isset($document['source'])) {
+                $document['source'] = $this->displaySource((string) $document['source']);
+            }
+
+            return $document;
+        }, $documents);
+    }
+
+    private function displaySource(string $source): string
+    {
+        return match ($source) {
+            'farmDemoData.json origin/dev',
+            'Knowledge base Farmer IC · farmDemoData.json origin/dev' => 'Dataset referensi pertanian',
+            'Knowledge base Farmer IC · demo agronomy guide' => 'Basis pengetahuan · panduan agronomi referensi',
+            'Farmer IC finance demo dataset' => 'Dataset referensi keuangan',
+            default => $source,
+        };
     }
 
     protected function read(string $key): string

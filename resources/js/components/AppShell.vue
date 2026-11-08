@@ -5,6 +5,7 @@ import type { AppVariant } from '@/types';
 
 type Props = {
     variant?: AppVariant;
+    admin?: boolean;
 };
 
 withDefaults(defineProps<Props>(), {
@@ -18,7 +19,11 @@ const isOpen = usePage().props.sidebarOpen;
     <div v-if="variant === 'header'" class="flex min-h-screen w-full flex-col">
         <slot />
     </div>
-    <SidebarProvider v-else :default-open="isOpen">
+    <SidebarProvider
+        v-else
+        :default-open="isOpen"
+        :mobile-breakpoint="admin ? 1023 : 768"
+    >
         <slot />
     </SidebarProvider>
 </template>

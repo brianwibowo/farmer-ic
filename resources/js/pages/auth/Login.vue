@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, Link } from '@inertiajs/vue3';
+import { LockKeyhole, Mail } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TeamInvitationAlert from '@/components/TeamInvitationAlert.vue';
-import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,9 @@ import type { TeamInvitationContext } from '@/types';
 
 defineOptions({
     layout: {
+        variant: 'login',
         title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        description: 'Welcome back! Please enter your details.',
     },
 });
 
@@ -32,7 +33,8 @@ defineProps<{
 
     <div
         v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
+        role="status"
+        class="mb-6 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success"
     >
         {{ status }}
     </div>
@@ -41,70 +43,108 @@ defineProps<{
         v-if="teamInvitation"
         :invitation="teamInvitation"
         action="Log in"
+        class="mb-6"
     />
 
     <Form
         v-bind="store.form()"
         :reset-on-success="['password']"
         v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+        class="space-y-6"
     >
-        <div class="grid gap-6">
-            <div class="grid gap-2">
-                <Label for="email">Email address</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    name="email"
-                    required
-                    v-focus
-                    :tabindex="1"
-                    autocomplete="email"
-                    placeholder="email@example.com"
-                />
-                <InputError :message="errors.email" />
-            </div>
-
-            <div class="grid gap-2">
-                <div class="flex items-center justify-between">
-                    <Label for="password">Password</Label>
-                    <TextLink
-                        v-if="canResetPassword"
-                        :href="request()"
-                        class="text-sm"
-                        :tabindex="5"
-                    >
-                        Forgot password?
-                    </TextLink>
+        <div class="space-y-5" :aria-busy="processing">
+            <div class="space-y-2">
+                <Label for="email" class="text-sm font-medium">Email</Label>
+                <div class="relative">
+                    <Mail
+                        aria-hidden="true"
+                        class="pointer-events-none absolute top-1/2 left-3.5 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                        id="email"
+                        type="email"
+                        name="email"
+                        required
+                        v-focus
+                        autocomplete="email"
+                        autocapitalize="none"
+                        :spellcheck="false"
+                        placeholder="Enter your email"
+                        class="h-12 rounded-xl bg-background pl-10 text-base shadow-none md:text-sm"
+                        :aria-invalid="Boolean(errors.email)"
+                        :aria-describedby="
+                            errors.email ? 'email-error' : undefined
+                        "
+                    />
                 </div>
-                <PasswordInput
-                    id="password"
-                    name="password"
-                    required
-                    :tabindex="2"
-                    autocomplete="current-password"
-                    placeholder="Password"
+                <InputError
+                    id="email-error"
+                    :message="errors.email"
+                    role="alert"
+                    class="[&_p]:text-error"
                 />
-                <InputError :message="errors.password" />
             </div>
 
-            <div class="flex items-center justify-between">
-                <Label for="remember" class="flex items-center space-x-3">
-                    <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Remember me</span>
-                </Label>
+            <div class="space-y-2">
+                <Label for="password" class="text-sm font-medium"
+                    >Password</Label
+                >
+                <div class="relative">
+                    <LockKeyhole
+                        aria-hidden="true"
+                        class="pointer-events-none absolute top-1/2 left-3.5 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <PasswordInput
+                        id="password"
+                        name="password"
+                        required
+                        autocomplete="current-password"
+                        :toggle-tabindex="0"
+                        placeholder="Enter your password"
+                        class="h-12 rounded-xl bg-background pl-10 text-base shadow-none md:text-sm"
+                        :aria-invalid="Boolean(errors.password)"
+                        :aria-describedby="
+                            errors.password ? 'password-error' : undefined
+                        "
+                    />
+                </div>
+                <InputError
+                    id="password-error"
+                    :message="errors.password"
+                    role="alert"
+                    class="[&_p]:text-error"
+                />
             </div>
 
-            <Button
-                type="submit"
-                class="mt-4 w-full"
-                :tabindex="4"
-                :disabled="processing"
-                data-test="login-button"
+            <div
+                class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-1"
             >
-                <Spinner v-if="processing" />
-                Log in
-            </Button>
+                <Label
+                    for="remember"
+                    class="flex cursor-pointer items-center gap-2.5"
+                >
+                    <Checkbox id="remember" name="remember" />
+                    <span class="text-sm font-normal text-muted-foreground"
+                        >Remember me</span
+                    >
+                </Label>
+                <Link
+                    v-if="canResetPassword"
+                    :href="request()"
+                    class="rounded-sm text-sm font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring dark:text-primary"
+                >
+                    Forgot password?
+                </Link>
+            </div>
         </div>
+        <Button
+            type="submit"
+            class="h-12 w-full rounded-xl bg-secondary text-base font-semibold text-secondary-foreground hover:bg-secondary/90 active:bg-secondary/80"
+            :disabled="processing"
+            data-test="login-button"
+        >
+            <Spinner v-if="processing" aria-hidden="true" />
+            {{ processing ? 'Logging in…' : 'Log in' }}
+        </Button>
     </Form>
 </template>

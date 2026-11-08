@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import FarmerNavIcon from './FarmerNavIcon.vue';
 
@@ -7,11 +7,13 @@ export type FarmerNavKey =
     | 'home'
     | 'garden'
     | 'ai'
+    | 'projection'
     | 'finance'
     | 'activity'
+    | 'more'
     | 'report';
 
-type FarmerNavItem = {
+export type FarmerNavItem = {
     key: FarmerNavKey;
     label: string;
     href?: string;
@@ -20,6 +22,7 @@ type FarmerNavItem = {
 
 type Props = {
     activeKey?: FarmerNavKey;
+    items?: FarmerNavItem[];
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -30,16 +33,55 @@ const emit = defineEmits<{
     select: [key: FarmerNavKey];
 }>();
 
-const items: FarmerNavItem[] = [
+const ownerItems: FarmerNavItem[] = [
     { key: 'home', label: 'Beranda', href: '/' },
-    { key: 'garden', label: 'Kebun', href: '/kebun' },
-    { key: 'ai', label: 'AI', emphasis: true, href: '/kebun-petani/ai' },
-    { key: 'finance', label: 'Keuangan', href: '/finance' },
-    { key: 'activity', label: 'Aktivitas', href: '/aktivitas' },
-    // { key: 'report', label: 'Laporan', href: '/laporan' },
+    { key: 'projection', label: 'Proyeksi', emphasis: true, href: '/proyeksi' },
+    { key: 'more', label: 'Lainnya', href: '/lainnya' },
 ];
 
-const active = computed(() => props.activeKey);
+const page = usePage();
+const navigationItems = computed<FarmerNavItem[]>(() => {
+    if (props.items) return props.items;
+    if (page.props.navigation?.admin && props.activeKey !== 'ai') {
+        return [
+            { key: 'home', label: 'Beranda', href: '/admin/dashboard' },
+            ...(page.props.navigation.farms
+                ? [
+                      {
+                          key: 'garden' as const,
+                          label: 'Kebun',
+                          href: '/admin/farm-management',
+                      },
+                  ]
+                : []),
+            { key: 'finance', label: 'Keuangan', href: '/finance' },
+            ...(page.props.navigation.users
+                ? [
+                      {
+                          key: 'more' as const,
+                          label: 'Pengguna',
+                          href: '/admin/user-management',
+                      },
+                  ]
+                : []),
+        ];
+    }
+    if (page.props.navigation?.petugas && props.activeKey !== 'ai') {
+        return [
+            { key: 'home', label: 'Beranda', href: '/petugas' },
+            { key: 'garden', label: 'Kebun', href: '/petugas/kebun' },
+            { key: 'activity', label: 'Aktivitas', href: '/petugas/aktivitas' },
+            { key: 'report', label: 'Laporan', href: '/petugas/laporan' },
+        ];
+    }
+    return ownerItems;
+});
+const active = computed<FarmerNavKey>(() =>
+    navigationItems.value === ownerItems &&
+    !ownerItems.some((item) => item.key === props.activeKey)
+        ? 'more'
+        : props.activeKey,
+);
 
 function select(key: FarmerNavKey): void {
     emit('select', key);
@@ -51,9 +93,14 @@ function select(key: FarmerNavKey): void {
         aria-label="Navigasi utama"
         class="farmer-bottom-nav relative z-10 shrink-0 rounded-t-[18px] bg-card px-2"
     >
-        <ul class="grid h-[76px] grid-cols-5 items-end">
+        <ul
+            class="grid h-[76px] items-end"
+            :style="{
+                gridTemplateColumns: `repeat(${navigationItems.length}, minmax(0, 1fr))`,
+            }"
+        >
             <li
-                v-for="item in items"
+                v-for="item in navigationItems"
                 :key="item.key"
                 class="flex h-full items-end justify-center"
             >
@@ -61,7 +108,13 @@ function select(key: FarmerNavKey): void {
                     :is="item.href ? Link : 'button'"
                     :href="item.href"
                     :type="item.href ? undefined : 'button'"
-                    :aria-current="active === item.key ? 'page' : undefined"
+                    :aria-current="
+                        active === item.key
+                            ? active === props.activeKey
+                                ? 'page'
+                                : 'location'
+                            : undefined
+                    "
                     :aria-label="item.label"
                     :class="[
                         'flex w-full shrink-0 flex-col items-center justify-center gap-1.5 text-[10px] leading-tight font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring min-[390px]:text-[11px]',

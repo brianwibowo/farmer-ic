@@ -17,33 +17,6 @@ enum TeamRole: string
     }
 
     /**
-     * Get all the permissions for this role.
-     *
-     * @return array<TeamPermission>
-     */
-    public function permissions(): array
-    {
-        return match ($this) {
-            self::Owner => TeamPermission::cases(),
-            self::Admin => [
-                TeamPermission::UpdateTeam,
-                TeamPermission::CreateInvitation,
-                TeamPermission::CancelInvitation,
-                TeamPermission::ManageKnowledge,
-            ],
-            self::Member => [],
-        };
-    }
-
-    /**
-     * Determine if the role has the given permission.
-     */
-    public function hasPermission(TeamPermission $permission): bool
-    {
-        return in_array($permission, $this->permissions());
-    }
-
-    /**
      * Get the hierarchy level for this role.
      * Higher numbers indicate higher privileges.
      */

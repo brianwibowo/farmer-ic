@@ -8,7 +8,6 @@ This release keeps the RAG path observable and reversible. Run the checks below 
 php artisan test
 npm run build
 php artisan ai:eval --retriever=in-memory --baseline=storage/app/private/ai-evals/baseline-v1.json --output=storage/app/private/ai-evals/release-eval.json
-AI_RAG_VECTOR_ENABLED=true php artisan ai:knowledge:index-vector --status
 php artisan ai:health --json
 ```
 
@@ -24,11 +23,9 @@ The release gate requires routing, retrieval Hit@1, citation validation, fallbac
 
 ## Deployment and rollback
 
-```sh
-docker compose --env-file .env.production -f compose.production.yaml build --pull app
-docker compose --env-file .env.production -f compose.production.yaml up -d --no-build --remove-orphans app
-docker compose --env-file .env.production -f compose.production.yaml logs --tail=100 app
-```
+Follow `DEPLOYMENT.md`, including the read-only migration gate and the separate
+reviewed legacy-to-UUID database cutover. Do not run the vector index command
+on real data: even `--status` currently syncs/publishes JSON demo knowledge.
 
 After deployment, verify `/up`, `ai:health --json`, Qdrant collection health, and one finance plus one infographic trace. Roll back by redeploying the previous image/tag and preserving the PostgreSQL/Qdrant volumes.
 

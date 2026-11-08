@@ -93,7 +93,7 @@ class AiChatService
         // A caller can pass a message loaded before refreshing the
         // conversation. Refuse a message from another conversation rather
         // than accidentally routing the wrong prompt.
-        if ((int) $userMessage->ai_conversation_id !== (int) $conversation->getKey()) {
+        if ((string) $userMessage->ai_conversation_id !== (string) $conversation->getKey()) {
             return;
         }
 
@@ -210,7 +210,7 @@ class AiChatService
         }
 
         $retrievalStartedAt = microtime(true);
-        $evidence = $this->evidenceFor($decision, $conversation, $userText);
+        $evidence = $this->knowledge->displayDocuments($this->evidenceFor($decision, $conversation, $userText));
         $timings = [
             'route_ms' => $routeMs,
             'retrieval_ms' => (int) round((microtime(true) - $retrievalStartedAt) * 1000),
@@ -784,7 +784,7 @@ class AiChatService
                 .'Pemasukan **'.$format((int) $period['income']).'** · '
                 .'Pengeluaran **'.$format((int) $period['expense']).'** · '
                 .'Laba bersih **'.$format((int) $period['net'])."**.\n\n"
-                .'Sumber: Data finance demo terverifikasi; angka pada gambar dihitung dari transaksi periode tersebut.';
+                .'Sumber: Dataset referensi keuangan; angka pada gambar dihitung dari transaksi periode tersebut.';
             $finalContent = '!['.'Laporan Keuangan '.$scope.']('.$publicUrl.")\n\n".$text;
             $latency = (int) round((microtime(true) - $startedAt) * 1000);
             $timings['generation_ms'] = $latency;
@@ -961,13 +961,13 @@ class AiChatService
             $used = $formatArea($snapshot['used_hectare']);
             $available = $formatArea($snapshot['available_hectare']);
             $text = "### 🌽 Kondisi {$name}\n\n"
-                ."Data kebun terverifikasi dari farmDemoData.json.\n\n"
+                ."Data kebun bersumber dari dataset referensi.\n\n"
                 ."- **Komoditas:** {$crop}\n"
                 ."- **Lokasi:** {$location}\n"
                 ."- **Luas terpakai:** {$used}\n"
                 ."- **Lahan tersedia:** {$available}\n"
                 ."- **Status:** {$snapshot['health_status']}\n\n"
-                .'Sumber: Data kebun terverifikasi; atribut yang tidak tercatat tidak ditambahkan.';
+                .'Sumber: Dataset referensi kebun; atribut yang tidak tercatat tidak ditambahkan.';
             $finalContent = '!['.'Kondisi '.$name.']('.$publicUrl.")\n\n".$text;
             $latency = (int) round((microtime(true) - $startedAt) * 1000);
             $timings['generation_ms'] = $latency;
@@ -1142,8 +1142,8 @@ class AiChatService
 
             return [[
                 'id' => 'finance-demo-snapshot',
-                'title' => 'Finance demo snapshot',
-                'source' => 'Farmer IC finance demo dataset',
+                'title' => 'Ringkasan dataset referensi keuangan',
+                'source' => 'Dataset referensi keuangan',
                 'content' => json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 'score' => 1.0,
                 'metadata' => ['document_id' => 'finance-demo-snapshot', 'retrieval' => 'deterministic'],

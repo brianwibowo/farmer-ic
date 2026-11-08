@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\User;
+use App\Support\RolePermissions;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,9 +21,28 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        /** @var User $user */
+        $user = $request->user();
+        $user->refresh();
+        $role = app(RolePermissions::class)->roleName($user);
+        $usesMobileProfile = in_array($role, ['owner', 'petugas'], true);
+
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            // Presentation is derived from the authenticated account on the
+            // server. It is not an authorization decision and must not be
+            // replaced by a browser-supplied role value.
+            'profilePresentation' => [
+                'surface' => $usesMobileProfile ? 'mobile' : 'desktop',
+                'returnUrl' => $role === 'petugas' ? route('petugas.home', absolute: false) : route('home', absolute: false),
+            ],
+            'profile' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'avatar' => $user->avatar_url,
+            ],
         ]);
     }
 
@@ -52,7 +73,10 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        $user->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user): void {
+            \App\Models\Farm::query()->where('pic_user_id', $user->id)->update(['pic_user_id' => null]);
+            $user->delete();
+        });
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

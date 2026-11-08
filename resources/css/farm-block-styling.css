@@ -1,0 +1,33 @@
+.farm-block-theme {
+    --primary-foreground: #070807;
+    --success: #34732c;
+}
+
+.farm-block-theme .block-field {
+    width: 100%;
+    min-height: 3rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 0.5rem 0.75rem;
+}
+
+.farm-block-theme .block-field:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.farm-block-theme .block-field[aria-invalid='true'] {
+    border-color: var(--error);
+}
+
+.farm-block-theme .block-action {
+    height: 3rem;
+    border-radius: 0.75rem;
+}
+
+.dark .farm-block-theme {
+    --error: #fca5a5;
+    --success: #91d793;
+}

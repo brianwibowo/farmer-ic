@@ -1,7 +1,8 @@
 export type User = {
-    id: number;
+    id: string;
     name: string;
     email: string;
+    phone_number?: string | null;
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;
@@ -12,3 +13,5 @@ export type User = {
 export type Auth = {
     user: User;
 };
+
+export type AccountProfile = Pick<User, 'name' | 'email'> & { avatar?: string };

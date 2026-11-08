@@ -28,7 +28,7 @@ class AiMessageController extends Controller
             $conversation = $this->conversations->ownedConversation($current_team, $conversation);
         } elseif ($request->filled('conversation_id')) {
             $conversation = AiConversation::query()
-                ->whereKey($request->integer('conversation_id'))
+                ->whereKey($request->input('conversation_id'))
                 ->where('team_id', $current_team->id)
                 ->where('user_id', $request->user()->id)
                 ->firstOrFail();
@@ -54,12 +54,20 @@ class AiMessageController extends Controller
         return response()->eventStream(
             function () use ($events): iterable {
                 $executionTimeout = (int) config('ai.openrouter.execution_timeout', 120);
-                if ($executionTimeout > 0) {
-                    set_time_limit($executionTimeout);
-                }
+                $previousExecutionTimeout = (int) ini_get('max_execution_time');
 
-                foreach ($events as $event) {
-                    yield new StreamedEvent($event['event'], $event['data']);
+                try {
+                    if ($executionTimeout > 0) {
+                        set_time_limit($executionTimeout);
+                    }
+
+                    foreach ($events as $event) {
+                        yield new StreamedEvent($event['event'], $event['data']);
+                    }
+                } finally {
+                    if ($executionTimeout > 0) {
+                        set_time_limit($previousExecutionTimeout);
+                    }
                 }
             },
             [

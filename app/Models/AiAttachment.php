@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Database\Factories\AiAttachmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * @property int $id
- * @property int $ai_conversation_id
- * @property int|null $ai_message_id
- * @property int $user_id
+ * @property string $id
+ * @property string $ai_conversation_id
+ * @property string|null $ai_message_id
+ * @property string $user_id
  * @property string $disk
  * @property string $path
  * @property string $original_name
@@ -40,7 +42,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AiAttachment extends Model
 {
     /** @use HasFactory<AiAttachmentFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    use HasVisibleScope;
 
     protected function casts(): array
     {

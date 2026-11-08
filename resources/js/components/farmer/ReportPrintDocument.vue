@@ -31,8 +31,9 @@ const getDonutSegments = () => {
             <header class="print-header">
                 <div>
                     <div class="print-identity">
-                        <img class="print-header-logo" src="/images/logo-dashboard.svg" alt="Farmer IC" style="margin-right:0pt;"/>
-                        <p class="print-kicker" style="padding-top: 0,5pt;">-  Laporan resmi</p>
+                        <img class="print-header-logo" src="/images/logo-hijauan.jpeg" alt="" width="1280" height="1280" />
+                        <strong class="print-brand-name">Hijauan</strong>
+                        <p class="print-kicker">· Laporan resmi</p>
                     </div>
                     <h1>Laporan Kebun</h1>
                     <p>{{ report.periodLabel }} · {{ report.scopeLabel }}</p>
@@ -151,7 +152,7 @@ const getDonutSegments = () => {
                 <p v-else class="print-empty">Belum ada aktivitas pada cakupan ini.</p>
             </section>
 
-            <footer class="print-footer">Farmer IC · Dokumen dibuat dari data laporan {{ report.periodLabel }}</footer>
+            <footer class="print-footer">Hijauan · Dokumen dibuat dari data laporan {{ report.periodLabel }}</footer>
         </article>
     </Teleport>
 </template>
@@ -163,7 +164,7 @@ const getDonutSegments = () => {
  @page { size: A4 portrait; margin: 18mm 14mm 14mm 14mm; }
  .report-print-document { display:block !important; position:static; width:100%; color:#17221a; font-family:"Times New Roman", Times, serif; font-size:11pt; line-height:1.5; background:white; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
  .print-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c5e21; padding:4px 0 14px; margin-bottom:12px; }
- .print-identity { display:flex; align-items:center; gap:8px; margin:0 0 8px 5px; } .print-header-logo { display:block; width:66px; height:25px; object-fit:contain; object-position:left center; } .print-kicker { margin:0 !important; color:#1c5e21; font-size:9.5pt; font-weight:500; letter-spacing:.02em; line-height:1.2; } .print-header p { margin:10px 5px; font-size:12pt; } h1 { font-size:25pt; font-weight:800; line-height:1.15; margin:0 0 6px; } .print-meta { text-align:right; line-height:1.3; } .print-meta-label,.print-section span,.print-note { color:#526158; } .print-meta-label,.print-section-title,.print-callout,.print-metrics span,.print-finance-grid span,.print-status-grid span { display:flex; align-items:center; gap:6px; } .print-meta strong { display:block; margin-top:3px; font-size:11pt; font-weight:800; }
+ .print-identity { display:flex; align-items:center; gap:8px; margin:0 0 8px 5px; } .print-header-logo { display:block; width:36px; height:36px; object-fit:contain; border-radius:6px; } .print-brand-name { font-size:15pt; line-height:1.2; } .print-kicker { margin:0 !important; color:#1c5e21; font-size:9.5pt; font-weight:500; letter-spacing:.02em; line-height:1.2; } .print-header p { margin:10px 5px; font-size:12pt; } h1 { font-size:25pt; font-weight:800; line-height:1.15; margin:0 0 6px; } .print-meta { text-align:right; line-height:1.3; } .print-meta-label,.print-section span,.print-note { color:#526158; } .print-meta-label,.print-section-title,.print-callout,.print-metrics span,.print-finance-grid span,.print-status-grid span { display:flex; align-items:center; gap:6px; } .print-meta strong { display:block; margin-top:3px; font-size:11pt; font-weight:800; }
  .print-section { break-inside:avoid; page-break-inside:avoid; border-bottom:1px solid #d9d9d9; padding:14px 0; } .print-section-title { color:#1c5e21; font-size:15pt; font-weight:800; margin:0 0 10px; } .print-metrics,.print-finance-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; } .print-metrics div,.print-finance-grid div { border:1px solid #d9d9d9; border-radius:8px; padding:10px; } .print-metrics span,.print-finance-grid span { font-size:9pt; font-weight:700; } .print-metrics strong,.print-finance-grid strong { display:block; font-size:15pt; font-weight:800; margin-top:5px; } .print-highlight,.status-healthy strong { color:#1c5e21; } .status-attention strong { color:#a06b00; } .status-critical strong { color:#a52323; } .print-status-grid { display:flex; gap:18px; margin-top:12px; font-weight:700; }
  table { width:100%; border-collapse:collapse; margin-top:14px; } thead { display:table-header-group; } tr { break-inside:avoid; page-break-inside:avoid; } th,td { border-bottom:1px solid #d9d9d9; padding:8px 6px; text-align:left; } thead tr { border-top:2px solid #1c5e21; border-bottom:2px solid #93a99f; } th { color:#1c5e21; font-weight:800; }
 

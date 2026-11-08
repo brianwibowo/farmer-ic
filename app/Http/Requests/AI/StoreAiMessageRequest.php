@@ -21,7 +21,7 @@ class StoreAiMessageRequest extends FormRequest
 
         return [
             'message' => ['nullable', 'string', 'max:'.config('ai.limits.max_message_chars', 12000)],
-            'conversation_id' => ['nullable', 'integer'],
+            'conversation_id' => ['nullable', 'uuid'],
             'is_infographic' => ['nullable', 'boolean'],
             'attachments' => ['nullable', 'array', 'max:'.$maxFiles],
             'attachments.*' => ['file', 'max:'.$maxSize, 'mimes:'.$mimes],

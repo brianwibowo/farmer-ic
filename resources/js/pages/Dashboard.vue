@@ -1,60 +1,281 @@
 <script setup lang="ts">
-import { Head } from "@inertiajs/vue3";
-import PendingInvitationsModal from "@/components/PendingInvitationsModal.vue";
-import PlaceholderPattern from "@/components/PlaceholderPattern.vue";
-import { dashboard } from "@/routes";
-import type { DashboardInvitation, Team } from "@/types";
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { RefreshCw, WalletCards } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
+import DashboardActivities from '@/components/dashboard/DashboardActivities.vue';
+import DashboardActivityChart from '@/components/dashboard/DashboardActivityChart.vue';
+import DashboardAttention from '@/components/dashboard/DashboardAttention.vue';
+import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
+import DashboardMetricCards from '@/components/dashboard/DashboardMetricCards.vue';
+import DashboardPlantingOverview from '@/components/dashboard/DashboardPlantingOverview.vue';
+import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
+import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
+import { Button } from '@/components/ui/button';
+import type { DashboardInvitation } from '@/types';
+import type { DashboardData } from '@/types/dashboard';
 
-defineProps<{
+defineOptions({ inheritAttrs: false });
+const page = usePage();
+const welcomeName = computed(() => page.props.auth.user?.name?.trim() ?? '');
+const props = defineProps<{
     pendingInvitations?: DashboardInvitation[];
+    dashboard: DashboardData;
 }>();
-
-defineOptions({
-    layout: (props: { currentTeam?: Team | null }) => ({
-        breadcrumbs: [
-            {
-                title: "Dashboard",
-                href: props.currentTeam
-                    ? dashboard(props.currentTeam.slug)
-                    : "/",
+const farmId = ref(props.dashboard.filters.farm_id ?? '');
+const period = ref(props.dashboard.filters.period);
+const refreshing = ref(false);
+const feedback = ref('');
+const failed = ref(false);
+watch(
+    () => props.dashboard.filters,
+    (filters) => {
+        farmId.value = filters.farm_id ?? '';
+        period.value = filters.period;
+    },
+);
+const financialItems = computed(() => [
+    {
+        label: 'OPEX tercatat',
+        value: props.dashboard.financial.opexThisMonth,
+        description:
+            'Transaksi pengeluaran pada bulan berjalan, sesuai cakupan kebun.',
+        period: props.dashboard.financial.monthLabel,
+    },
+    {
+        label: 'Proyeksi pemasukan',
+        value: props.dashboard.financial.projectedIncome,
+        description:
+            'Total proyeksi pemasukan pada periode yang mencakup hari ini.',
+        period: 'Periode proyeksi aktif',
+    },
+    {
+        label: 'Proyeksi biaya',
+        value: props.dashboard.financial.projectedExpense,
+        description:
+            'Total proyeksi biaya pada periode yang mencakup hari ini.',
+        period: 'Periode proyeksi aktif',
+    },
+    {
+        label: 'Proyeksi bersih',
+        value: props.dashboard.financial.projectedNet,
+        description: 'Proyeksi pemasukan dikurangi biaya; bukan saldo kas.',
+        period: `${props.dashboard.financial.projectionCount} periode proyeksi aktif`,
+    },
+]);
+function reportFailure(): false {
+    failed.value = true;
+    feedback.value = 'Dashboard belum dapat diperbarui. Silakan coba lagi.';
+    return false;
+}
+function loadDashboard(): void {
+    if (refreshing.value) return;
+    refreshing.value = true;
+    feedback.value = '';
+    failed.value = false;
+    router.get(
+        '/admin/dashboard',
+        {
+            ...(farmId.value ? { farm_id: farmId.value } : {}),
+            period: period.value,
+        },
+        {
+            only: ['dashboard'],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onSuccess: () => {
+                feedback.value = 'Dashboard berhasil diperbarui.';
             },
-        ],
-    }),
-});
+            onError: reportFailure,
+            onHttpException: reportFailure,
+            onNetworkError: reportFailure,
+            onFinish: () => {
+                refreshing.value = false;
+                if (failed.value) {
+                    farmId.value = props.dashboard.filters.farm_id ?? '';
+                    period.value = props.dashboard.filters.period;
+                }
+            },
+        },
+    );
+}
 </script>
 
 <template>
     <Head title="Dashboard" />
-
     <PendingInvitationsModal
-        v-if="pendingInvitations && pendingInvitations.length > 0"
+        v-if="pendingInvitations?.length"
         :invitations="pendingInvitations"
+        admin-theme
     />
-
     <div
-        class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+        class="admin-page-content admin-dashboard-overview space-y-[18px]"
+        :aria-busy="refreshing"
     >
-        <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div
-                class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
+        <header class="flex flex-wrap items-center justify-between gap-4">
+            <p
+                class="min-w-0 flex-1 basis-64 text-xl leading-8 font-medium tracking-tight break-words text-foreground sm:text-2xl"
             >
-                <PlaceholderPattern />
-            </div>
+                Selamat datang<template v-if="welcomeName"
+                    >,
+                    <strong class="font-bold text-primary">{{
+                        welcomeName
+                    }}</strong></template
+                >!
+            </p>
             <div
-                class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
+                class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:flex sm:w-auto sm:flex-wrap"
             >
-                <PlaceholderPattern />
+                <label class="col-span-2 min-w-0 flex-1 sm:flex-none"
+                    ><span class="sr-only">Kebun</span
+                    ><AppSelect
+                        v-model="farmId"
+                        class="admin-field dashboard-filter w-full sm:max-w-56"
+                        :disabled="refreshing"
+                        @change="loadDashboard"
+                    >
+                        <AppSelectOption value="">Semua kebun</AppSelectOption>
+                        <AppSelectOption
+                            v-for="farm in dashboard.farmOptions"
+                            :key="farm.id"
+                            :value="farm.id"
+                        >
+                            {{ farm.name }}
+                        </AppSelectOption>
+                    </AppSelect></label
+                >
+                <label class="min-w-0 flex-1 sm:flex-none"
+                    ><span class="sr-only">Periode aktivitas</span
+                    ><AppSelect
+                        v-model="period"
+                        class="admin-field dashboard-filter w-full"
+                        :disabled="refreshing"
+                        @change="loadDashboard"
+                    >
+                        <AppSelectOption value="7"
+                            >7 hari terakhir</AppSelectOption
+                        >
+                        <AppSelectOption value="30"
+                            >30 hari terakhir</AppSelectOption
+                        >
+                    </AppSelect></label
+                >
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    class="dashboard-refresh shrink-0 bg-card"
+                    :disabled="refreshing"
+                    aria-label="Perbarui dashboard"
+                    @click="loadDashboard"
+                    ><RefreshCw
+                        :class="{
+                            'animate-spin motion-reduce:animate-none':
+                                refreshing,
+                        }"
+                        aria-hidden="true"
+                /></Button>
             </div>
-            <div
-                class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
-            >
-                <PlaceholderPattern />
-            </div>
-        </div>
-        <div
-            class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
+        </header>
+        <p
+            v-if="refreshing || feedback"
+            role="status"
+            class="text-xs"
+            :class="failed ? 'text-error' : 'text-muted-foreground'"
         >
-            <PlaceholderPattern />
-        </div>
+            {{ refreshing ? 'Memuat ringkasan kebun…' : feedback }}
+        </p>
+        <DashboardMetricCards :dashboard="dashboard" />
+        <section
+            class="grid items-stretch gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]"
+        >
+            <DashboardActivityChart :trend="dashboard.trend" />
+            <DashboardAttention :items="dashboard.attention" />
+        </section>
+        <DashboardPlantingOverview
+            :cycles="dashboard.cycles"
+            :commodities="dashboard.commodities"
+        />
+        <section class="dashboard-panel" aria-labelledby="finance-heading">
+            <div
+                class="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.1fr_repeat(4,minmax(0,1fr))]"
+            >
+                <div>
+                    <h2
+                        id="finance-heading"
+                        class="flex items-center gap-2 text-sm font-semibold"
+                    >
+                        <WalletCards :size="17" aria-hidden="true" />OPEX &
+                        proyeksi
+                    </h2>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        {{ dashboard.financial.monthLabel }} · sesuai kebun
+                        terpilih
+                    </p>
+                </div>
+                <dl
+                    v-for="item in financialItems"
+                    :key="item.label"
+                    class="min-w-0"
+                >
+                    <dt
+                        class="flex items-center gap-2 text-xs text-muted-foreground"
+                    >
+                        {{ item.label
+                        }}<MetricInfoTooltip
+                            :label="item.label"
+                            :description="item.description"
+                            :period="item.period"
+                        />
+                    </dt>
+                    <dd class="mt-2 text-xl font-bold break-words tabular-nums">
+                        {{ item.value }}
+                    </dd>
+                </dl>
+            </div>
+        </section>
+        <section
+            id="dashboard-map"
+            class="dashboard-panel"
+            aria-labelledby="map-heading"
+        >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 id="map-heading" class="admin-section-title">
+                        Denah kebun
+                    </h2>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Lokasi kebun dari koordinat yang tersimpan, sesuai
+                        filter dan cakupan akses.
+                    </p>
+                </div>
+                <Button
+                    v-if="$page.props.navigation?.farms"
+                    as-child
+                    variant="outline"
+                    size="sm"
+                    ><Link href="/admin/farm-management"
+                        >Kelola kebun</Link
+                    ></Button
+                >
+            </div>
+            <DashboardFarmMap :farms="dashboard.landMap.farms" />
+            <p class="mt-3 text-xs leading-5 text-muted-foreground">
+                {{
+                    dashboard.landMap.hasCoordinates
+                        ? 'Marker menunjukkan lokasi kebun, bukan batas bidang atau subblok.'
+                        : 'Lengkapi latitude dan longitude pada data kebun untuk menampilkan lokasi.'
+                }}
+            </p>
+        </section>
+        <p class="text-xs text-muted-foreground">
+            Diperbarui {{ dashboard.generatedAt }}
+        </p>
+        <DashboardActivities
+            :activities="dashboard.activities"
+            :officers="dashboard.officers"
+        />
     </div>
 </template>

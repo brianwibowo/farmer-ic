@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
- * @property int $ai_knowledge_document_id
+ * @property string $id
+ * @property string $ai_knowledge_document_id
  * @property int $team_id
  * @property int $chunk_index
  * @property string $content
@@ -40,6 +42,8 @@ use Illuminate\Support\Carbon;
 ])]
 class AiKnowledgeChunk extends Model
 {
+    use HasUuids, HasVisibleScope;
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_INDEXED = 'indexed';

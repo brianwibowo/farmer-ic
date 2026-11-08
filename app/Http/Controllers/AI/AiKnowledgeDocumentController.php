@@ -4,22 +4,22 @@ namespace App\Http\Controllers\AI;
 
 use App\AI\Jobs\IndexKnowledgeDocument;
 use App\AI\Jobs\RemoveKnowledgeDocumentFromIndex;
-use App\Enums\TeamPermission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\StoreAiKnowledgeDocumentRequest;
 use App\Models\AiKnowledgeDocument;
 use App\Models\Team;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class AiKnowledgeDocumentController extends Controller
 {
     public function index(Request $request, Team $current_team): JsonResponse
     {
-        $this->authorizeManager($request, $current_team);
+        Gate::authorize('viewAny', [AiKnowledgeDocument::class, $current_team]);
 
         return response()->json([
-            'data' => $current_team->aiKnowledgeDocuments()
+            'data' => AiKnowledgeDocument::visibleTo($request->user(), $current_team)
                 ->latest('updated_at')
                 ->get()
                 ->map(fn (AiKnowledgeDocument $document): array => $this->payload($document))
@@ -29,7 +29,7 @@ class AiKnowledgeDocumentController extends Controller
 
     public function store(StoreAiKnowledgeDocumentRequest $request, Team $current_team): JsonResponse
     {
-        $this->authorizeManager($request, $current_team);
+        Gate::authorize('create', [AiKnowledgeDocument::class, $current_team]);
         $content = trim((string) $request->validated('content'));
 
         $document = $current_team->aiKnowledgeDocuments()->create([
@@ -47,8 +47,8 @@ class AiKnowledgeDocumentController extends Controller
 
     public function update(StoreAiKnowledgeDocumentRequest $request, Team $current_team, AiKnowledgeDocument $document): JsonResponse
     {
-        $this->authorizeManager($request, $current_team);
         abort_unless($document->team_id === $current_team->id, 404);
+        Gate::authorize('update', $document);
 
         $content = trim((string) $request->validated('content'));
         $document->forceFill([
@@ -69,8 +69,8 @@ class AiKnowledgeDocumentController extends Controller
 
     public function publish(Request $request, Team $current_team, AiKnowledgeDocument $document): JsonResponse
     {
-        $this->authorizeManager($request, $current_team);
         abort_unless($document->team_id === $current_team->id, 404);
+        Gate::authorize('update', $document);
 
         $document->forceFill([
             'status' => AiKnowledgeDocument::STATUS_PUBLISHED,
@@ -87,8 +87,8 @@ class AiKnowledgeDocumentController extends Controller
 
     public function archive(Request $request, Team $current_team, AiKnowledgeDocument $document): JsonResponse
     {
-        $this->authorizeManager($request, $current_team);
         abort_unless($document->team_id === $current_team->id, 404);
+        Gate::authorize('update', $document);
 
         $document->forceFill([
             'status' => AiKnowledgeDocument::STATUS_ARCHIVED,
@@ -103,13 +103,13 @@ class AiKnowledgeDocumentController extends Controller
 
     public function destroy(Request $request, Team $current_team, AiKnowledgeDocument $document): JsonResponse
     {
-        $this->authorizeManager($request, $current_team);
         abort_unless($document->team_id === $current_team->id, 404);
+        Gate::authorize('delete', $document);
 
         // Capture the scoped identity before the database cascade removes the
         // chunk rows; the queued cleanup can then use payload filtering even
         // when no chunk point ids remain.
-        $documentId = (int) $document->getKey();
+        $documentId = (string) $document->getKey();
         $teamId = (int) $current_team->getKey();
         $document->delete();
 
@@ -120,15 +120,10 @@ class AiKnowledgeDocumentController extends Controller
         return response()->json(['deleted' => true]);
     }
 
-    protected function authorizeManager(Request $request, Team $team): void
-    {
-        abort_unless($request->user()?->hasTeamPermission($team, TeamPermission::ManageKnowledge), 403);
-    }
-
     private function dispatchIndexRemoval(AiKnowledgeDocument $document): void
     {
         if (config('ai.rag.vector_enabled')) {
-            RemoveKnowledgeDocumentFromIndex::dispatch((int) $document->getKey(), (int) $document->team_id);
+            RemoveKnowledgeDocumentFromIndex::dispatch((string) $document->getKey(), (int) $document->team_id);
         }
     }
 

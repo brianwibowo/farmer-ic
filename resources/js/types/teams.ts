@@ -5,13 +5,15 @@ export type Team = {
     name: string;
     slug: string;
     isPersonal: boolean;
-    role?: TeamRole;
-    roleLabel?: string;
+    role?: TeamRole | null;
+    roleLabel?: string | null;
     isCurrent?: boolean;
+    canOpen?: boolean;
+    canUpdate?: boolean;
 };
 
 export type TeamMember = {
-    id: number;
+    id: string;
     name: string;
     email: string;
     avatar?: string | null;

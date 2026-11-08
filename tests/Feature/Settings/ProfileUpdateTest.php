@@ -4,6 +4,7 @@ namespace Tests\Feature\Settings;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -19,6 +20,39 @@ class ProfileUpdateTest extends TestCase
             ->get(route('profile.edit'));
 
         $response->assertOk();
+    }
+
+    public function test_owner_and_petugas_receive_the_mobile_profile_presentation(): void
+    {
+        foreach (['owner' => '/', 'petugas' => '/petugas'] as $role => $returnUrl) {
+            $user = User::factory()->create(['role' => $role]);
+
+            $this->actingAs($user)
+                ->get(route('profile.edit'))
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->component('settings/Profile')
+                    ->where('profilePresentation', [
+                        'surface' => 'mobile',
+                        'returnUrl' => $returnUrl,
+                    ]));
+        }
+    }
+
+    public function test_admin_and_superadmin_receive_the_desktop_profile_presentation(): void
+    {
+        foreach (['admin', 'superadmin'] as $role) {
+            $user = User::factory()->create(['role' => $role]);
+
+            $this->actingAs($user)
+                ->get(route('profile.edit'))
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('profilePresentation', [
+                        'surface' => 'desktop',
+                        'returnUrl' => '/',
+                    ]));
+        }
     }
 
     public function test_profile_information_can_be_updated()
@@ -41,6 +75,17 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
+    }
+
+    public function test_profile_page_returns_the_saved_phone_number(): void
+    {
+        $user = User::factory()->create(['phone_number' => '6281212345678']);
+
+        $this->actingAs($user)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('profile.phone_number', '6281212345678'));
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
@@ -76,7 +121,7 @@ class ProfileUpdateTest extends TestCase
             ->assertRedirect(route('home'));
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
     }
 
     public function test_correct_password_must_be_provided_to_delete_account()

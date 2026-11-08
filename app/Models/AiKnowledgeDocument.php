@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
+ * @property string $id
  * @property int $team_id
- * @property int $created_by
- * @property int|null $reviewed_by
+ * @property string $created_by
+ * @property string|null $reviewed_by
  * @property string $title
  * @property string $content
  * @property string $status
@@ -49,6 +51,8 @@ use Illuminate\Support\Carbon;
 ])]
 class AiKnowledgeDocument extends Model
 {
+    use HasUuids, HasVisibleScope;
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PUBLISHED = 'published';

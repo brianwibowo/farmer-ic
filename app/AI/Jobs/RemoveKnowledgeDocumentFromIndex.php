@@ -35,7 +35,7 @@ final class RemoveKnowledgeDocumentFromIndex implements ShouldQueue
     public int $timeout = 120;
 
     public function __construct(
-        public readonly int $documentId,
+        public readonly string $documentId,
         public readonly int $teamId,
     ) {
         $this->onQueue('ai-index');
@@ -79,9 +79,8 @@ final class RemoveKnowledgeDocumentFromIndex implements ShouldQueue
                 'must' => [
                     ['key' => 'team_id', 'match' => ['value' => $this->teamId]],
                 ],
-                // Older indexers stored document_id as a string while the
-                // per-document job stores it as an integer. Qdrant's top
-                // level should condition handles both payload types.
+                // Retain the existing should-filter shape for vector-store
+                // adapters; document identities are now UUID strings.
                 'should' => [
                     ['key' => 'document_id', 'match' => ['value' => $this->documentId]],
                     ['key' => 'document_id', 'match' => ['value' => (string) $this->documentId]],

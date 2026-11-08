@@ -17,9 +17,11 @@ import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import type { Team } from '@/types';
 
+defineProps<{ adminTheme?: boolean }>();
+
 const page = usePage();
-const user = page.props.auth.user;
-const { isMobile, state } = useSidebar();
+const user = computed(() => page.props.auth.user);
+const { isMobile, state, setOpenMobile } = useSidebar();
 
 const currentTeam = computed(() => page.props.currentTeam as Team | null);
 </script>
@@ -32,25 +34,45 @@ const currentTeam = computed(() => page.props.currentTeam as Team | null);
                     <SidebarMenuButton
                         size="lg"
                         class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                        :class="
+                            adminTheme ? 'admin-sidebar-account' : undefined
+                        "
+                        :aria-label="`Menu akun ${user.name}`"
+                        :title="
+                            adminTheme && !isMobile && state === 'collapsed'
+                                ? user.name
+                                : undefined
+                        "
                         data-test="sidebar-menu-button"
                     >
                         <UserInfo :user="user" :team="currentTeam" />
-                        <ChevronsUpDown class="ml-auto size-4" />
+                        <ChevronsUpDown
+                            class="ml-auto size-4 shrink-0"
+                            aria-hidden="true"
+                        />
                     </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                     class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                    :class="adminTheme ? 'admin-dashboard-theme' : undefined"
                     :side="
-                        isMobile
-                            ? 'bottom'
-                            : state === 'collapsed'
-                              ? 'left'
-                              : 'bottom'
+                        adminTheme
+                            ? state === 'collapsed' && !isMobile
+                                ? 'right'
+                                : 'top'
+                            : isMobile
+                              ? 'bottom'
+                              : state === 'collapsed'
+                                ? 'left'
+                                : 'bottom'
                     "
                     align="end"
                     :side-offset="4"
                 >
-                    <UserMenuContent :user="user" />
+                    <UserMenuContent
+                        :user="user"
+                        @navigate="setOpenMobile(false)"
+                    />
                 </DropdownMenuContent>
             </DropdownMenu>
         </SidebarMenuItem>

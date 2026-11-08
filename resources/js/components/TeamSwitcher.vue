@@ -18,6 +18,7 @@ import type { Team } from '@/types';
 const props = withDefaults(
     defineProps<{
         inHeader?: boolean;
+        adminTheme?: boolean;
     }>(),
     {
         inHeader: false,
@@ -35,6 +36,7 @@ const updateIsMobile = () => {
 
 const currentTeam = computed(() => page.props.currentTeam);
 const teams = computed(() => page.props.teams ?? []);
+const canCreateTeam = computed(() => page.props.canCreateTeam);
 const menuContentClass = computed(() =>
     props.inHeader
         ? 'w-56'
@@ -91,6 +93,8 @@ onUnmounted(() => {
         <DropdownMenuTrigger as-child>
             <Button
                 data-test="team-switcher-trigger"
+                :aria-label="`Pilih tim: ${currentTeam?.name ?? 'belum dipilih'}`"
+                :title="currentTeam?.name ?? 'Pilih tim'"
                 variant="ghost"
                 :class="
                     props.inHeader
@@ -133,7 +137,10 @@ onUnmounted(() => {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
-            :class="menuContentClass"
+            :class="[
+                menuContentClass,
+                props.adminTheme ? 'admin-dashboard-theme' : undefined,
+            ]"
             :side="props.inHeader ? undefined : isMobile ? 'bottom' : 'right'"
             :align="props.inHeader ? 'end' : 'start'"
             :side-offset="props.inHeader ? undefined : 4"
@@ -154,17 +161,19 @@ onUnmounted(() => {
                     :class="checkIconClass"
                 />
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <CreateTeamModal>
-                <DropdownMenuItem
-                    data-test="team-switcher-new-team"
-                    :class="teamItemClass"
-                    @select.prevent
-                >
-                    <Plus :class="plusIconClass" />
-                    <span class="text-muted-foreground">New team</span>
-                </DropdownMenuItem>
-            </CreateTeamModal>
+            <template v-if="canCreateTeam">
+                <DropdownMenuSeparator />
+                <CreateTeamModal :admin-theme="props.adminTheme">
+                    <DropdownMenuItem
+                        data-test="team-switcher-new-team"
+                        :class="teamItemClass"
+                        @select.prevent
+                    >
+                        <Plus :class="plusIconClass" />
+                        <span class="text-muted-foreground">New tenant</span>
+                    </DropdownMenuItem>
+                </CreateTeamModal>
+            </template>
         </DropdownMenuContent>
     </DropdownMenu>
 </template>

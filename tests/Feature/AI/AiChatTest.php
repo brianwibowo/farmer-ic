@@ -72,6 +72,9 @@ class AiChatTest extends TestCase
 
     public function test_a_user_can_send_a_message_and_receive_an_sse_response(): void
     {
+        $previousExecutionTimeout = (int) ini_get('max_execution_time');
+        config(['ai.openrouter.execution_timeout' => $previousExecutionTimeout + 600]);
+
         $this->app->instance(LlmGateway::class, new class implements LlmGateway
         {
             public function complete(array $messages, string $model, array $options = []): array
@@ -100,6 +103,7 @@ class AiChatTest extends TestCase
         $response->assertOk();
         $response->assertHeader('Content-Type', 'text/event-stream; charset=UTF-8');
         $stream = $response->streamedContent();
+        $this->assertSame($previousExecutionTimeout, (int) ini_get('max_execution_time'));
         $this->assertStringContainsString('message.delta', $stream);
         $this->assertStringContainsString('Halo dari AI.', $stream);
         $this->assertDatabaseHas('ai_messages', [
@@ -442,6 +446,9 @@ class AiChatTest extends TestCase
 
     public function test_missing_provider_key_returns_an_actionable_stream_error(): void
     {
+        $previousExecutionTimeout = (int) ini_get('max_execution_time');
+        config(['ai.openrouter.execution_timeout' => $previousExecutionTimeout + 600]);
+
         $this->app->instance(LlmGateway::class, new OpenRouterGateway);
         config(['ai.openrouter.api_key' => null]);
         $user = User::factory()->create();
@@ -453,6 +460,7 @@ class AiChatTest extends TestCase
             'AI belum dikonfigurasi di server.',
             $response->streamedContent(),
         );
+        $this->assertSame($previousExecutionTimeout, (int) ini_get('max_execution_time'));
     }
 
     public function test_unsupported_upload_is_rejected_before_the_provider_is_called(): void
@@ -473,7 +481,7 @@ class AiChatTest extends TestCase
 
     public function test_published_team_knowledge_is_snapshotted_for_new_conversations(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'owner']);
         $team = $user->currentTeam;
 
         $created = $this->actingAs($user)
@@ -503,8 +511,8 @@ class AiChatTest extends TestCase
 
     public function test_team_members_cannot_manage_adaptive_knowledge(): void
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
+        $owner = User::factory()->create(['role' => 'owner']);
+        $member = User::factory()->create(['role' => 'admin']);
         $team = $owner->currentTeam;
         $team->members()->attach($member, ['role' => TeamRole::Member->value]);
 

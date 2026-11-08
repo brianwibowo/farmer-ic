@@ -7,6 +7,7 @@ use App\Models\Team;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureTeamMembership
@@ -20,11 +21,17 @@ class EnsureTeamMembership
     {
         [$user, $team] = [$request->user(), $this->team($request)];
 
-        abort_if(! $user || ! $team || ! $user->belongsToTeam($team), 403);
+        abort_if(! $user || ! $team, 403);
 
-        $this->ensureTeamMemberHasRequiredRole($user, $team, $minimumRole);
+        $managesAllTeams = Gate::forUser($user)->allows('teams.manageAll');
 
-        if ($request->route('current_team') && ! $user->isCurrentTeam($team)) {
+        abort_if(! $managesAllTeams && ! $user->belongsToTeam($team), 403);
+
+        if (! $managesAllTeams) {
+            $this->ensureTeamMemberHasRequiredRole($user, $team, $minimumRole);
+        }
+
+        if (! $managesAllTeams && $request->route('current_team') && ! $user->isCurrentTeam($team)) {
             $user->switchTeam($team);
         }
 

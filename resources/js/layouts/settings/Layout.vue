@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import Heading from '@/components/Heading.vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { KeyRound, User, Users } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
-import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import { index as teams } from '@/routes/teams';
@@ -13,63 +11,67 @@ import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Profile',
+        title: 'Profil',
         href: editProfile(),
+        icon: User,
     },
     {
-        title: 'Security',
+        title: 'Keamanan',
         href: editSecurity(),
+        icon: KeyRound,
     },
     {
-        title: 'Teams',
+        title: 'Tim',
         href: teams(),
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
+        icon: Users,
     },
 ];
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
+const page = usePage();
 </script>
 
 <template>
-    <div class="px-4 py-6">
-        <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
-        />
-
-        <div class="flex flex-col lg:flex-row lg:space-x-12">
-            <aside class="w-full max-w-xl lg:w-48">
+    <div
+        :class="
+            page.props.navigation?.admin
+                ? 'admin-page-content'
+                : 'mx-auto w-full max-w-screen-2xl p-4 md:p-6 lg:p-8'
+        "
+    >
+        <div class="flex flex-col gap-8 lg:flex-row">
+            <aside class="w-full shrink-0 lg:w-56">
                 <nav
-                    class="flex flex-col space-y-1 space-x-0"
-                    aria-label="Settings"
+                    class="flex flex-row gap-1 overflow-x-auto lg:flex-col lg:overflow-visible"
+                    aria-label="Pengaturan"
                 >
                     <Button
                         v-for="item in sidebarNavItems"
                         :key="toUrl(item.href)"
                         variant="ghost"
                         :class="[
-                            'w-full justify-start',
-                            { 'bg-muted': isCurrentOrParentUrl(item.href) },
+                            'w-auto justify-start gap-2.5 px-3 lg:w-full',
+                            isCurrentOrParentUrl(item.href)
+                                ? 'bg-primary/10 font-semibold text-primary'
+                                : 'text-muted-foreground',
                         ]"
                         as-child
                     >
                         <Link :href="item.href">
-                            <component :is="item.icon" class="h-4 w-4" />
+                            <component
+                                :is="item.icon"
+                                class="size-4 shrink-0"
+                            />
                             {{ item.title }}
                         </Link>
                     </Button>
                 </nav>
             </aside>
 
-            <Separator class="my-6 lg:hidden" />
-
-            <div class="flex-1 md:max-w-2xl">
-                <section class="max-w-xl space-y-12">
+            <div class="min-w-0 flex-1">
+                <div class="max-w-2xl space-y-6">
                     <slot />
-                </section>
+                </div>
             </div>
         </div>
     </div>

@@ -60,7 +60,7 @@ class FinanceSnapshotService
             ->where('team_id', $team->id)
             ->where('source', 'farmDemoData.json origin/dev')
             ->where('domain', 'finance')
-            ->where('title', 'Finance demo origin/dev')
+            ->whereIn('title', ['Dataset referensi keuangan', 'Finance demo origin/dev'])
             ->where('status', AiKnowledgeDocument::STATUS_PUBLISHED)
             ->latest('version')
             ->first();
@@ -93,7 +93,7 @@ class FinanceSnapshotService
         $net = $income - $expense;
 
         return [
-            'period' => 'Januari–Desember 2026 (demo origin/dev)',
+            'period' => 'Januari–Desember 2026 (dataset referensi)',
             'income' => $income,
             'expense' => $expense,
             'net' => $net,
@@ -101,7 +101,7 @@ class FinanceSnapshotService
             'quarters' => $raw['quarters'] ?? [],
             'transactions' => $raw['transactions'] ?? [],
             'transaction_count' => count((array) ($raw['transactions'] ?? [])),
-            'source' => 'farmDemoData.json origin/dev',
+            'source' => 'Dataset referensi keuangan',
             'calculation' => 'laba bersih = pemasukan - pengeluaran; margin = laba bersih / pemasukan',
         ];
     }
@@ -331,7 +331,7 @@ class FinanceSnapshotService
             ? $period['month_label'].' '.($period['year'] ?? '')
             : 'tahun '.($period['year'] ?? 'yang diminta');
 
-        return "Data keuangan untuk {$scope} tidak tersedia. Data finance demo yang tersedia adalah {$period['period']}. Saya tidak membuat gambar agar tidak mengarang angka.";
+        return "Data keuangan untuk {$scope} tidak tersedia. Dataset referensi keuangan yang tersedia mencakup {$period['period']}. Saya tidak membuat gambar agar tidak mengarang angka.";
     }
 
     /**
@@ -346,7 +346,7 @@ class FinanceSnapshotService
             ? $period['month_label'].' '.($period['year'] ?? '')
             : 'tahun '.($period['year'] ?? 'yang diminta');
 
-        return "Data keuangan untuk {$scope} tidak tersedia. Data finance demo yang tersedia adalah {$period['period']}. Saya tidak akan mengarang angka.";
+        return "Data keuangan untuk {$scope} tidak tersedia. Dataset referensi keuangan yang tersedia mencakup {$period['period']}. Saya tidak akan mengarang angka.";
     }
 
     /**

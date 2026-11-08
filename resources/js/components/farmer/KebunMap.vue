@@ -11,6 +11,10 @@ import '../../../css/farm-map.css';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useAppearance } from '@/composables/useAppearance';
 import { FARM_MAP_MAX_ZOOM, FARM_MARKER_HIT_SIZE } from '@/lib/farmMap';
+import {
+    ESRI_WORLD_IMAGERY_ATTRIBUTION,
+    ESRI_WORLD_IMAGERY_URL,
+} from '@/lib/esriBasemap';
 import { listMappedKebun, type MappedKebun } from '@/services/kebunService';
 import KebunMapPreview from './KebunMapPreview.vue';
 
@@ -94,15 +98,11 @@ async function initializeMap(): Promise<void> {
             })
             .addTo(map);
         leaflet.control.scale({ imperial: false, maxWidth: 100 }).addTo(map);
-        tiles = leaflet.tileLayer(
-            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            {
-                maxZoom: FARM_MAP_MAX_ZOOM,
-                maxNativeZoom: FARM_MAP_MAX_ZOOM,
-                attribution:
-                    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
-            },
-        );
+        tiles = leaflet.tileLayer(ESRI_WORLD_IMAGERY_URL, {
+            maxZoom: FARM_MAP_MAX_ZOOM,
+            maxNativeZoom: FARM_MAP_MAX_ZOOM,
+            attribution: ESRI_WORLD_IMAGERY_ATTRIBUTION,
+        });
         tiles.on('tileerror', () => {
             tilesUnavailable.value = true;
         });
@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
             </h2>
             <span
                 class="rounded-full bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground"
-                >Area demo</span
+                >Area referensi</span
             >
         </div>
 

@@ -10,6 +10,17 @@ use Illuminate\Support\Facades\File;
 /** Normalizes the origin/dev demo snapshot into searchable PostgreSQL documents. */
 class DemoDataKnowledgeSource
 {
+    /** @var array<string, string> */
+    private const REFERENCE_TITLES = [
+        'Demo kebunLocations origin/dev' => 'Dataset referensi lokasi kebun',
+        'Demo commodityCatalog origin/dev' => 'Dataset referensi komoditas',
+        'Demo dashboardFinancialSummary origin/dev' => 'Ringkasan dataset referensi keuangan',
+        'Finance demo origin/dev' => 'Dataset referensi keuangan',
+        'Report demo origin/dev' => 'Dataset referensi laporan',
+        'Panduan agronomi demo Farmer IC' => 'Panduan agronomi referensi',
+        'Finance demo snapshot' => 'Ringkasan dataset referensi keuangan',
+    ];
+
     /** @return array<int, array<string, mixed>> */
     public function documents(): array
     {
@@ -67,9 +78,10 @@ class DemoDataKnowledgeSource
     {
         $count = 0;
         foreach ($this->documents() as $document) {
-            AiKnowledgeDocument::query()->updateOrCreate(
-                ['team_id' => $team->id, 'source' => 'farmDemoData.json origin/dev', 'title' => $document['title']],
+            AiKnowledgeDocument::query()->whereIn('title', $this->compatibleTitles($document['title']))->updateOrCreate(
+                ['team_id' => $team->id, 'source' => 'farmDemoData.json origin/dev'],
                 [
+                    'title' => $document['title'],
                     'created_by' => $user->id,
                     'content' => $document['content'],
                     'content_hash' => hash('sha256', $document['content']),
@@ -92,6 +104,19 @@ class DemoDataKnowledgeSource
      */
     private function doc(string $id, string $title, string $domain, array $data): array
     {
-        return ['id' => $id, 'title' => $title, 'domain' => $domain, 'content' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)];
+        return ['id' => $id, 'title' => $this->displayTitle($title), 'domain' => $domain, 'content' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)];
+    }
+
+    public function displayTitle(string $title): string
+    {
+        return self::REFERENCE_TITLES[$title] ?? $title;
+    }
+
+    /** @return array<int, string> */
+    private function compatibleTitles(string $title): array
+    {
+        $legacyTitle = array_search($title, self::REFERENCE_TITLES, true);
+
+        return is_string($legacyTitle) ? [$title, $legacyTitle] : [$title];
     }
 }

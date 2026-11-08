@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head } from '@inertiajs/vue3';
 import {
     AlertTriangle,
@@ -79,7 +81,8 @@ function applyFinanceQuery(nextState: FarmDemoState): void {
 
     if (
         kebunId &&
-        (kebunId === 'all' || nextState.kebun.some((item) => item.id === kebunId))
+        (kebunId === 'all' ||
+            nextState.kebun.some((item) => item.id === kebunId))
     ) {
         filters.kebunId = kebunId;
     }
@@ -151,11 +154,19 @@ async function downloadReport(): Promise<void> {
     if (!data || isExporting.value) return;
     isExporting.value = true;
     errorMessage.value = '';
-    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    await new Promise((resolve) =>
+        requestAnimationFrame(() => resolve(undefined)),
+    );
     try {
-        const element = document.querySelector<HTMLElement>('.report-print-document.export-mode');
+        const element = document.querySelector<HTMLElement>(
+            '.report-print-document.export-mode',
+        );
         if (!element) throw new Error('Template PDF belum siap.');
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+        });
         const margin = 14;
         const pageWidth = 210 - margin * 2;
         const pageHeight = 297 - margin * 2;
@@ -178,14 +189,25 @@ async function downloadReport(): Promise<void> {
             }
 
             const availableHeight = 297 - margin - cursorY;
-            const scaleDown = imageHeight > availableHeight ? availableHeight / imageHeight : 1;
+            const scaleDown =
+                imageHeight > availableHeight
+                    ? availableHeight / imageHeight
+                    : 1;
             const renderWidth = pageWidth * scaleDown;
             const renderHeight = imageHeight * scaleDown;
             const renderX = margin + (pageWidth - renderWidth) / 2;
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', renderX, cursorY, renderWidth, renderHeight);
+            pdf.addImage(
+                canvas.toDataURL('image/jpeg', 0.95),
+                'JPEG',
+                renderX,
+                cursorY,
+                renderWidth,
+                renderHeight,
+            );
             cursorY += renderHeight + 6;
         }
-        if (pageNumber === 0 && cursorY === margin) throw new Error('Laporan kosong.');
+        if (pageNumber === 0 && cursorY === margin)
+            throw new Error('Laporan kosong.');
         pdf.save(`laporan-kebun-${new Date().toISOString().slice(0, 10)}.pdf`);
         statusMessage.value = 'Laporan PDF berhasil diunduh.';
     } catch {
@@ -203,7 +225,7 @@ async function resetDemoData(): Promise<void> {
     filters.year = 2026;
     filters.kebunId = 'all';
     filters.commodity = 'all';
-    statusMessage.value = 'Data demo laporan telah direset.';
+    statusMessage.value = 'Data contoh laporan telah direset.';
     await loadReport();
 }
 
@@ -265,33 +287,33 @@ onMounted(() => void loadReport());
                     class="grid grid-cols-2 gap-2"
                 >
                     <label class="sr-only" for="report-month">Bulan</label>
-                    <select
+                    <AppSelect
                         id="report-month"
                         v-model.number="filters.month"
                         class="h-10 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     >
-                        <option
+                        <AppSelectOption
                             v-for="month in monthOptions"
                             :key="month.value"
                             :value="month.value"
                         >
                             {{ month.label }}
-                        </option>
-                    </select>
+                        </AppSelectOption>
+                    </AppSelect>
                     <label class="sr-only" for="report-month-year">Tahun</label>
-                    <select
+                    <AppSelect
                         id="report-month-year"
                         v-model.number="filters.year"
                         class="h-10 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     >
-                        <option
+                        <AppSelectOption
                             v-for="year in yearOptions"
                             :key="year"
                             :value="year"
                         >
                             {{ year }}
-                        </option>
-                    </select>
+                        </AppSelectOption>
+                    </AppSelect>
                 </div>
                 <div
                     v-else-if="filters.period === 'quarter'"
@@ -314,50 +336,58 @@ onMounted(() => void loadReport());
                 </div>
                 <div v-else class="grid grid-cols-1 gap-2">
                     <label class="sr-only" for="report-year">Tahun</label>
-                    <select
+                    <AppSelect
                         id="report-year"
                         v-model.number="filters.year"
                         class="h-10 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     >
-                        <option
+                        <AppSelectOption
                             v-for="year in yearOptions"
                             :key="year"
                             :value="year"
                         >
                             {{ year }}
-                        </option>
-                    </select>
+                        </AppSelectOption>
+                    </AppSelect>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <label class="sr-only" for="report-kebun">Kebun</label>
-                    <select
+                    <AppSelect
                         id="report-kebun"
                         v-model="filters.kebunId"
                         class="h-10 min-w-0 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     >
-                        <option value="all">Semua kebun</option>
-                        <option
+                        <AppSelectOption value="all"
+                            >Semua kebun</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="item in kebunOptions"
                             :key="item.id"
                             :value="item.id"
                         >
                             {{ item.name }}
-                        </option>
-                    </select>
+                        </AppSelectOption>
+                    </AppSelect>
                     <label class="sr-only" for="report-commodity">
                         Komoditas
                     </label>
-                    <select
+                    <AppSelect
                         id="report-commodity"
                         v-model="filters.commodity"
                         :disabled="filters.kebunId !== 'all'"
                         class="h-10 min-w-0 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                     >
-                        <option value="all">Semua komoditas</option>
-                        <option value="Jagung">Jagung</option>
-                        <option value="Rumput">Rumput odot</option>
-                        <option value="Kedelai">Kedelai</option>
-                    </select>
+                        <AppSelectOption value="all"
+                            >Semua komoditas</AppSelectOption
+                        >
+                        <AppSelectOption value="Jagung">Jagung</AppSelectOption>
+                        <AppSelectOption value="Rumput"
+                            >Rumput odot</AppSelectOption
+                        >
+                        <AppSelectOption value="Kedelai"
+                            >Kedelai</AppSelectOption
+                        >
+                    </AppSelect>
                 </div>
                 <p
                     v-if="filters.kebunId !== 'all'"

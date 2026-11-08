@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasVisibleScope;
 use App\Enums\TeamRole;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $team_id
- * @property int $user_id
+ * @property string $user_id
  * @property TeamRole $role
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -21,6 +22,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['team_id', 'user_id', 'role'])]
 class Membership extends Pivot
 {
+    use HasVisibleScope;
+
     /**
      * The table associated with the model.
      *

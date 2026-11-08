@@ -10,6 +10,7 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps<{
     class?: HTMLAttributes['class'];
     autofocus?: boolean;
+    toggleTabindex?: number;
 }>();
 
 const showPassword = ref(false);
@@ -39,7 +40,8 @@ defineExpose({
                 )
             "
             :aria-label="showPassword ? 'Hide password' : 'Show password'"
-            :tabindex="-1"
+            :aria-pressed="showPassword"
+            :tabindex="props.toggleTabindex ?? -1"
         >
             <EyeOff v-if="showPassword" class="size-4" />
             <Eye v-else class="size-4" />

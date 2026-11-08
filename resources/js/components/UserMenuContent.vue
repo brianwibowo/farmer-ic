@@ -21,6 +21,7 @@ const handleLogout = () => {
 };
 
 defineProps<Props>();
+const emit = defineEmits<{ navigate: [] }>();
 </script>
 
 <template>
@@ -32,9 +33,14 @@ defineProps<Props>();
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
         <DropdownMenuItem :as-child="true">
-            <Link class="block w-full cursor-pointer" :href="edit()" prefetch>
+            <Link
+                class="block w-full cursor-pointer"
+                :href="edit()"
+                prefetch
+                @success="emit('navigate')"
+            >
                 <Settings class="mr-2 h-4 w-4" />
-                Settings
+                Pengaturan
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>
@@ -44,6 +50,7 @@ defineProps<Props>();
             class="block w-full cursor-pointer"
             :href="logout()"
             @click="handleLogout"
+            @success="emit('navigate')"
             as="button"
             data-test="logout-button"
         >
