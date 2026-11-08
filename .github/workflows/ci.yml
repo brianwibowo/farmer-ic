@@ -80,7 +80,8 @@ jobs:
           npm run types:check
           ./vendor/bin/pint --test
           ./vendor/bin/phpstan analyse --debug --memory-limit=512M --no-progress
-          npx vitest run
+          # Vitest creates a Vite test server, not a production HMR server.
+          LARAVEL_BYPASS_ENV_CHECK=1 npx vitest run
           php artisan test
 
   docker:
