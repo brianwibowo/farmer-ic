@@ -2,6 +2,7 @@
 
 @import 'tw-animate-css';
 @import './admin-dashboard-styling.css';
+@import './petugas-dashboard-styling.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

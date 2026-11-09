@@ -104,7 +104,7 @@ class OwnerReadService
             'activities' => fn ($activities) => $activities->visibleTo($actor, $team)
                 ->orderByDesc('activity_date')->orderByDesc('created_at')->orderByDesc('id')->limit(1)
                 ->with(['activityType' => fn ($types) => $types->visibleTo($actor, $team)]),
-        ])->orderBy('name')->orderBy('id')->get(['id', 'name', 'land_tenure', 'total_area_ha']);
+        ])->orderBy('name')->orderBy('id')->get(['id', 'name', 'land_tenure', 'land_tenure_party', 'total_area_ha']);
         $cyclesByFarm = PlantingCycle::visibleTo($actor, $team)
             ->whereIn('farm_id', $farms->modelKeys())
             ->whereIn('status', ['planned', 'active', 'harvested'])
@@ -145,12 +145,12 @@ class OwnerReadService
                 'name' => $farm->name,
                 'detail_url' => '/kebun/'.$farm->id,
                 'area_ha' => $farm->total_area_ha,
-                // No institution/legal-document field exists in this schema.
-                // Report the actual land-tenure value; never invent TNI/POLRI.
                 'legality' => match ($farm->land_tenure) {
                     'owned' => 'Milik sendiri', 'rented' => 'Sewa', 'partnership' => 'Kerja sama',
                     default => $farm->land_tenure,
                 },
+                'land_tenure_party' => in_array($farm->land_tenure, ['rented', 'partnership'], true) ? $farm->getAttribute('land_tenure_party') : null,
+                'requires_land_tenure_party' => in_array($farm->land_tenure, ['rented', 'partnership'], true),
                 'crops' => $crops,
                 'progress' => [
                     'completed_stages' => $stages->filter(fn (PlantingCycleStage $stage): bool => $stage->getAttribute('status') === 'completed')->count(),
@@ -192,7 +192,7 @@ class OwnerReadService
     {
         return [
             'farms' => $this->farms->paginate($actor, $team, $filters)->through(fn (Farm $farm): array => $farm->only([
-                'id', 'name', 'city', 'district', 'province', 'address', 'land_tenure', 'total_area_ha', 'latitude', 'longitude', 'image_url',
+                'id', 'name', 'city', 'district', 'province', 'address', 'land_tenure', 'land_tenure_party', 'total_area_ha', 'latitude', 'longitude', 'image_url',
             ])),
             'summary' => $this->farms->summary($actor, $team),
             'locationOptions' => $this->farms->locationOptions($actor, $team),
@@ -230,7 +230,7 @@ class OwnerReadService
 
         return [
             'farm' => [
-                ...$farm->only(['id', 'name', 'land_tenure', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
+                ...$farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
                 'owner_name' => $owner?->name,
                 'team_name' => $team->name,
                 'capacity' => $this->farms->capacity($farm, $actor, $team),

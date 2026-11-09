@@ -1,0 +1,56 @@
+[data-reference-shell] .farm-map .leaflet-container {
+    background: var(--muted);
+    font-family: var(--font-sans);
+}
+
+[data-reference-shell] .farm-map .leaflet-bar,
+[data-reference-shell] .farm-map .leaflet-bar a {
+    border-color: var(--border);
+    background: var(--card);
+    color: var(--card-foreground);
+}
+
+[data-reference-shell] .farm-map .leaflet-bar a:hover {
+    background: var(--muted);
+}
+
+[data-reference-shell] .farm-map .leaflet-control-attribution {
+    max-width: 100%;
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: 9px;
+}
+
+[data-reference-shell] .farm-map .leaflet-control-attribution a {
+    color: var(--secondary);
+}
+
+[data-reference-shell] .farm-map .leaflet-interactive:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+[data-reference-shell] .farm-map .farm-map-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+
+[data-reference-shell] .farm-map-marker__dot {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--farm-marker-color, var(--success));
+    pointer-events: none;
+}
+
+[data-reference-shell] .farm-map .leaflet-control-scale-line {
+    border-color: var(--muted-foreground);
+    background: var(--card);
+    color: var(--card-foreground);
+    text-shadow: none;
+}

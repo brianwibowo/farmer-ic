@@ -11,6 +11,7 @@ export type OwnerPaginator<T> = {
 export type OwnerFarmRow = {
     id: string;
     name: string;
+    land_tenure_party: string | null;
     land_tenure: string | null;
     city: string | null;
     district: string | null;

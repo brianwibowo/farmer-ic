@@ -43,6 +43,7 @@ const form = useForm({
     name: props.farm?.name ?? '',
     pic_user_id: props.farm?.pic_user_id ?? '',
     land_tenure: (props.farm?.land_tenure ?? '') as LandTenure | '',
+    land_tenure_party: props.farm?.land_tenure_party ?? '',
     commodity_id:
         props.farm?.commodity_id ??
         props.farm?.default_sop?.commodity?.id ??
@@ -69,6 +70,7 @@ const errorFields = computed<Record<string, { id: string; label: string }>>(
             label: 'Target volume panen',
         },
         land_tenure: { id: 'farm-tenure', label: 'Status lahan' },
+        land_tenure_party: { id: 'farm-tenure-party', label: 'Nama pihak terkait' },
         commodity_id: { id: 'farm-commodity', label: 'Komoditas' },
         default_sop_template_id: { id: 'farm-default-sop', label: 'SOP' },
         district_code: {
@@ -83,6 +85,16 @@ useUnsavedChanges(() => form.isDirty && !form.processing);
 watch(
     () => [form.district_code, form.city, form.province],
     () => form.clearErrors('district_code', 'district', 'city', 'province'),
+);
+const requiresLandTenureParty = computed(
+    () => form.land_tenure === 'rented' || form.land_tenure === 'partnership',
+);
+watch(
+    () => form.land_tenure,
+    () => {
+        if (!requiresLandTenureParty.value) form.land_tenure_party = '';
+        form.clearErrors('land_tenure_party');
+    },
 );
 const filteredSops = computed(() =>
     props.sops.filter((sop) => sop.commodity?.id === form.commodity_id),
@@ -114,6 +126,11 @@ const backUrl = props.farm
     ? `/admin/farm-management/${props.farm.id}`
     : '/admin/farm-management';
 function submit(): void {
+    if (requiresLandTenureParty.value && !form.land_tenure_party.trim()) {
+        form.setError('land_tenure_party', 'Isi nama pemilik lahan atau mitra kerja sama.');
+        void focusFormErrors();
+        return;
+    }
     if (regionFields.value && !regionFields.value.valid()) {
         form.setError(
             'district_code',
@@ -276,6 +293,31 @@ function submit(): void {
                                     >Kerja sama</AppSelectOption
                                 >
                             </AppSelect>
+                        </FarmField>
+                        <FarmField
+                            v-if="requiresLandTenureParty"
+                            id="farm-tenure-party"
+                            :label="
+                                form.land_tenure === 'rented'
+                                    ? 'Nama pemilik lahan'
+                                    : 'Nama mitra kerja sama'
+                            "
+                            required
+                            hint="Nama orang, perusahaan, atau instansi yang menjadi pihak terkait."
+                            :error="form.errors.land_tenure_party"
+                            v-slot="field"
+                        >
+                            <input
+                                :id="field.id"
+                                v-model="form.land_tenure_party"
+                                class="admin-field"
+                                type="text"
+                                required
+                                maxlength="255"
+                                placeholder="Contoh: Koperasi Tani Makmur"
+                                :aria-invalid="field.invalid"
+                                :aria-describedby="field.description"
+                            />
                         </FarmField>
                         <FarmField id="farm-pic" label="PIC kebun (opsional)" :error="form.errors.pic_user_id" v-slot="field">
                             <AppSelect :id="field.id" v-model="form.pic_user_id" class="admin-field" :aria-invalid="field.invalid" :aria-describedby="field.description">

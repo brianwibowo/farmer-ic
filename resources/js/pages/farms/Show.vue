@@ -276,6 +276,12 @@ const progressStages = computed(() =>
                     <dd class="mt-1 text-sm font-semibold">
                         {{ landTenureLabel(farm.land_tenure) }}
                     </dd>
+                    <p
+                        v-if="farm.land_tenure === 'rented' || farm.land_tenure === 'partnership'"
+                        class="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]"
+                    >
+                        {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}
+                    </p>
                 </div>
                 <div>
                     <dt class="text-xs text-muted-foreground">

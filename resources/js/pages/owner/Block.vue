@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import OwnerCycleCard from '@/components/owner/OwnerCycleCard.vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
+import {
+    ownerFarmOrigin,
+    withOwnerFarmOrigin,
+} from '@/lib/ownerFarmNavigation';
 import type { OwnerBlock, OwnerCycle } from '@/types/owner';
 import { ownerArea, ownerDate } from '@/types/owner';
 
@@ -10,6 +15,8 @@ defineProps<{
     block: OwnerBlock;
     cycles: OwnerCycle[];
 }>();
+const page = usePage();
+const origin = computed(() => ownerFarmOrigin(page.url));
 </script>
 
 <template>
@@ -17,7 +24,7 @@ defineProps<{
     <OwnerPageHeader
         :title="`${block.code} · ${block.name}`"
         :description="farm.name"
-        :back-href="`/kebun/${farm.id}`"
+        :back-href="withOwnerFarmOrigin(`/kebun/${farm.id}`, origin)"
         back-label="Detail kebun"
     />
     <section class="space-y-4 rounded-xl border border-border p-4">

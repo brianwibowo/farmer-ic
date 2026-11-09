@@ -13,8 +13,14 @@ import {
     Tag,
     X,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { normalizeAiResponse } from '@/services/aiChatService';
+import {
+    canCopyAiImage,
+    canCopyAiImageLink,
+    copyAiImage,
+    copyAiImageLink,
+} from '@/services/aiImageClipboard';
 
 const props = withDefaults(
     defineProps<{
@@ -32,11 +38,17 @@ const props = withDefaults(
 
 const emit = defineEmits<{
     (e: 'copied'): void;
+    (e: 'copyError', message: string): void;
 }>();
 
 const viewMode = ref<'infographic' | 'text'>('infographic');
 const isLightboxOpen = ref(false);
 const isCopied = ref(false);
+const isCopying = ref(false);
+const copyFeedback = ref('');
+const copyErrorMessage = ref('');
+const copiedKind = ref<'image' | 'link' | 'text'>('text');
+let copyResetTimer: number | undefined;
 const showSources = ref(false);
 const imageGeneration = computed(() => {
     const value = props.metadata?.image_generation;
@@ -58,8 +70,11 @@ const imageGeneration = computed(() => {
 const sources = computed(() => {
     const retrieval = props.metadata?.retrieval;
     if (!retrieval || typeof retrieval !== 'object') return [] as string[];
-    const results = (retrieval as { results?: Array<{ id?: string }> }).results ?? [];
-    return results.map((item) => item.id).filter((id): id is string => Boolean(id));
+    const results =
+        (retrieval as { results?: Array<{ id?: string }> }).results ?? [];
+    return results
+        .map((item) => item.id)
+        .filter((id): id is string => Boolean(id));
 });
 
 interface MetricItem {
@@ -319,18 +334,61 @@ function getMetricIcon(item: MetricItem) {
     return Activity;
 }
 
-async function copyContent(): Promise<void> {
+const copyLabel = computed(() => {
+    if (isCopying.value) return 'Menyalin…';
+    if (isCopied.value) {
+        return copiedKind.value === 'image'
+            ? 'Gambar tersalin'
+            : copiedKind.value === 'link'
+              ? 'Tautan tersalin'
+              : 'Tersalin';
+    }
+    if (!parsed.value.image) return 'Salin Ringkasan';
+    return canCopyAiImage() ? 'Salin gambar' : 'Salin tautan gambar';
+});
+
+async function performCopy(linkOnly = false): Promise<void> {
+    if (isCopying.value) return;
+    isCopying.value = true;
+    isCopied.value = false;
+    copyFeedback.value = '';
+    copyErrorMessage.value = '';
+    window.clearTimeout(copyResetTimer);
     try {
-        await navigator.clipboard.writeText(props.content);
+        if (parsed.value.image) {
+            const result = await (linkOnly
+                ? copyAiImageLink(parsed.value.image.url)
+                : copyAiImage(parsed.value.image.url));
+            copiedKind.value = result.kind;
+            copyFeedback.value = result.message;
+        } else {
+            await navigator.clipboard.writeText(props.content);
+            copiedKind.value = 'text';
+            copyFeedback.value = 'Ringkasan disalin.';
+        }
         isCopied.value = true;
         emit('copied');
-        window.setTimeout(() => {
+        copyResetTimer = window.setTimeout(() => {
             isCopied.value = false;
         }, 1600);
-    } catch {
-        // silent fallback
+    } catch (cause) {
+        copyErrorMessage.value =
+            cause instanceof Error
+                ? cause.message
+                : 'Konten tidak dapat disalin. Periksa izin clipboard browser.';
+        emit('copyError', copyErrorMessage.value);
+    } finally {
+        isCopying.value = false;
     }
 }
+
+function copyContent(): void {
+    void performCopy();
+}
+function copyLink(): void {
+    void performCopy(true);
+}
+onBeforeUnmount(() => window.clearTimeout(copyResetTimer));
 </script>
 
 <template>
@@ -370,9 +428,13 @@ async function copyContent(): Promise<void> {
                 </span>
             </div>
             <span
-                v-if="imageGeneration?.status === 'fallback' && imageGeneration.reason"
+                v-if="
+                    imageGeneration?.status === 'fallback' &&
+                    imageGeneration.reason
+                "
                 class="ml-2 text-[10px] text-warning"
-            >Alasan: {{ imageGeneration.reason }}</span>
+                >Alasan: {{ imageGeneration.reason }}</span
+            >
             <div
                 class="flex items-center gap-1 rounded-lg bg-muted/80 p-0.5 text-[11px]"
             >
@@ -534,23 +596,43 @@ async function copyContent(): Promise<void> {
             </div>
 
             <!-- ACTION FOOTER: QUICK COPY SUMMARY -->
-            <div class="flex items-center justify-end pt-1">
+            <div class="flex flex-wrap items-center justify-end gap-2 pt-1">
+                <button
+                    v-if="
+                        copyErrorMessage && parsed.image && canCopyAiImageLink()
+                    "
+                    type="button"
+                    class="flex min-h-11 items-center rounded-md px-2 text-[11px] font-medium text-secondary focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                    :disabled="isCopying"
+                    @click="copyLink"
+                >
+                    Salin tautan gambar
+                </button>
                 <button
                     type="button"
-                    class="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    class="flex min-h-11 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60"
+                    :disabled="isCopying"
                     @click="copyContent"
                 >
                     <Check v-if="isCopied" :size="12" class="text-success" />
                     <Copy v-else :size="12" />
-                    <span>{{
-                        isCopied
-                            ? 'Tersalin'
-                            : parsed.image
-                              ? 'Salin gambar'
-                              : 'Salin Ringkasan'
-                    }}</span>
+                    <span>{{ copyLabel }}</span>
                 </button>
             </div>
+            <p
+                v-if="copyErrorMessage"
+                role="alert"
+                class="text-xs leading-5 text-error"
+            >
+                {{ copyErrorMessage }}
+            </p>
+            <p
+                v-else-if="copyFeedback"
+                role="status"
+                class="text-xs leading-5 text-muted-foreground"
+            >
+                {{ copyFeedback }}
+            </p>
         </section>
 
         <!-- 2. TEXT / FALLBACK STANDARD MARKDOWN VIEW -->
@@ -568,21 +650,37 @@ async function copyContent(): Promise<void> {
                 @click="isLightboxOpen = false"
             >
                 <div
-                    class="relative max-h-[90vh] max-w-3xl overflow-hidden rounded-2xl bg-card"
+                    role="dialog"
+                    aria-modal="true"
+                    :aria-label="parsed.image.alt"
+                    class="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-card"
                     @click.stop
                 >
-                    <button
-                        type="button"
-                        aria-label="Tutup"
-                        class="absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-                        @click="isLightboxOpen = false"
+                    <div
+                        class="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-2"
                     >
-                        <X :size="18" />
-                    </button>
+                        <a
+                            :href="parsed.image.url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                        >
+                            <Maximize2 :size="16" />
+                            Buka ukuran asli
+                        </a>
+                        <button
+                            type="button"
+                            aria-label="Tutup"
+                            class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground transition hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-primary"
+                            @click="isLightboxOpen = false"
+                        >
+                            <X :size="18" />
+                        </button>
+                    </div>
                     <img
                         :src="parsed.image.url"
                         :alt="parsed.image.alt"
-                        class="max-h-[80vh] w-full object-contain"
+                        class="block h-auto w-full object-contain"
                     />
                     <div
                         class="bg-card px-4 py-3 text-center text-xs font-medium text-foreground"
