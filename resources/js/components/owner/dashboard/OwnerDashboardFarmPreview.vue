@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { ArrowRight, MapPin, Sprout, UserRound, X } from '@lucide/vue';
 import { computed } from 'vue';
+import { withOwnerFarmOrigin } from '@/lib/ownerFarmNavigation';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
 import {
     Dialog,
@@ -141,7 +142,7 @@ const hasCoordinates = computed(
 
             <footer class="shrink-0 border-t border-border bg-card p-4 sm:p-5">
                 <Link
-                    :href="farm.detail_url"
+                    :href="withOwnerFarmOrigin(farm.detail_url, 'home')"
                     class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     @click="open = false"
                 >

@@ -323,6 +323,12 @@ region; mobile column widths and freeze behavior stay unchanged. Keep the
 current filtered total hectares visible below the table.
 Site names link to the read-only Owner farm detail, and resume links to its
 actual latest activity. Never send Owners to Admin routes.
+Farm detail links from the Beranda table or map carry the explicit `from=home`
+context: their back action says Kembali ke Beranda and returns to `/`. Carry
+that context through farm-to-block and block-to-farm links. Entries from the
+farm directory or direct URLs retain Daftar kebun and `/kebun` as the fallback.
+Accept only the known origin flag, never a caller-supplied back URL or browser
+history as the destination; reloads and new tabs must keep the same behavior.
 
 Owner Beranda map markers open a farm summary dialog instead of a small Leaflet
 text bubble. Match the farm-preview hierarchy: name, location/hectares and close

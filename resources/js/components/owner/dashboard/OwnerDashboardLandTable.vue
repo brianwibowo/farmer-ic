@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { ArrowUpRight } from '@lucide/vue';
+import { withOwnerFarmOrigin } from '@/lib/ownerFarmNavigation';
 import { ownerArea, ownerDate, ownerStatus } from '@/types/owner';
 import type { OwnerDashboardLandTable } from '@/types/owner-dashboard';
 
@@ -111,7 +112,9 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
                             class="sticky left-0 z-10 border-r border-b border-border bg-card px-3 py-3 text-left align-top font-medium"
                         >
                             <Link
-                                :href="row.detail_url"
+                                :href="
+                                    withOwnerFarmOrigin(row.detail_url, 'home')
+                                "
                                 class="block min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] text-secondary underline decoration-secondary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
                                 >{{ row.name }}</Link
                             >
