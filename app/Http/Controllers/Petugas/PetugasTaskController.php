@@ -40,7 +40,7 @@ class PetugasTaskController extends Controller
         Gate::authorize('viewAny', [PlantingCycleTask::class, $farm->team]);
         $data = $this->tasks->listing($request->user(), $farm, $status);
         $data['tasks'] = array_map(function (array $task) use ($request, $farm): array {
-            $model = PlantingCycleTask::visibleTo($request->user(), $farm->team)->findOrFail($task['id']);
+            $model = PlantingCycleTask::visibleTo($request->user(), $farm->team)->whereKey($task['id'])->firstOrFail();
             $reason = $this->sequence->blockedReason($request->user(), $model->plantingCycle, TaskActivityFields::activityCode($model) ?? '');
             $open = in_array($task['status'], ['pending', 'in_progress'], true) && $task['subblok']['planted_at'] !== null;
 
