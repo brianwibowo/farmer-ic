@@ -6,6 +6,7 @@ export type GrowthStage = {
     label: string;
     shortLabel: string;
     range: string;
+    throughHst: number;
     percent: number;
     image: string;
     imageAlt: string;
@@ -44,6 +45,7 @@ const bisi18: GrowthProfile = {
             label: 'Kecambah',
             shortLabel: 'Kecambah',
             range: '0–7 HST',
+            throughHst: 7,
             percent: 7,
             image: jagungImages.kecambah,
             imageAlt: 'Kecambah jagung hibrida BISI-18 menembus tanah',
@@ -63,6 +65,7 @@ const bisi18: GrowthProfile = {
             label: 'Vegetatif',
             shortLabel: 'Vegetatif',
             range: '8–45 HST',
+            throughHst: 45,
             percent: 43,
             image: jagungImages.vegetatif,
             imageAlt: 'Tanaman jagung BISI-18 muda pada fase vegetatif',
@@ -82,6 +85,7 @@ const bisi18: GrowthProfile = {
             label: 'Pembungaan & penyerbukan',
             shortLabel: 'Pembungaan',
             range: '46–60 HST',
+            throughHst: 60,
             percent: 57,
             image: jagungImages.pembungaan,
             imageAlt: 'Malai jagung BISI-18 saat pembungaan',
@@ -102,6 +106,7 @@ const bisi18: GrowthProfile = {
             label: 'Reproduktif (pengisian biji)',
             shortLabel: 'Reproduktif',
             range: '61–95 HST',
+            throughHst: 95,
             percent: 90,
             image: jagungImages.pengisian,
             imageAlt: 'Tongkol jagung BISI-18 saat pengisian biji',
@@ -121,6 +126,7 @@ const bisi18: GrowthProfile = {
             label: 'Masak fisiologis & panen',
             shortLabel: 'Panen',
             range: '96–105 HST',
+            throughHst: 105,
             percent: 100,
             image: jagungImages.panen,
             imageAlt: 'Tanaman jagung BISI-18 mengering menjelang panen',
@@ -149,6 +155,7 @@ const lamuru: GrowthProfile = {
             label: 'Kecambah',
             shortLabel: 'Kecambah',
             range: '0–6 HST',
+            throughHst: 6,
             percent: 6,
             image: jagungImages.kecambah,
             imageAlt: 'Kecambah jagung komposit Lamuru di tanah',
@@ -168,6 +175,7 @@ const lamuru: GrowthProfile = {
             label: 'Vegetatif',
             shortLabel: 'Vegetatif',
             range: '7–43 HST',
+            throughHst: 43,
             percent: 45,
             image: jagungImages.vegetatif,
             imageAlt: 'Tanaman jagung Lamuru muda pada fase vegetatif',
@@ -187,6 +195,7 @@ const lamuru: GrowthProfile = {
             label: 'Pembungaan & penyerbukan',
             shortLabel: 'Pembungaan',
             range: '44–58 HST',
+            throughHst: 58,
             percent: 61,
             image: jagungImages.pembungaan,
             imageAlt: 'Malai jagung Lamuru saat pembungaan',
@@ -207,6 +216,7 @@ const lamuru: GrowthProfile = {
             label: 'Reproduktif (pengisian biji)',
             shortLabel: 'Reproduktif',
             range: '59–88 HST',
+            throughHst: 88,
             percent: 93,
             image: jagungImages.pengisian,
             imageAlt: 'Tongkol jagung Lamuru saat pengisian biji',
@@ -226,6 +236,7 @@ const lamuru: GrowthProfile = {
             label: 'Masak fisiologis & panen',
             shortLabel: 'Panen',
             range: '89–95 HST',
+            throughHst: 95,
             percent: 100,
             image: jagungImages.panen,
             imageAlt:
@@ -255,6 +266,7 @@ const anjasmoro: GrowthProfile = {
             label: 'Kecambah',
             shortLabel: 'Kecambah',
             range: '0–5 HST',
+            throughHst: 5,
             percent: 6,
             image: '/images/farmer/growth/kedelai-kecambah.jpg',
             imageAlt: 'Kecambah kedelai Anjasmoro di lahan',
@@ -275,6 +287,7 @@ const anjasmoro: GrowthProfile = {
             label: 'Vegetatif',
             shortLabel: 'Vegetatif',
             range: '6–35 HST',
+            throughHst: 35,
             percent: 39,
             image: '/images/farmer/growth/kedelai-vegetatif.jpg',
             imageAlt: 'Tanaman kedelai Anjasmoro pada fase vegetatif',
@@ -294,6 +307,7 @@ const anjasmoro: GrowthProfile = {
             label: 'Pembungaan & penyerbukan',
             shortLabel: 'Pembungaan',
             range: '36–45 HST',
+            throughHst: 45,
             percent: 50,
             image: '/images/farmer/growth/kedelai-pembungaan.jpg',
             imageAlt: 'Bunga ungu kedelai Anjasmoro di ketiak daun',
@@ -314,6 +328,7 @@ const anjasmoro: GrowthProfile = {
             label: 'Reproduktif (pembentukan & pengisian polong)',
             shortLabel: 'Reproduktif',
             range: '46–70 HST',
+            throughHst: 70,
             percent: 78,
             image: '/images/farmer/growth/kedelai-reproduktif.jpg',
             imageAlt: 'Polong kedelai Anjasmoro saat pengisian biji',
@@ -333,6 +348,7 @@ const anjasmoro: GrowthProfile = {
             label: 'Masak fisiologis & panen',
             shortLabel: 'Panen',
             range: '71–90 HST',
+            throughHst: 90,
             percent: 100,
             image: '/images/farmer/growth/kedelai-panen.webp',
             imageAlt: 'Polong kedelai Anjasmoro terisi penuh menjelang panen',
@@ -361,6 +377,7 @@ const grobogan: GrowthProfile = {
             label: 'Kecambah',
             shortLabel: 'Kecambah',
             range: '0–4 HST',
+            throughHst: 4,
             percent: 5,
             image: '/images/farmer/growth/kedelai-kecambah.jpg',
             imageAlt: 'Kecambah kedelai Grobogan di lahan',
@@ -381,6 +398,7 @@ const grobogan: GrowthProfile = {
             label: 'Vegetatif',
             shortLabel: 'Vegetatif',
             range: '5–30 HST',
+            throughHst: 30,
             percent: 38,
             image: '/images/farmer/growth/kedelai-vegetatif.jpg',
             imageAlt: 'Tanaman kedelai Grobogan pada fase vegetatif',
@@ -400,6 +418,7 @@ const grobogan: GrowthProfile = {
             label: 'Pembungaan & penyerbukan',
             shortLabel: 'Pembungaan',
             range: '31–40 HST',
+            throughHst: 40,
             percent: 50,
             image: '/images/farmer/growth/kedelai-pembungaan.jpg',
             imageAlt: 'Bunga kedelai Grobogan berwarna ungu',
@@ -420,6 +439,7 @@ const grobogan: GrowthProfile = {
             label: 'Reproduktif (pembentukan & pengisian polong)',
             shortLabel: 'Reproduktif',
             range: '41–65 HST',
+            throughHst: 65,
             percent: 81,
             image: '/images/farmer/growth/kedelai-reproduktif.jpg',
             imageAlt: 'Polong kedelai Grobogan saat pengisian biji',
@@ -439,6 +459,7 @@ const grobogan: GrowthProfile = {
             label: 'Masak fisiologis & panen',
             shortLabel: 'Panen',
             range: '66–80 HST',
+            throughHst: 80,
             percent: 100,
             image: '/images/farmer/growth/kedelai-panen.webp',
             imageAlt: 'Polong kedelai Grobogan terisi penuh menjelang panen',
@@ -467,6 +488,7 @@ const odot: GrowthProfile = {
             label: 'Penanaman stek',
             shortLabel: 'Stek',
             range: '0–7 HST',
+            throughHst: 7,
             percent: 12,
             image: '/images/farmer/growth/rumput-stek.jpg',
             imageAlt: 'Stek rumput Odot mulai mengeluarkan tunas',
@@ -487,6 +509,7 @@ const odot: GrowthProfile = {
             label: 'Tunas awal',
             shortLabel: 'Tunas',
             range: '8–14 HST',
+            throughHst: 14,
             percent: 23,
             image: '/images/farmer/growth/rumput-tunas.jpg',
             imageAlt: 'Tunas muda rumput Odot tumbuh dari pangkal rumpun',
@@ -507,6 +530,7 @@ const odot: GrowthProfile = {
             label: 'Anakan aktif',
             shortLabel: 'Anakan',
             range: '15–30 HST',
+            throughHst: 30,
             percent: 50,
             image: '/images/farm_fields/rumput.avif',
             imageAlt: 'Lahan rumput Odot dengan anakan yang mulai rapat',
@@ -526,6 +550,7 @@ const odot: GrowthProfile = {
             label: 'Pertumbuhan cepat',
             shortLabel: 'Vegetatif',
             range: '31–45 HST',
+            throughHst: 45,
             percent: 75,
             image: '/images/farmer/growth/rumput-vegetatif.jpg',
             imageAlt: 'Rumpun rumput Odot tumbuh tinggi dan rimbun',
@@ -546,6 +571,7 @@ const odot: GrowthProfile = {
             label: 'Siap panen',
             shortLabel: 'Panen',
             range: '46–60 HST',
+            throughHst: 60,
             percent: 100,
             image: '/images/farmer/growth/rumput-siap-panen.jpg',
             imageAlt: 'Rumpun rumput Odot rimbun siap dipotong',
@@ -597,6 +623,19 @@ export function getGrowthProfile(
     }
 
     return profiles[0];
+}
+
+/** Visual reference for a server-calculated age; does not change operational stages. */
+export function getGrowthStageAtHst(
+    profile: GrowthProfile,
+    hst: number | null,
+): GrowthStage | null {
+    if (hst === null || !Number.isInteger(hst) || hst < 0) return null;
+    return (
+        profile.stages.find((stage) => hst <= stage.throughHst) ??
+        profile.stages.at(-1) ??
+        null
+    );
 }
 
 export function getGrowthStageAtPercent(
