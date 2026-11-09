@@ -6,6 +6,7 @@ use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\User;
 use App\Support\VoluntaryActivityFields;
@@ -24,20 +25,28 @@ class VoluntaryActivityService
     ) {}
 
     /** @param array<string, mixed> $data */
-    public function record(User $actor, Farm $farm, ActivityType $type, ?PlantingCycle $cycle, array $data): FarmActivity
+    public function record(User $actor, Farm $farm, ActivityType $type, ?PlantingCycle $cycle, array $data, ?FarmBlock $block = null): FarmActivity
     {
         $paths = [];
         try {
-            return DB::transaction(function () use ($actor, $farm, $type, $cycle, $data, &$paths): FarmActivity {
+            return DB::transaction(function () use ($actor, $farm, $type, $cycle, $data, $block, &$paths): FarmActivity {
                 $team = $farm->team;
                 $farm = Farm::visibleTo($actor, $team)->whereKey($farm->id)->lockForUpdate()->firstOrFail();
                 $type = ActivityType::visibleTo($actor, $team)->whereKey($type->id)->where('is_active', true)->where('is_selectable', true)->firstOrFail();
+                if ($block !== null) {
+                    $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->whereKey($block->id)->lockForUpdate()->firstOrFail();
+                    if ($reason = $this->sequence->blockReason($actor, $block, $type->code)) {
+                        throw ValidationException::withMessages(['block_id' => $reason]);
+                    }
+                }
                 if ($cycle !== null) {
                     $cycle = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereKey($cycle->id)->lockForUpdate()->firstOrFail();
                     if (! in_array($cycle->status, ['planned', 'active'], true)) {
                         throw ValidationException::withMessages(['cycle_id' => 'Subblok sudah ditutup.']);
                     }
                     $this->sequence->ensureAllowed($actor, $cycle, $type->code);
+                    $round = \App\Models\PlantingRound::visibleTo($actor, $team)->whereKey($cycle->getAttribute('planting_round_id'))->first();
+                    $block = $round ? FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereKey($round->block_id)->firstOrFail() : null;
                     if (in_array($type->code, ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control', 'harvest'], true)
                         && ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString())) {
                         throw ValidationException::withMessages(['work_date' => 'Perawatan dan panen dicatat pada atau setelah tanggal acuan tanam.']);
@@ -49,8 +58,8 @@ class VoluntaryActivityService
                         throw ValidationException::withMessages(['cycle_id' => 'Pilih subblok untuk laporan panen.']);
                     }
                     $this->harvest->ensureValid($actor, $team, $cycle, $d);
-                } elseif (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->getAttribute('reserved_area_ha')))) {
-                    throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi alokasi subblok.']);
+                } elseif (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->getAttribute('reserved_area_ha')) || (! $cycle && $block && $d['area_ha'] > (float) $block->area_ha))) {
+                    throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi luas lokasi yang dipilih.']);
                 }
                 if (($d['quantity_kg'] ?? 0) > 999999999.999) {
                     throw ValidationException::withMessages(['details.quantity' => 'Jumlah terlalu besar setelah konversi satuan.']);
@@ -63,7 +72,7 @@ class VoluntaryActivityService
                     'position' => $this->headers->nextPosition($log, $actor), 'worker_count' => (int) $data['worker_count'],
                     'description' => $data['notes'] ?? null, 'obstacle_status' => 'none',
                 ]);
-                $activity->forceFill(['task_details' => json_encode($d, JSON_THROW_ON_ERROR)])->save();
+                $activity->forceFill(['block_id' => $block?->id, 'task_details' => json_encode($d, JSON_THROW_ON_ERROR)])->save();
                 match ($type->detail_key) {
                     'irrigation' => $activity->irrigationDetail()->create(['water_source' => $d['water_source'], 'irrigation_method' => $d['method'], 'machine_type' => $d['pump'] ?? null, 'duration_hours' => $d['duration_hours']]),
                     'fertilization' => $activity->fertilizationDetail()->create([

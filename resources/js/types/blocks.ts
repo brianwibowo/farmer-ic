@@ -17,7 +17,7 @@ export type FarmBlock = {
     area_ha: string;
     description: string | null;
     is_active: boolean;
-    land_clearing_started_at: string;
+    land_clearing_started_at: string | null;
     land_clearing_completed_at: string | null;
 };
 export type BatchStage = {

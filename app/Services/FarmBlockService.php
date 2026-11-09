@@ -9,6 +9,7 @@ use App\Models\PlantingCycleStage;
 use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Activity\BlockPreparationTimeline;
 use App\Support\LandArea;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -58,11 +59,15 @@ class FarmBlockService
         $rounds = PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->orderBy('round_number')->get();
         $batches = PlantingCycle::visibleTo($actor, $team)->whereIn('planting_round_id', $rounds->modelKeys())->orderBy('batch_number')->get();
         $stages = PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())->orderBy('position')->get()->groupBy('planting_cycle_id');
+        $preparation = app(BlockPreparationTimeline::class)->forCycles($actor, $team, $batches);
+        $clearing = app(BlockPreparationTimeline::class)->clearingForBlocks($actor, $team, collect($blocks->modelKeys()));
         $mapped = \App\Models\BlockMappingDetail::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->distinct()->pluck('block_id');
         $activeArea = LandArea::squareMetres(FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha')) ?? 0;
         $farmCapacity = $this->batchCapacity($farm, $blocks->firstOrFail(), PlantingCycle::visibleTo($actor, $team)->toBase());
 
-        return $blocks->map(function (FarmBlock $block) use ($farm, $rounds, $batches, $stages, $mapped, $activeArea, $farmCapacity): FarmBlock {
+        return $blocks->map(function (FarmBlock $block) use ($farm, $rounds, $batches, $stages, $preparation, $clearing, $mapped, $activeArea, $farmCapacity): FarmBlock {
+            $block->setAttribute('land_clearing_started_at', $clearing[$block->id]['started_at'] ?? null);
+            $block->setAttribute('land_clearing_completed_at', $clearing[$block->id]['completed_at'] ?? null);
             $blockRounds = $rounds->where('block_id', $block->id);
             $blockBatches = $batches->whereIn('planting_round_id', $blockRounds->modelKeys());
             $running = $blockBatches->whereIn('status', ['planned', 'active']);
@@ -84,7 +89,7 @@ class FarmBlockService
             $block->setAttribute('batches', $blockBatches->map(fn (PlantingCycle $batch): array => [
                 ...$batch->only(['id', 'planting_round_id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
                 'planned_planting_at' => $batch->planned_planting_at?->toDateString(), 'planted_at' => $batch->planted_at?->toDateString(),
-                'stages' => ($stages->get($batch->id) ?? collect())->map->only(['code', 'position', 'status', 'started_at', 'completed_at'])->values(),
+                'stages' => ($stages->get($batch->id) ?? collect())->map(fn ($stage) => [...$stage->only(['code', 'position', 'status', 'started_at', 'completed_at']), ...($preparation[$batch->id][$stage->code] ?? [])])->values(),
             ])->values());
 
             return $block;
@@ -105,9 +110,13 @@ class FarmBlockService
     public function detail(FarmBlock $block, User $actor, Team $team): array
     {
         $visible = FarmBlock::visibleTo($actor, $team)->findOrFail($block->id);
+        $clearing = app(BlockPreparationTimeline::class)->clearingForBlocks($actor, $team, collect([$visible->id]));
+        $visible->setAttribute('land_clearing_started_at', $clearing[$visible->id]['started_at'] ?? null);
+        $visible->setAttribute('land_clearing_completed_at', $clearing[$visible->id]['completed_at'] ?? null);
         $rounds = PlantingRound::visibleTo($actor, $team)->where('block_id', $visible->id)->orderBy('round_number')->get();
         $batches = PlantingCycle::visibleTo($actor, $team)->whereIn('planting_round_id', $rounds->modelKeys())->orderBy('batch_number')->get();
         $stages = PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())->orderBy('position')->get()->groupBy('planting_cycle_id');
+        $preparation = app(BlockPreparationTimeline::class)->forCycles($actor, $team, $batches);
 
         $farm = Farm::visibleTo($actor, $team)->findOrFail($visible->farm_id);
 
@@ -119,7 +128,7 @@ class FarmBlockService
                 ...$batch->only(['id', 'planting_round_id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'planned_planting_at', 'planted_at', 'status']),
                 'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
                 'planted_at' => $batch->planted_at?->toDateString(),
-                'stages' => ($stages->get($batch->id) ?? collect())->map->only(['code', 'position', 'status', 'started_at', 'completed_at']),
+                'stages' => ($stages->get($batch->id) ?? collect())->map(fn ($stage) => [...$stage->only(['code', 'position', 'status', 'started_at', 'completed_at']), ...($preparation[$batch->id][$stage->code] ?? [])]),
             ])];
     }
 
@@ -261,10 +270,6 @@ class FarmBlockService
             if (in_array($label, $labels, true)) {
                 throw ValidationException::withMessages(['subblock_label' => 'Label subblok sudah digunakan pada periode ini.']);
             }
-            $completedAt = $locked->land_clearing_completed_at ?? now();
-            if ($locked->land_clearing_completed_at === null) {
-                $locked->forceFill(['land_clearing_completed_at' => $completedAt])->save();
-            }
             $batch = new PlantingCycle;
             $batch->forceFill(['farm_id' => $farm->id, 'planting_round_id' => $round->id,
                 'batch_number' => 1 + (int) PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->max('batch_number'),
@@ -274,9 +279,7 @@ class FarmBlockService
             foreach (PlantingCycleStage::CODES as $position => $code) {
                 $stage = new PlantingCycleStage;
                 $stage->forceFill(['planting_cycle_id' => $batch->id, 'code' => $code, 'position' => $position + 1,
-                    'status' => $position === 0 ? 'completed' : ($position === 1 ? 'in_progress' : 'upcoming'),
-                    'started_at' => $position === 0 ? $locked->land_clearing_started_at : ($position === 1 ? now() : null),
-                    'completed_at' => $position === 0 ? $completedAt : null])->save();
+                    'status' => 'upcoming', 'started_at' => null, 'completed_at' => null])->save();
             }
 
             return $batch->refresh();

@@ -84,7 +84,9 @@ class TaskActivityService
                     'position' => $this->headers->nextPosition($log, $actor), 'worker_count' => (int) $data['worker_count'],
                     'description' => $data['notes'] ?? null, 'obstacle_status' => 'none',
                 ]);
-                $activity->forceFill(['planting_cycle_task_id' => $task->id, 'task_details' => json_encode($details, JSON_THROW_ON_ERROR)])->save();
+                $round = \App\Models\PlantingRound::visibleTo($actor, $farm->team)->whereKey($cycle->getAttribute('planting_round_id'))->first();
+                $block = $round ? \App\Models\FarmBlock::visibleTo($actor, $farm->team)->where('farm_id', $farm->id)->whereKey($round->block_id)->firstOrFail() : null;
+                $activity->forceFill(['block_id' => $block?->id, 'planting_cycle_task_id' => $task->id, 'task_details' => json_encode($details, JSON_THROW_ON_ERROR)])->save();
                 match ($type->detail_key) {
                     'irrigation' => $activity->irrigationDetail()->create(['water_source' => $details['water_source'], 'irrigation_method' => $details['method'], 'machine_type' => $details['pump'] ?? null, 'duration_hours' => $details['duration_hours']]),
                     'fertilization' => $activity->fertilizationDetail()->create([

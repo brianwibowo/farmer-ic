@@ -164,7 +164,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         }
         /** @var FarmActivity $activity */
         $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'activity:'.$key.':'.$code), [
-            'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'activity_type_id' => $type->id,
+            'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'block_id' => $cycle->plantingRound?->block_id, 'activity_type_id' => $type->id,
             'performed_by' => $performer->id, 'activity_date' => $this->at($date),
             'description' => $description, 'status' => 'completed', 'created_at' => $this->at($date), 'updated_at' => $this->at($date),
         ], $farm, $actor, $team);

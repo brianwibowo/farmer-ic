@@ -40,10 +40,13 @@ const number = (value: string | number | null, unit = '') =>
                         class="mt-1 flex items-center gap-2 text-base font-semibold"
                     >
                         <Ruler class="size-4 text-primary" />{{
-                            activity.block_mapping?.block_name ??
+                            activity.name ??
                             'Rincian kegiatan'
                         }}
                     </h3>
+                    <p v-if="activity.block_name || activity.block_mapping?.block_name" class="mt-1 text-sm text-muted-foreground">
+                        Blok: {{ activity.block_name ?? activity.block_mapping?.block_name }}
+                    </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <span

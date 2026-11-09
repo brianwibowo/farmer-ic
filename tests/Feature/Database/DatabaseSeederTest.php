@@ -8,6 +8,7 @@ use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoActivitySeeder;
 use Database\Seeders\DemoOwnerPortfolioData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,22 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseCount('farms', 6);
         $this->assertDatabaseCount('financial_transactions', 24);
         $this->assertSame(['Jagung', 'Rumput', 'Sorgum'], Commodity::query()->orderBy('name')->pluck('name')->all());
+        $demoFarm = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
+        $this->assertTrue(DB::table('block_mapping_details as d')->join('farm_activities as a', 'a.id', '=', 'd.activity_id')
+            ->where('a.farm_id', $demoFarm->id)->exists());
+        foreach (['B01', 'B02'] as $code) {
+            $blockId = DB::table('farm_blocks')->where('farm_id', $demoFarm->id)->where('code', $code)->value('id');
+            foreach (['land_cleaning', 'loosening'] as $type) {
+                $detail = $type === 'land_cleaning' ? 'land_cleaning_details' : 'loosening_details';
+                $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
+                    ->join($detail.' as d', 'd.activity_id', '=', 'a.id')
+                    ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')->where('t.code', $type)->exists());
+            }
+        }
+        $this->assertGreaterThan(0, DB::table('farm_activities')->where('farm_id', $demoFarm->id)->whereNotNull('planting_cycle_id')->whereNotNull('block_id')->count());
+        $this->assertSame(0, DB::table('farm_activities as a')->join('planting_cycles as c', 'c.id', '=', 'a.planting_cycle_id')
+            ->join('planting_rounds as r', 'r.id', '=', 'c.planting_round_id')
+            ->where(fn ($query) => $query->whereNull('a.block_id')->orWhereColumn('a.block_id', '<>', 'r.block_id'))->count());
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $farmId = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
             $this->assertDatabaseHas('farms', ['id' => $farmId, 'name' => $site['name'], 'team_id' => $team->id]);
@@ -48,7 +65,7 @@ class DatabaseSeederTest extends TestCase
             'sop_template_versions', 'sop_template_tasks', 'farm_activities', 'planting_details',
             'fertilization_details', 'irrigation_details', 'pesticide_details', 'harvest_details',
             'plant_observations', 'farm_risks', 'weather_records', 'activity_photos',
-            'financial_transactions', 'financial_budgets', 'financial_projections'];
+            'financial_transactions', 'financial_budgets', 'financial_projections', 'land_cleaning_details', 'loosening_details'];
         $counts = collect($tables)->mapWithKeys(fn (string $table) => [$table => DB::table($table)->count()]);
         $farm = Farm::query()->findOrFail(DemoOwnerPortfolioData::id($team, 'farm:sukamaju'));
         $farm->update(['name' => 'Kebun Sukamaju Demo']);
@@ -78,5 +95,19 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseCount('teams', 0);
         $this->assertDatabaseCount('farms', 0);
         $this->assertDatabaseCount('administrative_regions', 0);
+    }
+
+    public function test_activity_seed_rejects_production_before_writing_any_records(): void
+    {
+        $this->app->instance('env', 'production');
+        try {
+            app(DemoActivitySeeder::class)->run();
+            $this->fail('The activity demo seed must reject production.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('local', $exception->getMessage());
+        } finally {
+            $this->app->instance('env', 'testing');
+        }
+        $this->assertDatabaseCount('farm_activities', 0);
     }
 }

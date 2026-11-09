@@ -432,7 +432,7 @@ SQL, [$table]), 'columns');
         }
         $farmTeamAlreadyDocumented = in_array('team_id', array_column($this->definition['farms'], 'name'), true);
         $this->assertSame($simpleForeignKeys + ($farmTeamAlreadyDocumented ? 0 : 1), (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
-        $this->assertSame(11, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
+        $this->assertSame(12, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
     }
 
     /** @param array<string, mixed> $overrides

@@ -154,7 +154,9 @@ class FarmService
         $batches = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('planting_round_id', $rounds)
             ->whereIn('status', ['planned', 'active', 'harvested'])->get(['id', 'status']);
         $stages = \App\Models\PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())
-            ->where('status', 'in_progress')->orderBy('position')->get(['planting_cycle_id', 'code'])->keyBy('planting_cycle_id');
+            ->where('status', 'in_progress')->where(fn ($query) => $query->whereNotIn('code', ['land_clearing', 'soil_preparation'])
+            ->orWhereHas('plantingCycle', fn ($cycles) => $cycles->visibleTo($actor, $team)->whereNull('planting_round_id')))
+            ->orderBy('position')->get(['planting_cycle_id', 'code'])->keyBy('planting_cycle_id');
         $counts = array_fill_keys([...\App\Models\PlantingCycleStage::CODES, 'not_started'], 0);
         foreach ($batches as $batch) {
             $code = $batch->status === 'harvested' ? 'harvest' : ($stages->get($batch->id)?->getAttribute('code') ?? 'not_started');

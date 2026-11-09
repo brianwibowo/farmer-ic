@@ -82,6 +82,7 @@ class DailyActivityLogService
             $startedAt = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
             $position = $this->headers->nextPosition($log, $recorder);
             foreach ($data['activities'] as $index => $item) {
+                $block = null;
                 if (! empty($item['block_mapping']['block_id'])) {
                     $block = FarmBlock::visibleTo($recorder, $farm->team)->where('farm_id', $farm->id)
                         ->whereKey($item['block_mapping']['block_id'])->first();
@@ -105,6 +106,9 @@ class DailyActivityLogService
                     'proposed_solution' => $item['proposed_solution'] ?? null,
                     'action_taken' => $item['action_taken'] ?? null,
                 ]);
+                if ($block !== null) {
+                    $activity->forceFill(['block_id' => $block->id])->save();
+                }
                 $activity->blockMappingDetail()->create($item['block_mapping']);
             }
 

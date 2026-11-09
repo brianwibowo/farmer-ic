@@ -190,11 +190,14 @@ class AdminDashboardService
         $runningCount = (clone $runningCycles)->count();
         $stageCounts = PlantingCycleStage::query()->visibleTo($actor, $team)
             ->whereIn('planting_cycle_id', (clone $runningCycles)->select('id'))
-            ->where('status', 'in_progress')
+            ->where('status', 'in_progress')->where(fn ($query) => $query->whereNotIn('code', ['land_clearing', 'soil_preparation'])
+            ->orWhereHas('plantingCycle', fn ($cycles) => $cycles->visibleTo($actor, $team)->whereNull('planting_round_id')))
             ->selectRaw('code, COUNT(*) as total')->groupBy('code')->pluck('total', 'code');
         $stageNames = ['soil_preparation' => 'Persiapan tanah', 'basic_fertilizer' => 'Pupuk dasar', 'planting' => 'Penanaman', 'maintenance' => 'Pemeliharaan', 'harvest' => 'Panen'];
         $stages = collect($stageNames)->map(fn (string $label, string $code): array => ['code' => $code, 'label' => $label, 'count' => (int) ($stageCounts[$code] ?? 0)])->values()->all();
-        $landClearing = (clone $blocks)->where('is_active', true)->whereNull('land_clearing_completed_at')->count();
+        $cleanedBlocks = FarmActivity::visibleTo($actor, $team)->whereNotNull('block_id')
+            ->whereHas('activityType', fn ($types) => $types->visibleTo($actor, $team)->where('code', 'land_cleaning'))->select('block_id');
+        $landClearing = (clone $blocks)->where('is_active', true)->whereNotIn('id', $cleanedBlocks)->count();
         $timelineUnknown = max(0, $runningCount - array_sum(array_column($stages, 'count')));
         $trend = $this->activityTrend($trendActivities, $weekStart, $period);
 

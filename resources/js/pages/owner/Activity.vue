@@ -65,10 +65,10 @@ function photoFailed(id: string): void {
                 </p>
             </div>
             <p
-                v-if="activity.cycle"
+                v-if="activity.cycle || activity.block_name"
                 class="mt-3 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"
             >
-                {{ activity.cycle.label }}
+                {{ [activity.block_name, activity.cycle?.label].filter(Boolean).join(' · ') }}
             </p>
         </section>
 

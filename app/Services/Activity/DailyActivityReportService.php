@@ -30,7 +30,8 @@ class DailyActivityReportService
                 $type = ActivityType::visibleTo($actor, $team)->whereKey($activity->activity_type_id)->first();
                 $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($activity->planting_cycle_id)->first();
                 $round = $cycle === null ? null : PlantingRound::visibleTo($actor, $team)->whereKey($cycle->getAttribute('planting_round_id'))->first();
-                $block = $round === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($round->block_id)->first();
+                $blockId = $activity->getAttribute('block_id') ?? $round?->block_id;
+                $block = $blockId === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($blockId)->first();
                 $detailClass = ActivityDetailMap::model($type?->detail_key);
                 $detail = $detailClass === null ? null : $detailClass::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
 

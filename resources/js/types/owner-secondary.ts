@@ -17,6 +17,7 @@ export type OwnerActivityRow = {
     status: string | null;
     activity_date: string;
     farm: OwnerOption | null;
+    block_name: string | null;
     performer: OwnerOption | null;
     type: { code: string; name: string } | null;
     cycle: { id: string; label: string } | null;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { LoaderCircle, X } from '@lucide/vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
@@ -13,6 +13,7 @@ const props = defineProps<{
     type: { id: string; code: string; name: string };
     today: string;
     fields: ActivityField[];
+    blocks: { id: string; code: string; name: string; blocked_reason: string | null }[];
     cycles: {
         id: string;
         subblock_label: string;
@@ -29,6 +30,7 @@ const props = defineProps<{
 }>();
 const form = useForm({
     cycle_id: '',
+    block_id: '',
     work_date: props.today,
     start_time: '07:00',
     end_time: '',
@@ -50,13 +52,17 @@ const form = useForm({
 const ready = ref(false);
 const existing = ref(false);
 const clientError = ref('');
+const blockOnly = computed(() => ['land_cleaning', 'loosening', 'beds', 'liming', 'base_fertilization'].includes(props.type.code));
+const optionalLocation = computed(() => ['incident', 'other'].includes(props.type.code));
+watch(() => form.cycle_id, (value) => { if (value) form.block_id = ''; });
+watch(() => form.block_id, (value) => { if (value) form.cycle_id = ''; });
 const matches = computed(() =>
     props.matchingTasks.filter((t) => t.planting_cycle_id === form.cycle_id),
 );
 const blockedReason = computed(
     () =>
-        props.cycles.find((cycle) => cycle.id === form.cycle_id)
-            ?.blocked_reason ?? null,
+        props.blocks.find((block) => block.id === form.block_id)?.blocked_reason ??
+        props.cycles.find((cycle) => cycle.id === form.cycle_id)?.blocked_reason ?? null,
 );
 const fieldClass =
     'block min-h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [color-scheme:light] dark:[color-scheme:dark]';
@@ -143,19 +149,25 @@ function submit(): void {
                             required
                             :max="today"
                             :class="fieldClass" /></label
-                    ><label class="block space-y-2 text-sm"
+                    ><label v-if="blockOnly || optionalLocation" class="block space-y-2 text-sm">
+                        <span>Blok {{ blockOnly ? '*' : '(opsional)' }}</span>
+                        <AppSelect v-model="form.block_id" :required="blockOnly" aria-label="Blok" placeholder="Pilih blok" :class="fieldClass">
+                            <AppSelectOption v-if="optionalLocation" value="">Tanpa blok</AppSelectOption>
+                            <AppSelectOption v-for="block in blocks" :key="block.id" :value="block.id">{{ block.code }} · {{ block.name }}</AppSelectOption>
+                        </AppSelect>
+                    </label><label v-if="!blockOnly" class="block space-y-2 text-sm"
                         ><span
                             >Blok / subblok{{
-                                type.code === 'other' ? ' (opsional)' : ' *'
+                                optionalLocation ? ' (opsional)' : ' *'
                             }}</span
                         ><AppSelect
                             v-model="form.cycle_id"
-                            :required="type.code !== 'other'"
+                            :required="!optionalLocation"
                             aria-label="Subblok"
                             placeholder="Pilih subblok"
                             :class="fieldClass"
                             ><AppSelectOption
-                                v-if="type.code === 'other'"
+                                v-if="optionalLocation"
                                 value=""
                                 >Seluruh kebun</AppSelectOption
                             ><AppSelectOption
@@ -168,11 +180,10 @@ function submit(): void {
                         ></label
                     >
                     <p
-                        v-if="!cycles.length"
+                        v-if="blockOnly ? !blocks.length : !cycles.length && !optionalLocation"
                         class="text-xs text-muted-foreground"
                     >
-                        Belum ada subblok aktif. Hubungi Admin untuk
-                        menyiapkannya.
+                        Belum ada {{ blockOnly ? 'blok' : 'subblok' }} aktif. Hubungi Admin untuk menyiapkannya.
                     </p>
                     <p
                         v-if="blockedReason"
