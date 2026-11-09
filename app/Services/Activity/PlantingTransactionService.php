@@ -145,7 +145,6 @@ class PlantingTransactionService
             'planting_pattern' => $detail?->getAttribute('planting_pattern'),
             'performer_name' => $activity->performer?->name,
             'notes' => $activity->description,
-            'source' => $activity->getAttribute('planting_cycle_task_id') === null ? 'Realisasi tanam' : 'Tugas SOP',
             'photos' => $activity->photos->map(fn ($photo): array => [
                 'id' => $photo->id,
                 'label' => $photo->label,

@@ -24,7 +24,6 @@ export type PlantingTransactionRow = {
     planting_pattern: string | null;
     performer_name: string | null;
     notes: string | null;
-    source: string;
     photos: PlantingTransactionPhoto[];
     log_url: string | null;
 };

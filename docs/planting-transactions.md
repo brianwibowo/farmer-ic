@@ -24,11 +24,11 @@ Filter: pencarian bebas, kebun, blok, varietas, rentang tanggal, dan ukuran
 halaman. Pencarian mencakup kebun, kode/nama blok, subblok, varietas, nama
 benih, nama Petugas, dan catatan laporan.
 
-Kolom utama: tanggal laporan, sumber (`Realisasi tanam` atau `Tugas SOP`),
-kebun, blok, batch/subblok, varietas/komoditas, luas tanam, jumlah benih,
-nama benih, pola tanam, catatan, foto, dan tautan ke logbook harian. Pelaksana
-tetap tersimpan pada `farm_activities.performed_by` tetapi belum ditampilkan
-di ledger.
+Kolom utama: tanggal laporan, kebun, blok, batch/subblok, varietas/komoditas,
+luas tanam, jumlah benih, nama benih, pola tanam, catatan, foto, dan tautan
+ke logbook harian. Pelaksana tetap tersimpan pada `farm_activities.performed_by`
+tetapi belum ditampilkan di ledger. Penanaman bukan tugas SOP turunan, sehingga
+ledger tidak menampilkan label sumber.
 
 ## Batas akses
 

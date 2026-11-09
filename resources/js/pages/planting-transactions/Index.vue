@@ -422,16 +422,6 @@ function rowSubblock(row: PlantingTransactionRow): string {
                             >
                                 <td class="px-4 py-4">
                                     <p class="font-medium">{{ formatDate(row.activity_date) }}</p>
-                                    <span
-                                        class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                        :class="
-                                            row.source === 'Tugas SOP'
-                                                ? 'bg-primary/10 text-primary'
-                                                : 'bg-accent text-accent-foreground'
-                                        "
-                                    >
-                                        {{ row.source }}
-                                    </span>
                                     <p v-if="row.log_url" class="mt-2 text-xs">
                                         <Link
                                             :href="row.log_url"
@@ -516,16 +506,6 @@ function rowSubblock(row: PlantingTransactionRow): string {
                                     {{ row.farm?.name ?? '-' }} · {{ row.block?.code ?? '-' }}
                                 </p>
                             </div>
-                            <span
-                                class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                :class="
-                                    row.source === 'Tugas SOP'
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'bg-accent text-accent-foreground'
-                                "
-                            >
-                                {{ row.source }}
-                            </span>
                         </div>
                         <div class="grid grid-cols-2 gap-2 text-sm">
                             <div>
