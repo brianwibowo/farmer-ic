@@ -32,6 +32,18 @@ Read this document before implementing or changing any UI.
 - Application architecture, persistence, authentication, and authorization follow
   `AGENTS.md`. This design guide does not override those requirements.
 
+## Application name
+
+The system display name comes from Laravel `config('app.name')`, which reads
+`APP_NAME` and defaults to **Bumi Hijauan**. Vue components use `useAppName()`
+from the shared Inertia `name` prop. The initial HTML exposes the same value in
+`meta[name="application-name"]` so plain frontend services can use
+`getAppName()` before Vue mounts. The Inertia title callback reads the shared
+`name` prop for both server rendering and client navigation. Do not maintain a separate
+`VITE_APP_NAME` or hardcode a wordmark, accessibility label, copyright, startup
+message, email header, or report name. Keep the existing logo asset and profile
+styles, and allow the configured name to fit on narrow screens.
+
 ## Foundations
 
 ### Corner radius
@@ -482,7 +494,7 @@ The Figma page includes both full-color and LoFi variants. Use the active state 
 
 ### Application loading screen
 
-The shared startup screen shows the Farm IC logo/name with a 64px, three-layer
+The shared startup screen shows the configured application logo/name with a 64px, three-layer
 spiral beneath it. Match the login wordmark: Instrument Sans, 24px semibold,
 32px line-height and tight tracking; Farm uses the foreground token and IC the
 primary token. Keep the vertical logo/name arrangement. Use three concentric
@@ -547,7 +559,7 @@ Dashboard menggunakan arsitektur **2 Kolom Utama** dengan pendekatan _Clean, Mod
 The shared admin sidebar follows a full-height, left-aligned layout with a thin
 border, a 260px expanded width, and a 68px icon rail when collapsed. Use
 the supplied `public/images/logo-hijauan.jpeg` mark with the live text
-**Hijauan** in its header. Preserve the square aspect ratio and natural logo
+the configured application name in its header (default **Bumi Hijauan**). Preserve the square aspect ratio and natural logo
 colors in both themes; do not invert or recolor the JPEG. Use a rounded image
 tile and a nearby wordmark rather than stretching the mark horizontally.
 The login header uses a 42px mark and 24px semibold text; the expanded sidebar

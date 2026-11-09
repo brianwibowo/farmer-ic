@@ -17,6 +17,9 @@ import { getInitials } from '@/composables/useInitials';
 import { useLogout } from '@/composables/useLogout';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { edit as editProfile } from '@/routes/profile';
+import { useAppName } from '@/composables/useAppName';
+
+const appName = useAppName();
 
 const props = withDefaults(
     defineProps<{
@@ -54,7 +57,7 @@ const { signOut, processing, error } = useLogout();
             <Link
                 v-else-if="props.dashboardTheme && props.showBrand"
                 href="/petugas"
-                aria-label="Beranda Hijauan"
+                :aria-label="`Beranda ${appName}`"
                 class="flex min-w-0 items-center gap-2 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
                 <BrandLogo />

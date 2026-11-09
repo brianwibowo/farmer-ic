@@ -48,7 +48,7 @@ class DemoIdentitySeeder extends Seeder
         if ($team->trashed()) {
             $team->restore();
         }
-        $team->forceFill(['name' => 'Hijauan', 'is_personal' => false])->saveQuietly();
+        $team->forceFill(['name' => config('app.name'), 'is_personal' => false])->saveQuietly();
 
         $teamRoles = [
             'superadmin' => TeamRole::Owner->value,
