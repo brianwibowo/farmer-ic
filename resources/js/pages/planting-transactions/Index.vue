@@ -73,7 +73,7 @@ const summaryCards = computed(() => [
     {
         label: 'Benih',
         value: `${formatDecimal(props.summary.seed_kg)} kg`,
-        hint: 'Akumulasi quantity_kg',
+        hint: 'Akumulasi jumlah benih',
         icon: Wheat,
     },
 ]);
