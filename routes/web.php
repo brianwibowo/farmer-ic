@@ -38,6 +38,9 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
+// Historical visual references have their own authenticated, read-only namespace.
+require __DIR__.'/reference.php';
+
 Route::get('/', HomeController::class)->middleware(['auth', 'verified'])->name('home');
 
 Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): void {
