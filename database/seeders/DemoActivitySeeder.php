@@ -7,6 +7,7 @@ use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
@@ -19,6 +20,9 @@ class DemoActivitySeeder extends Seeder
 {
     public function run(): void
     {
+        if (! app()->environment('local', 'testing')) {
+            throw new \RuntimeException('Aktivitas demo hanya dapat diisi pada environment local atau testing.');
+        }
         $petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
         $team = $petugas->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
         \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('viewAny', [Farm::class, $team]);
@@ -44,6 +48,7 @@ class DemoActivitySeeder extends Seeder
         $growthDate = $plantedAt->addDays(27)->toDateString();
 
         $this->call(BlockMappingActivityTypeSeeder::class);
+        $this->call(SopActivityTypeSeeder::class);
 
         if (! DailyActivityLog::query()->where('farm_id', $farm->id)->exists()) {
             \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('create', [DailyActivityLog::class, $farm]);
@@ -71,6 +76,8 @@ class DemoActivitySeeder extends Seeder
                 ]],
             ]);
         }
+
+        $this->seedBlockPreparation($farm, $petugas);
 
         $this->seedActivityWithDetail($farm, $cycle, $petugas, 'planting', 'Penanaman Blok 1', [
             'seed_name' => 'Benih jagung Bisi 18',
@@ -152,6 +159,7 @@ class DemoActivitySeeder extends Seeder
                 'status' => 'completed',
                 'daily_activity_log_id' => $log->id, 'position' => $position, 'worker_count' => 6,
             ]);
+            $activity->forceFill(['block_id' => $cycle->block_id])->save();
             if ($task !== null) {
                 $activity->forceFill([
                     'planting_cycle_task_id' => $task->id,
@@ -236,6 +244,7 @@ class DemoActivitySeeder extends Seeder
                 'status' => 'completed',
                 'daily_activity_log_id' => $log->id, 'position' => $position, 'worker_count' => 6,
             ]);
+            $activity->forceFill(['block_id' => $cycle->block_id])->save();
             $activity->observation()->create([
                 'planting_cycle_id' => $cycle->id,
                 'observed_by' => $user->id,
@@ -250,6 +259,38 @@ class DemoActivitySeeder extends Seeder
                 'notes' => 'Perlu pemantauan ulat pada sisi timur blok.',
             ]);
         });
+    }
+
+    private function seedBlockPreparation(Farm $farm, User $actor): void
+    {
+        $team = $farm->team;
+        \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('viewAny', [FarmBlock::class, $team]);
+        $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('code', ['B01', 'B02'])->get();
+        foreach ($blocks as $block) {
+            $cleaningDate = $block->code === 'B01' ? '2026-05-17' : '2026-09-20';
+            $soilDate = $block->code === 'B01' ? '2026-05-20' : '2026-09-23';
+            foreach ([
+                ['land_cleaning', 'Pembersihan lahan percontohan '.$block->code, $cleaningDate, 'landCleaningDetail', ['area_ha' => '1.0000', 'method' => 'Pembersihan manual']],
+                ['loosening', 'Penggemburan tanah percontohan '.$block->code, $soilDate, 'looseningDetail', ['area_ha' => '1.0000', 'method' => 'Cultivator', 'depth_cm' => 20]],
+            ] as [$code, $description, $date, $relation, $detail]) {
+                if (FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('description', $description)->exists()) {
+                    continue;
+                }
+                $type = ActivityType::visibleTo($actor, $team)->where('code', $code)->firstOrFail();
+                \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('recordVoluntary', [FarmActivity::class, $farm, $type]);
+                DB::transaction(function () use ($farm, $actor, $block, $type, $description, $date, $relation, $detail): void {
+                    [$log, $position] = $this->header($farm, $actor, $date);
+                    $activity = new FarmActivity([
+                        'farm_id' => $farm->id, 'activity_type_id' => $type->id, 'performed_by' => $actor->id,
+                        'activity_date' => CarbonImmutable::parse($date.' 09:00', 'Asia/Jakarta'),
+                        'description' => $description, 'status' => 'completed', 'daily_activity_log_id' => $log->id,
+                        'position' => $position, 'worker_count' => 6,
+                    ]);
+                    $activity->forceFill(['block_id' => $block->id])->save();
+                    $activity->{$relation}()->create($detail);
+                });
+            }
+        }
     }
 
     /** @return array{DailyActivityLog, int} */

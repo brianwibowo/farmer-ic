@@ -107,7 +107,7 @@ class PetugasGardenTest extends TestCase
             ->where('garden.batches.total', 2)->has('garden.batches.data', 2)
             ->where('garden.batches.data.0.id', $planned->id)->where('garden.batches.data.0.hst', null)
             ->where('garden.batches.data.0.planted_area_ha', '0.0000')
-            ->where('garden.batches.data.0.current_stage', 'soil_preparation')->has('garden.batches.data.0.stages', 6)
+            ->where('garden.batches.data.0.current_stage', null)->has('garden.batches.data.0.stages', 6)
             ->where('garden.batches.data.1.id', $active->id)->where('garden.batches.data.1.hst', 7)
             ->where('garden.batches.data.1.planted_area_ha', '0.5000')
             ->where('garden.batches.data.1.estimated_harvest_at', '2027-01-26')
@@ -133,22 +133,22 @@ class PetugasGardenTest extends TestCase
             ->where('garden.batches.current_page', 2)->has('garden.batches.data', 1)->where('garden.batches.data.0.id', $first->id));
     }
 
-    public function test_block_clearing_timestamps_are_iso_formatted_and_nullable(): void
+    public function test_automatic_block_timestamps_do_not_claim_an_unreported_clearing(): void
     {
         $block = $this->block($this->farm);
         $startedAt = $block->getAttribute('land_clearing_started_at');
         $this->assertInstanceOf(CarbonImmutable::class, $startedAt);
 
         $this->actingAs($this->petugas)->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('garden.blocks.0.land_clearing_started_at', $startedAt->toIso8601String())
+            ->where('garden.blocks.0.land_clearing_started_at', null)
             ->where('garden.blocks.0.land_clearing_completed_at', null));
 
         $block->forceFill(['land_clearing_completed_at' => $startedAt->addHour()])->save();
         $completedAt = $block->refresh()->getAttribute('land_clearing_completed_at');
         $this->assertInstanceOf(CarbonImmutable::class, $completedAt);
         $this->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('garden.blocks.0.land_clearing_started_at', $startedAt->toIso8601String())
-            ->where('garden.blocks.0.land_clearing_completed_at', $completedAt->toIso8601String()));
+            ->where('garden.blocks.0.land_clearing_started_at', null)
+            ->where('garden.blocks.0.land_clearing_completed_at', null));
     }
 
     public function test_previous_cycles_remain_distinct_when_batch_labels_advance(): void

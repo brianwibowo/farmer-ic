@@ -28,7 +28,8 @@ class DailyActivityReportService
             'activities' => $activities->map(function (FarmActivity $activity) use ($actor, $team): array {
                 $type = ActivityType::visibleTo($actor, $team)->whereKey($activity->activity_type_id)->first();
                 $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($activity->planting_cycle_id)->first();
-                $block = $cycle?->block_id ? FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->first() : null;
+                $blockId = $activity->getAttribute('block_id') ?? $cycle?->block_id;
+                $block = $blockId === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($blockId)->first();
                 $detailClass = ActivityDetailMap::model($type?->detail_key);
                 $detail = $detailClass === null ? null : $detailClass::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
 

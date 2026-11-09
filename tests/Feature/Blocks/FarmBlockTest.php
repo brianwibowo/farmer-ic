@@ -154,7 +154,7 @@ class FarmBlockTest extends TestCase
         $this->get($farmDetail)->assertInertia(fn (Assert $page) => $page->has('blocks', 1)
             ->where('blocks.0.can.createBatch', true)->where('blocks.0.batches.0.id', $batch->id)
             ->where('blocks.0.batches.0.planned_planting_at', '2026-12-05')->has('blocks.0.batches.0.stages', 6)
-            ->where('blocks.0.batches.0.stages.1.status', 'in_progress')->where('batchPermissions.'.$batch->id, true));
+            ->where('blocks.0.batches.0.stages.1.status', 'upcoming')->where('batchPermissions.'.$batch->id, true));
         $this->put($base.'/'.$batch->id, ['reserved_area_ha' => '2', 'subblock_label' => 'C', 'return_to' => 'farm'])->assertSessionHasNoErrors()->assertRedirect($farmDetail);
         $this->assertSame('C', $batch->fresh()->getAttribute('subblock_label'));
         $other = $this->block('B02');
@@ -364,14 +364,14 @@ class FarmBlockTest extends TestCase
         $this->assertSame('2026-11-15', $first->planned_planting_at?->toDateString());
         $this->assertNull($first->planted_at);
         $this->assertNull($first->variety_id);
-        $completedAt = $block->refresh()->land_clearing_completed_at->toISOString();
+        $this->assertNull($block->refresh()->land_clearing_completed_at);
         $this->travel(1)->hours();
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1.5000'])->assertRedirect();
-        $this->assertSame($completedAt, $block->refresh()->land_clearing_completed_at->toISOString());
+        $this->assertNull($block->refresh()->land_clearing_completed_at);
         $this->assertSame(2, PlantingCycle::count());
         $this->assertSame(12, PlantingCycleStage::count());
         $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.can.update', false)->where('blocks.data.0.can.createBatch', true)
-            ->where('blocks.data.0.batches.0.stages.0.status', 'completed')->where('blocks.data.0.batches.0.stages.1.status', 'in_progress')
+            ->where('blocks.data.0.batches.0.stages.0.status', 'upcoming')->where('blocks.data.0.batches.0.stages.1.status', 'upcoming')
             ->where('blocks.data.0.batches.0.stages.2.status', 'upcoming')->where('blocks.data.0.batches.0.stages.2.started_at', null)
             ->where('blocks.data.0.batches.1.batch_number', 2)->where('blocks.data.0.batches.1.subblock_label', 'B'));
         $this->constraints();

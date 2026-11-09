@@ -35,6 +35,8 @@ export type LogbookRow = {
 export type LogbookActivity = {
     id: string;
     type: string | null;
+    name: string | null;
+    block_name: string | null;
     position: number;
     worker_count: number | null;
     notes: string | null;

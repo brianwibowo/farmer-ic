@@ -13,6 +13,15 @@ return new class extends Migration
             throw new LogicException('Removing planting rounds requires PostgreSQL.');
         }
 
+        // The activity-to-block link migration may run before this one on a fresh
+        // database; replace its round-based guards with direct block-cycle guards.
+        DB::statement('DROP TRIGGER IF EXISTS activity_block_cycle_guard ON farm_activities');
+        DB::statement('DROP TRIGGER IF EXISTS activity_cycle_move_guard ON planting_cycles');
+        DB::statement('DROP TRIGGER IF EXISTS activity_round_move_guard ON planting_rounds');
+        DB::statement('DROP FUNCTION IF EXISTS farmer_ic_check_activity_block()');
+        DB::statement('DROP FUNCTION IF EXISTS farmer_ic_check_cycle_block_move()');
+        DB::statement('DROP FUNCTION IF EXISTS farmer_ic_check_round_block_move()');
+
         foreach ([
             'farm_blocks' => ['blocks_capacity_guard', 'blocks_links_guard'],
             'farms' => ['farms_blocks_capacity_guard'],
@@ -106,6 +115,30 @@ CREATE CONSTRAINT TRIGGER mapping_blocks_links_guard AFTER INSERT OR UPDATE ON b
 CREATE CONSTRAINT TRIGGER activities_blocks_links_guard AFTER INSERT OR UPDATE ON farm_activities DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_block_links();
 CREATE CONSTRAINT TRIGGER cycles_stages_guard AFTER INSERT OR UPDATE ON planting_cycles DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_batch_stages();
 CREATE CONSTRAINT TRIGGER stages_count_guard AFTER INSERT OR UPDATE OR DELETE ON planting_cycle_stages DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_batch_stages();
+
+CREATE OR REPLACE FUNCTION farmer_ic_check_activity_block() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.block_id IS NOT NULL AND NEW.planting_cycle_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM planting_cycles c WHERE c.id = NEW.planting_cycle_id AND c.block_id = NEW.block_id
+    ) THEN
+        RAISE EXCEPTION 'Activity block does not match planting cycle' USING ERRCODE = '23514', CONSTRAINT = 'activity_block_cycle_check';
+    END IF;
+    RETURN NEW;
+END; $$;
+CREATE TRIGGER activity_block_cycle_guard BEFORE INSERT OR UPDATE OF block_id, planting_cycle_id ON farm_activities
+FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_activity_block();
+
+CREATE OR REPLACE FUNCTION farmer_ic_check_cycle_block_move() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM farm_activities a
+        WHERE a.planting_cycle_id = NEW.id AND a.block_id IS NOT NULL
+        AND (NEW.block_id IS NULL OR a.block_id <> NEW.block_id)) THEN
+        RAISE EXCEPTION 'Cycle move conflicts with activity block' USING ERRCODE = '23514', CONSTRAINT = 'activity_block_cycle_check';
+    END IF;
+    RETURN NEW;
+END; $$;
+CREATE TRIGGER activity_cycle_move_guard BEFORE UPDATE OF block_id ON planting_cycles
+FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_cycle_block_move();
 SQL);
     }
 
@@ -114,6 +147,11 @@ SQL);
         if (DB::table('planting_cycles')->whereNotNull('block_id')->exists()) {
             throw new LogicException('Preserve block-linked planting history before rolling back the planting-round removal.');
         }
+
+        DB::statement('DROP TRIGGER IF EXISTS activity_block_cycle_guard ON farm_activities');
+        DB::statement('DROP TRIGGER IF EXISTS activity_cycle_move_guard ON planting_cycles');
+        DB::statement('DROP FUNCTION IF EXISTS farmer_ic_check_activity_block()');
+        DB::statement('DROP FUNCTION IF EXISTS farmer_ic_check_cycle_block_move()');
 
         foreach ([
             'farm_blocks' => ['blocks_capacity_guard', 'blocks_links_guard'],
@@ -228,6 +266,41 @@ CREATE CONSTRAINT TRIGGER mapping_blocks_links_guard AFTER INSERT OR UPDATE ON b
 CREATE CONSTRAINT TRIGGER activities_blocks_links_guard AFTER INSERT OR UPDATE ON farm_activities DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_block_links();
 CREATE CONSTRAINT TRIGGER cycles_stages_guard AFTER INSERT OR UPDATE ON planting_cycles DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_batch_stages();
 CREATE CONSTRAINT TRIGGER stages_count_guard AFTER INSERT OR UPDATE OR DELETE ON planting_cycle_stages DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_batch_stages();
+
+CREATE OR REPLACE FUNCTION farmer_ic_check_activity_block() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.block_id IS NOT NULL AND NEW.planting_cycle_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM planting_cycles c JOIN planting_rounds r ON r.id = c.planting_round_id
+        WHERE c.id = NEW.planting_cycle_id AND r.block_id = NEW.block_id
+    ) THEN
+        RAISE EXCEPTION 'Activity block does not match planting cycle' USING ERRCODE = '23514', CONSTRAINT = 'activity_block_cycle_check';
+    END IF;
+    RETURN NEW;
+END; $$;
+CREATE TRIGGER activity_block_cycle_guard BEFORE INSERT OR UPDATE OF block_id, planting_cycle_id ON farm_activities
+FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_activity_block();
+
+CREATE OR REPLACE FUNCTION farmer_ic_check_cycle_block_move() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM farm_activities a JOIN planting_rounds r ON r.id = NEW.planting_round_id
+        WHERE a.planting_cycle_id = NEW.id AND a.block_id IS NOT NULL AND a.block_id <> r.block_id) THEN
+        RAISE EXCEPTION 'Cycle move conflicts with activity block' USING ERRCODE = '23514', CONSTRAINT = 'activity_block_cycle_check';
+    END IF;
+    RETURN NEW;
+END; $$;
+CREATE TRIGGER activity_cycle_move_guard BEFORE UPDATE OF planting_round_id ON planting_cycles
+FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_cycle_block_move();
+
+CREATE OR REPLACE FUNCTION farmer_ic_check_round_block_move() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM farm_activities a JOIN planting_cycles c ON c.id = a.planting_cycle_id
+        WHERE c.planting_round_id = NEW.id AND a.block_id IS NOT NULL AND a.block_id <> NEW.block_id) THEN
+        RAISE EXCEPTION 'Round move conflicts with activity block' USING ERRCODE = '23514', CONSTRAINT = 'activity_block_cycle_check';
+    END IF;
+    RETURN NEW;
+END; $$;
+CREATE TRIGGER activity_round_move_guard BEFORE UPDATE OF block_id ON planting_rounds
+FOR EACH ROW EXECUTE FUNCTION farmer_ic_check_round_block_move();
 SQL);
     }
 };

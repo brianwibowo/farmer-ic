@@ -7,6 +7,7 @@ use App\Http\Requests\Petugas\StoreVoluntaryActivityRequest;
 use App\Models\ActivityType;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Services\Activity\ActivitySequenceService;
@@ -29,6 +30,7 @@ class PetugasVoluntaryActivityController extends Controller
         return Inertia::render('petugas/VoluntaryCreate', [
             'farm' => $farm->only(['id', 'name']), 'type' => $type->only(['id', 'code', 'name']),
             'fields' => VoluntaryActivityFields::forCode($type->code),
+            'blocks' => FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('code')->get()->map(fn ($block) => [...$block->only(['id', 'code', 'name']), 'blocked_reason' => $sequence->blockReason($request->user(), $block, $type->code)])->all(),
             'cycles' => $planting->cycles($request->user(), $farm)->filter(fn ($cycle) => in_array($cycle->status, ['planned', 'active'], true))
                 ->map(fn ($cycle) => [...$planting->context($request->user(), $cycle), 'blocked_reason' => $sequence->blockedReason($request->user(), $cycle, $type->code)])->values()->all(),
             'matchingTasks' => PlantingCycleTask::visibleTo($request->user(), $farm->team)
@@ -50,7 +52,12 @@ class PetugasVoluntaryActivityController extends Controller
             Gate::authorize('view', $cycle);
             abort_unless($cycle->farm_id === $farm->id, 403);
         }
-        $activity = $activities->record($request->user(), $farm, $type, $cycle, $data);
+        $block = empty($data['block_id']) ? null : FarmBlock::query()->whereKey($data['block_id'])->firstOrFail();
+        if ($block !== null) {
+            Gate::authorize('view', $block);
+            abort_unless($block->farm_id === $farm->id, 403);
+        }
+        $activity = $activities->record($request->user(), $farm, $type, $cycle, $data, $block);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Laporan aktivitas mandiri tersimpan.']);
 
         return to_route('petugas.laporan.show', $activity);

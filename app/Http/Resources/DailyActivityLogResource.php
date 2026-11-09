@@ -27,6 +27,7 @@ class DailyActivityLogResource extends JsonResource
                 'id' => $activity->id,
                 'type' => $activity->activityType?->code,
                 'name' => $activity->activityType?->name,
+                'block_name' => $activity->getAttribute('block_name'),
                 'position' => $activity->position,
                 'worker_count' => $activity->worker_count,
                 'notes' => $activity->description,

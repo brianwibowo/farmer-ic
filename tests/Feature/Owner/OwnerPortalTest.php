@@ -109,7 +109,7 @@ class OwnerPortalTest extends TestCase
     public function test_owner_reads_all_activity_types_including_records_without_logbooks(): void
     {
         $this->get('/aktivitas?per_page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/Activities')->where('activities.total', 8)->has('activities.data', 2));
+            ->component('owner/Activities')->where('activities.total', 12)->has('activities.data', 2));
 
         $activity = FarmActivity::query()->where('description', 'Penanaman Blok 1')->firstOrFail();
         $activity->forceFill(['daily_activity_log_id' => null, 'position' => null])->save();
@@ -228,7 +228,7 @@ class OwnerPortalTest extends TestCase
             ->where('farms.total', 1)->where('summary.count', 1)
             ->where('farms.data.0.id', $this->farm->id));
         $this->get('/aktivitas?team_id='.$otherTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('activities.total', 8)->has('farms', 1)
+            ->where('activities.total', 12)->has('farms', 1)
             ->where('activities.data', fn ($rows) => ! collect($rows)->contains('id', $activity->id)));
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.0.value', 1)->has('dashboard.farmOptions', 1));

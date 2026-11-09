@@ -29,6 +29,11 @@ class PetugasGardenService
         }
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
             ->orderByDesc('is_active')->orderBy('code')->orderBy('id')->get();
+        $clearing = app(\App\Services\Activity\BlockPreparationTimeline::class)->clearingForBlocks($actor, $team, collect($blocks->modelKeys()));
+        foreach ($blocks as $block) {
+            $block->setAttribute('land_clearing_started_at', $clearing[$block->id]['started_at'] ?? null);
+            $block->setAttribute('land_clearing_completed_at', $clearing[$block->id]['completed_at'] ?? null);
+        }
         $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereNotNull('block_id');
         $blockCounts = (clone $cycles)->selectRaw('block_id, COUNT(*) AS total')->groupBy('block_id')->pluck('total', 'block_id');
         $selected = $selected === null ? $blocks->first() : $blocks->firstWhere('id', $selected->id);
@@ -45,21 +50,22 @@ class PetugasGardenService
             $batches = (clone $cycles)->where('block_id', $selected->id)
                 ->with(['stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')])
                 ->orderByRaw("CASE WHEN status IN ('planned', 'active') THEN 0 ELSE 1 END")
-                ->orderByDesc('batch_number')->orderBy('id')->paginate(6, ['*'], 'page', max(1, min($page, $lastPage)))->appends(['block' => $selected->id])
-                ->through(function (PlantingCycle $batch) use ($today): array {
-                    $stages = $batch->stages;
-                    $current = $stages->firstWhere('status', 'in_progress') ?? $stages->where('status', 'completed')->last();
+                ->orderByDesc('batch_number')->orderBy('id')->paginate(6, ['*'], 'page', max(1, min($page, $lastPage)))->appends(['block' => $selected->id]);
+            app(\App\Services\Activity\BlockPreparationTimeline::class)->apply($actor, $team, $batches->getCollection());
+            $batches = $batches->through(function (PlantingCycle $batch) use ($today): array {
+                $stages = $batch->stages;
+                $current = $stages->firstWhere('status', 'in_progress') ?? $stages->where('status', 'completed')->last();
 
-                    return [
-                        ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
-                        'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
-                        'planted_at' => $batch->planted_at?->toDateString(),
-                        'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
-                        'hst' => $batch->planted_at !== null && $batch->planted_at->lte($today) ? (int) $batch->planted_at->diffInDays($today) : null,
-                        'current_stage' => $current?->code,
-                        'stages' => $stages->map(fn ($stage) => $stage->only(['code', 'position', 'status']))->values()->all(),
-                    ];
-                });
+                return [
+                    ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
+                    'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
+                    'planted_at' => $batch->planted_at?->toDateString(),
+                    'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
+                    'hst' => $batch->planted_at !== null && $batch->planted_at->lte($today) ? (int) $batch->planted_at->diffInDays($today) : null,
+                    'current_stage' => $current?->code,
+                    'stages' => $stages->map(fn ($stage) => $stage->only(['code', 'position', 'status']))->values()->all(),
+                ];
+            });
         }
 
         return [

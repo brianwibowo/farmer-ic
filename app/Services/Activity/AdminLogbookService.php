@@ -5,6 +5,7 @@ namespace App\Services\Activity;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -101,12 +102,19 @@ class AdminLogbookService
 
     public function find(Farm $farm, User $actor, Team $team, string $id): DailyActivityLog
     {
-        return $this->logs($actor, $team, $farm)->with([
+        $log = $this->logs($actor, $team, $farm)->with([
             'recorder' => fn ($query) => $query->visibleTo($actor, $team)->select('id', 'name'),
             'activities' => fn ($query) => $query->visibleTo($actor, $team)->with([
                 'activityType' => fn ($query) => $query->visibleTo($actor, $team),
                 'blockMappingDetail' => fn ($query) => $query->visibleTo($actor, $team),
             ]),
         ])->findOrFail($id);
+        $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->whereIn('id', $log->activities->pluck('block_id')->filter())->get(['id', 'name'])->keyBy('id');
+        foreach ($log->activities as $activity) {
+            $activity->setAttribute('block_name', $blocks->get($activity->getAttribute('block_id'))?->name);
+        }
+
+        return $log;
     }
 }

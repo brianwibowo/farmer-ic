@@ -146,6 +146,7 @@ class PlantingActivityService
                     'position' => $this->headers->nextPosition($log, $actor), 'worker_count' => (int) $data['worker_count'],
                     'description' => $data['notes'] ?? null, 'obstacle_status' => 'none',
                 ]);
+                $activity->forceFill(['block_id' => $block->id])->save();
                 if (($data['schema'] ?? null) === 'taxonomy') {
                     $activity->forceFill(['task_details' => json_encode(array_intersect_key($data, array_flip(['area', 'area_unit', 'quantity', 'quantity_unit', 'bag_size', 'depth_cm'])), JSON_THROW_ON_ERROR)])->save();
                 }

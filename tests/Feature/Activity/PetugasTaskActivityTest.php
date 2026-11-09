@@ -67,15 +67,17 @@ class PetugasTaskActivityTest extends TestCase
         $this->actingAs($this->actor);
         $this->cycle->forceFill(['planted_at' => null, 'planted_area_ha' => 0, 'status' => 'planned'])->save();
         $base = [...$this->payload(), 'cycle_id' => $this->cycle->id];
+        $blockBase = [...$this->payload(), 'block_id' => $this->cycle->block_id];
         $planting = ['work_date' => today()->toDateString(), 'start_time' => '07:00', 'worker_count' => 3,
             'variety_id' => $this->cycle->variety_id, 'area_ha' => 1, 'seed_name' => 'Bisi 18', 'quantity_kg' => 5,
             'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
         $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';
         $this->post($plantingUrl, $planting)->assertSessionHasErrors('cycle');
-        $soil = [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual', 'depth_cm' => 10]];
-        $this->post('/petugas/aktivitas/mandiri/loosening', $soil)->assertSessionHasErrors('cycle_id');
+        $soil = [...$blockBase, 'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual', 'depth_cm' => 10]];
+        $this->post('/petugas/aktivitas/mandiri/loosening', $soil)->assertSessionHasErrors('block_id');
         $this->post('/petugas/aktivitas/mandiri/incident', [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'incident_category' => 'Cuaca', 'description' => 'Hujan lebat', 'severity' => 'Ringan']])->assertSessionHasNoErrors();
-        $this->post('/petugas/aktivitas/mandiri/land_cleaning', [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual']])->assertSessionHasNoErrors();
+        $this->post('/petugas/aktivitas/mandiri/land_cleaning', [...$blockBase, 'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual']])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('farm_activities', ['block_id' => $blockBase['block_id'], 'planting_cycle_id' => null]);
         $reason = app(\App\Services\Activity\ActivitySequenceService::class)->blockedReason($this->actor, $this->cycle->refresh(), 'planting');
         $this->assertStringContainsString('pengolahan tanah', $reason);
         $this->post($plantingUrl, $planting)->assertSessionHasErrors('cycle');
@@ -100,6 +102,61 @@ class PetugasTaskActivityTest extends TestCase
         $this->get('/petugas/tasks/'.$harvest->id)->assertInertia(fn (Assert $page) => $page->where('canRecord', false)->where('blockedReason', 'Selesaikan seluruh tugas SOP perawatan atau minta Admin melewati tugas yang tidak diperlukan sebelum panen.'));
         $this->task->forceFill(['status' => 'completed', 'completed_at' => now()])->save();
         $this->post($url, $data)->assertSessionHasNoErrors();
+    }
+
+    public function test_block_preparation_is_shared_with_subblocks_but_not_other_blocks(): void
+    {
+        $admin = User::findOrFail($this->farm->created_by);
+        $block = $this->cycle->block;
+        $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['code' => 'B02', 'name' => 'Blok Selatan', 'area_ha' => '4']);
+        $second = app(FarmBlockService::class)->createBatch($block, $admin, $this->team, ['reserved_area_ha' => '1', 'planned_planting_at' => today()->toDateString()]);
+        $sequence = app(\App\Services\Activity\ActivitySequenceService::class);
+        $this->actingAs($this->actor);
+        $timeline = fn ($cycle) => collect(app(\App\Services\Activity\BlockPreparationTimeline::class)->forCycles($this->actor, $this->team, collect([$cycle]))[$cycle->id]);
+        $stale = $second->stages()->where('code', 'land_clearing')->firstOrFail();
+        $stale->forceFill(['status' => 'completed', 'started_at' => now(), 'completed_at' => now()])->save();
+        $this->assertSame('upcoming', $timeline($second)['land_clearing']['status']);
+        $this->assertSame('upcoming', $timeline($second)['soil_preparation']['status']);
+        $this->assertSame('completed', $stale->fresh()->status);
+        $this->post('/petugas/aktivitas/mandiri/land_cleaning', [...$this->payload(), 'block_id' => $block->id,
+            'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual']])->assertSessionHasNoErrors();
+        $this->assertSame('completed', $timeline($second)['land_clearing']['status']);
+        $this->assertSame('upcoming', $timeline($second)['soil_preparation']['status']);
+        $this->assertNotNull($sequence->blockReason($this->actor, $other, 'loosening'));
+        $this->post('/petugas/aktivitas/mandiri/loosening', [...$this->payload(), 'block_id' => $block->id,
+            'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual', 'depth_cm' => 10]])->assertSessionHasNoErrors();
+        $this->assertSame('completed', $timeline($second)['soil_preparation']['status']);
+        $overview = app(FarmBlockService::class)->overview($this->farm, $admin, $this->team)->firstWhere('id', $block->id);
+        $stages = collect(collect($overview->getAttribute('batches'))->firstWhere('id', $second->id)['stages'])->keyBy('code');
+        $this->assertSame('completed', $stages['land_clearing']['status']);
+        $this->assertSame('completed', $stages['soil_preparation']['status']);
+        $this->cycle->forceFill(['planted_at' => null, 'planted_area_ha' => 0, 'status' => 'planned'])->save();
+        $this->assertNull($sequence->blockedReason($this->actor, $this->cycle, 'planting'));
+        $this->assertNull($sequence->blockedReason($this->actor, $second, 'planting'));
+        $this->assertNotNull($sequence->blockReason($this->actor, $other, 'planting'));
+    }
+
+    public function test_petugas_cannot_report_preparation_on_another_farm_block(): void
+    {
+        $admin = User::findOrFail($this->farm->created_by);
+        $otherFarm = new Farm(['name' => 'Kebun Selatan', 'land_tenure' => 'owned', 'total_area_ha' => '5']);
+        $otherFarm->forceFill(['team_id' => $this->team->id, 'created_by' => $admin->id])->save();
+        $block = app(FarmBlockService::class)->create($otherFarm, $admin, $this->team, ['code' => 'S01', 'name' => 'Blok Selatan', 'area_ha' => '4']);
+        $this->actingAs($this->actor)->post('/petugas/aktivitas/mandiri/land_cleaning', [...$this->payload(), 'block_id' => $block->id,
+            'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual']])->assertForbidden();
+        $this->assertDatabaseCount('farm_activities', 0);
+    }
+
+    public function test_database_rejects_activity_block_that_disagrees_with_cycle(): void
+    {
+        $admin = User::findOrFail($this->farm->created_by);
+        $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['code' => 'B02', 'name' => 'Blok Selatan', 'area_ha' => '4']);
+        $this->actingAs($this->actor)->post('/petugas/aktivitas/mandiri/incident', [...$this->payload(), 'cycle_id' => $this->cycle->id,
+            'details' => ['area' => 100, 'area_unit' => 'm²', 'incident_category' => 'Cuaca', 'description' => 'Hujan lebat', 'severity' => 'Ringan']])->assertSessionHasNoErrors();
+        $activity = FarmActivity::firstOrFail();
+        $this->assertSame($this->cycle->block_id, $activity->getAttribute('block_id'));
+        $this->expectException(QueryException::class);
+        DB::table('farm_activities')->where('id', $activity->id)->update(['block_id' => $other->id]);
     }
 
     public function test_no_maintenance_tasks_do_not_block_harvest(): void
@@ -185,6 +242,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->mock(\App\Services\Activity\ActivitySequenceService::class, function ($mock): void {
             $mock->shouldReceive('ensureAllowed')->andReturnNull()->byDefault();
             $mock->shouldReceive('blockedReason')->andReturnNull()->byDefault();
+            $mock->shouldReceive('blockReason')->andReturnNull()->byDefault();
         });
         $area = ['area' => 1000, 'area_unit' => 'm²'];
         $cases = [
@@ -205,8 +263,11 @@ class PetugasTaskActivityTest extends TestCase
         $this->actingAs($this->actor);
         foreach ($cases as $code => $details) {
             $this->get('/petugas/aktivitas/mandiri/'.$code)->assertOk();
-            $this->post('/petugas/aktivitas/mandiri/'.$code, [...$this->payload(), 'end_time' => null,
-                'cycle_id' => $code === 'other' ? null : $this->cycle->id, 'details' => $details])->assertSessionHasNoErrors()->assertRedirect();
+            $location = \App\Services\Activity\ActivitySequenceService::isBlockPreparation($code)
+                ? ['block_id' => $this->cycle->block_id]
+                : ['cycle_id' => $code === 'other' ? null : $this->cycle->id];
+            $this->post('/petugas/aktivitas/mandiri/'.$code, [...$this->payload(), ...$location, 'end_time' => null,
+                'details' => $details])->assertSessionHasNoErrors()->assertRedirect();
         }
         $this->assertDatabaseCount('farm_activities', 13);
         $this->assertDatabaseCount('daily_activity_logs', 1);

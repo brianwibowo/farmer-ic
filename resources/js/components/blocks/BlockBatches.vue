@@ -114,12 +114,8 @@ const progressSummary = computed(() => {
             class="text-xs leading-relaxed text-muted-foreground"
         >
             Pembersihan lahan
-            {{ block.land_clearing_completed_at ? 'selesai' : 'berlangsung' }} ·
-            Mulai {{ blockDate(block.land_clearing_started_at)
-            }}<span v-if="block.land_clearing_completed_at">
-                · Selesai
-                {{ blockDate(block.land_clearing_completed_at) }}</span
-            >
+            {{ block.land_clearing_completed_at ? 'selesai' : 'belum dimulai' }}<span v-if="block.land_clearing_completed_at">
+                · Dilaporkan {{ blockDate(block.land_clearing_completed_at) }}</span>
         </p>
         <ul
             v-if="!expanded && progressSummary.length"

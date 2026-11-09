@@ -7,17 +7,20 @@ minimal disediakan agar backend dapat digunakan langsung melalui form Inertia.
 ## Alur yang tersedia
 
 1. Admin atau Petugas PIC membuat master blok dalam kebunnya. `land_clearing_started_at` diisi
-   server; Land Clearing langsung berlangsung, termasuk bila blok disimpan
-   nonaktif untuk sementara.
+   server sebagai penanda awal; tanggal Land Clearing yang ditampilkan tetap
+   diproyeksikan dari laporan aktivitas bila laporan sudah ada.
 2. Petugas pada kebun tugasnya atau Admin membuat subblok/batch dengan alokasi
    luas. Label kosong mendapat A, B, ..., Z, AA, dan seterusnya.
-3. Batch pertama menyelesaikan Land Clearing blok otomatis, tanpa persetujuan
-   Admin. Tanggal selesai ini tidak berubah saat batch berikutnya dibuat.
+3. Pembuatan batch tidak mengklaim penyelesaian Land Clearing secara fisik.
+   Mulai/selesai Land Clearing dan persiapan tanah dibaca dari laporan
+   `land_cleaning`, `loosening`, `beds`, `liming`, dan `base_fertilization`
+   yang terhubung ke blok; stage historis tidak ditulis ulang.
 4. Satu batch disimpan pada `planting_cycles`, bukan tabel subblok permanen.
    Enam baris `planting_cycle_stages` dibuat dalam transaksi yang sama:
    `land_clearing` completed, `soil_preparation` in_progress, empat sisanya upcoming.
-   Land Clearing batch merujuk waktu persiapan bersama dari blok; tahap berikutnya
-   memiliki timeline masing-masing. Tidak ada persentase progres buatan.
+   Status tersimpan ini menjadi basis dashboard; tampilan timeline blok
+   memproyeksikan ulang dua tahap persiapan dari laporan. Tidak ada persentase
+   progres buatan.
 5. Batch persiapan berstatus siklus `planned`, luas realisasi 0, tanggal tanam
    realisasi dan varietas belum diisi. Tanggal rencana tanam
    (`planned_planting_at`) boleh diisi saat pembuatan batch dan menjadi acuan
@@ -30,6 +33,12 @@ Setiap batch langsung terikat ke blok melalui `planting_cycles.block_id`; tidak
 ada tabel periode terpisah. Batch baru dapat dibuat selama kapasitas blok dan
 kebun tersedia, dengan label subblok unik per blok. Nomor batch berlanjut.
 Pengulangan Land Clearing pada batch berikutnya belum diotomasi.
+
+Laporan aktivitas menyimpan `farm_activities.block_id` nullable. Laporan SOP dan
+mandiri menurunkan blok dari `planting_cycles.block_id`; laporan pemetaan dapat
+mengisi blok opsional. Trigger PostgreSQL menolak laporan yang bloknya tidak sama
+dengan blok siklus. Backfill migrasi hanya mengisi lokasi yang dapat dibuktikan
+dari siklus atau detail pemetaan; aktivitas tanpa bukti tetap null.
 
 Modul ini belum menyediakan aksi menyelesaikan tahap berikutnya, mengajukan atau
 menyetujui task SOP, realisasi tanam, panen, pembatalan batch, atau pengulangan
@@ -124,9 +133,12 @@ backend sudah menerima ID opsional dengan validasi tersebut.
 ## Instalasi dan seed
 
 Migration baru:
-`2026_10_30_000001_create_farm_blocks_and_preparation_batches.php` dan
-`2026_11_09_000001_remove_planting_rounds.php`. Migration terakhir memindahkan
-setiap siklus ke `planting_cycles.block_id` lalu menghapus tabel periode.
+`2026_10_30_000001_create_farm_blocks_and_preparation_batches.php`,
+`2026_11_09_000001_link_farm_activities_to_blocks.php`, dan
+`2026_11_09_000001_remove_planting_rounds.php`. Migration tautan menambahkan
+`farm_activities.block_id`, backfill lokasi yang terbukti, dan guard konsistensi.
+Migration terakhir memindahkan setiap siklus ke `planting_cycles.block_id` lalu
+menghapus tabel periode.
 Untuk menambahkan hanya modul ini ke database existing, periksa koneksi dan
 migration pending, lalu jalankan migration spesifik setelah mendapat izin:
 
