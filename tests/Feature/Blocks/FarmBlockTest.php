@@ -561,10 +561,10 @@ class FarmBlockTest extends TestCase
         $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), $demo->getAttribute('commodity_id'));
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();
         $batchIds = PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all();
-        $this->assertCount(2, $batchIds);
+        $this->assertCount(3, $batchIds);
         $this->assertSame(0, PlantingCycle::where('farm_id', $demo->id)->whereNull('planting_round_id')->count());
-        $this->assertSame(['active', 'planned'], PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('status')->all());
-        $this->assertSame(12, PlantingCycleStage::whereIn('planting_cycle_id', $batchIds)->count());
+        $this->assertSame(['harvested', 'active', 'planned'], PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('status')->all());
+        $this->assertSame(18, PlantingCycleStage::whereIn('planting_cycle_id', $batchIds)->count());
         $this->seed(DemoFarmBlockSeeder::class);
         $this->assertSame($ids, FarmBlock::where('farm_id', $demo->id)->pluck('id')->all());
         $this->assertSame(2, count($ids));

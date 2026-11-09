@@ -35,9 +35,9 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->seed([
             DemoIdentitySeeder::class,
             DemoFarmSeeder::class,
-            DemoActivitySeeder::class,
             SopActivityTypeSeeder::class,
             DemoSopSeeder::class,
+            DemoActivitySeeder::class,
             DemoMonitoringSeeder::class,
         ]);
     }
@@ -80,7 +80,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             ->where('landTable.total_area_ha', '44.5000')->has('landTable.rows', 6)
             ->has('dashboard.landMap.farms', 6)->has('dashboard.commodities', 3)
             ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('areaValue', 'name')->sortKeys()->all() == [
-                'Jagung' => 9.75, 'Rumput' => 6.25, 'Sorgum' => 3,
+                'Jagung' => 14.0, 'Rumput' => 6.25, 'Sorgum' => 3,
             ]));
 
         foreach (DemoOwnerPortfolioData::sites() as $site) {

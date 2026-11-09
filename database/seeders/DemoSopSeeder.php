@@ -80,11 +80,11 @@ class DemoSopSeeder extends Seeder
 
     private function generateDemoTasks(Farm $farm, User $actor, Team $team): void
     {
-        $subblok = PlantingCycle::query()
+        $query = PlantingCycle::query()
             ->where('farm_id', $farm->id)
-            ->whereNotNull('planting_round_id')
-            ->orderBy('batch_number')
-            ->first();
+            ->whereNotNull('planting_round_id');
+        $subblok = (clone $query)->where('status', 'active')->orderBy('batch_number')->first()
+            ?? (clone $query)->orderBy('batch_number')->first();
 
         if (! $subblok instanceof PlantingCycle) {
             $block = FarmBlock::query()->where('farm_id', $farm->id)->where('code', 'B01')->first();
@@ -109,5 +109,16 @@ class DemoSopSeeder extends Seeder
 
         \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('synchronize', [\App\Models\PlantingCycleTask::class, $subblok]);
         app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $actor);
+
+        $versionId = $subblok->refresh()->sop_template_version_id;
+        if ($versionId === null) {
+            return;
+        }
+        foreach ((clone $query)->where('status', 'harvested')->get() as $harvested) {
+            if ($harvested->sop_template_version_id === null) {
+                \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('update', $harvested);
+                $harvested->forceFill(['sop_template_version_id' => $versionId])->save();
+            }
+        }
     }
 }

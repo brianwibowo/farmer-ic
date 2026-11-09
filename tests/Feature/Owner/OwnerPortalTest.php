@@ -46,9 +46,9 @@ class OwnerPortalTest extends TestCase
         $this->seed([
             DemoIdentitySeeder::class,
             DemoFarmSeeder::class,
-            DemoActivitySeeder::class,
             SopActivityTypeSeeder::class,
             DemoSopSeeder::class,
+            DemoActivitySeeder::class,
             DemoMonitoringSeeder::class,
         ]);
         $this->owner = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['owner']['email'])->firstOrFail();
@@ -100,8 +100,10 @@ class OwnerPortalTest extends TestCase
         $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Block')->where('block.id', $block->id)
-            ->has('cycles', 1)->has('cycles.0.stages', 6)
-            ->where('cycles.0.planted_area_ha', '4.2500'));
+            ->has('cycles', 2)->has('cycles.0.stages', 6)->has('cycles.1.stages', 6)
+            ->where('cycles', fn ($rows) => collect($rows)->contains(
+                fn ($cycle) => $cycle['status'] === 'active' && $cycle['planted_area_ha'] === '4.2500',
+            )));
     }
 
     public function test_owner_reads_all_activity_types_including_records_without_logbooks(): void
@@ -129,8 +131,8 @@ class OwnerPortalTest extends TestCase
             'farm_id' => $this->farm->id,
             'performed_by' => $this->petugas->id,
             'activity_type_id' => $harvest->id,
-            'from_date' => '2026-12-01',
-            'to_date' => '2026-12-31',
+            'from_date' => '2026-08-30',
+            'to_date' => '2026-08-30',
         ]);
         $this->get('/aktivitas?'.$query)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('activities.total', 1)->where('activities.data.0.type.code', 'harvest'));
