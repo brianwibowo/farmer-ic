@@ -23,8 +23,9 @@ filter aktif ikut memengaruhi total laporan, luas panen, dan berat panen.
 ## Filter dan kolom
 
 Filter: pencarian bebas, kebun, blok, varietas, rentang tanggal, dan ukuran
-halaman. Pencarian mencakup kebun, kode/nama blok, subblok, varietas, nama
-Petugas, dan catatan.
+halaman. Filter blok baru aktif setelah kebun dipilih dan hanya menampilkan
+blok milik kebun tersebut. Pencarian mencakup kebun, kode/nama blok, subblok,
+varietas, nama Petugas, dan catatan.
 
 Kolom utama: tanggal laporan, kebun, blok, batch/subblok, varietas/komoditas,
 luas panen, berat kotor, catatan, foto, dan tautan ke logbook harian. Pelaksana

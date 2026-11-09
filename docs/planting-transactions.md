@@ -21,8 +21,9 @@ filter aktif ikut memengaruhi total laporan, luas, dan benih.
 ## Filter dan kolom
 
 Filter: pencarian bebas, kebun, blok, varietas, rentang tanggal, dan ukuran
-halaman. Pencarian mencakup kebun, kode/nama blok, subblok, varietas, nama
-benih, nama Petugas, dan catatan laporan.
+halaman. Filter blok baru aktif setelah kebun dipilih dan hanya menampilkan
+blok milik kebun tersebut. Pencarian mencakup kebun, kode/nama blok, subblok,
+varietas, nama benih, nama Petugas, dan catatan laporan.
 
 Kolom utama: tanggal laporan, kebun, blok, batch/subblok, varietas/komoditas,
 luas tanam, jumlah benih, nama benih, pola tanam, catatan, foto, dan tautan

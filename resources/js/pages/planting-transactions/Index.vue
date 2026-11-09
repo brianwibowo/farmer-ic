@@ -32,9 +32,12 @@ const props = defineProps<{
     varieties: PlantingTransactionVarietyOption[];
 }>();
 
+const initialBlock = props.blocks.find(
+    (block) => block.id === props.filters.block_id,
+);
 const filters = useForm({
     search: props.filters.search ?? '',
-    farm_id: props.filters.farm_id ?? '',
+    farm_id: props.filters.farm_id ?? initialBlock?.farm_id ?? '',
     block_id: props.filters.block_id ?? '',
     variety_id: props.filters.variety_id ?? '',
     from_date: props.filters.from_date ?? '',
@@ -43,9 +46,9 @@ const filters = useForm({
 });
 
 const blockOptions = computed(() =>
-    props.blocks.filter(
-        (block) => !filters.farm_id || block.farm_id === filters.farm_id,
-    ),
+    filters.farm_id
+        ? props.blocks.filter((block) => block.farm_id === filters.farm_id)
+        : [],
 );
 const hasFilters = computed(() =>
     Boolean(
@@ -110,12 +113,7 @@ function reset(): void {
 }
 
 function changeFarm(): void {
-    if (
-        filters.block_id &&
-        !blockOptions.value.some((block) => block.id === filters.block_id)
-    ) {
-        filters.block_id = '';
-    }
+    filters.block_id = '';
 }
 
 const monthLabels = [
@@ -265,15 +263,19 @@ function rowSubblock(row: PlantingTransactionRow): string {
                             :id="field.id"
                             v-model="filters.block_id"
                             class="admin-field"
+                            :disabled="!filters.farm_id"
                             :aria-invalid="field.invalid"
                             :aria-describedby="field.description"
                         >
-                            <option value="">Semua blok</option>
+                            <option value="">
+                                {{
+                                    filters.farm_id
+                                        ? 'Semua blok'
+                                        : 'Pilih kebun terlebih dahulu'
+                                }}
+                            </option>
                             <option v-for="block in blockOptions" :key="block.id" :value="block.id">
                                 {{ block.code }} · {{ block.name }}
-                                <template v-if="!filters.farm_id && block.farm">
-                                    · {{ block.farm.name }}
-                                </template>
                             </option>
                         </select>
                     </FarmField>
