@@ -7,7 +7,6 @@ import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
-import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import { Toaster } from '@/components/ui/sonner';
 import type { BreadcrumbItem } from '@/types';
 
@@ -59,9 +58,6 @@ const adminSection = computed(() => {
                         !isNotifications || page.props.canFilterTenant === true
                     "
                 />
-                <div v-else class="shrink-0 bg-card px-4 pt-4 pb-2">
-                    <DashboardHeader />
-                </div>
                 <AppSidebarHeader v-if="!isAdmin" :breadcrumbs="breadcrumbs" />
                 <slot />
             </AppContent>

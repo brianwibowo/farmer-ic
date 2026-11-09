@@ -49,11 +49,9 @@ describe('demo data resolver boundaries', () => {
             'laporkan keuangan bulan April 2026',
         );
 
-        const normalizedContent = answer?.content.replace(/\s+/g, '');
-
-        expect(normalizedContent).toContain('Rp11.000.000');
-        expect(normalizedContent).toContain('Rp4.000.000');
-        expect(normalizedContent).toContain('Rp7.000.000');
+        expect(answer?.content).toMatch(/Rp\s*11\.000\.000/u);
+        expect(answer?.content).toMatch(/Rp\s*4\.000\.000/u);
+        expect(answer?.content).toMatch(/Rp\s*7\.000\.000/u);
         expect(answer?.content).toContain('Periode: April 2026');
     });
 });

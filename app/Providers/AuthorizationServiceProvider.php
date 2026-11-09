@@ -20,8 +20,9 @@ class AuthorizationServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::before(function (User $user): ?bool {
-            return app(RolePermissions::class)->roleName($user) === 'superadmin' ? true : null;
+        Gate::before(function (User $user, string $ability): ?bool {
+            // Interactive AI remains Owner-only, including developer accounts.
+            return $ability !== 'ai.access' && app(RolePermissions::class)->roleName($user) === 'superadmin' ? true : null;
         });
 
         // Superadmin dont reach this point, so we can safely deny all permissions for other users
@@ -83,6 +84,7 @@ class AuthorizationServiceProvider extends ServiceProvider
             $permissions = app(RolePermissions::class);
 
             return $team !== null
+                && $permissions->roleName($user) === 'owner'
                 && $permissions->scope($user, 'ai.access') === 'any'
                 && $permissions->withinTeam($user, $team);
         });
