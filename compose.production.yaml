@@ -1,46 +1,45 @@
 name: farmer-ic
 
-# Production RAG topology for a single VPS.
-#
-# Prerequisites:
-#   - .env.production with all secrets (DB, Redis, Qdrant, OpenRouter keys)
-#   - APP_IMAGE / APP_TAG set when using a pre-built image
-#   - TLS termination handled by the external reverse proxy network
-#
-# Current default: SQLite + sync queue (safe baseline).
-# To activate the full RAG stack, set in .env.production:
-#   DB_CONNECTION=pgsql  DB_HOST=farmer-ic-postgres
-#   QUEUE_CONNECTION=redis  AI_RAG_VECTOR_ENABLED=true
+# Supply the existing database and secrets through --env-file .env.production.
+# Never switch a running SQLite/legacy database to the UUID schema implicitly.
+x-app-environment: &app-environment
+    APP_ENV: production
+    APP_DEBUG: 'false'
+    APP_KEY: ${APP_KEY:?Set APP_KEY in .env.production or the deployment environment}
+    APP_URL: ${APP_URL:-https://farmer.icdigital.io}
+    OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    DB_CONNECTION: ${DB_CONNECTION:?Set DB_CONNECTION=pgsql in .env.production}
+    DB_DATABASE: ${DB_DATABASE:?Set the existing PostgreSQL database name}
+    DB_HOST: ${DB_HOST:-farmer-ic-postgres}
+    DB_PORT: ${DB_PORT:-5432}
+    SESSION_DRIVER: ${SESSION_DRIVER:-file}
+    CACHE_STORE: ${CACHE_STORE:-file}
+    QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+    NOTIFICATION_QUEUE_CONNECTION: ${NOTIFICATION_QUEUE_CONNECTION:-database}
+    DB_QUEUE_RETRY_AFTER: ${DB_QUEUE_RETRY_AFTER:-240}
+    REDIS_QUEUE_RETRY_AFTER: ${REDIS_QUEUE_RETRY_AFTER:-240}
+    REDIS_HOST: ${REDIS_HOST:-redis}
+    REDIS_PREFIX: ${REDIS_PREFIX:?Set an isolated Redis prefix in .env.production}
+    QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+    QDRANT_COLLECTION: ${QDRANT_COLLECTION:?Set an isolated Qdrant collection in .env.production}
+
+x-app-service: &app-service
+    image: ${APP_IMAGE_REF:-${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}}
+    env_file:
+        - .env.production
+    environment: *app-environment
+    volumes:
+        - app_release_storage:/var/www/html/storage
+    restart: unless-stopped
 
 services:
     app:
+        <<: *app-service
         build:
             context: .
             dockerfile: Dockerfile
-        image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
         ports:
             - '127.0.0.1:${APP_PORT:-8080}:80'
-        env_file:
-            - path: .env.production
-              required: false
-        environment:
-            APP_ENV: production
-            APP_DEBUG: 'false'
-            APP_URL: ${APP_URL:-https://farmer.icdigital.io}
-            DB_CONNECTION: ${DB_CONNECTION:-sqlite}
-            DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
-            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
-            DB_PORT: ${DB_PORT:-5432}
-            SESSION_DRIVER: ${SESSION_DRIVER:-file}
-            CACHE_STORE: ${CACHE_STORE:-file}
-            QUEUE_CONNECTION: ${QUEUE_CONNECTION:-sync}
-            REDIS_HOST: ${REDIS_HOST:-redis}
-            QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-        networks:
-            default: {}
-        volumes:
-            - app_storage:/var/www/html/storage
-            - app_database:/var/lib/farmer-ic
         depends_on:
             postgres:
                 condition: service_healthy
@@ -51,123 +50,68 @@ services:
             qdrant:
                 condition: service_healthy
                 required: false
-        restart: unless-stopped
         deploy:
             resources:
                 limits:
                     memory: 512M
 
     worker:
-        image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
-        command: php artisan queue:work redis --queue=ai-index,default --sleep=2 --tries=3 --timeout=180
+        <<: *app-service
+        command: php artisan queue:work ${QUEUE_CONNECTION:-redis} --queue=ai-index,default --sleep=2 --tries=3 --timeout=180
         profiles: ['rag']
-        env_file:
-            - path: .env.production
-              required: false
-        environment:
-            APP_ENV: production
-            APP_DEBUG: 'false'
-            DB_CONNECTION: ${DB_CONNECTION:-sqlite}
-            DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
-            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
-            DB_PORT: ${DB_PORT:-5432}
-            QUEUE_CONNECTION: redis
-            REDIS_HOST: ${REDIS_HOST:-redis}
-            CACHE_STORE: ${CACHE_STORE:-redis}
-            QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-        volumes:
-            - app_storage:/var/www/html/storage
-            - app_database:/var/lib/farmer-ic
-        depends_on:
-            postgres:
-                condition: service_healthy
-                required: false
-            redis:
-                condition: service_healthy
-            qdrant:
-                condition: service_healthy
-        # The image healthcheck targets Apache; this container runs a queue worker.
+        stop_grace_period: 190s
         healthcheck:
             test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "queue:work"']
             interval: 30s
             timeout: 5s
             retries: 3
             start_period: 30s
-        restart: unless-stopped
         deploy:
             resources:
                 limits:
                     memory: 256M
 
-    indexer:
-        image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
+    # One consumer for both queues: concurrent Fonnte validation is unsafe.
+    notifications:
+        <<: *app-service
+        command: php artisan queue:work ${NOTIFICATION_QUEUE_CONNECTION:-database} --queue=notifications,whatsapp --sleep=1 --tries=3 --timeout=30 --max-time=3600
         profiles: ['rag']
-        command: >-
-            sh -lc "php artisan migrate --force --no-interaction &&
-            php artisan ai:knowledge:index-vector --force --rebuild &&
-            php artisan ai:health --json"
-        env_file:
-            - path: .env.production
-              required: false
-        environment:
-            APP_ENV: production
-            APP_DEBUG: 'false'
-            DB_CONNECTION: ${DB_CONNECTION:-pgsql}
-            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
-            DB_PORT: ${DB_PORT:-5432}
-            DB_DATABASE: ${DB_DATABASE:-farmer_ic}
-            DB_USERNAME: ${DB_USERNAME:-farmer_ic}
-            DB_PASSWORD: ${DB_PASSWORD:-}
-            AI_RAG_VECTOR_ENABLED: 'true'
-            QUEUE_CONNECTION: redis
-            REDIS_HOST: ${REDIS_HOST:-redis}
-            CACHE_STORE: redis
-            QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-        volumes:
-            - app_storage:/var/www/html/storage
-            - app_database:/var/lib/farmer-ic
-        depends_on:
-            postgres:
-                condition: service_healthy
-            redis:
-                condition: service_healthy
-            qdrant:
-                condition: service_healthy
-        restart: 'no'
+        stop_grace_period: 40s
+        healthcheck:
+            test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "queue:work"']
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
+        deploy:
+            resources:
+                limits:
+                    memory: 256M
 
     scheduler:
-        image: ${APP_IMAGE:-farmer-ic}:${APP_TAG:-latest}
+        <<: *app-service
         command: php artisan schedule:work --no-interaction
         profiles: ['rag']
-        env_file:
-            - path: .env.production
-              required: false
-        environment:
-            APP_ENV: production
-            DB_CONNECTION: ${DB_CONNECTION:-sqlite}
-            DB_DATABASE: ${DB_DATABASE:-/var/lib/farmer-ic/database.sqlite}
-            DB_HOST: ${DB_HOST:-farmer-ic-postgres}
-            DB_PORT: ${DB_PORT:-5432}
-            QUEUE_CONNECTION: redis
-            REDIS_HOST: ${REDIS_HOST:-redis}
-        depends_on:
-            postgres:
-                condition: service_healthy
-                required: false
-            redis:
-                condition: service_healthy
-        # The image healthcheck targets Apache; this container runs the scheduler.
         healthcheck:
             test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "schedule:work"']
             interval: 30s
             timeout: 5s
             retries: 3
             start_period: 30s
-        restart: unless-stopped
         deploy:
             resources:
                 limits:
                     memory: 128M
+
+    # Manual, demo-only operation: this command also syncs JSON demo knowledge.
+    # It must not run automatically on a database with real operational data.
+    indexer:
+        <<: *app-service
+        profiles: ['indexer']
+        command: >-
+            sh -lc "php artisan ai:knowledge:index-vector --force --rebuild &&
+            php artisan ai:health --json"
+        restart: 'no'
 
     postgres:
         image: postgres:17-alpine
@@ -211,6 +155,7 @@ services:
             resources:
                 limits:
                     memory: 192M
+
     qdrant:
         image: ${QDRANT_IMAGE:-qdrant/qdrant:v1.14.1}
         profiles: ['rag']
@@ -228,6 +173,7 @@ services:
             resources:
                 limits:
                     memory: 512M
+
     https-portal:
         image: steveltn/https-portal:1
         ports:
@@ -236,17 +182,8 @@ services:
         restart: always
         volumes:
             - https-portal-data:/var/lib/https-portal
-        # https-portal regenerates /etc/nginx/conf.d/*.conf on every start and
-        # deletes anything it finds there, so buffer tuning cannot be bind
-        # mounted into that directory (it fails with Errno::EBUSY and the
-        # container restart-loops). Inject it through the supported env hook
-        # instead.
-        #
-        # Laravel sends Vite preload Link headers that overflow nginx's 4k/8k
-        # default proxy buffer and surface as "upstream sent too big header"
-        # (HTTP 502).
         healthcheck:
-            test: ["CMD", "service", "nginx", "status"]
+            test: ['CMD', 'service', 'nginx', 'status']
             interval: 30s
             timeout: 20s
             retries: 3
@@ -255,12 +192,6 @@ services:
             STAGE: 'production'
             WEBSOCKET: 'true'
             CLIENT_MAX_BODY_SIZE: '0'
-            # By default nginx resolves "farmer-ic-app-1" once, when the config
-            # is loaded. Every deploy recreates the app container, which can
-            # hand it a new IP, leaving nginx proxying to a dead address
-            # (HTTP 502 / ERR_CONNECTION_RESET for visitors). Resolve the name
-            # per request through Docker's embedded DNS instead, so the portal
-            # does not need to be restarted during a deploy.
             DYNAMIC_UPSTREAM: 'true'
             CUSTOM_NGINX_SERVER_CONFIG_BLOCK: |
                 resolver 127.0.0.11 valid=10s ipv6=off;
@@ -269,9 +200,11 @@ services:
                 proxy_busy_buffers_size 256k;
                 proxy_temp_file_write_size 256k;
 
-
 volumes:
+    # The old app_storage is retained for rollback, not shared by the new app.
     app_storage:
+    app_release_storage:
+    # Retain the legacy volume declaration; do not delete or migrate its data.
     app_database:
     postgres_data:
     redis_data:

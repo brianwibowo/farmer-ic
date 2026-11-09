@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 
 class PetugasHomeService
 {
+    /** @return array<string, mixed> */
     public function overview(User $actor, ?Farm $farm, ?Team $team): array
     {
         $today = CarbonImmutable::today('Asia/Jakarta');

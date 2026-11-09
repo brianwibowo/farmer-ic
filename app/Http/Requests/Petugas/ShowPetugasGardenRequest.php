@@ -11,6 +11,7 @@ class ShowPetugasGardenRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, array<mixed>> */
     public function rules(): array
     {
         return ['block' => ['nullable', 'uuid'], 'page' => ['sometimes', 'integer', 'min:1']];

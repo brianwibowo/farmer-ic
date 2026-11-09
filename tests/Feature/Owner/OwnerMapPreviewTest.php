@@ -125,20 +125,22 @@ class OwnerMapPreviewTest extends TestCase
             ->has('dashboard.landMap.farms.0.crops', 0));
     }
 
-    public function test_dashboard_keeps_all_visible_farms_and_scopes_popup_data(): void
+    public function test_previous_farm_filter_keeps_all_scoped_popup_data_and_admin_payload_unchanged(): void
     {
-        $this->farm('Kebun A');
+        $first = $this->farm('Kebun A');
         $second = $this->farm('Kebun B');
         $pic = $this->user('PIC Kebun B', $second);
         $second->forceFill(['pic_user_id' => $pic->id])->save();
         $this->cycle($second, 'Padi', 'Ciherang');
         $this->get('/?farm_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('dashboard.filters.farm_id', null)
             ->has('dashboard.landMap.farms', 2)
-            ->where('dashboard.landMap.farms', fn ($farms) => collect($farms)->contains(
-                fn (array $farm): bool => $farm['id'] === $second->id
-                    && $farm['pic']['name'] === $pic->name
-                    && $farm['crops'][0]['name'] === 'Padi',
-            )));
+            ->where('dashboard.landMap.farms.0.id', $first->id)
+            ->where('dashboard.landMap.farms.0.pic', null)
+            ->has('dashboard.landMap.farms.0.crops', 0)
+            ->where('dashboard.landMap.farms.1.id', $second->id)
+            ->where('dashboard.landMap.farms.1.pic.name', $pic->name)
+            ->where('dashboard.landMap.farms.1.crops.0.name', 'Padi'));
 
         $this->actingAs($this->admin)->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->missing('dashboard.landMap.farms.0.crops')

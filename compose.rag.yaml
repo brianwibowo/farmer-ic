@@ -2,10 +2,10 @@
 #
 #   docker compose -f compose.yaml -f compose.rag.yaml up --build
 #
-# PostgreSQL provides production-parity relational storage.
+# PostgreSQL and notification workers are provided by compose.yaml.
 # Qdrant is bound to loopback only (127.0.0.1:6333).
 # Redis provides queue backend for async indexing jobs.
-# Worker service runs queue:work on the ai-index queue.
+# The general worker switches to Redis; notifications remain on the database.
 services:
     app:
         depends_on:
@@ -30,28 +30,14 @@ services:
             CACHE_STORE: redis
 
     worker:
-        image: farmer-ic:local
         command: php artisan queue:work redis --queue=ai-index,default --sleep=2 --tries=3 --timeout=180
-        env_file:
-            - path: .env.docker
-              required: false
         environment:
-            APP_ENV: ${APP_ENV:-local}
-            DB_CONNECTION: pgsql
-            DB_HOST: postgres
-            DB_PORT: 5432
-            DB_DATABASE: ${POSTGRES_DB:-farmer_ic}
-            DB_USERNAME: ${POSTGRES_USER:-farmer_ic}
-            DB_PASSWORD: ${POSTGRES_PASSWORD:-secret}
             QUEUE_CONNECTION: redis
             REDIS_HOST: redis
             CACHE_STORE: redis
             AI_RAG_VECTOR_ENABLED: ${AI_RAG_VECTOR_ENABLED:-true}
             QDRANT_URL: http://qdrant:6333
             QDRANT_API_KEY: ${QDRANT_API_KEY:-}
-        volumes:
-            - app_storage:/var/www/html/storage
-            - app_database:/var/lib/farmer-ic
         depends_on:
             postgres:
                 condition: service_healthy
@@ -59,28 +45,28 @@ services:
                 condition: service_healthy
             qdrant:
                 condition: service_healthy
-        restart: unless-stopped
         deploy:
             resources:
                 limits:
                     memory: 256M
 
-    postgres:
-        image: postgres:17-alpine
-        ports:
-            - '127.0.0.1:${DB_PORT:-5432}:5432'
+    notifications:
         environment:
-            POSTGRES_DB: ${POSTGRES_DB:-farmer_ic}
-            POSTGRES_USER: ${POSTGRES_USER:-farmer_ic}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
-        volumes:
-            - postgres_data:/var/lib/postgresql/data
-        healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-farmer_ic}']
-            interval: 5s
-            timeout: 3s
-            retries: 5
-        restart: unless-stopped
+            QUEUE_CONNECTION: redis
+            REDIS_HOST: redis
+            CACHE_STORE: redis
+        depends_on:
+            redis:
+                condition: service_healthy
+
+    scheduler:
+        environment:
+            QUEUE_CONNECTION: redis
+            REDIS_HOST: redis
+            CACHE_STORE: redis
+        depends_on:
+            redis:
+                condition: service_healthy
 
     redis:
         image: redis:7-alpine
@@ -110,7 +96,5 @@ services:
         restart: unless-stopped
 
 volumes:
-    postgres_data:
     qdrant_storage:
     redis_data:
-

@@ -1,49 +1,5 @@
-# Install PHP dependencies and generate Wayfinder types without carrying
-# Composer or Node.js into the runtime image.
-FROM composer:2 AS dependencies
-
-WORKDIR /app
-
-COPY composer.json composer.lock ./
-RUN composer install \
-    --no-dev \
-    --no-interaction \
-    --no-progress \
-    --prefer-dist \
-    --no-scripts \
-    --optimize-autoloader
-
-COPY . .
-
-# Wayfinder is invoked by the Vite plugin. Generate its files in a PHP stage
-# so the Node-only frontend stage does not need a PHP runtime.
-RUN touch database/database.sqlite \
-    && cp .env.example .env \
-    && composer dump-autoload --no-dev --optimize \
-    && php artisan key:generate --force --no-interaction \
-    && php artisan wayfinder:generate --with-form \
-    && rm -f .env database/database.sqlite
-
-# Build the frontend independently so the runtime image contains no Node.js
-# toolchain or development dependencies.
-FROM node:22-bookworm-slim AS frontend
-
-# Wayfinder output is already generated in the Composer stage. Avoid running
-# the PHP hook a second time in this Node-only stage.
-ENV WAYFINDER_COMMAND=true
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
-
-COPY --from=dependencies /app ./
-RUN npm run build
-
-# Apache provides a single, self-contained web process for the Laravel app.
-# This keeps local and VPS deployments identical while retaining a small,
-# repeatable build pipeline.
-FROM php:8.5-apache-bookworm AS runtime
+# Use the same PHP version and extensions for dependency resolution and runtime.
+FROM php:8.5-apache-bookworm AS php-base
 
 ENV APP_ENV=production \
     APP_DEBUG=false \
@@ -51,7 +7,7 @@ ENV APP_ENV=production \
 
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
-# The upstream archive omits the liblzf submodule required by package.xml.
+# The phpredis archive omits the liblzf submodule required by package.xml.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl git \
     && git clone --depth 1 --single-branch --branch 6.3.0 --recurse-submodules \
@@ -69,6 +25,45 @@ RUN apt-get update \
     && rm -rf /tmp/phpredis \
     && a2enmod expires headers rewrite \
     && rm -rf /var/lib/apt/lists/*
+
+# pcntl is required for Laravel's queue worker timeouts and graceful shutdown.
+# Keep it in a separate layer so an unchanged PHP extension layer can be reused.
+RUN docker-php-ext-install -j2 pcntl
+
+FROM php-base AS dependencies
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --prefer-dist \
+    --no-scripts \
+    --optimize-autoloader
+
+COPY . .
+
+# Wayfinder files are gitignored and the Vite config does not generate them.
+# This key exists only while generating build-time artifacts, never at runtime.
+RUN composer dump-autoload --no-dev --optimize --no-interaction \
+    && APP_KEY=base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA= \
+        php artisan wayfinder:generate --with-form --no-interaction
+
+FROM node:22-bookworm-slim AS frontend
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY --from=dependencies /app ./
+RUN npm run build
+
+FROM php-base AS runtime
 
 WORKDIR /var/www/html
 
