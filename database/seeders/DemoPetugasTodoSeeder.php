@@ -45,7 +45,7 @@ class DemoPetugasTodoSeeder extends Seeder
 
         DB::transaction(function () use ($actor, $team, $gate, $petugas): void {
             $farm = Farm::visibleTo($actor, $team)->whereKey($petugas->assigned_farm_id)
-                ->where('name', 'Kebun Cileuksa Demo')->lockForUpdate()->firstOrFail();
+                ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->lockForUpdate()->firstOrFail();
             $exists = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
                 ->whereHas('sopTemplateVersion', fn ($versions) => $versions->visibleTo($actor, $team)
                     ->whereHas('sopTemplate', fn ($templates) => $templates->visibleTo($actor, $team)->where('name', self::TEMPLATE_NAME)))->exists();

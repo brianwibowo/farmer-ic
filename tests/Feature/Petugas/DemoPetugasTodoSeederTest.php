@@ -13,6 +13,7 @@ use Database\Seeders\DemoPetugasTodoSeeder;
 use Database\Seeders\DemoSopSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -21,11 +22,22 @@ class DemoPetugasTodoSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_adds_today_preview_once_without_overwriting_existing_schedules(): void
+    /** @return array<string, array{string}> */
+    public static function farmNames(): array
+    {
+        return [
+            'current name' => [DemoFarmSeeder::FARM_NAME],
+            'legacy name' => ['Kebun Cileuksa Demo'],
+        ];
+    }
+
+    #[DataProvider('farmNames')]
+    public function test_adds_today_preview_once_without_overwriting_existing_schedules(string $farmName): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-11-05T09:00:00+07:00'));
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoSopSeeder::class]);
-        $farm = Farm::where('name', 'Kebun Cileuksa Demo')->firstOrFail();
+        $farm = Farm::where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
+        $farm->forceFill(['name' => $farmName])->save();
         $defaultSop = $farm->default_sop_template_id;
         $cycles = PlantingCycle::count();
         $originals = PlantingCycleTask::orderBy('id')->get()->keyBy('id');
