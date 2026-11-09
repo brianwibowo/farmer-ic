@@ -2,9 +2,10 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowUpRight,
-    CalendarDays,
-    Images,
+    ClipboardList,
+    LandPlot,
     LoaderCircle,
+    Ruler,
     Search,
     Sprout,
     Users,
@@ -31,7 +32,6 @@ const props = defineProps<{
     farms: PlantingTransactionFarmOption[];
     blocks: PlantingTransactionBlockOption[];
     varieties: PlantingTransactionVarietyOption[];
-    team: { id: number; name: string };
 }>();
 
 const filters = useForm({
@@ -64,26 +64,31 @@ const summaryCards = computed(() => [
         label: 'Laporan penanaman',
         value: String(props.summary.reports),
         hint: 'Laporan realisasi tanam',
+        icon: ClipboardList,
     },
     {
         label: 'Luas tanam',
         value: `${formatDecimal(props.summary.area_ha)} ha`,
         hint: 'Akumulasi luas laporan',
+        icon: Ruler,
     },
     {
         label: 'Benih',
         value: `${formatDecimal(props.summary.seed_kg)} kg`,
         hint: 'Akumulasi quantity_kg',
+        icon: Wheat,
     },
     {
         label: 'Pekerja',
         value: String(props.summary.workers),
         hint: 'Jumlah pekerja tercatat',
+        icon: Users,
     },
     {
         label: 'Kebun',
         value: String(props.summary.farms),
         hint: 'Kebun dengan transaksi',
+        icon: LandPlot,
     },
 ]);
 
@@ -175,43 +180,30 @@ function rowSubblock(row: PlantingTransactionRow): string {
 
 <template>
     <Head title="Transaksi Penanaman" />
-    <div class="space-y-6" :aria-busy="filters.processing">
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p
-                    class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase"
-                >
-                    Operasional / Penanaman
-                </p>
-                <h1 class="admin-page-title tracking-tight">
-                    Transaksi penanaman
-                </h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Laporan realisasi penanaman dari aktivitas Petugas. Setiap
-                    baris adalah laporan operasional, bukan transaksi keuangan.
-                    Ringkasan mengikuti filter yang aktif.
-                </p>
-            </div>
-            <p
-                class="rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground"
-            >
-                {{ team.name }}
-            </p>
-        </header>
-
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <div
+    <div class="space-y-[18px]" :aria-busy="filters.processing">
+        <section
+            class="grid grid-cols-2 gap-3 lg:grid-cols-5"
+            aria-label="Ringkasan transaksi penanaman"
+        >
+            <article
                 v-for="item in summaryCards"
                 :key="item.label"
-                class="rounded-xl border border-border bg-card p-4"
+                class="admin-panel"
             >
-                <p class="text-xs text-muted-foreground">{{ item.label }}</p>
-                <p class="admin-metric-value mt-2">{{ item.value }}</p>
+                <div class="flex items-start justify-between gap-2">
+                    <h2 class="text-sm font-semibold">{{ item.label }}</h2>
+                    <component
+                        :is="item.icon"
+                        class="hidden size-5 shrink-0 text-primary sm:block"
+                        aria-hidden="true"
+                    />
+                </div>
+                <p class="admin-metric-value mt-3">{{ item.value }}</p>
                 <p class="mt-1 text-xs text-muted-foreground">{{ item.hint }}</p>
-            </div>
-        </div>
+            </article>
+        </section>
 
-        <section class="overflow-hidden rounded-xl border border-border bg-card">
+        <section class="admin-card overflow-hidden rounded-xl bg-card">
             <div class="border-b border-border p-4 md:p-5">
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
@@ -426,7 +418,7 @@ function rowSubblock(row: PlantingTransactionRow): string {
                     aria-label="Tabel transaksi penanaman"
                     tabindex="0"
                 >
-                    <table class="w-full text-left text-sm">
+                    <table class="w-full min-w-[1000px] text-left text-sm">
                         <thead class="bg-muted/50 text-xs text-muted-foreground">
                             <tr>
                                 <th scope="col" class="px-5 py-3 font-semibold">Tanggal</th>
@@ -617,14 +609,5 @@ function rowSubblock(row: PlantingTransactionRow): string {
                 />
             </template>
         </section>
-
-        <p class="flex items-center gap-2 text-xs text-muted-foreground">
-            <CalendarDays class="size-4" />
-            Sumber: laporan aktivitas <span class="font-medium">planting</span> pada
-            logbook harian Petugas.
-            <Images class="ml-2 size-4" />
-            <Wheat class="size-4" />
-            <Users class="size-4" />
-        </p>
     </div>
 </template>

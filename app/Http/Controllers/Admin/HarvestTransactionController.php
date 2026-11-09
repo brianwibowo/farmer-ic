@@ -44,7 +44,6 @@ class HarvestTransactionController extends Controller
             'farms' => $this->transactions->farms($user, $team),
             'blocks' => $this->transactions->blocks($user, $team),
             'varieties' => $this->transactions->varieties($user, $team),
-            'team' => $team->only(['id', 'name']),
         ]);
     }
 }
