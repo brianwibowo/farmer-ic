@@ -10,6 +10,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
+    Sprout,
     Users,
     X,
 } from '@lucide/vue';
@@ -85,6 +86,14 @@ const mainNavItems = computed<NavItem[]>(() => [
         : []),
     ...(page.props.navigation?.admin
         ? [
+              {
+                  title: 'Transaksi Penanaman',
+                  href: '/admin/transaksi-penanaman',
+                  icon: Sprout,
+                  isActive: isCurrentOrParentUrl(
+                      '/admin/transaksi-penanaman',
+                  ),
+              },
               {
                   title: 'SOP',
                   href: '/admin/sops',
