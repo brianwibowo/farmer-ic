@@ -8,6 +8,7 @@ use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoFarmSeeder;
 use Database\Seeders\DemoOwnerPortfolioData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +61,47 @@ class DatabaseSeederTest extends TestCase
         foreach ($counts as $table => $count) {
             $this->assertDatabaseCount($table, $count);
         }
+    }
+
+    public function test_seeded_activities_follow_the_planting_anchor_and_sop_schedule(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $farm = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
+        $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
+
+        $activityDate = fn (string $description): string => FarmActivity::query()
+            ->where('farm_id', $farm->id)
+            ->where('description', $description)
+            ->firstOrFail()
+            ->activity_date
+            ->setTimezone('Asia/Jakarta')
+            ->toDateString();
+
+        $scheduled = fn (string $category, ?string $subcategory): string => $cycle->tasks()
+            ->where('activity_category', $category)
+            ->when(
+                $subcategory === null,
+                fn ($query) => $query->whereNull('activity_subcategory'),
+                fn ($query) => $query->where('activity_subcategory', $subcategory),
+            )
+            ->firstOrFail()
+            ->effectiveScheduledDate()
+            ->toDateString();
+
+        $planted = $cycle->planted_at->toDateString();
+
+        $this->assertSame($planted, $activityDate('Penanaman Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'irrigation'), $activityDate('Irigasi sore Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'follow_up_fertilization'), $activityDate('Pemupukan dasar Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'pest_control'), $activityDate('Pengendalian ulat Blok 1'));
+        $this->assertSame($scheduled('harvest', null), $activityDate('Panen percobaan Blok 2'));
+
+        $mapping = FarmActivity::query()
+            ->where('farm_id', $farm->id)
+            ->whereHas('activityType', fn ($query) => $query->where('code', 'block_mapping'))
+            ->firstOrFail();
+        $this->assertLessThan($planted, $mapping->activity_date->setTimezone('Asia/Jakarta')->toDateString());
     }
 
     public function test_complete_seed_rejects_production_before_writing_any_records(): void
