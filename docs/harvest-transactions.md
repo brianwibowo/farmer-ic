@@ -18,8 +18,7 @@ tabel transaksi kedua. Panen bertahap tetap menjadi beberapa laporan pada
 
 Semua query memakai `visibleTo` dan dibatasi ke kebun dalam tenant aktif.
 Angka ringkasan dihitung dari query yang sama sebelum pagination, sehingga
-filter aktif ikut memengaruhi total laporan, luas panen, berat panen, pekerja,
-dan kebun.
+filter aktif ikut memengaruhi total laporan, luas panen, dan berat panen.
 
 ## Filter dan kolom
 

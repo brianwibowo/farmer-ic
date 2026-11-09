@@ -16,7 +16,7 @@ menambah tabel transaksi kedua.
 
 Semua query memakai `visibleTo` dan dibatasi ke kebun dalam tenant aktif.
 Angka ringkasan dihitung dari query yang sama sebelum pagination, sehingga
-filter aktif ikut memengaruhi total laporan, luas, benih, pekerja, dan kebun.
+filter aktif ikut memengaruhi total laporan, luas, dan benih.
 
 ## Filter dan kolom
 

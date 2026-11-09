@@ -3,12 +3,10 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowUpRight,
     ClipboardList,
-    LandPlot,
     LoaderCircle,
     Ruler,
     Search,
     Sprout,
-    Users,
     Wheat,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -77,18 +75,6 @@ const summaryCards = computed(() => [
         value: `${formatDecimal(props.summary.seed_kg)} kg`,
         hint: 'Akumulasi quantity_kg',
         icon: Wheat,
-    },
-    {
-        label: 'Pekerja',
-        value: String(props.summary.workers),
-        hint: 'Jumlah pekerja tercatat',
-        icon: Users,
-    },
-    {
-        label: 'Kebun',
-        value: String(props.summary.farms),
-        hint: 'Kebun dengan transaksi',
-        icon: LandPlot,
     },
 ]);
 
@@ -182,7 +168,7 @@ function rowSubblock(row: PlantingTransactionRow): string {
     <Head title="Transaksi Penanaman" />
     <div class="space-y-[18px]" :aria-busy="filters.processing">
         <section
-            class="grid grid-cols-2 gap-3 lg:grid-cols-5"
+            class="grid grid-cols-2 gap-3 lg:grid-cols-3"
             aria-label="Ringkasan transaksi penanaman"
         >
             <article

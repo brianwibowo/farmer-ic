@@ -62,7 +62,7 @@ class HarvestTransactionService
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return array{reports: int, area_ha: string, weight_ton: string, workers: int, farms: int}
+     * @return array{reports: int, area_ha: string, weight_ton: string}
      */
     public function summary(User $actor, Team $team, array $filters): array
     {
@@ -72,16 +72,12 @@ class HarvestTransactionService
             ->selectRaw('COUNT(DISTINCT farm_activities.id) AS reports')
             ->selectRaw('COALESCE(SUM(harvest_details.harvested_area_ha), 0) AS area_ha')
             ->selectRaw('COALESCE(SUM(harvest_details.gross_weight_ton), 0) AS weight_ton')
-            ->selectRaw('COALESCE(SUM(farm_activities.worker_count), 0) AS workers')
-            ->selectRaw('COUNT(DISTINCT farm_activities.farm_id) AS farms')
             ->first();
 
         return [
             'reports' => (int) data_get($row, 'reports', 0),
             'area_ha' => number_format((float) data_get($row, 'area_ha', 0), 4, '.', ''),
             'weight_ton' => number_format((float) data_get($row, 'weight_ton', 0), 3, '.', ''),
-            'workers' => (int) data_get($row, 'workers', 0),
-            'farms' => (int) data_get($row, 'farms', 0),
         ];
     }
 

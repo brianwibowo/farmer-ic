@@ -58,8 +58,6 @@ export type HarvestTransactionSummary = {
     reports: number;
     area_ha: string;
     weight_ton: string;
-    workers: number;
-    farms: number;
 };
 
 export type HarvestTransactionFarmOption = { id: string; name: string };

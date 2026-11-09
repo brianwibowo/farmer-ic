@@ -55,8 +55,6 @@ export type PlantingTransactionSummary = {
     reports: number;
     area_ha: string;
     seed_kg: string;
-    workers: number;
-    farms: number;
 };
 
 export type PlantingTransactionFarmOption = { id: string; name: string };

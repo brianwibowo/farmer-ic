@@ -154,7 +154,7 @@ class HarvestTransactionTest extends TestCase
         $this->get('/admin/transaksi-panen')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('harvest-transactions/Index')
             ->where('summary.reports', 2)->where('summary.area_ha', '2.0000')
-            ->where('summary.weight_ton', '4.000')->where('summary.workers', 6)->where('summary.farms', 2)
+            ->where('summary.weight_ton', '4.000')->has('summary', 3)
             ->where('transactions.total', 2)->has('transactions.data', 2)
             ->where('transactions.data.0.farm.name', 'Kebun Panen B')
             ->where('transactions.data.0.block.code', 'B02')
@@ -171,7 +171,7 @@ class HarvestTransactionTest extends TestCase
 
         $this->get('/admin/transaksi-panen?farm_id='.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('summary.reports', 1)->where('summary.area_ha', '1.5000')
-            ->where('summary.weight_ton', '1.500')->where('summary.workers', 4)->where('summary.farms', 1)
+            ->where('summary.weight_ton', '1.500')
             ->where('transactions.total', 1)
             ->where('transactions.data.0.farm.id', $this->farm->id));
 
@@ -198,7 +198,7 @@ class HarvestTransactionTest extends TestCase
     {
         $this->get('/admin/transaksi-panen')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('summary.reports', 0)->where('summary.area_ha', '0.0000')
-            ->where('summary.weight_ton', '0.000')->where('summary.workers', 0)->where('summary.farms', 0)
+            ->where('summary.weight_ton', '0.000')->has('summary', 3)
             ->where('transactions.total', 0)->has('transactions.data', 0));
 
         $this->get('/admin/transaksi-panen?from_date=2026-11-05&to_date=2026-11-04')
