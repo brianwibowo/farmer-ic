@@ -119,6 +119,12 @@ values, and chart geometry. The model never writes the authoritative data
 layer. Both the image and text identify the demo source and this composition.
 The bundled Noto Sans fonts are distributed under the SIL Open Font License
 in `resources/fonts/OFL-NotoSans.txt`; GD and FreeType are required at runtime.
+Check the PHP configuration used by the CLI with `php --ini`, and verify the
+extension with `php --ri gd` (both GD and FreeType support must be enabled).
+For XAMPP on Windows, uncomment `extension=gd` in the loaded `php.ini` before
+running `php artisan test --compact`; restart the web server for web requests.
+To run the renderer tests without changing the PHP configuration, use
+`php -d extension=gd vendor/phpunit/phpunit/phpunit tests/Unit/AI/FarmInfographicComposerTest.php`.
 Missing fonts/artwork/storage fail the request rather than returning a success
 placeholder. Provider/model/attempts, the verified plan, and actual drawing
 manifest remain in message metadata.

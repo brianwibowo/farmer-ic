@@ -45,7 +45,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, intl, pdo_pgsql
+          extensions: mbstring, intl, pdo_pgsql, gd
           coverage: none
           tools: composer:v2
 
