@@ -22,7 +22,6 @@ export type PlantingTransactionRow = {
     seed_name: string | null;
     quantity_kg: string | null;
     planting_pattern: string | null;
-    worker_count: number | null;
     performer_name: string | null;
     notes: string | null;
     source: string;

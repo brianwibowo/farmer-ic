@@ -143,7 +143,6 @@ class PlantingTransactionService
             'seed_name' => $detail?->getAttribute('seed_name'),
             'quantity_kg' => $detail?->getAttribute('quantity_kg'),
             'planting_pattern' => $detail?->getAttribute('planting_pattern'),
-            'worker_count' => $activity->getAttribute('worker_count') === null ? null : (int) $activity->getAttribute('worker_count'),
             'performer_name' => $activity->performer?->name,
             'notes' => $activity->description,
             'source' => $activity->getAttribute('planting_cycle_task_id') === null ? 'Realisasi tanam' : 'Tugas SOP',

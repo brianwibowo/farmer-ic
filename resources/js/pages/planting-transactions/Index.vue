@@ -411,7 +411,6 @@ function rowSubblock(row: PlantingTransactionRow): string {
                                 <th scope="col" class="px-5 py-3 font-semibold">Lokasi</th>
                                 <th scope="col" class="px-5 py-3 font-semibold">Varietas</th>
                                 <th scope="col" class="px-5 py-3 font-semibold">Luas &amp; benih</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Pelaksana</th>
                                 <th scope="col" class="px-5 py-3 text-right font-semibold">Detail</th>
                             </tr>
                         </thead>
@@ -461,18 +460,12 @@ function rowSubblock(row: PlantingTransactionRow): string {
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
-                                    <p class="font-medium">{{ formatDecimal(row.area_ha, 4) }} ha</p>
+                                    <p class="font-medium">{{ formatDecimal(row.area_ha) }} ha</p>
                                     <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ row.quantity_kg === null ? '-' : formatDecimal(row.quantity_kg, 3) + ' kg' }}
+                                        {{ row.quantity_kg === null ? '-' : formatDecimal(row.quantity_kg) + ' kg' }}
                                     </p>
                                     <p v-if="row.seed_name" class="mt-1 text-xs text-muted-foreground">
                                         {{ row.seed_name }}
-                                    </p>
-                                </td>
-                                <td class="px-5 py-4">
-                                    <p class="font-medium">{{ row.performer_name ?? '-' }}</p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ row.worker_count === null ? '-' : row.worker_count + ' pekerja' }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 text-right">
@@ -541,17 +534,17 @@ function rowSubblock(row: PlantingTransactionRow): string {
                             </div>
                             <div>
                                 <p class="text-xs text-muted-foreground">Luas</p>
-                                <p class="font-medium">{{ formatDecimal(row.area_ha, 4) }} ha</p>
+                                <p class="font-medium">{{ formatDecimal(row.area_ha) }} ha</p>
                             </div>
                             <div>
                                 <p class="text-xs text-muted-foreground">Benih</p>
                                 <p class="font-medium">
-                                    {{ row.quantity_kg === null ? '-' : formatDecimal(row.quantity_kg, 3) + ' kg' }}
+                                    {{ row.quantity_kg === null ? '-' : formatDecimal(row.quantity_kg) + ' kg' }}
                                 </p>
                             </div>
                             <div>
-                                <p class="text-xs text-muted-foreground">Pekerja</p>
-                                <p class="font-medium">{{ row.worker_count ?? '-' }}</p>
+                                <p class="text-xs text-muted-foreground">Pola tanam</p>
+                                <p class="font-medium">{{ row.planting_pattern ?? '-' }}</p>
                             </div>
                         </div>
                         <p class="text-xs text-muted-foreground">{{ rowSubblock(row) }}</p>

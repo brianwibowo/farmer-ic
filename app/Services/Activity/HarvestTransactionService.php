@@ -149,7 +149,6 @@ class HarvestTransactionService
             'color' => $detail?->getAttribute('color'),
             'ripeness' => $detail?->getAttribute('ripeness'),
             'cleanliness' => $detail?->getAttribute('cleanliness'),
-            'worker_count' => $activity->getAttribute('worker_count') === null ? null : (int) $activity->getAttribute('worker_count'),
             'performer_name' => $activity->performer?->name,
             'notes' => $activity->description,
             'source' => $activity->getAttribute('planting_cycle_task_id') === null ? 'Panen mandiri' : 'Tugas SOP',

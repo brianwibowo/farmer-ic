@@ -28,8 +28,9 @@ Petugas, catatan, serta warna/kematangan/kebersihan hasil.
 
 Kolom utama: tanggal laporan, sumber (`Panen mandiri` atau `Tugas SOP`),
 kebun, blok, batch/subblok, varietas/komoditas, luas panen, berat kotor,
-kadar air, kualitas hasil, jumlah pekerja, pelaksana, catatan, foto, dan
-tautan ke logbook harian.
+kadar air, kualitas hasil, catatan, foto, dan tautan ke logbook harian.
+Pelaksana tetap tersimpan pada `farm_activities.performed_by` tetapi belum
+ditampilkan di ledger.
 
 ## Batas akses
 

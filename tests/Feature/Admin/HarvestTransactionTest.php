@@ -163,7 +163,6 @@ class HarvestTransactionTest extends TestCase
             ->where('transactions.data.0.gross_weight_ton', '2.500')
             ->where('transactions.data.0.moisture_percentage', '14.50')
             ->where('transactions.data.0.ripeness', 'Matang fisiologis')
-            ->where('transactions.data.0.worker_count', 2)
             ->where('transactions.data.0.source', 'Panen mandiri')
             ->has('transactions.data.0.photos', 1)
             ->has('farms', 2)->has('blocks', 2)->has('varieties', 1)

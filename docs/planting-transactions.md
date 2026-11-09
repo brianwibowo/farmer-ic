@@ -26,8 +26,9 @@ benih, nama Petugas, dan catatan laporan.
 
 Kolom utama: tanggal laporan, sumber (`Realisasi tanam` atau `Tugas SOP`),
 kebun, blok, batch/subblok, varietas/komoditas, luas tanam, jumlah benih,
-nama benih, pola tanam, jumlah pekerja, pelaksana, catatan, foto, dan tautan
-ke logbook harian.
+nama benih, pola tanam, catatan, foto, dan tautan ke logbook harian. Pelaksana
+tetap tersimpan pada `farm_activities.performed_by` tetapi belum ditampilkan
+di ledger.
 
 ## Batas akses
 

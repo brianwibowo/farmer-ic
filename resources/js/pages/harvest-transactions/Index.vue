@@ -415,7 +415,6 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                 <th scope="col" class="px-5 py-3 font-semibold">Varietas</th>
                                 <th scope="col" class="px-5 py-3 font-semibold">Luas &amp; berat</th>
                                 <th scope="col" class="px-5 py-3 font-semibold">Kualitas</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Pelaksana</th>
                                 <th scope="col" class="px-5 py-3 text-right font-semibold">Detail</th>
                             </tr>
                         </thead>
@@ -462,29 +461,23 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
-                                    <p class="font-medium">{{ formatDecimal(row.harvested_area_ha, 4) }} ha</p>
+                                    <p class="font-medium">{{ formatDecimal(row.harvested_area_ha) }} ha</p>
                                     <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ formatDecimal(row.gross_weight_ton, 3) }} ton
+                                        {{ formatDecimal(row.gross_weight_ton) }} ton
                                     </p>
                                     <p class="mt-1 text-xs text-muted-foreground">
-                                        Tanam {{ formatDecimal(row.cycle?.planted_area_ha ?? null, 4) }} ha
+                                        Tanam {{ formatDecimal(row.cycle?.planted_area_ha ?? null) }} ha
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">
                                     <p class="font-medium">
-                                        {{ row.moisture_percentage === null ? '-' : formatDecimal(row.moisture_percentage, 2) + '%' }}
+                                        {{ row.moisture_percentage === null ? '-' : formatDecimal(row.moisture_percentage) + '%' }}
                                     </p>
                                     <p class="mt-1 text-xs text-muted-foreground">
                                         {{ qualityLabel(row) }}
                                     </p>
                                     <p v-if="row.color" class="mt-1 text-xs text-muted-foreground">
                                         {{ row.color }}
-                                    </p>
-                                </td>
-                                <td class="px-5 py-4">
-                                    <p class="font-medium">{{ row.performer_name ?? '-' }}</p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ row.worker_count === null ? '-' : row.worker_count + ' pekerja' }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 text-right">
@@ -553,25 +546,17 @@ function qualityLabel(row: HarvestTransactionRow): string {
                             </div>
                             <div>
                                 <p class="text-xs text-muted-foreground">Luas panen</p>
-                                <p class="font-medium">{{ formatDecimal(row.harvested_area_ha, 4) }} ha</p>
+                                <p class="font-medium">{{ formatDecimal(row.harvested_area_ha) }} ha</p>
                             </div>
                             <div>
                                 <p class="text-xs text-muted-foreground">Berat</p>
-                                <p class="font-medium">{{ formatDecimal(row.gross_weight_ton, 3) }} ton</p>
+                                <p class="font-medium">{{ formatDecimal(row.gross_weight_ton) }} ton</p>
                             </div>
                             <div>
                                 <p class="text-xs text-muted-foreground">Kadar air</p>
                                 <p class="font-medium">
-                                    {{ row.moisture_percentage === null ? '-' : formatDecimal(row.moisture_percentage, 2) + '%' }}
+                                    {{ row.moisture_percentage === null ? '-' : formatDecimal(row.moisture_percentage) + '%' }}
                                 </p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-muted-foreground">Pekerja</p>
-                                <p class="font-medium">{{ row.worker_count ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-muted-foreground">Pelaksana</p>
-                                <p class="font-medium">{{ row.performer_name ?? '-' }}</p>
                             </div>
                         </div>
                         <p class="text-xs text-muted-foreground">{{ rowSubblock(row) }}</p>

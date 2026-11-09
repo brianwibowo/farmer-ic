@@ -25,7 +25,6 @@ export type HarvestTransactionRow = {
     color: string | null;
     ripeness: string | null;
     cleanliness: string | null;
-    worker_count: number | null;
     performer_name: string | null;
     notes: string | null;
     source: string;

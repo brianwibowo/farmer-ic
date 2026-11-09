@@ -159,7 +159,6 @@ class PlantingTransactionTest extends TestCase
             ->where('transactions.data.0.variety.name', 'Bisi 18')
             ->where('transactions.data.0.area_ha', '0.5000')
             ->where('transactions.data.0.quantity_kg', '5.000')
-            ->where('transactions.data.0.worker_count', 2)
             ->where('transactions.data.0.source', 'Realisasi tanam')
             ->has('transactions.data.0.photos', 1)
             ->has('farms', 2)->has('blocks', 2)->has('varieties', 1)
