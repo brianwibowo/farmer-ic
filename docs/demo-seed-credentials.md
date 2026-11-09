@@ -180,7 +180,7 @@ tenant. The complete portfolio is inserted in one transaction.
 | Kebun Cisarua | 3.5 | Owned | Rumput / Pakchong | 1.25 ha harvested; 0.75 ha planned |
 
 The fixed demonstration snapshot is **5 November 2026**. It includes coordinates,
-two permanent blocks per new site, persisted planting rounds/batches, all six
+two permanent blocks per new site, persisted block batches, all six
 batch stages, published commodity SOPs and scheduled task snapshots. Matching
 activity detail records, growth observations, selected risks, local placeholder
 documentation and demo weather fill the Owner farm/block/activity detail pages.

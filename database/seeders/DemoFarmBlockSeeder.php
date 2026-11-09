@@ -56,7 +56,7 @@ class DemoFarmBlockSeeder extends Seeder
             $b01 = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', 'B01')->firstOrFail();
             $b02 = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', 'B02')->firstOrFail();
 
-            // A completed previous round keeps a real Petugas harvest report
+            // A completed previous cycle keeps a real Petugas harvest report
             // available for admin harvest transactions.
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $b01]);
             $previous = app(FarmBlockService::class)->createBatch($b01, $actor, $team, [
@@ -77,7 +77,7 @@ class DemoFarmBlockSeeder extends Seeder
             ]);
             $previous->forceFill(['status' => 'harvested'])->save();
 
-            // Current active round for the Petugas workflow.
+            // Current active cycle for the Petugas workflow.
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $b01]);
             $batch = app(FarmBlockService::class)->createBatch($b01, $actor, $team, [
                 'reserved_area_ha' => '4.2500', 'subblock_label' => 'B',

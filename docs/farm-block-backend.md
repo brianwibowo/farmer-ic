@@ -23,18 +23,17 @@ minimal disediakan agar backend dapat digunakan langsung melalui form Inertia.
    (`planned_planting_at`) boleh diisi saat pembuatan batch dan menjadi acuan
    HST sementara untuk jadwal tugas; nilainya tetap berlabel rencana sampai
    realisasi tanam dicatat. Alokasi luas bukan realisasi tanam. Siklus lama
-   mempertahankan data dan ID-nya, tanpa blok/periode rekaan.
+   mempertahankan data dan ID-nya, tanpa blok rekaan.
 
 Nomor batch **berurutan per kebun**, dilindungi unique key dan lock kebun.
-Periode dikelompokkan per blok. Batch berikutnya memakai periode aktif yang sama
-selama masih ada batch planned/active. Jika seluruh batch periode tersebut sudah
-terminal (harvested/cancelled), pembuatan berikutnya menutup periode lama dan
-membuat periode baru. Nomor batch berlanjut, sedangkan label A/B dapat dipakai
-lagi. Ini menetapkan asumsi draft sebelumnya untuk implementasi awal.
+Setiap batch langsung terikat ke blok melalui `planting_cycles.block_id`; tidak
+ada tabel periode terpisah. Batch baru dapat dibuat selama kapasitas blok dan
+kebun tersedia, dengan label subblok unik per blok. Nomor batch berlanjut.
+Pengulangan Land Clearing pada batch berikutnya belum diotomasi.
 
 Modul ini belum menyediakan aksi menyelesaikan tahap berikutnya, mengajukan atau
 menyetujui task SOP, realisasi tanam, panen, pembatalan batch, atau pengulangan
-Land Clearing pada periode berikutnya. Endpoint status bebas tidak ditambahkan.
+Land Clearing pada batch berikutnya. Endpoint status bebas tidak ditambahkan.
 Penyelesaian seluruh panen harus dibedakan dari laporan panen sebagian ketika
 modul panen diimplementasikan; satu laporan tidak boleh otomatis menutup batch.
 
@@ -57,7 +56,7 @@ pagination, jumlah dan total. Parameter block harus milik farm di URL.
 | GET | `/kebun/{farm}/blocks` | Daftar, pencarian, filter status, pagination dan ringkasan |
 | GET | `/kebun/{farm}/blocks/create` | Form tambah |
 | POST | `/kebun/{farm}/blocks` | Simpan dan redirect detail |
-| GET | `/kebun/{farm}/blocks/{block}` | Detail, periode dan timeline batch |
+| GET | `/kebun/{farm}/blocks/{block}` | Detail batch dan timeline |
 | GET | `/kebun/{farm}/blocks/{block}/edit` | Form edit |
 | PUT/PATCH | `/kebun/{farm}/blocks/{block}` | Edit informasi/status, redirect detail |
 | DELETE | `/kebun/{farm}/blocks/{block}` | Hapus hanya jika tanpa histori |
@@ -86,7 +85,7 @@ konfigurasi terpisah. Batch baru langsung terikat ke blok melalui
 `planting_cycles.block_id`; tidak ada tabel periode terpisah.
 Tidak ada hak update/delete timeline bagi Admin/Petugas.
 
-`created_by`, farm, periode, nomor batch dan status awal ditetapkan server.
+`created_by`, farm, blok, nomor batch dan status awal ditetapkan server.
 Payload pengganti identitas/status ditolak. Izin `block_mapping_details.*`
 tetap hanya mengatur laporan pemetaan; tidak memberi izin mengedit master blok.
 Seeder merupakan entry point non-HTTP dan memeriksa `Gate::forUser` terlebih dahulu.
@@ -223,12 +222,12 @@ terpersisten lalu `Gate::authorize('update', $batch)`. Admin/Superadmin dan Petu
 dalam cakupannya menggunakan grant `planting_cycles.update` existing; Owner tetap
 read-only. Tidak ada perubahan matrix role. Edit hanya untuk batch planned dalam
 blok aktif, tanpa realisasi tanam dan tanpa snapshot jadwal SOP. Field yang dapat
-diubah adalah label, alokasi luas, dan rencana tanggal tanam. Nomor batch, periode,
+diubah adalah label, alokasi luas, dan rencana tanggal tanam. Nomor batch,
 status, tahap, dan tanggal progres dipertahankan.
 
 Service mengunci kebun, blok, lalu batch. Reservasi batch yang sedang diedit tidak
 ikut dikurangkan dua kali; reservasi lain dan tanam legacy tetap membatasi luas.
-Label unik dalam periode yang sama. Aksi yang mengubah tahap, menghapus histori,
+Label unik dalam blok yang sama. Aksi yang mengubah tahap, menghapus histori,
 atau menjadwalkan ulang SOP tidak ditambahkan oleh revisi ini.
 
 Semua route baru terlindungi dan query baca baru memakai scope. Batas integrasi
@@ -245,7 +244,7 @@ untuk pengelolaan sub blok. `farmer/blocks/Show.vue` dihapus. GET URL detail lam
 masih memeriksa kecocokan parent dan Policy view sebelum redirect ke daftar blok.
 Form CRUD master blok lama tetap kompatibel.
 
-`FarmBlockService::overview` memuat periode, batch, tahap, kapasitas, dan hambatan
+`FarmBlockService::overview` memuat batch, tahap, kapasitas, dan hambatan
 penghapusan secara batch melalui scope masing-masing model. Metadata dipasang
 ke blok yang terlihat saja, termasuk saat pencarian dan pagination. HTTP
 controller tetap menghitung seluruh boolean izin; service tidak memutuskan
