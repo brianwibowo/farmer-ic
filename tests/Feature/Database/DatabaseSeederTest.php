@@ -6,6 +6,7 @@ use App\Models\Commodity;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
+use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoFarmSeeder;
@@ -93,9 +94,46 @@ class DatabaseSeederTest extends TestCase
 
         $this->assertSame($planted, $activityDate('Penanaman Blok 1'));
         $this->assertSame($scheduled('maintenance', 'irrigation'), $activityDate('Irigasi sore Blok 1'));
-        $this->assertSame($scheduled('maintenance', 'follow_up_fertilization'), $activityDate('Pemupukan dasar Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'follow_up_fertilization'), $activityDate('Pemupukan susulan pertama Blok 1'));
         $this->assertSame($scheduled('maintenance', 'pest_control'), $activityDate('Pengendalian ulat Blok 1'));
-        $this->assertSame($scheduled('harvest', null), $activityDate('Panen percobaan Blok 2'));
+        $this->assertDatabaseMissing('farm_activities', [
+            'farm_id' => $farm->id,
+            'description' => 'Panen percobaan Blok 2',
+        ]);
+
+        $linkedTask = function (string $description) use ($farm): PlantingCycleTask {
+            return FarmActivity::query()
+                ->where('farm_id', $farm->id)
+                ->where('description', $description)
+                ->firstOrFail()
+                ->task()
+                ->firstOrFail();
+        };
+
+        foreach ([
+            'Irigasi sore Blok 1' => 'irrigation',
+            'Pemupukan susulan pertama Blok 1' => 'follow_up_fertilization',
+            'Pengendalian ulat Blok 1' => 'pest_control',
+        ] as $description => $subcategory) {
+            $task = $linkedTask($description);
+            $this->assertSame('completed', $task->status);
+            $this->assertSame($subcategory, $task->activity_subcategory);
+            $this->assertSame(
+                $activityDate($description),
+                $task->completed_at->setTimezone('Asia/Jakarta')->toDateString(),
+            );
+        }
+
+        $this->assertSame('pending', $cycle->tasks()->where('name', 'Pemupukan lanjutan')->firstOrFail()->status);
+        $harvestTask = $cycle->tasks()->where('activity_category', 'harvest')->firstOrFail();
+        $this->assertSame('pending', $harvestTask->status);
+        $this->assertSame(0, FarmActivity::query()->where('planting_cycle_task_id', $harvestTask->id)->count());
+        $this->assertSame(3, FarmActivity::query()->where('farm_id', $farm->id)->whereNotNull('planting_cycle_task_id')->count());
+        $this->assertSame(7, FarmActivity::query()->where('farm_id', $farm->id)->count());
+
+        $planned = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'planned')->firstOrFail();
+        $this->assertSame('2026-11-20', $planned->planned_planting_at->toDateString());
+        $this->assertSame(0, $planned->tasks()->count());
 
         $mapping = FarmActivity::query()
             ->where('farm_id', $farm->id)

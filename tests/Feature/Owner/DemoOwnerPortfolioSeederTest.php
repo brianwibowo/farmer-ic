@@ -35,9 +35,9 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->seed([
             DemoIdentitySeeder::class,
             DemoFarmSeeder::class,
-            DemoActivitySeeder::class,
             SopActivityTypeSeeder::class,
             DemoSopSeeder::class,
+            DemoActivitySeeder::class,
             DemoMonitoringSeeder::class,
         ]);
     }

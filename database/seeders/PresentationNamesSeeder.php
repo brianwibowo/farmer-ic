@@ -108,7 +108,7 @@ class PresentationNamesSeeder extends Seeder
         }
         foreach ([new FertilizationDetail, new PesticideDetail] as $detailModel) {
             [$description, $old, $new] = $detailModel instanceof FertilizationDetail
-                ? ['Pemupukan dasar Blok 1', 'NPK Demo', 'NPK']
+                ? ['Pemupukan susulan pertama Blok 1', 'NPK Demo', 'NPK']
                 : ['Pengendalian ulat Blok 1', 'Bt Demo', 'Bt'];
             $activities = $this->query(FarmActivity::class)->where('farm_id', $farm->id)->where('description', $description)->pluck('id');
             foreach ($this->query($detailModel::class)->whereIn('activity_id', $activities)->get() as $detail) {

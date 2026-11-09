@@ -49,11 +49,13 @@ class DemoFarmBlockSeeder extends Seeder
                 return;
             }
 
-            foreach ([['B01', '4.2500'], ['B02', '1.2500']] as [$code, $area]) {
+            foreach ([['B01', '4.2500', null], ['B02', '1.2500', '2026-11-20']] as [$code, $area, $plannedPlantingAt]) {
                 $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $code)->firstOrFail();
                 Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
                 Gate::forUser($actor)->authorize('create', [PlantingRound::class, $block]);
-                $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, ['reserved_area_ha' => $area, 'subblock_label' => 'A']);
+                $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
+                    'reserved_area_ha' => $area, 'subblock_label' => 'A', 'planned_planting_at' => $plannedPlantingAt,
+                ]);
                 if ($code !== 'B01') {
                     continue;
                 }

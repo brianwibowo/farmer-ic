@@ -38,8 +38,9 @@ class PresentationNamesSeederTest extends TestCase
     private function fixtures(): Team
     {
         $this->seed([
-            DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoActivitySeeder::class,
-            SopActivityTypeSeeder::class, DemoSopSeeder::class, DemoMonitoringSeeder::class,
+            DemoIdentitySeeder::class, DemoFarmSeeder::class,
+            SopActivityTypeSeeder::class, DemoSopSeeder::class, DemoActivitySeeder::class,
+            DemoMonitoringSeeder::class,
             DemoFinanceSeeder::class, DemoOperationsSeeder::class, DemoOwnerPortfolioSeeder::class,
         ]);
 
@@ -81,7 +82,7 @@ class PresentationNamesSeederTest extends TestCase
         WeatherRecord::query()->where('farm_id', $base->id)->update(['data_source' => 'Stasiun cuaca demo']);
         FinancialTransaction::query()->where('farm_id', $base->id)->where('description', 'Pembelian benih jagung Bisi 18 untuk siklus')
             ->update(['description' => 'Pembelian benih jagung Bisi 18 untuk siklus demo']);
-        $fertilization = FarmActivity::query()->where('farm_id', $base->id)->where('description', 'Pemupukan dasar Blok 1')->firstOrFail();
+        $fertilization = FarmActivity::query()->where('farm_id', $base->id)->where('description', 'Pemupukan susulan pertama Blok 1')->firstOrFail();
         FertilizationDetail::query()->where('activity_id', $fertilization->id)->update(['brand_name' => 'NPK Demo']);
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $farmId = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
