@@ -46,8 +46,9 @@ route/storage/verification checkpoint in `petugas-activity-handoff.md`, section 
 The merged model names/tables now determine the matrix. The temporary plot,
 SOP, form, sales/purchases, and progress aliases have been replaced by
 actual model prefixes. Income and expense are both `financial_transactions`;
-observations are `plant_observations`, and harvests are `harvest_details`.
-No invented models or permissions for nonexistent models remain.
+observations are `plant_observations`, harvests are `harvest_details`, and each
+other selectable activity category has its own typed detail table. No invented
+models or permissions for nonexistent models remain.
 
 The four application roles retain their intended responsibilities:
 
@@ -130,6 +131,7 @@ discover the persisted domain relationships directly.
 | `AiMessage` | `ai_messages` | conversation.team |
 | `AiUsageEvent` | `ai_usage_events` | team |
 | `AuditLog` | `audit_logs` | Application-wide reference/system record |
+| `BedPreparationDetail` | `bed_preparation_details` | activity.farm -> team |
 | `BlockMappingDetail` | `block_mapping_details` | activity.farm -> team |
 | `Commodity` | `commodities` | Application-wide reference/system record |
 | `CropVariety` | `crop_varieties` | Application-wide reference/system record |
@@ -148,9 +150,13 @@ discover the persisted domain relationships directly.
 | `HarvestDetail` | `harvest_details` | activity.farm -> team |
 | `IncidentDetail` | `incident_details` | activity.farm -> team |
 | `IrrigationDetail` | `irrigation_details` | activity.farm -> team |
+| `LandCleaningDetail` | `land_cleaning_details` | activity.farm -> team |
+| `LimingDetail` | `liming_details` | activity.farm -> team |
+| `LooseningDetail` | `loosening_details` | activity.farm -> team |
 | `Membership` | `memberships` | team |
 | `Notification` | `notifications` | Personal inbox: persisted recipient only, active account and valid membership; listing without a Team explicitly spans the actor's memberships, not other recipients |
 | `OperationalTarget` | `operational_targets` | farm -> team |
+| `OtherDetail` | `other_details` | activity.farm -> team |
 | `PesticideDetail` | `pesticide_details` | activity.farm -> team |
 | `PlantingCycle` | `planting_cycles` | farm -> team |
 | `PlantingDetail` | `planting_details` | activity.farm -> team |
@@ -162,6 +168,7 @@ discover the persisted domain relationships directly.
 | `TeamInvitation` | `team_invitations` | team |
 | `Team` | `teams` | Team itself |
 | `User` (native actor/target) | `users` | Shared native team membership; Admin targets are Admin/Petugas with exactly one matching non-personal tenant |
+| `WeedingDetail` | `weeding_details` | activity.farm -> team |
 | `WeatherRecord` | `weather_records` | farm -> team |
 
 Reference/system single-record `view` checks require an explicit `any` view
