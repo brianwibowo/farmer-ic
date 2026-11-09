@@ -34,6 +34,9 @@ import {
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import admin from '@/routes/admin';
 import type { NavItem } from '@/types';
+import { useAppName } from '@/composables/useAppName';
+
+const appName = useAppName();
 
 const props = defineProps<{ adminTheme?: boolean }>();
 
@@ -146,7 +149,7 @@ const footerNavItems: NavItem[] = [
                 <Link
                     :href="dashboardUrl"
                     class="admin-sidebar-brand"
-                    aria-label="Hijauan — Beranda"
+                    :aria-label="`${appName} — Beranda`"
                     @success="setOpenMobile(false)"
                 >
                     <AppLogoIcon
