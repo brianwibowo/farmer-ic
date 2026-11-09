@@ -407,15 +407,15 @@ function qualityLabel(row: HarvestTransactionRow): string {
                     aria-label="Tabel transaksi panen"
                     tabindex="0"
                 >
-                    <table class="w-full min-w-[1100px] text-left text-sm">
+                    <table class="w-full table-fixed text-left text-sm">
                         <thead class="bg-muted/50 text-xs text-muted-foreground">
                             <tr>
-                                <th scope="col" class="px-5 py-3 font-semibold">Tanggal</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Lokasi</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Varietas</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Luas &amp; berat</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Kualitas</th>
-                                <th scope="col" class="px-5 py-3 text-right font-semibold">Detail</th>
+                                <th scope="col" class="w-[13%] px-4 py-3 font-semibold">Tanggal</th>
+                                <th scope="col" class="w-[19%] px-4 py-3 font-semibold">Lokasi</th>
+                                <th scope="col" class="w-[14%] px-4 py-3 font-semibold">Varietas</th>
+                                <th scope="col" class="w-[16%] px-4 py-3 font-semibold">Luas &amp; berat</th>
+                                <th scope="col" class="w-[18%] px-4 py-3 font-semibold">Kualitas</th>
+                                <th scope="col" class="w-[20%] px-4 py-3 text-right font-semibold">Detail</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border">
@@ -424,7 +424,7 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                 :key="row.id"
                                 class="align-top hover:bg-muted/40"
                             >
-                                <td class="px-5 py-4 whitespace-nowrap">
+                                <td class="px-4 py-4">
                                     <p class="font-medium">{{ formatDate(row.activity_date) }}</p>
                                     <span
                                         class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
@@ -445,7 +445,7 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                         </Link>
                                     </p>
                                 </td>
-                                <td class="px-5 py-4">
+                                <td class="px-4 py-4">
                                     <p class="font-medium">{{ row.farm?.name ?? '-' }}</p>
                                     <p class="mt-1 text-xs text-muted-foreground">
                                         {{ row.block?.code ?? '-' }} · {{ row.block?.name ?? 'Blok belum diisi' }}
@@ -454,13 +454,13 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                         {{ rowSubblock(row) }}
                                     </p>
                                 </td>
-                                <td class="px-5 py-4">
+                                <td class="px-4 py-4">
                                     <p class="font-medium">{{ row.variety?.name ?? '-' }}</p>
                                     <p class="mt-1 text-xs text-muted-foreground">
                                         {{ row.commodity?.name ?? 'Komoditas belum diisi' }}
                                     </p>
                                 </td>
-                                <td class="px-5 py-4 whitespace-nowrap">
+                                <td class="px-4 py-4">
                                     <p class="font-medium">{{ formatDecimal(row.harvested_area_ha) }} ha</p>
                                     <p class="mt-1 text-xs text-muted-foreground">
                                         {{ formatDecimal(row.gross_weight_ton) }} ton
@@ -469,7 +469,7 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                         Tanam {{ formatDecimal(row.cycle?.planted_area_ha ?? null) }} ha
                                     </p>
                                 </td>
-                                <td class="px-5 py-4">
+                                <td class="px-4 py-4">
                                     <p class="font-medium">
                                         {{ row.moisture_percentage === null ? '-' : formatDecimal(row.moisture_percentage) + '%' }}
                                     </p>
@@ -480,8 +480,8 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                         {{ row.color }}
                                     </p>
                                 </td>
-                                <td class="px-5 py-4 text-right">
-                                    <div class="flex justify-end gap-1">
+                                <td class="px-4 py-4 text-right">
+                                    <div class="flex flex-wrap justify-end gap-1">
                                         <a
                                             v-for="photo in row.photos"
                                             :key="photo.id"
