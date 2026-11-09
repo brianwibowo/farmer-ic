@@ -3,6 +3,8 @@ import { Head } from '@inertiajs/vue3';
 import { ClipboardList, FileText, House, Sprout } from '@lucide/vue';
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
     title: string;
     description: string;
@@ -32,7 +34,7 @@ const icon = computed(
     </header>
     <section
         :aria-label="`Konten ${title}`"
-        class="mt-6 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background px-5 py-12 text-center"
+        class="petugas-card petugas-empty mt-[var(--admin-content-gap)] flex flex-1 flex-col items-center justify-center px-5 py-12 text-center"
     >
         <div
             class="mb-4 flex size-14 items-center justify-center rounded-xl bg-muted text-secondary dark:text-primary"

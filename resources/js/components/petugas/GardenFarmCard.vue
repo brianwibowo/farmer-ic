@@ -36,7 +36,7 @@ const coordinates = computed<[number, number] | null>(() => {
 <template>
     <section
         aria-labelledby="garden-farm-name"
-        class="space-y-4 rounded-xl border border-border bg-card p-4"
+        class="petugas-card space-y-4 p-4"
     >
         <div class="flex items-start gap-3">
             <span
@@ -46,7 +46,7 @@ const coordinates = computed<[number, number] | null>(() => {
             <div class="min-w-0">
                 <h2
                     id="garden-farm-name"
-                    class="text-lg leading-6 font-semibold break-words"
+                    class="text-lg leading-6 font-bold break-words"
                 >
                     {{ farm.name }}
                 </h2>
@@ -75,29 +75,25 @@ const coordinates = computed<[number, number] | null>(() => {
         <dl class="grid grid-cols-3 gap-3 border-t border-border pt-4">
             <div>
                 <dt class="text-xs text-muted-foreground">Luas (ha)</dt>
-                <dd class="mt-1 text-2xl leading-8 font-bold tabular-nums">
+                <dd class="petugas-metric-value mt-1">
                     {{ gardenArea(farm.total_area_ha) }}
                 </dd>
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Blok</dt>
-                <dd class="mt-1 text-2xl leading-8 font-bold tabular-nums">
+                <dd class="petugas-metric-value mt-1">
                     {{ summary.blocks }}
                 </dd>
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Subblok</dt>
-                <dd class="mt-1 text-2xl leading-8 font-bold tabular-nums">
+                <dd class="petugas-metric-value mt-1">
                     {{ summary.batches }}
                 </dd>
             </div>
         </dl>
         <div class="space-y-3 border-t border-border pt-4">
-            <h3
-                class="text-base font-semibold text-secondary dark:text-primary"
-            >
-                Peta lokasi
-            </h3>
+            <h3 class="admin-section-title">Peta lokasi</h3>
             <FarmLocationMap :model-value="coordinates" />
         </div>
     </section>

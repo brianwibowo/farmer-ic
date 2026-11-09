@@ -92,10 +92,39 @@ export function parseMessage(value: unknown): ChatMessage | null {
     const attachments = Array.isArray(item.attachments)
         ? (item.attachments as ChatAttachment[])
         : [];
-    const hasGeneratedInfographic = attachments.some((attachment) =>
-        /\/storage\/ai\/infographics\//i.test(attachment.url ?? ''),
-    );
-    if (typeof text !== 'string' && attachments.length === 0) return null;
+    const metadata =
+        item.metadata && typeof item.metadata === 'object'
+            ? (item.metadata as Record<string, unknown>)
+            : undefined;
+    const imageGeneration = metadata?.image_generation;
+    const generatedStatus =
+        imageGeneration && typeof imageGeneration === 'object'
+            ? (imageGeneration as { status?: unknown }).status
+            : undefined;
+    const hasGeneratedInfographic =
+        attachments.some((attachment) =>
+            /\/storage\/ai\/infographics\//i.test(attachment.url ?? ''),
+        ) ||
+        (role === 'assistant' &&
+            ['generated', 'deterministic', 'fallback'].includes(
+                String(generatedStatus),
+            ));
+    const interrupted =
+        role === 'assistant' &&
+        ['pending', 'processing', 'streaming'].includes(String(item.status));
+    const failed =
+        item.status === 'failed' || item.status === 'error' || interrupted;
+    const status = failed
+        ? 'error'
+        : item.status === 'cancelled'
+          ? 'cancelled'
+          : 'complete';
+    if (
+        typeof text !== 'string' &&
+        attachments.length === 0 &&
+        status !== 'error'
+    )
+        return null;
     return {
         id: stringValue(item.id, id('message')),
         role,
@@ -110,11 +139,20 @@ export function parseMessage(value: unknown): ChatMessage | null {
             typeof item.created_at === 'string'
                 ? item.created_at
                 : new Date().toISOString(),
-        status: 'complete',
-        presentation: hasGeneratedInfographic ? 'infographic' : 'text',
-        ...(item.metadata && typeof item.metadata === 'object'
-            ? { metadata: item.metadata as Record<string, unknown> }
+        status,
+        ...(failed
+            ? {
+                  error:
+                      typeof item.error_message === 'string' &&
+                      item.error_message.trim()
+                          ? item.error_message
+                          : interrupted
+                            ? 'Jawaban sebelumnya belum selesai. Silakan coba lagi.'
+                            : 'Jawaban AI gagal dibuat. Silakan coba lagi.',
+              }
             : {}),
+        presentation: hasGeneratedInfographic ? 'infographic' : 'text',
+        ...(metadata ? { metadata } : {}),
     };
 }
 
@@ -177,8 +215,7 @@ export function extractDelta(payload: unknown): StreamPayload {
     const delta = data.delta ?? data.content ?? data.text ?? data.token;
     return {
         delta: typeof delta === 'string' ? delta : undefined,
-        progress:
-            typeof data.progress === 'string' ? data.progress : undefined,
+        progress: typeof data.progress === 'string' ? data.progress : undefined,
         route:
             data.route && typeof data.route === 'object'
                 ? (data.route as Record<string, unknown>)

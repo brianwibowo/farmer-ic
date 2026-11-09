@@ -48,6 +48,7 @@ export function landTenureLabel(value: LandTenure | null): string {
 export type FarmRow = {
     id: string;
     name: string;
+    land_tenure_party: string | null;
     land_tenure: LandTenure | null;
     city: string | null;
     district: string | null;

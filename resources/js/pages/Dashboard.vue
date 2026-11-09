@@ -8,6 +8,7 @@ import DashboardActivities from '@/components/dashboard/DashboardActivities.vue'
 import DashboardActivityChart from '@/components/dashboard/DashboardActivityChart.vue';
 import DashboardAttention from '@/components/dashboard/DashboardAttention.vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
+import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
 import DashboardMetricCards from '@/components/dashboard/DashboardMetricCards.vue';
 import DashboardPlantingOverview from '@/components/dashboard/DashboardPlantingOverview.vue';
 import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
@@ -236,40 +237,48 @@ function loadDashboard(): void {
                 </dl>
             </div>
         </section>
-        <section
-            id="dashboard-map"
-            class="dashboard-panel"
-            aria-labelledby="map-heading"
+        <div
+            class="grid items-stretch gap-[18px] xl:grid-cols-[minmax(0,3fr)_minmax(260px,1fr)]"
         >
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h2 id="map-heading" class="admin-section-title">
-                        Denah kebun
-                    </h2>
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        Lokasi kebun dari koordinat yang tersimpan, sesuai
-                        filter dan cakupan akses.
-                    </p>
+            <section
+                id="dashboard-map"
+                class="dashboard-panel flex min-w-0 flex-col"
+                aria-labelledby="map-heading"
+            >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 id="map-heading" class="admin-section-title">
+                            Denah kebun
+                        </h2>
+                        <p class="mt-1 text-sm text-muted-foreground">
+                            Lokasi kebun dari koordinat yang tersimpan, sesuai
+                            filter dan cakupan akses.
+                        </p>
+                    </div>
+                    <Button
+                        v-if="$page.props.navigation?.farms"
+                        as-child
+                        variant="outline"
+                        size="sm"
+                        ><Link href="/admin/farm-management"
+                            >Kelola kebun</Link
+                        ></Button
+                    >
                 </div>
-                <Button
-                    v-if="$page.props.navigation?.farms"
-                    as-child
-                    variant="outline"
-                    size="sm"
-                    ><Link href="/admin/farm-management"
-                        >Kelola kebun</Link
-                    ></Button
-                >
-            </div>
-            <DashboardFarmMap :farms="dashboard.landMap.farms" />
-            <p class="mt-3 text-xs leading-5 text-muted-foreground">
-                {{
-                    dashboard.landMap.hasCoordinates
-                        ? 'Marker menunjukkan lokasi kebun, bukan batas bidang atau subblok.'
-                        : 'Lengkapi latitude dan longitude pada data kebun untuk menampilkan lokasi.'
-                }}
-            </p>
-        </section>
+                <DashboardFarmMap
+                    :farms="dashboard.landMap.farms"
+                    class="xl:min-h-96 xl:flex-1"
+                />
+                <p class="mt-3 text-xs leading-5 text-muted-foreground">
+                    {{
+                        dashboard.landMap.hasCoordinates
+                            ? 'Marker menunjukkan lokasi kebun, bukan batas bidang atau subblok.'
+                            : 'Lengkapi latitude dan longitude pada data kebun untuk menampilkan lokasi.'
+                    }}
+                </p>
+            </section>
+            <DashboardWeather :farms="dashboard.landMap.farms" />
+        </div>
         <p class="text-xs text-muted-foreground">
             Diperbarui {{ dashboard.generatedAt }}
         </p>
