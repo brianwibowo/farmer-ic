@@ -12,6 +12,7 @@ import {
     Settings,
     Sprout,
     Users,
+    Wheat,
     X,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -93,6 +94,12 @@ const mainNavItems = computed<NavItem[]>(() => [
                   isActive: isCurrentOrParentUrl(
                       '/admin/transaksi-penanaman',
                   ),
+              },
+              {
+                  title: 'Transaksi Panen',
+                  href: '/admin/transaksi-panen',
+                  icon: Wheat,
+                  isActive: isCurrentOrParentUrl('/admin/transaksi-panen'),
               },
               {
                   title: 'SOP',

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Activity\AdminLogbookController;
 use App\Http\Controllers\Activity\DailyActivityLogController;
+use App\Http\Controllers\Admin\HarvestTransactionController;
 use App\Http\Controllers\Admin\PlantingTransactionController;
 use App\Http\Controllers\Admin\TaskManagementController;
 use App\Http\Controllers\AI\AiConversationController;
@@ -139,6 +140,7 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::get('logbook/{farm}', [AdminLogbookController::class, 'farm'])->whereUuid('farm')->name('admin.logbook.farm');
     Route::get('logbook/{farm}/{dailyLog}', [AdminLogbookController::class, 'show'])->whereUuid(['farm', 'dailyLog'])->name('admin.logbook.show');
     Route::get('transaksi-penanaman', [PlantingTransactionController::class, 'index'])->name('admin.planting-transactions.index');
+    Route::get('transaksi-panen', [HarvestTransactionController::class, 'index'])->name('admin.harvest-transactions.index');
 
     Route::get('sops', [SopTemplateController::class, 'index'])->name('sops.index');
     Route::get('sops/create', [SopTemplateController::class, 'create'])->name('sops.create');

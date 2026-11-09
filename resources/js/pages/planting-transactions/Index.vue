@@ -127,22 +127,33 @@ function changeFarm(): void {
     }
 }
 
+const monthLabels = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+];
+
 function formatDecimal(value: string | null, digits = 2): string {
     if (value === null || value === '') {
         return '0';
     }
-    return new Intl.NumberFormat('id-ID', {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-    }).format(Number(value));
+    const [whole, fraction] = Number(value).toFixed(digits).split('.');
+    const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return fraction ? `${grouped},${fraction}` : grouped;
 }
 
 function formatDate(value: string): string {
-    return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    }).format(new Date(`${value}T00:00:00`));
+    const [year, month, day] = value.split('-').map(Number);
+    return `${String(day).padStart(2, '0')} ${monthLabels[month - 1] ?? ''} ${year}`;
 }
 
 function varietyLabel(variety: PlantingTransactionVarietyOption): string {
