@@ -50,7 +50,7 @@ class DemoPetugasTodoSeeder extends Seeder
                 ->whereHas('sopTemplateVersion', fn ($versions) => $versions->visibleTo($actor, $team)
                     ->whereHas('sopTemplate', fn ($templates) => $templates->visibleTo($actor, $team)->where('name', self::TEMPLATE_NAME)))->exists();
             if ($exists) {
-                $this->command?->info('Contoh tugas sudah tersedia; jadwal dan status sebelumnya dipertahankan.');
+                $this->command->info('Contoh tugas sudah tersedia; jadwal dan status sebelumnya dipertahankan.');
 
                 return;
             }
@@ -117,7 +117,7 @@ class DemoPetugasTodoSeeder extends Seeder
                 $status = $statuses[$task->name];
                 $task->forceFill(['status' => $status, 'completed_at' => $status === 'completed' ? now() : null])->save();
             }
-            $this->command?->info('Empat contoh tugas SOP ditambahkan untuk '.$today->toDateString().' (WIB).');
+            $this->command->info('Empat contoh tugas SOP ditambahkan untuk '.$today->toDateString().' (WIB).');
         });
     }
 }
