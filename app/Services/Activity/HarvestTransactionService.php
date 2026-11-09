@@ -109,10 +109,6 @@ class HarvestTransactionService
                         ->orWhereHas('plantingCycle.block', fn (Builder $block) => $block
                             ->where('code', 'ilike', $pattern)->orWhere('name', 'ilike', $pattern))
                         ->orWhereHas('plantingCycle.variety', fn (Builder $variety) => $variety->where('name', 'ilike', $pattern))
-                        ->orWhereHas('harvestDetail', fn (Builder $detail) => $detail
-                            ->where('color', 'ilike', $pattern)
-                            ->orWhere('ripeness', 'ilike', $pattern)
-                            ->orWhere('cleanliness', 'ilike', $pattern))
                         ->orWhereHas('performer', fn (Builder $performer) => $performer->where('name', 'ilike', $pattern));
                 });
             })
@@ -145,13 +141,8 @@ class HarvestTransactionService
             'commodity' => $variety?->commodity?->only(['id', 'name']),
             'harvested_area_ha' => (string) ($detail?->getAttribute('harvested_area_ha') ?? '0.0000'),
             'gross_weight_ton' => (string) ($detail?->getAttribute('gross_weight_ton') ?? '0.000'),
-            'moisture_percentage' => $detail?->getAttribute('moisture_percentage'),
-            'color' => $detail?->getAttribute('color'),
-            'ripeness' => $detail?->getAttribute('ripeness'),
-            'cleanliness' => $detail?->getAttribute('cleanliness'),
             'performer_name' => $activity->performer?->name,
             'notes' => $activity->description,
-            'source' => $activity->getAttribute('planting_cycle_task_id') === null ? 'Panen mandiri' : 'Tugas SOP',
             'photos' => $activity->photos->map(fn ($photo): array => [
                 'id' => $photo->id,
                 'label' => $photo->label,

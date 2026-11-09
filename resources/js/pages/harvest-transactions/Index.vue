@@ -162,9 +162,6 @@ function rowSubblock(row: HarvestTransactionRow): string {
     return `${label} · Batch ${row.cycle.batch_number ?? '-'}`;
 }
 
-function qualityLabel(row: HarvestTransactionRow): string {
-    return [row.ripeness, row.cleanliness].filter(Boolean).join(' · ') || '-';
-}
 </script>
 
 <template>
@@ -230,7 +227,7 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                 class="admin-field pl-9!"
                                 type="search"
                                 maxlength="100"
-                                placeholder="Kebun, blok, varietas, kualitas, atau petugas"
+                                placeholder="Kebun, blok, varietas, atau petugas"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             />
@@ -410,12 +407,11 @@ function qualityLabel(row: HarvestTransactionRow): string {
                     <table class="w-full table-fixed text-left text-sm">
                         <thead class="bg-muted/50 text-xs text-muted-foreground">
                             <tr>
-                                <th scope="col" class="w-[13%] px-4 py-3 font-semibold">Tanggal</th>
-                                <th scope="col" class="w-[19%] px-4 py-3 font-semibold">Lokasi</th>
-                                <th scope="col" class="w-[14%] px-4 py-3 font-semibold">Varietas</th>
-                                <th scope="col" class="w-[16%] px-4 py-3 font-semibold">Luas &amp; berat</th>
-                                <th scope="col" class="w-[18%] px-4 py-3 font-semibold">Kualitas</th>
-                                <th scope="col" class="w-[20%] px-4 py-3 text-right font-semibold">Detail</th>
+                                <th scope="col" class="w-[14%] px-4 py-3 font-semibold">Tanggal</th>
+                                <th scope="col" class="w-[22%] px-4 py-3 font-semibold">Lokasi</th>
+                                <th scope="col" class="w-[16%] px-4 py-3 font-semibold">Varietas</th>
+                                <th scope="col" class="w-[18%] px-4 py-3 font-semibold">Luas &amp; berat</th>
+                                <th scope="col" class="w-[30%] px-4 py-3 text-right font-semibold">Detail</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border">
@@ -426,16 +422,6 @@ function qualityLabel(row: HarvestTransactionRow): string {
                             >
                                 <td class="px-4 py-4">
                                     <p class="font-medium">{{ formatDate(row.activity_date) }}</p>
-                                    <span
-                                        class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                        :class="
-                                            row.source === 'Tugas SOP'
-                                                ? 'bg-primary/10 text-primary'
-                                                : 'bg-accent text-accent-foreground'
-                                        "
-                                    >
-                                        {{ row.source }}
-                                    </span>
                                     <p v-if="row.log_url" class="mt-2 text-xs">
                                         <Link
                                             :href="row.log_url"
@@ -467,17 +453,6 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                     </p>
                                     <p class="mt-1 text-xs text-muted-foreground">
                                         Tanam {{ formatDecimal(row.cycle?.planted_area_ha ?? null) }} ha
-                                    </p>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <p class="font-medium">
-                                        {{ row.moisture_percentage === null ? '-' : formatDecimal(row.moisture_percentage) + '%' }}
-                                    </p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ qualityLabel(row) }}
-                                    </p>
-                                    <p v-if="row.color" class="mt-1 text-xs text-muted-foreground">
-                                        {{ row.color }}
                                     </p>
                                 </td>
                                 <td class="px-4 py-4 text-right">
@@ -528,16 +503,6 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                     {{ row.farm?.name ?? '-' }} · {{ row.block?.code ?? '-' }}
                                 </p>
                             </div>
-                            <span
-                                class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                :class="
-                                    row.source === 'Tugas SOP'
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'bg-accent text-accent-foreground'
-                                "
-                            >
-                                {{ row.source }}
-                            </span>
                         </div>
                         <div class="grid grid-cols-2 gap-2 text-sm">
                             <div>
@@ -552,15 +517,8 @@ function qualityLabel(row: HarvestTransactionRow): string {
                                 <p class="text-xs text-muted-foreground">Berat</p>
                                 <p class="font-medium">{{ formatDecimal(row.gross_weight_ton) }} ton</p>
                             </div>
-                            <div>
-                                <p class="text-xs text-muted-foreground">Kadar air</p>
-                                <p class="font-medium">
-                                    {{ row.moisture_percentage === null ? '-' : formatDecimal(row.moisture_percentage) + '%' }}
-                                </p>
-                            </div>
                         </div>
                         <p class="text-xs text-muted-foreground">{{ rowSubblock(row) }}</p>
-                        <p class="text-xs text-muted-foreground">{{ qualityLabel(row) }}</p>
                         <p v-if="row.notes" class="text-xs leading-5 text-muted-foreground">
                             {{ row.notes }}
                         </p>

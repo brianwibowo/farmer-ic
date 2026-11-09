@@ -24,13 +24,13 @@ filter aktif ikut memengaruhi total laporan, luas panen, dan berat panen.
 
 Filter: pencarian bebas, kebun, blok, varietas, rentang tanggal, dan ukuran
 halaman. Pencarian mencakup kebun, kode/nama blok, subblok, varietas, nama
-Petugas, catatan, serta warna/kematangan/kebersihan hasil.
+Petugas, dan catatan.
 
-Kolom utama: tanggal laporan, sumber (`Panen mandiri` atau `Tugas SOP`),
-kebun, blok, batch/subblok, varietas/komoditas, luas panen, berat kotor,
-kadar air, kualitas hasil, catatan, foto, dan tautan ke logbook harian.
-Pelaksana tetap tersimpan pada `farm_activities.performed_by` tetapi belum
-ditampilkan di ledger.
+Kolom utama: tanggal laporan, kebun, blok, batch/subblok, varietas/komoditas,
+luas panen, berat kotor, catatan, foto, dan tautan ke logbook harian. Pelaksana
+tetap tersimpan pada `farm_activities.performed_by`, sumber laporan pada
+`planting_cycle_task_id`, dan kualitas hasil pada `harvest_details`, tetapi
+ketiganya belum ditampilkan di ledger.
 
 ## Batas akses
 

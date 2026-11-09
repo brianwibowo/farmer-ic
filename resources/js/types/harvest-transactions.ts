@@ -21,13 +21,8 @@ export type HarvestTransactionRow = {
     commodity: { id: string; name: string } | null;
     harvested_area_ha: string;
     gross_weight_ton: string;
-    moisture_percentage: string | null;
-    color: string | null;
-    ripeness: string | null;
-    cleanliness: string | null;
     performer_name: string | null;
     notes: string | null;
-    source: string;
     photos: HarvestTransactionPhoto[];
     log_url: string | null;
 };

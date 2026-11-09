@@ -161,9 +161,6 @@ class HarvestTransactionTest extends TestCase
             ->where('transactions.data.0.variety.name', 'Bisi 18')
             ->where('transactions.data.0.harvested_area_ha', '0.5000')
             ->where('transactions.data.0.gross_weight_ton', '2.500')
-            ->where('transactions.data.0.moisture_percentage', '14.50')
-            ->where('transactions.data.0.ripeness', 'Matang fisiologis')
-            ->where('transactions.data.0.source', 'Panen mandiri')
             ->has('transactions.data.0.photos', 1)
             ->has('farms', 2)->has('blocks', 2)->has('varieties', 1)
             ->where('filters.per_page', 15));
@@ -183,8 +180,8 @@ class HarvestTransactionTest extends TestCase
         $this->get('/admin/transaksi-panen?from_date=2026-11-05')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('transactions.total', 1)->where('transactions.data.0.activity_date', '2026-11-05'));
 
-        $this->get('/admin/transaksi-panen?search=Matang fisiologis')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('transactions.total', 1)->where('transactions.data.0.ripeness', 'Matang fisiologis'));
+        $this->get('/admin/transaksi-panen?search=Bisi')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('transactions.total', 2));
 
         $this->get('/admin/transaksi-panen?search=Kebun Asing')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('transactions.total', 0));
