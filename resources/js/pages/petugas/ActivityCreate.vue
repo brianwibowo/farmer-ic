@@ -10,6 +10,8 @@ import ActivityDetailFields, {
 } from '@/components/petugas/ActivityDetailFields.vue';
 import type { PetugasTask } from '@/types/petugas-task';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
     task: PetugasTask;
     fields: ActivityField[];
@@ -114,7 +116,7 @@ function submit(): void {
                 lokasi ditentukan dari to-do, bukan dipilih ulang.
             </p>
         </header>
-        <details class="rounded-xl border border-border bg-card p-3">
+        <details class="petugas-card p-3">
             <summary class="cursor-pointer text-sm font-medium">
                 {{ task.name }} · {{ task.subblok.label }}
             </summary>
@@ -125,9 +127,7 @@ function submit(): void {
                 :disabled="form.processing"
                 class="space-y-4 disabled:opacity-70"
             >
-                <section
-                    class="space-y-4 rounded-xl border border-border bg-card p-4"
-                >
+                <section class="petugas-card space-y-4 p-4">
                     <h2 class="text-base font-semibold">Tanggal pelaksanaan</h2>
                     <label class="block space-y-2 text-sm"
                         ><span>Tanggal kerja</span
@@ -158,9 +158,7 @@ function submit(): void {
                     @ready="headerReady = $event"
                     @existing="existingHeader = $event"
                 />
-                <section
-                    class="space-y-4 rounded-xl border border-border bg-card p-4"
-                >
+                <section class="petugas-card space-y-4 p-4">
                     <h2 class="text-base font-semibold">Hasil pelaksanaan</h2>
                     <label class="block space-y-2 text-sm">
                         <span>Jumlah pekerja untuk aktivitas ini</span>
@@ -191,9 +189,7 @@ function submit(): void {
                         {{ errors.details }}
                     </p>
                 </section>
-                <section
-                    class="space-y-4 rounded-xl border border-border bg-card p-4"
-                >
+                <section class="petugas-card space-y-4 p-4">
                     <h2 class="text-base font-semibold">Bukti pekerjaan</h2>
                     <label class="block space-y-2 text-sm"
                         ><span>Foto aktivitas · minimal satu</span

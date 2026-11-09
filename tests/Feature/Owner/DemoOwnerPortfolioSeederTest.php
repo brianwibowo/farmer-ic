@@ -73,6 +73,8 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->prerequisites();
         $this->seed(DemoOwnerPortfolioSeeder::class);
         $team = $this->demoTeam();
+        $this->assertDatabaseHas('farms', ['name' => 'Kebun Mekarsari', 'land_tenure_party' => 'Koperasi Tani Mekarsari']);
+        $this->assertDatabaseHas('farms', ['name' => 'Kebun Cikeas', 'land_tenure_party' => 'Kelompok Tani Cikeas Makmur']);
         $this->actingAs($this->owner());
 
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page

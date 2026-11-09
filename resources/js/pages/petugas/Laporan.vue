@@ -4,6 +4,9 @@ import { ClipboardList, ChevronRight, Search } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+
+defineOptions({ inheritAttrs: false });
+
 type Report = {
     id: string;
     name: string;
@@ -155,7 +158,7 @@ function reset(): void {
         </form>
         <div
             v-if="!reports?.data.length"
-            class="rounded-2xl border border-dashed border-border bg-muted/40 px-5 py-10 text-center"
+            class="petugas-card petugas-empty bg-muted/40 px-5 py-10 text-center"
         >
             <ClipboardList class="mx-auto size-9 text-primary" />
             <h2 class="mt-3 font-semibold">
@@ -187,7 +190,7 @@ function reset(): void {
                 </h2>
                 <Link
                     :href="`/petugas/laporan/${report.id}`"
-                    class="flex gap-3 rounded-2xl border border-border bg-card p-3 hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-ring"
+                    class="petugas-card flex gap-3 p-3 hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-ring"
                     ><img
                         v-if="report.photo"
                         :src="report.photo"

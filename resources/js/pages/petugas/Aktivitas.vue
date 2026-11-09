@@ -14,6 +14,9 @@ import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import type { PetugasTaskPageProps } from '@/types/petugas-task';
 import { sopActivitySubcategoryLabels } from '@/types/sop';
+
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<
     PetugasTaskPageProps & {
         categories: { id: string; code: string; name: string }[];
@@ -200,7 +203,7 @@ function reset(): void {
         </div>
         <div
             v-if="!tasks.length"
-            class="rounded-2xl border border-dashed border-border bg-muted/40 px-5 py-10 text-center"
+            class="petugas-card petugas-empty bg-muted/40 px-5 py-10 text-center"
         >
             <ClipboardList class="mx-auto size-9 text-primary" />
             <h2 class="mt-3 font-semibold">
@@ -222,7 +225,7 @@ function reset(): void {
             <li v-for="task in tasks" :key="task.id">
                 <Link
                     :href="`/petugas/tasks/${task.id}`"
-                    class="flex gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-ring"
+                    class="petugas-card flex gap-3 p-3 transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-ring"
                 >
                     <span
                         class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-secondary"

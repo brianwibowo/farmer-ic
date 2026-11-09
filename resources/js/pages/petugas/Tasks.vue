@@ -13,6 +13,8 @@ import {
     sopActivitySubcategoryLabels,
 } from '@/types/sop';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<PetugasTaskPageProps>();
 const activityDate = useActivityDate();
 
@@ -134,15 +136,15 @@ function statusClass(status: PetugasTask['status']): string {
         </p>
 
         <div class="grid grid-cols-3 gap-2">
-            <div class="rounded-xl border border-border bg-card p-3">
+            <div class="petugas-card p-3">
                 <p class="text-[11px] text-muted-foreground">Terlambat</p>
                 <p class="mt-1 text-xl font-semibold">{{ summary.overdue }}</p>
             </div>
-            <div class="rounded-xl border border-border bg-card p-3">
+            <div class="petugas-card p-3">
                 <p class="text-[11px] text-muted-foreground">Hari ini</p>
                 <p class="mt-1 text-xl font-semibold">{{ summary.today }}</p>
             </div>
-            <div class="rounded-xl border border-border bg-card p-3">
+            <div class="petugas-card p-3">
                 <p class="text-[11px] text-muted-foreground">Mendatang</p>
                 <p class="mt-1 text-xl font-semibold">{{ summary.upcoming }}</p>
             </div>
@@ -175,7 +177,7 @@ function statusClass(status: PetugasTask['status']): string {
 
         <div
             v-if="!visibleTasks.length"
-            class="rounded-2xl border border-dashed border-border bg-card px-5 py-12 text-center"
+            class="petugas-card petugas-empty px-5 py-12 text-center"
         >
             <ClipboardList class="mx-auto size-10 text-muted-foreground" />
             <h2 class="mt-4 font-semibold">
@@ -217,7 +219,7 @@ function statusClass(status: PetugasTask['status']): string {
             <article
                 v-for="task in tasksFor(section.key)"
                 :key="task.id"
-                class="rounded-xl border border-border bg-card p-4 shadow-sm"
+                class="petugas-card p-4"
             >
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">

@@ -35,7 +35,7 @@ final class DemoOwnerPortfolioData
             ],
             [
                 'key' => 'cibogo', 'name' => 'Kebun Cibogo', 'commodity' => 'Sorgum', 'variety' => 'Bioguma 1',
-                'area_ha' => '6.5000', 'land_tenure' => 'partnership', 'latitude' => '-6.6260000', 'longitude' => '106.9470000',
+                'area_ha' => '6.5000', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Kelompok Tani Cibogo Sejahtera', 'latitude' => '-6.6260000', 'longitude' => '106.9470000',
                 'address' => 'Lahan kemitraan Cibogo, skenario presentasi Farm IC', 'city' => 'Kabupaten Bogor',
                 'district' => 'Megamendung', 'province' => 'Jawa Barat', 'target_volume_ton' => '12.000', 'harvest_offset' => 80,
                 'blocks' => [
@@ -46,7 +46,7 @@ final class DemoOwnerPortfolioData
             ],
             [
                 'key' => 'mekarsari', 'name' => 'Kebun Mekarsari', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
-                'area_ha' => '4.0000', 'land_tenure' => 'rented', 'latitude' => '-6.5280000', 'longitude' => '106.9940000',
+                'area_ha' => '4.0000', 'land_tenure' => 'rented', 'land_tenure_party' => 'Koperasi Tani Mekarsari', 'latitude' => '-6.5280000', 'longitude' => '106.9940000',
                 'address' => 'Lahan sewa jagung Mekarsari, skenario presentasi Farm IC', 'city' => 'Kabupaten Bogor',
                 'district' => 'Cileungsi', 'province' => 'Jawa Barat', 'target_volume_ton' => '28.000', 'harvest_offset' => 90,
                 'blocks' => [
@@ -57,7 +57,7 @@ final class DemoOwnerPortfolioData
             ],
             [
                 'key' => 'cikeas', 'name' => 'Kebun Cikeas', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
-                'area_ha' => '10.0000', 'land_tenure' => 'partnership', 'latitude' => '-6.4920000', 'longitude' => '106.9380000',
+                'area_ha' => '10.0000', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Kelompok Tani Cikeas Makmur', 'latitude' => '-6.4920000', 'longitude' => '106.9380000',
                 'address' => 'Lahan kemitraan Cikeas, skenario presentasi Farm IC', 'city' => 'Kabupaten Bogor',
                 'district' => 'Gunung Putri', 'province' => 'Jawa Barat', 'target_volume_ton' => '64.000', 'harvest_offset' => 110,
                 'blocks' => [

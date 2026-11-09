@@ -67,6 +67,7 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 $farm = new Farm;
                 $farm->forceFill([
                     'id' => $id, 'team_id' => $team->id, 'owner_id' => $owner->id, 'created_by' => $actor->id,
+                    'land_tenure_party' => $site['land_tenure_party'] ?? null,
                     'name' => $site['name'], 'land_tenure' => $site['land_tenure'], 'address' => $site['address'],
                     'city' => $site['city'], 'district' => $site['district'], 'province' => $site['province'],
                     'total_area_ha' => $site['area_ha'], 'latitude' => $site['latitude'], 'longitude' => $site['longitude'],

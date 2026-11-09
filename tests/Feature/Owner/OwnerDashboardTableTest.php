@@ -94,14 +94,44 @@ class OwnerDashboardTableTest extends TestCase
 
         $this->actingAs($this->admin)->patch('/admin/farm-management/'.$farm->id, [
             'name' => 'Kebun Diperbarui Admin', 'total_area_ha' => '12.3750', 'land_tenure' => 'rented',
+            'land_tenure_party' => 'PT Lahan Sejahtera',
         ])->assertRedirect();
         $report = $this->activity($farm, 'Resume baru dari database', '2026-11-05 10:15:00+07');
         $this->actingAs($this->owner)->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.rows.0.name', 'Kebun Diperbarui Admin')
             ->where('landTable.rows.0.area_ha', '12.3750')
             ->where('landTable.rows.0.legality', 'Sewa')
+            ->where('landTable.rows.0.land_tenure_party', 'PT Lahan Sejahtera')
+            ->where('landTable.rows.0.requires_land_tenure_party', true)
             ->where('landTable.rows.0.resume.id', $report->id)
             ->where('landTable.total_area_ha', '12.3750'));
+    }
+
+    public function test_related_party_is_visible_only_with_its_farm_and_owned_land_has_no_party(): void
+    {
+        $farm = $this->farm('Kebun A', '2.0000', 'partnership');
+        $farm->forceFill(['land_tenure_party' => 'Koperasi Mitra Hijau'])->save();
+        $owned = $this->farm('Kebun B', '3.0000', 'owned');
+        $owned->forceFill(['land_tenure_party' => 'Data lama tidak relevan'])->save();
+        $legacy = $this->farm('Kebun C', '1.0000', 'rented');
+        $foreign = $this->farm('Kebun Rahasia', '9.0000', 'rented');
+        $foreign->forceFill([
+            'team_id' => Team::factory()->create(['is_personal' => false])->id,
+            'land_tenure_party' => 'Mitra tenant lain',
+        ])->save();
+        $this->get('/')->assertInertia(fn (Assert $page) => $page
+            ->has('landTable.rows', 3)
+            ->where('landTable.rows.0.land_tenure_party', 'Koperasi Mitra Hijau')
+            ->where('landTable.rows.0.requires_land_tenure_party', true)
+            ->where('landTable.rows.1.land_tenure_party', null)
+            ->where('landTable.rows.1.requires_land_tenure_party', false)
+            ->where('landTable.rows.2.land_tenure_party', null)
+            ->where('landTable.rows.2.requires_land_tenure_party', true));
+        $this->get('/kebun/'.$farm->id)->assertInertia(fn (Assert $page) => $page
+            ->where('farm.land_tenure_party', 'Koperasi Mitra Hijau'));
+        $this->get('/kebun/'.$foreign->id)->assertForbidden();
+        $this->patch('/admin/farm-management/'.$farm->id, ['land_tenure_party' => 'Tidak boleh'])->assertForbidden();
+        $this->assertSame('Koperasi Mitra Hijau', $farm->fresh()->getAttribute('land_tenure_party'));
     }
 
     public function test_dashboard_always_shows_all_visible_farms_even_with_a_previous_farm_filter(): void
