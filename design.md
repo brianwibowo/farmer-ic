@@ -341,9 +341,12 @@ Leaflet containers or stale error/loading updates. Owner maps refit points when
 their containers resize.
 
 Read farms, crop/variety, persisted batch stages and latest activity from scoped
-database queries; no fixture or browser-storage fallback. Legalitas currently
-shows the stored land-tenure label; the schema has no TNI/POLRI institution field.
-Missing fields remain explicit. Progress is a completed-stage count across
+database queries; no fixture or browser-storage fallback. Legalitas shows the
+stored land-tenure label and, for Sewa/Kerja sama, the persisted name of the
+landowner or partner (`land_tenure_party`). Require that name in the farm form
+when either status is selected; show “Pihak terkait belum diisi” for legacy
+records without it. Milik sendiri does not show a related party. Missing fields
+remain explicit. Progress is a completed-stage count across
 running batches, not an invented crop-growth percentage. Resume is the latest
 record with its own date, independent of legacy activity-period query parameters.
 Preserve Owner profile, AI and existing authorization; keep empty/loading/error

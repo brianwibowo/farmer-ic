@@ -66,6 +66,16 @@ also rejects other non-null values. Fresh demo seed data explicitly uses owned;
 this migration never guesses the status of existing farms. Rental periods and
 costs are outside this change.
 
+`farms.land_tenure_party` stores the name of the person, company, or institution
+renting out the land or partnering with the farm (up to 255 characters). Create
+and full update require it for Sewa/Kerja sama. PATCH preserves an existing name
+when omitted; editing legality requires a name, while unrelated legacy edits may
+leave it unknown. Switching to Milik sendiri clears the name. The additive
+`2026_11_09_000001` migration preserves existing records with a null name. Admin
+forms, lists/details, the Owner farm detail, and the Owner dashboard Legalitas
+column use this persisted value. Legacy non-owned land displays “Pihak terkait
+belum diisi”. This name is separate from the Owner account and PIC assignment.
+
 The follow-up `2026_10_29_140000` migration expands the existing check constraint
 without changing stored values. Rolling it back is rejected by PostgreSQL while
 any farm uses `partnership`; it never silently converts or clears that status.

@@ -124,14 +124,20 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
                         <td
                             class="border-r border-b border-border bg-card px-3 py-3 align-top"
                         >
-                            {{ row.legality ?? 'Belum tercatat' }}
+                            <p class="font-bold">{{ row.legality ?? 'Belum tercatat' }}</p>
+                            <p
+                                v-if="row.requires_land_tenure_party"
+                                class="mt-1 text-xs [overflow-wrap:anywhere] text-muted-foreground"
+                            >
+                                {{ row.land_tenure_party || 'Pihak terkait belum diisi' }}
+                            </p>
                         </td>
                         <td
                             class="border-r border-b border-border bg-card px-3 py-3 align-top"
                         >
                             <ul v-if="row.crops.length" class="space-y-2">
                                 <li v-for="crop in row.crops" :key="crop.id">
-                                    <p class="font-medium">{{ crop.name }}</p>
+                                    <p class="font-bold">{{ crop.name }}</p>
                                     <p
                                         v-if="crop.varieties.length"
                                         class="mt-0.5 text-xs text-muted-foreground"
@@ -149,7 +155,7 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
                         >
                             <p
                                 v-if="row.progress.total_stages"
-                                class="font-medium tabular-nums"
+                                class="font-bold tabular-nums"
                             >
                                 {{ row.progress.completed_stages }}/{{
                                     row.progress.total_stages
@@ -176,7 +182,7 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
                             <template v-if="row.resume">
                                 <Link
                                     :href="row.resume.detail_url"
-                                    class="inline-flex min-h-11 items-start rounded-md font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                                    class="inline-flex min-h-11 items-start rounded-md font-bold text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
                                     >{{
                                         row.resume.title ?? 'Aktivitas tercatat'
                                     }}</Link

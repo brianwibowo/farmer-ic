@@ -116,6 +116,16 @@ const severity: Record<string, string> = {
                     }}
                 </dd>
             </div>
+            <div
+                v-if="farm.land_tenure === 'rented' || farm.land_tenure === 'partnership'"
+            >
+                <dt class="text-xs text-muted-foreground">
+                    {{ farm.land_tenure === 'rented' ? 'Pemilik lahan' : 'Mitra kerja sama' }}
+                </dt>
+                <dd class="mt-1 [overflow-wrap:anywhere]">
+                    {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}
+                </dd>
+            </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Owner terdaftar</dt>
                 <dd class="mt-1">{{ farm.owner_name || 'Belum tersedia' }}</dd>
