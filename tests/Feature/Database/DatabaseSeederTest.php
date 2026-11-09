@@ -70,6 +70,7 @@ class DatabaseSeederTest extends TestCase
 
         $farm = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
+        $previous = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'harvested')->firstOrFail();
 
         $activityDate = fn (string $description): string => FarmActivity::query()
             ->where('farm_id', $farm->id)
@@ -128,8 +129,23 @@ class DatabaseSeederTest extends TestCase
         $harvestTask = $cycle->tasks()->where('activity_category', 'harvest')->firstOrFail();
         $this->assertSame('pending', $harvestTask->status);
         $this->assertSame(0, FarmActivity::query()->where('planting_cycle_task_id', $harvestTask->id)->count());
-        $this->assertSame(3, FarmActivity::query()->where('farm_id', $farm->id)->whereNotNull('planting_cycle_task_id')->count());
-        $this->assertSame(7, FarmActivity::query()->where('farm_id', $farm->id)->count());
+        $this->assertSame(3, FarmActivity::query()->where('planting_cycle_id', $cycle->id)->whereNotNull('planting_cycle_task_id')->count());
+        $this->assertSame(1, FarmActivity::query()->where('planting_cycle_id', $previous->id)->whereNotNull('planting_cycle_task_id')->count());
+        $this->assertSame(4, FarmActivity::query()->where('farm_id', $farm->id)->whereNotNull('planting_cycle_task_id')->count());
+        $this->assertSame(8, FarmActivity::query()->where('farm_id', $farm->id)->count());
+
+        $this->assertSame('2026-06-01', $previous->planted_at->toDateString());
+        $this->assertSame('2026-08-30', $previous->estimated_harvest_at->toDateString());
+        $this->assertNotNull($previous->sop_template_version_id);
+        $this->assertSame(6, $previous->stages()->count());
+        $this->assertSame(6, $previous->stages()->where('status', 'completed')->count());
+        $this->assertSame('2026-08-30', $activityDate('Panen Blok Utara putaran sebelumnya'));
+        $previousHarvest = $linkedTask('Panen Blok Utara putaran sebelumnya');
+        $this->assertSame('completed', $previousHarvest->status);
+        $this->assertSame(
+            '2026-08-30',
+            $previousHarvest->completed_at->setTimezone('Asia/Jakarta')->toDateString(),
+        );
 
         $planned = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'planned')->firstOrFail();
         $this->assertSame('2026-11-20', $planned->planned_planting_at->toDateString());

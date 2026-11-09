@@ -109,6 +109,16 @@ class DemoActivitySeeder extends Seeder
         ], $growthDate);
         $this->seedGrowthObservation($farm, $cycle, $petugas, $growthDate);
 
+        $previous = PlantingCycle::visibleTo($petugas, $team)
+            ->where('farm_id', $farm->id)
+            ->where('status', 'harvested')
+            ->orderByDesc('planted_at')
+            ->orderByDesc('batch_number')
+            ->first();
+        if ($previous instanceof PlantingCycle) {
+            $this->seedPreviousHarvest($farm, $previous, $petugas);
+        }
+
         $planting = FarmActivity::query()->where('farm_id', $farm->id)->where('description', 'Penanaman Blok 1')->first();
         if ($planting) {
             ActivityPhoto::query()->firstOrCreate([
@@ -168,6 +178,43 @@ class DemoActivitySeeder extends Seeder
             };
             $activity->{$relation}()->create($detail);
         });
+    }
+
+    private function seedPreviousHarvest(Farm $farm, PlantingCycle $cycle, User $user): void
+    {
+        $description = 'Panen Blok Utara putaran sebelumnya';
+        if (FarmActivity::query()->where('farm_id', $farm->id)->where('description', $description)->exists()) {
+            return;
+        }
+
+        $harvestedAt = $cycle->estimated_harvest_at ?? $cycle->planted_at?->addDays(90);
+        if ($harvestedAt === null) {
+            throw new \LogicException('Siklus panen demo harus memiliki tanggal panen.');
+        }
+        $stage = $cycle->stages()->where('code', 'harvest')->first();
+        $task = PlantingCycleTask::query()->firstOrCreate([
+            'planting_cycle_id' => $cycle->id,
+            'activity_category' => 'harvest',
+            'activity_subcategory' => null,
+        ], [
+            'planting_cycle_stage_id' => $stage?->id,
+            'name' => 'Panen',
+            'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.',
+            'offset_days' => 90,
+            'tolerance_days' => 2,
+            'scheduled_date' => $harvestedAt->toDateString(),
+            'due_date' => $harvestedAt->addDays(2)->toDateString(),
+            'is_required' => true,
+            'status' => 'pending',
+        ]);
+        $this->seedActivityWithDetail($farm, $cycle, $user, 'harvest', $description, [
+            'harvested_area_ha' => 4.2500,
+            'gross_weight_ton' => 21.000,
+            'moisture_percentage' => 17.50,
+            'color' => 'Kuning keemasan',
+            'ripeness' => 'Matang panen',
+            'cleanliness' => 'Bersih setelah sortasi',
+        ], $harvestedAt->toDateString(), $task);
     }
 
     private function seedGrowthObservation(Farm $farm, PlantingCycle $cycle, User $user, string $activityDate): void
