@@ -76,6 +76,6 @@ class PetugasPlantingController extends Controller
     private function authorizeCycle(Request $request, PlantingCycle $cycle): void
     {
         Gate::authorize('view', $cycle);
-        abort_unless($cycle->farm_id === $request->user()->assigned_farm_id && $cycle->getAttribute('planting_round_id') !== null, 403);
+        abort_unless($cycle->farm_id === $request->user()->assigned_farm_id && $cycle->getAttribute('block_id') !== null, 403);
     }
 }

@@ -151,16 +151,19 @@ class PetugasGardenTest extends TestCase
             ->where('garden.blocks.0.land_clearing_completed_at', $completedAt->toIso8601String()));
     }
 
-    public function test_previous_rounds_remain_distinct_when_subblock_labels_are_reused(): void
+    public function test_previous_cycles_remain_distinct_when_batch_labels_advance(): void
     {
         $block = $this->block($this->farm);
         $harvested = $this->batch($block, 'harvested');
         $next = $this->batch($block);
-        $this->assertSame($harvested->subblock_label, $next->subblock_label);
+        $this->assertSame('A', $harvested->subblock_label);
+        $this->assertSame('B', $next->subblock_label);
+        $this->assertSame(1, $harvested->batch_number);
+        $this->assertSame(2, $next->batch_number);
 
         $this->actingAs($this->petugas)->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('garden.batches.total', 2)->where('garden.batches.data.0.round_number', 2)
-            ->where('garden.batches.data.1.round_number', 1)->where('garden.batches.data.1.status', 'harvested'));
+            ->where('garden.batches.total', 2)->where('garden.batches.data.0.batch_number', 2)
+            ->where('garden.batches.data.1.batch_number', 1)->where('garden.batches.data.1.status', 'harvested'));
     }
 
     public function test_cross_farm_block_selection_and_lost_membership_return_403(): void
@@ -185,7 +188,7 @@ class PetugasGardenTest extends TestCase
 
     public static function requiredPermissions(): array
     {
-        return [['farms.view'], ['farm_blocks.view'], ['planting_rounds.view'], ['planting_cycles.view'], ['planting_cycle_stages.view']];
+        return [['farms.view'], ['farm_blocks.view'], ['planting_cycles.view'], ['planting_cycle_stages.view']];
     }
 
     #[DataProvider('requiredPermissions')]

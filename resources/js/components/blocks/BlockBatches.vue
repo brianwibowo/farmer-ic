@@ -158,14 +158,8 @@ const progressSummary = computed(() => {
                             Sub blok {{ block.code }}{{ batch.subblock_label }}
                         </h5>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            Batch {{ batch.batch_number }} · Periode
-                            {{
-                                block.rounds.find(
-                                    (round) =>
-                                        round.id === batch.planting_round_id,
-                                )?.round_number
-                            }}
-                            · {{ statusLabels[batch.status] ?? batch.status }}
+                            Batch {{ batch.batch_number }} ·
+                            {{ statusLabels[batch.status] ?? batch.status }}
                         </p>
                     </div>
                     <Button

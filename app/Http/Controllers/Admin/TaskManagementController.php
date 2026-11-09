@@ -59,18 +59,18 @@ class TaskManagementController extends Controller
                 ])->all(),
             'subbloks' => PlantingCycle::query()
                 ->visibleTo($user, $team)
-                ->whereNotNull('planting_round_id')
+                ->whereNotNull('block_id')
                 ->whereNotNull('batch_number')
-                ->whereHas('plantingRound.block')
-                ->with('plantingRound.block:id,name')
+                ->whereHas('block')
+                ->with('block:id,name')
                 ->orderBy('batch_number')
-                ->get(['id', 'planting_round_id', 'batch_number', 'subblock_label'])
+                ->get(['id', 'block_id', 'batch_number', 'subblock_label'])
                 ->map(fn (PlantingCycle $subblok): array => [
                     'id' => $subblok->id,
-                    'block_id' => $subblok->plantingRound?->block?->id,
+                    'block_id' => $subblok->block?->id,
                     'number' => (int) $subblok->batch_number,
                     'label' => $subblok->subblock_label,
-                    'block_name' => $subblok->plantingRound?->block?->name,
+                    'block_name' => $subblok->block?->name,
                 ])->all(),
         ]);
     }
@@ -121,14 +121,14 @@ class TaskManagementController extends Controller
                     ->orWhereHas('plantingCycle', fn (Builder $cycle) => $cycle
                         ->where('subblock_label', 'ilike', $search)
                         ->orWhereHas('farm', fn (Builder $farm) => $farm->where('name', 'ilike', $search))
-                        ->orWhereHas('plantingRound.block', fn (Builder $block) => $block
+                        ->orWhereHas('block', fn (Builder $block) => $block
                             ->where('name', 'ilike', $search)
                             ->orWhere('code', 'ilike', $search)));
             });
         }
 
         if (($filters['block_id'] ?? '') !== '') {
-            $query->whereHas('plantingCycle.plantingRound.block', fn (Builder $block) => $block
+            $query->whereHas('plantingCycle.block', fn (Builder $block) => $block
                 ->whereKey($filters['block_id']));
         }
         if (($filters['subblok_id'] ?? '') !== '') {
@@ -174,7 +174,7 @@ class TaskManagementController extends Controller
     private function row(PlantingCycleTask $task): array
     {
         $cycle = $task->plantingCycle;
-        $block = $cycle?->plantingRound?->block;
+        $block = $cycle?->block;
         $effective = $task->effectiveScheduledDate();
 
         return [
@@ -241,7 +241,7 @@ class TaskManagementController extends Controller
     {
         return [
             'plantingCycle.farm:id,name,team_id',
-            'plantingCycle.plantingRound.block:id,code,name',
+            'plantingCycle.block:id,code,name',
             'plantingCycle.variety:id,name',
             'plantingCycle.sopTemplateVersion:id,version',
             'stage:id,code',

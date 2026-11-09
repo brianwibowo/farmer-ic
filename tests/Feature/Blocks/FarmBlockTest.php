@@ -9,7 +9,6 @@ use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
-use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
@@ -369,7 +368,7 @@ class FarmBlockTest extends TestCase
         $this->travel(1)->hours();
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1.5000'])->assertRedirect();
         $this->assertSame($completedAt, $block->refresh()->land_clearing_completed_at->toISOString());
-        $this->assertSame(1, PlantingRound::count());
+        $this->assertSame(2, PlantingCycle::count());
         $this->assertSame(12, PlantingCycleStage::count());
         $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.can.update', false)->where('blocks.data.0.can.createBatch', true)
             ->where('blocks.data.0.batches.0.stages.0.status', 'completed')->where('blocks.data.0.batches.0.stages.1.status', 'in_progress')
@@ -378,7 +377,7 @@ class FarmBlockTest extends TestCase
         $this->constraints();
     }
 
-    public function test_next_round_reuses_labels_but_continues_batch_numbers_across_blocks(): void
+    public function test_cancelled_batch_continues_the_sequence_without_reusing_a_block_label(): void
     {
         $block = $this->block();
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
@@ -387,8 +386,7 @@ class FarmBlockTest extends TestCase
         $other = $this->block('B02');
         $this->post($this->url($other).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
         $this->assertSame([1, 2, 3], PlantingCycle::orderBy('batch_number')->pluck('batch_number')->all());
-        $this->assertSame(['A', 'A', 'A'], PlantingCycle::orderBy('batch_number')->pluck('subblock_label')->all());
-        $this->assertSame(['closed', 'active'], PlantingRound::where('block_id', $block->id)->orderBy('round_number')->pluck('status')->all());
+        $this->assertSame(['A', 'B', 'A'], PlantingCycle::orderBy('batch_number')->pluck('subblock_label')->all());
         $this->constraints();
     }
 
@@ -415,7 +413,7 @@ class FarmBlockTest extends TestCase
         $block = $this->block('B01', '2');
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '2.0001'])->assertSessionHasErrors('reserved_area_ha');
         $this->assertNull($block->refresh()->land_clearing_completed_at);
-        $this->assertDatabaseCount('planting_rounds', 0);
+        $this->assertDatabaseCount('planting_cycles', 0);
         $this->assertDatabaseCount('planting_cycle_stages', 0);
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1', 'subblock_label' => ' a '])->assertRedirect();
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1', 'subblock_label' => 'A'])->assertSessionHasErrors('subblock_label');
@@ -445,7 +443,6 @@ class FarmBlockTest extends TestCase
         $this->post($this->url($block).'/batches', ['area_value' => '50000', 'area_unit' => 'm2'])
             ->assertSessionHasErrors(['reserved_area_ha' => 'Luas batch 5 ha melebihi sisa kapasitas kebun 4 ha. 8,5 ha masih digunakan tanam aktif di luar batch. Maksimal batch baru 4 ha.']);
         $this->assertSame(1, PlantingCycle::count());
-        $this->assertSame(0, PlantingRound::count());
         $this->assertNull($block->fresh()->land_clearing_completed_at);
         $this->post($this->url($block).'/batches', ['area_value' => '40000', 'area_unit' => 'm2'])->assertSessionHasNoErrors()->assertRedirect($this->url());
         $this->assertDatabaseHas('planting_cycles', ['farm_id' => $this->farm->id, 'reserved_area_ha' => '4.0000', 'status' => 'planned', 'planted_area_ha' => '0.0000']);
@@ -487,7 +484,6 @@ class FarmBlockTest extends TestCase
         $block = $this->block();
         $this->post($this->url($block).'/batches', $payload)->assertSessionHasErrors();
         $this->assertDatabaseCount('planting_cycles', 0);
-        $this->assertDatabaseCount('planting_rounds', 0);
     }
 
     public function test_scoped_lists_totals_search_and_directory_do_not_expose_other_farms(): void
@@ -562,7 +558,7 @@ class FarmBlockTest extends TestCase
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();
         $batchIds = PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all();
         $this->assertCount(3, $batchIds);
-        $this->assertSame(0, PlantingCycle::where('farm_id', $demo->id)->whereNull('planting_round_id')->count());
+        $this->assertSame(0, PlantingCycle::where('farm_id', $demo->id)->whereNull('block_id')->count());
         $this->assertSame(['harvested', 'active', 'planned'], PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('status')->all());
         $this->assertSame(18, PlantingCycleStage::whereIn('planting_cycle_id', $batchIds)->count());
         $this->seed(DemoFarmBlockSeeder::class);

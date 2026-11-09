@@ -60,7 +60,7 @@ class PresentationNamesSeederTest extends TestCase
             'activity_photos' => ['id', 'activity_id', 'image_url', 'uploaded_at'],
             'weather_records' => ['id', 'farm_id', 'recorded_at', 'temperature_c', 'humidity_percentage'],
             'plant_observations' => ['id', 'activity_id', 'planting_cycle_id', 'observed_at', 'observed_by'],
-            'planting_cycles' => ['id', 'farm_id', 'planting_round_id', 'planted_at', 'reserved_area_ha', 'planted_area_ha', 'estimated_weight_ton', 'created_at'],
+            'planting_cycles' => ['id', 'farm_id', 'block_id', 'planted_at', 'reserved_area_ha', 'planted_area_ha', 'estimated_weight_ton', 'created_at'],
             'financial_transactions' => ['id', 'farm_id', 'planting_cycle_id', 'amount', 'transaction_date', 'created_at'],
         ] as $table => $columns) {
             $snapshot[$table] = DB::table($table)->select($columns)->orderBy($columns[0])->get()->all();

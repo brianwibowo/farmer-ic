@@ -7,7 +7,6 @@ use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
-use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
@@ -44,7 +43,7 @@ class DemoFarmBlockSeeder extends Seeder
             // Fresh demo data follows the block/batch flow. Existing legacy
             // cycles are retained; rerunning a seeder must not rewrite history.
             $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id);
-            if ((clone $cycles)->whereNull('planting_round_id')->exists()) {
+            if ((clone $cycles)->whereNull('block_id')->exists()) {
                 $this->command->warn('Siklus tanam lama dipertahankan. Rekonsiliasi diperlukan sebelum menambahkan batch seed baru.');
 
                 return;
@@ -60,7 +59,6 @@ class DemoFarmBlockSeeder extends Seeder
             // A completed previous round keeps a real Petugas harvest report
             // available for admin harvest transactions.
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $b01]);
-            Gate::forUser($actor)->authorize('create', [PlantingRound::class, $b01]);
             $previous = app(FarmBlockService::class)->createBatch($b01, $actor, $team, [
                 'reserved_area_ha' => '4.2500', 'subblock_label' => 'A',
             ]);
@@ -81,9 +79,8 @@ class DemoFarmBlockSeeder extends Seeder
 
             // Current active round for the Petugas workflow.
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $b01]);
-            Gate::forUser($actor)->authorize('create', [PlantingRound::class, $b01]);
             $batch = app(FarmBlockService::class)->createBatch($b01, $actor, $team, [
-                'reserved_area_ha' => '4.2500', 'subblock_label' => 'A',
+                'reserved_area_ha' => '4.2500', 'subblock_label' => 'B',
             ]);
             Gate::forUser($actor)->authorize('update', $batch);
             $batch->forceFill(['status' => 'active', 'variety_id' => $variety->id, 'planted_at' => '2026-10-01',
@@ -98,7 +95,6 @@ class DemoFarmBlockSeeder extends Seeder
             ]);
 
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $b02]);
-            Gate::forUser($actor)->authorize('create', [PlantingRound::class, $b02]);
             app(FarmBlockService::class)->createBatch($b02, $actor, $team, [
                 'reserved_area_ha' => '1.2500', 'subblock_label' => 'A', 'planned_planting_at' => '2026-11-20',
             ]);

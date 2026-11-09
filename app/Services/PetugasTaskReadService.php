@@ -10,7 +10,6 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
-use App\Models\PlantingRound;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
@@ -39,8 +38,7 @@ class PetugasTaskReadService
         $task = PlantingCycleTask::visibleTo($actor, $team)->findOrFail($task->id);
         $cycle = PlantingCycle::visibleTo($actor, $team)->findOrFail($task->planting_cycle_id);
         $farm = Farm::visibleTo($actor, $team)->findOrFail($cycle->farm_id);
-        $round = PlantingRound::visibleTo($actor, $team)->whereKey($cycle->getAttribute('planting_round_id'))->firstOrFail();
-        $block = FarmBlock::visibleTo($actor, $team)->findOrFail($round->block_id);
+        $block = FarmBlock::visibleTo($actor, $team)->findOrFail($cycle->block_id);
         $variety = CropVariety::visibleTo($actor, $team)->find($cycle->variety_id);
         $today = CarbonImmutable::today('Asia/Jakarta');
         $effective = $task->effectiveScheduledDate();

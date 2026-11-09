@@ -228,7 +228,7 @@ class AdminDashboardService
                     'note' => 'Akumulasi luas kebun yang dapat dipantau.',
                     'breakdown' => [
                         'blocks' => $mappedBlocks,
-                        'subBlocks' => (clone $cycles)->whereNotNull('planting_round_id')->count(),
+                        'subBlocks' => (clone $cycles)->whereNotNull('block_id')->count(),
                     ],
                 ],
                 ['key' => 'cycles', 'label' => 'Batch berjalan', 'value' => $runningCount, 'unit' => 'batch', 'note' => $this->decimal($activeArea).' ha pada batch aktif.'],

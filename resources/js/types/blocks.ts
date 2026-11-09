@@ -29,7 +29,6 @@ export type BatchStage = {
 };
 export type PreparationBatch = {
     id: string;
-    planting_round_id: string;
     batch_number: number;
     subblock_label: string;
     reserved_area_ha: string;
@@ -66,6 +65,5 @@ export type ManagedBlock = FarmBlock & {
     deletionBlocked: boolean;
     batch_capacity: BatchCapacity;
     batches: PreparationBatch[];
-    rounds: { id: string; round_number: number; status: string }[];
     can: { update: boolean; delete: boolean; createBatch: boolean };
 };

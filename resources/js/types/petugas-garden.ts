@@ -16,7 +16,6 @@ export type GardenBatch = {
     id: string;
     batch_number: number;
     subblock_label: string;
-    round_number: number;
     reserved_area_ha: string;
     planted_area_ha: string;
     status: string;

@@ -175,7 +175,7 @@ class OwnerPortalTest extends TestCase
     public function test_admin_batch_labels_refresh_for_owner_and_owner_cannot_edit_them(): void
     {
         $batch = PlantingCycle::query()->where('farm_id', $this->farm->id)->where('status', 'planned')->firstOrFail();
-        $block = $batch->plantingRound->block;
+        $block = $batch->block;
         $url = '/kebun/'.$this->farm->id.'/blocks/'.$block->id.'/batches/'.$batch->id;
         $data = ['reserved_area_ha' => $batch->reserved_area_ha, 'subblock_label' => 'SELATAN-02'];
 

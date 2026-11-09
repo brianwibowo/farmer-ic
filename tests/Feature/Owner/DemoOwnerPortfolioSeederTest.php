@@ -56,7 +56,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
     private function recordIds(): array
     {
         $snapshot = [];
-        foreach (['farms', 'farm_blocks', 'planting_rounds', 'planting_cycles', 'planting_cycle_stages',
+        foreach (['farms', 'farm_blocks', 'planting_cycles', 'planting_cycle_stages',
             'sop_templates', 'sop_template_versions', 'sop_template_tasks', 'planting_cycle_tasks',
             'farm_activities', 'planting_details', 'fertilization_details', 'irrigation_details',
             'pesticide_details', 'harvest_details', 'plant_observations', 'farm_risks',
@@ -90,8 +90,8 @@ class DemoOwnerPortfolioSeederTest extends TestCase
                 ->where('farm.default_sop.is_active', true)->has('blocks', 2)
                 ->has('legacyCycles', 0)->where('weather', fn ($weather) => $weather !== null));
 
-            $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->with('plantingRound.block')->firstOrFail();
-            $block = $cycle->plantingRound->block;
+            $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->with('block')->firstOrFail();
+            $block = $cycle->block;
             $this->get('/kebun/'.$farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component('owner/Block')->where('block.id', $block->id)
                 ->where('cycles', fn ($rows) => collect($rows)->isNotEmpty() && collect($rows)->every(

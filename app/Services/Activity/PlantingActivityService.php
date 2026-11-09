@@ -11,7 +11,6 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingDetail;
-use App\Models\PlantingRound;
 use App\Models\User;
 use App\Services\PlantingCycleTaskService;
 use App\Support\LandArea;
@@ -28,7 +27,7 @@ class PlantingActivityService
     /** @return \Illuminate\Database\Eloquent\Collection<int, PlantingCycle> */
     public function cycles(User $actor, Farm $farm): \Illuminate\Database\Eloquent\Collection
     {
-        return PlantingCycle::visibleTo($actor, $farm->team)->where('farm_id', $farm->id)->whereNotNull('planting_round_id')
+        return PlantingCycle::visibleTo($actor, $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
             ->orderBy('batch_number')->get();
     }
 
@@ -37,8 +36,7 @@ class PlantingActivityService
     {
         $team = $cycle->farm->team;
         $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($cycle->id)->firstOrFail();
-        $round = PlantingRound::visibleTo($actor, $team)->whereKey($cycle->getAttribute('planting_round_id'))->firstOrFail();
-        $block = FarmBlock::visibleTo($actor, $team)->whereKey($round->block_id)->firstOrFail();
+        $block = FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->firstOrFail();
         $variety = CropVariety::visibleTo($actor, $team)->whereKey($cycle->variety_id)->first();
 
         return [
@@ -116,10 +114,9 @@ class PlantingActivityService
                 if (CarbonImmutable::parse($dates[0])->diffInDays(CarbonImmutable::parse(end($dates))) > 2) {
                     throw ValidationException::withMessages(['work_date' => 'Penanaman dibatasi tiga hari kalender sejak tanam pertama. Pilih subblok lain yang telah disiapkan Admin.']);
                 }
-                $round = PlantingRound::visibleTo($actor, $team)->whereKey($cycle->getAttribute('planting_round_id'))->sharedLock()->firstOrFail();
-                $block = FarmBlock::visibleTo($actor, $team)->whereKey($round->block_id)->sharedLock()->firstOrFail();
-                if (! $block->is_active || $round->status !== 'active') {
-                    throw ValidationException::withMessages(['cycle' => 'Blok dan periode harus aktif untuk mencatat penanaman.']);
+                $block = FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->sharedLock()->firstOrFail();
+                if (! $block->is_active) {
+                    throw ValidationException::withMessages(['cycle' => 'Blok harus aktif untuk mencatat penanaman.']);
                 }
                 $totalArea = LandArea::squareMetres($data['area_ha']) + LandArea::squareMetres($cycle->planted_area_ha ?? 0);
                 if ($totalArea > LandArea::squareMetres($cycle->getAttribute('reserved_area_ha'))) {

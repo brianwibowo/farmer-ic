@@ -138,7 +138,6 @@ class ModelAuthorizationTest extends TestCase
             'DailyActivityLog' => ['farm_id' => $farm->id, 'recorded_by' => $user->id, 'work_date' => today(), 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now()],
             'BlockMappingDetail' => ['block_name' => 'Block 1', 'length_m' => '10', 'width_m' => '10'],
             'FarmBlock' => ['farm_id' => $farm->id, 'code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '1.0000', 'created_by' => $user->id, 'land_clearing_started_at' => now(), 'created_at' => now(), 'updated_at' => now()],
-            'PlantingRound' => ['block_id' => $this->record(\App\Models\FarmBlock::class, $user, $team, $farm)->id, 'round_number' => 1, 'status' => 'active', 'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now()],
             'PlantingCycleStage' => ['planting_cycle_id' => $this->record(PlantingCycle::class, $user, $team, $farm)->id, 'code' => 'soil_preparation', 'position' => 2, 'status' => 'in_progress', 'started_at' => now(), 'created_at' => now(), 'updated_at' => now()],
             'PlantingCycleTask' => ['planting_cycle_id' => $this->record(PlantingCycle::class, $user, $team, $farm)->id, 'planting_cycle_stage_id' => $this->record(\App\Models\PlantingCycleStage::class, $user, $team, $farm)->id, 'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan', 'offset_days' => 0, 'tolerance_days' => 0, 'is_required' => true, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()],
             'SopTemplate' => ['team_id' => $team->id, 'commodity_id' => $this->record(\App\Models\Commodity::class, $user, $team, $farm)->getKey(), 'name' => 'SOP '.$farm->id, 'is_active' => true, 'created_by' => $user->id, 'created_at' => now(), 'updated_at' => now()],
@@ -204,7 +203,7 @@ class ModelAuthorizationTest extends TestCase
                 'owner' => true,
                 'superadmin' => true,
                 'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['teams', 'team_invitations'], true),
-                'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'farm_blocks', 'planting_rounds', 'planting_cycle_stages', 'planting_cycle_tasks', 'block_mapping_details', 'daily_activity_logs', 'notifications', 'administrative_regions', 'activity_types', 'crop_varieties', 'sop_templates', 'sop_template_versions', 'sop_template_tasks'], true),
+                'petugas' => in_array($prefix, [...self::OPERATIONS, 'farms', 'farm_blocks', 'planting_cycle_stages', 'planting_cycle_tasks', 'block_mapping_details', 'daily_activity_logs', 'notifications', 'administrative_regions', 'activity_types', 'crop_varieties', 'sop_templates', 'sop_template_versions', 'sop_template_tasks'], true),
             };
             $unlinked = false;
             if ($unlinked) {
@@ -218,7 +217,7 @@ class ModelAuthorizationTest extends TestCase
                 'owner' => in_array($prefix, ['ai_conversations', 'ai_messages', 'ai_attachments', 'ai_knowledge_documents'], true),
                 'superadmin' => true,
                 'admin' => ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages', 'administrative_regions', 'daily_activity_logs'], true),
-                'petugas' => in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs', 'planting_rounds'], true),
+                'petugas' => in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true),
             };
             $create = $create && ! $unlinked;
             $parent = match (class_basename($class)) {
@@ -229,7 +228,6 @@ class ModelAuthorizationTest extends TestCase
                 'BlockMappingDetail' => $this->record(FarmActivity::class, $user, $team, $farm),
                 'DailyActivityLog' => $farm,
                 'FarmBlock' => $farm,
-                'PlantingRound' => $this->record(\App\Models\FarmBlock::class, $user, $team, $farm),
                 'PlantingCycleStage' => $this->record(PlantingCycle::class, $user, $team, $farm),
                 'PlantingCycleTask' => $this->record(PlantingCycle::class, $user, $team, $farm),
                 'SopTemplate' => $team,
@@ -245,9 +243,9 @@ class ModelAuthorizationTest extends TestCase
             $update = ($role === 'superadmin')
                 || ($role === 'owner' && $create)
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true))
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions'], true));
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages', 'administrative_regions'], true));
             $delete = ($role === 'superadmin') || ($role === 'owner' && $create)
-                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_rounds', 'planting_cycle_stages', 'administrative_regions', 'daily_activity_logs'], true))
+                || ($role === 'admin' && ! str_starts_with($prefix, 'ai_') && ! in_array($prefix, ['memberships', 'teams', 'team_invitations', 'planting_cycle_stages', 'administrative_regions', 'daily_activity_logs'], true))
                 || ($role === 'petugas' && in_array($prefix, [...self::OPERATIONS, 'block_mapping_details', 'daily_activity_logs'], true));
             $update = $update && ! $unlinked;
             $delete = $delete && ! $unlinked;

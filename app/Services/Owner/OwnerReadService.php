@@ -211,9 +211,10 @@ class OwnerReadService
             ->orderBy('code')->get();
         $cycleCounts = PlantingCycle::visibleTo($actor, $team)
             ->where('farm_id', $farm->id)
-            ->whereHas('plantingRound', fn ($rounds) => $rounds->visibleTo($actor, $team))
-            ->with(['plantingRound' => fn ($rounds) => $rounds->visibleTo($actor, $team)])
-            ->get()->groupBy(fn (PlantingCycle $cycle) => $cycle->plantingRound->block_id ?? '');
+            ->whereNotNull('block_id')
+            ->whereHas('block', fn ($blocks) => $blocks->visibleTo($actor, $team))
+            ->with(['block' => fn ($blocks) => $blocks->visibleTo($actor, $team)])
+            ->get()->groupBy(fn (PlantingCycle $cycle) => $cycle->block_id ?? '');
         $observations = PlantObservation::visibleTo($actor, $team)
             ->whereHas('plantingCycle', fn ($cycles) => $cycles->visibleTo($actor, $team)->where('farm_id', $farm->id))
             ->with(['plantingCycle' => fn ($cycles) => $cycles->visibleTo($actor, $team)
@@ -243,7 +244,7 @@ class OwnerReadService
                 ...$block->only(['id', 'code', 'name', 'area_ha', 'is_active', 'description']),
                 'cycles_count' => $cycleCounts->get($block->id, collect())->count(),
             ])->values()->all(),
-            'legacyCycles' => (clone $cycles)->whereNull('planting_round_id')->orderByDesc('created_at')
+            'legacyCycles' => (clone $cycles)->whereNull('block_id')->orderByDesc('created_at')
                 ->get()->map(fn (PlantingCycle $cycle): array => $this->cyclePayload($cycle))->all(),
             'observations' => $observations->map(fn (PlantObservation $observation): array => [
                 ...$observation->only(['id', 'planting_cycle_id', 'growth_phase', 'health_status', 'growth_percentage', 'average_height_cm', 'disease_indication', 'pest_indication', 'plant_condition', 'notes']),
@@ -274,7 +275,7 @@ class OwnerReadService
         $farm = Farm::visibleTo($actor, $team)->findOrFail($farm->id);
         $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->findOrFail($block->id);
         $cycles = $this->cycleQuery($actor, $team)->where('farm_id', $farm->id)
-            ->whereHas('plantingRound', fn ($rounds) => $rounds->visibleTo($actor, $team)->where('block_id', $block->id))
+            ->where('block_id', $block->id)
             ->orderByDesc('created_at')->orderBy('batch_number')->get();
 
         return [

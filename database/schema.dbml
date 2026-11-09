@@ -132,7 +132,6 @@ Table planting_cycles {
   estimated_weight_ton decimal(14,3)
   status varchar(30) [not null, note: 'planned | active | harvested | cancelled']
   created_at timestamptz [not null]
-  planting_round_id uuid [ref: > planting_rounds.id]
   batch_number int
   subblock_label varchar(30)
   reserved_area_ha decimal(12,4)
@@ -141,9 +140,9 @@ Table planting_cycles {
   sop_template_version_id uuid [ref: > sop_template_versions.id, note: 'Snapshot versi SOP yang dipakai subblok ini']
   planting_started_on date [note: 'Tanggal tanam pertama pada window tiga hari; acuan audit rekonsiliasi']
   planting_window_checked_at timestamptz [note: 'Waktu command rekonsiliasi menutup window penanaman']
+  block_id uuid [ref: > farm_blocks.id, note: 'Direct block ownership; null only for legacy cycles']
   indexes {
     (farm_id, batch_number) [unique]
-    (planting_round_id, subblock_label) [unique]
   }
   Note: 'Satu kebun dapat memiliki banyak siklus tanam.'
 }
@@ -163,18 +162,6 @@ Table farm_blocks {
   updated_at timestamptz
   indexes { (farm_id, code) [unique] }
   Note: 'Active block areas fit within the farm. First batch automatically completes Land Clearing. Historical blocks are deactivated rather than deleted.'
-}
-
-Table planting_rounds {
-  id uuid [pk]
-  block_id uuid [not null, ref: > farm_blocks.id]
-  round_number int [not null]
-  status varchar(30) [not null, default: 'active']
-  created_by uuid [not null, ref: > users.id]
-  created_at timestamptz
-  updated_at timestamptz
-  indexes { (block_id, round_number) [unique] }
-  Note: 'At most one active round per block. New rounds begin after all previous batches are terminal.'
 }
 
 Table planting_cycle_stages {

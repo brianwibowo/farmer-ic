@@ -75,9 +75,10 @@ persisted parent/record farm, membership, assignment and view checks still apply
 PIC status never bypasses a missing grant or changes `own` for other models.
 Admin retains `any` CRUD; Owner retains read-only access and Superadmin its
 existing bypass. `visibleTo` still includes assigned-farm blocks for non-PIC
-Petugas, since reading does not require PIC. `planting_rounds` may be created as part of authorized batch creation,
-but has no direct update/delete grants. `planting_cycle_stages` is read-only for
-ordinary roles and initialized internally by the batch service. See
+Petugas, since reading does not require PIC. Batch cycles are created directly
+against the block as part of authorized batch creation; there is no separate
+period resource. `planting_cycle_stages` is read-only for ordinary roles and
+initialized internally by the batch service. See
 [farm-block-backend.md](farm-block-backend.md) for the complete route and scope map.
 
 SOP templates are tenant-owned and variety-specific. Admin has CRUD; Owner
@@ -136,7 +137,6 @@ discover the persisted domain relationships directly.
 | `FarmActivity` | `farm_activities` | farm -> team |
 | `Farm` | `farms` | Farm itself -> team |
 | `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
-| `PlantingRound` | `planting_rounds` | block.farm -> team; create parent FarmBlock; system-managed round grouping |
 | `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline derived on batch creation |
 | `PlantingCycleTask` | `planting_cycle_tasks` | plantingCycle.farm -> team; generated snapshot of SOP tasks for one subblok |
 | `FarmRisk` | `farm_risks` | plantingCycle.farm -> team |

@@ -31,10 +31,9 @@ class PetugasHomeService
         }
 
         $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $visibleFarm->id)
-            ->whereNotNull('planting_round_id')
+            ->whereNotNull('block_id')
             ->whereIn('status', ['planned', 'active', 'harvested'])
-            ->whereHas('plantingRound', fn ($rounds) => $rounds->visibleTo($actor, $team)
-                ->whereHas('block', fn ($blocks) => $blocks->visibleTo($actor, $team)->where('farm_id', $visibleFarm->id)));
+            ->whereHas('block', fn ($blocks) => $blocks->visibleTo($actor, $team)->where('farm_id', $visibleFarm->id));
         $counts = (clone $cycles)->selectRaw('status, COUNT(*) AS total')->groupBy('status')->pluck('total', 'status');
         $tasks = PlantingCycleTask::visibleTo($actor, $team)
             ->whereIn('planting_cycle_id', (clone $cycles)->select('id'))
@@ -45,9 +44,7 @@ class PetugasHomeService
         $page = $tasks->with([
             'stage' => fn ($stages) => $stages->visibleTo($actor, $team),
             'plantingCycle' => fn ($cycles) => $cycles->visibleTo($actor, $team)->with([
-                'plantingRound' => fn ($rounds) => $rounds->visibleTo($actor, $team)->with([
-                    'block' => fn ($blocks) => $blocks->visibleTo($actor, $team),
-                ]),
+                'block' => fn ($blocks) => $blocks->visibleTo($actor, $team),
             ]),
         ])->orderByRaw("CASE status WHEN 'in_progress' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END")
             ->orderByDesc('is_required')->orderBy('due_date')->orderBy('name')->orderBy('id')
@@ -61,7 +58,7 @@ class PetugasHomeService
                     'stage' => $task->stage?->code,
                     'batch_number' => $cycle?->batch_number,
                     'subblock_label' => $cycle?->subblock_label,
-                    'block_name' => $cycle?->plantingRound?->block?->name,
+                    'block_name' => $cycle?->block?->name,
                     'hst' => $cycle?->planted_at !== null && $cycle->planted_at->lte($today)
                         ? (int) $cycle->planted_at->diffInDays($today) : null,
                 ];

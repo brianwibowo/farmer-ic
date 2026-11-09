@@ -28,7 +28,6 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
 use App\Models\PlantingDetail;
-use App\Models\PlantingRound;
 use App\Models\PlantObservation;
 use App\Models\User;
 use App\Models\WeatherRecord;
@@ -42,7 +41,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class FarmDeletionService
 {
     private const LABELS = [
-        'farm_blocks' => 'Blok kebun', 'planting_rounds' => 'Periode penanaman', 'planting_cycle_stages' => 'Timeline batch',
+        'farm_blocks' => 'Blok kebun', 'planting_cycle_stages' => 'Timeline batch',
         'planting_cycle_tasks' => 'Tugas SOP subblok',
         'planting_cycles' => 'Siklus tanam', 'daily_activity_logs' => 'Logbook harian',
         'farm_activities' => 'Aktivitas kebun', 'plant_observations' => 'Pengamatan tanaman',
@@ -103,7 +102,7 @@ class FarmDeletionService
                     'block_mapping_details', 'planting_details', 'fertilization_details', 'irrigation_details',
                     'pesticide_details', 'incident_details', 'harvest_details', 'land_cleaning_details',
                     'loosening_details', 'weeding_details', 'bed_preparation_details', 'liming_details', 'other_details',
-                    'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'planting_rounds', 'farm_blocks',
+                    'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'farm_blocks',
                 ] as $table) {
                     $key = str_ends_with($table, '_details') ? 'activity_id' : 'id';
                     DB::table($table)->whereIn($key, $graph[$table])->delete();
@@ -145,7 +144,6 @@ class FarmDeletionService
         ] as $table => $query) {
             $graph[$table] = $this->ids($query->toBase());
         }
-        $graph['planting_rounds'] = $this->ids(PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $graph['farm_blocks'])->toBase());
         $graph['planting_cycle_stages'] = $this->ids(PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['planting_cycle_tasks'] = $this->ids(PlantingCycleTask::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['plant_observations'] = $this->ids(PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());

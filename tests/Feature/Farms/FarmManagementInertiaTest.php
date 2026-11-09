@@ -175,7 +175,7 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertDatabaseMissing('farm_blocks', ['id' => $block->id]);
     }
 
-    public function test_target_volume_and_progress_are_persisted_and_scoped_to_current_farm_rounds(): void
+    public function test_target_volume_and_progress_are_persisted_and_scoped_to_current_farm_cycles(): void
     {
         $this->post('/admin/farm-management', $this->payload(['target_volume_ton' => '80.125']))->assertSessionHasNoErrors();
         $farm = Farm::firstOrFail();
@@ -194,7 +194,7 @@ class FarmManagementInertiaTest extends TestCase
         }
         $this->patch($url, ['target_volume_ton' => '125.500'])->assertSessionHasNoErrors();
         $this->assertSame('125.500', $farm->fresh()->getAttribute('target_volume_ton'));
-        \App\Models\PlantingCycle::where('planting_round_id', $first->planting_round_id)->update(['status' => 'cancelled']);
+        \App\Models\PlantingCycle::where('block_id', $first->block_id)->update(['status' => 'cancelled']);
         $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
         $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.progress_overview.total', 1)->where('farm.progress_overview.stages.1.count', 1));
         $worker = $this->actor('petugas', $this->team);

@@ -9,7 +9,6 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
-use App\Models\PlantingRound;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -56,8 +55,7 @@ class PetugasReportReadService
         $activity = FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereKey($activity->id)->firstOrFail();
         $type = ActivityType::visibleTo($actor, $team)->whereKey($activity->activity_type_id)->first();
         $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($activity->planting_cycle_id)->first();
-        $round = $cycle ? PlantingRound::visibleTo($actor, $team)->whereKey($cycle->getAttribute('planting_round_id'))->first() : null;
-        $block = $round ? FarmBlock::visibleTo($actor, $team)->whereKey($round->getAttribute('block_id'))->first() : null;
+        $block = $cycle?->block_id ? FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->first() : null;
         $log = DailyActivityLog::visibleTo($actor, $team)->whereKey($activity->daily_activity_log_id)->first();
         $photo = ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
 

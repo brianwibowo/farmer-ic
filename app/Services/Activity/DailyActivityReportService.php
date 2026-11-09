@@ -10,7 +10,6 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
-use App\Models\PlantingRound;
 use App\Models\User;
 use App\Support\ActivityDetailMap;
 use App\Support\VoluntaryActivityFields;
@@ -29,8 +28,7 @@ class DailyActivityReportService
             'activities' => $activities->map(function (FarmActivity $activity) use ($actor, $team): array {
                 $type = ActivityType::visibleTo($actor, $team)->whereKey($activity->activity_type_id)->first();
                 $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($activity->planting_cycle_id)->first();
-                $round = $cycle === null ? null : PlantingRound::visibleTo($actor, $team)->whereKey($cycle->getAttribute('planting_round_id'))->first();
-                $block = $round === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($round->block_id)->first();
+                $block = $cycle?->block_id ? FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->first() : null;
                 $detailClass = ActivityDetailMap::model($type?->detail_key);
                 $detail = $detailClass === null ? null : $detailClass::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
 

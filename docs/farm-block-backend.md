@@ -74,17 +74,17 @@ membuka `/blocks`; halaman demo kebun publik belum diganti dengan direktori ini.
 | Resource | Owner | Admin | Petugas | Superadmin |
 | --- | --- | --- | --- | --- |
 | Master blok | Baca dalam tenant terkait | CRUD dalam tenant | Baca kebun tugas; CRUD hanya PIC kebun tugas | Semua |
-| Periode | Baca | Baca; buat otomatis bersama batch | Baca; buat otomatis pada kebun tugas | Semua |
 | Batch persiapan | Baca | Buat sesuai izin planting_cycles existing | Buat pada kebun tugas | Semua |
 | Timeline | Baca | Baca | Baca kebun tugas | Semua |
 
-Prefix baru: `farm_blocks`, `planting_rounds`, `planting_cycle_stages`.
-Parent create FarmBlock adalah Farm; parent PlantingRound adalah FarmBlock.
+Prefix baru: `farm_blocks`, `planting_cycles`, `planting_cycle_stages`.
+Parent create FarmBlock adalah Farm; parent PlantingCycle adalah FarmBlock.
 PlantingCyclePolicy menerima Farm existing atau FarmBlock baru. ResourcePolicy
 hanya menambahkan resolusi FarmBlock -> farm sebagai parent terpercaya.
 Timeline dibuat internal sebagai konsekuensi pembuatan batch, bukan endpoint
-konfigurasi terpisah. Round ditutup internal hanya ketika seluruh batch terminal.
-Tidak ada hak update/delete periode atau timeline bagi Admin/Petugas.
+konfigurasi terpisah. Batch baru langsung terikat ke blok melalui
+`planting_cycles.block_id`; tidak ada tabel periode terpisah.
+Tidak ada hak update/delete timeline bagi Admin/Petugas.
 
 `created_by`, farm, periode, nomor batch dan status awal ditetapkan server.
 Payload pengganti identitas/status ditolak. Izin `block_mapping_details.*`
@@ -97,7 +97,7 @@ Seeder merupakan entry point non-HTTP dan memeriksa `Gate::forUser` terlebih dah
   PostgreSQL dan cast decimal, bukan penjumlahan float PHP.
 - Total luas blok aktif harus muat dalam luas kebun. Saat edit luas kebun,
   FarmService memeriksa luas blok dan alokasi siklus berjalan.
-- Total alokasi batch planned/active lintas periode harus muat dalam blok.
+- Total alokasi batch planned/active per blok harus muat dalam blok.
   Blok dengan batch berjalan tidak dapat dinonaktifkan atau diperkecil sampai
   alokasi tidak muat. Aktivasi ulang mengecek kapasitas kebun lagi.
 - Siklus legacy active tanpa blok tetap memakai kapasitas kebun. Total luas
@@ -110,10 +110,10 @@ Seeder merupakan entry point non-HTTP dan memeriksa `Gate::forUser` terlebih dah
   Pemeriksaan integritas fisik sengaja mencakup semua referensi yang terkait,
   tidak dibatasi permission atau filter daftar aktor.
 - Perhitungan luas belum membuktikan batas geografis tidak tumpang tindih.
-- Blok dengan histori periode/batch atau laporan pemetaan tidak dapat dihapus
+- Blok dengan histori batch atau laporan pemetaan tidak dapat dihapus
   biasa. FK restrict menjaga histori. Penonaktifan tetap memungkinkan pembacaan.
 - Flow force delete kebun yang **sudah ada dan khusus Superadmin** mengenali
-  blok, periode dan stage dalam preview/confirmation graph dan transaksi delete.
+  blok, batch, dan stage dalam preview/confirmation graph dan transaksi delete.
   Implementasi ini tidak menjalankan force delete atau reset database aplikasi.
 
 `block_mapping_details.block_id` opsional. Pada logbook, backend memeriksa blok
@@ -125,7 +125,9 @@ backend sudah menerima ID opsional dengan validasi tersebut.
 ## Instalasi dan seed
 
 Migration baru:
-`2026_10_30_000001_create_farm_blocks_and_preparation_batches.php`.
+`2026_10_30_000001_create_farm_blocks_and_preparation_batches.php` dan
+`2026_11_09_000001_remove_planting_rounds.php`. Migration terakhir memindahkan
+setiap siklus ke `planting_cycles.block_id` lalu menghapus tabel periode.
 Untuk menambahkan hanya modul ini ke database existing, periksa koneksi dan
 migration pending, lalu jalankan migration spesifik setelah mendapat izin:
 
@@ -141,8 +143,8 @@ php artisan db:seed --class=DemoFarmBlockSeeder
 ```
 
 Seeder hanya local/testing, idempotent dan tidak menimpa blok existing.
-Membuat B01 Blok Utara 6 ha dan B02 Blok Selatan 6,5 ha pada kebun demo.
-Tidak membuat batch atau mengarang hubungan siklus existing. Jangan menjalankan
+Membuat B01 Blok Utara dan B02 Blok Selatan pada kebun demo.
+Tidak mengarang hubungan siklus existing. Jangan menjalankan
 `migrate:fresh` pada database aplikasi untuk memasang fitur ini.
 
 ## Batas integrasi authorization di luar modul
@@ -170,13 +172,14 @@ dengan pasangan input baru. Validasi server, lock, dan constraint tetap berlaku.
 
 Untuk instalasi demo baru, `DemoFarmSeeder` juga memanggil
 `DemoFarmBlockSeeder`: kebun 12,5 ha memiliki B01 10 ha dan B02 2,5 ha.
-B01 memiliki batch aktif 4,25 ha (fase pemeliharaan), B02 memiliki batch planned
-1,25 ha (pengolahan tanah). Setiap batch memiliki periode dan enam tahap.
+B01 memiliki batch panen selesai 4,25 ha dan batch aktif 4,25 ha; B02 memiliki
+batch planned 1,25 ha (pengolahan tanah). Setiap batch memiliki enam tahap dan
+terikat langsung ke blok melalui `block_id`.
 Tidak ada siklus legacy pada instalasi baru. Logbook, pengamatan, dan finance
 tetap menggunakan siklus aktif yang sudah terhubung ke blok/batch.
 
 Pengulangan seeder mempertahankan blok dan siklus existing. Bila ditemukan
-siklus lama tanpa periode/blok, seeder memberi peringatan dan tidak menambahkan
+siklus lama tanpa blok, seeder memberi peringatan dan tidak menambahkan
 batch demo di atasnya. Ini bukan migrasi atau reset data aplikasi lama.
 
 ## Hasil verifikasi implementasi awal

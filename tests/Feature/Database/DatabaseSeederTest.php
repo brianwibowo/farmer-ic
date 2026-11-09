@@ -45,7 +45,7 @@ class DatabaseSeederTest extends TestCase
             }
         }
 
-        $tables = ['users', 'teams', 'team_members', 'farms', 'farm_blocks', 'planting_rounds',
+        $tables = ['users', 'teams', 'team_members', 'farms', 'farm_blocks',
             'planting_cycles', 'planting_cycle_stages', 'planting_cycle_tasks', 'sop_templates',
             'sop_template_versions', 'sop_template_tasks', 'farm_activities', 'planting_details',
             'fertilization_details', 'irrigation_details', 'pesticide_details', 'harvest_details',

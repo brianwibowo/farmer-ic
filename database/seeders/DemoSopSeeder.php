@@ -82,7 +82,7 @@ class DemoSopSeeder extends Seeder
     {
         $query = PlantingCycle::query()
             ->where('farm_id', $farm->id)
-            ->whereNotNull('planting_round_id');
+            ->whereNotNull('block_id');
         $subblok = (clone $query)->where('status', 'active')->orderBy('batch_number')->first()
             ?? (clone $query)->orderBy('batch_number')->first();
 

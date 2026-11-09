@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property string $id
  * @property string $farm_id
+ * @property string|null $block_id
  * @property string|null $variety_id
  * @property CarbonImmutable|null $planned_planting_at
  * @property CarbonImmutable|null $planted_at
@@ -22,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $status
  * @property CarbonImmutable|null $created_at
  */
-#[Fillable(['farm_id', 'variety_id', 'planned_planting_at', 'planted_at', 'sop_template_version_id', 'estimated_harvest_at', 'planted_area_ha', 'estimated_weight_ton', 'status'])]
+#[Fillable(['farm_id', 'block_id', 'variety_id', 'planned_planting_at', 'planted_at', 'sop_template_version_id', 'estimated_harvest_at', 'planted_area_ha', 'estimated_weight_ton', 'status'])]
 class PlantingCycle extends FarmerModel
 {
     protected $table = 'planting_cycles';
@@ -52,10 +53,10 @@ class PlantingCycle extends FarmerModel
         return $this->belongsTo(Farm::class, 'farm_id');
     }
 
-    /** @return BelongsTo<PlantingRound, $this> */
-    public function plantingRound(): BelongsTo
+    /** @return BelongsTo<FarmBlock, $this> */
+    public function block(): BelongsTo
     {
-        return $this->belongsTo(PlantingRound::class);
+        return $this->belongsTo(FarmBlock::class, 'block_id');
     }
 
     /** @return HasMany<PlantingCycleStage, $this> */

@@ -9,7 +9,6 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
-use App\Models\PlantingRound;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
@@ -181,7 +180,6 @@ class DemoOwnerPortfolioSeeder extends Seeder
         }
         foreach ($site['batches'] as $data) {
             $block = $blocks[$data['block_code']];
-            Gate::forUser($actor)->authorize('create', [PlantingRound::class, $block]);
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
             $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
                 'reserved_area_ha' => $data['reserved_area_ha'], 'subblock_label' => $data['subblock_label'],
@@ -208,13 +206,6 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 $batch->forceFill(['status' => 'harvested'])->save();
             }
             $this->taskStatuses($actor, $team, $batch, $data['status']);
-        }
-        foreach (PlantingRound::visibleTo($actor, $team)->whereIn('block_id', collect($blocks)->pluck('id'))->get() as $round) {
-            $running = PlantingCycle::visibleTo($actor, $team)->where('planting_round_id', $round->id)->whereIn('status', ['planned', 'active'])->exists();
-            if (! $running) {
-                Gate::forUser($actor)->authorize('update', $round);
-                $round->forceFill(['status' => 'closed'])->save();
-            }
         }
     }
 
