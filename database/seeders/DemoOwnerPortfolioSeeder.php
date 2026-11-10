@@ -55,8 +55,14 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 $id = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
                 $existing = Farm::visibleTo($actor, $team)->where('team_id', $team->id)->find($id);
                 if ($existing instanceof Farm) {
-                    // Stable IDs make renamed/edited presentation records recognizable.
-                    // Do not reset their fields, stages, task dates or latest user edits.
+                    // Keep operational history intact while synchronizing the requested
+                    // demo portfolio labels and areas on deterministic fixture records.
+                    Gate::forUser($actor)->authorize('update', $existing);
+                    $existing->forceFill($this->sitePresentation($site))->save();
+                    if ($site['key'] === 'cisarua') {
+                        $this->ensureMegamendungActiveBatch($actor, $team, $existing, $site);
+                    }
+
                     continue;
                 }
                 $this->assertUnusedId(Farm::class, $id);
@@ -79,6 +85,60 @@ class DemoOwnerPortfolioSeeder extends Seeder
             }
             $this->call(DemoOwnerPortfolioActivitySeeder::class);
         });
+    }
+
+    /** @param array<string, mixed> $site
+     * @return array<string, mixed>
+     */
+    private function sitePresentation(array $site): array
+    {
+        return [
+            'name' => $site['name'], 'address' => $site['address'], 'city' => $site['city'],
+            'district' => $site['district'], 'province' => $site['province'],
+            'total_area_ha' => $site['area_ha'],
+            'land_tenure_party' => $site['land_tenure_party'] ?? null,
+        ];
+    }
+
+    /** @param array<string, mixed> $site */
+    private function ensureMegamendungActiveBatch(User $actor, Team $team, Farm $farm, array $site): void
+    {
+        $batchData = DemoOwnerPortfolioData::megamendungActiveBatch();
+
+        $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->where('code', $batchData['block_code'])->firstOrFail();
+        $existing = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->where('subblock_label', $batchData['subblock_label'])
+            ->whereHas('plantingRound', fn ($rounds) => $rounds->where('block_id', $block->id))->first();
+        if ($existing instanceof PlantingCycle) {
+            return;
+        }
+
+        $commodity = $this->commodity($actor, $team, $site);
+        $variety = $this->variety($actor, $team, $commodity, $site);
+        Gate::forUser($actor)->authorize('create', [PlantingRound::class, $block]);
+        Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
+        $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
+            'reserved_area_ha' => $batchData['reserved_area_ha'],
+            'subblock_label' => $batchData['subblock_label'],
+            'planned_planting_at' => $batchData['planned_planting_at'],
+        ]);
+        Gate::forUser($actor)->authorize('update', $batch);
+        $batch->forceFill([
+            'status' => 'active', 'variety_id' => $variety->id,
+            'planted_at' => $batchData['planted_at'], 'planted_area_ha' => $batchData['planted_area_ha'],
+            'estimated_harvest_at' => $batchData['estimated_harvest_at'],
+            'estimated_weight_ton' => $batchData['estimated_weight_ton'],
+        ])->save();
+
+        foreach (PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $batch->id)->orderBy('position')->get() as $stage) {
+            Gate::forUser($actor)->authorize('update', $stage);
+            [$status, $started, $completed] = $this->stageDates($batchData)[$stage->getAttribute('code')];
+            $stage->forceFill(['status' => $status, 'started_at' => $started, 'completed_at' => $completed])->save();
+        }
+        Gate::forUser($actor)->authorize('create', [PlantingCycleTask::class, $batch]);
+        app(PlantingCycleTaskService::class)->generateForSubblok($batch);
+        $this->taskStatuses($actor, $team, $batch, 'active');
     }
 
     /** @param array<string, mixed> $site */
