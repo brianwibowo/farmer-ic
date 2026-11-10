@@ -10,12 +10,14 @@ import PetugasLayout from '@/layouts/PetugasLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { getAppName, resolveAppName } from '@/lib/appName';
 import { dismissStartupScreen, showStartupError } from '@/lib/startupScreen';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-
 void createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title, page) => {
+        const appName = resolveAppName(page.props.name);
+        return title ? `${title} - ${appName}` : appName;
+    },
     layout: (name) => {
         switch (true) {
             // The same /settings/profile page supplies its own role-specific
@@ -65,7 +67,7 @@ void createInertiaApp({
     .then(dismissStartupScreen)
     .catch((error: unknown) => {
         showStartupError();
-        console.error('Farm IC could not start:', error);
+        console.error(`${getAppName()} could not start:`, error);
     });
 
 // This will set light / dark mode on page load...

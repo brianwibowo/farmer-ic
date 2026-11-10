@@ -40,10 +40,10 @@ defineProps<{ projection: HarvestProjection; loading: boolean }>();
             role="region"
             aria-label="Tabel proyeksi panen per kebun, geser untuk melihat seluruh kolom"
             tabindex="0"
-            class="max-h-[65vh] overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+            class="isolate max-h-[65vh] overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
         >
             <table
-                class="w-full min-w-[480px] border-collapse text-left text-sm lg:text-base"
+                class="w-full min-w-120 border-separate border-spacing-0 text-left text-sm lg:text-base"
             >
                 <caption class="sr-only">
                     Proyeksi panen
@@ -53,37 +53,37 @@ defineProps<{ projection: HarvestProjection; loading: boolean }>();
                             : 'per cycle berdasarkan total luas kebun'
                     }}.
                 </caption>
-                <thead class="sticky top-0 z-10 bg-muted text-muted-foreground">
+                <thead class="text-muted-foreground">
                     <tr>
                         <th
                             scope="col"
-                            class="w-2/5 border-y border-border px-4 py-3 font-medium lg:px-5"
+                            class="sticky top-0 left-0 z-30 w-2/5 border-y border-r border-border bg-muted px-4 py-3 font-medium lg:px-5"
                         >
                             Nama kebun
                         </th>
                         <th
                             scope="col"
-                            class="border-y border-border px-4 py-3 font-medium"
+                            class="sticky top-0 z-20 border-y border-border bg-muted px-4 py-3 font-medium"
                         >
                             Tanaman
                         </th>
                         <th
                             scope="col"
-                            class="border-y border-border px-4 py-3 text-right font-medium lg:px-5"
+                            class="sticky top-0 z-20 border-y border-border bg-muted px-4 py-3 text-right font-medium lg:px-5"
                         >
                             Proyeksi panen (TON)
                         </th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-border">
+                <tbody>
                     <tr v-for="row in projection.rows" :key="row.key">
                         <th
                             scope="row"
-                            class="px-4 py-4 align-top font-medium break-words lg:px-5"
+                            class="sticky left-0 z-10 border-r border-b border-border bg-card px-4 py-4 align-top font-medium break-words lg:px-5"
                         >
                             {{ row.farm_name }}
                         </th>
-                        <td class="px-4 py-4 align-top">
+                        <td class="border-b border-border px-4 py-4 align-top">
                             <span
                                 :class="
                                     row.crop_name ? '' : 'text-muted-foreground'
@@ -93,7 +93,7 @@ defineProps<{ projection: HarvestProjection; loading: boolean }>();
                                 }}</span
                             >
                         </td>
-                        <td class="px-4 py-4 text-right align-top lg:px-5">
+                        <td class="border-b border-border px-4 py-4 text-right align-top lg:px-5">
                             <span class="font-bold tabular-nums">{{
                                 projectionNumber(row.projection_ton)
                             }}</span>

@@ -5,6 +5,10 @@ import { computed } from 'vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
 import OwnerCycleCard from '@/components/owner/OwnerCycleCard.vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
+import {
+    ownerFarmOrigin,
+    withOwnerFarmOrigin,
+} from '@/lib/ownerFarmNavigation';
 import type { OwnerBlock, OwnerCycle, OwnerFarmRow } from '@/types/owner';
 import { ownerArea, ownerDate, ownerStatus } from '@/types/owner';
 
@@ -59,6 +63,11 @@ const location = computed(() =>
         .join(', '),
 );
 const page = usePage();
+const origin = computed(() => ownerFarmOrigin(page.url));
+const backHref = computed(() => (origin.value === 'home' ? '/' : '/kebun'));
+const backLabel = computed(() =>
+    origin.value === 'home' ? 'Kembali ke Beranda' : 'Daftar kebun',
+);
 const mapFarms = computed(() => [
     {
         id: props.farm.id,
@@ -89,8 +98,8 @@ const severity: Record<string, string> = {
     <OwnerPageHeader
         :title="farm.name"
         :description="location || 'Lokasi belum tercatat'"
-        back-href="/kebun"
-        back-label="Daftar kebun"
+        :back-href="backHref"
+        :back-label="backLabel"
     />
     <section
         class="rounded-xl border border-border bg-card p-4"
@@ -114,6 +123,16 @@ const severity: Record<string, string> = {
                             ? (tenure[farm.land_tenure] ?? farm.land_tenure)
                             : 'Belum tercatat'
                     }}
+                </dd>
+            </div>
+            <div
+                v-if="farm.land_tenure === 'rented' || farm.land_tenure === 'partnership'"
+            >
+                <dt class="text-xs text-muted-foreground">
+                    {{ farm.land_tenure === 'rented' ? 'Pemilik lahan' : 'Mitra kerja sama' }}
+                </dt>
+                <dd class="mt-1 [overflow-wrap:anywhere]">
+                    {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}
                 </dd>
             </div>
             <div>
@@ -190,7 +209,12 @@ const severity: Record<string, string> = {
             <Link
                 v-for="block in blocks"
                 :key="block.id"
-                :href="`/kebun/${farm.id}/blok/${block.id}`"
+                :href="
+                    withOwnerFarmOrigin(
+                        `/kebun/${farm.id}/blok/${block.id}`,
+                        origin,
+                    )
+                "
                 class="block rounded-xl border border-border p-4 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
                 ><div class="flex justify-between gap-3">
                     <h3 class="text-sm font-semibold">
