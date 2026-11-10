@@ -29,6 +29,7 @@ export type OwnerDashboardLandRow = {
     land_tenure_party: string | null;
     requires_land_tenure_party: boolean;
     crops: Array<{ id: string; name: string; varieties: string[] }>;
+    projections: Array<{ id: string; name: string; ton: number | null }>;
     progress: {
         completed_stages: number;
         total_stages: number;

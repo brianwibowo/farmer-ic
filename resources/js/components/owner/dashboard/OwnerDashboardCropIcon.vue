@@ -8,15 +8,13 @@ const normalizedName = computed(() =>
 );
 const imageSource = computed(() => {
     if (normalizedName.value === 'jagung')
-        return '/images/commodities/jagung.svg';
+        return '/images/commodities/jagung-monochrome.svg';
     if (normalizedName.value === 'rumput')
-        return '/images/commodities/rumput.png';
+        return '/images/commodities/rumput-monochrome.svg';
 
     return null;
 });
 const iconColor = computed(() => {
-    if (normalizedName.value === 'jagung') return 'text-warning';
-    if (normalizedName.value === 'rumput') return 'text-success';
     if (normalizedName.value === 'sorgum') return 'text-secondary';
 
     return 'text-muted-foreground';
@@ -33,7 +31,7 @@ const iconColor = computed(() => {
             v-if="imageSource"
             :src="imageSource"
             :alt="''"
-            class="size-full object-cover"
+            class="size-5 object-contain"
         />
         <Wheat v-else-if="normalizedName === 'sorgum'" class="size-4" />
         <Sprout v-else class="size-4" />

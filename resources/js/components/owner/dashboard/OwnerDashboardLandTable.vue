@@ -3,9 +3,8 @@ import { Link } from '@inertiajs/vue3';
 import { ArrowUpRight, ChevronDown } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import OwnerDashboardCropIcon from '@/components/owner/dashboard/OwnerDashboardCropIcon.vue';
-import OwnerDashboardProjectionPie from '@/components/owner/dashboard/OwnerDashboardProjectionPie.vue';
 import { withOwnerFarmOrigin } from '@/lib/ownerFarmNavigation';
-import { ownerArea, ownerDate, ownerStatus } from '@/types/owner';
+import { ownerArea } from '@/types/owner';
 import type { OwnerDashboardLandTable } from '@/types/owner-dashboard';
 
 const props = defineProps<{
@@ -13,6 +12,10 @@ const props = defineProps<{
     loading?: boolean;
 }>();
 const expandedGroups = ref<string[]>([]);
+const tonFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+const percentageFormat = new Intl.NumberFormat('id-ID', {
+    maximumFractionDigits: 0,
+});
 const expandedSet = computed(() => new Set(expandedGroups.value));
 const groupedArea = computed(() =>
     props.table.groups.reduce(
@@ -83,37 +86,37 @@ const groupRowsId = (groupId: string) =>
                     <tr>
                         <th
                             scope="col"
-                            class="sticky top-0 left-0 z-30 min-w-[166px] border-r border-b border-border bg-muted px-3 py-3 font-semibold"
+                            class="sticky top-0 left-0 z-30 min-w-[166px] border-r border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
                         >
                             Kota / kabupaten
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-r border-b border-border bg-muted px-3 py-3 text-right font-semibold whitespace-nowrap"
+                            class="sticky top-0 z-20 border-r border-b border-border bg-[#1f5b2a] px-3 py-3 text-right font-semibold whitespace-nowrap text-white"
                         >
                             Luas (ha)
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-r border-b border-border bg-muted px-3 py-3 font-semibold"
+                            class="sticky top-0 z-20 border-r border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
                         >
                             Legalitas
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-r border-b border-border bg-muted px-3 py-3 font-semibold"
+                            class="sticky top-0 z-20 border-r border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
                         >
                             Jenis tanaman
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-r border-b border-border bg-muted px-3 py-3 font-semibold"
+                            class="sticky top-0 z-20 border-r border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
                         >
                             Progress
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-b border-border bg-muted px-3 py-3 font-semibold"
+                            class="sticky top-0 z-20 border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
                         >
                             Proyeksi panen
                         </th>
@@ -133,7 +136,7 @@ const groupRowsId = (groupId: string) =>
                         <tr>
                             <th
                                 scope="row"
-                                class="sticky left-0 z-10 border-r border-b border-border bg-card p-0 text-left align-top font-medium"
+                                class="sticky left-0 z-10 border-r border-b border-border bg-primary/10 p-0 text-left align-top font-medium"
                             >
                                 <button
                                     type="button"
@@ -169,17 +172,17 @@ const groupRowsId = (groupId: string) =>
                                 </button>
                             </th>
                             <td
-                                class="border-r border-b border-border bg-card px-3 py-3 text-right align-top tabular-nums"
+                                class="border-r border-b border-border bg-primary/10 px-3 py-3 text-right align-top tabular-nums"
                             >
                                 {{ ownerArea(group.area_ha) }}
                             </td>
                             <td
-                                class="border-r border-b border-border bg-card px-3 py-3 align-top text-muted-foreground"
+                                class="border-r border-b border-border bg-primary/10 px-3 py-3 align-top text-muted-foreground"
                             >
                                 —
                             </td>
                             <td
-                                class="border-r border-b border-border bg-card px-3 py-3 align-top"
+                                class="border-r border-b border-border bg-primary/10 px-3 py-3 align-top"
                             >
                                 <ul
                                     v-if="group.crops.length"
@@ -200,35 +203,64 @@ const groupRowsId = (groupId: string) =>
                                 >
                             </td>
                             <td
-                                class="border-r border-b border-border bg-card px-3 py-3 align-top"
+                                class="border-r border-b border-border bg-primary/10 px-3 py-3 align-top"
                             >
                                 <template
                                     v-if="group.progress.percentage !== null"
                                     ><p class="font-medium tabular-nums">
                                         {{
                                             ownerArea(
-                                                group.progress.percentage,
+                                                percentageFormat.format(
+                                                    group.progress.percentage,
+                                                ),
                                             )
                                         }}%
-                                    </p>
-                                    <p
-                                        class="mt-1 text-xs text-muted-foreground"
-                                    >
-                                        {{ group.progress.completed_stages }}/{{
-                                            group.progress.total_stages
-                                        }}
-                                        tahap selesai
                                     </p></template
                                 ><span v-else class="text-muted-foreground"
                                     >Tahap belum tercatat</span
                                 >
                             </td>
                             <td
-                                class="border-b border-border bg-card px-3 py-3 align-top"
+                                class="border-b border-border bg-primary/10 px-3 py-3 align-top"
                             >
-                                <OwnerDashboardProjectionPie
-                                    :projection="group.projection"
-                                />
+                                <div
+                                    v-if="group.projection.has_data"
+                                    class="space-y-1.5"
+                                >
+                                    <p
+                                        v-for="crop in group.projection
+                                            .commodities"
+                                        :key="crop.id"
+                                        class="flex justify-between gap-2 font-normal"
+                                    >
+                                        <span class="min-w-0 text-sm">{{
+                                            crop.name
+                                        }}</span>
+                                        <span
+                                            class="shrink-0 text-sm tabular-nums"
+                                            >{{
+                                                tonFormat.format(crop.ton)
+                                            }}
+                                            ton</span
+                                        >
+                                    </p>
+                                    <p
+                                        class="flex justify-between gap-2 border-t border-border/70 pt-1 text-sm font-bold tabular-nums"
+                                    >
+                                        <span>Total</span>
+                                        <span
+                                            >{{
+                                                tonFormat.format(
+                                                    group.projection.total_ton,
+                                                )
+                                            }}
+                                            ton</span
+                                        >
+                                    </p>
+                                </div>
+                                <span v-else class="text-muted-foreground"
+                                    >Belum tersedia</span
+                                >
                             </td>
                         </tr>
                         <template v-if="isExpanded(group.id)">
@@ -243,7 +275,7 @@ const groupRowsId = (groupId: string) =>
                             >
                                 <th
                                     scope="row"
-                                    class="sticky left-0 z-10 border-r border-b border-border bg-muted px-3 py-3 pl-9 text-left align-top font-medium"
+                                    class="sticky left-0 z-10 border-r border-b border-border bg-card px-3 py-3 pl-9 text-left align-top font-medium"
                                 >
                                     <Link
                                         :href="
@@ -257,12 +289,12 @@ const groupRowsId = (groupId: string) =>
                                     >
                                 </th>
                                 <td
-                                    class="border-r border-b border-border bg-muted px-3 py-3 text-right align-top tabular-nums"
+                                    class="border-r border-b border-border bg-card px-3 py-3 text-right align-top tabular-nums"
                                 >
                                     {{ ownerArea(row.area_ha) }}
                                 </td>
                                 <td
-                                    class="border-r border-b border-border bg-muted px-3 py-3 align-top"
+                                    class="border-r border-b border-border bg-card px-3 py-3 align-top"
                                 >
                                     <p class="font-bold">
                                         {{ row.legality ?? 'Belum tercatat' }}
@@ -278,7 +310,7 @@ const groupRowsId = (groupId: string) =>
                                     </p>
                                 </td>
                                 <td
-                                    class="border-r border-b border-border bg-muted px-3 py-3 align-top"
+                                    class="border-r border-b border-border bg-card px-3 py-3 align-top"
                                 >
                                     <ul
                                         v-if="row.crops.length"
@@ -313,16 +345,19 @@ const groupRowsId = (groupId: string) =>
                                     >
                                 </td>
                                 <td
-                                    class="border-r border-b border-border bg-muted px-3 py-3 align-top"
+                                    class="border-r border-b border-border bg-card px-3 py-3 align-top"
                                 >
                                     <p
                                         v-if="row.progress.total_stages"
                                         class="font-medium tabular-nums"
                                     >
-                                        {{ row.progress.completed_stages }}/{{
-                                            row.progress.total_stages
-                                        }}
-                                        tahap selesai
+                                        {{
+                                            percentageFormat.format(
+                                                (row.progress.completed_stages /
+                                                    row.progress.total_stages) *
+                                                    100,
+                                            )
+                                        }}%
                                     </p>
                                     <p v-else class="text-muted-foreground">
                                         Tahap belum tercatat
@@ -347,37 +382,32 @@ const groupRowsId = (groupId: string) =>
                                     </p>
                                 </td>
                                 <td
-                                    class="border-b border-border bg-muted px-3 py-3 align-top"
+                                    class="border-b border-border bg-card px-3 py-3 align-top"
                                 >
-                                    <template v-if="row.resume"
-                                        ><Link
-                                            :href="row.resume.detail_url"
-                                            class="inline-flex min-h-11 items-start rounded-md font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
-                                            >{{
-                                                row.resume.title ??
-                                                'Aktivitas tercatat'
-                                            }}</Link
+                                    <ul
+                                        v-if="row.projections.length"
+                                        class="space-y-1.5"
+                                    >
+                                        <li
+                                            v-for="crop in row.projections"
+                                            :key="crop.id"
+                                            class="flex justify-between gap-2 font-normal"
                                         >
-                                        <p
-                                            v-if="row.resume.description"
-                                            class="mt-1 break-words"
-                                        >
-                                            {{ row.resume.description }}
-                                        </p>
-                                        <p
-                                            class="mt-2 text-xs text-muted-foreground"
-                                        >
-                                            {{ ownerDate(row.resume.date) }} ·
-                                            {{
-                                                ownerStatus[
-                                                    row.resume.status ?? ''
-                                                ] ??
-                                                row.resume.status ??
-                                                'Status belum tercatat'
-                                            }}
-                                        </p></template
-                                    ><span v-else class="text-muted-foreground"
-                                        >Belum ada aktivitas tercatat</span
+                                            <span class="min-w-0">{{
+                                                crop.name
+                                            }}</span>
+                                            <span
+                                                class="shrink-0 tabular-nums"
+                                                >{{
+                                                    crop.ton === null
+                                                        ? 'Belum tersedia'
+                                                        : `${tonFormat.format(crop.ton)} ton`
+                                                }}</span
+                                            >
+                                        </li>
+                                    </ul>
+                                    <span v-else class="text-muted-foreground"
+                                        >Belum ada proyeksi panen</span
                                     >
                                 </td>
                             </tr>

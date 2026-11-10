@@ -175,6 +175,17 @@ class OwnerReadService
         // scoped records, not a separate data source.
         $projectionRows = collect($this->harvestProjections
             ->summary($actor, $team, 'cycle', $farmId)['rows']);
+        $projectionsByFarm = $projectionRows->groupBy('farm_id')->map(fn ($farmProjections) => $farmProjections
+            ->filter(fn (array $projection): bool => $projection['crop_name'] !== null)
+            ->map(fn (array $projection): array => [
+                'id' => (string) $projection['key'],
+                'name' => (string) $projection['crop_name'],
+                'ton' => $projection['projection_ton'],
+            ])->values()->all());
+        foreach ($rows as &$row) {
+            $row['projections'] = $projectionsByFarm->get($row['id'], []);
+        }
+        unset($row);
         $citiesByFarm = $farms->mapWithKeys(
             fn (Farm $farm): array => [(string) $farm->id => trim((string) $farm->city)],
         );
