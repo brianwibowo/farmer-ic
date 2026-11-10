@@ -81,6 +81,82 @@ without changing stored values. Rolling it back is rejected by PostgreSQL while
 any farm uses `partnership`; it never silently converts or clears that status.
 Contract terms and profit sharing for cooperative land are outside this field.
 
+### Owner legality details
+
+`GET /kebun/{farm}/legalitas` (`owner.farms.legality`) opens the read-only
+`owner/Legality` page from the dashboard's Legalitas column or the farm detail.
+The persisted one-to-one `farm_legalities` record holds the PKS start/end dates,
+related institution, and a summary. This does not replace `land_tenure` or
+`land_tenure_party`. The database rejects an end date before the start date. Owned land can
+explicitly have no PKS period without inventing a rental agreement.
+
+The Controller authorizes Farm `view` and FarmLegality `viewAny` even when no
+legality record exists. `OwnerReadService::legality` scopes both records with
+`visibleTo($actor, $team)` and restricts the Farm to the persisted active team.
+Owner has only `farm_legalities.view = any`; Admin may create/update/delete
+the record and view/create/delete its draft PDFs. Petugas has no grant.
+Superadmin retains the existing developer bypass. This Owner route additionally
+requires `auth`, `verified`, and `owner.access` and has no mutation controls.
+Status is derived using the Asia/Jakarta calendar: upcoming, active (inclusive
+end date), expired, incomplete, or not_applicable for owned land with no dates.
+An absent record stays null; no frontend fixture fills missing legal data.
+
+Admin farm detail labels its existing status field **Legalitas**. Its text link
+opens `GET /admin/farm-management/{farm}/legalitas` (`farm-management.legality.show`),
+the dedicated detail page with native Farm `view`, Legality `viewAny`, and active
+tenant checks. The farm overview contains only that link, without a second
+legalities card or editor. On the dedicated page, the pencil opens the shared
+create/edit dialog; deletion is confirmed inside that dialog. Save/delete return
+to this same detail page; deletion leaves an empty state with the create pencil.
+The backend uses:
+
+- `POST /admin/farm-management/{farm}/legality` to create;
+- `PUT /admin/farm-management/{farm}/legality/{legality}` to update (multipart
+  submissions use `POST` with `_method=put`);
+- `DELETE` on the same nested URL to delete the record and its PDFs.
+
+These actions require `auth`, `verified`, `admin.access`, the native policy
+ability, and a farm in the persisted active tenant. Requests reject forbidden
+farms before date/PDF validation, while Controllers remain the explicit action
+authorization boundary. A wrong nested parent cannot reassign a record. PKS
+dates are required for sewa/kerja sama and may both be empty for milik sendiri.
+Institution and summary are manually entered, required text; no AI generates or
+rewrites these values. Owner reads the same service payload on navigation or
+refresh, with no cached fixture fallback.
+
+Optional drafts are real PDF uploads stored on the private `legality` disk under
+`storage/app/private/legality`, with random server-generated paths and persisted
+`farm_legality_documents` metadata. Paths/disk names never appear in page props.
+Each legality allows at most five PDFs in total. The configured ceiling is
+10 MB per file and 50 MB per submission, reduced by the PHP upload/post limits
+(one MB multipart allowance); actual limits are supplied to the form. The
+default local PHP setup therefore allows 2 MB per file and 7 MB per submission.
+Both extension and content-derived MIME type must be PDF. Removal accepts only
+UUIDs belonging to the current legality. New files are removed if persistence
+rolls back, and superseded/deleted files are removed after the database commits.
+Storage cleanup failures are reported server-side without exposing a file URL.
+
+`GET /farm-legality-documents/{document}/download` requires an authenticated,
+verified session, Document `view`, and active-tenant scoped Document/Legality
+reads. Responses are private PDF attachments with `nosniff`; Owners can download
+only visible files. Normal farm deletion blocks existing legalities. Explicit
+force deletion includes legalities/PDFs in the confirmation graph and removes
+their private files after commit. A scoped graph that omits physical child rows
+blocks cascading deletion instead of silently deleting unseen records.
+
+`FarmLegalitySeeder` adds missing examples for the recognized six prototype
+farms, including three owned records without PKS and three rental/partnership
+agreements. It is included after portfolio/name seeders for fresh local/testing
+installs and can also be run alone with
+`php artisan db:seed --class=FarmLegalitySeeder`. It requires the fixed active
+Superadmin seed account and its non-personal seed tenant, uses native Gates and
+scoped reads, and refuses other environments. It neither resets identities nor
+changes farm fields or existing legality records. Farms whose tenure was edited
+away from the fixture are skipped. Summaries describe the land arrangement
+without claiming a certificate number or requiring a particular crop.
+Apply the additive `2026_11_10_000001` and `2026_11_10_000002` migrations first. Never use this seeder or
+an overall database reset against non-prototype data.
+
 `FarmLocationMap` replaces the numeric inputs. Users click the map or drag the
 pin; keyboard users can pan with arrow keys and select the map center. Removing
 the pin clears both coordinates. Only a confirmed selection is submitted; the

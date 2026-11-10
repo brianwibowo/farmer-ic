@@ -10,6 +10,8 @@ use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardWeatherController;
 use App\Http\Controllers\FarmBlockController;
+use App\Http\Controllers\FarmLegalityController;
+use App\Http\Controllers\FarmLegalityDocumentController;
 use App\Http\Controllers\FarmManagementController;
 use App\Http\Controllers\Finance\FinanceController;
 use App\Http\Controllers\Finance\FinanceSummaryController;
@@ -53,6 +55,7 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
     Route::get('kebun/aktivitas', fn (Request $request) => to_route('aktivitas',
         Str::isUuid((string) $request->query('id', '')) ? ['farm_id' => $request->query('id')] : []))->name('kebun.aktivitas');
     Route::get('kebun/{farm}', [OwnerController::class, 'farm'])->whereUuid('farm')->name('owner.farms.show');
+    Route::get('kebun/{farm}/legalitas', [OwnerController::class, 'legality'])->whereUuid('farm')->name('owner.farms.legality');
     Route::get('kebun/{farm}/blok/{block}', [OwnerController::class, 'block'])
         ->whereUuid(['farm', 'block'])->name('owner.blocks.show');
     Route::get('aktivitas', [OwnerController::class, 'activities'])->name('aktivitas');
@@ -84,6 +87,8 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('farm-legality-documents/{document}/download', FarmLegalityDocumentController::class)
+        ->whereUuid('document')->name('farm-legality-documents.download');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('notifications.read');
@@ -141,6 +146,14 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::delete('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'destroy'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.destroy');
 
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');
+    Route::get('farm-management/{farm}/legalitas', [FarmLegalityController::class, 'show'])
+        ->whereUuid('farm')->name('farm-management.legality.show');
+    Route::post('farm-management/{farm}/legality', [FarmLegalityController::class, 'store'])
+        ->whereUuid('farm')->name('farm-management.legality.store');
+    Route::put('farm-management/{farm}/legality/{legality}', [FarmLegalityController::class, 'update'])
+        ->whereUuid(['farm', 'legality'])->name('farm-management.legality.update');
+    Route::delete('farm-management/{farm}/legality/{legality}', [FarmLegalityController::class, 'destroy'])
+        ->whereUuid(['farm', 'legality'])->name('farm-management.legality.destroy');
     Route::get('farm-management/{farm}/deletion-check', [FarmManagementController::class, 'deletionCheck'])->whereUuid('farm')->name('farm-management.deletion-check');
     Route::get('farm-management/{farm}/force-delete', [FarmManagementController::class, 'confirmForceDelete'])
         ->whereUuid('farm')->name('farm-management.force-delete');

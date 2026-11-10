@@ -1,5 +1,6 @@
 /* Petugas shares the admin palette/font; only its mobile composition differs. */
 .petugas-dashboard-theme {
+    --incident-heavy: #c2410c;
     --admin-panel-padding: 1rem;
     --petugas-home-hero-from: var(--admin-primary-pressed);
     --petugas-home-hero-mid: var(--primary);
@@ -12,6 +13,7 @@
 }
 
 .dark .petugas-dashboard-theme {
+    --incident-heavy: #fdba74;
     --petugas-home-hero-from: var(--primary-foreground);
     --petugas-home-hero-mid: var(--admin-chart-tertiary);
     --petugas-home-hero-to: color-mix(
@@ -24,6 +26,11 @@
 
 .petugas-home-content {
     flex: 1;
+}
+
+.petugas-incident-heavy {
+    color: var(--incident-heavy);
+    background: color-mix(in srgb, var(--incident-heavy) 10%, transparent);
 }
 
 .petugas-home {

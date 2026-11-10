@@ -367,7 +367,19 @@ stored land-tenure label and, for Sewa/Kerja sama, the persisted name of the
 landowner or partner (`land_tenure_party`). Require that name in the farm form
 when either status is selected; show “Pihak terkait belum diisi” for legacy
 records without it. Milik sendiri does not show a related party. Missing fields
-remain explicit. Progress is a completed-stage count across
+remain explicit. The Legalitas cell links to the farm's read-only legality page
+at `/kebun/{farm}/legalitas`, also accessible from farm information. Show the
+persisted PKS start/end dates, related institution, and legality summary. For
+owned land without a PKS, state that its period does not apply; never invent
+agreement dates. An absent record has an explicit empty state. Keep the Farmer
+profile, semantic status colors, and responsive cards. List optional draft PDF
+attachments below the summary with their original filenames, sizes, and labeled
+download links. Wrap long filenames on phones; fetch documents only through
+authenticated, tenant-scoped download routes. An empty list says no draft has
+been uploaded. Owner remains read-only and displays the same persisted fields
+and attachments edited by Admin. A Beranda entry returns
+to Beranda; a farm-detail entry uses the finite `via=farm` flag and carries the
+existing `from=home` context back through the farm page. Progress is a completed-stage count across
 running batches, not an invented crop-growth percentage. Resume is the latest
 record with its own date, independent of legacy activity-period query parameters.
 Preserve Owner profile, AI and existing authorization; keep empty/loading/error
@@ -406,6 +418,24 @@ Retain concise copy, existing data, assignment scopes, navigation destinations,
 and request states. Styling a prototype form does not imply working persistence.
 
 ### Petugas home
+
+Above the to-do heading, show up to four active incident alerts from the assigned
+farm, ordered by emergency level and then newest report. Use the persisted
+IncidentDetail severity and FarmActivity status; hide resolved/completed/closed,
+cancelled/draft, future, unknown-severity, unassigned-farm, and foreign-tenant
+records. Show the scoped total if more incidents exist. No incidents means no
+alert placeholder. Ringan uses info blue, Sedang warning amber, Berat the scoped
+`--incident-heavy` orange token, and Darurat error red. Match HomeSopTask:
+use the shared `petugas-card` white/dark surface, 20px corners, 16px padding,
+a 32px circular leading icon, and a 14px/600 description as the card title.
+Apply severity colors only to the icon circle and compact pill badge. Use
+neutral date/status text and no colored outer border or full-card tint.
+Optional handling notes expand below a subtle divider using a 44px touch target.
+Keep labels readable in both themes and do not rely on color alone. Darurat
+announces an alert; lower levels use a status announcement. Do not dismiss or
+resolve a persisted incident from frontend state. Alerts read database records;
+the existing ActivityCreate prototype still validates locally until its separate
+submission flow is connected to backend persistence.
 
 The `/petugas` home follows the supplied two-part mobile composition: a full-width
 three-stop emerald gradient hero, darker at the upper left and lighter at the
@@ -991,6 +1021,23 @@ while visiting block routes. Farm detail uses one overview panel: registered are
 
 Block and sub block editor dialogs use a roomy 768px maximum desktop width, constrained to the viewport on phones. Use card surfaces, semantic tokens, a context header with the existing icon system, a visible capacity summary, two form columns where space permits, and an independently scrolling body. Keep the separated Batal/Simpan footer visible while scrolling; hide duplicate submit/close actions while processing. Retain focus trapping, keyboard dismissal, unsaved-change confirmation, inline errors, and both profile themes. Block forms follow the farm
 form width, and compact list metrics retain their units.
+
+Admin farm detail includes a clickable Legalitas value inside the existing
+farm information, using the same tenure label and alignment as its other
+metadata, without an arrow or separate legality card. It opens
+`/admin/farm-management/{farm}/legalitas`. That detail page contains the
+persisted legality, optional PDFs, a return link to its farm, and a labeled
+pencil button opening the create/edit dialog. Render actions from backend
+permissions. Use date fields for PKS start
+and end, a related-institution field, and a summary textarea. PKS dates may be
+empty for owned land; otherwise require both and reject an end before the start.
+Optional draft attachments accept multiple PDFs. Show the effective server file
+count/size limits, retained files, pending additions/removals, inline validation,
+upload progress, and success/error feedback. Keep files private. Deletion lives
+inside the editor and requires a second explicit confirmation using the shared
+destructive button variants. Preserve typed values on errors and confirm before
+discarding unsaved changes. Dialogs use the admin theme, a scrollable body, and
+reachable footer controls on small phones and landscape viewports.
 Capacity metrics provide an information button with a 44px touch target using
 `MetricInfoTooltip`; explain block boundaries, batch reservations, and a labeled
 example. Keep totals visible, support keyboard/tap dismissal, and theme portals.
