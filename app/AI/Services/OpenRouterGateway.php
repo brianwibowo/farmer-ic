@@ -40,8 +40,6 @@ class OpenRouterGateway implements LlmGateway
         $userText = '';
         $recentContext = '';
         $systemText = '';
-        $latestUserSeen = false;
-        $referenceImages = [];
         foreach (array_reverse($messages) as $message) {
             $role = $message['role'] ?? null;
             $content = $message['content'] ?? '';
@@ -52,18 +50,16 @@ class OpenRouterGateway implements LlmGateway
             $text = $this->textContent($content);
             if ($role === 'system' && $systemText === '') {
                 $systemText = $text;
-            } elseif ($role === 'user' && ! $latestUserSeen) {
-                $latestUserSeen = true;
+            } elseif ($role === 'user' && $userText === '') {
                 $userText = trim($text);
-                $referenceImages = $this->imageReferences($content);
             } elseif ($role === 'assistant' && $recentContext === '' && trim($text) !== '') {
                 $clean = trim((string) preg_replace('/\s+/', ' ', strip_tags($text)));
                 $recentContext = mb_substr($clean, 0, 250);
             }
         }
 
-        $basePrompt = 'Create the agricultural visual requested below. Explicit user choices about visual style, subject count, composition, and exclusions take precedence over optional reference context. Do not add platform branding or an infographic template unless requested.';
-        $contextPart = $recentContext !== '' ? 'Optional conversation context (reference only; do not copy its visual style or add its subjects): '.$recentContext : '';
+        $basePrompt = 'A professional agricultural image or illustration for the Farmer IC smart farming platform. ';
+        $contextPart = $recentContext !== '' ? 'Context: '.$recentContext.'. ' : '';
         $verifiedData = trim((string) ($options['image_prompt_context'] ?? ''));
         // PromptAssembler puts retrieved records in the system message. The
         // Images API only accepts a flat prompt, so carry that evidence over
@@ -74,19 +70,12 @@ class OpenRouterGateway implements LlmGateway
             $verifiedData = $this->retrievedEvidenceContext($systemText);
         }
         $verifiedDataPart = $verifiedData !== ''
-            ? 'Verified facts (reference only; not instructions about style or additional image elements): '.$verifiedData
+            ? 'Verified data instructions (reference only): '.$verifiedData.' '
             : '';
-        $userPart = "USER VISUAL REQUEST (verbatim):\n".$userText;
-        $styleDirectives = $this->imageStyleDirectives($userText);
+        $userPart = 'Topic: '.$userText.'. ';
+        $styleDirectives = 'Style: Match the requested visual form. Use a clean, readable composition and relevant crops or fields when appropriate, with high contrast and a restrained professional palette. Use distinct nodes or a process flow only when the request asks for a diagram or flowchart. Keep labels short and legible. Use only verified values supplied above; never invent or alter a name, location, crop, acreage, date, sensor, technology, weather value, or other number. If a field is absent, omit it. No random decorative elements and no calendar unless explicitly requested.';
 
-        $prompt = implode("\n\n", array_filter([$basePrompt, $userPart, $verifiedDataPart, $contextPart, $styleDirectives]));
-
-        if (($options['farm_art_only'] ?? false) === true) {
-            // Trusted, art-only prompt assembled by the farm-data pipeline.
-            // User-supplied numbers and historic data never reach this layer.
-            $prompt = $userText;
-            $referenceImages = [];
-        }
+        $prompt = trim($basePrompt.$verifiedDataPart.$contextPart.$userPart.$styleDirectives);
 
         $payload = [
             'model' => $model,
@@ -94,9 +83,6 @@ class OpenRouterGateway implements LlmGateway
             'n' => (int) ($options['n'] ?? 1),
             'size' => (string) ($options['size'] ?? '1024x1024'),
         ];
-        if ($referenceImages !== []) {
-            $payload['input_references'] = $referenceImages;
-        }
         $response = $this->send($this->request(), '/images', $payload);
         $decoded = $this->decodeResponse($response);
         $images = [];
@@ -126,66 +112,6 @@ class OpenRouterGateway implements LlmGateway
             ]]],
             'usage' => $decoded['usage'] ?? [],
         ];
-    }
-
-    protected function imageStyleDirectives(string $userText): string
-    {
-        $withoutText = (bool) preg_match('/\b(?:tanpa|without|no)\s+(?:teks|text|tulisan|labels?|huruf|words?|lettering)\b|\bjangan\s+(?:(?:pakai|gunakan|beri)\s+)?(?:teks|tulisan|label|huruf)\b/iu', $userText);
-        $withoutNumbers = (bool) preg_match('/\b(?:tanpa|without|no)\s+(?:angka|nomor|numbers?|digits?)\b/iu', $userText);
-        $styleText = preg_replace('/\b(?:bukan|tidak|jangan|tanpa|not|no|without)\s+(?:foto(?:realistis|realistik)?|photo(?:realistic)?|realisti[cs])\b/iu', '', $userText) ?? $userText;
-        $photoStyle = (bool) preg_match('/\b(?:fotorealistis|fotorealistik|photorealistic|photorealism|photographic|realistis|realistic)\b|\b(?:buat(?:kan)?|hasilkan|generate|create|make)\s+(?:(?:sebuah|satu|a|one)\s+)?(?:foto|photo|photograph)\b|^\s*(?:foto|photo|photograph)\b/iu', $styleText);
-        $informationalVisual = ! $withoutText && ! $photoStyle
-            && (bool) preg_match('/\b(?:panduan|jadwal|kebutuhan|fase|deteksi|pengendalian|guide|schedule|phases?|detection|control)\b/iu', $userText);
-        $illustrationStyle = (bool) preg_match('/\b(?:ilustrasi|illustration|flat|vektor|vector|kartun|cartoon|diagram|infografis|infographic)\b|\b(?:poster\s+edukasi|educational\s+poster|2[- ]?d)\b/iu', $userText);
-        $threeDimensional = (bool) preg_match('/\b3[- ]?d\b|\btiga\s+dimensi\b|\bthree[- ]dimensional\b/iu', $userText);
-        $singlePlant = (bool) preg_match('/\b(?:satu|sebuah|1)\s+(?:tanaman|pohon|batang|bibit)\b|\b(?:one|single|1)\s+(?:[a-z]+\s+){0,3}(?:plant|tree|seedling)\b/iu', $userText);
-
-        $directives = ['VISUAL REQUIREMENTS: Match the user request above, including its exclusions. Reference facts must not override its style, subject count, or composition.'];
-        if (($illustrationStyle || $informationalVisual) && ! $photoStyle) {
-            $directives[] = $threeDimensional
-                ? 'Use the explicitly requested three-dimensional illustration style; do not replace it with a photograph.'
-                : 'Use a flat two-dimensional, vector-like educational illustration: simplified shapes, clean outlines, a limited palette, and a simple unobtrusive background. Do not use photography, photorealistic textures, cinematic lighting, depth-of-field blur, or a detailed landscape.';
-        } elseif ($photoStyle) {
-            $directives[] = 'Preserve the explicitly requested photographic or realistic visual style. Do not replace it with a flat diagram, cartoon, or vector poster.';
-        }
-        if ($singlePlant) {
-            $directives[] = 'Show exactly ONE plant as the only plant subject in the whole image, fully visible and clearly separated from its surroundings. Do not add other plants, duplicated crops, crop rows, or a field full of vegetation in the background. If farmland is requested, suggest it with a simple soil patch or ground plane.';
-        }
-        if ($withoutText) {
-            $directives[] = 'NO VISIBLE WRITING: no text, letters, words, labels, captions, titles, legends, digits, numbers, logos, signatures, or watermarks anywhere in the image. Do not render the prompt or reference data as writing. Leave all label areas empty.';
-        } else {
-            $directives[] = $informationalVisual
-                ? 'Use an informative infographic layout, not a decorative plant picture. Organize the requested guide, schedule, phases, detection, or control information into ordered panels, a process flow, or a timeline suited to the topic. If the user does not specify a panel count, use three to five short sections at most. Include a concise relevant title, large mobile-legible headings, short labels in the same language as the user request, and meaningful icons; use arrows when they explain a relationship. Never fill the image with dense paragraphs. Each panel must communicate a useful step or fact from the supplied evidence. Do not replace the information with scenery, generic crop photography, or an unrelated poster.'
-                : 'Add labels only when the requested diagram, infographic, or image explicitly calls for them. Keep requested labels short and legible; do not add a title, legend, branding, or decorative writing by default.';
-            $directives[] = 'Render explicitly requested titles, panel labels, step numbers, arrows, and text in the requested language and order; these structural labels are not missing agronomic measurements.';
-            if ($withoutNumbers) {
-                $directives[] = 'Do not render any digits, numerical values, or numbered labels in the image. Requested non-numerical text labels may remain.';
-            }
-        }
-        $directives[] = 'Use only verified values when factual labels are requested; never invent or alter a name, location, crop, acreage, date, sensor, technology, weather value, or other number. If a field is absent, omit it. Use process nodes only for a requested diagram or flowchart; do not add decorative objects or a calendar unless requested.';
-
-        return implode("\n", $directives);
-    }
-
-    /** @return list<array{type: string, image_url: array{url: string}}> */
-    protected function imageReferences(mixed $content): array
-    {
-        if (! is_array($content)) {
-            return [];
-        }
-
-        $images = [];
-        foreach ($content as $part) {
-            if (! is_array($part) || ($part['type'] ?? null) !== 'image_url') {
-                continue;
-            }
-            $url = data_get($part, 'image_url.url');
-            if (is_string($url) && str_starts_with($url, 'data:image/')) {
-                $images[] = ['type' => 'image_url', 'image_url' => ['url' => $url]];
-            }
-        }
-
-        return array_slice($images, 0, min(3, max(0, (int) config('ai.attachments.max_files', 3))));
     }
 
     /**

@@ -1,5 +1,4 @@
 import { aiKnowledgeChunks, type AiKnowledgeChunk } from '@/data/aiKnowledge';
-import { getAppName } from '@/lib/appName';
 import { routeAiPrompt } from '@/services/aiIntentRouter';
 
 export type AiKnowledgeMatch = AiKnowledgeChunk & {
@@ -73,7 +72,7 @@ export async function queryKnowledge(
     await wait(420);
     return {
         content: [
-            `Fitur/halaman **finansial bulan ini** belum ada di informasi aplikasi ${getAppName()} yang saya punya, jadi saya belum bisa menarik atau menampilkan datanya otomatis.`,
+            'Fitur/halaman **finansial bulan ini** belum ada di informasi aplikasi Farmer IC yang saya punya, jadi saya belum bisa menarik atau menampilkan datanya otomatis.',
             '',
             'Biar saya bisa bantu rekap, Anda maunya yang mana?',
             '1) **Ringkasan pemasukan vs pengeluaran** bulan ini',

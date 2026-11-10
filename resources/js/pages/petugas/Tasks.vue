@@ -12,8 +12,6 @@ import {
     sopActivitySubcategoryLabels,
 } from '@/types/sop';
 
-defineOptions({ inheritAttrs: false });
-
 const props = defineProps<{
     tasks: PetugasTask[];
     filters: PetugasTaskFilters;
@@ -106,21 +104,21 @@ function statusClass(status: PetugasTask['status']): string {
         </p>
 
         <div class="grid grid-cols-3 gap-2">
-            <div class="petugas-card p-3">
+            <div class="rounded-xl border border-border bg-card p-3">
                 <p class="text-[11px] text-muted-foreground">Terlambat</p>
                 <p class="mt-1 text-xl font-semibold">{{ tasksFor('overdue').length }}</p>
             </div>
-            <div class="petugas-card p-3">
+            <div class="rounded-xl border border-border bg-card p-3">
                 <p class="text-[11px] text-muted-foreground">Hari ini</p>
                 <p class="mt-1 text-xl font-semibold">{{ tasksFor('today').length }}</p>
             </div>
-            <div class="petugas-card p-3">
+            <div class="rounded-xl border border-border bg-card p-3">
                 <p class="text-[11px] text-muted-foreground">Mendatang</p>
                 <p class="mt-1 text-xl font-semibold">{{ tasksFor('upcoming').length }}</p>
             </div>
         </div>
 
-        <div v-if="!visibleTasks.length" class="petugas-card petugas-empty px-5 py-12 text-center">
+        <div v-if="!visibleTasks.length" class="rounded-2xl border border-dashed border-border bg-card px-5 py-12 text-center">
             <ClipboardList class="mx-auto size-10 text-muted-foreground" />
             <h2 class="mt-4 font-semibold">Belum ada tugas</h2>
             <p class="mx-auto mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
@@ -142,7 +140,7 @@ function statusClass(status: PetugasTask['status']): string {
             <article
                 v-for="task in tasksFor(section.key)"
                 :key="task.id"
-                class="petugas-card p-4"
+                class="rounded-2xl border border-border bg-card p-4 shadow-sm"
             >
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">

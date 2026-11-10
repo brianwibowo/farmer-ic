@@ -40,7 +40,7 @@ const stageStatuses = {
 
 <template>
     <article
-        class="petugas-card space-y-4 p-4"
+        class="space-y-4 rounded-xl border border-border bg-card p-4"
         :aria-label="`Batch ${batch.batch_number}, subblok ${batch.subblock_label}`"
     >
         <header class="flex items-start justify-between gap-3">
@@ -70,7 +70,7 @@ const stageStatuses = {
         <dl class="grid grid-cols-2 gap-3">
             <div>
                 <dt class="text-xs text-muted-foreground">Alokasi</dt>
-                <dd class="mt-1 text-xl font-bold tabular-nums">
+                <dd class="mt-1 text-lg font-semibold tabular-nums">
                     {{ gardenArea(batch.reserved_area_ha) }}
                     <span class="text-xs font-normal text-muted-foreground"
                         >ha</span
@@ -79,7 +79,7 @@ const stageStatuses = {
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Tertanam</dt>
-                <dd class="mt-1 text-xl font-bold tabular-nums">
+                <dd class="mt-1 text-lg font-semibold tabular-nums">
                     {{ gardenArea(batch.planted_area_ha) }}
                     <span class="text-xs font-normal text-muted-foreground"
                         >ha</span
@@ -97,9 +97,7 @@ const stageStatuses = {
                           batch.current_stage)
                         : 'Belum ada tahap'
                 }}</span
-                ><span
-                    v-if="batch.stages.length"
-                    class="font-bold text-muted-foreground"
+                ><span v-if="batch.stages.length" class="text-muted-foreground"
                     >{{ completed }}/{{ batch.stages.length }} tahap
                     selesai</span
                 >

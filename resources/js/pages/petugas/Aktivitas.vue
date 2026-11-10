@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ClipboardPlus, ListChecks } from '@lucide/vue';
-
-defineOptions({ inheritAttrs: false });
 </script>
 
 <template>
@@ -19,7 +17,9 @@ defineOptions({ inheritAttrs: false });
         </p>
     </header>
 
-    <section class="petugas-card mt-[var(--admin-content-gap)] p-4">
+    <section
+        class="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm"
+    >
         <div class="flex items-start gap-3">
             <span
                 class="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"
@@ -46,7 +46,7 @@ defineOptions({ inheritAttrs: false });
     </section>
 
     <section
-        class="petugas-card petugas-empty mt-[var(--admin-content-gap)] p-4"
+        class="mt-4 rounded-2xl border border-dashed border-border bg-muted/30 p-4"
     >
         <div
             class="flex items-center gap-2 text-sm font-semibold text-foreground"

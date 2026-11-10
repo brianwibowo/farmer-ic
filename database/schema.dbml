@@ -100,7 +100,6 @@ Table farms {
   commodity_id uuid [ref: > commodities.id, note: 'Komoditas kebun; dapat dipilih sebelum SOP tersedia']
   pic_user_id uuid [ref: > users.id, note: 'PIC opsional dari Admin tenant yang sama; ON DELETE SET NULL']
   target_volume_ton decimal(12,3) [note: 'Target volume opsional dalam ton; CHECK > 0']
-  land_tenure_party varchar(255) [note: 'Nama pihak penyewa atau mitra untuk lahan sewa atau kerja sama']
   indexes {
     commodity_id
     pic_user_id

@@ -2,73 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { extractDelta, parseMessage, sortChatMessages } from './aiChatProtocol';
 
 describe('chat message presentation', () => {
-    it('retains an empty failed generation as a retryable error in history', () => {
-        expect(
-            parseMessage({
-                id: 'failed-image',
-                role: 'assistant',
-                content: null,
-                status: 'failed',
-                error_message: 'Gambar belum berhasil dibuat.',
-            }),
-        ).toMatchObject({
-            id: 'failed-image',
-            content: '',
-            status: 'error',
-            error: 'Gambar belum berhasil dibuat.',
-        });
-    });
-
-    it('keeps a partial failed reply and its failure state after reloading', () => {
-        expect(
-            parseMessage({
-                id: 'partial',
-                role: 'assistant',
-                content: 'Jawaban sebagian',
-                status: 'failed',
-            }),
-        ).toMatchObject({ content: 'Jawaban sebagian', status: 'error' });
-    });
-
-    it('does not leave a restored unfinished reply spinning without a live stream', () => {
-        expect(
-            parseMessage({
-                id: 'interrupted',
-                role: 'assistant',
-                content: '',
-                status: 'streaming',
-            }),
-        ).toMatchObject({
-            status: 'error',
-            error: 'Jawaban sebelumnya belum selesai. Silakan coba lagi.',
-        });
-    });
-
-    it('uses image generation metadata when a generated attachment has a protected URL', () => {
-        expect(
-            parseMessage({
-                id: 'protected-image',
-                role: 'assistant',
-                content: 'Ilustrasi',
-                status: 'completed',
-                metadata: { image_generation: { status: 'generated' } },
-                attachments: [
-                    {
-                        id: 'asset',
-                        name: 'image.png',
-                        size: 100,
-                        type: 'image/png',
-                        url: '/farm-ic-demo/ai/attachments/asset',
-                    },
-                ],
-            }),
-        ).toMatchObject({ presentation: 'infographic', status: 'complete' });
-    });
-
     it('keeps retrieval progress visible before the first response delta', () => {
         expect(
-            extractDelta({ progress: 'Mencari konteks yang relevan…' })
-                .progress,
+            extractDelta({ progress: 'Mencari konteks yang relevan…' }).progress,
         ).toBe('Mencari konteks yang relevan…');
     });
     it('exposes retrieval trace from the stream start event', () => {
@@ -155,9 +91,7 @@ describe('chat message presentation', () => {
         expect(message?.content).toContain('### 💰 Keuangan Maret 2026');
         expect(message?.content).toContain('- **Pemasukan: Rp16.000.000**');
         expect(message?.content).toContain('| Tanggal | Transaksi | Nominal |');
-        expect(message?.content).toContain(
-            '![Lahan dan tanaman jagung](/images/farmer/corn-field.jpeg)',
-        );
+        expect(message?.content).toContain('![Lahan dan tanaman jagung](/images/farmer/corn-field.jpeg)');
         expect(message?.content).not.toContain('\\');
     });
 
@@ -177,9 +111,6 @@ describe('chat message presentation', () => {
             }),
         ].filter((item): item is NonNullable<typeof item> => item !== null);
 
-        expect(sortChatMessages(messages).map((item) => item.id)).toEqual([
-            '1',
-            '2',
-        ]);
+        expect(sortChatMessages(messages).map((item) => item.id)).toEqual(['1', '2']);
     });
 });

@@ -8,7 +8,7 @@ php artisan --env=local db:seed --database=pgsql
 
 The complete seeder creates or updates the four role accounts below, including
 their passwords and current tenant. It is not the command for renaming existing
-presentation data. It also creates one non-personal team named from `config('app.name')` (default `Bumi Hijauan`), one
+presentation data. It also creates one non-personal team named `Hijauan`, one
 assigned farm, crop master data, an active
 planting cycle, activity and daily-log records, monitoring data, finance data,
 operational targets, and a notification. It then adds the five Owner portfolio
@@ -56,9 +56,7 @@ php artisan --env=local db:seed --database=pgsql --class=PresentationNamesSeeder
 It requires the existing active seeded Superadmin and its persisted membership
 in the non-personal tenant with legacy technical slug `farm-ic-demo`. It runs
 inside a transaction with the tenant locked and native policy authorization.
-Recognized legacy tenant names (`Farm IC Demo`, `Hijauan`, and `Bumi Hijauan`)
-become the configured `APP_NAME` (default `Bumi Hijauan`); custom tenant names
-and the technical slug stay unchanged.
+The tenant display name becomes `Hijauan`; the technical slug stays unchanged.
 The four seeded account display names become `SuperAdmin`, `Owner`, `Admin`,
 and `Petugas`. The six recognized farm names lose their `Demo` suffix and
 recognized child descriptions, batch labels, fertilizer/pesticide names,
@@ -216,17 +214,3 @@ five pie sectors and six map markers on 320px/390px phones, 768px tablet,
 844px landscape and 1440px desktop. Horizontal/vertical table freeze, farm and
 batch navigation, expanded SOP tasks and harvest detail worked. Both themes
 were checked without console warnings/errors; no UI/profile/AI files changed.
-
-## Application display name
-
-Set the application name through `APP_NAME`. Laravel defaults to `Bumi Hijauan`
-when this variable is absent. Shared Vue logos, accessible labels, login/footer,
-report text, startup screen, email header, and browser titles use the same
-`config('app.name')` value; `VITE_APP_NAME` is not a separate naming source.
-Seeded tenant names and presentation addresses also use this configuration.
-Changing configuration does not rename existing database records automatically;
-use the guarded presentation-name refresh only for recognized fixture names.
-If configuration is cached, rebuild it after changing `APP_NAME`. No frontend
-rebuild is needed solely for a name change. Logo asset paths and historical
-reference images keep their technical names; historical AI evaluation fixtures
-are not runtime branding configuration.

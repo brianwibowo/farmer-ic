@@ -42,7 +42,7 @@ class FarmManagementController extends Controller
 
             return Inertia::render('farms/Index', [
                 'farms' => $farms->through(fn (Farm $farm): array => [
-                    ...$farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'city', 'district', 'province', 'total_area_ha']),
+                    ...$farm->only(['id', 'name', 'land_tenure', 'city', 'district', 'province', 'total_area_ha']),
                     'can' => [
                         'update' => Gate::allows('update', $farm),
                         'delete' => Gate::allows('delete', $farm),

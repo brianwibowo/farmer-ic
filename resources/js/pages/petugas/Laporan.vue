@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import PetugasEmptyPage from '@/components/petugas/PetugasEmptyPage.vue';
-
-defineOptions({ inheritAttrs: false });
 </script>
 
 <template>

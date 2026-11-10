@@ -69,7 +69,6 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
     const messages = ref<ChatMessage[]>([]);
     const conversationId = ref<string | null>(null);
     const isLoadingConversations = ref(false);
-    const historyError = ref<string | null>(null);
     const isSending = ref(false);
     const error = ref<string | null>(null);
     const lastRequestMetrics = ref<AiRequestMetrics | null>(null);
@@ -125,13 +124,11 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
 
     async function loadConversations(): Promise<void> {
         isLoadingConversations.value = true;
-        historyError.value = null;
         try {
             const response = await fetch(conversationsEndpoint.value, {
                 headers: headers(),
             });
-            if (!response.ok)
-                throw new Error('Riwayat percakapan belum dapat dimuat.');
+            if (!response.ok) return;
             const payload = (await response.json()) as unknown;
             const values = Array.isArray(payload)
                 ? payload
@@ -144,8 +141,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 .map(parseConversation)
                 .filter((item): item is Conversation => item !== null);
         } catch {
-            historyError.value =
-                'Riwayat percakapan belum dapat dimuat. Silakan coba lagi.';
+            // The chat remains usable while the API is unavailable; history is optional.
         } finally {
             isLoadingConversations.value = false;
         }
@@ -339,13 +335,10 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 assistantMessage.progress = `Masih menyusun jawaban… ${elapsedSeconds} detik`;
             }
         }, 2_000);
-        const requestTimeout = window.setTimeout(
-            () => {
-                request.didTimeout = true;
-                requestController.abort();
-            },
-            isInfographic ? 150_000 : 60_000,
-        );
+        const requestTimeout = window.setTimeout(() => {
+            request.didTimeout = true;
+            requestController.abort();
+        }, 60_000);
 
         const reconcilePersistedReply = async (
             ignoreSignal = false,
@@ -421,11 +414,9 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     .find(
                         (item) =>
                             item.role === 'assistant' &&
-                            item.status === 'complete' &&
                             item.content.trim() !== '',
                     );
-                if (!persistedReply || !isActiveRequest(requestId))
-                    return false;
+                if (!persistedReply || !isActiveRequest(requestId)) return false;
                 const validation = validatedResponse(persistedReply.content);
                 if (!validation.ok) return false;
                 assistantMessage.content = validation.content;
@@ -528,7 +519,8 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                     // before the provider response. Keep it in the UI's
                     // loading state instead of persisting it as answer text.
                     if (/^🎨\s*Sedang merancang/i.test(parsed.delta.trim())) {
-                        assistantMessage.progress = 'Sedang menyiapkan gambar…';
+                        assistantMessage.progress =
+                            'Sedang menyiapkan gambar…';
                         return;
                     }
                     if (request.firstDeltaAt === undefined)
@@ -771,7 +763,6 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
         conversationId,
         currentConversation,
         isLoadingConversations,
-        historyError,
         isSending,
         error,
         lastRequestMetrics,

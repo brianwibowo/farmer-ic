@@ -547,7 +547,7 @@ class AiChatTest extends TestCase
         {
             public function complete(array $messages, string $model, array $options = []): array
             {
-                $fakePng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1cAAAAASUVORK5CYII=';
+                $fakePng = base64_encode('fake-png-data');
 
                 return [
                     'id' => 'test-infographic-req',

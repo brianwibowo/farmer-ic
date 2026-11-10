@@ -50,9 +50,9 @@ class PresentationNamesSeeder extends Seeder
 
         DB::transaction(function (): void {
             $this->team = $this->query(Team::class)->whereKey($this->team->id)->lockForUpdate()->firstOrFail();
-            if (in_array($this->team->name, ['Farm IC Demo', 'Hijauan', 'Bumi Hijauan'], true)) {
+            if ($this->team->name === 'Farm IC Demo') {
                 // Team's name observer normally changes its slug; fixture identity must stay stable.
-                $this->write($this->team, ['name' => config('app.name')], quietly: true);
+                $this->write($this->team, ['name' => 'Hijauan'], quietly: true);
             }
             $this->identities();
             $base = $this->query(Farm::class)->where('team_id', $this->team->id)
