@@ -136,7 +136,7 @@ const groupRowsId = (groupId: string) =>
                         <tr>
                             <th
                                 scope="row"
-                                class="sticky left-0 z-10 border-r border-b border-border bg-primary/10 p-0 text-left align-top font-medium"
+                                class="owner-land-group-label sticky left-0 z-10 border-r border-b border-border p-0 text-left align-top font-medium"
                             >
                                 <button
                                     type="button"
@@ -444,6 +444,10 @@ const groupRowsId = (groupId: string) =>
 </template>
 
 <style scoped>
+.owner-land-group-label {
+    background-color: color-mix(in srgb, var(--primary) 10%, var(--card));
+}
+
 .owner-land-scroll {
     max-height: var(
         --owner-land-max-height,
