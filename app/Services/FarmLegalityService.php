@@ -62,6 +62,7 @@ class FarmLegalityService
         return FarmLegalityDocument::visibleTo($actor, $team)->where('farm_legality_id', $legality->id)->orderBy('created_at')->orderBy('id')->get();
     }
 
+    /** @return array<string, mixed>|null */
     public function payload(User $actor, Team $team, Farm $farm, ?FarmLegality $record = null): ?array
     {
         $record ??= $this->record($actor, $team, $farm);
@@ -148,7 +149,9 @@ class FarmLegalityService
                 foreach ($removed as $document) {
                     $document->delete();
                 }
-                $this->cleanupAfterCommit($removed->pluck('path')->all());
+                /** @var list<string> $removedPaths */
+                $removedPaths = $removed->pluck('path')->all();
+                $this->cleanupAfterCommit($removedPaths);
 
                 return $legality;
             });
@@ -165,13 +168,18 @@ class FarmLegalityService
             $legality = FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereKey($legality->id)->lockForUpdate()->firstOrFail();
             $documents = $this->documents($actor, $team, $legality);
             $this->assertCompleteDocuments($legality, $documents);
+            /** @var list<string> $paths */
             $paths = $documents->pluck('path')->all();
             $legality->delete();
             $this->cleanupAfterCommit($paths);
         });
     }
 
-    /** Avoid cascading or counting past child rows omitted by the scoped read. */
+    /**
+     * Avoid cascading or counting past child rows omitted by the scoped read.
+     *
+     * @param  Collection<int, FarmLegalityDocument>  $documents
+     */
     private function assertCompleteDocuments(FarmLegality $legality, Collection $documents): void
     {
         // Integrity-only existence check: never serialize or reuse a hidden child.
@@ -188,6 +196,7 @@ class FarmLegalityService
         }
     }
 
+    /** @param list<string> $paths */
     private function deleteFiles(array $paths): void
     {
         try {

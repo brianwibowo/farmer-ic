@@ -91,6 +91,7 @@ class FarmDeletionService
                 // joining this graph after confirmation. Never disable FK/trigger checks.
                 DB::table('users')->whereIn('id', $graph['users'])->where('assigned_farm_id', $farm->id)
                     ->update(['assigned_farm_id' => null, 'updated_at' => now()]);
+                /** @var list<string> $documentPaths */
                 $documentPaths = FarmLegalityDocument::visibleTo($actor, $farm->team)
                     ->whereIn('id', $graph['farm_legality_documents'])->pluck('path')->all();
                 foreach ([
