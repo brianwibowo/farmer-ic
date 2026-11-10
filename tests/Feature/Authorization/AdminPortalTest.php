@@ -57,12 +57,12 @@ class AdminPortalTest extends TestCase
             }
             $this->post('/admin/farm-management', [])->assertForbidden();
             $this->get('/settings/profile')->assertOk()->assertInertia(fn (Assert $page) => $page
-                ->where('navigation.admin', false)->where('navigation.farms', false));
+                ->where('navigation.admin', false)->where('navigation.farms', $role === 'owner'));
             if ($role === 'petugas') {
                 $this->get('/')->assertRedirect('/petugas');
             } else {
                 $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-                    ->component('owner/Dashboard')->where('navigation.admin', false)->where('navigation.farms', false));
+                    ->component('owner/Dashboard')->where('navigation.admin', false)->where('navigation.farms', true));
             }
         }
     }

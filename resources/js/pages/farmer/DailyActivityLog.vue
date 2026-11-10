@@ -16,6 +16,8 @@ import {
     Users,
 } from '@lucide/vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
+import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
 
 type Farm = {
     id: string;
@@ -111,6 +113,7 @@ type Props = {
 
 const props = defineProps<Props>();
 const page = usePage();
+const { indexUrl } = useFarmManagementNavigation();
 function selectBlock(activity: ActivityForm): void {
     activity.block_mapping.block_name =
         props.blocks.find(
@@ -209,10 +212,10 @@ function detailUrl(log: DailyLog): string {
 <template>
     <Head :title="`Logbook Harian - ${farm.name}`" />
 
-    <FarmerMobileShell active-key="garden">
+    <component :is="page.props.navigation?.owner ? FarmManagementLayout : FarmerMobileShell" v-bind="page.props.navigation?.owner ? {} : { activeKey: 'garden' }">
         <Link
             v-if="page.props.navigation?.farms"
-            :href="`/admin/farm-management/${farm.id}`"
+            :href="`${indexUrl}/${farm.id}`"
             class="mx-4 mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
             ><ArrowLeft :size="16" />Kembali ke detail kebun</Link
         >
@@ -840,10 +843,11 @@ function detailUrl(log: DailyLog): string {
                 </div>
             </section>
         </div>
-    </FarmerMobileShell>
+    </component>
 </template>
 
 <style scoped>
+
 .form-input {
     width: 100%;
     min-height: 40px;

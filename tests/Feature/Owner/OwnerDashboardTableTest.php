@@ -77,7 +77,7 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.rows.0.resume.detail_url', '/aktivitas/'.$latest->id)
             ->where('dashboard.metrics.0.value', 1));
         $this->get('/kebun/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/Farm')->where('farm.id', $farm->id));
+            ->component('farms/Show')->where('farm.id', $farm->id));
         $this->patch('/admin/farm-management/'.$farm->id, ['name' => 'Tidak diizinkan'])->assertForbidden();
         $this->actingAs($this->admin)->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.0.value', 1)

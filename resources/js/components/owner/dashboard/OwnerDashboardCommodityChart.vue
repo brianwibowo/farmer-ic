@@ -337,7 +337,7 @@ function clearSelection(): void {
                 <button
                     v-if="selectedId"
                     type="button"
-                    class="inline-flex min-h-11 items-center gap-1.5 rounded-md font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                    class="inline-flex min-h-11 items-center gap-1.5 rounded-md font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
                     @click="clearSelection"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />Tampilkan

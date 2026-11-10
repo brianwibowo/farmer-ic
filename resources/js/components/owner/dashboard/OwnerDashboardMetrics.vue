@@ -41,12 +41,12 @@ const metrics = computed(() => [
                 </h2>
                 <component
                     :is="metric.icon"
-                    class="mt-0.5 size-4 shrink-0 text-secondary dark:text-primary"
+                    class="mt-0.5 size-4 shrink-0 text-primary"
                     aria-hidden="true"
                 />
             </div>
             <p
-                class="mt-3 text-[28px] leading-9 font-bold break-words tabular-nums lg:text-4xl lg:leading-10 2xl:text-[40px]"
+                class="admin-metric-value mt-3 break-words tabular-nums"
             >
                 {{ metric.value }}
                 <span class="text-sm font-normal text-muted-foreground">{{

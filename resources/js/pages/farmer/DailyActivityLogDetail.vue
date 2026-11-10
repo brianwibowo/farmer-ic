@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { AlertTriangle, ArrowLeft, CheckCircle2, ClipboardList, Ruler, Users } from '@lucide/vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
 
 type Farm = {
     id: string;
@@ -44,13 +45,14 @@ type DailyLog = {
     activities: Activity[];
 };
 
+const page = usePage();
 const props = defineProps<{ farm: Farm; log: DailyLog }>();
 </script>
 
 <template>
     <Head :title="`Detail Logbook - ${farm.name}`" />
 
-    <FarmerMobileShell active-key="garden">
+    <component :is="page.props.navigation?.owner ? FarmManagementLayout : FarmerMobileShell" v-bind="page.props.navigation?.owner ? {} : { activeKey: 'garden' }">
         <div class="space-y-5 px-4 pt-4 pb-6">
             <header class="flex items-start gap-3">
                 <Link
@@ -125,5 +127,8 @@ const props = defineProps<{ farm: Farm; log: DailyLog }>();
                 </article>
             </section>
         </div>
-    </FarmerMobileShell>
+    </component>
 </template>
+
+<style scoped>
+</style>

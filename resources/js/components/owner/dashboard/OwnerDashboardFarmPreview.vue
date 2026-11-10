@@ -2,7 +2,6 @@
 import { Link } from '@inertiajs/vue3';
 import { ArrowRight, MapPin, Sprout, UserRound, X } from '@lucide/vue';
 import { computed } from 'vue';
-import { withOwnerFarmOrigin } from '@/lib/ownerFarmNavigation';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
 import {
     Dialog,
@@ -28,7 +27,7 @@ const hasCoordinates = computed(
     <Dialog v-model:open="open">
         <DialogContent
             :show-close-button="false"
-            class="owner-farm-preview flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-3xl border-border bg-card p-0 text-card-foreground sm:max-w-[560px]"
+            class="admin-dashboard-theme owner-farm-preview flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-3xl border-border bg-card p-0 text-card-foreground sm:max-w-[560px]"
             @close-auto-focus="emit('closed')"
         >
             <header class="relative shrink-0 px-5 pt-5 pr-16 pb-4">
@@ -81,7 +80,7 @@ const hasCoordinates = computed(
                             class="flex items-center gap-2 text-base font-semibold"
                         >
                             <Sprout
-                                class="size-5 text-secondary dark:text-primary"
+                                class="size-5 text-primary"
                                 aria-hidden="true"
                             />
                             Jenis tanaman
@@ -119,7 +118,7 @@ const hasCoordinates = computed(
                             class="flex items-center gap-2 text-sm font-medium text-muted-foreground"
                         >
                             <UserRound
-                                class="size-4 shrink-0 text-secondary dark:text-primary"
+                                class="size-4 shrink-0 text-primary"
                                 aria-hidden="true"
                             />
                             PIC yang ditugaskan
@@ -142,7 +141,7 @@ const hasCoordinates = computed(
 
             <footer class="shrink-0 border-t border-border bg-card p-4 sm:p-5">
                 <Link
-                    :href="withOwnerFarmOrigin(farm.detail_url, 'home')"
+                    :href="farm.detail_url"
                     class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     @click="open = false"
                 >

@@ -126,15 +126,35 @@ Halaman Beranda/Kebun/Aktivitas/Laporan Petugas masih berupa kerangka; daftar
 tugasnya menggunakan fixture dan form aktivitas belum menyimpan seluruh alur
 operasional. Ini tidak menjadi sumber data untuk portal Owner.
 
-Portal Owner menggunakan navbar Beranda, AI, dan Lainnya. Menu Lainnya memuat
-Kebun, Keuangan, Aktivitas, SOP, dan Data pengguna sesuai izin dari backend.
-Route `/kebun`, `/kebun/{farm}`, `/kebun/{farm}/blok/{block}`, `/aktivitas`,
-`/aktivitas/{activity}`, serta `/lainnya/sop` dan `/lainnya/pengguna` beserta
-detailnya memakai `auth`, `verified`, dan `owner.access`. Controller memeriksa
-Policy resource; `OwnerReadService` membatasi query induk dan relasi turunannya
-dengan `visibleTo($actor, $currentTeam)` sebelum serialisasi, hitungan, dan
-paginasi. Dashboard memakai definisi agregasi yang sama dengan Admin. Semua
-data operasional baru berasal dari database, bukan JSON atau browser storage.
+Portal Owner memakai layout admin bersama dengan sidebar Dashboard, Proyeksi,
+dan Lahan. Ini hanya perubahan presentasi: `navigation.owner` dihitung oleh
+backend melalui `owner.access` tanpa memberikan `admin.access`. Route `/kebun`
+dan `/kebun/{farm}` memakai `FarmManagementController::index/show` serta page
+`farms/Index` dan `farms/Show` yang sama dengan Admin, di dalam middleware
+`auth`, `verified`, dan `owner.access`. Controller tetap memeriksa Policy Farm;
+daftar, ringkasan, pilihan lokasi, detail, dan relasi turunan dibatasi dengan
+`visibleTo`. Detail Owner juga harus berada dalam tenant aktif, termasuk jika
+Owner tergabung dalam tenant lain. SOP bawaan, versi, komoditas, dan hitungan
+tugasnya menerapkan scope aktor sebelum diserialisasi.
+
+Dashboard dan Proyeksi tetap memakai konten dan service Owner yang sudah ada.
+Tautan kebun dari tabel atau peta membuka detail `/kebun/{farm}`, dengan menu
+Lahan aktif dan tombol kembali ke daftar `/kebun`. Tautan legalitas tetap berada
+di `/kebun/{farm}/legalitas`. Filter dan pagination halaman Lahan mempertahankan
+alamat Owner. Policy menentukan semua boolean aksi; Owner tidak mendapat izin
+tambah, ubah, hapus, atau konfigurasi kebun/blok/sub blok. Endpoint Admin tetap
+menolak Owner dan Petugas dengan 403.
+
+Route lama `/kebun/{farm}/blok/{block}`, `/aktivitas`, `/aktivitas/{activity}`,
+`/lainnya/sop`, dan `/lainnya/pengguna` beserta detailnya tetap dilindungi oleh
+`auth`, `verified`, `owner.access`, Policy resource, dan query terscope dalam
+`OwnerReadService`. Tidak ada route atau query baru dalam perubahan workspace
+ini yang dibiarkan tanpa perlindungan. Ini bukan audit menyeluruh atas modul
+legacy di luar jalur yang diubah. `SopTemplateService::defaultForFarm` pada
+form aktivitas Petugas mempertahankan perilaku legacy (metadata SOP bawaan
+berdasarkan kebun penugasan), tanpa scope Policy SOP. Jalur Lahan yang baru
+memakai `visibleDefaultForFarm` dengan aktor dan scope lengkap; tidak ada
+perubahan grant untuk Petugas.
 
 Tenant aktif dapat diganti melalui `POST /owner/tenant/{team:slug}` hanya dengan
 keanggotaan tersimpan dan izin `view` Team. Aksi kembali ke Beranda agar filter
@@ -151,7 +171,9 @@ mengarahkan ke Beranda, karena laporan/PDF mock lama tidak dipakai sebagai
 laporan operasional. Matriks izin operasional tidak diperluas: request tambah,
 ubah, hapus, konfigurasi, dan pemulihan tetap mengikuti Policy existing.
 
-Pekerjaan Owner tidak mengubah halaman/form profil atau keamanan akun. QA AI
+Halaman profil, keamanan akun, dan notifikasi Owner mengikuti layout sidebar
+admin; Petugas tetap memakai presentasi mobile. Perubahan presentasi ini tidak
+mengubah aturan penyimpanan profil, kata sandi, atau izin notifikasi. QA AI
 lanjutan melindungi halaman dan seluruh endpoint AI dengan `ai.access` khusus
 Owner, Policy resource, serta scope riwayat/pesan/lampiran dan pemilik percakapan.
 Superadmin tetap memiliki bypass pengembang untuk kemampuan selain `ai.access`.
@@ -160,8 +182,8 @@ menyeluruh query layanan retrieval serta job non-HTTP belum termasuk perubahan i
 Lihat [alur AI dan batas QA](ai-chat.md). Query relasi pada logbook existing juga belum termasuk perbaikan
 menyeluruh; portal Owner baru membaca aktivitas melalui query terscope sendiri.
 Batas integrasi modul blok tetap tercatat dalam [dokumentasi backend blok](farm-block-backend.md).
-Ikon profil di antarmuka Farmer/Owner/Petugas membuka ringkasan profil tanpa tautan
-ke area admin. Route admin lama tanpa prefix sudah dihapus.
+Menu akun Owner di sidebar membuka pengaturan profil dan logout. Antarmuka
+Farmer/Petugas mempertahankan ringkasan profil tanpa tautan ke area admin. Route admin lama tanpa prefix sudah dihapus.
 
 Nilai `any` berarti semua data yang berada dalam batas tim yang diikuti
 pengguna. Cakupan ini tetap memerlukan keanggotaan tim. Nilai `own` berarti data

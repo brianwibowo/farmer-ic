@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useFarmManagementNavigation } from "@/composables/useFarmManagementNavigation";
 import AppSelect from "@/components/selects/AppSelect.vue";
 import AppSelectOption from "@/components/selects/AppSelectOption.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
@@ -38,6 +39,7 @@ import {
 } from "@/types/farms";
 
 defineOptions({ inheritAttrs: false });
+const { indexUrl, title: sectionTitle } = useFarmManagementNavigation();
 
 const props = defineProps<{
     farms: FarmPage;
@@ -90,7 +92,7 @@ const directionDescription = computed(() => {
     return `Urutan ${labels[ascending ? 0 : 1]}. Ubah menjadi ${labels[ascending ? 1 : 0]}.`;
 });
 function apply(): void {
-    filters.get("/admin/farm-management", {
+    filters.get(indexUrl.value, {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -120,7 +122,7 @@ function reset(): void {
 </script>
 
 <template>
-    <Head title="Farm Management" />
+    <Head :title="sectionTitle" />
     <div class="space-y-[18px]">
         <div class="grid grid-cols-3 gap-2 sm:gap-4">
             <div
@@ -531,7 +533,7 @@ function reset(): void {
                             >
                                 <td class="px-5 py-4">
                                     <Link
-                                        :href="`/admin/farm-management/${farm.id}`"
+                                        :href="`${indexUrl}/${farm.id}`"
                                         class="font-semibold hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
                                         >{{ farm.name }}</Link
                                     >
@@ -577,7 +579,7 @@ function reset(): void {
                                             size="icon"
                                             :aria-label="`Detail ${farm.name}`"
                                             ><Link
-                                                :href="`/admin/farm-management/${farm.id}`"
+                                                :href="`${indexUrl}/${farm.id}`"
                                                 ><ArrowUpRight /></Link></Button
                                         ><Button
                                             v-if="farm.can.update"
@@ -618,7 +620,7 @@ function reset(): void {
                 >
                     <li v-for="farm in farms.data" :key="farm.id" class="p-4">
                         <Link
-                            :href="`/admin/farm-management/${farm.id}`"
+                            :href="`${indexUrl}/${farm.id}`"
                             class="flex items-start justify-between gap-3 font-semibold"
                             ><span>{{ farm.name }}</span
                             ><ArrowUpRight class="size-4 shrink-0 text-primary"

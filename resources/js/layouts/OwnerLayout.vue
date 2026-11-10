@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
-import type { FarmerNavKey } from '@/components/farmer/FarmerBottomNav.vue';
-import OwnerDesktopNav from '@/components/owner/OwnerDesktopNav.vue';
+import { ChartNoAxesCombined, LandPlot, LayoutGrid } from '@lucide/vue';
+import AdminWorkspaceLayout from '@/layouts/AdminWorkspaceLayout.vue';
 
 const page = usePage();
-const active = computed<FarmerNavKey>(() => {
-    const path = page.url.split('?')[0].replace(/\/$/, '') || '/';
-    if (path === '/') return 'home';
-    if (path === '/proyeksi' || path.startsWith('/proyeksi/'))
-        return 'projection';
-    if (path === '/kebun' || path.startsWith('/kebun/')) return 'garden';
-    return 'more';
+const section = computed(() => {
+    const path = page.url.split('?')[0];
+    if (path === '/proyeksi')
+        return {
+            title: 'Proyeksi',
+            href: '/proyeksi',
+            icon: ChartNoAxesCombined,
+        };
+    if (path === '/kebun' || path.startsWith('/kebun/'))
+        return { title: 'Lahan', href: '/kebun', icon: LandPlot };
+    return { title: 'Dashboard', href: '/', icon: LayoutGrid };
 });
 const loading = ref(false);
 const feedback = ref('');
@@ -49,18 +52,12 @@ onUnmounted(() => stop.forEach((unsubscribe) => unsubscribe()));
 </script>
 
 <template>
-    <FarmerMobileShell
-        :active-key="active"
-        show-appearance-toggle
-        responsive-desktop
+    <AdminWorkspaceLayout
+        :title="section.title"
+        :href="section.href"
+        :icon="section.icon"
     >
-        <template #desktop-navigation>
-            <OwnerDesktopNav :active-key="active" />
-        </template>
-        <div
-            class="owner-layout-content min-w-0 space-y-5 px-4 pt-4 pb-6"
-            :aria-busy="loading"
-        >
+        <div class="min-w-0 space-y-5" :aria-busy="loading">
             <p
                 v-if="loading || feedback"
                 :role="failed ? 'alert' : 'status'"
@@ -71,23 +68,5 @@ onUnmounted(() => stop.forEach((unsubscribe) => unsubscribe()));
             </p>
             <slot />
         </div>
-    </FarmerMobileShell>
+    </AdminWorkspaceLayout>
 </template>
-
-<style scoped>
-@media (min-width: 640px) {
-    .owner-layout-content {
-        padding: 24px 24px 32px;
-    }
-}
-@media (min-width: 1024px) {
-    .owner-layout-content {
-        padding: 24px 32px 40px;
-    }
-}
-@media (min-width: 1920px) {
-    .owner-layout-content {
-        padding: 32px 48px 48px;
-    }
-}
-</style>

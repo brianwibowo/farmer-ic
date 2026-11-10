@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookOpen,
+    ChartNoAxesCombined,
     ClipboardList,
     FolderGit2,
     LandPlot,
@@ -33,10 +34,12 @@ import {
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import admin from '@/routes/admin';
+import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
 import type { NavItem } from '@/types';
 import { useAppName } from '@/composables/useAppName';
 
 const appName = useAppName();
+const { indexUrl: farmsUrl } = useFarmManagementNavigation();
 
 const props = defineProps<{ adminTheme?: boolean }>();
 
@@ -59,53 +62,82 @@ const dashboardUrl = computed(() =>
     page.props.navigation?.admin ? admin.home().url : '/',
 );
 
-const mainNavItems = computed<NavItem[]>(() => [
-    {
-        title: page.props.navigation?.admin ? 'Dashboard' : 'Beranda',
-        href: page.props.navigation?.admin
-            ? admin.dashboard().url
-            : dashboardUrl.value,
-        icon: LayoutGrid,
-        exact: true,
-    },
-    ...(page.props.navigation?.farms
+const mainNavItems = computed<NavItem[]>(() =>
+    page.props.navigation?.owner
         ? [
+              { title: 'Dashboard', href: '/', icon: LayoutGrid, exact: true },
               {
-                  title: props.adminTheme
-                      ? 'Manajemen Kebun'
-                      : 'Farm Management',
-                  href: '/admin/farm-management',
-                  icon: LandPlot,
-                  isActive:
-                      isCurrentOrParentUrl('/admin/farm-management') ||
-                      page.component.startsWith('farmer/blocks/'),
+                  title: 'Proyeksi',
+                  href: '/proyeksi',
+                  icon: ChartNoAxesCombined,
               },
+              ...(page.props.navigation.farms
+                  ? [
+                        {
+                            title: 'Lahan',
+                            href: farmsUrl.value,
+                            icon: LandPlot,
+                            isActive: isCurrentOrParentUrl(farmsUrl.value),
+                        },
+                    ]
+                  : []),
           ]
-        : []),
-    ...(page.props.navigation?.admin && page.props.navigation?.logbook
-        ? [{ title: 'Logbook', href: '/admin/logbook', icon: BookOpen }]
-        : []),
-    ...(page.props.navigation?.admin
-        ? [
+        : [
               {
-                  title: 'SOP',
-                  href: '/admin/sops',
-                  icon: ClipboardList,
+                  title: page.props.navigation?.admin ? 'Dashboard' : 'Beranda',
+                  href: page.props.navigation?.admin
+                      ? admin.dashboard().url
+                      : dashboardUrl.value,
+                  icon: LayoutGrid,
+                  exact: true,
               },
-          ]
-        : []),
-    ...(page.props.navigation?.users
-        ? [
-              {
-                  title: props.adminTheme
-                      ? 'Manajemen Pengguna'
-                      : 'User Management',
-                  href: '/admin/user-management',
-                  icon: Users,
-              },
-          ]
-        : []),
-]);
+              ...(page.props.navigation?.farms
+                  ? [
+                        {
+                            title: props.adminTheme
+                                ? 'Manajemen Kebun'
+                                : 'Farm Management',
+                            href: '/admin/farm-management',
+                            icon: LandPlot,
+                            isActive:
+                                isCurrentOrParentUrl(
+                                    '/admin/farm-management',
+                                ) ||
+                                page.component.startsWith('farmer/blocks/'),
+                        },
+                    ]
+                  : []),
+              ...(page.props.navigation?.admin && page.props.navigation?.logbook
+                  ? [
+                        {
+                            title: 'Logbook',
+                            href: '/admin/logbook',
+                            icon: BookOpen,
+                        },
+                    ]
+                  : []),
+              ...(page.props.navigation?.admin
+                  ? [
+                        {
+                            title: 'SOP',
+                            href: '/admin/sops',
+                            icon: ClipboardList,
+                        },
+                    ]
+                  : []),
+              ...(page.props.navigation?.users
+                  ? [
+                        {
+                            title: props.adminTheme
+                                ? 'Manajemen Pengguna'
+                                : 'User Management',
+                            href: '/admin/user-management',
+                            icon: Users,
+                        },
+                    ]
+                  : []),
+          ],
+);
 
 const settingsNavItems = computed<NavItem[]>(() => [
     {
@@ -213,7 +245,7 @@ const footerNavItems: NavItem[] = [
                 :label="adminTheme ? 'Menu utama' : 'Platform'"
             />
             <NavMain
-                v-if="adminTheme"
+                v-if="adminTheme && !page.props.navigation?.owner"
                 :items="settingsNavItems"
                 label="Lainnya"
                 aria-label="Navigasi pengaturan"

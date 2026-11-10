@@ -46,7 +46,7 @@ class SecurityTest extends TestCase
             );
     }
 
-    public function test_owner_and_petugas_receive_the_mobile_security_presentation(): void
+    public function test_owner_receives_sidebar_security_and_petugas_keeps_mobile_security(): void
     {
         foreach (['owner', 'petugas'] as $role) {
             $user = User::factory()->create(['role' => $role]);
@@ -56,7 +56,7 @@ class SecurityTest extends TestCase
                 ->assertOk()
                 ->assertInertia(fn (Assert $page) => $page
                     ->where('securityPresentation', [
-                        'surface' => 'mobile',
+                        'surface' => $role === 'owner' ? 'desktop' : 'mobile',
                         'returnUrl' => '/settings/profile',
                     ]));
         }
