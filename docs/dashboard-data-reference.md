@@ -262,7 +262,7 @@ keyboard/sentuhan, reset, tema terang/gelap, serta filter Sukamaju (satu Padi,
 5 ha, 100%) berfungsi. Pilihan Jagung dibersihkan ketika berpindah ke filter
 tersebut. Browser tidak mencatat warning/error.
 
-## Ringkasan lahan pada peta dan identitas Hijauan (5 November 2026)
+## Ringkasan lahan pada peta dan identitas aplikasi dari APP_NAME (5 November 2026)
 
 Marker pada Beranda Owner membuka dialog dengan nama/lokasi/luas, peta satelit
 lahan terpilih, jenis tanaman beserta varietas, PIC yang ditugaskan, dan tautan

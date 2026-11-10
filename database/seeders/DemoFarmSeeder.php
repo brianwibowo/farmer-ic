@@ -39,7 +39,7 @@ class DemoFarmSeeder extends Seeder
             'team_id' => $team->id,
             'owner_id' => $owner->id,
             'created_by' => $owner->id,
-            'address' => 'Kampung Cileuksa, lahan percontohan Farm IC',
+            'address' => 'Kampung Cileuksa, lahan percontohan '.config('app.name'),
             'city' => $farm->getAttribute('district_code') === '32.01.09' ? 'Kabupaten Bogor' : 'Bogor',
             'district' => 'Sukamakmur',
             'province' => 'Jawa Barat',

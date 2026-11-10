@@ -70,6 +70,7 @@ class PresentationNamesSeederTest extends TestCase
 
     public function test_cleanup_updates_existing_fixture_copy_in_place_and_keeps_all_relationships_and_credentials(): void
     {
+        config(['app.name' => 'Kebun Nusantara']);
         $team = $this->fixtures();
         $team->forceFill(['name' => 'Farm IC Demo'])->saveQuietly();
         foreach (DemoIdentitySeeder::ACCOUNTS as $account) {
@@ -107,7 +108,7 @@ class PresentationNamesSeederTest extends TestCase
         $this->seed(PresentationNamesSeeder::class);
 
         $this->assertEquals($before, $this->protectedData());
-        $this->assertSame('Hijauan', $team->refresh()->name);
+        $this->assertSame('Kebun Nusantara', $team->refresh()->name);
         $this->assertSame('farm-ic-demo', $team->slug);
         $this->assertSame(DemoFarmSeeder::FARM_NAME, $base->refresh()->name);
         foreach (DemoIdentitySeeder::ACCOUNTS as $account) {
@@ -128,7 +129,9 @@ class PresentationNamesSeederTest extends TestCase
 
     public function test_fresh_sources_and_legacy_base_adoption_do_not_create_duplicate_farms(): void
     {
+        config(['app.name' => 'Bumi Hijauan']);
         $team = $this->fixtures();
+        $this->assertSame(config('app.name'), $team->name);
         $base = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $base->update(['name' => 'Kebun Cileuksa Demo']);
         $this->seed(DemoFarmSeeder::class);
@@ -149,7 +152,8 @@ class PresentationNamesSeederTest extends TestCase
 
     public function test_cleanup_leaves_other_tenants_and_custom_content_untouched(): void
     {
-        $this->fixtures();
+        $team = $this->fixtures();
+        $team->forceFill(['name' => 'Kebun Pelanggan'])->saveQuietly();
         $foreignTeam = Team::factory()->create(['name' => 'Tenant Demo Eksternal', 'is_personal' => false]);
         $foreign = new Farm(['name' => 'Kebun Cileuksa Demo', 'total_area_ha' => '5.0000']);
         $foreign->forceFill([
@@ -164,6 +168,20 @@ class PresentationNamesSeederTest extends TestCase
         $this->assertSame($beforeForeign, $foreign->refresh()->getRawOriginal());
         $this->assertSame($beforeCustom, $custom->refresh()->getRawOriginal());
         $this->assertSame('Tenant Demo Eksternal', $foreignTeam->refresh()->name);
+        $this->assertSame('Kebun Pelanggan', $team->refresh()->name);
+    }
+
+    public function test_cleanup_updates_recognized_legacy_brand_names_to_configuration(): void
+    {
+        $team = $this->fixtures();
+        config(['app.name' => 'Kebun Nusantara']);
+
+        foreach (['Hijauan', 'Bumi Hijauan'] as $legacyName) {
+            $team->forceFill(['name' => $legacyName])->saveQuietly();
+            $this->seed(PresentationNamesSeeder::class);
+            $this->assertSame('Kebun Nusantara', $team->refresh()->name);
+            $this->assertSame('farm-ic-demo', $team->slug);
+        }
     }
 
     public function test_missing_trusted_actor_and_production_guard_reject_before_changes(): void

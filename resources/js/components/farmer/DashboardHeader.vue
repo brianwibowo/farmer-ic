@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { LoaderCircle, LogOut, Settings } from '@lucide/vue';
+import { LoaderCircle, LogOut, Moon, Settings, Sun } from '@lucide/vue';
 import { computed } from 'vue';
+import BrandLogo from '@/components/BrandLogo.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
@@ -11,22 +12,33 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAppearance } from '@/composables/useAppearance';
 import { getInitials } from '@/composables/useInitials';
 import { useLogout } from '@/composables/useLogout';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { edit as editProfile } from '@/routes/profile';
+import { useAppName } from '@/composables/useAppName';
 
-withDefaults(
+const appName = useAppName();
+
+const props = withDefaults(
     defineProps<{
+        showAppearanceToggle?: boolean;
         dashboardTheme?: boolean;
         showBrand?: boolean;
     }>(),
     {
+        showAppearanceToggle: false,
         dashboardTheme: false,
         showBrand: true,
     },
 );
-
+const { resolvedAppearance, updateAppearance } = useAppearance();
+const appearanceAction = computed(() =>
+    resolvedAppearance.value === 'dark'
+        ? 'Aktifkan mode terang'
+        : 'Aktifkan mode gelap',
+);
 const page = usePage();
 const user = computed(() => page.props.account ?? page.props.auth?.user);
 const name = computed(() => user.value?.name?.trim() || 'Petani IC');
@@ -36,29 +48,44 @@ const { signOut, processing, error } = useLogout();
 <template>
     <header class="py-1">
         <div class="flex items-center justify-between gap-3">
-            <div v-if="$slots.default" class="min-w-0 flex-1"><slot /></div>
-            <Link
-                v-else-if="showBrand && dashboardTheme"
-                href="/petugas"
-                aria-label="Beranda Farm IC"
-                class="flex min-w-0 items-center gap-2 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                ><img
-                    src="/images/logo.png"
-                    alt=""
-                    class="size-9 shrink-0 object-contain dark:brightness-0 dark:invert"
-                /><span
-                    class="text-lg font-semibold tracking-tight whitespace-nowrap"
-                    >Farm <span class="text-primary">IC</span></span
-                ></Link
+            <div
+                v-if="props.dashboardTheme && $slots.default"
+                class="min-w-0 flex-1"
             >
-            <img
-                v-else-if="showBrand"
-                src="/images/logo-dashboard.png"
-                alt="Farm IC"
-                class="h-9 w-auto min-w-0 object-contain dark:brightness-0 dark:invert"
-            />
+                <slot />
+            </div>
+            <Link
+                v-else-if="props.dashboardTheme && props.showBrand"
+                href="/petugas"
+                :aria-label="`Beranda ${appName}`"
+                class="flex min-w-0 items-center gap-2 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+                <BrandLogo />
+            </Link>
+            <BrandLogo v-else-if="!props.dashboardTheme" class="shrink-0" />
+
+            <slot name="navigation" />
 
             <div class="flex shrink-0 items-center gap-2">
+                <button
+                    v-if="props.showAppearanceToggle"
+                    type="button"
+                    :aria-label="appearanceAction"
+                    :title="appearanceAction"
+                    class="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-muted/40 text-primary transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                    @click="
+                        updateAppearance(
+                            resolvedAppearance === 'dark' ? 'light' : 'dark',
+                        )
+                    "
+                >
+                    <Sun
+                        v-if="resolvedAppearance === 'dark'"
+                        class="size-5"
+                        aria-hidden="true"
+                    />
+                    <Moon v-else class="size-5" aria-hidden="true" />
+                </button>
                 <NotificationBell />
 
                 <DropdownMenu>
@@ -66,7 +93,7 @@ const { signOut, processing, error } = useLogout();
                         <button
                             type="button"
                             aria-label="Buka profil"
-                            class="shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+                            class="rounded-full transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
                         >
                             <Avatar class="size-11 rounded-full">
                                 <AvatarImage
@@ -86,7 +113,9 @@ const { signOut, processing, error } = useLogout();
                         align="end"
                         :side-offset="8"
                         class="w-64 max-w-[calc(100vw-2rem)] rounded-xl p-2"
-                        :class="{ 'admin-dashboard-theme': dashboardTheme }"
+                        :class="{
+                            'admin-dashboard-theme': props.dashboardTheme,
+                        }"
                     >
                         <DropdownMenuLabel>Profil</DropdownMenuLabel>
                         <DropdownMenuSeparator />
@@ -101,7 +130,7 @@ const { signOut, processing, error } = useLogout();
                                 {{ user.email }}
                             </p>
                             <p v-else class="text-xs text-muted-foreground">
-                                Profil tampilan demo
+                                Profil pengguna
                             </p>
                         </div>
                         <template v-if="user">
