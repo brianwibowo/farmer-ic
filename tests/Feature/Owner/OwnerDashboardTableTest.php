@@ -85,6 +85,46 @@ class OwnerDashboardTableTest extends TestCase
             ->where('dashboard.commodities.1.name', 'Kedelai'));
     }
 
+    public function test_land_rows_are_grouped_by_city_with_aggregates_and_cycle_projection(): void
+    {
+        $first = $this->farm('Kebun Bogor Utara', '2.0000', null, null, 'Kabupaten Bogor');
+        $second = $this->farm('Kebun Bogor Selatan', '3.0000', null, null, 'Kabupaten Bogor');
+        $other = $this->farm('Kebun Cianjur', '4.0000', null, null, 'Kabupaten Cianjur');
+        $jagung = $this->cycle($first, 'Jagung', 'BISI-18');
+        $rumput = $this->cycle($second, 'Rumput', 'Odot');
+        $this->cycle($other, 'Sorgum', 'Super-2');
+        $this->stage($jagung, 'soil_preparation', 1, 'completed');
+        $this->stage($jagung, 'planting', 2, 'in_progress');
+
+        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('landTable.groups', 2)
+            ->where('landTable.groups.0.name', 'Kabupaten Bogor')
+            ->where('landTable.groups.0.farm_count', 2)
+            ->where('landTable.groups.0.area_ha', '5.0000')
+            ->where('landTable.groups.0.progress.percentage', 50)
+            ->where('landTable.groups.0.projection.total_ton', 380)
+            ->where('landTable.groups.0.projection.commodities', [
+                ['id' => 'Jagung', 'name' => 'Jagung', 'ton' => 80],
+                ['id' => 'Rumput', 'name' => 'Rumput', 'ton' => 300],
+            ])
+            ->has('landTable.groups.0.rows', 2)
+            ->where('landTable.groups.1.name', 'Kabupaten Cianjur'));
+    }
+
+    public function test_blank_city_farms_remain_in_totals_but_not_in_a_table_group(): void
+    {
+        $grouped = $this->farm('Kebun Bogor', '2.0000', 'owned', null, 'Kabupaten Bogor');
+        $ungrouped = $this->farm('Kebun Tanpa Kabupaten', '3.0000', 'rented');
+
+        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('landTable.total', 2)
+            ->where('landTable.total_area_ha', '5.0000')
+            ->has('landTable.rows', 2)
+            ->has('landTable.groups', 1)
+            ->where('landTable.groups.0.rows.0.id', $grouped->id)
+            ->where('landTable.rows.1.id', $ungrouped->id));
+    }
+
     public function test_admin_database_changes_appear_on_the_next_owner_request(): void
     {
         $farm = $this->farm('Kebun Awal', '10.0000', 'owned');
@@ -267,9 +307,9 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.rows.0.resume', null));
     }
 
-    private function farm(string $name, string $area, ?string $tenure = null, ?Team $team = null): Farm
+    private function farm(string $name, string $area, ?string $tenure = null, ?Team $team = null, ?string $city = null): Farm
     {
-        $farm = new Farm(['name' => $name, 'total_area_ha' => $area, 'land_tenure' => $tenure]);
+        $farm = new Farm(['name' => $name, 'total_area_ha' => $area, 'land_tenure' => $tenure, 'city' => $city]);
         $farm->forceFill(['team_id' => ($team ?? $this->team)->id, 'created_by' => $this->admin->id])->save();
 
         return $farm;

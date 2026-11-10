@@ -14,30 +14,52 @@ export type OwnerDashboardData = Omit<DashboardData, 'landMap'> & {
 };
 
 export type OwnerDashboardLandTable = {
-    rows: Array<{
-        id: string;
-        name: string;
-        detail_url: string;
-        area_ha: string;
-        legality: string | null;
-        land_tenure_party: string | null;
-        requires_land_tenure_party: boolean;
-        crops: Array<{ id: string; name: string; varieties: string[] }>;
-        progress: {
-            completed_stages: number;
-            total_stages: number;
-            current_stages: string[];
-            running_batches: number;
-        };
-        resume: null | {
-            id: string;
-            title: string | null;
-            description: string | null;
-            date: string;
-            status: string | null;
-            detail_url: string;
-        };
-    }>;
+    rows: OwnerDashboardLandRow[];
+    groups: OwnerDashboardLandGroup[];
     total_area_ha: string;
     total: number;
+};
+
+export type OwnerDashboardLandRow = {
+    id: string;
+    name: string;
+    detail_url: string;
+    area_ha: string;
+    legality: string | null;
+    land_tenure_party: string | null;
+    requires_land_tenure_party: boolean;
+    crops: Array<{ id: string; name: string; varieties: string[] }>;
+    progress: {
+        completed_stages: number;
+        total_stages: number;
+        current_stages: string[];
+        running_batches: number;
+    };
+    resume: null | {
+        id: string;
+        title: string | null;
+        description: string | null;
+        date: string;
+        status: string | null;
+        detail_url: string;
+    };
+};
+
+export type OwnerDashboardLandGroup = {
+    id: string;
+    name: string;
+    farm_count: number;
+    area_ha: string;
+    crops: Array<{ id: string; name: string }>;
+    progress: {
+        percentage: number | null;
+        completed_stages: number;
+        total_stages: number;
+    };
+    projection: {
+        total_ton: number;
+        has_data: boolean;
+        commodities: Array<{ id: string; name: string; ton: number }>;
+    };
+    rows: OwnerDashboardLandRow[];
 };
