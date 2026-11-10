@@ -22,8 +22,6 @@ import TextAreaField from '@/components/petugas/activity-form/TextAreaField.vue'
 import TextField from '@/components/petugas/activity-form/TextField.vue';
 import type { PetugasActivityPageProps } from '@/types/petugas-task';
 
-defineOptions({ inheritAttrs: false });
-
 const props = defineProps<PetugasActivityPageProps>();
 
 type ActivityCategory =
@@ -203,7 +201,7 @@ function submit(): void {
     </section>
 
     <form class="mt-5 space-y-4 pb-2" novalidate @submit.prevent="submit">
-        <section class="petugas-card p-4">
+        <section class="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p
@@ -277,7 +275,7 @@ function submit(): void {
             </div>
         </section>
 
-        <section class="petugas-card p-4">
+        <section class="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p
@@ -356,7 +354,7 @@ function submit(): void {
             </label>
         </section>
 
-        <section class="petugas-card p-4">
+        <section class="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div>
                 <p
                     class="text-xs font-medium tracking-wide text-muted-foreground"
@@ -937,7 +935,7 @@ function submit(): void {
             </div>
         </section>
 
-        <section class="petugas-card p-4">
+        <section class="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div>
                 <p
                     class="text-xs font-medium tracking-wide text-muted-foreground"

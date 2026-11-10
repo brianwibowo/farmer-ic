@@ -6,12 +6,6 @@ use Symfony\Component\Console\Input\ArgvInput;
 
 define('LARAVEL_START', microtime(true));
 
-// Keep test output readable, including when invoked from an agent terminal.
-if (($_SERVER['argv'][1] ?? null) === 'test') {
-    $_SERVER['PAO_DISABLE'] = '1';
-    putenv('PAO_DISABLE=1');
-}
-
 // Register the Composer autoloader...
 require __DIR__.'/vendor/autoload.php';
 

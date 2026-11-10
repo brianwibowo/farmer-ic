@@ -551,12 +551,6 @@ function reset(): void {
                                             landTenureLabel(farm.land_tenure)
                                         }}</span
                                     >
-                                    <p
-                                        v-if="farm.land_tenure === 'rented' || farm.land_tenure === 'partnership'"
-                                        class="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]"
-                                    >
-                                        {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}
-                                    </p>
                                 </td>
                                 <td class="px-5 py-4">
                                     <p>{{ farm.city ?? "—" }}</p>
@@ -627,12 +621,6 @@ function reset(): void {
                             class="mt-2 inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
                             >{{ landTenureLabel(farm.land_tenure) }}</span
                         >
-                        <p
-                            v-if="farm.land_tenure === 'rented' || farm.land_tenure === 'partnership'"
-                            class="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]"
-                        >
-                            {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}
-                        </p>
                         <p class="mt-2 text-xs text-muted-foreground">
                             {{
                                 [farm.district, farm.city, farm.province]

@@ -16,9 +16,6 @@ import {
     Wheat,
 } from '@lucide/vue';
 import type { FarmReport } from '@/reference/services/farmDemoService';
-import { useAppName } from '@/composables/useAppName';
-
-const appName = useAppName();
 
 const props = defineProps<{
     report: FarmReport;
@@ -71,7 +68,7 @@ const getDonutSegments = () => {
                                     ),
                                 )
                             "
-                            :alt="appName"
+                            alt="Farmer IC"
                             style="margin-right: 0pt"
                         />
                         <p class="print-kicker" style="padding-top: 0, 5pt">
@@ -315,7 +312,7 @@ const getDonutSegments = () => {
             </section>
 
             <footer class="print-footer">
-                {{ appName }} · Dokumen dibuat dari data laporan
+                Farmer IC · Dokumen dibuat dari data laporan
                 {{ report.periodLabel }}
             </footer>
         </article>

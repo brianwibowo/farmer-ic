@@ -1,5 +1,3 @@
-import { getAppName } from '@/lib/appName';
-
 export type AiKnowledgeChunk = {
     id: string;
     title: string;
@@ -17,9 +15,8 @@ export const aiKnowledgeChunks: AiKnowledgeChunk[] = [
     {
         id: 'finance-current-unavailable-v1',
         title: 'Ketersediaan finansial bulan berjalan',
-        get content() {
-            return `Data finansial bulan ini belum tersedia di informasi aplikasi ${getAppName()} yang dapat diakses Asisten Kebun. Asisten dapat membantu merekap angka atau screenshot yang dikirim pengguna, termasuk perbandingan pemasukan dan pengeluaran, rincian biaya, serta laba/rugi per lahan atau komoditas.`;
-        },
+        content:
+            'Data finansial bulan ini belum tersedia di informasi aplikasi Farmer IC yang dapat diakses Asisten Kebun. Asisten dapat membantu merekap angka atau screenshot yang dikirim pengguna, termasuk perbandingan pemasukan dan pengeluaran, rincian biaya, serta laba/rugi per lahan atau komoditas.',
         keywords: [
             'finansial',
             'keuangan',
@@ -34,9 +31,7 @@ export const aiKnowledgeChunks: AiKnowledgeChunk[] = [
             'bulan sekarang',
             'periode ini',
         ],
-        get source() {
-            return `Knowledge base ${getAppName()} · ketersediaan data`;
-        },
+        source: 'Knowledge base Farmer IC · ketersediaan data',
     },
     {
         id: 'assistant-scope-v1',
@@ -51,8 +46,6 @@ export const aiKnowledgeChunks: AiKnowledgeChunk[] = [
             'data',
             'bantuan',
         ],
-        get source() {
-            return `Knowledge base ${getAppName()} · ruang lingkup aplikasi`;
-        },
+        source: 'Knowledge base Farmer IC · ruang lingkup aplikasi',
     },
 ];

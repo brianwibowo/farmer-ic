@@ -37,7 +37,6 @@ class SaveFarmRequest extends FormRequest
         return [
             'name' => [...$presence, 'string', 'max:150'],
             'land_tenure' => [...$presence, Rule::in(['owned', 'rented', 'partnership'])],
-            'land_tenure_party' => ['sometimes', 'nullable', 'string', 'max:255'],
             'total_area_ha' => [...$presence, 'numeric', 'decimal:0,4', 'min:0.0001', 'max:99999999.9999'],
             'owner_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'id')->where(fn ($query) => $query
                 ->where('is_active', true)
@@ -71,14 +70,6 @@ class SaveFarmRequest extends FormRequest
         return [function (Validator $validator): void {
             $parameter = $this->route('farm');
             $farm = $parameter instanceof Farm ? $parameter : null;
-            $tenure = $this->input('land_tenure', $farm?->land_tenure);
-            $party = $this->input('land_tenure_party', $this->isMethod('patch') ? $farm?->getAttribute('land_tenure_party') : null);
-            $legalityChanged = ! $this->isMethod('patch') || $this->exists('land_tenure') || $this->exists('land_tenure_party');
-            if ($legalityChanged && in_array($tenure, ['rented', 'partnership'], true) && blank($party)) {
-                $validator->errors()->add('land_tenure_party', $tenure === 'rented'
-                    ? 'Isi nama pemilik lahan yang disewa.'
-                    : 'Isi nama pihak mitra kerja sama.');
-            }
             $commodityId = $this->exists('commodity_id') ? $this->input('commodity_id') : $farm?->getAttribute('commodity_id');
             $sopId = $this->exists('default_sop_template_id') ? $this->input('default_sop_template_id') : $farm?->default_sop_template_id;
             $team = $farm instanceof Farm ? $farm->team : $this->user()?->currentTeam;
@@ -117,8 +108,6 @@ class SaveFarmRequest extends FormRequest
         return [
             'land_tenure.required' => 'Pilih status penguasaan lahan.',
             'land_tenure.in' => 'Status lahan harus Milik sendiri, Sewa, atau Kerja sama.',
-            'land_tenure_party.string' => 'Nama pihak terkait harus berupa teks.',
-            'land_tenure_party.max' => 'Nama pihak terkait maksimal 255 karakter.',
         ];
     }
 }

@@ -155,7 +155,6 @@ return [
             'video/webm',
             'audio/ogg',
             'audio/wav',
-            'audio/x-wav',
             'audio/mpeg',
             'audio/mp4',
             'audio/x-m4a',

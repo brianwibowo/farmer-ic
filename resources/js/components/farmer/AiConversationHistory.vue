@@ -7,30 +7,23 @@ defineProps<{
     conversations: Conversation[];
     conversationId: string | null;
     isLoading: boolean;
-    error?: string | null;
 }>();
 
+
 function cleanPreview(value: string | undefined): string {
-    const normalized = normalizeAiResponse(value ?? '');
-    return (
-        normalized
-            .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-            .replace(/^#{1,6}\s*/gm, '')
-            .replace(/\*\*([^*]+)\*\*/g, '$1')
-            .replace(/\|/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim() ||
-        (/!\[[^\]]*\]\([^)]*\)/.test(normalized)
-            ? 'Gambar / ilustrasi'
-            : 'Belum ada pesan')
-    );
+    return normalizeAiResponse(value ?? 'Belum ada pesan')
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+        .replace(/^#{1,6}\s*/gm, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\|/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim() || 'Belum ada pesan';
 }
 
 const emit = defineEmits<{
     close: [];
     newConversation: [];
     select: [id: string];
-    retry: [];
 }>();
 </script>
 
@@ -71,20 +64,6 @@ const emit = defineEmits<{
             >
                 <LoaderCircle :size="15" class="animate-spin" /> Memuat riwayat…
             </p>
-            <div
-                v-else-if="error"
-                class="rounded-xl border border-error/25 bg-error/5 p-4"
-                role="alert"
-            >
-                <p class="text-sm leading-6 text-error">{{ error }}</p>
-                <button
-                    type="button"
-                    class="mt-3 min-h-11 rounded-lg border border-border bg-card px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring"
-                    @click="emit('retry')"
-                >
-                    Coba muat riwayat lagi
-                </button>
-            </div>
             <p
                 v-else-if="conversations.length === 0"
                 class="px-3 py-8 text-center text-xs leading-relaxed text-muted-foreground"

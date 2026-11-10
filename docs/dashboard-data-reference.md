@@ -23,54 +23,6 @@ oleh `auth`, `verified`, dan Gate `admin.access`.
 | OPEX bulan berjalan | `financial_transactions` / `FinancialTransaction` | `SUM(amount)` ketika `transaction_type = 'expense'` dan `transaction_date` berada pada bulan kalender saat ini. |
 | Proyeksi pemasukan, biaya, dan bersih | `financial_projections` / `FinancialProjection` | Hanya periode yang mencakup hari ini (`period_start <= hari ini <= period_end`). Nilai: `SUM(projected_income)`, `SUM(projected_expense)`, dan selisihnya. |
 | Denah kebun | `farms` / `Farm` | Nama/lokasi: `name`, `city`; ukuran: `total_area_ha`; posisi: `latitude`, `longitude`. |
-| Cuaca & prakiraan | Open-Meteo Forecast API | Koordinat berasal dari `Farm` dalam tenant aktif; kondisi model terkini, suhu, kelembapan, angin, peluang hujan jam ini dan tiga prakiraan jam mendatang. |
-
-## Cuaca dashboard (5 November 2026)
-
-`GET /admin/dashboard/weather/{farm}` memakai `auth`, `verified`, `admin.access`
-dan pembatasan 30 request/menit. `DashboardWeatherController` mengotorisasi
-`Farm::viewAny` dalam tenant dashboard dan `Farm::view` untuk kebun target.
-`FarmWeatherService` membaca ulang kebun dengan `visibleTo($actor, $team)` dan
-`team_id` sebelum membaca koordinat maupun cache. Superadmin juga dibatasi ke
-tenant dashboard aktif pada endpoint ini. Farm ID dari URL tidak memberi akses;
-koordinat/team ID dari query string tidak digunakan. Tidak ada perubahan grants.
-Ini prakiraan eksternal untuk kebun yang terlihat, bukan pembacaan atau penulisan
-riwayat `weather_records`. Tidak ada route/query baru yang dibiarkan tanpa
-proteksi; modul lain tidak diaudit ulang.
-
-Cuaca dimuat terpisah dari ringkasan Inertia melalui `FarmWeatherResource`.
-Browser memuat ulang setiap 15 menit saat halaman terlihat, membatalkan request
-lama ketika lokasi berubah, dan memuat data yang sudah jatuh tempo saat kembali
-ke tab. Filter kebun utama membatasi pilihan cuaca; saat semua kebun ditampilkan,
-card memilih kebun berkoordinat pertama dan menyediakan pilihan kebun sendiri.
-Layout desktop lebar memakai rasio 3:1, lalu bertumpuk pada layar lebih kecil.
-
-Cache server berlaku segar selama 15 menit per kebun dan koordinat. Jika provider
-gagal, data terakhir maksimal enam jam ditampilkan dengan status `stale`, waktu
-data asli dan waktu pengambilan; cache tidak memperpanjang kesegaran saat gagal.
-Kegagalan ditahan satu menit sebelum mencoba provider lagi. Tanpa cache, status
-`unavailable`; tanpa koordinat valid, `missing_coordinates` tanpa request keluar.
-Respons browser memakai `private, no-store` supaya akses diperiksa setiap poll.
-Data turunan disimpan di cache Laravel, tanpa browser storage, migration, atau
-perubahan riwayat cuaca/AI/RAG.
-
-Parameter API memakai `timezone=auto`, `timeformat=unixtime`, angin km/jam, dan
-tujuh titik waktu prakiraan. Waktu ditampilkan dalam zona lokasi, termasuk saat
-pergantian tanggal. Nilai yang tidak tersedia tetap kosong, bukan nol. Label
-cuaca mengikuti WMO weather code dan card memberi atribusi Open-Meteo.
-
-Konfigurasi ada di `services.open_meteo`: `OPEN_METEO_URL` (default
-`https://api.open-meteo.com/v1/forecast`) dan `OPEN_METEO_API_KEY` opsional.
-Untuk akun komersial gunakan endpoint pelanggan
-`https://customer-api.open-meteo.com/v1/forecast` beserta key melalui konfigurasi
-deployment; `.env` tidak diubah oleh implementasi ini. API gratis dibatasi untuk
-penggunaan non-komersial: periksa [ketentuan Open-Meteo](https://open-meteo.com/en/terms)
-sebelum deployment komersial. Kontrak parameter mengikuti
-[dokumentasi Forecast API](https://open-meteo.com/en/docs).
-
-`DashboardWeatherTest` menguji integrasi HTTP/database PostgreSQL terisolasi,
-role, penolakan antar-tenant/grant hilang, cache/expiry, koordinat berubah/hilang,
-nilai kosong, respons provider rusak, dan kegagalan provider dengan HTTP fake.
 
 ## Batasan denah saat ini
 
@@ -262,7 +214,7 @@ keyboard/sentuhan, reset, tema terang/gelap, serta filter Sukamaju (satu Padi,
 5 ha, 100%) berfungsi. Pilihan Jagung dibersihkan ketika berpindah ke filter
 tersebut. Browser tidak mencatat warning/error.
 
-## Ringkasan lahan pada peta dan identitas aplikasi dari APP_NAME (5 November 2026)
+## Ringkasan lahan pada peta dan identitas Hijauan (5 November 2026)
 
 Marker pada Beranda Owner membuka dialog dengan nama/lokasi/luas, peta satelit
 lahan terpilih, jenis tanaman beserta varietas, PIC yang ditugaskan, dan tautan

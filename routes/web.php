@@ -2,13 +2,11 @@
 
 use App\Http\Controllers\Activity\AdminLogbookController;
 use App\Http\Controllers\Activity\DailyActivityLogController;
-use App\Http\Controllers\AI\AiAttachmentController;
 use App\Http\Controllers\AI\AiConversationController;
 use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
 use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DashboardWeatherController;
 use App\Http\Controllers\FarmBlockController;
 use App\Http\Controllers\FarmManagementController;
 use App\Http\Controllers\Finance\FinanceController;
@@ -31,7 +29,6 @@ use App\Http\Controllers\Sop\SopTemplateVersionController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureTeamMembership;
-use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -74,8 +71,6 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
 
 Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
     Route::get('/', PetugasHomeController::class)->name('home');
-    Route::get('weather/{farm}', DashboardWeatherController::class)
-        ->whereUuid('farm')->middleware('throttle:30,1')->name('weather');
     Route::get('kebun', PetugasGardenController::class)->name('kebun');
     Route::get('tasks', [PetugasTaskController::class, 'index'])->name('tasks.index');
     Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
@@ -121,8 +116,6 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
 Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
     Route::get('dashboard', DashboardController::class)->name('admin.dashboard');
-    Route::get('dashboard/weather/{farm}', DashboardWeatherController::class)
-        ->whereUuid('farm')->middleware('throttle:30,1')->name('admin.dashboard.weather');
     Route::get('logbook', [AdminLogbookController::class, 'index'])->name('admin.logbook.index');
     Route::get('logbook/{farm}', [AdminLogbookController::class, 'farm'])->whereUuid('farm')->name('admin.logbook.farm');
     Route::get('logbook/{farm}/{dailyLog}', [AdminLogbookController::class, 'show'])->whereUuid(['farm', 'dailyLog'])->name('admin.logbook.show');
@@ -165,12 +158,9 @@ Route::prefix('{current_team}')
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-        Route::get('ai', fn (Team $current_team) => Inertia::render('farmer/Index'))
-            ->middleware('can:ai.access,current_team')->name('ai.page');
+        Route::get('ai', fn () => Inertia::render('farmer/Index'))->name('ai.page');
 
-        Route::prefix('ai')->name('ai.')->middleware('can:ai.access,current_team')->group(function () {
-            Route::get('attachments/{attachment}', AiAttachmentController::class)
-                ->whereUuid('attachment')->name('attachments.show');
+        Route::prefix('ai')->name('ai.')->group(function () {
             Route::get('conversations', [AiConversationController::class, 'index'])->name('conversations.index');
             Route::post('conversations', [AiConversationController::class, 'store'])
                 ->middleware('throttle:30,1')

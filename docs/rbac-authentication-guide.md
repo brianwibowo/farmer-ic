@@ -97,13 +97,6 @@ Izin baca Farm mereka tetap berlaku di jalur yang sesuai; Policy resource tidak
 diubah untuk membatasi portal. Controller tetap memeriksa Policy Farm dan
 Service tetap memakai `visibleTo()`.
 
-Cuaca beranda Petugas menggunakan `GET /petugas/weather/{farm}` dengan
-`auth`, `verified`, dan `petugas.access`. Controller cuaca yang sama dengan
-dashboard Admin memeriksa `Farm::viewAny` dan `Farm::view`; service menerapkan
-`visibleTo()` sebelum membaca koordinat atau cache. Petugas hanya dapat membaca
-cuaca kebun penugasannya dalam tenant yang sah. Parameter koordinat atau tim
-dari klien tidak digunakan sebagai sumber data maupun bukti izin.
-
 Navigasi menerima boolean `navigation.admin` dan `navigation.farms` dari server.
 Route utama `/` menggunakan auth/verified. Guest diarahkan ke `/login`;
 Admin/Superadmin yang sudah login diarahkan ke `/admin/dashboard`, Petugas ke
@@ -151,13 +144,10 @@ mengarahkan ke Beranda, karena laporan/PDF mock lama tidak dipakai sebagai
 laporan operasional. Matriks izin operasional tidak diperluas: request tambah,
 ubah, hapus, konfigurasi, dan pemulihan tetap mengikuti Policy existing.
 
-Pekerjaan Owner tidak mengubah halaman/form profil atau keamanan akun. QA AI
-lanjutan melindungi halaman dan seluruh endpoint AI dengan `ai.access` khusus
-Owner, Policy resource, serta scope riwayat/pesan/lampiran dan pemilik percakapan.
-Superadmin tetap memiliki bypass pengembang untuk kemampuan selain `ai.access`.
-Sumber demo AI dipertahankan sesuai permintaan; migrasi sumber RAG dan audit
-menyeluruh query layanan retrieval serta job non-HTTP belum termasuk perubahan ini.
-Lihat [alur AI dan batas QA](ai-chat.md). Query relasi pada logbook existing juga belum termasuk perbaikan
+Pekerjaan ini tidak mengubah halaman/form profil, keamanan akun, atau pipeline
+AI/RAG. Batas AI yang tercatat pada audit tetap berlaku: jalur AI utama masih
+memerlukan pekerjaan lanjutan untuk pemeriksaan `ai.access` dan penggantian
+sumber demo. Query relasi pada logbook existing juga belum termasuk perbaikan
 menyeluruh; portal Owner baru membaca aktivitas melalui query terscope sendiri.
 Batas integrasi modul blok tetap tercatat dalam [dokumentasi backend blok](farm-block-backend.md).
 Ikon profil di antarmuka Farmer/Owner/Petugas membuka ringkasan profil tanpa tautan
@@ -423,15 +413,15 @@ Contoh Vue:
 ```vue
 <script setup lang="ts">
 defineProps<{
-    farm: Farm;
-    can: { update: boolean; delete: boolean };
+  farm: Farm;
+  can: { update: boolean; delete: boolean };
 }>();
 </script>
 
 <template>
-    <Link v-if="can.update" :href="route('farms.edit', farm.id)">
-        Ubah farm
-    </Link>
+  <Link v-if="can.update" :href="route('farms.edit', farm.id)">
+    Ubah farm
+  </Link>
 </template>
 ```
 

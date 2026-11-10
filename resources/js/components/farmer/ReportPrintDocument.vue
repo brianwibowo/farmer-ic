@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { Activity, AlertTriangle, Bot, CalendarClock, CalendarDays, CheckCircle2, CircleDollarSign, Sprout, TrendingDown, TrendingUp, Wheat } from '@lucide/vue';
-import { useAppName } from '@/composables/useAppName';
 import type { FarmReport } from '@/services/farmDemoService';
-
-const appName = useAppName();
 
 const props = defineProps<{ report: FarmReport; formatMoney: (value: number) => string; exportMode?: boolean }>();
 
@@ -35,7 +32,7 @@ const getDonutSegments = () => {
                 <div>
                     <div class="print-identity">
                         <img class="print-header-logo" src="/images/logo-hijauan.jpeg" alt="" width="1280" height="1280" />
-                        <strong class="print-brand-name">{{ appName }}</strong>
+                        <strong class="print-brand-name">Hijauan</strong>
                         <p class="print-kicker">· Laporan resmi</p>
                     </div>
                     <h1>Laporan Kebun</h1>
@@ -155,7 +152,7 @@ const getDonutSegments = () => {
                 <p v-else class="print-empty">Belum ada aktivitas pada cakupan ini.</p>
             </section>
 
-            <footer class="print-footer">{{ appName }} · Dokumen dibuat dari data laporan {{ report.periodLabel }}</footer>
+            <footer class="print-footer">Hijauan · Dokumen dibuat dari data laporan {{ report.periodLabel }}</footer>
         </article>
     </Teleport>
 </template>

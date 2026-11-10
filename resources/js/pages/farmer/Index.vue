@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, usePage } from "@inertiajs/vue3";
 import {
     AlertCircle,
     Mic,
@@ -8,7 +8,7 @@ import {
     Sparkles,
     Square,
     X,
-} from '@lucide/vue';
+} from "@lucide/vue";
 import {
     computed,
     nextTick,
@@ -17,25 +17,25 @@ import {
     ref,
     watch,
     type VNodeRef,
-} from 'vue';
-import AiMessageList from '@/components/farmer/AiMessageList.vue';
-import AiChatComposer from '@/components/farmer/AiChatComposer.vue';
-import AiChatHeader from '@/components/farmer/AiChatHeader.vue';
-import AiConversationHistory from '@/components/farmer/AiConversationHistory.vue';
-import AiPerformanceReport from '@/components/farmer/AiPerformanceReport.vue';
-import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+} from "vue";
+import AiMessageList from "@/components/farmer/AiMessageList.vue";
+import AiChatComposer from "@/components/farmer/AiChatComposer.vue";
+import AiChatHeader from "@/components/farmer/AiChatHeader.vue";
+import AiConversationHistory from "@/components/farmer/AiConversationHistory.vue";
+import AiPerformanceReport from "@/components/farmer/AiPerformanceReport.vue";
+import FarmerMobileShell from "@/components/farmer/FarmerMobileShell.vue";
 import {
     MAX_ATTACHMENT_COUNT,
     type ChatAttachment,
     type ChatMessage,
     useAiChat,
     validateAttachments,
-} from '@/composables/useAiChat';
+} from "@/composables/useAiChat";
 import {
     useAiTelemetry,
     type AiVoiceMetric,
-} from '@/composables/useAiTelemetry';
-import { useAiVoice } from '@/composables/useAiVoice';
+} from "@/composables/useAiTelemetry";
+import { useAiVoice } from "@/composables/useAiVoice";
 import {
     classifyAiPrompt,
     compactAiPrompt,
@@ -53,7 +53,7 @@ type PageProps = { currentTeam?: Team | null };
 
 const page = usePage<PageProps>();
 const teamSlug = page.props.currentTeam?.slug;
-const aiBase = teamSlug ? `/${encodeURIComponent(teamSlug)}/ai` : '/ai';
+const aiBase = teamSlug ? `/${encodeURIComponent(teamSlug)}/ai` : "/ai";
 const chat = useAiChat({ base: aiBase });
 const voice = useAiVoice(
     `${aiBase}/voice/transcribe`,
@@ -64,7 +64,6 @@ const {
     conversations,
     conversationId,
     isLoadingConversations,
-    historyError,
     isSending,
     error: chatError,
     lastRequestMetrics,
@@ -73,7 +72,7 @@ const telemetry = useAiTelemetry();
 const telemetryReport = telemetry.report;
 const telemetryEvents = telemetry.events;
 
-const inputText = ref('');
+const inputText = ref("");
 const pendingAttachments = ref<ChatAttachment[]>([]);
 const inputElement = ref<HTMLTextAreaElement | null>(null);
 const messageList = ref<HTMLElement | null>(null);
@@ -86,17 +85,17 @@ const speakingMessageId = ref<string | null>(null);
 const voiceInputPending = ref(false);
 const metricIds = ref<Record<string, string>>({});
 let lastRecordedVoiceError: AiVoiceMetric | null = null;
-const speech = typeof window !== 'undefined' ? window.speechSynthesis : null;
+const speech = typeof window !== "undefined" ? window.speechSynthesis : null;
 const quickPrompts = [
-    '📊 Gambar: Panduan Pemupukan Jagung sesuai Fase',
-    '💧 Gambar: Jadwal & Kebutuhan Air Kebun',
-    '🐛 Gambar: Deteksi & Pengendalian Hama Daun',
-    'Bagaimana kondisi kebun saya hari ini?',
+    "📊 Gambar: Panduan Pemupukan Jagung sesuai Fase",
+    "💧 Gambar: Jadwal & Kebutuhan Air Kebun",
+    "🐛 Gambar: Deteksi & Pengendalian Hama Daun",
+    "Bagaimana kondisi kebun saya hari ini?",
 ];
 
 const setInputElement: VNodeRef = (element) => {
     inputElement.value =
-        typeof HTMLTextAreaElement !== 'undefined' &&
+        typeof HTMLTextAreaElement !== "undefined" &&
         element instanceof HTMLTextAreaElement
             ? element
             : null;
@@ -104,7 +103,7 @@ const setInputElement: VNodeRef = (element) => {
 
 const setFileInput: VNodeRef = (element) => {
     fileInput.value =
-        typeof HTMLInputElement !== 'undefined' &&
+        typeof HTMLInputElement !== "undefined" &&
         element instanceof HTMLInputElement
             ? element
             : null;
@@ -153,7 +152,7 @@ function removeAttachment(index: number): void {
 function onFileChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     if (target.files) addFiles(target.files);
-    target.value = '';
+    target.value = "";
 }
 
 function onDrop(event: DragEvent): void {
@@ -167,7 +166,7 @@ function openFilePicker(): void {
 
 function onPaste(event: ClipboardEvent): void {
     const files = Array.from(event.clipboardData?.files ?? []).filter((file) =>
-        file.type.startsWith('image/'),
+        file.type.startsWith("image/"),
     );
     if (files.length) addFiles(files);
 }
@@ -175,17 +174,17 @@ function onPaste(event: ClipboardEvent): void {
 function autoResize(): void {
     const element = inputElement.value;
     if (!element) return;
-    element.style.height = '0px';
+    element.style.height = "0px";
     const height = Math.min(Math.max(element.scrollHeight, 36), 136);
     element.style.height = `${height}px`;
-    element.style.overflowY = element.scrollHeight > 136 ? 'auto' : 'hidden';
+    element.style.overflowY = element.scrollHeight > 136 ? "auto" : "hidden";
 }
 
 async function scrollToLatest(): Promise<void> {
     await nextTick();
     messageList.value?.scrollTo({
         top: messageList.value.scrollHeight,
-        behavior: 'smooth',
+        behavior: "smooth",
     });
 }
 
@@ -194,44 +193,30 @@ async function send(): Promise<void> {
     const text = compactAiPrompt(inputText.value);
     const attachments = [...pendingAttachments.value];
     const classification = classifyAiPrompt(text, attachments.length > 0);
-    const previousAssistant = [...messages.value]
-        .reverse()
-        .find((message) => message.role === 'assistant');
-    const revisesFarmVisual =
-        Boolean(previousAssistant?.metadata?.farm_visual_plan) &&
-        /\b(ubah|ganti|jadikan|buat ulang|yang sama|sebelumnya|tadi)\b/i.test(
-            text,
-        );
-    const requestInfographic =
-        classification.intent === 'infographic' || revisesFarmVisual;
+    const requestInfographic = classification.intent === "infographic";
     const requestMode = requestInfographic
-        ? 'infographic'
+        ? "infographic"
         : voiceInputPending.value
-          ? 'voice'
-          : classification.intent === 'data' ||
-              classification.intent === 'knowledge'
-            ? 'data'
-            : 'text';
+          ? "voice"
+          : classification.intent === "data" ||
+              classification.intent === "knowledge"
+            ? "data"
+            : "text";
     const voiceMetric = voiceInputPending.value
         ? (voice.lastTranscriptionMetrics.value ?? undefined)
         : undefined;
     const startedAt = performance.now();
     const localIntent =
-        !requestInfographic &&
         attachments.length === 0 &&
         (classification.intent === 'data' ||
             classification.intent === 'out_of_scope');
     if (localIntent) isSending.value = true;
-    inputText.value = '';
+    inputText.value = "";
     pendingAttachments.value = [];
     voiceInputPending.value = false;
     void nextTick(autoResize);
 
-    if (
-        !requestInfographic &&
-        classification.intent === 'data' &&
-        attachments.length === 0
-    ) {
+    if (classification.intent === 'data' && attachments.length === 0) {
         let demoAnswer = null;
         try {
             demoAnswer = await queryDemoData(text);
@@ -242,10 +227,10 @@ async function send(): Promise<void> {
             await showLocalAnswer(
                 text,
                 demoAnswer.source
-                    ? `ℹ️ **Data demo:** belum mencerminkan data tenant terkini.\n\n${demoAnswer.content}\n\n**Sumber:** ${demoAnswer.source}`
-                    : `ℹ️ **Data demo:** belum mencerminkan data tenant terkini.\n\n${demoAnswer.content}`,
-                requestMode === 'voice' ? 'voice' : 'data',
-                'positive',
+                    ? `${demoAnswer.content}\n\nℹ️ **Sumber:** ${demoAnswer.source}`
+                    : demoAnswer.content,
+                requestMode === "voice" ? "voice" : "data",
+                "positive",
                 startedAt,
                 0,
                 voiceMetric,
@@ -258,16 +243,12 @@ async function send(): Promise<void> {
         isSending.value = false;
     }
 
-    if (
-        !requestInfographic &&
-        classification.intent === 'out_of_scope' &&
-        attachments.length === 0
-    ) {
+    if (classification.intent === "out_of_scope" && attachments.length === 0) {
         await showLocalAnswer(
             text,
             outOfScopeResponse(),
-            requestMode === 'voice' ? 'voice' : 'text',
-            'negative',
+            requestMode === "voice" ? "voice" : "text",
+            "negative",
             startedAt,
             420,
             voiceMetric,
@@ -278,11 +259,7 @@ async function send(): Promise<void> {
         return;
     }
 
-    if (
-        !requestInfographic &&
-        classification.needsClarification &&
-        attachments.length === 0
-    ) {
+    if (classification.needsClarification && attachments.length === 0) {
         await showLocalAnswer(
             text,
             'Saya belum menangkap tujuan pertanyaannya. Anda ingin saya membantu yang mana?\n\n1. **Data kebun atau aktivitas** yang tersedia di aplikasi\n2. **Panduan perawatan tanaman**\n3. **Gambar atau ilustrasi** pertanian\n\nSebutkan kebun, komoditas, periode, atau tujuan Anda agar jawabannya lebih tepat.',
@@ -305,7 +282,7 @@ async function send(): Promise<void> {
     );
     if (!assistant) return;
     const metrics = lastRequestMetrics.value;
-    const responseText = normalizeAiResponse(assistant?.content ?? '');
+    const responseText = normalizeAiResponse(assistant?.content ?? "");
     const responseIsNegative =
         /\b(belum tersedia|di luar konteks|tidak tersedia|tidak dapat membantu)\b/i.test(
             responseText,
@@ -313,13 +290,13 @@ async function send(): Promise<void> {
     const metricId = telemetry.record({
         mode: requestMode,
         status:
-            metrics?.status === 'aborted'
-                ? 'aborted'
-                : metrics?.status === 'error' || assistant?.status === 'error'
-                  ? 'error'
+            metrics?.status === "aborted"
+                ? "aborted"
+                : metrics?.status === "error" || assistant?.status === "error"
+                  ? "error"
                   : responseIsNegative
-                    ? 'negative'
-                    : 'positive',
+                    ? "negative"
+                    : "positive",
         latencyMs:
             metrics?.latencyMs ?? Math.round(performance.now() - startedAt),
         firstTokenMs: metrics?.firstTokenMs,
@@ -362,7 +339,7 @@ async function speak(message: ChatMessage): Promise<void> {
     const utterance = new SpeechSynthesisUtterance(
         toSpeechText(message.content),
     );
-    utterance.lang = 'id-ID';
+    utterance.lang = "id-ID";
     utterance.rate = 0.92;
     utterance.onend = () => {
         if (speakingMessageId.value === message.id)
@@ -379,7 +356,7 @@ function onMessageCopied(messageId: string): void {
     }, 1600);
 }
 
-function setFeedback(message: ChatMessage, feedback: 'up' | 'down'): void {
+function setFeedback(message: ChatMessage, feedback: "up" | "down"): void {
     message.feedback = feedback;
     const metricId = metricIds.value[message.id];
     if (metricId) telemetry.updateFeedback(metricId, feedback);
@@ -393,8 +370,8 @@ function resetDemoData(): void {
 async function showLocalAnswer(
     userText: string,
     answer: string,
-    mode: 'text' | 'data' | 'voice',
-    status: 'positive' | 'negative',
+    mode: "text" | "data" | "voice",
+    status: "positive" | "negative",
     startedAt: number,
     delayMs = 420,
     voiceMetric?: AiVoiceMetric,
@@ -402,22 +379,22 @@ async function showLocalAnswer(
     const validation = validateAiResponse(answer);
     const safeAnswer = validation.ok
         ? validation.content
-        : 'Jawaban lokal tidak lolos pemeriksaan format.';
+        : "Jawaban lokal tidak lolos pemeriksaan format.";
     const now = new Date().toISOString();
     const userId = `local-user-${Date.now()}`;
     const assistantId = `local-assistant-${Date.now() + 1}`;
     messages.value.push(
         {
             id: userId,
-            role: 'user',
+            role: "user",
             content: userText,
             attachments: [],
             createdAt: now,
-            status: 'complete',
+            status: "complete",
         },
         {
             id: assistantId,
-            role: 'assistant',
+            role: "assistant",
             content: safeAnswer,
             attachments: [],
             createdAt: new Date().toISOString(),
@@ -430,7 +407,7 @@ async function showLocalAnswer(
     }
     const metricId = telemetry.record({
         mode,
-        status: validation.ok ? status : 'negative',
+        status: validation.ok ? status : "negative",
         latencyMs: Math.round(performance.now() - startedAt),
         inputTokens: estimateTokens(userText),
         outputTokens: estimateTokens(safeAnswer),
@@ -442,11 +419,11 @@ async function showLocalAnswer(
 function retryLast(): void {
     const failedIndex = [...messages.value]
         .reverse()
-        .findIndex((message) => message.status === 'error');
+        .findIndex((message) => message.status === "error");
     if (failedIndex < 0) return;
     const index = messages.value.length - 1 - failedIndex;
     const previous = messages.value[index - 1];
-    if (!previous || previous.role !== 'user') return;
+    if (!previous || previous.role !== "user") return;
     messages.value.splice(index, 1);
     messages.value.splice(index - 1, 1);
     inputText.value = previous.content;
@@ -468,7 +445,7 @@ function newConversation(): void {
     });
     chat.newConversation();
     isHistoryOpen.value = false;
-    inputText.value = '';
+    inputText.value = "";
     pendingAttachments.value.forEach((attachment) => {
         if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
     });
@@ -507,15 +484,15 @@ watch(
     (metric) => {
         if (
             !metric ||
-            metric.status !== 'error' ||
+            metric.status !== "error" ||
             metric === lastRecordedVoiceError
         ) {
             return;
         }
         lastRecordedVoiceError = metric;
         telemetry.record({
-            mode: 'voice',
-            status: 'error',
+            mode: "voice",
+            status: "error",
             latencyMs: metric.totalMs,
             inputTokens: 0,
             outputTokens: 0,
@@ -671,8 +648,6 @@ onUnmounted(() => {
                 :conversations="conversations"
                 :conversation-id="conversationId"
                 :is-loading="isLoadingConversations"
-                :error="historyError"
-                @retry="chat.loadConversations"
                 @close="isHistoryOpen = false"
                 @new-conversation="newConversation"
                 @select="selectConversation"

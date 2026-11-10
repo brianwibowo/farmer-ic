@@ -258,8 +258,8 @@ class ModelAuthorizationTest extends TestCase
             $this->assertSame($role === 'superadmin' || ($role === 'admin' && $prefix === 'users'), Gate::forUser($user)->allows('configure', $record));
             $this->assertSame($role === 'superadmin', Gate::forUser($user)->allows('forceDelete', $record));
         }
-        $this->assertSame($role === 'owner', Gate::forUser($user)->allows('ai.access', $team));
-        $this->assertFalse(Gate::forUser($user)->allows('ai.access'));
+        $this->assertSame(in_array($role, ['owner', 'superadmin'], true), Gate::forUser($user)->allows('ai.access', $team));
+        $this->assertSame($role === 'superadmin', Gate::forUser($user)->allows('ai.access'));
     }
 
     public function test_config_has_exact_roles_known_models_abilities_and_scopes(): void

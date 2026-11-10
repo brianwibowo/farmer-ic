@@ -128,7 +128,7 @@ class FarmService
             ->whereHas('teams', fn ($q) => $q->whereKey($team->id))->first(['id', 'name', 'phone_number']);
 
         return [
-            ...$visible->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id', 'commodity_id', 'target_volume_ton']),
+            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id', 'commodity_id', 'target_volume_ton']),
             'commodity' => \App\Models\Commodity::visibleTo($user, $team)->find($visible->getAttribute('commodity_id'))?->only(['id', 'name']),
             'region' => $visible->getAttribute('district_code') ? app(AdministrativeRegionService::class)->district($visible->getAttribute('district_code'), $user, $team) : null,
             'owner_restricted' => $visible->owner_id !== null && $owner === null,
@@ -170,7 +170,7 @@ class FarmService
         $actor = is_string($user) ? User::query()->findOrFail($user) : $user;
 
         return DB::transaction(function () use ($data, $actor, $team): Farm {
-            $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'pic_user_id', 'land_tenure_party']));
+            $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'pic_user_id']));
             $farm->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
             if (array_key_exists('district_code', $data)) {
                 $farm->forceFill(['district_code' => $data['district_code']]);
@@ -178,7 +178,6 @@ class FarmService
             if ($team instanceof Team) {
                 $farm->team()->associate($team);
             }
-            $this->setLandTenureParty($farm, $data);
             $farm->created_by = $actor->getKey();
             $farm->save();
 
@@ -219,29 +218,17 @@ class FarmService
                     throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh lebih kecil dari total luas tanam aktif.']);
                 }
             }
-            $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'land_tenure_party']));
+            $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton']));
             $locked->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
             if (array_key_exists('district_code', $data)) {
                 $locked->forceFill(['district_code' => $data['district_code']]);
             }
-            $this->setLandTenureParty($locked, $data);
             $locked->save();
 
             $this->savePic($locked, $data);
 
             return $locked->refresh();
         });
-    }
-
-    /** @param array<string, mixed> $data */
-    private function setLandTenureParty(Farm $farm, array $data): void
-    {
-        $party = array_key_exists('land_tenure_party', $data)
-            ? $data['land_tenure_party']
-            : $farm->getAttribute('land_tenure_party');
-        $farm->forceFill(['land_tenure_party' => in_array($farm->land_tenure, ['rented', 'partnership'], true)
-            ? (filled($party) ? trim($party) : null)
-            : null]);
     }
 
     /** @param array<string, mixed> $data */

@@ -2,7 +2,6 @@
 
 @import 'tw-animate-css';
 @import './admin-dashboard-styling.css';
-@import './petugas-dashboard-styling.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -175,11 +174,6 @@
     --chart-4: #abe7b2;
     --chart-5: #edc92c;
 
-    /* Owner harvest projection is a separate categorical chart. */
-    --owner-projection-chart-red: var(--error);
-    --owner-projection-chart-blue: #1d4ed8;
-    --owner-projection-chart-orange: #ea580c;
-
     --radius: 0.5rem;
 
     --sidebar-background: #ffffff;
@@ -248,10 +242,6 @@
     --chart-3: #93a99f;
     --chart-4: #abe7b2;
     --chart-5: #edc92c;
-
-    --owner-projection-chart-red: var(--error);
-    --owner-projection-chart-blue: #60a5fa;
-    --owner-projection-chart-orange: #fb923c;
 
     --sidebar-background: #0d140e;
     --sidebar-foreground: #f9faf9;
