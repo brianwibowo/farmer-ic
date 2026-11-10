@@ -72,8 +72,8 @@ class OwnerReadService
         $pics = User::visibleTo($actor, $team)
             ->whereIn('id', $farms->pluck('pic_user_id')->filter())
             ->whereIn('assigned_farm_id', $farmIds)->where('is_active', true)
-            ->whereHas('role', fn($roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
-            ->whereHas('teams', fn($teams) => $teams->visibleTo($actor, $team)
+            ->whereHas('role', fn ($roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
+            ->whereHas('teams', fn ($teams) => $teams->visibleTo($actor, $team)
                 ->whereKey($team->id)->where('is_personal', false))
             ->get(['id', 'name', 'assigned_farm_id'])->keyBy('id');
 
@@ -89,7 +89,7 @@ class OwnerReadService
                 ...$farm,
                 'crops' => $row['crops'] ?? [],
                 'pic' => $pic?->only(['id', 'name']),
-                'detail_url' => $row['detail_url'] ?? '/kebun/' . $farm['id'],
+                'detail_url' => $row['detail_url'] ?? '/kebun/'.$farm['id'],
             ];
         }, $mapFarms);
     }
@@ -104,31 +104,31 @@ class OwnerReadService
     private function dashboardLandTable(User $actor, Team $team, ?string $farmId): array
     {
         $query = Farm::visibleTo($actor, $team)->where('team_id', $team->id)
-            ->when($farmId !== null, fn(Builder $farms) => $farms->whereKey($farmId));
+            ->when($farmId !== null, fn (Builder $farms) => $farms->whereKey($farmId));
         $totalArea = (string) (clone $query)->sum('total_area_ha');
         $farms = $query->with([
             // Laravel's eager-loading limit selects one report per parent,
             // rather than one report for the entire farm collection.
-            'activities' => fn($activities) => $activities->visibleTo($actor, $team)
+            'activities' => fn ($activities) => $activities->visibleTo($actor, $team)
                 ->orderByDesc('activity_date')->orderByDesc('created_at')->orderByDesc('id')->limit(1)
-                ->with(['activityType' => fn($types) => $types->visibleTo($actor, $team)]),
+                ->with(['activityType' => fn ($types) => $types->visibleTo($actor, $team)]),
         ])->orderBy('name')->orderBy('id')->get(['id', 'name', 'city', 'land_tenure', 'land_tenure_party', 'total_area_ha']);
         $cyclesByFarm = PlantingCycle::visibleTo($actor, $team)
             ->whereIn('farm_id', $farms->modelKeys())
             ->whereIn('status', ['planned', 'active', 'harvested'])
             ->with([
-                'variety' => fn($varieties) => $varieties->visibleTo($actor, $team)
-                    ->with(['commodity' => fn($commodities) => $commodities->visibleTo($actor, $team)]),
-                'stages' => fn($stages) => $stages->visibleTo($actor, $team)->orderBy('position')->orderBy('id'),
+                'variety' => fn ($varieties) => $varieties->visibleTo($actor, $team)
+                    ->with(['commodity' => fn ($commodities) => $commodities->visibleTo($actor, $team)]),
+                'stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')->orderBy('id'),
             ])->get()->groupBy('farm_id');
 
         $rows = [];
         foreach ($farms as $farm) {
             $cycles = $cyclesByFarm->get($farm->id, collect());
             $running = $cycles->whereIn('status', ['planned', 'active']);
-            $stages = $running->flatMap(fn(PlantingCycle $cycle) => $cycle->stages);
-            $currentStages = $stages->filter(fn(PlantingCycleStage $stage): bool => $stage->getAttribute('status') === 'in_progress')
-                ->map(fn(PlantingCycleStage $stage): string => $this->stageName((string) $stage->getAttribute('code')))
+            $stages = $running->flatMap(fn (PlantingCycle $cycle) => $cycle->stages);
+            $currentStages = $stages->filter(fn (PlantingCycleStage $stage): bool => $stage->getAttribute('status') === 'in_progress')
+                ->map(fn (PlantingCycleStage $stage): string => $this->stageName((string) $stage->getAttribute('code')))
                 ->unique()->values()->all();
             $crops = [];
             // Match Admin's "Komoditas tertanam": planned/cancelled cycles
@@ -141,18 +141,18 @@ class OwnerReadService
                 }
                 $key = (string) $commodity->id;
                 $crops[$key] ??= ['id' => $key, 'name' => $commodity->name, 'varieties' => []];
-                if (!in_array($variety->name, $crops[$key]['varieties'], true)) {
+                if (! in_array($variety->name, $crops[$key]['varieties'], true)) {
                     $crops[$key]['varieties'][] = $variety->name;
                 }
             }
             $crops = array_values($crops);
-            usort($crops, fn(array $first, array $second): int => strcmp($first['name'], $second['name']));
+            usort($crops, fn (array $first, array $second): int => strcmp($first['name'], $second['name']));
             $latest = $farm->activities->first();
             $rows[] = [
                 'id' => (string) $farm->id,
                 'name' => $farm->name,
-                'detail_url' => '/kebun/' . $farm->id,
-                'legality_url' => '/kebun/' . $farm->id . '/legalitas',
+                'detail_url' => '/kebun/'.$farm->id,
+                'legality_url' => '/kebun/'.$farm->id.'/legalitas',
                 'area_ha' => $farm->total_area_ha,
                 'legality' => match ($farm->land_tenure) {
                     'owned' => 'Milik sendiri', 'rented' => 'Sewa', 'partnership' => 'Kerja sama',
@@ -162,7 +162,7 @@ class OwnerReadService
                 'requires_land_tenure_party' => in_array($farm->land_tenure, ['rented', 'partnership'], true),
                 'crops' => $crops,
                 'progress' => [
-                    'completed_stages' => $stages->filter(fn(PlantingCycleStage $stage): bool => $stage->getAttribute('status') === 'completed')->count(),
+                    'completed_stages' => $stages->filter(fn (PlantingCycleStage $stage): bool => $stage->getAttribute('status') === 'completed')->count(),
                     'total_stages' => $stages->count(),
                     'current_stages' => $currentStages,
                     'running_batches' => $running->count(),
@@ -173,7 +173,7 @@ class OwnerReadService
                     'description' => $latest->description,
                     'date' => $latest->activity_date->toIso8601String(),
                     'status' => $latest->status,
-                    'detail_url' => '/aktivitas/' . $latest->id,
+                    'detail_url' => '/aktivitas/'.$latest->id,
                 ],
             ];
         }
@@ -194,9 +194,9 @@ class OwnerReadService
         $projectionRowData = $this->harvestProjections
             ->summary($actor, $team, 'cycle', $farmId)['rows'];
         $projectionRows = collect($projectionRowData);
-        $projectionsByFarm = $projectionRows->groupBy('farm_id')->map(fn($farmProjections) => $farmProjections
-            ->filter(fn(array $projection): bool => $projection['crop_name'] !== null)
-            ->map(fn(array $projection): array => [
+        $projectionsByFarm = $projectionRows->groupBy('farm_id')->map(fn ($farmProjections) => $farmProjections
+            ->filter(fn (array $projection): bool => $projection['crop_name'] !== null)
+            ->map(fn (array $projection): array => [
                 'id' => (string) $projection['key'],
                 'name' => (string) $projection['crop_name'],
                 'ton' => $projection['projection_ton'],
@@ -206,23 +206,23 @@ class OwnerReadService
         }
         unset($row);
         $citiesByFarm = $farms->mapWithKeys(
-            fn(Farm $farm): array => [(string) $farm->id => trim((string) $farm->city)],
+            fn (Farm $farm): array => [(string) $farm->id => trim((string) $farm->city)],
         );
         $groups = collect($rows)
             // Farms without a city still count in the global cards and map,
             // but must not appear as an artificial "unknown" region row.
-            ->filter(fn(array $row): bool => $citiesByFarm->get($row['id'], '') !== '')
-            ->groupBy(fn(array $row): string => (string) $citiesByFarm->get($row['id']))
+            ->filter(fn (array $row): bool => $citiesByFarm->get($row['id'], '') !== '')
+            ->groupBy(fn (array $row): string => (string) $citiesByFarm->get($row['id']))
             ->sortKeys(SORT_NATURAL | SORT_FLAG_CASE)
             ->map(function ($farmRows, string $city) use ($projectionRows): array {
                 $farmRows = $farmRows->values();
                 $farmIds = $farmRows->pluck('id')->all();
-                $completedStages = $farmRows->sum(fn(array $row): int => $row['progress']['completed_stages']);
-                $totalStages = $farmRows->sum(fn(array $row): int => $row['progress']['total_stages']);
+                $completedStages = $farmRows->sum(fn (array $row): int => $row['progress']['completed_stages']);
+                $totalStages = $farmRows->sum(fn (array $row): int => $row['progress']['total_stages']);
                 $knownProjectionRows = $projectionRows->whereIn('farm_id', $farmIds)
-                    ->filter(fn(array $row): bool => $row['crop_name'] !== null && $row['projection_ton'] !== null);
+                    ->filter(fn (array $row): bool => $row['crop_name'] !== null && $row['projection_ton'] !== null);
                 $projectionCrops = $knownProjectionRows->groupBy('crop_name')
-                    ->map(fn($cropRows, string $name): array => [
+                    ->map(fn ($cropRows, string $name): array => [
                         'id' => $name,
                         'name' => $name,
                         'ton' => round((float) $cropRows->sum('projection_ton'), 3),
@@ -232,14 +232,14 @@ class OwnerReadService
                     ->all();
 
                 return [
-                    'id' => 'city:' . sha1(mb_strtolower($city)),
+                    'id' => 'city:'.sha1(mb_strtolower($city)),
                     'name' => $city,
                     'farm_count' => $farmRows->count(),
-                    'area_ha' => number_format((float) $farmRows->sum(fn(array $row): float => (float) $row['area_ha']), 4, '.', ''),
-                    'crops' => $farmRows->flatMap(fn(array $row) => $row['crops'])
+                    'area_ha' => number_format((float) $farmRows->sum(fn (array $row): float => (float) $row['area_ha']), 4, '.', ''),
+                    'crops' => $farmRows->flatMap(fn (array $row) => $row['crops'])
                         ->unique('id')
                         ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
-                        ->map(fn(array $crop): array => ['id' => $crop['id'], 'name' => $crop['name']])
+                        ->map(fn (array $crop): array => ['id' => $crop['id'], 'name' => $crop['name']])
                         ->values()
                         ->all(),
                     'progress' => [
@@ -280,7 +280,7 @@ class OwnerReadService
     public function farms(User $actor, Team $team, array $filters): array
     {
         return [
-            'farms' => $this->farms->paginate($actor, $team, $filters)->through(fn(Farm $farm): array => $farm->only([
+            'farms' => $this->farms->paginate($actor, $team, $filters)->through(fn (Farm $farm): array => $farm->only([
                 'id',
                 'name',
                 'city',
@@ -311,29 +311,29 @@ class OwnerReadService
             ->orderBy('code')->get();
         $cycleCounts = PlantingCycle::visibleTo($actor, $team)
             ->where('farm_id', $farm->id)
-            ->whereHas('plantingRound', fn($rounds) => $rounds->visibleTo($actor, $team))
-            ->with(['plantingRound' => fn($rounds) => $rounds->visibleTo($actor, $team)])
-            ->get()->groupBy(fn(PlantingCycle $cycle) => $cycle->plantingRound->block_id ?? '');
+            ->whereHas('plantingRound', fn ($rounds) => $rounds->visibleTo($actor, $team))
+            ->with(['plantingRound' => fn ($rounds) => $rounds->visibleTo($actor, $team)])
+            ->get()->groupBy(fn (PlantingCycle $cycle) => $cycle->plantingRound->block_id ?? '');
         $observations = PlantObservation::visibleTo($actor, $team)
-            ->whereHas('plantingCycle', fn($cycles) => $cycles->visibleTo($actor, $team)->where('farm_id', $farm->id))
+            ->whereHas('plantingCycle', fn ($cycles) => $cycles->visibleTo($actor, $team)->where('farm_id', $farm->id))
             ->with([
-                'plantingCycle' => fn($cycles) => $cycles->visibleTo($actor, $team)
-                    ->with(['variety' => fn($varieties) => $varieties->visibleTo($actor, $team)])
+                'plantingCycle' => fn ($cycles) => $cycles->visibleTo($actor, $team)
+                    ->with(['variety' => fn ($varieties) => $varieties->visibleTo($actor, $team)]),
             ])
             ->latest('observed_at')->limit(5)->get();
         $weather = WeatherRecord::visibleTo($actor, $team)->where('farm_id', $farm->id)->latest('recorded_at')->first();
         $risks = FarmRisk::visibleTo($actor, $team)
-            ->whereHas('plantingCycle', fn($cycles) => $cycles->visibleTo($actor, $team)->where('farm_id', $farm->id))
+            ->whereHas('plantingCycle', fn ($cycles) => $cycles->visibleTo($actor, $team)->where('farm_id', $farm->id))
             ->latest('detected_at')->get();
         $harvest = HarvestDetail::visibleTo($actor, $team)
-            ->whereHas('activity', fn($activities) => $activities->visibleTo($actor, $team)->where('farm_id', $farm->id))
+            ->whereHas('activity', fn ($activities) => $activities->visibleTo($actor, $team)->where('farm_id', $farm->id))
             ->sum('gross_weight_ton');
         $owner = User::visibleTo($actor, $team)->whereKey($farm->owner_id)->first(['id', 'name']);
 
         return [
             'farm' => [
                 ...$farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
-                'legality_url' => '/kebun/' . $farm->id . '/legalitas',
+                'legality_url' => '/kebun/'.$farm->id.'/legalitas',
                 'owner_name' => $owner?->name,
                 'team_name' => $team->name,
                 'capacity' => $this->farms->capacity($farm, $actor, $team),
@@ -342,18 +342,18 @@ class OwnerReadService
                 'harvest_weight_ton' => (string) $harvest,
                 'default_sop' => $defaultSop?->only(['id', 'name', 'is_active']),
             ],
-            'blocks' => $blocks->map(fn(FarmBlock $block): array => [
+            'blocks' => $blocks->map(fn (FarmBlock $block): array => [
                 ...$block->only(['id', 'code', 'name', 'area_ha', 'is_active', 'description']),
                 'cycles_count' => $cycleCounts->get($block->id, collect())->count(),
             ])->values()->all(),
             'legacyCycles' => (clone $cycles)->whereNull('planting_round_id')->orderByDesc('created_at')
-                ->get()->map(fn(PlantingCycle $cycle): array => $this->cyclePayload($cycle))->all(),
-            'observations' => $observations->map(fn(PlantObservation $observation): array => [
+                ->get()->map(fn (PlantingCycle $cycle): array => $this->cyclePayload($cycle))->all(),
+            'observations' => $observations->map(fn (PlantObservation $observation): array => [
                 ...$observation->only(['id', 'planting_cycle_id', 'growth_phase', 'health_status', 'growth_percentage', 'average_height_cm', 'disease_indication', 'pest_indication', 'plant_condition', 'notes']),
                 'observed_at' => $observation->observed_at->toIso8601String(),
                 'cycle' => $observation->plantingCycle === null ? null : [
                     'id' => $observation->plantingCycle->id,
-                    'label' => $observation->plantingCycle->getAttribute('batch_number') === null ? 'Siklus tanam' : 'Batch ' . $observation->plantingCycle->getAttribute('batch_number'),
+                    'label' => $observation->plantingCycle->getAttribute('batch_number') === null ? 'Siklus tanam' : 'Batch '.$observation->plantingCycle->getAttribute('batch_number'),
                     'variety' => $observation->plantingCycle->variety?->name,
                 ],
             ])->all(),
@@ -361,12 +361,12 @@ class OwnerReadService
                 ...$weather->only(['condition', 'temperature_c', 'humidity_percentage', 'data_source']),
                 'recorded_at' => $weather->recorded_at->toIso8601String(),
             ],
-            'risks' => $risks->map(fn(FarmRisk $risk): array => [
+            'risks' => $risks->map(fn (FarmRisk $risk): array => [
                 ...$risk->only(['id', 'risk_description', 'severity', 'recommendation', 'status']),
                 'detected_at' => $risk->detected_at->toIso8601String(),
             ])->all(),
             'officers' => User::visibleTo($actor, $team)->where('assigned_farm_id', $farm->id)
-                ->whereHas('role', fn($roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
+                ->whereHas('role', fn ($roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
                 ->orderBy('name')->get(['id', 'name', 'is_active'])->toArray(),
         ];
     }
@@ -393,7 +393,7 @@ class OwnerReadService
         $farm = Farm::visibleTo($actor, $team)->findOrFail($farm->id);
         $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->findOrFail($block->id);
         $cycles = $this->cycleQuery($actor, $team)->where('farm_id', $farm->id)
-            ->whereHas('plantingRound', fn($rounds) => $rounds->visibleTo($actor, $team)->where('block_id', $block->id))
+            ->whereHas('plantingRound', fn ($rounds) => $rounds->visibleTo($actor, $team)->where('block_id', $block->id))
             ->orderByDesc('created_at')->orderBy('batch_number')->get();
 
         return [
@@ -403,7 +403,7 @@ class OwnerReadService
                 'land_clearing_started_at' => $this->timestamp($block->getAttribute('land_clearing_started_at')),
                 'land_clearing_completed_at' => $this->timestamp($block->getAttribute('land_clearing_completed_at')),
             ],
-            'cycles' => $cycles->map(fn(PlantingCycle $cycle): array => $this->cyclePayload($cycle))->all(),
+            'cycles' => $cycles->map(fn (PlantingCycle $cycle): array => $this->cyclePayload($cycle))->all(),
         ];
     }
 
@@ -414,14 +414,14 @@ class OwnerReadService
     {
         $query = $this->activityQuery($actor, $team);
         foreach (['farm_id', 'performed_by', 'activity_type_id'] as $field) {
-            if (!empty($filters[$field])) {
+            if (! empty($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }
         }
-        if (!empty($filters['from_date'])) {
+        if (! empty($filters['from_date'])) {
             $query->whereDate('activity_date', '>=', $filters['from_date']);
         }
-        if (!empty($filters['to_date'])) {
+        if (! empty($filters['to_date'])) {
             $query->whereDate('activity_date', '<=', $filters['to_date']);
         }
         $this->search($query, $filters['search'] ?? '', ['description']);
@@ -429,12 +429,12 @@ class OwnerReadService
         return [
             'activities' => $query->orderByDesc('activity_date')->orderBy('id')
                 ->paginate($filters['per_page'] ?? 15)->withQueryString()
-                ->through(fn(FarmActivity $activity): array => $this->activityPayload($activity)),
+                ->through(fn (FarmActivity $activity): array => $this->activityPayload($activity)),
             'filters' => $filters,
             'farms' => Farm::visibleTo($actor, $team)->orderBy('name')->get(['id', 'name']),
             'activityTypes' => ActivityType::visibleTo($actor, $team)->orderBy('name')->get(['id', 'code', 'name']),
             'officers' => User::visibleTo($actor, $team)
-                ->whereHas('activities', fn($activities) => $activities->visibleTo($actor, $team))
+                ->whereHas('activities', fn ($activities) => $activities->visibleTo($actor, $team))
                 ->orderBy('name')->get(['id', 'name']),
         ];
     }
@@ -452,11 +452,11 @@ class OwnerReadService
             'pesticideDetail',
             'incidentDetail',
             'harvestDetail',
-            'observation'
+            'observation',
         ];
         $query = $this->activityQuery($actor, $team);
         foreach ($relations as $relation) {
-            $query->with([$relation => fn($related) => $related->visibleTo($actor, $team)]);
+            $query->with([$relation => fn ($related) => $related->visibleTo($actor, $team)]);
         }
         $activity = $query->findOrFail($activity->id);
         $fields = [
@@ -487,7 +487,7 @@ class OwnerReadService
         return [
             ...$this->activityPayload($activity),
             ...$activity->only(['obstacle_status', 'obstacles', 'proposed_solution', 'action_taken']),
-            'photos' => $activity->photos->map(fn($photo): array => $photo->only(['id', 'image_url', 'caption', 'label']))->all(),
+            'photos' => $activity->photos->map(fn ($photo): array => $photo->only(['id', 'image_url', 'caption', 'label']))->all(),
             'details' => $details,
             'log' => $log === null ? null : [
                 ...$log->only(['id', 'start_time', 'end_time', 'worker_count', 'notes']),
@@ -506,7 +506,7 @@ class OwnerReadService
 
         return [
             'sops' => $query->orderBy('name')->orderBy('id')->paginate($filters['per_page'] ?? 15)->withQueryString()
-                ->through(fn(SopTemplate $sop): array => $this->sopPayload($sop)),
+                ->through(fn (SopTemplate $sop): array => $this->sopPayload($sop)),
             'filters' => $filters,
         ];
     }
@@ -516,17 +516,17 @@ class OwnerReadService
     {
         $sop = $this->sopQuery($actor, $team)
             ->with([
-                'versions' => fn($versions) => $versions->visibleTo($actor, $team)->orderByDesc('version')
-                    ->with(['tasks' => fn($tasks) => $tasks->visibleTo($actor, $team)])
+                'versions' => fn ($versions) => $versions->visibleTo($actor, $team)->orderByDesc('version')
+                    ->with(['tasks' => fn ($tasks) => $tasks->visibleTo($actor, $team)]),
             ])
             ->findOrFail($sop->id);
 
         return [
             ...$this->sopPayload($sop),
-            'versions' => $sop->versions->map(fn($version): array => [
+            'versions' => $sop->versions->map(fn ($version): array => [
                 ...$version->only(['id', 'version', 'status', 'notes']),
                 'published_at' => $version->published_at?->toIso8601String(),
-                'tasks' => $version->tasks->map(fn($task): array => $task->only([
+                'tasks' => $version->tasks->map(fn ($task): array => $task->only([
                     'id',
                     'name',
                     'instructions',
@@ -547,13 +547,13 @@ class OwnerReadService
     {
         $query = $this->userQuery($actor, $team);
         $this->search($query, $filters['search'] ?? '', ['name', 'email']);
-        if (!empty($filters['role'])) {
-            $query->whereHas('role', fn($roles) => $roles->visibleTo($actor, $team)->where('name', $filters['role']));
+        if (! empty($filters['role'])) {
+            $query->whereHas('role', fn ($roles) => $roles->visibleTo($actor, $team)->where('name', $filters['role']));
         }
 
         return [
             'users' => $query->orderBy('name')->orderBy('id')->paginate($filters['per_page'] ?? 15)->withQueryString()
-                ->through(fn(User $user): array => $this->userPayload($user)),
+                ->through(fn (User $user): array => $this->userPayload($user)),
             'filters' => $filters,
         ];
     }
@@ -562,22 +562,22 @@ class OwnerReadService
     public function user(User $actor, Team $team, User $target): array
     {
         $user = $this->userQuery($actor, $team)
-            ->with(['teams' => fn($teams) => $teams->visibleTo($actor, $team)->where('is_personal', false)])
+            ->with(['teams' => fn ($teams) => $teams->visibleTo($actor, $team)->where('is_personal', false)])
             ->findOrFail($target->id);
 
-        return [...$this->userPayload($user), 'teams' => $user->teams->map(fn($item): array => $item->only(['id', 'name']))->all()];
+        return [...$this->userPayload($user), 'teams' => $user->teams->map(fn ($item): array => $item->only(['id', 'name']))->all()];
     }
 
     /** @return Builder<PlantingCycle> */
     private function cycleQuery(User $actor, Team $team): Builder
     {
         return PlantingCycle::visibleTo($actor, $team)->with([
-            'variety' => fn($varieties) => $varieties->visibleTo($actor, $team),
-            'variety.commodity' => fn($commodities) => $commodities->visibleTo($actor, $team),
-            'stages' => fn($stages) => $stages->visibleTo($actor, $team)->orderBy('position'),
-            'tasks' => fn($tasks) => $tasks->visibleTo($actor, $team),
-            'sopTemplateVersion' => fn($versions) => $versions->visibleTo($actor, $team),
-            'sopTemplateVersion.sopTemplate' => fn($sops) => $sops->visibleTo($actor, $team),
+            'variety' => fn ($varieties) => $varieties->visibleTo($actor, $team),
+            'variety.commodity' => fn ($commodities) => $commodities->visibleTo($actor, $team),
+            'stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position'),
+            'tasks' => fn ($tasks) => $tasks->visibleTo($actor, $team),
+            'sopTemplateVersion' => fn ($versions) => $versions->visibleTo($actor, $team),
+            'sopTemplateVersion.sopTemplate' => fn ($sops) => $sops->visibleTo($actor, $team),
         ]);
     }
 
@@ -590,13 +590,13 @@ class OwnerReadService
 
         return [
             ...$cycle->only(['id', 'batch_number', 'subblock_label', 'status', 'reserved_area_ha', 'planted_area_ha']),
-            'label' => $cycle->getAttribute('batch_number') === null ? 'Siklus tanam' : 'Batch ' . $cycle->getAttribute('batch_number'),
+            'label' => $cycle->getAttribute('batch_number') === null ? 'Siklus tanam' : 'Batch '.$cycle->getAttribute('batch_number'),
             'planned_planting_at' => $cycle->planned_planting_at?->toDateString(),
             'planted_at' => $cycle->planted_at?->toDateString(),
             'estimated_harvest_at' => $cycle->estimated_harvest_at?->toDateString(),
             'variety' => $variety === null ? null : ['name' => $variety->name, 'commodity' => $variety->commodity?->name],
             'sop' => $sop === null ? null : ['id' => $sop->id, 'name' => $sop->name, 'version' => $version->version],
-            'stages' => $cycle->stages->map(fn(PlantingCycleStage $stage): array => [
+            'stages' => $cycle->stages->map(fn (PlantingCycleStage $stage): array => [
                 ...$stage->only(['id', 'code', 'position', 'status']),
                 'name' => match ($stage->getAttribute('code')) {
                     'land_clearing' => 'Pembersihan lahan',
@@ -610,7 +610,7 @@ class OwnerReadService
                 'started_at' => $this->timestamp($stage->getAttribute('started_at')),
                 'completed_at' => $this->timestamp($stage->getAttribute('completed_at')),
             ])->all(),
-            'tasks' => $cycle->tasks->map(fn($task): array => [
+            'tasks' => $cycle->tasks->map(fn ($task): array => [
                 ...$task->only(['id', 'name', 'status', 'instructions', 'offset_days', 'tolerance_days', 'is_required', 'activity_category', 'activity_subcategory']),
                 'scheduled_date' => $task->scheduled_date?->toDateString(),
                 'due_date' => $task->due_date?->toDateString(),
@@ -623,10 +623,10 @@ class OwnerReadService
     private function activityQuery(User $actor, Team $team): Builder
     {
         return FarmActivity::visibleTo($actor, $team)->with([
-            'farm' => fn($farms) => $farms->visibleTo($actor, $team),
-            'performer' => fn($users) => $users->visibleTo($actor, $team),
-            'activityType' => fn($types) => $types->visibleTo($actor, $team),
-            'plantingCycle' => fn($cycles) => $cycles->visibleTo($actor, $team),
+            'farm' => fn ($farms) => $farms->visibleTo($actor, $team),
+            'performer' => fn ($users) => $users->visibleTo($actor, $team),
+            'activityType' => fn ($types) => $types->visibleTo($actor, $team),
+            'plantingCycle' => fn ($cycles) => $cycles->visibleTo($actor, $team),
         ]);
     }
 
@@ -641,7 +641,7 @@ class OwnerReadService
             'farm' => $activity->farm?->only(['id', 'name']),
             'performer' => $activity->performer?->only(['id', 'name']),
             'type' => $activity->activityType?->only(['code', 'name']),
-            'cycle' => $cycle === null ? null : ['id' => $cycle->id, 'label' => $cycle->getAttribute('batch_number') === null ? 'Siklus tanam' : 'Batch ' . $cycle->getAttribute('batch_number')],
+            'cycle' => $cycle === null ? null : ['id' => $cycle->id, 'label' => $cycle->getAttribute('batch_number') === null ? 'Siklus tanam' : 'Batch '.$cycle->getAttribute('batch_number')],
         ];
     }
 
@@ -649,8 +649,8 @@ class OwnerReadService
     private function sopQuery(User $actor, Team $team): Builder
     {
         return SopTemplate::visibleTo($actor, $team)->with([
-            'commodity' => fn($commodities) => $commodities->visibleTo($actor, $team),
-            'versions' => fn($versions) => $versions->visibleTo($actor, $team)->orderByDesc('version'),
+            'commodity' => fn ($commodities) => $commodities->visibleTo($actor, $team),
+            'versions' => fn ($versions) => $versions->visibleTo($actor, $team)->orderByDesc('version'),
         ]);
     }
 
@@ -669,8 +669,8 @@ class OwnerReadService
     private function userQuery(User $actor, Team $team): Builder
     {
         return User::visibleTo($actor, $team)->with([
-            'role' => fn($roles) => $roles->visibleTo($actor, $team),
-            'assignedFarm' => fn($farms) => $farms->visibleTo($actor, $team),
+            'role' => fn ($roles) => $roles->visibleTo($actor, $team),
+            'assignedFarm' => fn ($farms) => $farms->visibleTo($actor, $team),
         ]);
     }
 
@@ -690,7 +690,7 @@ class OwnerReadService
     {
         $cast = $record->getCasts()[$field] ?? '';
         [$type, $precision] = array_pad(explode(':', $cast, 2), 2, null);
-        if (!in_array($type, ['decimal', 'integer', 'int', 'float', 'double', 'real'], true) || !is_numeric($value)) {
+        if (! in_array($type, ['decimal', 'integer', 'int', 'float', 'double', 'real'], true) || ! is_numeric($value)) {
             return (string) $value;
         }
 
@@ -727,7 +727,7 @@ class OwnerReadService
         if ($search === '') {
             return;
         }
-        $pattern = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search) . '%';
+        $pattern = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
         $query->where(function ($query) use ($columns, $pattern): void {
             foreach ($columns as $column) {
                 $query->orWhere($column, 'ilike', $pattern);
