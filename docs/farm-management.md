@@ -81,6 +81,39 @@ without changing stored values. Rolling it back is rejected by PostgreSQL while
 any farm uses `partnership`; it never silently converts or clears that status.
 Contract terms and profit sharing for cooperative land are outside this field.
 
+### Owner legality details
+
+`GET /kebun/{farm}/legalitas` (`owner.farms.legality`) opens the read-only
+`owner/Legality` page from the dashboard's Legalitas column or the farm detail.
+The persisted one-to-one `farm_legalities` record holds the PKS start/end dates,
+related institution, and a summary. This does not replace `land_tenure` or
+`land_tenure_party`, upload contracts, or add an agreement editor. Dates may be
+unknown; the database rejects an end date before the start date. Owned land can
+explicitly have no PKS period without inventing a rental agreement.
+
+The Controller authorizes Farm `view` and FarmLegality `viewAny` even when no
+legality record exists. `OwnerReadService::legality` scopes both records with
+`visibleTo($actor, $team)` and restricts the Farm to the persisted active team.
+Owner/Admin have only `farm_legalities.view = any`; Petugas has no grant.
+Superadmin retains the existing developer bypass. This Owner route additionally
+requires `auth`, `verified`, and `owner.access`; no new mutation endpoint exists.
+Status is derived using the Asia/Jakarta calendar: upcoming, active (inclusive
+end date), expired, incomplete, or not_applicable for owned land with no dates.
+An absent record stays null; no frontend fixture fills missing legal data.
+
+`FarmLegalitySeeder` adds missing examples for the recognized six prototype
+farms, including three owned records without PKS and three rental/partnership
+agreements. It is included after portfolio/name seeders for fresh local/testing
+installs and can also be run alone with
+`php artisan db:seed --class=FarmLegalitySeeder`. It requires the fixed active
+Superadmin seed account and its non-personal seed tenant, uses native Gates and
+scoped reads, and refuses other environments. It neither resets identities nor
+changes farm fields or existing legality records. Farms whose tenure was edited
+away from the fixture are skipped. Summaries describe the land arrangement
+without claiming a certificate number or requiring a particular crop.
+Apply the additive `2026_11_10_000001` migration first. Never use this seeder or
+an overall database reset against non-prototype data.
+
 `FarmLocationMap` replaces the numeric inputs. Users click the map or drag the
 pin; keyboard users can pan with arrow keys and select the map center. Removing
 the pin clears both coordinates. Only a confirmed selection is submitted; the

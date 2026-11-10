@@ -8,6 +8,7 @@ use App\Http\Requests\Owner\OwnerReadRequest;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
+use App\Models\FarmLegality;
 use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
@@ -54,6 +55,15 @@ class OwnerController extends Controller
         abort_unless($block->farm_id === $farm->id, 404);
 
         return Inertia::render('owner/Block', $this->reads->block($request->user(), $this->team($request), $farm, $block));
+    }
+
+    public function legality(OwnerReadRequest $request, Farm $farm): Response
+    {
+        $team = $this->team($request);
+        Gate::authorize('view', $farm);
+        Gate::authorize('viewAny', [FarmLegality::class, $team]);
+
+        return Inertia::render('owner/Legality', $this->reads->legality($request->user(), $team, $farm));
     }
 
     public function activities(OwnerReadRequest $request): Response

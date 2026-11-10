@@ -6,6 +6,7 @@ use App\Models\ActivityType;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
+use App\Models\FarmLegality;
 use App\Models\FarmRisk;
 use App\Models\HarvestDetail;
 use App\Models\PlantingCycle;
@@ -144,6 +145,7 @@ class OwnerReadService
                 'id' => (string) $farm->id,
                 'name' => $farm->name,
                 'detail_url' => '/kebun/'.$farm->id,
+                'legality_url' => '/kebun/'.$farm->id.'/legalitas',
                 'area_ha' => $farm->total_area_ha,
                 'legality' => match ($farm->land_tenure) {
                     'owned' => 'Milik sendiri', 'rented' => 'Sewa', 'partnership' => 'Kerja sama',
@@ -231,6 +233,7 @@ class OwnerReadService
         return [
             'farm' => [
                 ...$farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
+                'legality_url' => '/kebun/'.$farm->id.'/legalitas',
                 'owner_name' => $owner?->name,
                 'team_name' => $team->name,
                 'capacity' => $this->farms->capacity($farm, $actor, $team),
@@ -266,6 +269,45 @@ class OwnerReadService
                 ->whereHas('role', fn ($roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
                 ->orderBy('name')->get(['id', 'name', 'is_active'])->toArray(),
         ];
+    }
+
+    /** @return array<string, mixed> */
+    public function legality(User $actor, Team $team, Farm $farm): array
+    {
+        $farm = Farm::visibleTo($actor, $team)->where('team_id', $team->id)->findOrFail($farm->id);
+        $legality = FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id)->first();
+
+        return [
+            'farm' => $farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'total_area_ha', 'address', 'city', 'district', 'province']),
+            'legality' => $legality === null ? null : [
+                ...$legality->only(['id', 'institution', 'summary']),
+                'pks_started_at' => $legality->pks_started_at?->toDateString(),
+                'pks_ends_at' => $legality->pks_ends_at?->toDateString(),
+                'status' => $this->legalityStatus($legality, $farm),
+            ],
+            'urls' => [
+                'farm' => route('owner.farms.show', $farm, false),
+                'home' => route('home', [], false),
+                'farms' => route('kebun', [], false),
+            ],
+        ];
+    }
+
+    private function legalityStatus(FarmLegality $legality, Farm $farm): string
+    {
+        if ($legality->pks_started_at === null && $legality->pks_ends_at === null && $farm->land_tenure === 'owned') {
+            return 'not_applicable';
+        }
+        if ($legality->pks_started_at === null || $legality->pks_ends_at === null) {
+            return 'incomplete';
+        }
+
+        $today = CarbonImmutable::today('Asia/Jakarta');
+        if ($today->toDateString() < $legality->pks_started_at->toDateString()) {
+            return 'upcoming';
+        }
+
+        return $today->toDateString() > $legality->pks_ends_at->toDateString() ? 'expired' : 'active';
     }
 
     /** @return array<string, mixed> */

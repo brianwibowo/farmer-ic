@@ -367,7 +367,14 @@ stored land-tenure label and, for Sewa/Kerja sama, the persisted name of the
 landowner or partner (`land_tenure_party`). Require that name in the farm form
 when either status is selected; show “Pihak terkait belum diisi” for legacy
 records without it. Milik sendiri does not show a related party. Missing fields
-remain explicit. Progress is a completed-stage count across
+remain explicit. The Legalitas cell links to the farm's read-only legality page
+at `/kebun/{farm}/legalitas`, also accessible from farm information. Show the
+persisted PKS start/end dates, related institution, and legality summary. For
+owned land without a PKS, state that its period does not apply; never invent
+agreement dates. An absent record has an explicit empty state. Keep the Farmer
+profile, semantic status colors, and responsive cards. A Beranda entry returns
+to Beranda; a farm-detail entry uses the finite `via=farm` flag and carries the
+existing `from=home` context back through the farm page. Progress is a completed-stage count across
 running batches, not an invented crop-growth percentage. Resume is the latest
 record with its own date, independent of legacy activity-period query parameters.
 Preserve Owner profile, AI and existing authorization; keep empty/loading/error

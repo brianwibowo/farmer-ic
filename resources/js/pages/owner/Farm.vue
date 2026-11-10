@@ -15,6 +15,7 @@ import { ownerArea, ownerDate, ownerStatus } from '@/types/owner';
 const props = defineProps<{
     farm: OwnerFarmRow & {
         address: string | null;
+        legality_url: string;
         owner_name: string | null;
         team_name: string;
         latitude: string | null;
@@ -82,7 +83,7 @@ const mapFarms = computed(() => [
 ]);
 const tenure: Record<string, string> = {
     owned: 'Milik sendiri',
-    leased: 'Sewa',
+    rented: 'Sewa',
     partnership: 'Kemitraan',
 };
 const severity: Record<string, string> = {
@@ -118,18 +119,36 @@ const severity: Record<string, string> = {
             <div>
                 <dt class="text-xs text-muted-foreground">Penguasaan lahan</dt>
                 <dd class="mt-1">
-                    {{
-                        farm.land_tenure
-                            ? (tenure[farm.land_tenure] ?? farm.land_tenure)
-                            : 'Belum tercatat'
-                    }}
+                    <Link
+                        :href="
+                            withOwnerFarmOrigin(
+                                `${farm.legality_url}?via=farm`,
+                                origin,
+                            )
+                        "
+                        class="inline-flex min-h-11 items-center gap-1.5 rounded-md font-medium text-secondary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                    >
+                        {{
+                            farm.land_tenure
+                                ? (tenure[farm.land_tenure] ?? farm.land_tenure)
+                                : 'Lihat legalitas'
+                        }}
+                        <ArrowUpRight class="size-4" aria-hidden="true" />
+                    </Link>
                 </dd>
             </div>
             <div
-                v-if="farm.land_tenure === 'rented' || farm.land_tenure === 'partnership'"
+                v-if="
+                    farm.land_tenure === 'rented' ||
+                    farm.land_tenure === 'partnership'
+                "
             >
                 <dt class="text-xs text-muted-foreground">
-                    {{ farm.land_tenure === 'rented' ? 'Pemilik lahan' : 'Mitra kerja sama' }}
+                    {{
+                        farm.land_tenure === 'rented'
+                            ? 'Pemilik lahan'
+                            : 'Mitra kerja sama'
+                    }}
                 </dt>
                 <dd class="mt-1 [overflow-wrap:anywhere]">
                     {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}

@@ -6,6 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property string $id
@@ -69,6 +70,12 @@ class Farm extends FarmerModel
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** @return HasOne<FarmLegality, $this> */
+    public function legality(): HasOne
+    {
+        return $this->hasOne(FarmLegality::class);
     }
 
     /** @return HasMany<PlantingCycle, $this> */

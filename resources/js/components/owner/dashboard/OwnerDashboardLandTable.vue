@@ -127,13 +127,31 @@ defineProps<{ table: OwnerDashboardLandTable; loading?: boolean }>();
                         <td
                             class="border-r border-b border-border bg-card px-3 py-3 align-top"
                         >
-                            <p class="font-bold">{{ row.legality ?? 'Belum tercatat' }}</p>
-                            <p
-                                v-if="row.requires_land_tenure_party"
-                                class="mt-1 text-xs [overflow-wrap:anywhere] text-muted-foreground"
+                            <Link
+                                :href="
+                                    withOwnerFarmOrigin(
+                                        row.legality_url,
+                                        'home',
+                                    )
+                                "
+                                :aria-label="`Lihat legalitas ${row.name}`"
+                                class="block min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:outline-ring"
                             >
-                                {{ row.land_tenure_party || 'Pihak terkait belum diisi' }}
-                            </p>
+                                <span
+                                    class="block font-bold text-secondary underline decoration-secondary/30 underline-offset-4 dark:text-primary"
+                                >
+                                    {{ row.legality ?? 'Belum tercatat' }}
+                                </span>
+                                <span
+                                    v-if="row.requires_land_tenure_party"
+                                    class="mt-1 block text-xs text-muted-foreground"
+                                >
+                                    {{
+                                        row.land_tenure_party ||
+                                        'Pihak terkait belum diisi'
+                                    }}
+                                </span>
+                            </Link>
                         </td>
                         <td
                             class="border-r border-b border-border bg-card px-3 py-3 align-top"

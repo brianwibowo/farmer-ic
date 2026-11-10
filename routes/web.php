@@ -53,6 +53,7 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
     Route::get('kebun/aktivitas', fn (Request $request) => to_route('aktivitas',
         Str::isUuid((string) $request->query('id', '')) ? ['farm_id' => $request->query('id')] : []))->name('kebun.aktivitas');
     Route::get('kebun/{farm}', [OwnerController::class, 'farm'])->whereUuid('farm')->name('owner.farms.show');
+    Route::get('kebun/{farm}/legalitas', [OwnerController::class, 'legality'])->whereUuid('farm')->name('owner.farms.legality');
     Route::get('kebun/{farm}/blok/{block}', [OwnerController::class, 'block'])
         ->whereUuid(['farm', 'block'])->name('owner.blocks.show');
     Route::get('aktivitas', [OwnerController::class, 'activities'])->name('aktivitas');
