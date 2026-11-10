@@ -125,7 +125,8 @@ discover the persisted domain relationships directly.
 | `FarmActivity` | `farm_activities` | farm -> team |
 | `Farm` | `farms` | Farm itself -> team |
 | `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
-| `FarmLegality` | `farm_legalities` | farm -> team; create parent Farm; Owner/Admin read-only, Petugas denied |
+| `FarmLegality` | `farm_legalities` | farm -> team; create parent Farm; Admin CRUD, Owner read-only, Petugas denied |
+| `FarmLegalityDocument` | `farm_legality_documents` | legality.farm -> team; create parent persisted FarmLegality or Farm for an atomic new legality+files submission; Admin view/create/delete, Owner view, Petugas denied; private authorized downloads |
 | `PlantingRound` | `planting_rounds` | block.farm -> team; create parent FarmBlock; system-managed round grouping |
 | `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline derived on batch creation |
 | `PlantingCycleTask` | `planting_cycle_tasks` | plantingCycle.farm -> team; generated snapshot of SOP tasks for one subblok |

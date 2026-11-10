@@ -6,7 +6,6 @@ use App\Models\ActivityType;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
-use App\Models\FarmLegality;
 use App\Models\FarmRisk;
 use App\Models\HarvestDetail;
 use App\Models\PlantingCycle;
@@ -18,6 +17,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\WeatherRecord;
 use App\Services\AdminDashboardService;
+use App\Services\FarmLegalityService;
 use App\Services\FarmService;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -29,6 +29,7 @@ class OwnerReadService
     public function __construct(
         private readonly FarmService $farms,
         private readonly AdminDashboardService $dashboard,
+        private readonly FarmLegalityService $legalities,
     ) {}
 
     /** @param array<string, mixed> $filters
@@ -275,39 +276,16 @@ class OwnerReadService
     public function legality(User $actor, Team $team, Farm $farm): array
     {
         $farm = Farm::visibleTo($actor, $team)->where('team_id', $team->id)->findOrFail($farm->id);
-        $legality = FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id)->first();
 
         return [
             'farm' => $farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'total_area_ha', 'address', 'city', 'district', 'province']),
-            'legality' => $legality === null ? null : [
-                ...$legality->only(['id', 'institution', 'summary']),
-                'pks_started_at' => $legality->pks_started_at?->toDateString(),
-                'pks_ends_at' => $legality->pks_ends_at?->toDateString(),
-                'status' => $this->legalityStatus($legality, $farm),
-            ],
+            'legality' => $this->legalities->payload($actor, $team, $farm),
             'urls' => [
                 'farm' => route('owner.farms.show', $farm, false),
                 'home' => route('home', [], false),
                 'farms' => route('kebun', [], false),
             ],
         ];
-    }
-
-    private function legalityStatus(FarmLegality $legality, Farm $farm): string
-    {
-        if ($legality->pks_started_at === null && $legality->pks_ends_at === null && $farm->land_tenure === 'owned') {
-            return 'not_applicable';
-        }
-        if ($legality->pks_started_at === null || $legality->pks_ends_at === null) {
-            return 'incomplete';
-        }
-
-        $today = CarbonImmutable::today('Asia/Jakarta');
-        if ($today->toDateString() < $legality->pks_started_at->toDateString()) {
-            return 'upcoming';
-        }
-
-        return $today->toDateString() > $legality->pks_ends_at->toDateString() ? 'expired' : 'active';
     }
 
     /** @return array<string, mixed> */

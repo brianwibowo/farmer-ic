@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
@@ -34,5 +35,11 @@ class FarmLegality extends FarmerModel
     public function farm(): BelongsTo
     {
         return $this->belongsTo(Farm::class);
+    }
+
+    /** @return HasMany<FarmLegalityDocument, $this> */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(FarmLegalityDocument::class);
     }
 }

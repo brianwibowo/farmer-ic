@@ -8,6 +8,7 @@ import {
     ShieldCheck,
 } from '@lucide/vue';
 import { computed } from 'vue';
+import LegalityDocumentList from '@/components/farms/LegalityDocumentList.vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import OwnerReadEmpty from '@/components/owner/OwnerReadEmpty.vue';
 import {
@@ -15,24 +16,15 @@ import {
     withOwnerFarmOrigin,
 } from '@/lib/ownerFarmNavigation';
 import type { OwnerFarmRow } from '@/types/owner';
+import {
+    farmLegalityStatuses,
+    type FarmLegalityDetail,
+} from '@/types/farm-legality';
 import { ownerArea, ownerDate } from '@/types/owner';
 
-type LegalityStatus =
-    | 'active'
-    | 'upcoming'
-    | 'expired'
-    | 'not_applicable'
-    | 'incomplete';
 const props = defineProps<{
     farm: OwnerFarmRow;
-    legality: {
-        id: string;
-        pks_started_at: string | null;
-        pks_ends_at: string | null;
-        institution: string | null;
-        summary: string | null;
-        status: LegalityStatus;
-    } | null;
+    legality: FarmLegalityDetail | null;
     urls: { farm: string; home: string; farms: string };
 }>();
 const page = usePage();
@@ -59,24 +51,8 @@ const tenure: Record<string, string> = {
     rented: 'Sewa',
     partnership: 'Kerja sama',
 };
-const statuses: Record<LegalityStatus, { label: string; style: string }> = {
-    active: { label: 'PKS aktif', style: 'bg-success/10 text-success' },
-    upcoming: {
-        label: 'PKS belum dimulai',
-        style: 'bg-muted text-muted-foreground',
-    },
-    expired: { label: 'PKS berakhir', style: 'bg-warning/15 text-foreground' },
-    not_applicable: {
-        label: 'Tanpa PKS',
-        style: 'bg-muted text-muted-foreground',
-    },
-    incomplete: {
-        label: 'Periode belum lengkap',
-        style: 'bg-warning/15 text-foreground',
-    },
-};
 const status = computed(() =>
-    props.legality ? statuses[props.legality.status] : null,
+    props.legality ? farmLegalityStatuses[props.legality.status] : null,
 );
 </script>
 
@@ -246,6 +222,21 @@ const status = computed(() =>
                 </p>
             </section>
         </div>
+        <section
+            class="rounded-xl border border-border bg-card p-4 sm:p-6"
+            aria-labelledby="draft-heading"
+        >
+            <h2
+                id="draft-heading"
+                class="flex items-center gap-2 text-base font-semibold"
+            >
+                <FileText class="size-5 text-primary" aria-hidden="true" />Draft
+                legalitas
+            </h2>
+            <div class="mt-3">
+                <LegalityDocumentList :documents="legality.documents" />
+            </div>
+        </section>
     </template>
     <OwnerReadEmpty
         v-else

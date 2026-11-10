@@ -141,7 +141,7 @@ class FarmLegalityTest extends TestCase
         $this->get($this->url($farm))->assertOk()->assertInertia(fn (Assert $page) => $page->where('legality.id', $record->id));
     }
 
-    public function test_new_resource_uses_explicit_read_only_grants_and_default_deny(): void
+    public function test_new_resource_keeps_owner_read_only_and_explicitly_allows_admin_management(): void
     {
         $farm = $this->farm('Kebun Izin Baca');
         $record = $this->legality($farm);
@@ -149,8 +149,11 @@ class FarmLegalityTest extends TestCase
             $this->assertTrue(Gate::forUser($actor)->allows('view', $record));
             $this->assertTrue(Gate::forUser($actor)->allows('viewAny', [FarmLegality::class, $this->team]));
             $this->assertSame([$record->id], FarmLegality::visibleTo($actor, $this->team)->pluck('id')->all());
-            $this->assertFalse(Gate::forUser($actor)->allows('create', [FarmLegality::class, $farm]));
-            foreach (['update', 'delete', 'configure', 'forceDelete'] as $ability) {
+            $this->assertSame($actor->is($this->admin), Gate::forUser($actor)->allows('create', [FarmLegality::class, $farm]));
+            foreach (['update', 'delete'] as $ability) {
+                $this->assertSame($actor->is($this->admin), Gate::forUser($actor)->allows($ability, $record));
+            }
+            foreach (['configure', 'forceDelete'] as $ability) {
                 $this->assertFalse(Gate::forUser($actor)->allows($ability, $record));
             }
         }

@@ -107,6 +107,9 @@ class FarmService
                 $blockers[] = $label;
             }
         }
+        if (\App\Models\FarmLegality::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()) {
+            $blockers[] = 'legalitas lahan';
+        }
         if (User::visibleTo($user, $team)->where('assigned_farm_id', $farm->id)->exists()) {
             $blockers[] = 'penugasan Petugas';
         }
@@ -277,6 +280,7 @@ class FarmService
                 }
                 foreach ([
                     'farm_blocks' => 'blok kebun',
+                    'farm_legalities' => 'legalitas lahan',
                     'planting_cycles' => 'siklus tanam',
                     'daily_activity_logs' => 'logbook harian',
                     'farm_activities' => 'aktivitas kebun',
