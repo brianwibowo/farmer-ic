@@ -93,8 +93,8 @@ class OwnerDashboardTableTest extends TestCase
         $jagung = $this->cycle($first, 'Jagung', 'BISI-18');
         $rumput = $this->cycle($second, 'Rumput', 'Odot');
         $this->cycle($other, 'Sorgum', 'Super-2');
-        $this->stage($jagung, 'soil_preparation', 1, 'completed');
-        $this->stage($jagung, 'planting', 2, 'in_progress');
+        $this->stage($jagung, 'soil_preparation', 2, 'completed');
+        $this->stage($jagung, 'planting', 4, 'in_progress');
 
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('landTable.groups', 2)

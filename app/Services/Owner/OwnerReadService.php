@@ -173,8 +173,19 @@ class OwnerReadService
         // Flat rows remain the data source for the map and existing summary
         // cards. The regional table is an additional presentation of the same
         // scoped records, not a separate data source.
-        $projectionRows = collect($this->harvestProjections
-            ->summary($actor, $team, 'cycle', $farmId)['rows']);
+        /** @var list<array{
+         *     key: string,
+         *     farm_id: string,
+         *     farm_name: string,
+         *     crop_name: string|null,
+         *     projection_ton: float|null,
+         *     missing_count: int,
+         *     batch_count: int
+         * }> $projectionRowData
+         */
+        $projectionRowData = $this->harvestProjections
+            ->summary($actor, $team, 'cycle', $farmId)['rows'];
+        $projectionRows = collect($projectionRowData);
         $projectionsByFarm = $projectionRows->groupBy('farm_id')->map(fn ($farmProjections) => $farmProjections
             ->filter(fn (array $projection): bool => $projection['crop_name'] !== null)
             ->map(fn (array $projection): array => [
