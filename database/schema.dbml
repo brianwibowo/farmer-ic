@@ -108,6 +108,32 @@ Table farms {
   Note: 'Tanpa farm_plots. Jika semua owner memantau semua kebun, owner_id boleh dihilangkan.'
 }
 
+Table farm_legalities {
+  id uuid [pk]
+  farm_id uuid [not null, unique, ref: > farms.id, note: 'ON DELETE CASCADE']
+  pks_started_at date
+  pks_ends_at date [note: 'Must not precede pks_started_at when both dates are set']
+  institution varchar(255) [not null]
+  summary text [not null]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table farm_legality_documents {
+  id uuid [pk]
+  farm_legality_id uuid [not null, ref: > farm_legalities.id, note: 'ON DELETE CASCADE']
+  disk varchar(30) [not null, default: 'legality']
+  path varchar(500) [not null, unique]
+  original_name varchar(255) [not null]
+  mime_type varchar(100) [not null, default: 'application/pdf']
+  size_bytes bigint [not null]
+  created_at timestamptz
+  updated_at timestamptz
+  indexes {
+    farm_legality_id
+  }
+}
+
 Table commodities {
   id uuid [pk]
   name varchar(100) [not null, unique]

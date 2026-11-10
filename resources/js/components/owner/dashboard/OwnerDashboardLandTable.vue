@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { ArrowUpRight, ChevronDown } from '@lucide/vue';
-import { computed, ref } from 'vue';
-import OwnerDashboardCropIcon from '@/components/owner/dashboard/OwnerDashboardCropIcon.vue';
-import { withOwnerFarmOrigin } from '@/lib/ownerFarmNavigation';
-import { ownerArea } from '@/types/owner';
-import type { OwnerDashboardLandTable } from '@/types/owner-dashboard';
+import { Link } from "@inertiajs/vue3";
+import { ArrowUpRight, ChevronDown } from "@lucide/vue";
+import { computed, ref } from "vue";
+import OwnerDashboardCropIcon from "@/components/owner/dashboard/OwnerDashboardCropIcon.vue";
+import { withOwnerFarmOrigin } from "@/lib/ownerFarmNavigation";
+import { ownerArea } from "@/types/owner";
+import type { OwnerDashboardLandTable } from "@/types/owner-dashboard";
 
 const props = defineProps<{
     table: OwnerDashboardLandTable;
     loading?: boolean;
 }>();
 const expandedGroups = ref<string[]>([]);
-const tonFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
-const percentageFormat = new Intl.NumberFormat('id-ID', {
+const tonFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
+const percentageFormat = new Intl.NumberFormat("id-ID", {
     maximumFractionDigits: 0,
 });
 const expandedSet = computed(() => new Set(expandedGroups.value));
@@ -30,7 +30,7 @@ const toggleGroup = (groupId: string) => {
         : [...expandedGroups.value, groupId];
 };
 const groupRowsId = (groupId: string) =>
-    `owner-land-group-${groupId.replace(/[^a-z0-9_-]/gi, '-')}`;
+    `owner-land-group-${groupId.replace(/[^a-z0-9_-]/gi, "-")}`;
 </script>
 
 <template>
@@ -163,8 +163,8 @@ const groupRowsId = (groupId: string) =>
                                             >{{ group.farm_count }} kebun ·
                                             {{
                                                 isExpanded(group.id)
-                                                    ? 'Sembunyikan'
-                                                    : 'Tampilkan'
+                                                    ? "Sembunyikan"
+                                                    : "Tampilkan"
                                             }}
                                             rincian</span
                                         ></span
@@ -284,7 +284,7 @@ const groupRowsId = (groupId: string) =>
                                                 'home',
                                             )
                                         "
-                                        class="block min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] text-secondary underline decoration-secondary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                                        class="block font-bold min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] text-secondary underline decoration-secondary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
                                         >{{ row.name }}</Link
                                     >
                                 </th>
@@ -296,18 +296,35 @@ const groupRowsId = (groupId: string) =>
                                 <td
                                     class="border-r border-b border-border bg-card px-3 py-3 align-top"
                                 >
-                                    <p class="font-bold">
-                                        {{ row.legality ?? 'Belum tercatat' }}
-                                    </p>
-                                    <p
-                                        v-if="row.requires_land_tenure_party"
-                                        class="mt-1 text-xs [overflow-wrap:anywhere] text-muted-foreground"
+                                    <Link
+                                        :href="
+                                            withOwnerFarmOrigin(
+                                                row.legality_url,
+                                                'home',
+                                            )
+                                        "
+                                        :aria-label="`Lihat legalitas ${row.name}`"
+                                        class="block min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:outline-ring"
                                     >
-                                        {{
-                                            row.land_tenure_party ||
-                                            'Pihak terkait belum diisi'
-                                        }}
-                                    </p>
+                                        <span
+                                            class="block font-medium text-secondary underline decoration-secondary/30 underline-offset-4 dark:text-primary"
+                                        >
+                                            {{
+                                                row.legality ?? "Belum tercatat"
+                                            }}
+                                        </span>
+                                        <span
+                                            v-if="
+                                                row.requires_land_tenure_party
+                                            "
+                                            class="mt-1 block text-xs text-muted-foreground"
+                                        >
+                                            {{
+                                                row.land_tenure_party ||
+                                                "Pihak terkait belum diisi"
+                                            }}
+                                        </span>
+                                    </Link>
                                 </td>
                                 <td
                                     class="border-r border-b border-border bg-card px-3 py-3 align-top"
@@ -333,7 +350,7 @@ const groupRowsId = (groupId: string) =>
                                                 >
                                                     {{
                                                         crop.varieties.join(
-                                                            ', ',
+                                                            ", ",
                                                         )
                                                     }}
                                                 </p></span
@@ -370,7 +387,7 @@ const groupRowsId = (groupId: string) =>
                                     >
                                         {{
                                             row.progress.current_stages.join(
-                                                ', ',
+                                                ", ",
                                             )
                                         }}
                                     </p>
@@ -400,7 +417,7 @@ const groupRowsId = (groupId: string) =>
                                                 class="shrink-0 tabular-nums"
                                                 >{{
                                                     crop.ton === null
-                                                        ? 'Belum tersedia'
+                                                        ? "Belum tersedia"
                                                         : `${tonFormat.format(crop.ton)} ton`
                                                 }}</span
                                             >

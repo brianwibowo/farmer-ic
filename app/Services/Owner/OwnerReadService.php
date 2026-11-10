@@ -17,6 +17,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\WeatherRecord;
 use App\Services\AdminDashboardService;
+use App\Services\FarmLegalityService;
 use App\Services\FarmService;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -28,6 +29,12 @@ class OwnerReadService
     public function __construct(
         private readonly FarmService $farms,
         private readonly AdminDashboardService $dashboard,
+        /*
+            kedua service dibawah masih belum tau digunakan untuk apa:
+            1. FarmLegalityService $legalities -> dibuat oleh abdul
+            2. HarvestProjectionService $harvestProjections -> dibuat oleh okta
+        */
+        private readonly FarmLegalityService $legalities,
         private readonly HarvestProjectionService $harvestProjections,
     ) {}
 
@@ -146,6 +153,7 @@ class OwnerReadService
                 'id' => (string) $farm->id,
                 'name' => $farm->name,
                 'detail_url' => '/kebun/'.$farm->id,
+                'legality_url' => '/kebun/'.$farm->id.'/legalitas',
                 'area_ha' => $farm->total_area_ha,
                 'legality' => match ($farm->land_tenure) {
                     'owned' => 'Milik sendiri', 'rented' => 'Sewa', 'partnership' => 'Kerja sama',
@@ -274,7 +282,18 @@ class OwnerReadService
     {
         return [
             'farms' => $this->farms->paginate($actor, $team, $filters)->through(fn (Farm $farm): array => $farm->only([
-                'id', 'name', 'city', 'district', 'province', 'address', 'land_tenure', 'land_tenure_party', 'total_area_ha', 'latitude', 'longitude', 'image_url',
+                'id',
+                'name',
+                'city',
+                'district',
+                'province',
+                'address',
+                'land_tenure',
+                'land_tenure_party',
+                'total_area_ha',
+                'latitude',
+                'longitude',
+                'image_url',
             ])),
             'summary' => $this->farms->summary($actor, $team),
             'locationOptions' => $this->farms->locationOptions($actor, $team),
@@ -299,8 +318,10 @@ class OwnerReadService
             ->get()->groupBy(fn (PlantingCycle $cycle) => $cycle->block_id ?? '');
         $observations = PlantObservation::visibleTo($actor, $team)
             ->whereHas('plantingCycle', fn ($cycles) => $cycles->visibleTo($actor, $team)->where('farm_id', $farm->id))
-            ->with(['plantingCycle' => fn ($cycles) => $cycles->visibleTo($actor, $team)
-                ->with(['variety' => fn ($varieties) => $varieties->visibleTo($actor, $team)])])
+            ->with([
+                'plantingCycle' => fn ($cycles) => $cycles->visibleTo($actor, $team)
+                    ->with(['variety' => fn ($varieties) => $varieties->visibleTo($actor, $team)]),
+            ])
             ->latest('observed_at')->limit(5)->get();
         $weather = WeatherRecord::visibleTo($actor, $team)->where('farm_id', $farm->id)->latest('recorded_at')->first();
         $risks = FarmRisk::visibleTo($actor, $team)
@@ -314,6 +335,7 @@ class OwnerReadService
         return [
             'farm' => [
                 ...$farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
+                'legality_url' => '/kebun/'.$farm->id.'/legalitas',
                 'owner_name' => $owner?->name,
                 'team_name' => $team->name,
                 'capacity' => $this->farms->capacity($farm, $actor, $team),
@@ -348,6 +370,22 @@ class OwnerReadService
             'officers' => User::visibleTo($actor, $team)->where('assigned_farm_id', $farm->id)
                 ->whereHas('role', fn ($roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
                 ->orderBy('name')->get(['id', 'name', 'is_active'])->toArray(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function legality(User $actor, Team $team, Farm $farm): array
+    {
+        $farm = Farm::visibleTo($actor, $team)->where('team_id', $team->id)->findOrFail($farm->id);
+
+        return [
+            'farm' => $farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'total_area_ha', 'address', 'city', 'district', 'province']),
+            'legality' => $this->legalities->payload($actor, $team, $farm),
+            'urls' => [
+                'farm' => route('owner.farms.show', $farm, false),
+                'home' => route('home', [], false),
+                'farms' => route('kebun', [], false),
+            ],
         ];
     }
 
@@ -481,8 +519,10 @@ class OwnerReadService
     public function sop(User $actor, Team $team, SopTemplate $sop): array
     {
         $sop = $this->sopQuery($actor, $team)
-            ->with(['versions' => fn ($versions) => $versions->visibleTo($actor, $team)->orderByDesc('version')
-                ->with(['tasks' => fn ($tasks) => $tasks->visibleTo($actor, $team)])])
+            ->with([
+                'versions' => fn ($versions) => $versions->visibleTo($actor, $team)->orderByDesc('version')
+                    ->with(['tasks' => fn ($tasks) => $tasks->visibleTo($actor, $team)]),
+            ])
             ->findOrFail($sop->id);
 
         return [
@@ -491,7 +531,14 @@ class OwnerReadService
                 ...$version->only(['id', 'version', 'status', 'notes']),
                 'published_at' => $version->published_at?->toIso8601String(),
                 'tasks' => $version->tasks->map(fn ($task): array => $task->only([
-                    'id', 'name', 'instructions', 'activity_category', 'activity_subcategory', 'offset_days', 'tolerance_days', 'is_required',
+                    'id',
+                    'name',
+                    'instructions',
+                    'activity_category',
+                    'activity_subcategory',
+                    'offset_days',
+                    'tolerance_days',
+                    'is_required',
                 ]))->all(),
             ])->all(),
         ];

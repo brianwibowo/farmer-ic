@@ -367,7 +367,19 @@ stored land-tenure label and, for Sewa/Kerja sama, the persisted name of the
 landowner or partner (`land_tenure_party`). Require that name in the farm form
 when either status is selected; show “Pihak terkait belum diisi” for legacy
 records without it. Milik sendiri does not show a related party. Missing fields
-remain explicit. Progress is a completed-stage count across
+remain explicit. The Legalitas cell links to the farm's read-only legality page
+at `/kebun/{farm}/legalitas`, also accessible from farm information. Show the
+persisted PKS start/end dates, related institution, and legality summary. For
+owned land without a PKS, state that its period does not apply; never invent
+agreement dates. An absent record has an explicit empty state. Keep the Farmer
+profile, semantic status colors, and responsive cards. List optional draft PDF
+attachments below the summary with their original filenames, sizes, and labeled
+download links. Wrap long filenames on phones; fetch documents only through
+authenticated, tenant-scoped download routes. An empty list says no draft has
+been uploaded. Owner remains read-only and displays the same persisted fields
+and attachments edited by Admin. A Beranda entry returns
+to Beranda; a farm-detail entry uses the finite `via=farm` flag and carries the
+existing `from=home` context back through the farm page. Progress is a completed-stage count across
 running batches, not an invented crop-growth percentage. Resume is the latest
 record with its own date, independent of legacy activity-period query parameters.
 Preserve Owner profile, AI and existing authorization; keep empty/loading/error
@@ -962,6 +974,23 @@ while visiting block routes. Farm detail uses one overview panel: registered are
 
 Block and sub block editor dialogs use a roomy 768px maximum desktop width, constrained to the viewport on phones. Use card surfaces, semantic tokens, a context header with the existing icon system, a visible capacity summary, two form columns where space permits, and an independently scrolling body. Keep the separated Batal/Simpan footer visible while scrolling; hide duplicate submit/close actions while processing. Retain focus trapping, keyboard dismissal, unsaved-change confirmation, inline errors, and both profile themes. Block forms follow the farm
 form width, and compact list metrics retain their units.
+
+Admin farm detail includes a clickable Legalitas value inside the existing
+farm information, using the same tenure label and alignment as its other
+metadata, without an arrow or separate legality card. It opens
+`/admin/farm-management/{farm}/legalitas`. That detail page contains the
+persisted legality, optional PDFs, a return link to its farm, and a labeled
+pencil button opening the create/edit dialog. Render actions from backend
+permissions. Use date fields for PKS start
+and end, a related-institution field, and a summary textarea. PKS dates may be
+empty for owned land; otherwise require both and reject an end before the start.
+Optional draft attachments accept multiple PDFs. Show the effective server file
+count/size limits, retained files, pending additions/removals, inline validation,
+upload progress, and success/error feedback. Keep files private. Deletion lives
+inside the editor and requires a second explicit confirmation using the shared
+destructive button variants. Preserve typed values on errors and confirm before
+discarding unsaved changes. Dialogs use the admin theme, a scrollable body, and
+reachable footer controls on small phones and landscape viewports.
 Capacity metrics provide an information button with a 44px touch target using
 `MetricInfoTooltip`; explain block boundaries, batch reservations, and a labeled
 example. Keep totals visible, support keyboard/tap dismissal, and theme portals.

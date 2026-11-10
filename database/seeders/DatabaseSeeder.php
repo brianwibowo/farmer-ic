@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             DemoOperationsSeeder::class,
             DemoOwnerPortfolioSeeder::class,
             PresentationNamesSeeder::class,
+            FarmLegalitySeeder::class,
         ]);
     }
 }
