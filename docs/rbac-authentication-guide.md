@@ -86,6 +86,13 @@ melalui relasi model yang tersimpan.
 
 ## Arti peran dan cakupan
 
+Alert insiden di `/petugas` memerlukan `FarmActivity::viewAny` dan
+`IncidentDetail::viewAny`, selain izin beranda yang sudah ada. Controller
+mengotorisasi keduanya sebelum service membaca insiden. Query detail insiden dan
+aktivitas induknya sama-sama memakai `visibleTo($actor, $team)` serta farm
+penugasan yang tersimpan; total dan empat alert teratas mengikuti cakupan yang
+sama. Tidak ada endpoint, mutasi status, atau bypass izin baru.
+
 ### Area admin dan izin data
 
 `/admin/dashboard` dan `/admin/farm-management` memakai `auth`, `verified`, dan

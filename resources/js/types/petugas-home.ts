@@ -20,6 +20,7 @@ export type PetugasHomeTask = {
 };
 
 export type PetugasHome = {
+    incidents: { data: PetugasHomeIncident[]; total: number };
     date: string;
     farm: {
         id: string;
@@ -38,4 +39,15 @@ export type PetugasHome = {
         prev_page_url: string | null;
         next_page_url: string | null;
     };
+};
+
+export type PetugasHomeIncident = {
+    id: string;
+    severity: 'light' | 'medium' | 'heavy' | 'emergency';
+    severity_label: string;
+    category: string | null;
+    description: string | null;
+    reported_at: string;
+    status: 'open' | 'in_progress';
+    action: string | null;
 };

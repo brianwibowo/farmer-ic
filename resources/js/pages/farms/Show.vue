@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
     ArrowLeft,
     ClipboardList,
@@ -38,6 +38,41 @@ const props = defineProps<{
     };
 }>();
 const deleting = ref(false);
+let growthRefreshTimer: ReturnType<typeof setInterval> | undefined;
+let refreshingGrowth = false;
+function refreshGrowthDate(): void {
+    if (document.hidden || refreshingGrowth) return;
+    const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(new Date());
+    if (
+        !props.blocks.some((block) =>
+            block.batches.some(
+                (batch) => batch.growth && batch.growth.as_of !== today,
+            ),
+        )
+    )
+        return;
+    refreshingGrowth = true;
+    router.reload({
+        only: ['blocks'],
+        onFinish: () => {
+            refreshingGrowth = false;
+        },
+    });
+}
+onMounted(() => {
+    growthRefreshTimer = setInterval(refreshGrowthDate, 60_000);
+    document.addEventListener('visibilitychange', refreshGrowthDate);
+    refreshGrowthDate();
+});
+onBeforeUnmount(() => {
+    clearInterval(growthRefreshTimer);
+    document.removeEventListener('visibilitychange', refreshGrowthDate);
+});
 const coordinates = computed<[number, number] | null>(() =>
     props.farm.latitude !== null && props.farm.longitude !== null
         ? [Number(props.farm.latitude), Number(props.farm.longitude)]

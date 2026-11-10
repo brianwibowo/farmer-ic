@@ -2,7 +2,10 @@
 
 namespace App\Services\Petugas;
 
+use App\Enums\IncidentSeverity;
 use App\Models\Farm;
+use App\Models\FarmActivity;
+use App\Models\IncidentDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\Team;
@@ -20,6 +23,7 @@ class PetugasHomeService
             'farm' => null,
             'summary' => ['pre_planting' => 0, 'planting' => 0, 'harvest' => 0],
             'task_summary' => ['total' => 0, 'completed' => 0],
+            'incidents' => ['data' => [], 'total' => 0],
             'tasks' => ['data' => [], 'total' => 0, 'current_page' => 1, 'last_page' => 1, 'prev_page_url' => null, 'next_page_url' => null],
         ];
         if ($farm === null || $team === null) {
@@ -76,7 +80,36 @@ class PetugasHomeService
                 'harvest' => (int) ($counts['harvested'] ?? 0),
             ],
             'task_summary' => ['total' => $total, 'completed' => $completed],
+            'incidents' => $this->incidentAlerts($actor, $visibleFarm, $team),
             'tasks' => $page,
         ];
+    }
+
+    /** @return array{data: list<array<string, mixed>>, total: int} */
+    private function incidentAlerts(User $actor, Farm $farm, Team $team): array
+    {
+        $query = IncidentDetail::visibleTo($actor, $team)
+            ->whereIn('severity', ['light', 'low', 'medium', 'moderate', 'heavy', 'high', 'emergency', 'critical'])
+            ->whereHas('activity', fn ($activities) => $activities->visibleTo($actor, $team)->where('farm_id', $farm->id)
+                ->where('activity_date', '<=', CarbonImmutable::now('Asia/Jakarta'))
+                ->where(fn ($statuses) => $statuses->whereIn('status', ['open', 'progress', 'in_progress', 'pending', 'reported'])->orWhereNull('status')));
+        $total = (clone $query)->count();
+        $items = $query->with(['activity' => fn ($activities) => $activities->visibleTo($actor, $team)])
+            ->orderByRaw("CASE WHEN severity IN ('emergency', 'critical') THEN 0 WHEN severity IN ('heavy', 'high') THEN 1 WHEN severity IN ('medium', 'moderate') THEN 2 ELSE 3 END")
+            ->orderByDesc(FarmActivity::visibleTo($actor, $team)->select('activity_date')->whereColumn('farm_activities.id', 'incident_details.activity_id'))
+            ->orderBy('activity_id')->limit(4)->get()->map(function (IncidentDetail $incident): array {
+                $severity = IncidentSeverity::fromStored($incident->severity);
+                $activity = $incident->activity;
+
+                return [
+                    'id' => $incident->activity_id, 'severity' => $severity->value, 'severity_label' => $severity->label(),
+                    'category' => $incident->incident_category, 'description' => $activity->description,
+                    'reported_at' => $activity->activity_date->toISOString(),
+                    'status' => in_array($activity->status, ['progress', 'in_progress'], true) ? 'in_progress' : 'open',
+                    'action' => $activity->action_taken ?? $incident->proposed_solution,
+                ];
+            })->all();
+
+        return ['data' => array_values($items), 'total' => $total];
     }
 }

@@ -2,14 +2,19 @@
 
 namespace App\Services;
 
+use App\Models\Commodity;
+use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingRound;
+use App\Models\PlantObservation;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\LandArea;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +53,7 @@ class FarmBlockService
      * @param  \Illuminate\Support\Collection<int, FarmBlock>|null  $selected
      * @return \Illuminate\Support\Collection<int, FarmBlock>
      */
-    public function overview(Farm $farm, User $actor, Team $team, ?\Illuminate\Support\Collection $selected = null): \Illuminate\Support\Collection
+    public function overview(Farm $farm, User $actor, Team $team, ?\Illuminate\Support\Collection $selected = null, bool $includeGrowth = false): \Illuminate\Support\Collection
     {
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
             ->when($selected !== null, fn ($query) => $query->whereIn('id', $selected->pluck('id')))->orderBy('code')->get();
@@ -58,11 +63,12 @@ class FarmBlockService
         $rounds = PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->orderBy('round_number')->get();
         $batches = PlantingCycle::visibleTo($actor, $team)->whereIn('planting_round_id', $rounds->modelKeys())->orderBy('batch_number')->get();
         $stages = PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())->orderBy('position')->get()->groupBy('planting_cycle_id');
+        $growth = $includeGrowth ? $this->growthOverview($farm, $batches, $stages, $actor, $team) : [];
         $mapped = \App\Models\BlockMappingDetail::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->distinct()->pluck('block_id');
         $activeArea = LandArea::squareMetres(FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha')) ?? 0;
         $farmCapacity = $this->batchCapacity($farm, $blocks->firstOrFail(), PlantingCycle::visibleTo($actor, $team)->toBase());
 
-        return $blocks->map(function (FarmBlock $block) use ($farm, $rounds, $batches, $stages, $mapped, $activeArea, $farmCapacity): FarmBlock {
+        return $blocks->map(function (FarmBlock $block) use ($farm, $rounds, $batches, $stages, $mapped, $activeArea, $farmCapacity, $growth): FarmBlock {
             $blockRounds = $rounds->where('block_id', $block->id);
             $blockBatches = $batches->whereIn('planting_round_id', $blockRounds->modelKeys());
             $running = $blockBatches->whereIn('status', ['planned', 'active']);
@@ -84,11 +90,62 @@ class FarmBlockService
             $block->setAttribute('batches', $blockBatches->map(fn (PlantingCycle $batch): array => [
                 ...$batch->only(['id', 'planting_round_id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
                 'planned_planting_at' => $batch->planned_planting_at?->toDateString(), 'planted_at' => $batch->planted_at?->toDateString(),
+                ...(isset($growth[$batch->id]) ? ['growth' => $growth[$batch->id]] : []),
                 'stages' => ($stages->get($batch->id) ?? collect())->map->only(['code', 'position', 'status', 'started_at', 'completed_at'])->values(),
             ])->values());
 
             return $block;
         });
+    }
+
+    /**
+     * @param  EloquentCollection<int, PlantingCycle>  $batches
+     * @param  \Illuminate\Support\Collection<array-key, EloquentCollection<int, PlantingCycleStage>>  $stages
+     * @return array<string, array<string, mixed>>
+     */
+    private function growthOverview(Farm $farm, EloquentCollection $batches, \Illuminate\Support\Collection $stages, User $actor, Team $team): array
+    {
+        $today = CarbonImmutable::today('Asia/Jakarta');
+        $eligible = $batches->filter(function (PlantingCycle $batch) use ($stages, $today): bool {
+            $timeline = $stages->get($batch->id, collect());
+
+            return in_array($batch->status, ['active', 'harvested'], true)
+                && $batch->planted_at !== null && $batch->planted_at->toDateString() <= $today->toDateString()
+                && $timeline->contains(fn (PlantingCycleStage $stage): bool => $stage->code === 'planting' && $stage->status === 'completed')
+                && $timeline->contains(fn (PlantingCycleStage $stage): bool => $stage->code === 'maintenance' && in_array($stage->status, ['in_progress', 'completed'], true));
+        })->keyBy('id');
+        $observations = PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $eligible->modelKeys())
+            ->orderByDesc('observed_at')->orderByDesc('id')
+            ->get(['id', 'planting_cycle_id', 'observed_at', 'growth_phase', 'growth_percentage'])
+            ->unique('planting_cycle_id')->keyBy('planting_cycle_id');
+        $varieties = CropVariety::visibleTo($actor, $team)->whereIn('id', $eligible->pluck('variety_id')->filter())
+            ->get(['id', 'commodity_id', 'name'])->keyBy('id');
+        $commodities = Commodity::visibleTo($actor, $team)->whereIn('id', $varieties->pluck('commodity_id')->push($farm->getAttribute('commodity_id'))->filter())
+            ->pluck('name', 'id');
+
+        return $batches->mapWithKeys(function (PlantingCycle $batch) use ($farm, $observations, $varieties, $commodities, $eligible, $today): array {
+            if (! $eligible->has($batch->id)) {
+                return [$batch->id => ['available' => false, 'as_of' => $today->toDateString(), 'hst' => null,
+                    'commodity' => null, 'variety' => null, 'estimated_harvest_at' => null, 'observation' => null]];
+            }
+            $observation = $observations->get($batch->id);
+            $variety = $varieties->get($batch->variety_id);
+
+            return [$batch->id => [
+                'available' => true,
+                'as_of' => $today->toDateString(),
+                'hst' => (int) CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today),
+                'commodity' => $commodities->get($variety->commodity_id ?? $farm->getAttribute('commodity_id')),
+                'variety' => $variety?->name,
+                'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
+                'observation' => $observation === null ? null : [
+                    'id' => $observation->id,
+                    'observed_at' => $observation->observed_at->toISOString(),
+                    'phase' => $observation->growth_phase,
+                    'percentage' => $observation->growth_percentage === null ? null : (float) $observation->growth_percentage,
+                ],
+            ]];
+        })->all();
     }
 
     /** @return array{total: int, active: int, active_area_ha: string} */
