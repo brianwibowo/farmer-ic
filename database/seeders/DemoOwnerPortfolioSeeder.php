@@ -62,6 +62,7 @@ class DemoOwnerPortfolioSeeder extends Seeder
                     if ($site['key'] === 'cisarua') {
                         $this->ensureMegamendungActiveBatch($actor, $team, $existing, $site);
                     }
+
                     continue;
                 }
                 $this->assertUnusedId(Farm::class, $id);

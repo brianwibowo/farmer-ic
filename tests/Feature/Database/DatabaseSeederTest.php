@@ -6,9 +6,9 @@ use App\Models\Commodity;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FinancialCategory;
-use App\Models\User;
 use App\Models\PlantingCycle;
 use App\Models\Team;
+use App\Models\User;
 use App\Services\Owner\HarvestProjectionService;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoOwnerPortfolioData;
@@ -125,13 +125,13 @@ class DatabaseSeederTest extends TestCase
 
         $this->actingAs($owner)
             ->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-                ->where('landTable.total', 7)
-                ->where('landTable.rows', fn ($rows) => collect($rows)->count() === 7
-                    && collect($rows)->pluck('name')->sort()->values()->all() === [
-                        'Kebun Cariu', 'Kebun Cileuksa', 'Kebun Cipanengah', 'Kebun Jonggol',
-                        'Kebun Megamendung', 'Kebun Pamijahan', 'Kebun Sirnasari',
-                    ])
-                ->where('landTable.groups', fn ($groups) => collect($groups)->count() === 2
-                    && collect($groups)->pluck('name')->all() === ['Kabupaten Bogor', 'Kabupaten Sukabumi']));
+            ->where('landTable.total', 7)
+            ->where('landTable.rows', fn ($rows) => collect($rows)->count() === 7
+                && collect($rows)->pluck('name')->sort()->values()->all() === [
+                    'Kebun Cariu', 'Kebun Cileuksa', 'Kebun Cipanengah', 'Kebun Jonggol',
+                    'Kebun Megamendung', 'Kebun Pamijahan', 'Kebun Sirnasari',
+                ])
+            ->where('landTable.groups', fn ($groups) => collect($groups)->count() === 2
+                && collect($groups)->pluck('name')->all() === ['Kabupaten Bogor', 'Kabupaten Sukabumi']));
     }
 }
