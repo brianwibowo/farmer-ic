@@ -9,6 +9,8 @@ use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
+use App\Models\FarmLegality;
+use App\Models\FarmLegalityDocument;
 use App\Models\FarmRisk;
 use App\Models\FertilizationDetail;
 use App\Models\FinancialBudget;
@@ -38,6 +40,7 @@ class FarmDeletionService
     private const LABELS = [
         'farm_blocks' => 'Blok kebun', 'planting_rounds' => 'Periode penanaman', 'planting_cycle_stages' => 'Timeline batch',
         'planting_cycle_tasks' => 'Tugas SOP subblok',
+        'farm_legalities' => 'Legalitas lahan', 'farm_legality_documents' => 'Draft PDF legalitas',
         'planting_cycles' => 'Siklus tanam', 'daily_activity_logs' => 'Logbook harian',
         'farm_activities' => 'Aktivitas kebun', 'plant_observations' => 'Pengamatan tanaman',
         'farm_risks' => 'Risiko kebun', 'ai_insights' => 'Insight AI siklus tanam',
@@ -59,7 +62,7 @@ class FarmDeletionService
 
             return [
                 'groups' => $this->groups($graph),
-                'blockers' => $this->hasSharedReferences($graph) ? [$this->sharedMessage()] : [],
+                'blockers' => $this->hasSharedReferences($graph, $farm) ? [$this->sharedMessage()] : [],
                 'token' => $this->token($farm, $graph),
             ];
         });
@@ -77,7 +80,7 @@ class FarmDeletionService
                     throw ValidationException::withMessages(['reason' => 'Alasan penghapusan harus 5 sampai 2.000 karakter.']);
                 }
                 $graph = $this->graph($actor, $farm);
-                if ($this->hasSharedReferences($graph)) {
+                if ($this->hasSharedReferences($graph, $farm)) {
                     throw new ConflictHttpException($this->sharedMessage());
                 }
                 if (! hash_equals($this->token($farm, $graph), $summaryToken)) {
@@ -88,7 +91,10 @@ class FarmDeletionService
                 // joining this graph after confirmation. Never disable FK/trigger checks.
                 DB::table('users')->whereIn('id', $graph['users'])->where('assigned_farm_id', $farm->id)
                     ->update(['assigned_farm_id' => null, 'updated_at' => now()]);
+                $documentPaths = FarmLegalityDocument::visibleTo($actor, $farm->team)
+                    ->whereIn('id', $graph['farm_legality_documents'])->pluck('path')->all();
                 foreach ([
+                    'farm_legality_documents', 'farm_legalities',
                     'planting_cycle_tasks',
                     'planting_cycle_stages',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
@@ -102,6 +108,7 @@ class FarmDeletionService
                 }
                 $snapshot = $farm->only(['id', 'name', 'team_id', 'land_tenure', 'total_area_ha']);
                 $farm->delete();
+                app(FarmLegalityService::class)->cleanupAfterCommit($documentPaths);
                 AuditLog::query()->create([
                     'user_id' => $actor->id, 'table_name' => 'farms', 'record_id' => $farm->id,
                     'action' => 'force_delete', 'old_values' => $snapshot,
@@ -126,6 +133,7 @@ class FarmDeletionService
         $graph = [];
         foreach ([
             'farm_blocks' => FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id),
+            'farm_legalities' => FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'planting_cycles' => PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'daily_activity_logs' => DailyActivityLog::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_activities' => FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id),
@@ -138,6 +146,7 @@ class FarmDeletionService
             $graph[$table] = $this->ids($query->toBase());
         }
         $graph['planting_rounds'] = $this->ids(PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $graph['farm_blocks'])->toBase());
+        $graph['farm_legality_documents'] = $this->ids(FarmLegalityDocument::visibleTo($actor, $team)->whereIn('farm_legality_id', $graph['farm_legalities'])->toBase());
         $graph['planting_cycle_stages'] = $this->ids(PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['planting_cycle_tasks'] = $this->ids(PlantingCycleTask::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['plant_observations'] = $this->ids(PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
@@ -161,8 +170,14 @@ class FarmDeletionService
     }
 
     /** @param array<string, list<string>> $graph */
-    private function hasSharedReferences(array $graph): bool
+    private function hasSharedReferences(array $graph, Farm $farm): bool
     {
+        // A hidden legality/draft must block the parent cascade rather than be
+        // deleted without appearing in the authorized confirmation graph.
+        if (DB::table('farm_legalities')->where('farm_id', $farm->id)->whereNotIn('id', $graph['farm_legalities'])->exists()
+            || DB::table('farm_legality_documents')->whereIn('farm_legality_id', $graph['farm_legalities'])->whereNotIn('id', $graph['farm_legality_documents'])->exists()) {
+            return true;
+        }
         // Inspect physical inbound/outbound links, including records outside the
         // deletion graph. Such rows block deletion; they are never added to it.
         foreach ([

@@ -30,6 +30,14 @@ return [
 
     'disks' => [
 
+        'legality' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/legality'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

@@ -26,6 +26,7 @@ export type OwnerDashboardLandRow = {
     detail_url: string;
     area_ha: string;
     legality: string | null;
+    legality_url: string;
     land_tenure_party: string | null;
     requires_land_tenure_party: boolean;
     crops: Array<{ id: string; name: string; varieties: string[] }>;
