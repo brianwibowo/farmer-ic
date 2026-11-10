@@ -137,7 +137,7 @@ class PresentationNamesSeederTest extends TestCase
         $this->seed(DemoFarmSeeder::class);
         $this->seed(DemoOwnerPortfolioSeeder::class);
         $this->assertSame(DemoFarmSeeder::FARM_NAME, $base->refresh()->name);
-        $this->assertSame(6, Farm::query()->where('team_id', $team->id)->count());
+        $this->assertSame(7, Farm::query()->where('team_id', $team->id)->count());
         foreach ([Farm::class => ['name'], User::class => ['name'], Team::class => ['name'],
             FarmBlock::class => ['description'], FarmActivity::class => ['description'], PlantingCycle::class => ['subblock_label'],
             PlantObservation::class => ['notes'], WeatherRecord::class => ['data_source'], ActivityPhoto::class => ['label', 'caption'],
