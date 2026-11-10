@@ -175,7 +175,7 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertDatabaseMissing('farm_blocks', ['id' => $block->id]);
     }
 
-    public function test_target_volume_and_progress_are_persisted_and_scoped_to_current_farm_rounds(): void
+    public function test_target_volume_and_progress_are_persisted_and_scoped_to_current_farm_cycles(): void
     {
         $this->post('/admin/farm-management', $this->payload(['target_volume_ton' => '80.125']))->assertSessionHasNoErrors();
         $farm = Farm::firstOrFail();
@@ -194,7 +194,7 @@ class FarmManagementInertiaTest extends TestCase
         }
         $this->patch($url, ['target_volume_ton' => '125.500'])->assertSessionHasNoErrors();
         $this->assertSame('125.500', $farm->fresh()->getAttribute('target_volume_ton'));
-        \App\Models\PlantingCycle::where('planting_round_id', $first->planting_round_id)->update(['status' => 'cancelled']);
+        \App\Models\PlantingCycle::where('block_id', $first->block_id)->update(['status' => 'cancelled']);
         $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
         $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.progress_overview.total', 1)->where('farm.progress_overview.stages.1.count', 1));
         $worker = $this->actor('petugas', $this->team);
@@ -413,7 +413,7 @@ class FarmManagementInertiaTest extends TestCase
         $farm = $this->farm();
         DB::table('daily_activity_logs')->insert([
             'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $this->admin->id,
-            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 2, 'created_at' => now(),
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
         ]);
         $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors('delete');
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
@@ -461,7 +461,7 @@ class FarmManagementInertiaTest extends TestCase
         ]);
         DB::table('daily_activity_logs')->insert([
             'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $worker->id,
-            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 1, 'created_at' => now(),
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
         ]);
         $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
             'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',
@@ -495,11 +495,64 @@ class FarmManagementInertiaTest extends TestCase
         }
     }
 
+    public function test_non_owned_land_requires_a_valid_related_party_on_create_and_full_update(): void
+    {
+        foreach (['rented', 'partnership'] as $tenure) {
+            foreach ([null, '', '   ', str_repeat('a', 256), ['Mitra']] as $party) {
+                $this->post('/admin/farm-management', $this->payload([
+                    'land_tenure' => $tenure, 'land_tenure_party' => $party,
+                ]))->assertSessionHasErrors('land_tenure_party');
+            }
+            $this->post('/admin/farm-management', $this->payload(['land_tenure' => $tenure]))
+                ->assertSessionHasErrors('land_tenure_party');
+        }
+        $this->assertDatabaseCount('farms', 0);
+        $farm = $this->farm();
+        $this->put('/admin/farm-management/'.$farm->id, $this->payload(['land_tenure' => 'rented']))
+            ->assertSessionHasErrors('land_tenure_party');
+        $this->assertSame('owned', $farm->fresh()->land_tenure);
+    }
+
+    public function test_partial_updates_preserve_party_and_owned_status_clears_it(): void
+    {
+        $farm = $this->farm();
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->patch($url, ['land_tenure' => 'rented'])->assertSessionHasErrors('land_tenure_party');
+        $this->patch($url, ['land_tenure' => 'rented', 'land_tenure_party' => '  PT Lahan Sejahtera  '])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame('PT Lahan Sejahtera', $farm->fresh()->getAttribute('land_tenure_party'));
+        $this->patch($url, ['name' => 'Kebun Diperbarui'])->assertSessionHasNoErrors();
+        $this->patch($url, ['land_tenure' => 'partnership'])->assertSessionHasNoErrors();
+        $this->assertSame('PT Lahan Sejahtera', $farm->fresh()->getAttribute('land_tenure_party'));
+        $this->patch($url, ['land_tenure_party' => null])->assertSessionHasErrors('land_tenure_party');
+        $this->patch($url, ['land_tenure_party' => 'Koperasi Tani Makmur'])->assertSessionHasNoErrors();
+        $this->get('/admin/farm-management')->assertInertia(fn (Assert $page) => $page
+            ->where('farms.data.0.land_tenure_party', 'Koperasi Tani Makmur'));
+        $this->patch($url, ['land_tenure' => 'owned', 'land_tenure_party' => 'Tidak relevan'])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($farm->fresh()->getAttribute('land_tenure_party'));
+        $this->post('/admin/farm-management', $this->payload(['land_tenure_party' => 'Tidak relevan']))
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('farms', ['land_tenure_party' => 'Tidak relevan']);
+    }
+
+    public function test_legacy_non_owned_land_can_be_read_and_completed_without_guessing_a_party(): void
+    {
+        $farm = $this->farm(['land_tenure' => 'rented']);
+        $url = '/admin/farm-management/'.$farm->id;
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.land_tenure_party', null));
+        $this->patch($url, ['name' => 'Kebun Lama'])->assertSessionHasNoErrors();
+        $this->assertNull($farm->fresh()->getAttribute('land_tenure_party'));
+        $this->patch($url, ['land_tenure_party' => 'Pemilik Lahan Bogor'])->assertSessionHasNoErrors();
+        $this->assertSame('Pemilik Lahan Bogor', $farm->fresh()->getAttribute('land_tenure_party'));
+    }
+
     public function test_tenure_and_selected_pin_are_persisted_and_returned_on_all_farm_pages(): void
     {
         foreach (['owned', 'rented', 'partnership'] as $tenure) {
             $response = $this->post('/admin/farm-management', $this->payload([
                 'name' => 'Kebun '.$tenure, 'land_tenure' => $tenure,
+                'land_tenure_party' => $tenure === 'owned' ? null : 'Koperasi Tani Makmur',
                 'latitude' => '-6.5965123', 'longitude' => '106.9502123',
             ]))->assertRedirect();
             $farm = Farm::query()->where('name', 'Kebun '.$tenure)->firstOrFail();
@@ -507,7 +560,8 @@ class FarmManagementInertiaTest extends TestCase
             $this->assertSame($tenure, $farm->land_tenure);
             foreach (['', '/edit'] as $suffix) {
                 $this->get('/admin/farm-management/'.$farm->id.$suffix)->assertInertia(fn (Assert $page) => $page
-                    ->where('farm.land_tenure', $tenure)->where('farm.latitude', '-6.5965123')->where('farm.longitude', '106.9502123'));
+                    ->where('farm.land_tenure', $tenure)
+                    ->where('farm.land_tenure_party', $tenure === 'owned' ? null : 'Koperasi Tani Makmur')->where('farm.latitude', '-6.5965123')->where('farm.longitude', '106.9502123'));
             }
         }
         $this->get('/admin/farm-management')->assertInertia(fn (Assert $page) => $page
@@ -547,7 +601,7 @@ class FarmManagementInertiaTest extends TestCase
         $this->get('/admin/farm-management/'.$farm->id)->assertInertia(fn (Assert $page) => $page->where('farm.land_tenure', null));
         $this->patch('/admin/farm-management/'.$farm->id, ['name' => 'Kebun historis'])->assertRedirect();
         $this->assertNull($farm->fresh()->land_tenure);
-        $this->patch('/admin/farm-management/'.$farm->id, ['land_tenure' => 'partnership'])->assertRedirect();
+        $this->patch('/admin/farm-management/'.$farm->id, ['land_tenure' => 'partnership', 'land_tenure_party' => 'Koperasi Tani Makmur'])->assertRedirect();
         $this->assertSame('partnership', $farm->fresh()->land_tenure);
     }
 

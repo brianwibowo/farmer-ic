@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
 use App\Models\Farm;
+use App\Models\FarmActivity;
+use App\Models\IncidentDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\Team;
@@ -25,6 +27,8 @@ class PetugasHomeController extends Controller
             abort_unless($team instanceof Team, 403);
             Gate::authorize('viewAny', [PlantingCycle::class, $team]);
             Gate::authorize('viewAny', [PlantingCycleTask::class, $team]);
+            Gate::authorize('viewAny', [FarmActivity::class, $team]);
+            Gate::authorize('viewAny', [IncidentDetail::class, $team]);
         }
 
         return Inertia::render('petugas/Home', [

@@ -14,8 +14,6 @@ import {
     Wheat,
 } from '@lucide/vue';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import { clearDemoStorage } from '@/composables/useDemoStorage';
 import type { FarmDemoState } from '@/data/farmDemo';
@@ -158,6 +156,10 @@ async function downloadReport(): Promise<void> {
         requestAnimationFrame(() => resolve(undefined)),
     );
     try {
+        const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+            import('html2canvas'),
+            import('jspdf'),
+        ]);
         const element = document.querySelector<HTMLElement>(
             '.report-print-document.export-mode',
         );

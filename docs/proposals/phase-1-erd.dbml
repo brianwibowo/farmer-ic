@@ -1,4 +1,5 @@
 // USULAN phase 1; lapisan definisi SOP sudah diimplementasikan, eksekusi task batch dan approval belum; RBAC mengikuti remote e994d7c.
+// HISTORIS: tabel planting_rounds sudah dihapus; schema aktif memakai planting_cycles.block_id. Lihat database/schema.dbml.
 // Seluruh tabel existing termasuk soft delete users dipertahankan; Admin dibatasi tenant.
 // PK/FK dan nullability merupakan target akhir setelah backfill data lama.
 // Lihat phase-1-erd.md untuk aturan, keputusan terbuka, dan transisi.

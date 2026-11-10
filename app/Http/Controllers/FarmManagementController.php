@@ -9,6 +9,7 @@ use App\Models\Commodity;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmBlock;
+use App\Models\FarmLegality;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
@@ -42,7 +43,7 @@ class FarmManagementController extends Controller
 
             return Inertia::render('farms/Index', [
                 'farms' => $farms->through(fn (Farm $farm): array => [
-                    ...$farm->only(['id', 'name', 'land_tenure', 'city', 'district', 'province', 'total_area_ha']),
+                    ...$farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'city', 'district', 'province', 'total_area_ha']),
                     'can' => [
                         'update' => Gate::allows('update', $farm),
                         'delete' => Gate::allows('delete', $farm),
@@ -91,12 +92,16 @@ class FarmManagementController extends Controller
     public function show(Request $request, Farm $farm): Response
     {
         Gate::authorize('view', $farm);
+        $team = $request->user()->currentTeam;
+        $inActiveTeam = $team instanceof Team && (int) $farm->team_id === (int) $team->id;
+        $canViewLegality = $inActiveTeam && Gate::allows('viewAny', [FarmLegality::class, $team]);
 
         return Inertia::render('farms/Show', [
             'farm' => $this->farms->detail($farm, $request->user()),
-            'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]) ? $this->blocks->overview($farm, $request->user(), $farm->team)->map(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block), 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block]) && Gate::allows('create', [\App\Models\PlantingRound::class, $block])]]) : [],
-            'batchPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('planting_round_id')
-                ->with(['farm.team', 'plantingRound.block'])->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $batch->plantingRound?->block !== null && $this->blocks->isBatchEditable($batch->plantingRound->block, $batch)]),
+            'legalityUrl' => $canViewLegality ? route('farm-management.legality.show', $farm, false) : null,
+            'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]) ? $this->blocks->overview($farm, $request->user(), $farm->team, includeGrowth: true)->map(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block), 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block])]]) : [],
+            'batchPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
+                ->with(['farm.team', 'block'])->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $batch->block !== null && $this->blocks->isBatchEditable($batch->block, $batch)]),
             'blockCapacity' => Gate::allows('create', [FarmBlock::class, $farm]) ? $this->blocks->formCapacity($farm, $request->user(), $farm->team) : null,
             'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [

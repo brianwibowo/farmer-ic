@@ -8,7 +8,6 @@ use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
-use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Services\Petugas\PetugasGardenService;
 use Illuminate\Support\Facades\Gate;
@@ -27,7 +26,7 @@ class PetugasGardenController extends Controller
             Gate::authorize('view', $farm);
             $team = $farm->team;
             abort_unless($team instanceof Team, 403);
-            foreach ([FarmBlock::class, PlantingRound::class, PlantingCycle::class, PlantingCycleStage::class] as $model) {
+            foreach ([FarmBlock::class, PlantingCycle::class, PlantingCycleStage::class] as $model) {
                 Gate::authorize('viewAny', [$model, $team]);
             }
             if ($request->validated('block') !== null) {

@@ -13,13 +13,13 @@ defineProps<{ garden: PetugasGarden }>();
 
 <template>
     <Head title="Kebun · Petugas" />
-    <div class="space-y-5">
+    <div class="space-y-[var(--admin-content-gap)]">
         <h1 class="text-2xl leading-8 font-semibold tracking-tight">
             Kebun saya
         </h1>
         <section
             v-if="!garden.farm"
-            class="rounded-xl border border-dashed border-border bg-card px-5 py-9 text-center"
+            class="petugas-card petugas-empty px-5 py-9 text-center"
         >
             <LandPlot
                 class="mx-auto size-9 text-secondary dark:text-primary"
@@ -35,12 +35,12 @@ defineProps<{ garden: PetugasGarden }>();
         <template v-else>
             <GardenFarmCard :farm="garden.farm" :summary="garden.summary" />
             <section aria-labelledby="garden-blocks" class="space-y-4">
-                <h2 id="garden-blocks" class="text-lg font-semibold">
+                <h2 id="garden-blocks" class="admin-section-title">
                     Blok & subblok
                 </h2>
                 <div
                     v-if="!garden.blocks.length"
-                    class="rounded-xl border border-dashed border-border bg-card px-5 py-8 text-center"
+                    class="petugas-card petugas-empty px-5 py-8 text-center"
                 >
                     <Layers
                         class="mx-auto size-8 text-secondary dark:text-primary"
@@ -80,7 +80,7 @@ defineProps<{ garden: PetugasGarden }>();
                         >
                     </nav>
                     <template v-if="garden.selected_block">
-                        <div class="space-y-3 rounded-xl bg-muted/40 p-4">
+                        <div class="petugas-card space-y-3 p-4">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
                                     <h3
@@ -95,7 +95,7 @@ defineProps<{ garden: PetugasGarden }>();
                                     >
                                 </div>
                                 <p
-                                    class="shrink-0 text-lg font-semibold tabular-nums"
+                                    class="shrink-0 text-xl font-bold tabular-nums"
                                 >
                                     {{
                                         gardenArea(
@@ -122,7 +122,7 @@ defineProps<{ garden: PetugasGarden }>();
                                     garden.selected_block
                                         .land_clearing_completed_at
                                         ? `Selesai ${gardenDate(garden.selected_block.land_clearing_completed_at)}`
-                                        : `Dimulai ${gardenDate(garden.selected_block.land_clearing_started_at)}`
+                                        : 'Belum dimulai'
                                 }}
                             </p>
                         </div>
@@ -134,7 +134,7 @@ defineProps<{ garden: PetugasGarden }>();
                         </div>
                         <div
                             v-if="!garden.batches.total"
-                            class="rounded-xl border border-dashed border-border bg-card px-5 py-8 text-center"
+                            class="petugas-card petugas-empty px-5 py-8 text-center"
                         >
                             <Sprout
                                 class="mx-auto size-8 text-secondary dark:text-primary"

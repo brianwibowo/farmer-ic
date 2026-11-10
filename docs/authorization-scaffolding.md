@@ -15,11 +15,22 @@ User, ActivityType and BlockMappingDetail policies. Its three GET routes under
 controller resource authorization. `AdminLogbookService` scopes directory rows,
 report totals, activity counts, recorder options and detail relationships with
 `visibleTo` before serialization. No new model prefixes or wildcard grants are
-introduced. Admin is read-only for DailyActivityLog: its create/update/delete
-grants are removed, including access through existing mobile/JSON endpoints.
+introduced. The Admin logbook UI remains read-only and DailyActivityLog
+create/delete are denied. The 4 November shared-header decision restores
+`daily_activity_logs.update = any` for a separate authorized header edit;
+it does not grant activity creation or deletion through the logbook.
 Petugas retains own-farm recording access; the developer Superadmin bypass stays.
 See `docs/daily-activity-log.md` for the route map; all new routes and queries are
 protected. Mobile recording still uses its existing controller and service.
+
+Petugas to-dos, report history/detail and voluntary forms are guarded by their
+resource policies and assigned-farm boundary. `FarmActivityPolicy::recordVoluntary`
+requires a persisted selectable active category, farm create permission, and
+view/create grants for the shared header, private photos and applicable typed
+detail. `visibleTo` is applied before report pagination/totals and serialization.
+The staged-planting command authorizes `recordPlanting` and `synchronize` as each
+persisted assigned actor before scoped cycle reconciliation. See the current
+route/storage/verification checkpoint in `petugas-activity-handoff.md`, section 8.
 
 - `AppServiceProvider`: framework defaults only.
 - `AiServiceProvider`: existing AI/RAG container bindings, preserved as before.
@@ -35,8 +46,9 @@ protected. Mobile recording still uses its existing controller and service.
 The merged model names/tables now determine the matrix. The temporary plot,
 SOP, form, sales/purchases, and progress aliases have been replaced by
 actual model prefixes. Income and expense are both `financial_transactions`;
-observations are `plant_observations`, and harvests are `harvest_details`.
-No invented models or permissions for nonexistent models remain.
+observations are `plant_observations`, harvests are `harvest_details`, and each
+other selectable activity category has its own typed detail table. No invented
+models or permissions for nonexistent models remain.
 
 The four application roles retain their intended responsibilities:
 
@@ -64,9 +76,10 @@ persisted parent/record farm, membership, assignment and view checks still apply
 PIC status never bypasses a missing grant or changes `own` for other models.
 Admin retains `any` CRUD; Owner retains read-only access and Superadmin its
 existing bypass. `visibleTo` still includes assigned-farm blocks for non-PIC
-Petugas, since reading does not require PIC. `planting_rounds` may be created as part of authorized batch creation,
-but has no direct update/delete grants. `planting_cycle_stages` is read-only for
-ordinary roles and initialized internally by the batch service. See
+Petugas, since reading does not require PIC. Batch cycles are created directly
+against the block as part of authorized batch creation; there is no separate
+period resource. `planting_cycle_stages` is read-only for ordinary roles and
+initialized internally by the batch service. See
 [farm-block-backend.md](farm-block-backend.md) for the complete route and scope map.
 
 SOP templates are tenant-owned and variety-specific. Admin has CRUD; Owner
@@ -118,6 +131,7 @@ discover the persisted domain relationships directly.
 | `AiMessage` | `ai_messages` | conversation.team |
 | `AiUsageEvent` | `ai_usage_events` | team |
 | `AuditLog` | `audit_logs` | Application-wide reference/system record |
+| `BedPreparationDetail` | `bed_preparation_details` | activity.farm -> team |
 | `BlockMappingDetail` | `block_mapping_details` | activity.farm -> team |
 | `Commodity` | `commodities` | Application-wide reference/system record |
 | `CropVariety` | `crop_varieties` | Application-wide reference/system record |
@@ -125,7 +139,8 @@ discover the persisted domain relationships directly.
 | `FarmActivity` | `farm_activities` | farm -> team |
 | `Farm` | `farms` | Farm itself -> team |
 | `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
-| `PlantingRound` | `planting_rounds` | block.farm -> team; create parent FarmBlock; system-managed round grouping |
+| `FarmLegality` | `farm_legalities` | farm -> team; create parent Farm; Admin CRUD, Owner read-only, Petugas denied |
+| `FarmLegalityDocument` | `farm_legality_documents` | legality.farm -> team; create parent persisted FarmLegality or Farm for an atomic new legality+files submission; Admin view/create/delete, Owner view, Petugas denied; private authorized downloads |
 | `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline derived on batch creation |
 | `PlantingCycleTask` | `planting_cycle_tasks` | plantingCycle.farm -> team; generated snapshot of SOP tasks for one subblok |
 | `FarmRisk` | `farm_risks` | plantingCycle.farm -> team |
@@ -137,9 +152,13 @@ discover the persisted domain relationships directly.
 | `HarvestDetail` | `harvest_details` | activity.farm -> team |
 | `IncidentDetail` | `incident_details` | activity.farm -> team |
 | `IrrigationDetail` | `irrigation_details` | activity.farm -> team |
+| `LandCleaningDetail` | `land_cleaning_details` | activity.farm -> team |
+| `LimingDetail` | `liming_details` | activity.farm -> team |
+| `LooseningDetail` | `loosening_details` | activity.farm -> team |
 | `Membership` | `memberships` | team |
 | `Notification` | `notifications` | Personal inbox: persisted recipient only, active account and valid membership; listing without a Team explicitly spans the actor's memberships, not other recipients |
 | `OperationalTarget` | `operational_targets` | farm -> team |
+| `OtherDetail` | `other_details` | activity.farm -> team |
 | `PesticideDetail` | `pesticide_details` | activity.farm -> team |
 | `PlantingCycle` | `planting_cycles` | farm -> team |
 | `PlantingDetail` | `planting_details` | activity.farm -> team |
@@ -151,6 +170,7 @@ discover the persisted domain relationships directly.
 | `TeamInvitation` | `team_invitations` | team |
 | `Team` | `teams` | Team itself |
 | `User` (native actor/target) | `users` | Shared native team membership; Admin targets are Admin/Petugas with exactly one matching non-personal tenant |
+| `WeedingDetail` | `weeding_details` | activity.farm -> team |
 | `WeatherRecord` | `weather_records` | farm -> team |
 
 Reference/system single-record `view` checks require an explicit `any` view
@@ -345,3 +365,47 @@ collecting IDs/counts; raw integrity checks inspect outside references only to
 block the operation. No new unprotected route is introduced. Existing public
 demo routes and the previously unaudited AI conversation/message/voice query
 paths keep their existing checks; this task does not claim to secure them.
+# Task-linked activity recording
+
+Shared daily headers use the existing DailyActivityLogPolicy and static grants:
+one persisted farm/date header, shared between authorized officers in that farm.
+`own` remains farm-assignment scope, not `recorded_by`. Header update is a
+separately authorized action; activity appends cannot overwrite header values.
+Context lookup authorizes farm view and daily-log viewAny before a scoped query.
+Petugas daily reports scope both the parent log and all activity/detail/photo
+queries. The general report-photo route authorizes farm, activity and photo,
+checks persisted parent links, then uses a scoped file lookup. Only the known
+shared seed placeholder or private task-activity files are served. Header creator
+and activity performer names are minimal projections through already-authorized
+reports, not a user-directory grant; no account details or user-management access
+are exposed. Owner remains read-only; other-farm/tenant officers cannot read or
+edit shared headers. No grants or role definitions were added.
+
+All new daily-report, context, update and photo routes are protected. Existing
+daily-log child-list reads now also apply visibleTo. Unrelated routes and AI/RAG
+retrieval have not been re-audited by this change.
+
+Initial planting uses `FarmActivityPolicy::recordPlanting` against a persisted
+cycle and composes cycle update, activity create, daily-log/photo/planting-detail
+view/create grants. Petugas reads only its assigned farm's subblok and reports.
+The controller authorizes before the transactional service; FormRequest delegates
+the same ability early so validation cannot expose foreign-farm context.
+`PlantingCycleTaskPolicy::synchronize` composes cycle update and task-list admission
+for derived scheduling, without granting arbitrary task CRUD. Job/command/seed
+callers must explicitly authorize it before invoking `generateForSubblok` with
+an actor. Petugas now has tenant-scoped `any` read grants for SOP templates,
+versions and tasks, allowing scoped generation. SOP mutations and admin portal
+admission remain denied. All new planting/synchronization/photo routes are guarded;
+this work does not audit unrelated existing routes.
+
+`FarmActivityPolicy::recordTask` authorizes the composite report creation use
+case against a persisted `PlantingCycleTask`. It requires task visibility and
+the existing activity/daily-log/photo/applicable typed-detail view/create
+grants within the same farm boundary. It is not a new matrix grant and does
+not authorize updating or completing a task. HTTP controllers check it before
+calling the report service. The Petugas portal additionally requires that
+the task's farm equals the persisted assignment, even for developer portal use.
+
+Petugas can read activity types and crop varieties as shared reference records
+(`any`, with valid team membership), but cannot mutate them. Task listing,
+summary counts, linked reports and photo serialization use `visibleTo`.

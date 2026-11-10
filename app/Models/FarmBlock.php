@@ -23,9 +23,9 @@ class FarmBlock extends FarmerModel
         return $this->belongsTo(Farm::class);
     }
 
-    /** @return HasMany<PlantingRound, $this> */
-    public function rounds(): HasMany
+    /** @return HasMany<PlantingCycle, $this> */
+    public function cycles(): HasMany
     {
-        return $this->hasMany(PlantingRound::class, 'block_id');
+        return $this->hasMany(PlantingCycle::class, 'block_id');
     }
 }

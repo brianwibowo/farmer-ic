@@ -65,13 +65,14 @@ function photoFailed(id: string): void {
                 </p>
             </div>
             <p
-                v-if="activity.cycle"
+                v-if="activity.cycle || activity.block_name"
                 class="mt-3 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"
             >
-                {{ activity.cycle.label }}
+                {{ [activity.block_name, activity.cycle?.label].filter(Boolean).join(' · ') }}
             </p>
         </section>
 
+        <p v-if="activity.worker_count !== null" class="text-sm text-muted-foreground">Jumlah pekerja aktivitas: {{ activity.worker_count }} orang</p>
         <section
             v-if="activity.details.length"
             class="rounded-xl border border-border bg-card p-4"
@@ -143,17 +144,9 @@ function photoFailed(id: string): void {
                     <dt class="text-xs text-muted-foreground">Jam kerja</dt>
                     <dd class="mt-1 text-sm">
                         {{ activity.log.start_time.slice(0, 5) }}–{{
-                            activity.log.end_time.slice(0, 5)
+                            activity.log.end_time?.slice(0, 5) ?? 'Belum diisi'
                         }}
                         WIB
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">
-                        Jumlah pekerja
-                    </dt>
-                    <dd class="mt-1 text-sm">
-                        {{ activity.log.worker_count }} orang
                     </dd>
                 </div>
                 <div v-if="activity.log.notes" class="col-span-2">

@@ -6,19 +6,19 @@ Dokumen ini adalah acuan untuk field input form aktivitas, aturan blok/sub-blok,
 
 - Activity log tetap berupa **aktivitas individual**, bukan rekap harian.
 - Satu submit boleh berisi **satu atau beberapa aktivitas**; setiap baris tetap menjadi satu aktivitas individual.
-- **Header harian adalah sesi yang dapat dipakai ulang**, bukan laporan akhir hari. Header dibuat saat aktivitas pertama dan dipakai lagi untuk tanggal, farm, dan akun inputter yang sama.
+- **Header harian bersama per kebun + tanggal kerja**, dibuat saat aktivitas pertama dan dipakai lintas Petugas yang berwenang.
 - Block mapping tetap form terpisah; batch bukan lagi pengecualian khusus block mapping.
-- Beberapa aktivitas pada tanggal, farm, dan inputter yang sama memakai **header harian yang sama** agar pekerja tidak mengisi tanggal dan waktu berulang kali.
+- Beberapa aktivitas pada tanggal dan farm yang sama memakai **header harian yang sama** agar pekerja tidak mengisi tanggal dan jam berulang kali.
 - Scheduled tasks **tidak dibagi daily/weekly/monthly**. Task dibuat dari langkah **SOP modular** pada offset **HST** tertentu.
 - Field dibagi menjadi **blok**. Jika penanaman hanya mencakup sebagian blok, bagian yang ditanami menjadi **sub-blok**.
-- Blok/sub-blok yang ditanam dalam **selisih 0–3 hari dari tanggal tanam pertama pada cycle tersebut** dianggap satu **cycle** dan memakai **HST yang sama**. Penanaman setelah window tersebut membentuk sub-blok dan cycle/HST baru. Satu batch/sub-blok tidak boleh mengangkangi window; bagian setelah window harus menjadi batch/sub-blok baru.
+- Penanaman subblok dibatasi **tiga hari kalender inklusif**: 26–28; tanggal 29 memakai subblok lain yang disiapkan Admin. Acuan HST adalah tanggal penanaman aktual kedua yang berbeda jika ada, atau tanggal pertama jika hanya satu hari.
 - **Jumlah pekerja dicatat per aktivitas** dan boleh berbeda antar aktivitas.
-- **Catatan harian dihapus** karena akan berlaku untuk semua aktivitas pada hari itu; catatan hanya disimpan per aktivitas.
+- **Catatan harian tetap ada**, terpisah dari catatan aktivitas; jam selesai boleh dilengkapi kemudian.
 - Aktivitas **tidak mencatat kendala, solusi, atau tindakan**. Pengecualian: form insiden memiliki `Tindakan segera` yang opsional.
 - HOK **tidak dipakai lagi** dan dihapus dari form.
 - Foto dokumentasi **wajib minimal satu** per aktivitas.
 - Paraf/approval adalah **post-activity**, bukan input pekerja.
-- Setiap pekerja bisa memiliki akun sendiri, tetapi biasanya **satu petugas ditunjuk untuk menginput log tim**. Header terikat pada akun inputter, farm, dan tanggal.
+- Setiap pekerja bisa memiliki akun sendiri, tetapi biasanya **satu petugas ditunjuk untuk menginput log tim**. Pembuat pertama disimpan di header; pelaksana masing-masing aktivitas tetap disimpan terpisah.
 - Block adalah unit field management; sub-blok adalah bagian blok yang ditanami pada batch/cycle. Block mapping mencatat dimensi dan layout; master blok perlu tersedia, sedangkan sub-blok menjadi label batch, bukan master permanen.
 - Block mapping tidak lagi menjadi kategori aktivitas; block mapping tetap menjadi form field management terpisah.
 - Form harus ringan. Field yang jarang dipakai disembunyikan di bagian "Detail tambahan".
@@ -38,26 +38,83 @@ Sudah ada:
 - SOP default per kebun dan penentuan SOP berdasarkan komoditas
 - generate `planting_cycle_tasks` berbasis HST dari definisi SOP
 - snapshot versi SOP pada subblok
-
-Belum ada:
-
-- endpoint append satu atau beberapa aktivitas ke header yang sudah ada
-- reuse header otomatis di frontend
-- kategori/subkategori aktivitas selain block mapping (block mapping tetap form terpisah)
-- upload foto
-- approval/paraf
-- tabel master blok (sub-blok menjadi label batch/cycle)
+- hierarki `activity_types` untuk kategori dan subkategori aktivitas
 - query task list Petugas dari `planting_cycle_tasks`
-- pengajuan dan approval task SOP
-- pemindahan `worker_count` dari header ke aktivitas
-- penghapusan `notes` harian dan field kendala/solusi/tindakan
 
-Backend saat ini masih menyimpan `worker_count` dan `notes` di `daily_activity_logs`, serta `obstacles`, `proposed_solution`, dan `action_taken` di `farm_activities`. Form target memindahkan jumlah pekerja ke aktivitas dan menghapus field-field tersebut kecuali `Tindakan segera` khusus insiden.
+Checkpoint 4 November 2026 juga sudah mencakup reuse/append header otomatis,
+laporan SOP dan mandiri seluruh kategori selectable, foto privat, master blok,
+riwayat terfilter, serta penanaman bertahap dan rekonsiliasi HST.
+Detail input disimpan dalam `farm_activities.task_details` dan tabel detail bertipe
+yang tersedia, dengan satuan asli tetap tersimpan. `worker_count` dan `notes`
+harian sengaja dipertahankan. Kolom kendala lama dipertahankan untuk kompatibilitas
+data lama, tetapi tidak ditampilkan pada form baru.
+
+Belum diimplementasikan: approval/paraf dan lifecycle pengajuan selesai tugas.
+Tugas diselesaikan langsung oleh Petugas setelah minimal satu laporan; Admin
+tetap dapat melakukan skip/reschedule. Lihat
+[`petugas-activity-handoff.md`](petugas-activity-handoff.md) untuk keputusan lengkap.
+
+## Hierarki Kategori Aktivitas
+
+`activity_types` sekarang memakai relasi self-reference:
+
+- `parent_id` — `null` untuk kategori root, diisi untuk subkategori.
+- `detail_key` — menentukan detail table yang dipakai. `null` berarti detail table belum tersedia.
+- `is_selectable` — `false` untuk parent kategori dan `block_mapping`; aktivitas baru harus memilih baris selectable.
+- `sort_order` / `is_active` — urutan dropdown dan status.
+
+Tree saat ini:
+
+```text
+land_cleaning
+soil_preparation
+├── loosening
+├── beds
+├── liming
+└── base_fertilization
+planting
+maintenance
+├── irrigation
+├── weeding
+├── follow_up_fertilization
+├── growth_check
+└── pest_control
+harvest
+incident
+other
+block_mapping   (system-only, bukan pilihan form aktivitas)
+```
+
+`farm_activities.activity_type_id` menunjuk ke baris paling spesifik. Kategori
+diturunkan dari `parent_id`. Detail table mengikuti `detail_key`:
+
+```text
+planting                  -> planting_details
+irrigation                -> irrigation_details
+follow_up_fertilization   -> fertilization_details (stage susulan)
+base_fertilization        -> fertilization_details (stage dasar)
+growth_check              -> plant_observations
+pest_control              -> pesticide_details
+incident                  -> incident_details
+harvest                   -> harvest_details
+block_mapping             -> block_mapping_details
+land_cleaning             -> land_cleaning_details
+loosening                 -> loosening_details
+weeding                   -> weeding_details
+beds                      -> bed_preparation_details
+liming                    -> liming_details
+other                     -> other_details
+```
+
+Semua kategori selectable sudah memiliki typed detail. `soil_preparation` dan
+`maintenance` adalah parent non-selectable sehingga tidak punya detail table.
+Snapshot submit tetap disimpan di `farm_activities.task_details`; form mandiri
+Petugas menerima seluruh kategori selectable.
 
 ## Prinsip form
 
 1. **Header minimal dan dapat dipakai ulang.** Cukup tanggal, waktu mulai/selesai, dan pelapor. Satu submit boleh berisi beberapa aktivitas dan header yang sama dipakai lagi.
-2. **Jumlah pekerja per aktivitas.** Jumlah pekerja dapat berbeda antar aktivitas.
+2. **Jumlah pekerja harian bersama.** Total orang berbeda, bukan penjumlahan pekerja tiap aktivitas.
 3. **Progressive disclosure.** Tampilkan field inti lebih dulu; field lanjutan dan input ada di bagian yang bisa dibuka.
 4. **Auto-fill.** Luas blok, HST, dan pola tanam sebaiknya dihitung otomatis dan bisa dikoreksi.
 5. **Satuan konsisten.** Default area m², berat kg, cairan liter, panjang cm/m. Konversi ke Ha/Ton hanya untuk laporan.
@@ -71,19 +128,21 @@ Backend saat ini masih menyimpan `worker_count` dan `notes` di `daily_activity_l
 
 ## Header Harian
 
-Header ini adalah target form. Header adalah sesi yang dapat dipakai ulang, bukan rekap akhir hari. Backend saat ini masih menyimpan jumlah pekerja dan catatan di header; keduanya perlu dipindah/dihapus.
+Header merangkum seluruh pekerjaan kebun pada tanggal itu. Header dapat dipakai
+ulang dan dilengkapi bertahap melalui aksi terpisah **Ubah info harian**. Header
+menyimpan jam kerja dan catatan umum; jumlah pekerja disimpan pada masing-masing
+aktivitas.
 
 | Field         | Type | Unit | Wajib       | Catatan                                                       |
 | ------------- | ---- | ---- | ----------- | ------------------------------------------------------------- |
 | Tanggal kerja | date |      | Ya          | Tanggal aktual pekerjaan, bukan tanggal submit                |
 | Waktu mulai   | time |      | Ya          | Format HH:mm, zona Asia/Jakarta                               |
-| Waktu selesai | time |      | Ya          | Harus setelah waktu mulai                                     |
+| Waktu selesai | time |      | Tidak       | Bila diisi harus setelah waktu mulai                          |
+| Catatan harian | text |      | Tidak       | Catatan umum seluruh pekerjaan hari itu                        |
 | Pelapor       | user |      | Server-side | Diambil dari user yang login, tidak ditampilkan sebagai input |
 
 Yang **tidak** perlu masuk header:
 
-- jumlah pekerja → simpan di aktivitas
-- catatan harian → dihapus
 - blok/sub-blok → simpan pada batch/aktivitas; header tidak menyimpan lokasi
 - foto → simpan di aktivitas dan wajib
 - paraf/approval → **post-activity**, bukan input pekerja
@@ -97,40 +156,38 @@ Header tidak dipilih manual dari daftar. Sistem mencarinya otomatis.
 1. Saat pekerja membuka form aktivitas, cari header untuk:
     - tanggal kerja yang sama
     - farm yang sama
-    - akun inputter yang sama
-    - header terbaru pada tanggal tersebut (urut `created_at`, lalu `id`); MVP tidak memakai status open/closed
+    - header dipakai bersama oleh Petugas yang berwenang pada kebun; `visibleTo` dan unique constraint menjaga satu header
 
 2. Jika ditemukan, tampilkan banner ringan:
 
     > **Melanjutkan log hari ini** — 28 Okt 2026, 08:00–16:00.
-    > [Lanjutkan] [Ubah info] [Sesi baru]
+    > Informasi ini dipakai otomatis. [Ubah info harian]
 
-3. Jika pekerja menekan **Lanjutkan**, satu atau beberapa aktivitas baru otomatis masuk ke header tersebut.
-4. Jika ada aktivitas yang dilakukan di luar rentang waktu header, tampilkan pilihan:
-   - perpanjang waktu selesai header, atau
-   - buat sesi/header baru.
-5. Jika tidak ada header hari ini, form membuat header baru.
-6. Jika pekerja lupa dan membuat header kedua di hari yang sama, jangan blokir. Backend mengizinkan lebih dari satu header per hari; nanti bisa dibuat alat merge atau export per sesi.
-7. Setelah submit, form tetap memakai header yang sama; yang direset hanya baris aktivitas, bukan header.
+3. Laporan baru otomatis masuk ke header tersebut tanpa menimpa isinya.
+4. Jam kerja diperbarui melalui aksi terpisah yang diotorisasi; jumlah pekerja
+   tetap dicatat pada aktivitas masing-masing.
+5. Jika belum ada, simpan header dan aktivitas bersama dalam transaksi dengan lock farm.
+6. Duplikat header ditolak constraint; input bersamaan memakai satu header.
 
 Catatan kepemilikan header:
 
-- Header terikat pada `farm_id`, `recorded_by`, dan `work_date`.
-- Setiap pekerja bisa memiliki akun sendiri, tetapi biasanya satu petugas ditunjuk menginput seluruh log tim. Header mengikuti akun inputter, bukan seluruh pekerja.
-- Jika dua pekerja berbeda menginput log pada hari yang sama, saat ini akan terbentuk dua header. Keputusan apakah header harus dibagi per tim atau per akun masih perlu dikonfirmasi.
-- Backend mengizinkan lebih dari satu header per hari; pilih yang terbaru atau tampilkan sebagai sesi terpisah.
+- Identitas unik header adalah `farm_id` + `work_date`; `recorded_by` merupakan pembuat pertama.
+- Dua Petugas yang berwenang pada kebun yang sama memakai header yang sama.
+- Petugas/Admin sesuai policy boleh mengubah info harian; Owner hanya membaca.
+- Jumlah pekerja tidak disimpan di header; setiap aktivitas menyimpan `worker_count` sendiri.
 
-Catatan: untuk MVP, waktu header adalah rentang sesi kerja. Jika aktivitas berikutnya dilakukan di luar rentang itu, cukup perpanjang `end_time` atau buat sesi baru. `farm_activities.activity_date` tetap ada di schema, tetapi form batch memakai tanggal header + waktu mulai header untuk semua aktivitas; input waktu per aktivitas bisa ditambahkan nanti jika dibutuhkan.
+Timestamp aktivitas memakai tanggal kerja + jam mulai header saat disimpan.
+Pengubahan header tidak menulis ulang timestamp aktivitas yang sudah ada.
 
 ## Block, Sub-blok, Siklus, dan HST
 
 - **Field/kebun** adalah unit lokasi.
 - Field dibagi menjadi **blok**.
 - Jika hanya sebagian blok yang ditanami, bagian yang ditanami menjadi **sub-blok**.
-- Blok/sub-blok yang ditanam dalam **selisih 0–3 hari dari tanggal tanam pertama pada cycle tersebut** dianggap satu **cycle** dan memakai **HST yang sama**.
-- Penanaman setelah window tersebut membentuk **sub-blok baru** dan **cycle/HST baru**; bagian H+4 dan seterusnya tidak boleh masuk batch/sub-blok lama.
+- Penanaman satu subblok boleh terjadi pada tanggal pertama sampai dua hari setelahnya (26–28).
+- Tanggal 29 memerlukan subblok lain yang sudah disiapkan Admin. Laporan terlambat untuk tanggal 26–28 tetap diterima.
 - Blok/sub-blok adalah unit **spasial**; cycle adalah unit **waktu**.
-- Satu cycle dapat mencakup beberapa blok/sub-blok.
+- Pada schema aplikasi, satu `planting_cycle` mewakili satu subblok/batch; tanggal acuan yang sama tidak menggabungkan record antarsubblok.
 - Satu blok dapat memiliki beberapa sub-blok/cycle sepanjang waktu.
 
 Contoh:
@@ -144,18 +201,22 @@ Field
     └── Sub-blok B1 → Cycle 1 → HST 0
 ```
 
-Jika Blok B dan sebagian Blok A ditanam dalam selisih 0–3 hari, keduanya masuk **Cycle 1** dan memiliki HST yang sama. Jika sisa Blok A ditanam 2 minggu kemudian, bagian itu menjadi **Sub-blok A2** dengan **Cycle 2** dan HST baru.
+Diagram di atas hanya pengelompokan waktu konseptual; setiap subblok memiliki record cycle sendiri.
+HST memakai tanggal aktual kedua yang berbeda: 26/27/28 → 27; 26/28 → 28;
+hanya 26 → 26. Tanggal pertama disimpan terpisah sebagai batas jendela.
 
 ## Scheduled Tasks Berbasis SOP
 
 - Scheduled tasks **tidak** memakai recurrence daily/weekly/monthly.
 - Admin menyusun **SOP modular**: nama langkah, kategori/subkategori aktivitas, offset HST, instruksi, dan bukti yang diminta.
 - SOP dikaitkan ke **komoditas**, bukan varietas. Setiap kebun memiliki satu **SOP default**; Petugas tidak memilih SOP saat mencatat penanaman.
-- SOP mencakup penanaman sampai panen; pembersihan lahan dan pengolahan tanah dikelola sebagai persiapan batch/blok.
-- Saat SOP diterapkan ke subblok, sistem membuat task untuk setiap langkah SOP **Perawatan dan Panen** pada tanggal tanam + offset HST. Langkah **Penanaman** menjadi acuan aktivitas tanam dan tidak dibuat sebagai task terjadwal. Sebelum realisasi tanam, `planned_planting_at` menjadi acuan sementara.
+- SOP mencakup langkah **Perawatan dan Panen**; pembersihan lahan dan pengolahan tanah dikelola sebagai persiapan batch/blok. **Penanaman** dicatat sebagai aktivitas tanam dan menjadi acuan HST, bukan langkah SOP.
+- Saat SOP diterapkan ke subblok, sistem membuat task untuk setiap langkah SOP **Perawatan dan Panen** pada tanggal tanam + offset HST. Sebelum realisasi tanam, `planned_planting_at` menjadi acuan sementara.
 - Task terikat pada batch/sub-blok; cycle diperoleh dari batch.
-- Petugas menyelesaikan task dengan membuat activity log yang terhubung ke task.
-- Jika langkah tidak relevan, admin dapat menonaktifkan atau menandai task sebagai skip (future work).
+- Petugas mencatat activity log yang terhubung ke task. Laporan pertama
+  memindahkan task ke `in_progress`; Petugas menandai `completed` secara
+  eksplisit setelah minimal satu laporan. Tidak ada approval/review.
+- Jika langkah tidak relevan, Admin dapat melakukan skip/reschedule dengan alasan.
 
 ## Dampak ke Field Management
 
@@ -165,7 +226,12 @@ Jika Blok B dan sebagian Blok A ditanam dalam selisih 0–3 hari, keduanya masuk
 - Laporan dapat dikelompokkan per blok, sub-blok, atau cycle.
 - Jangan menimpa blok saat penanaman parsial; buat sub-blok.
 
-## Implementasi Minimal di Aplikasi
+## Rancangan API batch historis (bukan kontrak endpoint Petugas saat ini)
+
+Bagian berikut mempertahankan rancangan awal untuk referensi. Aturan sesi per
+inputter, pekerja per aktivitas, dan header baru di sini sudah digantikan keputusan
+4 November di atas. Kontrak aktif adalah endpoint web pada handoff, yang melakukan
+resolve/append header secara otomatis; tidak ada endpoint API append generik baru.
 
 Backend saat ini memakai pola **batch create**: satu request membuat header sekaligus satu atau banyak aktivitas block mapping. Targetnya tetap **create once, append one or more later**: header dibuat sekali, lalu satu atau beberapa aktivitas dapat ditambahkan pada submit yang sama atau submit berikutnya. Tidak harus menunggu akhir hari.
 
@@ -237,16 +303,17 @@ Catatan implementasi:
 
 Field ini muncul untuk semua aktivitas. `Subkategori` hanya wajib jika kategori yang dipilih memang memiliki subkategori.
 
-| Field             | Type    | Unit  | Wajib       | Catatan                                                                                |
-| ----------------- | ------- | ----- | ----------- | -------------------------------------------------------------------------------------- |
-| Kategori          | select  |       | Ya          | Dari daftar kategori di bawah                                                          |
-| Subkategori       | select  |       | Kondisional | Wajib jika kategori punya subkategori; untuk kategori tanpa subkategori tidak ditampilkan |
+| Field             | Type    | Unit  | Wajib       | Catatan                                                                                                                  |
+| ----------------- | ------- | ----- | ----------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Kategori          | select  |       | Ya          | Dari daftar kategori di bawah                                                                                            |
+| Subkategori       | select  |       | Kondisional | Wajib jika kategori punya subkategori; untuk kategori tanpa subkategori tidak ditampilkan                                |
 | Blok / sub-blok   | select  |       | Kondisional | Wajib untuk aktivitas berbasis blok; opsional untuk Lainnya; master blok perlu tersedia dan sub-blok menjadi label batch |
-| Jumlah pekerja    | integer | orang | Ya          | Dapat berbeda antar aktivitas                                                          |
-| Foto aktivitas    | file    |       | Ya          | Minimal 1 foto; bisa lebih dari satu                                                   |
-| Catatan aktivitas | text    |       | Tidak       | Untuk detail yang tidak masuk field baku                                               |
+| Jumlah pekerja    | integer | orang | Ya          | Dapat berbeda antar aktivitas                                                                                            |
+| Foto aktivitas    | file    |       | Ya          | Minimal 1 foto; bisa lebih dari satu                                                                                     |
+| Catatan aktivitas | text    |       | Tidak       | Untuk detail yang tidak masuk field baku                                                                                 |
 
-Field `Jumlah pekerja`, `Foto`, dan `Catatan` tersedia untuk semua aktivitas lewat field umum. `Foto` wajib minimal satu.
+`Foto`, `Catatan aktivitas`, dan `Jumlah pekerja` tersedia untuk semua kategori;
+foto wajib minimal satu.
 
 Catatan:
 
@@ -273,11 +340,11 @@ Catatan:
 
 ## 2.1 Penggemburan
 
-| Field       | Type           | Unit    | Wajib       | Catatan                               |
-| ----------- | -------------- | ------- | ----------- | ------------------------------------- |
-| Luas area   | number (float) | m² / Ha | Ya          |                                       |
-| Metode      | select         |         | Ya          | Manual / cultivator / lainnya         |
-| Kedalaman   | number (float) | cm      | Ya          | Contoh: 10 cm                         |
+| Field     | Type           | Unit    | Wajib | Catatan                       |
+| --------- | -------------- | ------- | ----- | ----------------------------- |
+| Luas area | number (float) | m² / Ha | Ya    |                               |
+| Metode    | select         |         | Ya    | Manual / cultivator / lainnya |
+| Kedalaman | number (float) | cm      | Ya    | Contoh: 10 cm                 |
 
 ## 2.2 Pembuatan Bedengan
 
@@ -334,32 +401,32 @@ Catatan:
 
 ## 4.1 Pengairan
 
-| Field       | Type           | Unit       | Wajib       | Catatan                                     |
-| ----------- | -------------- | ---------- | ----------- | ------------------------------------------- |
-| Luas area   | number (float) | m² / Ha    | Ya          |                                             |
-| Sumber air  | select         |            | Ya          | Sumur bor / irigasi / embung / lainnya      |
-| Metode      | select         |            | Ya          | Irigasi parit / sprinkler / pompa / lainnya |
-| Mesin pompa | select / text  |            | Kondisional | Muncul jika memakai pompa                   |
-| Durasi      | number (float) | jam        | Ya          |                                             |
+| Field       | Type           | Unit    | Wajib       | Catatan                                     |
+| ----------- | -------------- | ------- | ----------- | ------------------------------------------- |
+| Luas area   | number (float) | m² / Ha | Ya          |                                             |
+| Sumber air  | select         |         | Ya          | Sumur bor / irigasi / embung / lainnya      |
+| Metode      | select         |         | Ya          | Irigasi parit / sprinkler / pompa / lainnya |
+| Mesin pompa | select / text  |         | Kondisional | Muncul jika memakai pompa                   |
+| Durasi      | number (float) | jam     | Ya          |                                             |
 
 ## 4.2 Pendangiran
 
-| Field       | Type           | Unit    | Wajib       | Catatan                            |
-| ----------- | -------------- | ------- | ----------- | ---------------------------------- |
-| Luas area   | number (float) | m² / Ha | Ya          |                                    |
-| Kedalaman   | number (float) | cm      | Tidak       |                                    |
-| Metode      | select         |         | Ya          | Manual / cangkul / mesin / lainnya |
+| Field     | Type           | Unit    | Wajib | Catatan                            |
+| --------- | -------------- | ------- | ----- | ---------------------------------- |
+| Luas area | number (float) | m² / Ha | Ya    |                                    |
+| Kedalaman | number (float) | cm      | Tidak |                                    |
+| Metode    | select         |         | Ya    | Manual / cangkul / mesin / lainnya |
 
 ## 4.3 Pemupukan Susulan
 
-| Field            | Type           | Unit             | Wajib       | Catatan                                      |
-| ---------------- | -------------- | ---------------- | ----------- | -------------------------------------------- |
-| Luas area        | number (float) | m² / Ha          | Ya          |                                              |
-| Jenis pupuk      | select         |                  | Ya          | Urea / NPK / KCl / lainnya                   |
-| Merek            | text           |                  | Tidak       |                                              |
-| Jumlah           | number (float) | kg / sak / liter | Ya          |                                              |
-| Ukuran sak       | number (float) | kg               | Kondisional | Muncul jika satuan = sak                     |
-| Metode           | select         |                  | Ya          | Tabur / benam / kocor / lainnya              |
+| Field       | Type           | Unit             | Wajib       | Catatan                         |
+| ----------- | -------------- | ---------------- | ----------- | ------------------------------- |
+| Luas area   | number (float) | m² / Ha          | Ya          |                                 |
+| Jenis pupuk | select         |                  | Ya          | Urea / NPK / KCl / lainnya      |
+| Merek       | text           |                  | Tidak       |                                 |
+| Jumlah      | number (float) | kg / sak / liter | Ya          |                                 |
+| Ukuran sak  | number (float) | kg               | Kondisional | Muncul jika satuan = sak        |
+| Metode      | select         |                  | Ya          | Tabur / benam / kocor / lainnya |
 
 ## 4.4 Pengecekan Pertumbuhan
 
@@ -440,7 +507,7 @@ Aktivitas yang tidak cocok dengan kategori di atas dicatat di sini.
 - Berat harus > 0.
 - Persentase harus 0–100.
 - Waktu selesai harus setelah waktu mulai.
-- Jumlah pekerja per aktivitas minimal 1.
+- Jumlah pekerja harian bersama minimal 1.
 - Jika satuan = sak, ukuran sak wajib diisi dan > 0.
 - Jika metode pengairan = pompa, mesin pompa wajib diisi.
 - Jika insiden, deskripsi wajib diisi; `Tindakan segera` opsional.

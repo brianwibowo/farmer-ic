@@ -4,11 +4,14 @@ namespace App\Services;
 
 use App\Models\ActivityPhoto;
 use App\Models\AuditLog;
+use App\Models\BedPreparationDetail;
 use App\Models\BlockMappingDetail;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
+use App\Models\FarmLegality;
+use App\Models\FarmLegalityDocument;
 use App\Models\FarmRisk;
 use App\Models\FertilizationDetail;
 use App\Models\FinancialBudget;
@@ -17,16 +20,20 @@ use App\Models\FinancialTransaction;
 use App\Models\HarvestDetail;
 use App\Models\IncidentDetail;
 use App\Models\IrrigationDetail;
+use App\Models\LandCleaningDetail;
+use App\Models\LimingDetail;
+use App\Models\LooseningDetail;
 use App\Models\OperationalTarget;
+use App\Models\OtherDetail;
 use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
 use App\Models\PlantingDetail;
-use App\Models\PlantingRound;
 use App\Models\PlantObservation;
 use App\Models\User;
 use App\Models\WeatherRecord;
+use App\Models\WeedingDetail;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -36,8 +43,9 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class FarmDeletionService
 {
     private const LABELS = [
-        'farm_blocks' => 'Blok kebun', 'planting_rounds' => 'Periode penanaman', 'planting_cycle_stages' => 'Timeline batch',
+        'farm_blocks' => 'Blok kebun', 'planting_cycle_stages' => 'Timeline batch',
         'planting_cycle_tasks' => 'Tugas SOP subblok',
+        'farm_legalities' => 'Legalitas lahan', 'farm_legality_documents' => 'Draft PDF legalitas',
         'planting_cycles' => 'Siklus tanam', 'daily_activity_logs' => 'Logbook harian',
         'farm_activities' => 'Aktivitas kebun', 'plant_observations' => 'Pengamatan tanaman',
         'farm_risks' => 'Risiko kebun', 'ai_insights' => 'Insight AI siklus tanam',
@@ -45,6 +53,9 @@ class FarmDeletionService
         'planting_details' => 'Detail penanaman', 'fertilization_details' => 'Detail pemupukan',
         'irrigation_details' => 'Detail penyiraman', 'pesticide_details' => 'Detail pestisida',
         'incident_details' => 'Detail kejadian', 'harvest_details' => 'Detail panen',
+        'land_cleaning_details' => 'Detail pembersihan lahan', 'loosening_details' => 'Detail penggemburan',
+        'weeding_details' => 'Detail pendangiran', 'bed_preparation_details' => 'Detail pembuatan bedengan',
+        'liming_details' => 'Detail penebaran dolomit', 'other_details' => 'Detail aktivitas lainnya',
         'weather_records' => 'Riwayat cuaca', 'operational_targets' => 'Target operasional',
         'financial_transactions' => 'Transaksi keuangan', 'financial_projections' => 'Proyeksi keuangan',
         'financial_budgets' => 'Anggaran keuangan', 'users' => 'Penugasan akun yang akan dilepas',
@@ -59,7 +70,7 @@ class FarmDeletionService
 
             return [
                 'groups' => $this->groups($graph),
-                'blockers' => $this->hasSharedReferences($graph) ? [$this->sharedMessage()] : [],
+                'blockers' => $this->hasSharedReferences($graph, $farm) ? [$this->sharedMessage()] : [],
                 'token' => $this->token($farm, $graph),
             ];
         });
@@ -77,7 +88,7 @@ class FarmDeletionService
                     throw ValidationException::withMessages(['reason' => 'Alasan penghapusan harus 5 sampai 2.000 karakter.']);
                 }
                 $graph = $this->graph($actor, $farm);
-                if ($this->hasSharedReferences($graph)) {
+                if ($this->hasSharedReferences($graph, $farm)) {
                     throw new ConflictHttpException($this->sharedMessage());
                 }
                 if (! hash_equals($this->token($farm, $graph), $summaryToken)) {
@@ -88,20 +99,28 @@ class FarmDeletionService
                 // joining this graph after confirmation. Never disable FK/trigger checks.
                 DB::table('users')->whereIn('id', $graph['users'])->where('assigned_farm_id', $farm->id)
                     ->update(['assigned_farm_id' => null, 'updated_at' => now()]);
+                $documentPaths = array_values(
+                    FarmLegalityDocument::visibleTo($actor, $farm->team)
+                        ->whereIn('id', $graph['farm_legality_documents'])
+                        ->get()
+                        ->map(fn (FarmLegalityDocument $document): string => $document->path)
+                        ->all(),
+                );
                 foreach ([
-                    'planting_cycle_tasks',
-                    'planting_cycle_stages',
+                    'farm_legality_documents', 'farm_legalities',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
                     'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos',
                     'block_mapping_details', 'planting_details', 'fertilization_details', 'irrigation_details',
-                    'pesticide_details', 'incident_details', 'harvest_details',
-                    'farm_activities', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'planting_rounds', 'farm_blocks',
+                    'pesticide_details', 'incident_details', 'harvest_details', 'land_cleaning_details',
+                    'loosening_details', 'weeding_details', 'bed_preparation_details', 'liming_details', 'other_details',
+                    'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'farm_blocks',
                 ] as $table) {
                     $key = str_ends_with($table, '_details') ? 'activity_id' : 'id';
                     DB::table($table)->whereIn($key, $graph[$table])->delete();
                 }
                 $snapshot = $farm->only(['id', 'name', 'team_id', 'land_tenure', 'total_area_ha']);
                 $farm->delete();
+                app(FarmLegalityService::class)->cleanupAfterCommit($documentPaths);
                 AuditLog::query()->create([
                     'user_id' => $actor->id, 'table_name' => 'farms', 'record_id' => $farm->id,
                     'action' => 'force_delete', 'old_values' => $snapshot,
@@ -126,6 +145,7 @@ class FarmDeletionService
         $graph = [];
         foreach ([
             'farm_blocks' => FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id),
+            'farm_legalities' => FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'planting_cycles' => PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'daily_activity_logs' => DailyActivityLog::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_activities' => FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id),
@@ -137,7 +157,7 @@ class FarmDeletionService
         ] as $table => $query) {
             $graph[$table] = $this->ids($query->toBase());
         }
-        $graph['planting_rounds'] = $this->ids(PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $graph['farm_blocks'])->toBase());
+        $graph['farm_legality_documents'] = $this->ids(FarmLegalityDocument::visibleTo($actor, $team)->whereIn('farm_legality_id', $graph['farm_legalities'])->toBase());
         $graph['planting_cycle_stages'] = $this->ids(PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['planting_cycle_tasks'] = $this->ids(PlantingCycleTask::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
         $graph['plant_observations'] = $this->ids(PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $graph['planting_cycles'])->toBase());
@@ -146,7 +166,11 @@ class FarmDeletionService
         // locked planting cycles. It is an internal child, not a new standalone resource.
         $graph['ai_insights'] = $this->ids(DB::table('ai_insights')->whereIn('planting_cycle_id', $graph['planting_cycles']));
         $graph['activity_photos'] = $this->ids(ActivityPhoto::visibleTo($actor, $team)->whereIn('activity_id', $graph['farm_activities'])->toBase());
-        foreach ([BlockMappingDetail::class, PlantingDetail::class, FertilizationDetail::class, IrrigationDetail::class, PesticideDetail::class, IncidentDetail::class, HarvestDetail::class] as $detail) {
+        foreach ([
+            BlockMappingDetail::class, PlantingDetail::class, FertilizationDetail::class, IrrigationDetail::class,
+            PesticideDetail::class, IncidentDetail::class, HarvestDetail::class, LandCleaningDetail::class,
+            LooseningDetail::class, WeedingDetail::class, BedPreparationDetail::class, LimingDetail::class, OtherDetail::class,
+        ] as $detail) {
             $graph[(new $detail)->getTable()] = $this->ids($detail::visibleTo($actor, $team)->whereIn('activity_id', $graph['farm_activities'])->toBase(), 'activity_id');
         }
         $graph['users'] = $this->ids(User::withTrashed()->visibleTo($actor, $team)->where('assigned_farm_id', $farm->id)->toBase());
@@ -161,12 +185,19 @@ class FarmDeletionService
     }
 
     /** @param array<string, list<string>> $graph */
-    private function hasSharedReferences(array $graph): bool
+    private function hasSharedReferences(array $graph, Farm $farm): bool
     {
+        // A hidden legality/draft must block the parent cascade rather than be
+        // deleted without appearing in the authorized confirmation graph.
+        if (DB::table('farm_legalities')->where('farm_id', $farm->id)->whereNotIn('id', $graph['farm_legalities'])->exists()
+            || DB::table('farm_legality_documents')->whereIn('farm_legality_id', $graph['farm_legalities'])->whereNotIn('id', $graph['farm_legality_documents'])->exists()) {
+            return true;
+        }
         // Inspect physical inbound/outbound links, including records outside the
         // deletion graph. Such rows block deletion; they are never added to it.
         foreach ([
             ['farm_activities', 'planting_cycle_id', 'planting_cycles'],
+            ['farm_activities', 'planting_cycle_task_id', 'planting_cycle_tasks'],
             ['farm_activities', 'daily_activity_log_id', 'daily_activity_logs'],
             ['plant_observations', 'planting_cycle_id', 'planting_cycles'],
             ['plant_observations', 'activity_id', 'farm_activities'],

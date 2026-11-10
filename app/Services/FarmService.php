@@ -80,7 +80,7 @@ class FarmService
     {
         $blocks = (string) \App\Models\FarmBlock::visibleTo($user, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha');
         $usage = PlantingCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->toBase()
-            ->selectRaw("COALESCE(SUM(CASE WHEN planting_round_id IS NULL AND status = 'active' THEN planted_area_ha WHEN planting_round_id IS NOT NULL AND status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS reserved")
+            ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NULL AND status = 'active' THEN planted_area_ha WHEN block_id IS NOT NULL AND status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS reserved")
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'active' THEN planted_area_ha ELSE 0 END), 0) AS planted")->first();
 
         return ['block_area_ha' => $blocks, 'reserved_area_ha' => (string) $usage->reserved,
@@ -107,6 +107,9 @@ class FarmService
                 $blockers[] = $label;
             }
         }
+        if (\App\Models\FarmLegality::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()) {
+            $blockers[] = 'legalitas lahan';
+        }
         if (User::visibleTo($user, $team)->where('assigned_farm_id', $farm->id)->exists()) {
             $blockers[] = 'penugasan Petugas';
         }
@@ -128,7 +131,7 @@ class FarmService
             ->whereHas('teams', fn ($q) => $q->whereKey($team->id))->first(['id', 'name', 'phone_number']);
 
         return [
-            ...$visible->only(['id', 'name', 'land_tenure', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id', 'commodity_id', 'target_volume_ton']),
+            ...$visible->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id', 'commodity_id', 'target_volume_ton']),
             'commodity' => \App\Models\Commodity::visibleTo($user, $team)->find($visible->getAttribute('commodity_id'))?->only(['id', 'name']),
             'region' => $visible->getAttribute('district_code') ? app(AdministrativeRegionService::class)->district($visible->getAttribute('district_code'), $user, $team) : null,
             'owner_restricted' => $visible->owner_id !== null && $owner === null,
@@ -150,8 +153,7 @@ class FarmService
     public function progressOverview(Farm $farm, User $actor, Team $team): array
     {
         $blocks = \App\Models\FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->select('id');
-        $rounds = \App\Models\PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $blocks)->where('status', 'active')->select('id');
-        $batches = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('planting_round_id', $rounds)
+        $batches = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('block_id', $blocks)
             ->whereIn('status', ['planned', 'active', 'harvested'])->get(['id', 'status']);
         $stages = \App\Models\PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())
             ->where('status', 'in_progress')->orderBy('position')->get(['planting_cycle_id', 'code'])->keyBy('planting_cycle_id');
@@ -170,7 +172,7 @@ class FarmService
         $actor = is_string($user) ? User::query()->findOrFail($user) : $user;
 
         return DB::transaction(function () use ($data, $actor, $team): Farm {
-            $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'pic_user_id']));
+            $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'pic_user_id', 'land_tenure_party']));
             $farm->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
             if (array_key_exists('district_code', $data)) {
                 $farm->forceFill(['district_code' => $data['district_code']]);
@@ -178,6 +180,7 @@ class FarmService
             if ($team instanceof Team) {
                 $farm->team()->associate($team);
             }
+            $this->setLandTenureParty($farm, $data);
             $farm->created_by = $actor->getKey();
             $farm->save();
 
@@ -204,9 +207,9 @@ class FarmService
                     throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total luas blok aktif.']);
                 }
                 $reservationCapacity = DB::table('planting_cycles')->where('farm_id', $locked->id)
-                    ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('planting_round_id')->where('status', 'active'))
-                        ->orWhere(fn ($batch) => $batch->whereNotNull('planting_round_id')->whereIn('status', ['planned', 'active'])))
-                    ->selectRaw('COALESCE(SUM(CASE WHEN planting_round_id IS NULL THEN planted_area_ha ELSE reserved_area_ha END), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
+                    ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('block_id')->where('status', 'active'))
+                        ->orWhere(fn ($batch) => $batch->whereNotNull('block_id')->whereIn('status', ['planned', 'active'])))
+                    ->selectRaw('COALESCE(SUM(CASE WHEN block_id IS NULL THEN planted_area_ha ELSE reserved_area_ha END), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
                 if ($reservationCapacity) {
                     throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total alokasi tanam berjalan.']);
                 }
@@ -218,17 +221,29 @@ class FarmService
                     throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh lebih kecil dari total luas tanam aktif.']);
                 }
             }
-            $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton']));
+            $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'land_tenure_party']));
             $locked->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
             if (array_key_exists('district_code', $data)) {
                 $locked->forceFill(['district_code' => $data['district_code']]);
             }
+            $this->setLandTenureParty($locked, $data);
             $locked->save();
 
             $this->savePic($locked, $data);
 
             return $locked->refresh();
         });
+    }
+
+    /** @param array<string, mixed> $data */
+    private function setLandTenureParty(Farm $farm, array $data): void
+    {
+        $party = array_key_exists('land_tenure_party', $data)
+            ? $data['land_tenure_party']
+            : $farm->getAttribute('land_tenure_party');
+        $farm->forceFill(['land_tenure_party' => in_array($farm->land_tenure, ['rented', 'partnership'], true)
+            ? (filled($party) ? trim($party) : null)
+            : null]);
     }
 
     /** @param array<string, mixed> $data */
@@ -264,6 +279,7 @@ class FarmService
                 }
                 foreach ([
                     'farm_blocks' => 'blok kebun',
+                    'farm_legalities' => 'legalitas lahan',
                     'planting_cycles' => 'siklus tanam',
                     'daily_activity_logs' => 'logbook harian',
                     'farm_activities' => 'aktivitas kebun',

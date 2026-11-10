@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
     ArrowLeft,
     ClipboardList,
@@ -30,6 +30,7 @@ const props = defineProps<{
     batchPermissions: Record<string, boolean>;
     blockCapacity: BlockFormCapacity | null;
     deletionBlockers: string[];
+    legalityUrl: string | null;
     can: FarmPermissions & {
         dailyLogs: boolean;
         blocks: boolean;
@@ -37,6 +38,41 @@ const props = defineProps<{
     };
 }>();
 const deleting = ref(false);
+let growthRefreshTimer: ReturnType<typeof setInterval> | undefined;
+let refreshingGrowth = false;
+function refreshGrowthDate(): void {
+    if (document.hidden || refreshingGrowth) return;
+    const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(new Date());
+    if (
+        !props.blocks.some((block) =>
+            block.batches.some(
+                (batch) => batch.growth && batch.growth.as_of !== today,
+            ),
+        )
+    )
+        return;
+    refreshingGrowth = true;
+    router.reload({
+        only: ['blocks'],
+        onFinish: () => {
+            refreshingGrowth = false;
+        },
+    });
+}
+onMounted(() => {
+    growthRefreshTimer = setInterval(refreshGrowthDate, 60_000);
+    document.addEventListener('visibilitychange', refreshGrowthDate);
+    refreshGrowthDate();
+});
+onBeforeUnmount(() => {
+    clearInterval(growthRefreshTimer);
+    document.removeEventListener('visibilitychange', refreshGrowthDate);
+});
 const coordinates = computed<[number, number] | null>(() =>
     props.farm.latitude !== null && props.farm.longitude !== null
         ? [Number(props.farm.latitude), Number(props.farm.longitude)]
@@ -237,9 +273,44 @@ const progressStages = computed(() =>
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-xs text-muted-foreground">Status lahan</dt>
+                    <dt class="text-xs text-muted-foreground">Legalitas</dt>
                     <dd class="mt-1 text-sm font-semibold">
-                        {{ landTenureLabel(farm.land_tenure) }}
+                        <Link
+                            v-if="legalityUrl"
+                            :href="legalityUrl"
+                            :aria-label="`Lihat legalitas ${farm.name}`"
+                            class="block min-h-11 rounded-md focus-visible:outline-2 focus-visible:outline-ring"
+                        >
+                            <span
+                                class="block text-primary underline underline-offset-4"
+                                >{{ landTenureLabel(farm.land_tenure) }}</span
+                            >
+                            <span
+                                v-if="
+                                    farm.land_tenure === 'rented' ||
+                                    farm.land_tenure === 'partnership'
+                                "
+                                class="mt-1 block text-xs font-normal [overflow-wrap:anywhere] text-muted-foreground"
+                                >{{
+                                    farm.land_tenure_party ||
+                                    'Pihak terkait belum diisi'
+                                }}</span
+                            >
+                        </Link>
+                        <template v-else>
+                            {{ landTenureLabel(farm.land_tenure) }}
+                            <span
+                                v-if="
+                                    farm.land_tenure === 'rented' ||
+                                    farm.land_tenure === 'partnership'
+                                "
+                                class="mt-1 block text-xs font-normal [overflow-wrap:anywhere] text-muted-foreground"
+                                >{{
+                                    farm.land_tenure_party ||
+                                    'Pihak terkait belum diisi'
+                                }}</span
+                            >
+                        </template>
                     </dd>
                 </div>
                 <div>

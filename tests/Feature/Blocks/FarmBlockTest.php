@@ -9,7 +9,7 @@ use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
-use App\Models\PlantingRound;
+use App\Models\PlantObservation;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
@@ -80,6 +80,84 @@ class FarmBlockTest extends TestCase
     {
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
         DB::statement('SET CONSTRAINTS ALL DEFERRED');
+    }
+
+    public function test_farm_detail_growth_uses_latest_visible_observation_for_each_batch(): void
+    {
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-08 17:05:00', 'UTC'));
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
+        $batch = PlantingCycle::firstOrFail();
+        $commodity = Commodity::create(['name' => 'Jagung']);
+        $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Hibrida BISI-18']);
+        $batch->forceFill(['variety_id' => $variety->id, 'status' => 'active', 'planted_area_ha' => 1, 'planted_at' => '2026-10-01', 'estimated_harvest_at' => '2027-01-12'])->save();
+        $batch->stages()->where('position', '<=', 4)->update(['status' => 'completed', 'started_at' => '2026-09-30', 'completed_at' => '2026-10-01']);
+        $batch->stages()->where('code', 'maintenance')->update(['status' => 'in_progress', 'started_at' => '2026-10-02', 'completed_at' => null]);
+        PlantObservation::create(['planting_cycle_id' => $batch->id, 'observed_by' => $this->admin->id, 'observed_at' => '2026-11-01 08:00:00', 'growth_phase' => 'Kecambah', 'growth_percentage' => 20]);
+        $latest = PlantObservation::create(['planting_cycle_id' => $batch->id, 'observed_by' => $this->admin->id, 'observed_at' => '2026-11-09 08:00:00', 'growth_phase' => 'Vegetatif', 'growth_percentage' => 42.5]);
+
+        $otherFarm = $this->farm();
+        $otherBlock = $this->block('B02', '2', $otherFarm);
+        $this->post($this->url($otherBlock, $otherFarm).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
+        $otherBatch = PlantingCycle::where('farm_id', $otherFarm->id)->firstOrFail();
+        PlantObservation::create(['planting_cycle_id' => $otherBatch->id, 'observed_by' => $this->admin->id, 'observed_at' => '2026-11-10 08:00:00', 'growth_phase' => 'Panen', 'growth_percentage' => 99]);
+
+        $url = '/admin/farm-management/'.$this->farm->id;
+        $this->get($url.'?farm_id='.$otherFarm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('blocks', 1)->has('blocks.0.batches', 1)
+            ->where('blocks.0.batches.0.growth.available', true)
+            ->where('blocks.0.batches.0.growth.as_of', '2026-11-09')
+            ->where('blocks.0.batches.0.growth.hst', 39)
+            ->where('blocks.0.batches.0.growth.commodity', 'Jagung')
+            ->where('blocks.0.batches.0.growth.variety', 'Hibrida BISI-18')
+            ->where('blocks.0.batches.0.growth.estimated_harvest_at', '2027-01-12')
+            ->where('blocks.0.batches.0.growth.observation.id', $latest->id)
+            ->where('blocks.0.batches.0.growth.observation.phase', 'Vegetatif')
+            ->where('blocks.0.batches.0.growth.observation.percentage', 42.5));
+        $this->travel(1)->days();
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('blocks.0.batches.0.growth.hst', 40));
+        $grants = config('access.roles.admin');
+        unset($grants['plant_observations.view']);
+        config(['access.roles.admin' => $grants]);
+        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page->where('blocks.0.batches.0.growth.observation', null));
+        $foreignFarm = $this->farm(Team::factory()->create());
+        $this->get('/admin/farm-management/'.$foreignFarm->id)->assertForbidden();
+        $this->constraints();
+    }
+
+    public function test_preparation_growth_has_no_invented_observation_or_harvest_date(): void
+    {
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
+        $this->get('/admin/farm-management/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('blocks.0.batches.0.growth.available', false)
+            ->where('blocks.0.batches.0.growth.hst', null)
+            ->where('blocks.0.batches.0.growth.observation', null)
+            ->where('blocks.0.batches.0.growth.estimated_harvest_at', null)
+            ->where('blocks.0.batches.0.growth.commodity', null));
+        $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page->missing('blocks.data.0.batches.0.growth'));
+    }
+
+    public function test_growth_is_blocked_until_planting_is_completed_and_maintenance_has_started(): void
+    {
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-09 10:00:00', 'Asia/Jakarta'));
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
+        $batch = PlantingCycle::firstOrFail();
+        $commodity = Commodity::create(['name' => 'Jagung']);
+        $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Hibrida BISI-18']);
+        $batch->forceFill(['variety_id' => $variety->id, 'status' => 'active', 'planted_area_ha' => 1, 'planted_at' => '2026-11-09'])->save();
+        PlantObservation::create(['planting_cycle_id' => $batch->id, 'observed_by' => $this->admin->id, 'observed_at' => now(), 'growth_phase' => 'Vegetatif', 'growth_percentage' => 20]);
+        $url = '/admin/farm-management/'.$this->farm->id;
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('blocks.0.batches.0.growth.available', false)->where('blocks.0.batches.0.growth.observation', null));
+        $batch->stages()->where('position', '<=', 4)->update(['status' => 'completed', 'started_at' => '2026-11-08', 'completed_at' => '2026-11-09']);
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('blocks.0.batches.0.growth.available', false));
+        $batch->stages()->where('code', 'maintenance')->update(['status' => 'in_progress', 'started_at' => '2026-11-09']);
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('blocks.0.batches.0.growth.available', true)->where('blocks.0.batches.0.growth.hst', 0));
+        $batch->forceFill(['planted_at' => '2026-11-10'])->save();
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('blocks.0.batches.0.growth.available', false)->where('blocks.0.batches.0.growth.hst', null));
+        $batch->forceFill(['planted_at' => '2026-11-09', 'status' => 'cancelled'])->save();
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('blocks.0.batches.0.growth.available', false));
     }
 
     public function test_preparation_batch_edit_persists_without_changing_progress_and_reuses_its_capacity(): void
@@ -155,7 +233,7 @@ class FarmBlockTest extends TestCase
         $this->get($farmDetail)->assertInertia(fn (Assert $page) => $page->has('blocks', 1)
             ->where('blocks.0.can.createBatch', true)->where('blocks.0.batches.0.id', $batch->id)
             ->where('blocks.0.batches.0.planned_planting_at', '2026-12-05')->has('blocks.0.batches.0.stages', 6)
-            ->where('blocks.0.batches.0.stages.1.status', 'in_progress')->where('batchPermissions.'.$batch->id, true));
+            ->where('blocks.0.batches.0.stages.1.status', 'upcoming')->where('batchPermissions.'.$batch->id, true));
         $this->put($base.'/'.$batch->id, ['reserved_area_ha' => '2', 'subblock_label' => 'C', 'return_to' => 'farm'])->assertSessionHasNoErrors()->assertRedirect($farmDetail);
         $this->assertSame('C', $batch->fresh()->getAttribute('subblock_label'));
         $other = $this->block('B02');
@@ -365,20 +443,20 @@ class FarmBlockTest extends TestCase
         $this->assertSame('2026-11-15', $first->planned_planting_at?->toDateString());
         $this->assertNull($first->planted_at);
         $this->assertNull($first->variety_id);
-        $completedAt = $block->refresh()->land_clearing_completed_at->toISOString();
+        $this->assertNull($block->refresh()->land_clearing_completed_at);
         $this->travel(1)->hours();
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1.5000'])->assertRedirect();
-        $this->assertSame($completedAt, $block->refresh()->land_clearing_completed_at->toISOString());
-        $this->assertSame(1, PlantingRound::count());
+        $this->assertNull($block->refresh()->land_clearing_completed_at);
+        $this->assertSame(2, PlantingCycle::count());
         $this->assertSame(12, PlantingCycleStage::count());
         $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.can.update', false)->where('blocks.data.0.can.createBatch', true)
-            ->where('blocks.data.0.batches.0.stages.0.status', 'completed')->where('blocks.data.0.batches.0.stages.1.status', 'in_progress')
+            ->where('blocks.data.0.batches.0.stages.0.status', 'upcoming')->where('blocks.data.0.batches.0.stages.1.status', 'upcoming')
             ->where('blocks.data.0.batches.0.stages.2.status', 'upcoming')->where('blocks.data.0.batches.0.stages.2.started_at', null)
             ->where('blocks.data.0.batches.1.batch_number', 2)->where('blocks.data.0.batches.1.subblock_label', 'B'));
         $this->constraints();
     }
 
-    public function test_next_round_reuses_labels_but_continues_batch_numbers_across_blocks(): void
+    public function test_cancelled_batch_continues_the_sequence_without_reusing_a_block_label(): void
     {
         $block = $this->block();
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
@@ -387,8 +465,7 @@ class FarmBlockTest extends TestCase
         $other = $this->block('B02');
         $this->post($this->url($other).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
         $this->assertSame([1, 2, 3], PlantingCycle::orderBy('batch_number')->pluck('batch_number')->all());
-        $this->assertSame(['A', 'A', 'A'], PlantingCycle::orderBy('batch_number')->pluck('subblock_label')->all());
-        $this->assertSame(['closed', 'active'], PlantingRound::where('block_id', $block->id)->orderBy('round_number')->pluck('status')->all());
+        $this->assertSame(['A', 'B', 'A'], PlantingCycle::orderBy('batch_number')->pluck('subblock_label')->all());
         $this->constraints();
     }
 
@@ -415,7 +492,7 @@ class FarmBlockTest extends TestCase
         $block = $this->block('B01', '2');
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '2.0001'])->assertSessionHasErrors('reserved_area_ha');
         $this->assertNull($block->refresh()->land_clearing_completed_at);
-        $this->assertDatabaseCount('planting_rounds', 0);
+        $this->assertDatabaseCount('planting_cycles', 0);
         $this->assertDatabaseCount('planting_cycle_stages', 0);
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1', 'subblock_label' => ' a '])->assertRedirect();
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1', 'subblock_label' => 'A'])->assertSessionHasErrors('subblock_label');
@@ -445,7 +522,6 @@ class FarmBlockTest extends TestCase
         $this->post($this->url($block).'/batches', ['area_value' => '50000', 'area_unit' => 'm2'])
             ->assertSessionHasErrors(['reserved_area_ha' => 'Luas batch 5 ha melebihi sisa kapasitas kebun 4 ha. 8,5 ha masih digunakan tanam aktif di luar batch. Maksimal batch baru 4 ha.']);
         $this->assertSame(1, PlantingCycle::count());
-        $this->assertSame(0, PlantingRound::count());
         $this->assertNull($block->fresh()->land_clearing_completed_at);
         $this->post($this->url($block).'/batches', ['area_value' => '40000', 'area_unit' => 'm2'])->assertSessionHasNoErrors()->assertRedirect($this->url());
         $this->assertDatabaseHas('planting_cycles', ['farm_id' => $this->farm->id, 'reserved_area_ha' => '4.0000', 'status' => 'planned', 'planted_area_ha' => '0.0000']);
@@ -487,7 +563,6 @@ class FarmBlockTest extends TestCase
         $block = $this->block();
         $this->post($this->url($block).'/batches', $payload)->assertSessionHasErrors();
         $this->assertDatabaseCount('planting_cycles', 0);
-        $this->assertDatabaseCount('planting_rounds', 0);
     }
 
     public function test_scoped_lists_totals_search_and_directory_do_not_expose_other_farms(): void
@@ -561,10 +636,10 @@ class FarmBlockTest extends TestCase
         $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), $demo->getAttribute('commodity_id'));
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();
         $batchIds = PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all();
-        $this->assertCount(2, $batchIds);
-        $this->assertSame(0, PlantingCycle::where('farm_id', $demo->id)->whereNull('planting_round_id')->count());
-        $this->assertSame(['active', 'planned'], PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('status')->all());
-        $this->assertSame(12, PlantingCycleStage::whereIn('planting_cycle_id', $batchIds)->count());
+        $this->assertCount(3, $batchIds);
+        $this->assertSame(0, PlantingCycle::where('farm_id', $demo->id)->whereNull('block_id')->count());
+        $this->assertSame(['harvested', 'active', 'planned'], PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('status')->all());
+        $this->assertSame(18, PlantingCycleStage::whereIn('planting_cycle_id', $batchIds)->count());
         $this->seed(DemoFarmBlockSeeder::class);
         $this->assertSame($ids, FarmBlock::where('farm_id', $demo->id)->pluck('id')->all());
         $this->assertSame(2, count($ids));

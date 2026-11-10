@@ -5,6 +5,7 @@ namespace Tests\Feature\Database;
 use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
 use App\Models\AuditLog;
+use App\Models\BedPreparationDetail;
 use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\Farm;
@@ -18,14 +19,19 @@ use App\Models\FinancialTransaction;
 use App\Models\HarvestDetail;
 use App\Models\IncidentDetail;
 use App\Models\IrrigationDetail;
+use App\Models\LandCleaningDetail;
+use App\Models\LimingDetail;
+use App\Models\LooseningDetail;
 use App\Models\Notification;
 use App\Models\OperationalTarget;
+use App\Models\OtherDetail;
 use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingDetail;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\WeatherRecord;
+use App\Models\WeedingDetail;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
@@ -137,11 +143,18 @@ class FarmerModelsTest extends TestCase
     {
         $details = [
             ['planting', PlantingDetail::class, 'plantingDetail', ['seed_name' => 'Bisi 18', 'area_ha' => '5.1250']],
-            ['fertilization', FertilizationDetail::class, 'fertilizationDetail', ['quantity_kg' => '12.125']],
+            ['follow_up_fertilization', FertilizationDetail::class, 'fertilizationDetail', ['fertilization_stage' => 'susulan', 'quantity_kg' => '12.125', 'area_ha' => '1.0000', 'quantity_unit' => 'kg', 'sack_size_kg' => '50.000']],
+            ['base_fertilization', FertilizationDetail::class, 'fertilizationDetail', ['fertilization_stage' => 'dasar', 'quantity_kg' => '125.000', 'area_ha' => '2.0000', 'quantity_unit' => 'karung', 'sack_size_kg' => '50.000']],
             ['irrigation', IrrigationDetail::class, 'irrigationDetail', ['duration_hours' => '2.50']],
-            ['pesticide', PesticideDetail::class, 'pesticideDetail', ['dosage_per_tank' => '20 ml', 'tank_count' => 3]],
+            ['pest_control', PesticideDetail::class, 'pesticideDetail', ['dosage_per_tank' => '20 ml', 'tank_count' => 3]],
             ['incident', IncidentDetail::class, 'incidentDetail', ['affected_area_ha' => '0.1250']],
             ['harvest', HarvestDetail::class, 'harvestDetail', ['gross_weight_ton' => '12.125', 'moisture_percentage' => '14.25']],
+            ['land_cleaning', LandCleaningDetail::class, 'landCleaningDetail', ['area_ha' => '1.2500', 'method' => 'Manual', 'product_name' => 'Herbisida', 'dosage_per_tank' => '20 ml', 'water_liters' => '14.00', 'tank_count' => 2]],
+            ['loosening', LooseningDetail::class, 'looseningDetail', ['area_ha' => '1.0000', 'method' => 'Cangkul', 'depth_cm' => '15.00']],
+            ['weeding', WeedingDetail::class, 'weedingDetail', ['area_ha' => '1.0000', 'method' => 'Cangkul', 'depth_cm' => '5.00']],
+            ['beds', BedPreparationDetail::class, 'bedPreparationDetail', ['bed_count' => 10, 'length_m' => '10.000', 'width_m' => '1.000', 'height_cm' => '30.00', 'bed_spacing_cm' => '50.00', 'area_ha' => '0.5000']],
+            ['liming', LimingDetail::class, 'limingDetail', ['area_ha' => '1.0000', 'material_type' => 'Dolomit', 'brand_name' => 'Dolomit Demo', 'quantity_value' => '100.000', 'quantity_unit' => 'kg', 'sack_size_kg' => '25.000', 'application_method' => 'Tabur']],
+            ['other', OtherDetail::class, 'otherDetail', ['description' => 'Pembersihan saluran air', 'area_ha' => '0.2500']],
         ];
         foreach ($details as [$code, $model, $relation, $values]) {
             $activity = $this->activity($code);
@@ -210,7 +223,10 @@ class FarmerModelsTest extends TestCase
 
     private function activity(string $code): FarmActivity
     {
-        $type = ActivityType::create(['code' => $code, 'name' => ucfirst($code)]);
+        $type = ActivityType::query()->firstOrCreate(
+            ['code' => $code],
+            ['name' => ucfirst($code)],
+        );
 
         return FarmActivity::create([
             'farm_id' => $this->farm->id, 'planting_cycle_id' => $this->cycle->id,

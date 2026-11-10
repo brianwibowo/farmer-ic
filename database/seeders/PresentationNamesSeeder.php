@@ -34,9 +34,6 @@ class PresentationNamesSeeder extends Seeder
 
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Pembaruan nama presentasi hanya tersedia pada environment local atau testing.');
-        }
         // Bootstrap only the fixed trusted actor; protected work below uses native policies.
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
@@ -50,9 +47,9 @@ class PresentationNamesSeeder extends Seeder
 
         DB::transaction(function (): void {
             $this->team = $this->query(Team::class)->whereKey($this->team->id)->lockForUpdate()->firstOrFail();
-            if ($this->team->name === 'Farm IC Demo') {
+            if (in_array($this->team->name, ['Farm IC Demo', 'Hijauan', 'Bumi Hijauan'], true)) {
                 // Team's name observer normally changes its slug; fixture identity must stay stable.
-                $this->write($this->team, ['name' => 'Hijauan'], quietly: true);
+                $this->write($this->team, ['name' => config('app.name')], quietly: true);
             }
             $this->identities();
             $base = $this->query(Farm::class)->where('team_id', $this->team->id)
@@ -108,7 +105,7 @@ class PresentationNamesSeeder extends Seeder
         }
         foreach ([new FertilizationDetail, new PesticideDetail] as $detailModel) {
             [$description, $old, $new] = $detailModel instanceof FertilizationDetail
-                ? ['Pemupukan dasar Blok 1', 'NPK Demo', 'NPK']
+                ? ['Pemupukan susulan pertama Blok 1', 'NPK Demo', 'NPK']
                 : ['Pengendalian ulat Blok 1', 'Bt Demo', 'Bt'];
             $activities = $this->query(FarmActivity::class)->where('farm_id', $farm->id)->where('description', $description)->pluck('id');
             foreach ($this->query($detailModel::class)->whereIn('activity_id', $activities)->get() as $detail) {

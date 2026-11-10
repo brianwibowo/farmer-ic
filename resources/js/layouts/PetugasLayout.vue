@@ -10,6 +10,7 @@ import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 const page = usePage();
 const navigating = ref(false);
 const navigationError = ref('');
+const isHome = computed(() => page.component === 'petugas/Home');
 const items: FarmerNavItem[] = [
     { key: 'home', label: 'Beranda', href: '/petugas' },
     { key: 'garden', label: 'Kebun', href: '/petugas/kebun' },
@@ -18,6 +19,12 @@ const items: FarmerNavItem[] = [
 ];
 const activeKey = computed<FarmerNavKey>(() => {
     const pathname = page.url.split('?')[0].replace(/\/$/, '');
+    if (
+        ['/petugas/tasks', '/petugas/penanaman', '/petugas/subbloks'].some(
+            (path) => pathname === path || pathname.startsWith(`${path}/`),
+        )
+    )
+        return 'activity';
     const exact = items.find((item) => item.href === pathname);
     if (exact) return exact.key;
 
@@ -54,15 +61,26 @@ onUnmounted(() => unsubscribe.forEach((stop) => stop()));
 </script>
 
 <template>
-    <FarmerMobileShell :active-key="activeKey">
+    <FarmerMobileShell
+        :active-key="activeKey"
+        dashboard-theme
+        :show-header="!isHome"
+        :flush-content="isHome"
+    >
         <div
-            class="flex min-h-full flex-col px-4 pt-4 pb-6"
+            class="flex min-h-full flex-col"
+            :class="
+                isHome
+                    ? 'petugas-home-content'
+                    : 'petugas-page-content px-4 pt-4 pb-6'
+            "
             :aria-busy="navigating"
         >
             <p
                 v-if="navigating"
                 role="status"
                 class="mb-3 text-xs text-muted-foreground"
+                :class="{ 'mx-4 mt-4': isHome }"
             >
                 Memuat halaman…
             </p>
@@ -70,6 +88,7 @@ onUnmounted(() => unsubscribe.forEach((stop) => stop()));
                 v-if="navigationError"
                 role="alert"
                 class="mb-3 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error"
+                :class="{ 'mx-4 mt-4': isHome }"
             >
                 {{ navigationError }}
             </p>
@@ -79,6 +98,7 @@ onUnmounted(() => unsubscribe.forEach((stop) => stop()));
             <FarmerBottomNav
                 :items="items"
                 :active-key="activeKey"
+                dashboard-theme
                 class="[&_[aria-current=page]]:font-semibold [&_[aria-current=page]]:text-secondary dark:[&_[aria-current=page]]:text-primary"
             />
         </template>

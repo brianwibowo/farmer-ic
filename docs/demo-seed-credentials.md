@@ -8,15 +8,15 @@ php artisan --env=local db:seed --database=pgsql
 
 The complete seeder creates or updates the four role accounts below, including
 their passwords and current tenant. It is not the command for renaming existing
-presentation data. It also creates one non-personal team named `Hijauan`, one
+presentation data. It also creates one non-personal team named from `config('app.name')` (default `Bumi Hijauan`), one
 assigned farm, crop master data, an active
 planting cycle, activity and daily-log records, monitoring data, finance data,
 operational targets, and a notification. It then adds the five Owner portfolio
 farms and their operational details, and refreshes recognized legacy presentation
 names. All seeders run through this command, including dependent seeders called
 by their parents. Existing records outside the named demo records are left
-untouched. The complete seed accepts only `local` or `testing`, rejecting other
-environments before writing any records.
+untouched. The complete seed may run in any environment, including production,
+as long as it targets the intended demo database.
 
 Fresh seeds create only three commodities: `Jagung`, `Rumput`, and `Sorgum`,
 with the presentation varieties `Bisi 18`, `Pakchong`, and `Bioguma 1`.
@@ -56,7 +56,9 @@ php artisan --env=local db:seed --database=pgsql --class=PresentationNamesSeeder
 It requires the existing active seeded Superadmin and its persisted membership
 in the non-personal tenant with legacy technical slug `farm-ic-demo`. It runs
 inside a transaction with the tenant locked and native policy authorization.
-The tenant display name becomes `Hijauan`; the technical slug stays unchanged.
+Recognized legacy tenant names (`Farm IC Demo`, `Hijauan`, and `Bumi Hijauan`)
+become the configured `APP_NAME` (default `Bumi Hijauan`); custom tenant names
+and the technical slug stay unchanged.
 The four seeded account display names become `SuperAdmin`, `Owner`, `Admin`,
 and `Petugas`. The six recognized farm names lose their `Demo` suffix and
 recognized child descriptions, batch labels, fertilizer/pesticide names,
@@ -68,8 +70,8 @@ This command neither recreates fixture records nor resets accounts. IDs,
 relationships, credentials, memberships, current teams, Petugas assignments,
 profile fields other than the requested display names, dates, land areas, and
 financial amounts remain intact. Other tenants and unrecognized custom content
-are left untouched. Repeating the command makes no further changes. It is
-restricted to `local` and `testing`. Do not run the complete `DatabaseSeeder`
+are left untouched. Repeating the command makes no further changes. It may run
+in any environment, including production. Do not run the complete `DatabaseSeeder`
 or `DemoIdentitySeeder` merely to refresh names, because those seeders update
 account credentials and assignments.
 
@@ -129,8 +131,8 @@ php artisan --env=local migrate --database=pgsql
 php artisan --env=local db:seed --database=pgsql
 ```
 
-The finance seeder requires `local` or `testing`, resolves the persisted demo
-admin and its team/farm, and authorizes the financial model policies before
+The finance seeder resolves the persisted demo admin and its team/farm, and
+authorizes the financial model policies before
 writing. Missing prerequisites produce a message naming the required seeder;
 finance-only seeding does not reset demo passwords or create a new farm.
 The complete finance batch is transactional. It does not truncate tables or
@@ -163,8 +165,8 @@ remains available without rerunning identity or finance fixtures:
 php artisan --env=local db:seed --database=pgsql --class=DemoOwnerPortfolioSeeder
 ```
 
-Run it only against the intended local demo database; the seeder accepts only
-`local`/`testing` and requires the persisted `farm-ic-demo` tenant and its demo
+Run it only against the intended demo database; the seeder requires the
+persisted `farm-ic-demo` tenant and its demo
 identities. It does not call `DemoIdentitySeeder`, change passwords/profiles,
 switch active tenants, reassign Petugas, truncate tables, or reset demo data.
 It uses the existing persisted demo Superadmin with native policy checks for
@@ -180,7 +182,7 @@ tenant. The complete portfolio is inserted in one transaction.
 | Kebun Cisarua | 3.5 | Owned | Rumput / Pakchong | 1.25 ha harvested; 0.75 ha planned |
 
 The fixed demonstration snapshot is **5 November 2026**. It includes coordinates,
-two permanent blocks per new site, persisted planting rounds/batches, all six
+two permanent blocks per new site, persisted block batches, all six
 batch stages, published commodity SOPs and scheduled task snapshots. Matching
 activity detail records, growth observations, selected risks, local placeholder
 documentation and demo weather fill the Owner farm/block/activity detail pages.
@@ -214,3 +216,17 @@ five pie sectors and six map markers on 320px/390px phones, 768px tablet,
 844px landscape and 1440px desktop. Horizontal/vertical table freeze, farm and
 batch navigation, expanded SOP tasks and harvest detail worked. Both themes
 were checked without console warnings/errors; no UI/profile/AI files changed.
+
+## Application display name
+
+Set the application name through `APP_NAME`. Laravel defaults to `Bumi Hijauan`
+when this variable is absent. Shared Vue logos, accessible labels, login/footer,
+report text, startup screen, email header, and browser titles use the same
+`config('app.name')` value; `VITE_APP_NAME` is not a separate naming source.
+Seeded tenant names and presentation addresses also use this configuration.
+Changing configuration does not rename existing database records automatically;
+use the guarded presentation-name refresh only for recognized fixture names.
+If configuration is cached, rebuild it after changing `APP_NAME`. No frontend
+rebuild is needed solely for a name change. Logo asset paths and historical
+reference images keep their technical names; historical AI evaluation fixtures
+are not runtime branding configuration.

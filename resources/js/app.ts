@@ -5,17 +5,22 @@ import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
 import UserManagementLayout from '@/layouts/UserManagementLayout.vue';
 import LogbookLayout from '@/layouts/LogbookLayout.vue';
 import SopManagementLayout from '@/layouts/SopManagementLayout.vue';
+import TaskManagementLayout from '@/layouts/TaskManagementLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import PetugasLayout from '@/layouts/PetugasLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import HarvestTransactionLayout from '@/layouts/HarvestTransactionLayout.vue';
+import PlantingTransactionLayout from '@/layouts/PlantingTransactionLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { getAppName, resolveAppName } from '@/lib/appName';
 import { dismissStartupScreen, showStartupError } from '@/lib/startupScreen';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-
 void createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title, page) => {
+        const appName = resolveAppName(page.props.name);
+        return title ? `${title} - ${appName}` : appName;
+    },
     layout: (name) => {
         switch (true) {
             // The same /settings/profile page supplies its own role-specific
@@ -36,10 +41,16 @@ void createInertiaApp({
                 return FarmManagementLayout;
             case name.startsWith('sops/'):
                 return SopManagementLayout;
+            case name.startsWith('tasks/'):
+                return TaskManagementLayout;
             case name.startsWith('users/'):
                 return UserManagementLayout;
             case name.startsWith('logbook/'):
                 return LogbookLayout;
+            case name.startsWith('planting-transactions/'):
+                return PlantingTransactionLayout;
+            case name.startsWith('harvest-transactions/'):
+                return HarvestTransactionLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):
@@ -65,7 +76,7 @@ void createInertiaApp({
     .then(dismissStartupScreen)
     .catch((error: unknown) => {
         showStartupError();
-        console.error('Farm IC could not start:', error);
+        console.error(`${getAppName()} could not start:`, error);
     });
 
 // This will set light / dark mode on page load...

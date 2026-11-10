@@ -3,10 +3,13 @@
 namespace Tests\Feature\Petugas;
 
 use App\Enums\TeamRole;
+use App\Models\ActivityType;
 use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\Farm;
+use App\Models\FarmActivity;
 use App\Models\FarmBlock;
+use App\Models\IncidentDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\Team;
@@ -103,12 +106,11 @@ class PetugasHomeTest extends TestCase
         $cancelled = $this->batch($this->farm, 'cancelled');
         $pending = $this->task($active);
         $running = $this->task($active, 'in_progress');
-        $this->task($planned, 'submitted');
+        $this->task($planned, 'pending');
         $this->task($harvested, 'completed');
         foreach (['2026-11-03', '2026-11-05', null] as $date) {
             $this->task($active, date: $date);
         }
-        $this->task($active, 'cancelled');
         $this->task($active, 'skipped');
         $this->task($cancelled);
         $unassigned = $this->farm('Kebun Tidak Ditugaskan', $this->team);
@@ -153,6 +155,18 @@ class PetugasHomeTest extends TestCase
             ->has('home.tasks.data', 1)->where('home.tasks.data.0.name', 'Pemeriksaan bedeng 11'));
     }
 
+    public function test_home_uses_admin_rescheduled_date_instead_of_original_schedule(): void
+    {
+        $batch = $this->batch($this->farm, 'active');
+        $movedToToday = $this->task($batch, date: '2026-11-03');
+        $movedToToday->forceFill(['rescheduled_date' => '2026-11-04', 'reschedule_reason' => 'Kondisi lapangan', 'rescheduled_by' => $this->admin->id, 'rescheduled_at' => now(), 'due_date' => '2026-11-04'])->save();
+        $movedAway = $this->task($batch, date: '2026-11-04');
+        $movedAway->forceFill(['rescheduled_date' => '2026-11-05', 'reschedule_reason' => 'Kondisi lapangan', 'rescheduled_by' => $this->admin->id, 'rescheduled_at' => now(), 'due_date' => '2026-11-05'])->save();
+        $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('home.tasks.total', 1)->where('home.tasks.data.0.id', $movedToToday->id)
+            ->where('home.tasks.data.0.scheduled_date', '2026-11-04'));
+    }
+
     public function test_home_without_an_assignment_has_an_honest_empty_state(): void
     {
         $this->task($this->batch($this->farm));
@@ -171,7 +185,67 @@ class PetugasHomeTest extends TestCase
 
     public static function requiredPermissions(): array
     {
-        return [['farms.view'], ['planting_cycles.view'], ['planting_cycle_tasks.view']];
+        return [['farms.view'], ['planting_cycles.view'], ['planting_cycle_tasks.view'], ['farm_activities.view'], ['incident_details.view']];
+    }
+
+    private function incident(string $severity, string $status = 'open', ?Farm $farm = null): FarmActivity
+    {
+        $type = ActivityType::firstOrCreate(['code' => 'incident'], ['name' => 'Pelaporan insiden']);
+        $activity = FarmActivity::create(['farm_id' => ($farm ?? $this->farm)->id, 'activity_type_id' => $type->id,
+            'performed_by' => $this->admin->id, 'activity_date' => CarbonImmutable::now('Asia/Jakarta')->subHour(),
+            'description' => 'Genangan menghambat pekerjaan kebun', 'status' => $status]);
+        IncidentDetail::create(['activity_id' => $activity->id, 'incident_category' => 'Cuaca', 'severity' => $severity,
+            'proposed_solution' => 'Periksa saluran drainase.']);
+
+        return $activity;
+    }
+
+    public function test_home_incident_alerts_follow_four_levels_and_prioritize_emergencies(): void
+    {
+        $this->incident('light');
+        $this->incident('medium', 'progress');
+        $this->incident('heavy');
+        $emergency = $this->incident('emergency');
+        foreach (['resolved', 'completed', 'closed', 'cancelled', 'draft'] as $status) {
+            $this->incident('emergency', $status);
+        }
+        $this->incident('unknown');
+        $future = $this->incident('emergency');
+        $future->update(['activity_date' => CarbonImmutable::now('Asia/Jakarta')->addDay()]);
+
+        $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('home.incidents.total', 4)->has('home.incidents.data', 4)
+            ->where('home.incidents.data.0.id', $emergency->id)->where('home.incidents.data.0.severity', 'emergency')
+            ->where('home.incidents.data.0.severity_label', 'Darurat')
+            ->where('home.incidents.data.1.severity', 'heavy')->where('home.incidents.data.2.severity', 'medium')
+            ->where('home.incidents.data.2.status', 'in_progress')->where('home.incidents.data.3.severity', 'light'));
+    }
+
+    public function test_incident_totals_and_alerts_exclude_other_farms_and_tenants(): void
+    {
+        $own = $this->incident('critical');
+        $otherFarm = $this->farm('Kebun Tidak Ditugaskan', $this->team);
+        $this->incident('emergency', farm: $otherFarm);
+        $foreignTeam = Team::factory()->create(['is_personal' => false]);
+        $foreignFarm = $this->farm('Kebun Tenant Lain', $foreignTeam);
+        $this->incident('heavy', farm: $foreignFarm);
+        $this->actingAs($this->petugas)->get('/petugas?farm_id='.$foreignFarm->id.'&team_id='.$foreignTeam->id)
+            ->assertOk()->assertInertia(fn (Assert $page) => $page->where('home.incidents.total', 1)
+            ->has('home.incidents.data', 1)->where('home.incidents.data.0.id', $own->id)
+            ->where('home.incidents.data.0.severity', 'emergency'));
+        $this->petugas->forceFill(['assigned_farm_id' => null])->save();
+        $this->actingAs($this->petugas->fresh())->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('home.incidents.total', 0)->has('home.incidents.data', 0));
+    }
+
+    public function test_incident_alert_limit_preserves_scoped_total_and_legacy_severity(): void
+    {
+        foreach (['low', 'moderate', 'high', 'critical', 'light', 'medium'] as $severity) {
+            $this->incident($severity);
+        }
+        $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('home.incidents.total', 6)->has('home.incidents.data', 4)
+            ->where('home.incidents.data.0.severity', 'emergency')->where('home.incidents.data.1.severity', 'heavy'));
     }
 
     #[DataProvider('requiredPermissions')]

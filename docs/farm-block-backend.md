@@ -7,34 +7,42 @@ minimal disediakan agar backend dapat digunakan langsung melalui form Inertia.
 ## Alur yang tersedia
 
 1. Admin atau Petugas PIC membuat master blok dalam kebunnya. `land_clearing_started_at` diisi
-   server; Land Clearing langsung berlangsung, termasuk bila blok disimpan
-   nonaktif untuk sementara.
+   server sebagai penanda awal; tanggal Land Clearing yang ditampilkan tetap
+   diproyeksikan dari laporan aktivitas bila laporan sudah ada.
 2. Petugas pada kebun tugasnya atau Admin membuat subblok/batch dengan alokasi
    luas. Label kosong mendapat A, B, ..., Z, AA, dan seterusnya.
-3. Batch pertama menyelesaikan Land Clearing blok otomatis, tanpa persetujuan
-   Admin. Tanggal selesai ini tidak berubah saat batch berikutnya dibuat.
+3. Pembuatan batch tidak mengklaim penyelesaian Land Clearing secara fisik.
+   Mulai/selesai Land Clearing dan persiapan tanah dibaca dari laporan
+   `land_cleaning`, `loosening`, `beds`, `liming`, dan `base_fertilization`
+   yang terhubung ke blok; stage historis tidak ditulis ulang.
 4. Satu batch disimpan pada `planting_cycles`, bukan tabel subblok permanen.
    Enam baris `planting_cycle_stages` dibuat dalam transaksi yang sama:
    `land_clearing` completed, `soil_preparation` in_progress, empat sisanya upcoming.
-   Land Clearing batch merujuk waktu persiapan bersama dari blok; tahap berikutnya
-   memiliki timeline masing-masing. Tidak ada persentase progres buatan.
+   Status tersimpan ini menjadi basis dashboard; tampilan timeline blok
+   memproyeksikan ulang dua tahap persiapan dari laporan. Tidak ada persentase
+   progres buatan.
 5. Batch persiapan berstatus siklus `planned`, luas realisasi 0, tanggal tanam
    realisasi dan varietas belum diisi. Tanggal rencana tanam
    (`planned_planting_at`) boleh diisi saat pembuatan batch dan menjadi acuan
    HST sementara untuk jadwal tugas; nilainya tetap berlabel rencana sampai
    realisasi tanam dicatat. Alokasi luas bukan realisasi tanam. Siklus lama
-   mempertahankan data dan ID-nya, tanpa blok/periode rekaan.
+   mempertahankan data dan ID-nya, tanpa blok rekaan.
 
 Nomor batch **berurutan per kebun**, dilindungi unique key dan lock kebun.
-Periode dikelompokkan per blok. Batch berikutnya memakai periode aktif yang sama
-selama masih ada batch planned/active. Jika seluruh batch periode tersebut sudah
-terminal (harvested/cancelled), pembuatan berikutnya menutup periode lama dan
-membuat periode baru. Nomor batch berlanjut, sedangkan label A/B dapat dipakai
-lagi. Ini menetapkan asumsi draft sebelumnya untuk implementasi awal.
+Setiap batch langsung terikat ke blok melalui `planting_cycles.block_id`; tidak
+ada tabel periode terpisah. Batch baru dapat dibuat selama kapasitas blok dan
+kebun tersedia, dengan label subblok unik per blok. Nomor batch berlanjut.
+Pengulangan Land Clearing pada batch berikutnya belum diotomasi.
+
+Laporan aktivitas menyimpan `farm_activities.block_id` nullable. Laporan SOP dan
+mandiri menurunkan blok dari `planting_cycles.block_id`; laporan pemetaan dapat
+mengisi blok opsional. Trigger PostgreSQL menolak laporan yang bloknya tidak sama
+dengan blok siklus. Backfill migrasi hanya mengisi lokasi yang dapat dibuktikan
+dari siklus atau detail pemetaan; aktivitas tanpa bukti tetap null.
 
 Modul ini belum menyediakan aksi menyelesaikan tahap berikutnya, mengajukan atau
 menyetujui task SOP, realisasi tanam, panen, pembatalan batch, atau pengulangan
-Land Clearing pada periode berikutnya. Endpoint status bebas tidak ditambahkan.
+Land Clearing pada batch berikutnya. Endpoint status bebas tidak ditambahkan.
 Penyelesaian seluruh panen harus dibedakan dari laporan panen sebagian ketika
 modul panen diimplementasikan; satu laporan tidak boleh otomatis menutup batch.
 
@@ -57,7 +65,7 @@ pagination, jumlah dan total. Parameter block harus milik farm di URL.
 | GET | `/kebun/{farm}/blocks` | Daftar, pencarian, filter status, pagination dan ringkasan |
 | GET | `/kebun/{farm}/blocks/create` | Form tambah |
 | POST | `/kebun/{farm}/blocks` | Simpan dan redirect detail |
-| GET | `/kebun/{farm}/blocks/{block}` | Detail, periode dan timeline batch |
+| GET | `/kebun/{farm}/blocks/{block}` | Detail batch dan timeline |
 | GET | `/kebun/{farm}/blocks/{block}/edit` | Form edit |
 | PUT/PATCH | `/kebun/{farm}/blocks/{block}` | Edit informasi/status, redirect detail |
 | DELETE | `/kebun/{farm}/blocks/{block}` | Hapus hanya jika tanpa histori |
@@ -74,19 +82,19 @@ membuka `/blocks`; halaman demo kebun publik belum diganti dengan direktori ini.
 | Resource | Owner | Admin | Petugas | Superadmin |
 | --- | --- | --- | --- | --- |
 | Master blok | Baca dalam tenant terkait | CRUD dalam tenant | Baca kebun tugas; CRUD hanya PIC kebun tugas | Semua |
-| Periode | Baca | Baca; buat otomatis bersama batch | Baca; buat otomatis pada kebun tugas | Semua |
 | Batch persiapan | Baca | Buat sesuai izin planting_cycles existing | Buat pada kebun tugas | Semua |
 | Timeline | Baca | Baca | Baca kebun tugas | Semua |
 
-Prefix baru: `farm_blocks`, `planting_rounds`, `planting_cycle_stages`.
-Parent create FarmBlock adalah Farm; parent PlantingRound adalah FarmBlock.
+Prefix baru: `farm_blocks`, `planting_cycles`, `planting_cycle_stages`.
+Parent create FarmBlock adalah Farm; parent PlantingCycle adalah FarmBlock.
 PlantingCyclePolicy menerima Farm existing atau FarmBlock baru. ResourcePolicy
 hanya menambahkan resolusi FarmBlock -> farm sebagai parent terpercaya.
 Timeline dibuat internal sebagai konsekuensi pembuatan batch, bukan endpoint
-konfigurasi terpisah. Round ditutup internal hanya ketika seluruh batch terminal.
-Tidak ada hak update/delete periode atau timeline bagi Admin/Petugas.
+konfigurasi terpisah. Batch baru langsung terikat ke blok melalui
+`planting_cycles.block_id`; tidak ada tabel periode terpisah.
+Tidak ada hak update/delete timeline bagi Admin/Petugas.
 
-`created_by`, farm, periode, nomor batch dan status awal ditetapkan server.
+`created_by`, farm, blok, nomor batch dan status awal ditetapkan server.
 Payload pengganti identitas/status ditolak. Izin `block_mapping_details.*`
 tetap hanya mengatur laporan pemetaan; tidak memberi izin mengedit master blok.
 Seeder merupakan entry point non-HTTP dan memeriksa `Gate::forUser` terlebih dahulu.
@@ -97,7 +105,7 @@ Seeder merupakan entry point non-HTTP dan memeriksa `Gate::forUser` terlebih dah
   PostgreSQL dan cast decimal, bukan penjumlahan float PHP.
 - Total luas blok aktif harus muat dalam luas kebun. Saat edit luas kebun,
   FarmService memeriksa luas blok dan alokasi siklus berjalan.
-- Total alokasi batch planned/active lintas periode harus muat dalam blok.
+- Total alokasi batch planned/active per blok harus muat dalam blok.
   Blok dengan batch berjalan tidak dapat dinonaktifkan atau diperkecil sampai
   alokasi tidak muat. Aktivasi ulang mengecek kapasitas kebun lagi.
 - Siklus legacy active tanpa blok tetap memakai kapasitas kebun. Total luas
@@ -110,10 +118,10 @@ Seeder merupakan entry point non-HTTP dan memeriksa `Gate::forUser` terlebih dah
   Pemeriksaan integritas fisik sengaja mencakup semua referensi yang terkait,
   tidak dibatasi permission atau filter daftar aktor.
 - Perhitungan luas belum membuktikan batas geografis tidak tumpang tindih.
-- Blok dengan histori periode/batch atau laporan pemetaan tidak dapat dihapus
+- Blok dengan histori batch atau laporan pemetaan tidak dapat dihapus
   biasa. FK restrict menjaga histori. Penonaktifan tetap memungkinkan pembacaan.
 - Flow force delete kebun yang **sudah ada dan khusus Superadmin** mengenali
-  blok, periode dan stage dalam preview/confirmation graph dan transaksi delete.
+  blok, batch, dan stage dalam preview/confirmation graph dan transaksi delete.
   Implementasi ini tidak menjalankan force delete atau reset database aplikasi.
 
 `block_mapping_details.block_id` opsional. Pada logbook, backend memeriksa blok
@@ -125,7 +133,12 @@ backend sudah menerima ID opsional dengan validasi tersebut.
 ## Instalasi dan seed
 
 Migration baru:
-`2026_10_30_000001_create_farm_blocks_and_preparation_batches.php`.
+`2026_10_30_000001_create_farm_blocks_and_preparation_batches.php`,
+`2026_11_09_000001_link_farm_activities_to_blocks.php`, dan
+`2026_11_09_000001_remove_planting_rounds.php`. Migration tautan menambahkan
+`farm_activities.block_id`, backfill lokasi yang terbukti, dan guard konsistensi.
+Migration terakhir memindahkan setiap siklus ke `planting_cycles.block_id` lalu
+menghapus tabel periode.
 Untuk menambahkan hanya modul ini ke database existing, periksa koneksi dan
 migration pending, lalu jalankan migration spesifik setelah mendapat izin:
 
@@ -140,9 +153,9 @@ DemoFarmSeeder. Bisa dijalankan terpisah setelah identitas dan kebun demo ada:
 php artisan db:seed --class=DemoFarmBlockSeeder
 ```
 
-Seeder hanya local/testing, idempotent dan tidak menimpa blok existing.
-Membuat B01 Blok Utara 6 ha dan B02 Blok Selatan 6,5 ha pada kebun demo.
-Tidak membuat batch atau mengarang hubungan siklus existing. Jangan menjalankan
+Seeder idempotent dan tidak menimpa blok existing.
+Membuat B01 Blok Utara dan B02 Blok Selatan pada kebun demo.
+Tidak mengarang hubungan siklus existing. Jangan menjalankan
 `migrate:fresh` pada database aplikasi untuk memasang fitur ini.
 
 ## Batas integrasi authorization di luar modul
@@ -170,13 +183,14 @@ dengan pasangan input baru. Validasi server, lock, dan constraint tetap berlaku.
 
 Untuk instalasi demo baru, `DemoFarmSeeder` juga memanggil
 `DemoFarmBlockSeeder`: kebun 12,5 ha memiliki B01 10 ha dan B02 2,5 ha.
-B01 memiliki batch aktif 4,25 ha (fase pemeliharaan), B02 memiliki batch planned
-1,25 ha (pengolahan tanah). Setiap batch memiliki periode dan enam tahap.
+B01 memiliki batch panen selesai 4,25 ha dan batch aktif 4,25 ha; B02 memiliki
+batch planned 1,25 ha (pengolahan tanah). Setiap batch memiliki enam tahap dan
+terikat langsung ke blok melalui `block_id`.
 Tidak ada siklus legacy pada instalasi baru. Logbook, pengamatan, dan finance
 tetap menggunakan siklus aktif yang sudah terhubung ke blok/batch.
 
 Pengulangan seeder mempertahankan blok dan siklus existing. Bila ditemukan
-siklus lama tanpa periode/blok, seeder memberi peringatan dan tidak menambahkan
+siklus lama tanpa blok, seeder memberi peringatan dan tidak menambahkan
 batch demo di atasnya. Ini bukan migrasi atau reset data aplikasi lama.
 
 ## Hasil verifikasi implementasi awal
@@ -220,12 +234,12 @@ terpersisten lalu `Gate::authorize('update', $batch)`. Admin/Superadmin dan Petu
 dalam cakupannya menggunakan grant `planting_cycles.update` existing; Owner tetap
 read-only. Tidak ada perubahan matrix role. Edit hanya untuk batch planned dalam
 blok aktif, tanpa realisasi tanam dan tanpa snapshot jadwal SOP. Field yang dapat
-diubah adalah label, alokasi luas, dan rencana tanggal tanam. Nomor batch, periode,
+diubah adalah label, alokasi luas, dan rencana tanggal tanam. Nomor batch,
 status, tahap, dan tanggal progres dipertahankan.
 
 Service mengunci kebun, blok, lalu batch. Reservasi batch yang sedang diedit tidak
 ikut dikurangkan dua kali; reservasi lain dan tanam legacy tetap membatasi luas.
-Label unik dalam periode yang sama. Aksi yang mengubah tahap, menghapus histori,
+Label unik dalam blok yang sama. Aksi yang mengubah tahap, menghapus histori,
 atau menjadwalkan ulang SOP tidak ditambahkan oleh revisi ini.
 
 Semua route baru terlindungi dan query baca baru memakai scope. Batas integrasi
@@ -242,7 +256,7 @@ untuk pengelolaan sub blok. `farmer/blocks/Show.vue` dihapus. GET URL detail lam
 masih memeriksa kecocokan parent dan Policy view sebelum redirect ke daftar blok.
 Form CRUD master blok lama tetap kompatibel.
 
-`FarmBlockService::overview` memuat periode, batch, tahap, kapasitas, dan hambatan
+`FarmBlockService::overview` memuat batch, tahap, kapasitas, dan hambatan
 penghapusan secara batch melalui scope masing-masing model. Metadata dipasang
 ke blok yang terlihat saja, termasuk saat pencarian dan pagination. HTTP
 controller tetap menghitung seluruh boolean izin; service tidak memutuskan

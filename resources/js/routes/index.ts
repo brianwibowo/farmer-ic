@@ -133,8 +133,8 @@ logout.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     
     logout.form = logoutForm
 /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see \App\Http\Controllers\HomeController::__invoke
+ * @see app/Http/Controllers/HomeController.php:12
  * @route '/'
  */
 export const home = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -148,8 +148,8 @@ home.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see \App\Http\Controllers\HomeController::__invoke
+ * @see app/Http/Controllers/HomeController.php:12
  * @route '/'
  */
 home.url = (options?: RouteQueryOptions) => {
@@ -157,8 +157,8 @@ home.url = (options?: RouteQueryOptions) => {
 }
 
 /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see \App\Http\Controllers\HomeController::__invoke
+ * @see app/Http/Controllers/HomeController.php:12
  * @route '/'
  */
 home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -166,8 +166,8 @@ home.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     method: 'get',
 })
 /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see \App\Http\Controllers\HomeController::__invoke
+ * @see app/Http/Controllers/HomeController.php:12
  * @route '/'
  */
 home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -176,8 +176,8 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
     /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see \App\Http\Controllers\HomeController::__invoke
+ * @see app/Http/Controllers/HomeController.php:12
  * @route '/'
  */
     const homeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -186,8 +186,8 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     })
 
             /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see \App\Http\Controllers\HomeController::__invoke
+ * @see app/Http/Controllers/HomeController.php:12
  * @route '/'
  */
         homeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -195,8 +195,8 @@ home.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
             method: 'get',
         })
             /**
-* @see \Inertia\Controller::__invoke
- * @see vendor/inertiajs/inertia-laravel/src/Controller.php:13
+* @see \App\Http\Controllers\HomeController::__invoke
+ * @see app/Http/Controllers/HomeController.php:12
  * @route '/'
  */
         homeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -601,7 +601,7 @@ finance.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     
     finance.form = financeForm
 /**
- * @see routes/web.php:44
+ * @see routes/web.php:81
  * @route '/bypass'
  */
 export const bypass = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -615,7 +615,7 @@ bypass.definition = {
 } satisfies RouteDefinition<["get","head"]>
 
 /**
- * @see routes/web.php:44
+ * @see routes/web.php:81
  * @route '/bypass'
  */
 bypass.url = (options?: RouteQueryOptions) => {
@@ -623,7 +623,7 @@ bypass.url = (options?: RouteQueryOptions) => {
 }
 
 /**
- * @see routes/web.php:44
+ * @see routes/web.php:81
  * @route '/bypass'
  */
 bypass.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -631,7 +631,7 @@ bypass.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
     method: 'get',
 })
 /**
- * @see routes/web.php:44
+ * @see routes/web.php:81
  * @route '/bypass'
  */
 bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -640,7 +640,7 @@ bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
     /**
- * @see routes/web.php:44
+ * @see routes/web.php:81
  * @route '/bypass'
  */
     const bypassForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -649,7 +649,7 @@ bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     })
 
             /**
- * @see routes/web.php:44
+ * @see routes/web.php:81
  * @route '/bypass'
  */
         bypassForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -657,7 +657,7 @@ bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
             method: 'get',
         })
             /**
- * @see routes/web.php:44
+ * @see routes/web.php:81
  * @route '/bypass'
  */
         bypassForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -673,7 +673,7 @@ bypass.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     bypass.form = bypassForm
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
- * @see app/Http/Controllers/DashboardController.php:12
+ * @see app/Http/Controllers/DashboardController.php:18
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/dashboard'
  */
@@ -689,7 +689,7 @@ dashboard.definition = {
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
- * @see app/Http/Controllers/DashboardController.php:12
+ * @see app/Http/Controllers/DashboardController.php:18
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/dashboard'
  */
@@ -722,7 +722,7 @@ dashboard.url = (args?: { current_team?: string | number } | [current_team: stri
 
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
- * @see app/Http/Controllers/DashboardController.php:12
+ * @see app/Http/Controllers/DashboardController.php:18
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/dashboard'
  */
@@ -732,7 +732,7 @@ dashboard.get = (args?: { current_team?: string | number } | [current_team: stri
 })
 /**
 * @see \App\Http\Controllers\DashboardController::__invoke
- * @see app/Http/Controllers/DashboardController.php:12
+ * @see app/Http/Controllers/DashboardController.php:18
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/dashboard'
  */
@@ -743,7 +743,7 @@ dashboard.head = (args?: { current_team?: string | number } | [current_team: str
 
     /**
 * @see \App\Http\Controllers\DashboardController::__invoke
- * @see app/Http/Controllers/DashboardController.php:12
+ * @see app/Http/Controllers/DashboardController.php:18
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/dashboard'
  */
@@ -754,7 +754,7 @@ dashboard.head = (args?: { current_team?: string | number } | [current_team: str
 
             /**
 * @see \App\Http\Controllers\DashboardController::__invoke
- * @see app/Http/Controllers/DashboardController.php:12
+ * @see app/Http/Controllers/DashboardController.php:18
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/dashboard'
  */
@@ -764,7 +764,7 @@ dashboard.head = (args?: { current_team?: string | number } | [current_team: str
         })
             /**
 * @see \App\Http\Controllers\DashboardController::__invoke
- * @see app/Http/Controllers/DashboardController.php:12
+ * @see app/Http/Controllers/DashboardController.php:18
  * @param current_team - Default: '$currentTeam'
  * @route '/{current_team?}/dashboard'
  */

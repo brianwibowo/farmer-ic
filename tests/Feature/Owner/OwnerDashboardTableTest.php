@@ -72,7 +72,7 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.rows.0.progress.current_stages', ['Penanaman'])
             ->where('landTable.rows.0.progress.running_batches', 2)
             ->where('landTable.rows.0.resume.id', $latest->id)
-            ->where('landTable.rows.0.resume.title', 'Pengamatan pertumbuhan')
+            ->where('landTable.rows.0.resume.title', 'Pengecekan pertumbuhan')
             ->where('landTable.rows.0.resume.description', 'Penanaman terbaru Cibogo')
             ->where('landTable.rows.0.resume.detail_url', '/aktivitas/'.$latest->id)
             ->where('dashboard.metrics.0.value', 1));
@@ -85,6 +85,46 @@ class OwnerDashboardTableTest extends TestCase
             ->where('dashboard.commodities.1.name', 'Kedelai'));
     }
 
+    public function test_land_rows_are_grouped_by_city_with_aggregates_and_cycle_projection(): void
+    {
+        $first = $this->farm('Kebun Bogor Utara', '2.0000', null, null, 'Kabupaten Bogor');
+        $second = $this->farm('Kebun Bogor Selatan', '3.0000', null, null, 'Kabupaten Bogor');
+        $other = $this->farm('Kebun Cianjur', '4.0000', null, null, 'Kabupaten Cianjur');
+        $jagung = $this->cycle($first, 'Jagung', 'BISI-18');
+        $rumput = $this->cycle($second, 'Rumput', 'Odot');
+        $this->cycle($other, 'Sorgum', 'Super-2');
+        $this->stage($jagung, 'soil_preparation', 2, 'completed');
+        $this->stage($jagung, 'planting', 4, 'in_progress');
+
+        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('landTable.groups', 2)
+            ->where('landTable.groups.0.name', 'Kabupaten Bogor')
+            ->where('landTable.groups.0.farm_count', 2)
+            ->where('landTable.groups.0.area_ha', '5.0000')
+            ->where('landTable.groups.0.progress.percentage', 50)
+            ->where('landTable.groups.0.projection.total_ton', 380)
+            ->where('landTable.groups.0.projection.commodities', [
+                ['id' => 'Jagung', 'name' => 'Jagung', 'ton' => 80],
+                ['id' => 'Rumput', 'name' => 'Rumput', 'ton' => 300],
+            ])
+            ->has('landTable.groups.0.rows', 2)
+            ->where('landTable.groups.1.name', 'Kabupaten Cianjur'));
+    }
+
+    public function test_blank_city_farms_remain_in_totals_but_not_in_a_table_group(): void
+    {
+        $grouped = $this->farm('Kebun Bogor', '2.0000', 'owned', null, 'Kabupaten Bogor');
+        $ungrouped = $this->farm('Kebun Tanpa Kabupaten', '3.0000', 'rented');
+
+        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('landTable.total', 2)
+            ->where('landTable.total_area_ha', '5.0000')
+            ->has('landTable.rows', 2)
+            ->has('landTable.groups', 1)
+            ->where('landTable.groups.0.rows.0.id', $grouped->id)
+            ->where('landTable.rows.1.id', $ungrouped->id));
+    }
+
     public function test_admin_database_changes_appear_on_the_next_owner_request(): void
     {
         $farm = $this->farm('Kebun Awal', '10.0000', 'owned');
@@ -94,14 +134,44 @@ class OwnerDashboardTableTest extends TestCase
 
         $this->actingAs($this->admin)->patch('/admin/farm-management/'.$farm->id, [
             'name' => 'Kebun Diperbarui Admin', 'total_area_ha' => '12.3750', 'land_tenure' => 'rented',
+            'land_tenure_party' => 'PT Lahan Sejahtera',
         ])->assertRedirect();
         $report = $this->activity($farm, 'Resume baru dari database', '2026-11-05 10:15:00+07');
         $this->actingAs($this->owner)->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.rows.0.name', 'Kebun Diperbarui Admin')
             ->where('landTable.rows.0.area_ha', '12.3750')
             ->where('landTable.rows.0.legality', 'Sewa')
+            ->where('landTable.rows.0.land_tenure_party', 'PT Lahan Sejahtera')
+            ->where('landTable.rows.0.requires_land_tenure_party', true)
             ->where('landTable.rows.0.resume.id', $report->id)
             ->where('landTable.total_area_ha', '12.3750'));
+    }
+
+    public function test_related_party_is_visible_only_with_its_farm_and_owned_land_has_no_party(): void
+    {
+        $farm = $this->farm('Kebun A', '2.0000', 'partnership');
+        $farm->forceFill(['land_tenure_party' => 'Koperasi Mitra Hijau'])->save();
+        $owned = $this->farm('Kebun B', '3.0000', 'owned');
+        $owned->forceFill(['land_tenure_party' => 'Data lama tidak relevan'])->save();
+        $legacy = $this->farm('Kebun C', '1.0000', 'rented');
+        $foreign = $this->farm('Kebun Rahasia', '9.0000', 'rented');
+        $foreign->forceFill([
+            'team_id' => Team::factory()->create(['is_personal' => false])->id,
+            'land_tenure_party' => 'Mitra tenant lain',
+        ])->save();
+        $this->get('/')->assertInertia(fn (Assert $page) => $page
+            ->has('landTable.rows', 3)
+            ->where('landTable.rows.0.land_tenure_party', 'Koperasi Mitra Hijau')
+            ->where('landTable.rows.0.requires_land_tenure_party', true)
+            ->where('landTable.rows.1.land_tenure_party', null)
+            ->where('landTable.rows.1.requires_land_tenure_party', false)
+            ->where('landTable.rows.2.land_tenure_party', null)
+            ->where('landTable.rows.2.requires_land_tenure_party', true));
+        $this->get('/kebun/'.$farm->id)->assertInertia(fn (Assert $page) => $page
+            ->where('farm.land_tenure_party', 'Koperasi Mitra Hijau'));
+        $this->get('/kebun/'.$foreign->id)->assertForbidden();
+        $this->patch('/admin/farm-management/'.$farm->id, ['land_tenure_party' => 'Tidak boleh'])->assertForbidden();
+        $this->assertSame('Koperasi Mitra Hijau', $farm->fresh()->getAttribute('land_tenure_party'));
     }
 
     public function test_dashboard_always_shows_all_visible_farms_even_with_a_previous_farm_filter(): void
@@ -237,9 +307,9 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.rows.0.resume', null));
     }
 
-    private function farm(string $name, string $area, ?string $tenure = null, ?Team $team = null): Farm
+    private function farm(string $name, string $area, ?string $tenure = null, ?Team $team = null, ?string $city = null): Farm
     {
-        $farm = new Farm(['name' => $name, 'total_area_ha' => $area, 'land_tenure' => $tenure]);
+        $farm = new Farm(['name' => $name, 'total_area_ha' => $area, 'land_tenure' => $tenure, 'city' => $city]);
         $farm->forceFill(['team_id' => ($team ?? $this->team)->id, 'created_by' => $this->admin->id])->save();
 
         return $farm;

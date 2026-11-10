@@ -17,10 +17,22 @@ import { getInitials } from '@/composables/useInitials';
 import { useLogout } from '@/composables/useLogout';
 import NotificationBell from '@/components/notifications/NotificationBell.vue';
 import { edit as editProfile } from '@/routes/profile';
+import { useAppName } from '@/composables/useAppName';
 
-const props = withDefaults(defineProps<{ showAppearanceToggle?: boolean }>(), {
-    showAppearanceToggle: false,
-});
+const appName = useAppName();
+
+const props = withDefaults(
+    defineProps<{
+        showAppearanceToggle?: boolean;
+        dashboardTheme?: boolean;
+        showBrand?: boolean;
+    }>(),
+    {
+        showAppearanceToggle: false,
+        dashboardTheme: false,
+        showBrand: true,
+    },
+);
 const { resolvedAppearance, updateAppearance } = useAppearance();
 const appearanceAction = computed(() =>
     resolvedAppearance.value === 'dark'
@@ -36,7 +48,21 @@ const { signOut, processing, error } = useLogout();
 <template>
     <header class="py-1">
         <div class="flex items-center justify-between gap-3">
-            <BrandLogo class="shrink-0" />
+            <div
+                v-if="props.dashboardTheme && $slots.default"
+                class="min-w-0 flex-1"
+            >
+                <slot />
+            </div>
+            <Link
+                v-else-if="props.dashboardTheme && props.showBrand"
+                href="/petugas"
+                :aria-label="`Beranda ${appName}`"
+                class="flex min-w-0 items-center gap-2 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+                <BrandLogo />
+            </Link>
+            <BrandLogo v-else-if="!props.dashboardTheme" class="shrink-0" />
 
             <slot name="navigation" />
 
@@ -87,6 +113,9 @@ const { signOut, processing, error } = useLogout();
                         align="end"
                         :side-offset="8"
                         class="w-64 max-w-[calc(100vw-2rem)] rounded-xl p-2"
+                        :class="{
+                            'admin-dashboard-theme': props.dashboardTheme,
+                        }"
                     >
                         <DropdownMenuLabel>Profil</DropdownMenuLabel>
                         <DropdownMenuSeparator />

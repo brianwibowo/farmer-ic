@@ -106,7 +106,7 @@ class DashboardSummaryTest extends TestCase
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
-    public function test_preparation_batch_uses_persisted_stage_and_clears_block_land_clearing(): void
+    public function test_preparation_batch_uses_persisted_stage_and_land_clearing_requires_report(): void
     {
         $farm = $this->farm('Kebun Timeline');
         Gate::forUser($this->admin)->authorize('create', [FarmBlock::class, $farm]);
@@ -117,7 +117,13 @@ class DashboardSummaryTest extends TestCase
         $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.cycles.running', 1)->where('dashboard.cycles.planned', 1)
             ->where('dashboard.cycles.stages.0.count', 1)->where('dashboard.cycles.withoutTimeline', 0)
-            ->where('dashboard.attention.2.count', 0)->where('dashboard.metrics.1.breakdown.blocks', 1));
+            ->where('dashboard.attention.2.count', 1)->where('dashboard.metrics.1.breakdown.blocks', 1));
+        $type = ActivityType::firstOrCreate(['code' => 'land_cleaning'], ['name' => 'Pembersihan lahan']);
+        $activity = FarmActivity::create(['farm_id' => $farm->id, 'activity_type_id' => $type->id,
+            'performed_by' => $this->admin->id, 'activity_date' => now(), 'description' => 'Pembersihan blok', 'status' => 'completed']);
+        $activity->forceFill(['block_id' => $block->id])->save();
+        $activity->landCleaningDetail()->create(['area_ha' => 1, 'method' => 'Manual']);
+        $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.attention.2.count', 0));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 

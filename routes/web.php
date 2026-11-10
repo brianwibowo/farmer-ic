@@ -2,12 +2,19 @@
 
 use App\Http\Controllers\Activity\AdminLogbookController;
 use App\Http\Controllers\Activity\DailyActivityLogController;
+use App\Http\Controllers\Admin\HarvestTransactionController;
+use App\Http\Controllers\Admin\PlantingTransactionController;
+use App\Http\Controllers\Admin\TaskManagementController;
+use App\Http\Controllers\AI\AiAttachmentController;
 use App\Http\Controllers\AI\AiConversationController;
 use App\Http\Controllers\AI\AiKnowledgeDocumentController;
 use App\Http\Controllers\AI\AiMessageController;
 use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DashboardWeatherController;
 use App\Http\Controllers\FarmBlockController;
+use App\Http\Controllers\FarmLegalityController;
+use App\Http\Controllers\FarmLegalityDocumentController;
 use App\Http\Controllers\FarmManagementController;
 use App\Http\Controllers\Finance\FinanceController;
 use App\Http\Controllers\Finance\FinanceSummaryController;
@@ -22,6 +29,7 @@ use App\Http\Controllers\Owner\OwnerTenantController;
 use App\Http\Controllers\Petugas\PetugasActivityController;
 use App\Http\Controllers\Petugas\PetugasGardenController;
 use App\Http\Controllers\Petugas\PetugasHomeController;
+use App\Http\Controllers\Petugas\PetugasPlantingController;
 use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
@@ -29,6 +37,7 @@ use App\Http\Controllers\Sop\SopTemplateVersionController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Middleware\EnsureTeamMembership;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +59,7 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
     Route::get('kebun/aktivitas', fn (Request $request) => to_route('aktivitas',
         Str::isUuid((string) $request->query('id', '')) ? ['farm_id' => $request->query('id')] : []))->name('kebun.aktivitas');
     Route::get('kebun/{farm}', [OwnerController::class, 'farm'])->whereUuid('farm')->name('owner.farms.show');
+    Route::get('kebun/{farm}/legalitas', [OwnerController::class, 'legality'])->whereUuid('farm')->name('owner.farms.legality');
     Route::get('kebun/{farm}/blok/{block}', [OwnerController::class, 'block'])
         ->whereUuid(['farm', 'block'])->name('owner.blocks.show');
     Route::get('aktivitas', [OwnerController::class, 'activities'])->name('aktivitas');
@@ -71,14 +81,31 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
 
 Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can:petugas.access'])->group(function (): void {
     Route::get('/', PetugasHomeController::class)->name('home');
+    Route::get('weather/{farm}', DashboardWeatherController::class)
+        ->whereUuid('farm')->middleware('throttle:30,1')->name('weather');
     Route::get('kebun', PetugasGardenController::class)->name('kebun');
+    Route::get('penanaman', [PetugasPlantingController::class, 'index'])->name('planting.index');
+    Route::get('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'show'])->whereUuid('cycle')->name('planting.show');
+    Route::post('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'store'])->whereUuid('cycle')->name('planting.store');
+    Route::post('subbloks/{cycle}/tasks/sync', [PetugasPlantingController::class, 'synchronize'])->whereUuid('cycle')->name('planting.synchronize');
     Route::get('tasks', [PetugasTaskController::class, 'index'])->name('tasks.index');
-    Route::inertia('aktivitas', 'petugas/Aktivitas')->name('aktivitas');
-    Route::get('aktivitas/buat', [PetugasActivityController::class, 'create'])->name('aktivitas.create');
-    Route::inertia('laporan', 'petugas/Laporan')->name('laporan');
+    Route::get('tasks/{task}', [PetugasTaskController::class, 'show'])->whereUuid('task')->name('tasks.show');
+    Route::get('tasks/{task}/aktivitas/buat', [PetugasActivityController::class, 'create'])->whereUuid('task')->name('tasks.aktivitas.create');
+    Route::post('tasks/{task}/aktivitas', [PetugasActivityController::class, 'store'])->whereUuid('task')->name('tasks.aktivitas.store');
+    Route::post('tasks/{task}/selesai', [PetugasTaskController::class, 'complete'])->whereUuid('task')->name('tasks.complete');
+    Route::get('aktivitas/{activity}/foto/{photo}', [PetugasActivityController::class, 'photo'])->whereUuid(['activity', 'photo'])->name('aktivitas.photos');
+    Route::get('aktivitas', [PetugasTaskController::class, 'index'])->name('aktivitas');
+    Route::redirect('aktivitas/buat', '/petugas/aktivitas')->name('aktivitas.create');
+    Route::get('aktivitas/mandiri/{type:code}', [\App\Http\Controllers\Petugas\PetugasVoluntaryActivityController::class, 'create'])->name('voluntary.create');
+    Route::post('aktivitas/mandiri/{type:code}', [\App\Http\Controllers\Petugas\PetugasVoluntaryActivityController::class, 'store'])->name('voluntary.store');
+    Route::get('laporan', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'history'])->name('laporan');
+    Route::get('laporan/harian', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'index'])->name('laporan.daily');
+    Route::get('laporan/{activity}', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'show'])->whereUuid('activity')->name('laporan.show');
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('farm-legality-documents/{document}/download', FarmLegalityDocumentController::class)
+        ->whereUuid('document')->name('farm-legality-documents.download');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('notifications.read');
@@ -109,6 +136,9 @@ Route::get('/bypass', function (Request $request) {
 Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->whereUuid('farm')->group(function (): void {
     Route::get('/', [DailyActivityLogController::class, 'index'])->name('daily-logs.index');
     Route::post('/', [DailyActivityLogController::class, 'store'])->name('daily-logs.store');
+    Route::get('context', [DailyActivityLogController::class, 'context'])->name('daily-logs.context');
+    Route::get('activities/{activity}/photos/{photo}', [DailyActivityLogController::class, 'photo'])->whereUuid(['activity', 'photo'])->name('daily-logs.photos');
+    Route::patch('{dailyLog}', [DailyActivityLogController::class, 'update'])->whereUuid('dailyLog')->name('daily-logs.update');
     Route::get('{dailyLog}', [DailyActivityLogController::class, 'show'])
         ->whereUuid('dailyLog')
         ->name('daily-logs.show');
@@ -116,9 +146,13 @@ Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->wher
 Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->group(function (): void {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
     Route::get('dashboard', DashboardController::class)->name('admin.dashboard');
+    Route::get('dashboard/weather/{farm}', DashboardWeatherController::class)
+        ->whereUuid('farm')->middleware('throttle:30,1')->name('admin.dashboard.weather');
     Route::get('logbook', [AdminLogbookController::class, 'index'])->name('admin.logbook.index');
     Route::get('logbook/{farm}', [AdminLogbookController::class, 'farm'])->whereUuid('farm')->name('admin.logbook.farm');
     Route::get('logbook/{farm}/{dailyLog}', [AdminLogbookController::class, 'show'])->whereUuid(['farm', 'dailyLog'])->name('admin.logbook.show');
+    Route::get('transaksi-penanaman', [PlantingTransactionController::class, 'index'])->name('admin.planting-transactions.index');
+    Route::get('transaksi-panen', [HarvestTransactionController::class, 'index'])->name('admin.harvest-transactions.index');
 
     Route::get('sops', [SopTemplateController::class, 'index'])->name('sops.index');
     Route::get('sops/create', [SopTemplateController::class, 'create'])->name('sops.create');
@@ -133,7 +167,20 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::put('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'update'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.update');
     Route::delete('sops/{sopTemplate}/versions/{version}/tasks/{task}', [SopTemplateTaskController::class, 'destroy'])->whereUuid(['sopTemplate', 'version', 'task'])->name('sops.tasks.destroy');
 
+    Route::get('tasks', [TaskManagementController::class, 'index'])->name('tasks.index');
+    Route::get('tasks/{task}', [TaskManagementController::class, 'show'])->whereUuid('task')->name('tasks.show');
+    Route::post('tasks/{task}/skip', [TaskManagementController::class, 'skip'])->whereUuid('task')->name('tasks.skip');
+    Route::post('tasks/{task}/reschedule', [TaskManagementController::class, 'reschedule'])->whereUuid('task')->name('tasks.reschedule');
+
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');
+    Route::get('farm-management/{farm}/legalitas', [FarmLegalityController::class, 'show'])
+        ->whereUuid('farm')->name('farm-management.legality.show');
+    Route::post('farm-management/{farm}/legality', [FarmLegalityController::class, 'store'])
+        ->whereUuid('farm')->name('farm-management.legality.store');
+    Route::put('farm-management/{farm}/legality/{legality}', [FarmLegalityController::class, 'update'])
+        ->whereUuid(['farm', 'legality'])->name('farm-management.legality.update');
+    Route::delete('farm-management/{farm}/legality/{legality}', [FarmLegalityController::class, 'destroy'])
+        ->whereUuid(['farm', 'legality'])->name('farm-management.legality.destroy');
     Route::get('farm-management/{farm}/deletion-check', [FarmManagementController::class, 'deletionCheck'])->whereUuid('farm')->name('farm-management.deletion-check');
     Route::get('farm-management/{farm}/force-delete', [FarmManagementController::class, 'confirmForceDelete'])
         ->whereUuid('farm')->name('farm-management.force-delete');
@@ -158,9 +205,12 @@ Route::prefix('{current_team}')
     ->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-        Route::get('ai', fn () => Inertia::render('farmer/Index'))->name('ai.page');
+        Route::get('ai', fn (Team $current_team) => Inertia::render('farmer/Index'))
+            ->middleware('can:ai.access,current_team')->name('ai.page');
 
-        Route::prefix('ai')->name('ai.')->group(function () {
+        Route::prefix('ai')->name('ai.')->middleware('can:ai.access,current_team')->group(function () {
+            Route::get('attachments/{attachment}', AiAttachmentController::class)
+                ->whereUuid('attachment')->name('attachments.show');
             Route::get('conversations', [AiConversationController::class, 'index'])->name('conversations.index');
             Route::post('conversations', [AiConversationController::class, 'store'])
                 ->middleware('throttle:30,1')

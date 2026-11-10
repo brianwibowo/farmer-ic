@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100" height="100" fill="none" stroke="#1f5f22" stroke-width="2.5">
+  <!-- Bonggol Jagung -->
+  <rect x="8" y="3" width="8" height="14" rx="4" />
+
+  <!-- Garis tekstur biji jagung -->
+  <line x1="12" y1="3" x2="12" y2="17" />
+  <line x1="8" y1="8" x2="16" y2="8" />
+  <line x1="8" y1="12" x2="16" y2="12" />
+
+  <!-- Daun kiri -->
+  <path d="M9 16 C 5 15 3 11 3 7" />
+
+  <!-- Daun kanan -->
+  <path d="M15 16 C 19 15 21 11 21 7" />
+
+  <!-- Batang bawah -->
+  <line x1="12" y1="17" x2="12" y2="21" />
+</svg>

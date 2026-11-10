@@ -78,7 +78,7 @@ class AdminLogbookTest extends TestCase
         $this->get($url.'?from_date=2026-10-28&to_date=2026-10-20')->assertSessionHasErrors('to_date');
     }
 
-    public function test_admin_logbook_is_read_only_in_ui_policy_and_existing_write_endpoints(): void
+    public function test_admin_logbook_is_read_only_except_for_header_edits(): void
     {
         $log = $this->report($this->farm, $this->admin, '2026-10-27');
         $url = '/admin/logbook/'.$this->farm->id;
@@ -89,7 +89,9 @@ class AdminLogbookTest extends TestCase
         $this->post($url, $this->payload('2026-10-28'))->assertStatus(405);
         $this->post('/kebun/'.$this->farm->id.'/daily-logs', $this->payload('2026-10-28'))->assertForbidden();
         $this->postJson('/api/kebun/'.$this->farm->id.'/daily-logs', $this->payload('2026-10-28'))->assertForbidden();
-        foreach (['create', 'update', 'delete'] as $ability) {
+        // Admin logbook remains read-only; the separate shared-header edit is allowed.
+        $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('update', $log));
+        foreach (['create', 'delete'] as $ability) {
             $subject = $ability === 'create' ? [DailyActivityLog::class, $this->farm] : $log;
             $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows($ability, $subject));
         }
@@ -117,7 +119,7 @@ class AdminLogbookTest extends TestCase
         $invalid['activities'][0]['block_mapping']['length_m'] = -1;
         $this->post($url, $invalid)->assertSessionHasErrors('activities.0.block_mapping.length_m');
         $this->actingAs($this->admin)->get('/admin/logbook/'.$this->farm->id.'/'.$log->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('log.recorder_name', $petugas->name)->where('log.worker_count', 6));
+            ->where('log.recorder_name', $petugas->name)->where('log.activities.0.worker_count', 6));
         $this->assertDatabaseCount('daily_activity_logs', 1);
     }
 

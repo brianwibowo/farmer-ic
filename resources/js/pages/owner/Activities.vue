@@ -277,7 +277,7 @@ function apply(): void {
                             class="mt-0.5 size-3.5 shrink-0"
                             aria-hidden="true"
                         />{{ activity.farm?.name ?? 'Kebun tidak tersedia'
-                        }}<span v-if="activity.cycle">
+                        }}<span v-if="activity.block_name"> · {{ activity.block_name }}</span><span v-if="activity.cycle">
                             · {{ activity.cycle.label }}</span
                         >
                     </p>
