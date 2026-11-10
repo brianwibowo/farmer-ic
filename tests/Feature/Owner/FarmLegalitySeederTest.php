@@ -37,8 +37,10 @@ class FarmLegalitySeederTest extends TestCase
     {
         $this->prerequisites();
         $this->seed(FarmLegalitySeeder::class);
-        $this->assertDatabaseCount('farm_legalities', 6);
+        $this->assertDatabaseCount('farm_legalities', 7);
         $records = FarmLegality::query()->with('farm')->get();
+        $this->assertCount(4, $records->filter(fn (FarmLegality $record) => $record->farm->land_tenure === 'owned'));
+        $this->assertCount(3, $records->filter(fn (FarmLegality $record) => $record->farm->land_tenure !== 'owned'));
         foreach ($records as $record) {
             $this->assertNotSame('', trim($record->institution));
             $this->assertNotSame('', trim($record->summary));
@@ -84,7 +86,7 @@ class FarmLegalitySeederTest extends TestCase
 
         $this->seed(FarmLegalitySeeder::class);
 
-        $this->assertDatabaseCount('farm_legalities', 6);
+        $this->assertDatabaseCount('farm_legalities', 7);
         $this->assertDatabaseMissing('farm_legalities', ['farm_id' => $farm->id]);
         $this->assertSame($before, $farm->refresh()->getRawOriginal());
     }

@@ -3,6 +3,7 @@ import { computed, ref, useId } from 'vue';
 import { ChevronDown, ChevronUp, Pencil, Plus } from '@lucide/vue';
 import BatchDialog from './BatchDialog.vue';
 import BatchTimeline from './BatchTimeline.vue';
+import BatchPlantGrowth from './BatchPlantGrowth.vue';
 import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -218,7 +219,23 @@ const progressSummary = computed(() => {
                     <h6 class="mb-4 text-sm font-semibold text-primary">
                         Tahap &amp; tanggal progres
                     </h6>
-                    <BatchTimeline :stages="batch.stages" />
+                    <BatchTimeline
+                        :stages="batch.stages"
+                        :growth="batch.growth"
+                    >
+                        <template
+                            v-if="
+                                returnTo === 'farm' && batch.growth?.available
+                            "
+                            #growth
+                        >
+                            <BatchPlantGrowth
+                                :growth="batch.growth"
+                                :planted-at="batch.planted_at"
+                                :theme="theme"
+                            />
+                        </template>
+                    </BatchTimeline>
                 </div>
             </article>
             <p

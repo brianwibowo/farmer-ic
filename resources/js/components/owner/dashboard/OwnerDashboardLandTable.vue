@@ -136,7 +136,7 @@ const groupRowsId = (groupId: string) =>
                         <tr>
                             <th
                                 scope="row"
-                                class="sticky left-0 z-10 border-r border-b border-border bg-primary/10 p-0 text-left align-top font-medium"
+                                class="bg-muted sticky left-0 z-10 border-r border-b border-border p-0 text-left align-top font-medium"
                             >
                                 <button
                                     type="button"

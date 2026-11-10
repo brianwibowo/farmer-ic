@@ -37,6 +37,21 @@ export type PreparationBatch = {
     planted_at: string | null;
     status: string;
     stages: BatchStage[];
+    growth?: BatchGrowth;
+};
+export type BatchGrowth = {
+    available: boolean;
+    as_of: string;
+    hst: number | null;
+    commodity: string | null;
+    variety: string | null;
+    estimated_harvest_at: string | null;
+    observation: {
+        id: string;
+        observed_at: string;
+        phase: string | null;
+        percentage: number | null;
+    } | null;
 };
 export const stageLabels: Record<string, string> = {
     land_clearing: 'Land Clearing',

@@ -144,8 +144,8 @@ force deletion includes legalities/PDFs in the confirmation graph and removes
 their private files after commit. A scoped graph that omits physical child rows
 blocks cascading deletion instead of silently deleting unseen records.
 
-`FarmLegalitySeeder` adds missing examples for the recognized six prototype
-farms, including three owned records without PKS and three rental/partnership
+`FarmLegalitySeeder` adds missing examples for the recognized seven prototype
+farms, including four owned records without PKS and three rental/partnership
 agreements. It is included after portfolio/name seeders for fresh local/testing
 installs and can also be run alone with
 `php artisan db:seed --class=FarmLegalitySeeder`. It requires the fixed active

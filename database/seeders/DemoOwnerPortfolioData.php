@@ -20,10 +20,10 @@ final class DemoOwnerPortfolioData
     {
         return [
             [
-                'key' => 'sukamaju', 'name' => 'Kebun Sukamaju', 'commodity' => 'Rumput', 'variety' => 'Pakchong',
-                'area_ha' => '8.0000', 'land_tenure' => 'owned', 'latitude' => '-6.5730000', 'longitude' => '106.8990000',
-                'address' => 'Lahan percontohan Sukamaju, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
-                'district' => 'Sukamakmur', 'province' => 'Jawa Barat', 'target_volume_ton' => '44.000', 'harvest_offset' => 107,
+                'key' => 'sukamaju', 'name' => 'Kebun Cariu', 'commodity' => 'Rumput', 'variety' => 'Pakchong',
+                'area_ha' => '50.0000', 'land_tenure' => 'owned', 'latitude' => '-6.5730000', 'longitude' => '106.8990000',
+                'address' => 'Cariu, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
+                'district' => 'Cariu', 'province' => 'Jawa Barat', 'target_volume_ton' => '44.000', 'harvest_offset' => 107,
                 'blocks' => [
                     ['code' => 'B01', 'name' => 'Blok Rumput Utara', 'area_ha' => '5.0000'],
                     ['code' => 'B02', 'name' => 'Blok Rumput Selatan', 'area_ha' => '3.0000'],
@@ -34,10 +34,10 @@ final class DemoOwnerPortfolioData
                 ],
             ],
             [
-                'key' => 'cibogo', 'name' => 'Kebun Cibogo', 'commodity' => 'Sorgum', 'variety' => 'Bioguma 1',
-                'area_ha' => '6.5000', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Kelompok Tani Cibogo Sejahtera', 'latitude' => '-6.6260000', 'longitude' => '106.9470000',
-                'address' => 'Lahan kemitraan Cibogo, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
-                'district' => 'Megamendung', 'province' => 'Jawa Barat', 'target_volume_ton' => '12.000', 'harvest_offset' => 80,
+                'key' => 'cibogo', 'name' => 'Kebun Jonggol', 'commodity' => 'Sorgum', 'variety' => 'Bioguma 1',
+                'area_ha' => '110.0000', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Kelompok Tani Jonggol Sejahtera', 'latitude' => '-6.6260000', 'longitude' => '106.9470000',
+                'address' => 'Jonggol, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
+                'district' => 'Jonggol', 'province' => 'Jawa Barat', 'target_volume_ton' => '12.000', 'harvest_offset' => 80,
                 'blocks' => [
                     ['code' => 'B01', 'name' => 'Blok Sorgum Timur', 'area_ha' => '4.0000'],
                     ['code' => 'B02', 'name' => 'Blok Rotasi Barat', 'area_ha' => '2.5000'],
@@ -45,10 +45,10 @@ final class DemoOwnerPortfolioData
                 'batches' => [self::batch('active', 'B01', 'A', '3.0000', '2026-10-20', '2027-01-08', '6.000', 'maintenance')],
             ],
             [
-                'key' => 'mekarsari', 'name' => 'Kebun Mekarsari', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
-                'area_ha' => '4.0000', 'land_tenure' => 'rented', 'land_tenure_party' => 'Koperasi Tani Mekarsari', 'latitude' => '-6.5280000', 'longitude' => '106.9940000',
-                'address' => 'Lahan sewa jagung Mekarsari, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
-                'district' => 'Cileungsi', 'province' => 'Jawa Barat', 'target_volume_ton' => '28.000', 'harvest_offset' => 90,
+                'key' => 'mekarsari', 'name' => 'Kebun Pamijahan', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
+                'area_ha' => '25.0000', 'land_tenure' => 'rented', 'land_tenure_party' => 'Koperasi Tani Pamijahan', 'latitude' => '-6.5280000', 'longitude' => '106.9940000',
+                'address' => 'Pamijahan, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
+                'district' => 'Pamijahan', 'province' => 'Jawa Barat', 'target_volume_ton' => '28.000', 'harvest_offset' => 90,
                 'blocks' => [
                     ['code' => 'B01', 'name' => 'Blok Jagung Bedengan', 'area_ha' => '2.5000'],
                     ['code' => 'B02', 'name' => 'Blok Cadangan Jagung', 'area_ha' => '1.5000'],
@@ -56,10 +56,10 @@ final class DemoOwnerPortfolioData
                 'batches' => [self::batch('active', 'B01', 'A', '1.5000', '2026-09-01', '2026-11-30', '10.500', 'maintenance')],
             ],
             [
-                'key' => 'cikeas', 'name' => 'Kebun Cikeas', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
-                'area_ha' => '10.0000', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Kelompok Tani Cikeas Makmur', 'latitude' => '-6.4920000', 'longitude' => '106.9380000',
-                'address' => 'Lahan kemitraan Cikeas, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
-                'district' => 'Gunung Putri', 'province' => 'Jawa Barat', 'target_volume_ton' => '64.000', 'harvest_offset' => 110,
+                'key' => 'cikeas', 'name' => 'Kebun Sirnasari', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
+                'area_ha' => '187.0000', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Kelompok Tani Sirnasari Makmur', 'latitude' => '-6.4920000', 'longitude' => '106.9380000',
+                'address' => 'Sirnasari, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
+                'district' => 'Sirnasari', 'province' => 'Jawa Barat', 'target_volume_ton' => '64.000', 'harvest_offset' => 110,
                 'blocks' => [
                     ['code' => 'B01', 'name' => 'Blok Jagung Utama', 'area_ha' => '6.0000'],
                     ['code' => 'B02', 'name' => 'Blok Tanam Berikutnya', 'area_ha' => '4.0000'],
@@ -70,23 +70,71 @@ final class DemoOwnerPortfolioData
                 ],
             ],
             [
-                'key' => 'cisarua', 'name' => 'Kebun Cisarua', 'commodity' => 'Rumput', 'variety' => 'Pakchong',
-                'area_ha' => '3.5000', 'land_tenure' => 'owned', 'latitude' => '-6.6800000', 'longitude' => '106.9510000',
-                'address' => 'Lahan percontohan rumput Cisarua, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
-                'district' => 'Cisarua', 'province' => 'Jawa Barat', 'target_volume_ton' => '70.000', 'harvest_offset' => 107,
+                'key' => 'cisarua', 'name' => 'Kebun Megamendung', 'commodity' => 'Rumput', 'variety' => 'Pakchong',
+                'area_ha' => '25.0000', 'land_tenure' => 'owned', 'latitude' => '-6.6800000', 'longitude' => '106.9510000',
+                'address' => 'Megamendung, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
+                'district' => 'Megamendung', 'province' => 'Jawa Barat', 'target_volume_ton' => '70.000', 'harvest_offset' => 107,
                 'blocks' => [
                     ['code' => 'B01', 'name' => 'Blok Rumput Selesai Panen', 'area_ha' => '2.0000'],
                     ['code' => 'B02', 'name' => 'Blok Persiapan Rumput', 'area_ha' => '1.5000'],
                 ],
                 'batches' => [
                     self::batch('harvested', 'B01', 'H', '1.2500', '2026-07-15', '2026-10-30', '25.000', 'harvest', '2026-10-30'),
+                    self::megamendungActiveBatch(),
                     self::batch('planned', 'B02', 'P', '0.7500', '2026-11-20', null, '15.000', 'basic_fertilizer'),
                 ],
+            ],
+            [
+                'key' => 'cipaneng', 'name' => 'Kebun Cipanengah', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
+                'area_ha' => '100.0000', 'land_tenure' => 'owned', 'latitude' => null, 'longitude' => null,
+                'address' => 'Cipanengah, Kabupaten Sukabumi, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Sukabumi',
+                'district' => 'Cipanengah', 'province' => 'Jawa Barat', 'target_volume_ton' => '28.000', 'harvest_offset' => 90,
+                'blocks' => [
+                    ['code' => 'B01', 'name' => 'Blok Jagung Utama', 'area_ha' => '6.0000'],
+                    ['code' => 'B02', 'name' => 'Blok Tanam Berikutnya', 'area_ha' => '4.0000'],
+                ],
+                'batches' => [self::batch('active', 'B01', 'A', '4.0000', '2026-09-15', '2027-01-03', '25.600', 'maintenance')],
             ],
         ];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @return array{
+     *     key:string,
+     *     block_code:string,
+     *     subblock_label:string,
+     *     reserved_area_ha:string,
+     *     planted_area_ha:string,
+     *     status:string,
+     *     planted_at:string|null,
+     *     planned_planting_at:string,
+     *     estimated_harvest_at:string|null,
+     *     harvested_at:string|null,
+     *     estimated_weight_ton:string,
+     *     current_stage:string
+     * }
+     */
+    public static function megamendungActiveBatch(): array
+    {
+        return self::batch('active', 'B01', 'A2', '0.7500', '2026-11-01', '2027-02-15', '75.000', 'maintenance');
+    }
+
+    /**
+     * @return array{
+     *     key:string,
+     *     block_code:string,
+     *     subblock_label:string,
+     *     reserved_area_ha:string,
+     *     planted_area_ha:string,
+     *     status:string,
+     *     planted_at:string|null,
+     *     planned_planting_at:string,
+     *     estimated_harvest_at:string|null,
+     *     harvested_at:string|null,
+     *     estimated_weight_ton:string,
+     *     current_stage:string
+     * }
+     */
     private static function batch(string $status, string $block, string $label, string $area, string $plantingDate, ?string $harvestDate, string $weight, string $stage, ?string $harvestedAt = null): array
     {
         return [
