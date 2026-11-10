@@ -28,6 +28,7 @@ class OwnerReadService
     public function __construct(
         private readonly FarmService $farms,
         private readonly AdminDashboardService $dashboard,
+        private readonly HarvestProjectionService $harvestProjections,
     ) {}
 
     /** @param array<string, mixed> $filters
@@ -104,7 +105,7 @@ class OwnerReadService
             'activities' => fn ($activities) => $activities->visibleTo($actor, $team)
                 ->orderByDesc('activity_date')->orderByDesc('created_at')->orderByDesc('id')->limit(1)
                 ->with(['activityType' => fn ($types) => $types->visibleTo($actor, $team)]),
-        ])->orderBy('name')->orderBy('id')->get(['id', 'name', 'land_tenure', 'land_tenure_party', 'total_area_ha']);
+        ])->orderBy('name')->orderBy('id')->get(['id', 'name', 'city', 'land_tenure', 'land_tenure_party', 'total_area_ha']);
         $cyclesByFarm = PlantingCycle::visibleTo($actor, $team)
             ->whereIn('farm_id', $farms->modelKeys())
             ->whereIn('status', ['planned', 'active', 'harvested'])
@@ -170,7 +171,87 @@ class OwnerReadService
             ];
         }
 
-        return ['rows' => $rows, 'total_area_ha' => $totalArea, 'total' => $farms->count()];
+        // Flat rows remain the data source for the map and existing summary
+        // cards. The regional table is an additional presentation of the same
+        // scoped records, not a separate data source.
+        /** @var list<array{
+         *     key: string,
+         *     farm_id: string,
+         *     farm_name: string,
+         *     crop_name: string|null,
+         *     projection_ton: float|null,
+         *     missing_count: int,
+         *     batch_count: int
+         * }> $projectionRowData
+         */
+        $projectionRowData = $this->harvestProjections
+            ->summary($actor, $team, 'cycle', $farmId)['rows'];
+        $projectionRows = collect($projectionRowData);
+        $projectionsByFarm = $projectionRows->groupBy('farm_id')->map(fn ($farmProjections) => $farmProjections
+            ->filter(fn (array $projection): bool => $projection['crop_name'] !== null)
+            ->map(fn (array $projection): array => [
+                'id' => (string) $projection['key'],
+                'name' => (string) $projection['crop_name'],
+                'ton' => $projection['projection_ton'],
+            ])->values()->all());
+        foreach ($rows as &$row) {
+            $row['projections'] = $projectionsByFarm->get($row['id'], []);
+        }
+        unset($row);
+        $citiesByFarm = $farms->mapWithKeys(
+            fn (Farm $farm): array => [(string) $farm->id => trim((string) $farm->city)],
+        );
+        $groups = collect($rows)
+            // Farms without a city still count in the global cards and map,
+            // but must not appear as an artificial "unknown" region row.
+            ->filter(fn (array $row): bool => $citiesByFarm->get($row['id'], '') !== '')
+            ->groupBy(fn (array $row): string => (string) $citiesByFarm->get($row['id']))
+            ->sortKeys(SORT_NATURAL | SORT_FLAG_CASE)
+            ->map(function ($farmRows, string $city) use ($projectionRows): array {
+                $farmRows = $farmRows->values();
+                $farmIds = $farmRows->pluck('id')->all();
+                $completedStages = $farmRows->sum(fn (array $row): int => $row['progress']['completed_stages']);
+                $totalStages = $farmRows->sum(fn (array $row): int => $row['progress']['total_stages']);
+                $knownProjectionRows = $projectionRows->whereIn('farm_id', $farmIds)
+                    ->filter(fn (array $row): bool => $row['crop_name'] !== null && $row['projection_ton'] !== null);
+                $projectionCrops = $knownProjectionRows->groupBy('crop_name')
+                    ->map(fn ($cropRows, string $name): array => [
+                        'id' => $name,
+                        'name' => $name,
+                        'ton' => round((float) $cropRows->sum('projection_ton'), 3),
+                    ])
+                    ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => 'city:'.sha1(mb_strtolower($city)),
+                    'name' => $city,
+                    'farm_count' => $farmRows->count(),
+                    'area_ha' => number_format((float) $farmRows->sum(fn (array $row): float => (float) $row['area_ha']), 4, '.', ''),
+                    'crops' => $farmRows->flatMap(fn (array $row) => $row['crops'])
+                        ->unique('id')
+                        ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                        ->map(fn (array $crop): array => ['id' => $crop['id'], 'name' => $crop['name']])
+                        ->values()
+                        ->all(),
+                    'progress' => [
+                        'percentage' => $totalStages === 0 ? null : round(($completedStages / $totalStages) * 100, 1),
+                        'completed_stages' => $completedStages,
+                        'total_stages' => $totalStages,
+                    ],
+                    'projection' => [
+                        'total_ton' => round((float) $knownProjectionRows->sum('projection_ton'), 3),
+                        'has_data' => $knownProjectionRows->isNotEmpty(),
+                        'commodities' => $projectionCrops,
+                    ],
+                    'rows' => $farmRows->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return ['rows' => $rows, 'groups' => $groups, 'total_area_ha' => $totalArea, 'total' => $farms->count()];
     }
 
     private function stageName(string $code): string
