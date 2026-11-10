@@ -5,7 +5,6 @@ namespace App\Services\Petugas;
 use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
-use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -30,10 +29,13 @@ class PetugasGardenService
         }
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
             ->orderByDesc('is_active')->orderBy('code')->orderBy('id')->get();
-        $rounds = PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->get(['id', 'block_id', 'round_number']);
-        $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('planting_round_id', $rounds->modelKeys());
-        $roundCounts = (clone $cycles)->selectRaw('planting_round_id, COUNT(*) AS total')->groupBy('planting_round_id')->pluck('total', 'planting_round_id');
-        $blockCounts = $rounds->groupBy('block_id')->map(fn ($items) => $items->sum(fn ($round) => (int) ($roundCounts[$round->id] ?? 0)));
+        $clearing = app(\App\Services\Activity\BlockPreparationTimeline::class)->clearingForBlocks($actor, $team, collect($blocks->modelKeys()));
+        foreach ($blocks as $block) {
+            $block->setAttribute('land_clearing_started_at', $clearing[$block->id]['started_at'] ?? null);
+            $block->setAttribute('land_clearing_completed_at', $clearing[$block->id]['completed_at'] ?? null);
+        }
+        $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereNotNull('block_id');
+        $blockCounts = (clone $cycles)->selectRaw('block_id, COUNT(*) AS total')->groupBy('block_id')->pluck('total', 'block_id');
         $selected = $selected === null ? $blocks->first() : $blocks->firstWhere('id', $selected->id);
         $blockPayload = fn (FarmBlock $block): array => [
             ...$block->only(['id', 'code', 'name', 'area_ha', 'description', 'is_active']),
@@ -43,33 +45,32 @@ class PetugasGardenService
         ];
         $batches = $empty['batches'];
         if ($selected !== null) {
-            $roundNumbers = $rounds->pluck('round_number', 'id');
             $today = CarbonImmutable::today('Asia/Jakarta');
             $lastPage = max(1, (int) ceil(($blockCounts[$selected->id] ?? 0) / 6));
-            $batches = (clone $cycles)->whereIn('planting_round_id', $rounds->where('block_id', $selected->id)->modelKeys())
+            $batches = (clone $cycles)->where('block_id', $selected->id)
                 ->with(['stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')])
                 ->orderByRaw("CASE WHEN status IN ('planned', 'active') THEN 0 ELSE 1 END")
-                ->orderByDesc('batch_number')->orderBy('id')->paginate(6, ['*'], 'page', max(1, min($page, $lastPage)))->appends(['block' => $selected->id])
-                ->through(function (PlantingCycle $batch) use ($today, $roundNumbers): array {
-                    $stages = $batch->stages;
-                    $current = $stages->firstWhere('status', 'in_progress') ?? $stages->where('status', 'completed')->last();
+                ->orderByDesc('batch_number')->orderBy('id')->paginate(6, ['*'], 'page', max(1, min($page, $lastPage)))->appends(['block' => $selected->id]);
+            app(\App\Services\Activity\BlockPreparationTimeline::class)->apply($actor, $team, $batches->getCollection());
+            $batches = $batches->through(function (PlantingCycle $batch) use ($today): array {
+                $stages = $batch->stages;
+                $current = $stages->firstWhere('status', 'in_progress') ?? $stages->where('status', 'completed')->last();
 
-                    return [
-                        ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
-                        'round_number' => (int) $roundNumbers[$batch->planting_round_id],
-                        'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
-                        'planted_at' => $batch->planted_at?->toDateString(),
-                        'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
-                        'hst' => $batch->planted_at !== null && $batch->planted_at->lte($today) ? (int) $batch->planted_at->diffInDays($today) : null,
-                        'current_stage' => $current?->code,
-                        'stages' => $stages->map(fn ($stage) => $stage->only(['code', 'position', 'status']))->values()->all(),
-                    ];
-                });
+                return [
+                    ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
+                    'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
+                    'planted_at' => $batch->planted_at?->toDateString(),
+                    'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
+                    'hst' => $batch->planted_at !== null && $batch->planted_at->lte($today) ? (int) $batch->planted_at->diffInDays($today) : null,
+                    'current_stage' => $current?->code,
+                    'stages' => $stages->map(fn ($stage) => $stage->only(['code', 'position', 'status']))->values()->all(),
+                ];
+            });
         }
 
         return [
             'farm' => $farm->only(['id', 'name', 'land_tenure', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude']),
-            'summary' => ['blocks' => $blocks->count(), 'batches' => (int) $roundCounts->sum()],
+            'summary' => ['blocks' => $blocks->count(), 'batches' => (int) $blockCounts->sum()],
             'blocks' => $blocks->map($blockPayload)->all(),
             'selected_block' => $selected === null ? null : $blockPayload($selected),
             'batches' => $batches,

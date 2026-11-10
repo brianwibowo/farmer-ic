@@ -9,7 +9,6 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
-use App\Models\PlantingRound;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
@@ -88,7 +87,6 @@ class DemoPetugasTodoSeeder extends Seeder
             $gate->authorize('update', $version);
             $sops->publish($version, $actor);
             $gate->authorize('create', [PlantingCycle::class, $block]);
-            $gate->authorize('create', [PlantingRound::class, $block]);
             $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
                 'reserved_area_ha' => '0.2500', 'subblock_label' => 'SOP-DEMO', 'planned_planting_at' => $planted->toDateString(),
             ]);
@@ -110,7 +108,7 @@ class DemoPetugasTodoSeeder extends Seeder
                     'started_at' => $start->setTime(7, 0), 'completed_at' => $end?->setTime(16, 0)])->save();
             }
             $gate->authorize('create', [PlantingCycleTask::class, $batch]);
-            app(PlantingCycleTaskService::class)->generateForSubblok($batch);
+            app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor);
             $statuses = array_column($definitions, 'status', 'name');
             foreach (PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $batch->id)->get() as $task) {
                 $gate->authorize('update', $task);

@@ -18,6 +18,7 @@
         </include>
     </source>
     <php>
+        <ini name="memory_limit" value="1G"/>
         <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_CONFIG_CACHE" value="storage/framework/cache/phpunit-config.php" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>

@@ -106,12 +106,11 @@ class PetugasHomeTest extends TestCase
         $cancelled = $this->batch($this->farm, 'cancelled');
         $pending = $this->task($active);
         $running = $this->task($active, 'in_progress');
-        $this->task($planned, 'submitted');
+        $this->task($planned, 'pending');
         $this->task($harvested, 'completed');
         foreach (['2026-11-03', '2026-11-05', null] as $date) {
             $this->task($active, date: $date);
         }
-        $this->task($active, 'cancelled');
         $this->task($active, 'skipped');
         $this->task($cancelled);
         $unassigned = $this->farm('Kebun Tidak Ditugaskan', $this->team);
@@ -154,6 +153,18 @@ class PetugasHomeTest extends TestCase
         $this->get('/petugas?page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('home.tasks.total', 11)->where('home.tasks.current_page', 2)
             ->has('home.tasks.data', 1)->where('home.tasks.data.0.name', 'Pemeriksaan bedeng 11'));
+    }
+
+    public function test_home_uses_admin_rescheduled_date_instead_of_original_schedule(): void
+    {
+        $batch = $this->batch($this->farm, 'active');
+        $movedToToday = $this->task($batch, date: '2026-11-03');
+        $movedToToday->forceFill(['rescheduled_date' => '2026-11-04', 'reschedule_reason' => 'Kondisi lapangan', 'rescheduled_by' => $this->admin->id, 'rescheduled_at' => now(), 'due_date' => '2026-11-04'])->save();
+        $movedAway = $this->task($batch, date: '2026-11-04');
+        $movedAway->forceFill(['rescheduled_date' => '2026-11-05', 'reschedule_reason' => 'Kondisi lapangan', 'rescheduled_by' => $this->admin->id, 'rescheduled_at' => now(), 'due_date' => '2026-11-05'])->save();
+        $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('home.tasks.total', 1)->where('home.tasks.data.0.id', $movedToToday->id)
+            ->where('home.tasks.data.0.scheduled_date', '2026-11-04'));
     }
 
     public function test_home_without_an_assignment_has_an_honest_empty_state(): void

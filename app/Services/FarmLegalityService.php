@@ -149,8 +149,7 @@ class FarmLegalityService
                 foreach ($removed as $document) {
                     $document->delete();
                 }
-                /** @var list<string> $removedPaths */
-                $removedPaths = $removed->pluck('path')->all();
+                $removedPaths = array_values($removed->map(fn (FarmLegalityDocument $document): string => $document->path)->all());
                 $this->cleanupAfterCommit($removedPaths);
 
                 return $legality;
@@ -168,8 +167,7 @@ class FarmLegalityService
             $legality = FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereKey($legality->id)->lockForUpdate()->firstOrFail();
             $documents = $this->documents($actor, $team, $legality);
             $this->assertCompleteDocuments($legality, $documents);
-            /** @var list<string> $paths */
-            $paths = $documents->pluck('path')->all();
+            $paths = array_values($documents->map(fn (FarmLegalityDocument $document): string => $document->path)->all());
             $legality->delete();
             $this->cleanupAfterCommit($paths);
         });

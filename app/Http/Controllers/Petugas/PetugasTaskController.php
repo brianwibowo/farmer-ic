@@ -3,122 +3,91 @@
 namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
-use Carbon\CarbonImmutable;
+use App\Http\Requests\Petugas\CompleteTaskRequest;
+use App\Models\ActivityType;
+use App\Models\Farm;
+use App\Models\FarmActivity;
+use App\Models\PlantingCycleTask;
+use App\Services\Activity\ActivitySequenceService;
+use App\Services\PetugasTaskReadService;
+use App\Services\PlantingCycleTaskManagementService;
+use App\Support\TaskActivityFields;
+use App\Support\VoluntaryActivityFields;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/**
- * Temporary contract stub. Replace fixtureTasks() with planting_cycle_tasks
- * queries once the subblok task execution layer exists.
- */
 class PetugasTaskController extends Controller
 {
+    public function __construct(private readonly PetugasTaskReadService $tasks, private readonly ActivitySequenceService $sequence) {}
+
     public function index(Request $request): Response
     {
-        $status = (string) $request->query('status', 'all');
-        if (! in_array($status, ['all', 'overdue', 'today', 'upcoming', 'completed'], true)) {
+        $farm = $request->user()->assignedFarm;
+        $status = $request->query('status', 'all');
+        if (! is_string($status) || ! in_array($status, ['all', 'overdue', 'today', 'upcoming', 'completed'], true)) {
             $status = 'all';
         }
+        if (! $farm instanceof Farm) {
+            return Inertia::render('petugas/Aktivitas', [
+                'tasks' => [], 'filters' => ['status' => $status], 'farm' => null,
+                'summary' => ['overdue' => 0, 'today' => 0, 'upcoming' => 0, 'completed' => 0], 'defaultSopMissing' => true, 'categories' => [],
+            ]);
+        }
+        Gate::authorize('view', $farm);
+        Gate::authorize('viewAny', [PlantingCycleTask::class, $farm->team]);
+        $data = $this->tasks->listing($request->user(), $farm, $status);
+        $data['tasks'] = array_map(function (array $task) use ($request, $farm): array {
+            $model = PlantingCycleTask::visibleTo($request->user(), $farm->team)->whereKey($task['id'])->firstOrFail();
+            $reason = $this->sequence->blockedReason($request->user(), $model->plantingCycle, TaskActivityFields::activityCode($model) ?? '');
+            $open = in_array($task['status'], ['pending', 'in_progress'], true) && $task['subblok']['planted_at'] !== null;
 
-        return Inertia::render('petugas/Tasks', [
-            'tasks' => $this->fixtureTasks(),
-            'filters' => ['status' => $status],
-            'isFixture' => true,
+            return [...$task, 'can' => [
+                'record' => $open && $reason === null && Gate::allows('recordTask', [FarmActivity::class, $model]),
+                'complete' => $open && $task['linked_activities_count'] > 0 && Gate::allows('complete', $model),
+            ]];
+        }, $data['tasks']);
+
+        return Inertia::render('petugas/Aktivitas', [
+            ...$data, 'filters' => ['status' => $status], 'farm' => $farm->only(['id', 'name']),
+            'defaultSopMissing' => $farm->getAttribute('default_sop_template_id') === null,
+            'categories' => ActivityType::visibleTo($request->user(), $farm->team)->with(['parent' => fn ($query) => $query->visibleTo($request->user(), $farm->team)])->where('is_active', true)->where('is_selectable', true)->where('code', '!=', 'block_mapping')->orderBy('sort_order')->get()
+                ->filter(fn ($type) => $type->code === 'planting' ? Gate::allows('create', [FarmActivity::class, $farm]) : Gate::allows('recordVoluntary', [FarmActivity::class, $farm, $type]))
+                ->map(fn ($type) => [...$type->only(['id', 'code', 'name', 'parent_id']), 'group' => $type->parent?->name])->values()->all(),
         ]);
     }
 
-    /** @return list<array<string, mixed>> */
-    private function fixtureTasks(): array
+    public function show(Request $request, PlantingCycleTask $task): Response
     {
-        $today = CarbonImmutable::today()->toDateString();
-        $yesterday = CarbonImmutable::yesterday()->toDateString();
-        $tomorrow = CarbonImmutable::tomorrow()->toDateString();
-        $nextWeek = CarbonImmutable::today()->addDays(7)->toDateString();
-        $plantedAt = CarbonImmutable::today()->subDays(21)->toDateString();
+        Gate::authorize('view', $task);
+        abort_unless($task->plantingCycle->farm_id === $request->user()->assigned_farm_id, 403);
 
-        return [
-            [
-                'id' => 'fixture-task-overdue',
-                'name' => 'Pemupukan susulan pertama',
-                'instructions' => 'Aplikasikan NPK sesuai dosis anjuran. Hindari kontak langsung dengan batang.',
-                'status' => 'pending',
-                'urgency' => 'overdue',
-                'activity_category' => 'maintenance',
-                'activity_subcategory' => 'follow_up_fertilization',
-                'offset_days' => 14,
-                'scheduled_date' => $yesterday,
-                'due_date' => $today,
-                'is_required' => true,
-                'linked_activities_count' => 0,
-                'latest_submission' => null,
-                'can' => ['start' => true, 'submit' => false],
-                'subblok' => [
-                    'id' => 'fixture-subblok-1',
-                    'number' => 1,
-                    'label' => 'A1',
-                    'planned_planting_at' => $plantedAt,
-                    'planted_at' => $plantedAt,
-                    'hst' => 21,
-                    'farm' => ['id' => 'fixture-farm', 'name' => 'Kebun Cileuksa'],
-                    'block' => ['id' => 'fixture-block', 'name' => 'Blok Utara'],
-                    'variety' => ['id' => 'fixture-variety', 'name' => 'Bisi 18'],
-                ],
-            ],
-            [
-                'id' => 'fixture-task-today',
-                'name' => 'Pengairan awal',
-                'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.',
-                'status' => 'in_progress',
-                'urgency' => 'today',
-                'activity_category' => 'maintenance',
-                'activity_subcategory' => 'irrigation',
-                'offset_days' => 21,
-                'scheduled_date' => $today,
-                'due_date' => $tomorrow,
-                'is_required' => true,
-                'linked_activities_count' => 1,
-                'latest_submission' => null,
-                'can' => ['start' => true, 'submit' => true],
-                'subblok' => [
-                    'id' => 'fixture-subblok-1',
-                    'number' => 1,
-                    'label' => 'A1',
-                    'planned_planting_at' => $plantedAt,
-                    'planted_at' => $plantedAt,
-                    'hst' => 21,
-                    'farm' => ['id' => 'fixture-farm', 'name' => 'Kebun Cileuksa'],
-                    'block' => ['id' => 'fixture-block', 'name' => 'Blok Utara'],
-                    'variety' => ['id' => 'fixture-variety', 'name' => 'Bisi 18'],
-                ],
-            ],
-            [
-                'id' => 'fixture-task-upcoming',
-                'name' => 'Pengendalian hama dan penyakit',
-                'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.',
-                'status' => 'pending',
-                'urgency' => 'upcoming',
-                'activity_category' => 'maintenance',
-                'activity_subcategory' => 'pest_control',
-                'offset_days' => 30,
-                'scheduled_date' => $nextWeek,
-                'due_date' => CarbonImmutable::today()->addDays(9)->toDateString(),
-                'is_required' => true,
-                'linked_activities_count' => 0,
-                'latest_submission' => null,
-                'can' => ['start' => true, 'submit' => false],
-                'subblok' => [
-                    'id' => 'fixture-subblok-1',
-                    'number' => 1,
-                    'label' => 'A1',
-                    'planned_planting_at' => $plantedAt,
-                    'planted_at' => $plantedAt,
-                    'hst' => 21,
-                    'farm' => ['id' => 'fixture-farm', 'name' => 'Kebun Cileuksa'],
-                    'block' => ['id' => 'fixture-block', 'name' => 'Blok Utara'],
-                    'variety' => ['id' => 'fixture-variety', 'name' => 'Bisi 18'],
-                ],
-            ],
-        ];
+        $detail = $this->tasks->detail($request->user(), $task);
+        $blockedReason = $this->sequence->blockedReason($request->user(), $task->plantingCycle, TaskActivityFields::activityCode($task) ?? '');
+        $open = in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null;
+        $detail['can']['record'] = $open && $blockedReason === null && Gate::allows('recordTask', [FarmActivity::class, $task]);
+        $detail['can']['complete'] = $open && $detail['linked_activities_count'] > 0 && Gate::allows('complete', $task);
+
+        return Inertia::render('petugas/TaskShow', [
+            'task' => $detail,
+            'reports' => $this->tasks->reports($request->user(), $task),
+            'fields' => collect([...TaskActivityFields::forTask($task), ...VoluntaryActivityFields::forCode(TaskActivityFields::activityCode($task) ?? '')])->unique('key')->values()->all(),
+            'canRecord' => $detail['can']['record'],
+            'blockedReason' => $blockedReason,
+        ]);
+    }
+
+    public function complete(CompleteTaskRequest $request, PlantingCycleTask $task, PlantingCycleTaskManagementService $tasks): RedirectResponse
+    {
+        Gate::authorize('view', $task);
+        abort_unless($task->plantingCycle->farm_id === $request->user()->assigned_farm_id, 403);
+        Gate::authorize('complete', $task);
+        $note = $request->validated('note');
+        $tasks->complete($task, $request->user(), is_string($note) ? $note : null);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Tugas ditandai selesai.']);
+
+        return to_route('petugas.tasks.show', $task);
     }
 }

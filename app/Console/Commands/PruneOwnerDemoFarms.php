@@ -139,7 +139,6 @@ class PruneOwnerDemoFarms extends Command
     private function deleteFarmAndOperationalRecords(string $farmId): void
     {
         $cycleIds = DB::table('planting_cycles')->where('farm_id', $farmId)->pluck('id')->all();
-        $blockIds = DB::table('farm_blocks')->where('farm_id', $farmId)->pluck('id')->all();
 
         // Remove restrictive children before their parent rows. Activity detail
         // tables and photos cascade from farm_activities; weather cascades from farms.
@@ -153,7 +152,6 @@ class PruneOwnerDemoFarms extends Command
         DB::table('farm_activities')->where('farm_id', $farmId)->delete();
         DB::table('daily_activity_logs')->where('farm_id', $farmId)->delete();
         DB::table('planting_cycles')->where('farm_id', $farmId)->delete();
-        DB::table('planting_rounds')->whereIn('block_id', $blockIds)->delete();
         DB::table('farm_blocks')->where('farm_id', $farmId)->delete();
 
         $farm = Farm::query()->whereKey($farmId)->firstOrFail();

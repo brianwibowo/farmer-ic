@@ -159,16 +159,17 @@ Table planting_cycles {
   estimated_weight_ton decimal(14,3)
   status varchar(30) [not null, note: 'planned | active | harvested | cancelled']
   created_at timestamptz [not null]
-  planting_round_id uuid [ref: > planting_rounds.id]
   batch_number int
   subblock_label varchar(30)
   reserved_area_ha decimal(12,4)
   created_by uuid [ref: > users.id]
   planned_planting_at date [note: 'Rencana tanggal tanam; acuan HST untuk jadwal tugas sebelum realisasi tanam']
   sop_template_version_id uuid [ref: > sop_template_versions.id, note: 'Snapshot versi SOP yang dipakai subblok ini']
+  planting_started_on date [note: 'Tanggal tanam pertama pada window tiga hari; acuan audit rekonsiliasi']
+  planting_window_checked_at timestamptz [note: 'Waktu command rekonsiliasi menutup window penanaman']
+  block_id uuid [ref: > farm_blocks.id, note: 'Direct block ownership; null only for legacy cycles']
   indexes {
     (farm_id, batch_number) [unique]
-    (planting_round_id, subblock_label) [unique]
   }
   Note: 'Satu kebun dapat memiliki banyak siklus tanam.'
 }
@@ -186,20 +187,11 @@ Table farm_blocks {
   land_clearing_completed_at timestamptz
   created_at timestamptz
   updated_at timestamptz
-  indexes { (farm_id, code) [unique] }
+  indexes {
+    (farm_id, code) [unique]
+    (id, farm_id) [unique]
+  }
   Note: 'Active block areas fit within the farm. First batch automatically completes Land Clearing. Historical blocks are deactivated rather than deleted.'
-}
-
-Table planting_rounds {
-  id uuid [pk]
-  block_id uuid [not null, ref: > farm_blocks.id]
-  round_number int [not null]
-  status varchar(30) [not null, default: 'active']
-  created_by uuid [not null, ref: > users.id]
-  created_at timestamptz
-  updated_at timestamptz
-  indexes { (block_id, round_number) [unique] }
-  Note: 'At most one active round per block. New rounds begin after all previous batches are terminal.'
 }
 
 Table planting_cycle_stages {
@@ -225,7 +217,7 @@ Table planting_cycle_tasks {
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
   planting_cycle_stage_id uuid [not null, note: 'Composite FK to a stage of the same subblok']
   sop_template_task_id uuid [ref: > sop_template_tasks.id]
-  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest']
+  activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not a task']
   activity_subcategory varchar(50) [note: 'Wajib untuk maintenance']
   name varchar(200) [not null]
   instructions text
@@ -234,15 +226,23 @@ Table planting_cycle_tasks {
   scheduled_date date [note: 'Null when the subblok has no planted_at or planned_planting_at']
   due_date date
   is_required boolean [not null, default: true]
-  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | submitted | completed | skipped | cancelled']
+  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | completed | skipped; skipped means deliberately not done']
   completed_at timestamptz
   skip_reason text
   created_at timestamptz
   updated_at timestamptz
+  rescheduled_date date [note: 'Admin override; original scheduled_date remains the SOP/HST target']
+  reschedule_reason text
+  rescheduled_by uuid [ref: > users.id]
+  rescheduled_at timestamptz
+  completed_by uuid [ref: > users.id]
+  completion_note text
   indexes {
     (planting_cycle_id, sop_template_task_id) [unique]
+    (id, planting_cycle_id) [unique]
     (planting_cycle_id, scheduled_date, status)
     (planting_cycle_id, offset_days)
+    completed_by
   }
   Note: 'Snapshot of follow-up SOP tasks for one subblok. Planting steps are not materialized; planting is the HST anchor. Generated once per subblok + SOP version. Existing snapshots survive later SOP changes.'
 }
@@ -294,21 +294,30 @@ Table sop_template_tasks {
   is_required boolean [not null, default: true]
   created_at timestamptz
   updated_at timestamptz
-  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; SOP starts at planting']
+  activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not an SOP step']
   activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
   indexes {
     (sop_template_version_id, offset_days)
     (sop_template_version_id, activity_category)
     (sop_template_version_id, activity_subcategory)
   }
-  Note: 'One row is one SOP step at one relative day. Ordered by offset_days, then category, creation time, and id. Category and subcategory follow the activity form taxonomy; stage is derived from the category at execution time.'
+  Note: 'One row is one follow-up SOP step at one relative day. Ordered by offset_days, then category, creation time, and id. Planting is recorded by the planting activity and is not an SOP step.'
 }
 
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'planting, fertilization, irrigation, growth_check, pesticide, incident, harvest, block_mapping, land_cleaning, soil_preparation']
+  code varchar(50) [not null, unique, note: 'kategori dan subkategori aktivitas']
   name varchar(100) [not null]
   description text
+  parent_id uuid [ref: > activity_types.id, note: 'Null untuk kategori root; parent untuk subkategori']
+  detail_key varchar(50) [note: 'Menentukan detail table; null jika detail belum tersedia']
+  is_selectable boolean [not null, default: true, note: 'False untuk parent kategori dan block_mapping']
+  sort_order smallint [not null, default: 0]
+  is_active boolean [not null, default: true]
+  indexes {
+    parent_id
+  }
+  Note: 'Self-referencing taxonomy. Category = root, subcategory = child. Farm activities point to the most specific selectable row.'
 }
 
 Table farm_activities {
@@ -328,27 +337,34 @@ Table farm_activities {
   obstacles text
   proposed_solution text
   action_taken text
-  Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Tipe aktivitas menentukan satu detail yang tepat.'
+  planting_cycle_task_id uuid [note: 'Composite FK with planting_cycle_id; nullable for non-task activities']
+  task_details jsonb [note: 'Validated task-specific measurements; required for task-linked reports. Weeding uses these details; other types also retain their existing typed detail.']
+  worker_count int [note: 'Jumlah pekerja untuk aktivitas ini; nullable untuk data lama']
+  block_id uuid [note: 'Nullable for farm-wide or unidentifiable legacy activities; derived from the cycle when present']
+  Note: 'Block belongs to farm; when both block and cycle are present they must agree. Tipe aktivitas menentukan satu detail yang tepat; task-linked weeding uses task_details instead.'
 }
 
 Table daily_activity_logs {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
-  recorded_by uuid [not null, ref: > users.id]
+  recorded_by uuid [not null, ref: > users.id, note: 'Pembuat pertama header bersama; pelaksana tiap aktivitas ada di farm_activities.performed_by']
   work_date date [not null]
   start_time time [not null]
-  end_time time [not null]
-  worker_count int [not null]
+  end_time time
   notes text
   created_at timestamptz [not null]
   updated_at timestamptz
 
   indexes {
     (id, farm_id) [unique]
+    (farm_id, work_date) [unique]
   }
+  Note: 'Satu header bersama per kebun per tanggal. Jam mulai wajib; jam selesai boleh menyusul. Jumlah pekerja disimpan per aktivitas dan menambah aktivitas tidak menimpa header.'
 }
 
 Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id, farm_id)
+Ref: farm_activities.(planting_cycle_task_id, planting_cycle_id) > planting_cycle_tasks.(id, planting_cycle_id)
+Ref: farm_activities.(block_id, farm_id) > farm_blocks.(id, farm_id)
 
 Table block_mapping_details {
   activity_id uuid [pk, ref: > farm_activities.id]
@@ -387,6 +403,10 @@ Table fertilization_details {
   subsidy_status varchar(30)
   application_method varchar(150)
   quantity_kg decimal(12,3)
+  area_ha decimal(12,4)
+  quantity_unit varchar(20)
+  sack_size_kg decimal(10,3)
+  Note: 'Dipakai untuk pemupukan susulan dan pemupukan dasar; fertilization_stage membedakan dasar/susulan.'
 }
 
 Table irrigation_details {
@@ -424,6 +444,57 @@ Table harvest_details {
   color varchar(100)
   ripeness varchar(150)
   cleanliness varchar(150)
+}
+
+Table land_cleaning_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4)
+  method varchar(50)
+  product_name varchar(150)
+  dosage_per_tank varchar(100)
+  water_liters decimal(8,2)
+  tank_count int
+}
+
+Table loosening_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4)
+  method varchar(50)
+  depth_cm decimal(8,2)
+}
+
+Table weeding_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4)
+  method varchar(50)
+  depth_cm decimal(8,2)
+}
+
+Table bed_preparation_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  bed_count int
+  length_m decimal(10,3)
+  width_m decimal(10,3)
+  height_cm decimal(8,2)
+  bed_spacing_cm decimal(8,2)
+  area_ha decimal(12,4)
+}
+
+Table liming_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  area_ha decimal(12,4)
+  material_type varchar(100)
+  brand_name varchar(150)
+  quantity_value decimal(14,3)
+  quantity_unit varchar(20)
+  sack_size_kg decimal(10,3)
+  application_method varchar(150)
+}
+
+Table other_details {
+  activity_id uuid [pk, ref: > farm_activities.id]
+  description text
+  area_ha decimal(12,4)
 }
 
 Table plant_observations {

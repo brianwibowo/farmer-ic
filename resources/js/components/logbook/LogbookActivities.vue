@@ -40,19 +40,27 @@ const number = (value: string | number | null, unit = '') =>
                         class="mt-1 flex items-center gap-2 text-base font-semibold"
                     >
                         <Ruler class="size-4 text-primary" />{{
-                            activity.block_mapping?.block_name ??
+                            activity.name ??
                             'Rincian kegiatan'
                         }}
                     </h3>
+                    <p v-if="activity.block_name || activity.block_mapping?.block_name" class="mt-1 text-sm text-muted-foreground">
+                        Blok: {{ activity.block_name ?? activity.block_mapping?.block_name }}
+                    </p>
                 </div>
-                <span
-                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
-                    :class="
-                        activity.obstacle_status === 'reported'
-                            ? 'bg-warning/10 text-warning'
-                            : 'bg-muted text-muted-foreground'
-                    "
-                    ><TriangleAlert
+                <div class="flex flex-wrap items-center gap-2">
+                    <span
+                        class="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+                        >{{ activity.worker_count ?? '-' }} pekerja</span
+                    >
+                    <span
+                        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
+                        :class="
+                            activity.obstacle_status === 'reported'
+                                ? 'bg-warning/10 text-warning'
+                                : 'bg-muted text-muted-foreground'
+                        "
+                        ><TriangleAlert
                         v-if="activity.obstacle_status === 'reported'"
                         class="size-3.5"
                     />{{
@@ -62,7 +70,8 @@ const number = (value: string | number | null, unit = '') =>
                               ? 'Tidak ada kendala'
                               : 'Kendala belum dicatat'
                     }}</span
-                >
+                    >
+                </div>
             </header>
             <dl
                 v-if="activity.block_mapping"

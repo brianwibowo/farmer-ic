@@ -17,12 +17,14 @@ export type OwnerActivityRow = {
     status: string | null;
     activity_date: string;
     farm: OwnerOption | null;
+    block_name: string | null;
     performer: OwnerOption | null;
     type: { code: string; name: string } | null;
     cycle: { id: string; label: string } | null;
 };
 
 export type OwnerActivityDetail = OwnerActivityRow & {
+    worker_count: number | null;
     photos: Array<{
         id: string;
         image_url: string;
@@ -34,8 +36,7 @@ export type OwnerActivityDetail = OwnerActivityRow & {
         id: string;
         work_date: string;
         start_time: string;
-        end_time: string;
-        worker_count: number;
+        end_time: string | null;
         notes: string | null;
     } | null;
     obstacle_status: string | null;

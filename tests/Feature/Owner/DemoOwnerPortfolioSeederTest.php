@@ -36,9 +36,9 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->seed([
             DemoIdentitySeeder::class,
             DemoFarmSeeder::class,
-            DemoActivitySeeder::class,
             SopActivityTypeSeeder::class,
             DemoSopSeeder::class,
+            DemoActivitySeeder::class,
             DemoMonitoringSeeder::class,
         ]);
     }
@@ -57,7 +57,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
     private function recordIds(): array
     {
         $snapshot = [];
-        foreach (['farms', 'farm_blocks', 'planting_rounds', 'planting_cycles', 'planting_cycle_stages',
+        foreach (['farms', 'farm_blocks', 'planting_cycles', 'planting_cycle_stages',
             'sop_templates', 'sop_template_versions', 'sop_template_tasks', 'planting_cycle_tasks',
             'farm_activities', 'planting_details', 'fertilization_details', 'irrigation_details',
             'pesticide_details', 'harvest_details', 'plant_observations', 'farm_risks',
@@ -107,7 +107,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             ->where('landTable.total_area_ha', '597.0000')->has('landTable.rows', 7)
             ->has('dashboard.landMap.farms', 7)->has('dashboard.commodities', 3)
             ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('areaValue', 'name')->sortKeys()->all() == [
-                'Jagung' => 13.75, 'Rumput' => 7.0, 'Sorgum' => 3,
+                'Jagung' => 18.0, 'Rumput' => 7.0, 'Sorgum' => 3.0,
             ])
             ->has('landTable.groups', 2)
             ->where('landTable.groups.0.name', 'Kabupaten Bogor')
@@ -124,8 +124,8 @@ class DemoOwnerPortfolioSeederTest extends TestCase
                 ->where('farm.default_sop.is_active', true)->has('blocks', 2)
                 ->has('legacyCycles', 0)->where('weather', fn ($weather) => $weather !== null));
 
-            $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->with('plantingRound.block')->firstOrFail();
-            $block = $cycle->plantingRound->block;
+            $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->with('block')->firstOrFail();
+            $block = $cycle->block;
             $this->get('/kebun/'.$farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component('owner/Block')->where('block.id', $block->id)
                 ->where('cycles', fn ($rows) => collect($rows)->isNotEmpty() && collect($rows)->every(
@@ -149,8 +149,8 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             $this->assertNotNull($batch->sop_template_version_id);
         }
         $detailTypes = [
-            'planting' => 'plantingDetail', 'fertilization' => 'fertilizationDetail',
-            'irrigation' => 'irrigationDetail', 'pesticide' => 'pesticideDetail',
+            'planting' => 'plantingDetail', 'follow_up_fertilization' => 'fertilizationDetail',
+            'irrigation' => 'irrigationDetail', 'pest_control' => 'pesticideDetail',
             'harvest' => 'harvestDetail', 'growth_check' => 'observation',
         ];
         $activities = FarmActivity::query()->whereIn('farm_id', $farmIds)

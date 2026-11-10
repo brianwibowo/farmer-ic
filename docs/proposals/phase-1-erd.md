@@ -1,5 +1,11 @@
 # Usulan ERD lengkap phase 1 pertanian
 
+> **Catatan historis:** dokumen ini adalah usulan awal. Sejak
+> `2026_11_09_000001_remove_planting_rounds.php`, tabel `planting_rounds`
+> dihapus dan `planting_cycles.block_id` menjadi relasi langsung ke blok.
+> Schema aktif ada di `database/schema.dbml`; referensi periode di bawah tidak
+> lagi menggambarkan implementasi saat ini.
+
 Tanggal rancangan dan penyelarasan RBAC: 29 Oktober 2026. Status: **draft
 implementasi phase 1**. Subset master blok dan batch persiapan telah dibuat pada
 30 Oktober 2026; lihat [backend blok](../farm-block-backend.md) untuk cakupan,

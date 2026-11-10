@@ -3,7 +3,6 @@
 // A real second PHP/PostgreSQL connection for the concurrency integration test.
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
-use App\Models\PlantingRound;
 use App\Models\User;
 use App\Services\FarmBlockService;
 use Illuminate\Contracts\Console\Kernel;
@@ -23,7 +22,6 @@ DB::select("SELECT set_config('application_name', ?, false)", [$argv[3]]);
 $actor = User::findOrFail($argv[1]);
 $block = FarmBlock::visibleTo($actor, $actor->currentTeam)->findOrFail($argv[2]);
 Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
-Gate::forUser($actor)->authorize('create', [PlantingRound::class, $block]);
 try {
     app(FarmBlockService::class)->createBatch($block, $actor, $block->farm->team, ['reserved_area_ha' => '2.0000']);
     echo 'created';

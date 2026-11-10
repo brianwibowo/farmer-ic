@@ -115,12 +115,8 @@ const progressSummary = computed(() => {
             class="text-xs leading-relaxed text-muted-foreground"
         >
             Pembersihan lahan
-            {{ block.land_clearing_completed_at ? 'selesai' : 'berlangsung' }} ·
-            Mulai {{ blockDate(block.land_clearing_started_at)
-            }}<span v-if="block.land_clearing_completed_at">
-                · Selesai
-                {{ blockDate(block.land_clearing_completed_at) }}</span
-            >
+            {{ block.land_clearing_completed_at ? 'selesai' : 'belum dimulai' }}<span v-if="block.land_clearing_completed_at">
+                · Dilaporkan {{ blockDate(block.land_clearing_completed_at) }}</span>
         </p>
         <ul
             v-if="!expanded && progressSummary.length"
@@ -159,14 +155,8 @@ const progressSummary = computed(() => {
                             Sub blok {{ block.code }}{{ batch.subblock_label }}
                         </h5>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            Batch {{ batch.batch_number }} · Periode
-                            {{
-                                block.rounds.find(
-                                    (round) =>
-                                        round.id === batch.planting_round_id,
-                                )?.round_number
-                            }}
-                            · {{ statusLabels[batch.status] ?? batch.status }}
+                            Batch {{ batch.batch_number }} ·
+                            {{ statusLabels[batch.status] ?? batch.status }}
                         </p>
                     </div>
                     <Button

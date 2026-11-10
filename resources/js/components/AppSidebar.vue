@@ -6,10 +6,13 @@ import {
     FolderGit2,
     LandPlot,
     LayoutGrid,
+    ListChecks,
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
+    Sprout,
     Users,
+    Wheat,
     X,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -88,9 +91,29 @@ const mainNavItems = computed<NavItem[]>(() => [
     ...(page.props.navigation?.admin
         ? [
               {
+                  title: 'Transaksi Penanaman',
+                  href: '/admin/transaksi-penanaman',
+                  icon: Sprout,
+                  isActive: isCurrentOrParentUrl(
+                      '/admin/transaksi-penanaman',
+                  ),
+              },
+              {
+                  title: 'Transaksi Panen',
+                  href: '/admin/transaksi-panen',
+                  icon: Wheat,
+                  isActive: isCurrentOrParentUrl('/admin/transaksi-panen'),
+              },
+              {
                   title: 'SOP',
                   href: '/admin/sops',
                   icon: ClipboardList,
+              },
+              {
+                  title: 'Tugas',
+                  href: '/admin/tasks',
+                  icon: ListChecks,
+                  isActive: isCurrentOrParentUrl('/admin/tasks'),
               },
           ]
         : []),

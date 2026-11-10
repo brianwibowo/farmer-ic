@@ -27,7 +27,7 @@ class SaveFarmLegalityRequest extends FormRequest
                 : Gate::allows('create', [FarmLegality::class, $farm]));
     }
 
-    /** @return array<string, array<mixed>> */
+    /** @return array<string, array<int, mixed>> */
     public function rules(): array
     {
         $farm = $this->route('farm');

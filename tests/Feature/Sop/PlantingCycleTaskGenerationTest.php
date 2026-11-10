@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\FarmBlockService;
 use App\Services\PlantingCycleTaskService;
 use App\Services\SopTemplateService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -73,7 +74,6 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $version = $template->versions()->firstOrFail();
 
         foreach ([
-            ['activity_category' => 'planting', 'activity_subcategory' => null, 'name' => 'Tanam benih', 'offset_days' => 0, 'tolerance_days' => 2],
             ['activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan awal', 'offset_days' => 7, 'tolerance_days' => 2],
             ['activity_category' => 'harvest', 'activity_subcategory' => null, 'name' => 'Panen', 'offset_days' => 90, 'tolerance_days' => 5],
         ] as $task) {
@@ -109,7 +109,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->useDefaultSop($template);
         $subblok = $this->subblok();
 
-        $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok);
+        $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
 
         $this->assertSame('generated', $result['status']);
         $this->assertSame(2, $result['created']);
@@ -134,15 +134,38 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertSame('harvest', $harvest->stage->code);
     }
 
+    public function test_planting_cannot_be_persisted_as_a_cycle_task(): void
+    {
+        $subblok = $this->subblok();
+        $stage = $subblok->stages()->where('code', 'planting')->firstOrFail();
+
+        $this->expectException(QueryException::class);
+
+        PlantingCycleTask::query()->create([
+            'planting_cycle_id' => $subblok->id,
+            'planting_cycle_stage_id' => $stage->id,
+            'activity_category' => 'planting',
+            'activity_subcategory' => null,
+            'name' => 'Tanam benih',
+            'instructions' => null,
+            'offset_days' => 0,
+            'tolerance_days' => 2,
+            'scheduled_date' => '2026-11-05',
+            'due_date' => '2026-11-07',
+            'is_required' => true,
+            'status' => 'pending',
+        ]);
+    }
+
     public function test_generation_is_idempotent_and_reschedules_only_pending_tasks(): void
     {
         $template = $this->publishedSop();
         $this->useDefaultSop($template);
         $subblok = $this->subblok();
         $service = app(PlantingCycleTaskService::class);
-        $service->generateForSubblok($subblok);
+        $service->generateForSubblok($subblok, $this->admin);
 
-        $second = $service->generateForSubblok($subblok);
+        $second = $service->generateForSubblok($subblok, $this->admin);
         $this->assertSame('already_generated', $second['status']);
         $this->assertSame(0, $second['created']);
         $this->assertSame(2, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->count());
@@ -157,7 +180,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         ])->save();
 
         $subblok->forceFill(['planted_at' => '2026-11-08'])->save();
-        $third = $service->generateForSubblok($subblok);
+        $third = $service->generateForSubblok($subblok, $this->admin);
 
         $this->assertSame('already_generated', $third['status']);
         $this->assertSame(1, $third['rescheduled']);
@@ -170,19 +193,18 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertSame('2027-02-06', $harvest->scheduled_date->toDateString());
     }
 
-    public function test_generates_tasks_without_dates_when_the_subblok_has_no_anchor(): void
+    public function test_defers_generation_when_the_subblok_has_no_anchor(): void
     {
         $template = $this->publishedSop();
         $this->useDefaultSop($template);
         $subblok = $this->subblok(null);
 
-        $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok);
+        $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
 
-        $this->assertSame('generated', $result['status']);
-        $this->assertSame(2, $result['created']);
+        $this->assertSame('missing_anchor', $result['status']);
+        $this->assertSame(0, $result['created']);
         $this->assertSame(0, PlantingCycleTask::query()
             ->where('planting_cycle_id', $subblok->id)
-            ->whereNotNull('scheduled_date')
             ->count());
     }
 
@@ -191,7 +213,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $subblok = $this->subblok();
         $service = app(PlantingCycleTaskService::class);
 
-        $this->assertSame('missing_sop', $service->generateForSubblok($subblok)['status']);
+        $this->assertSame('missing_sop', $service->generateForSubblok($subblok, $this->admin)['status']);
         $this->assertSame(0, PlantingCycleTask::query()->count());
 
         $draft = app(SopTemplateService::class)->create($this->admin, $this->team, [
@@ -202,7 +224,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         ]);
         $this->useDefaultSop($draft);
 
-        $this->assertSame('missing_published_version', $service->generateForSubblok($subblok)['status']);
+        $this->assertSame('missing_published_version', $service->generateForSubblok($subblok, $this->admin)['status']);
         $this->assertSame(0, PlantingCycleTask::query()->count());
     }
 
@@ -213,7 +235,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->farm->forceFill(['default_sop_template_id' => $foreign->id])->save();
         $subblok = $this->subblok();
 
-        $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok);
+        $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
 
         $this->assertSame('invalid_sop_tenant', $result['status']);
         $this->assertSame(0, PlantingCycleTask::query()->count());
@@ -225,7 +247,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->useDefaultSop($first);
         $subblok = $this->subblok();
         $service = app(PlantingCycleTaskService::class);
-        $service->generateForSubblok($subblok);
+        $service->generateForSubblok($subblok, $this->admin);
 
         $second = app(SopTemplateService::class)->create($this->admin, $this->team, [
             'commodity_id' => $this->commodity->id,
@@ -235,9 +257,9 @@ class PlantingCycleTaskGenerationTest extends TestCase
         ]);
         $version = $second->versions()->firstOrFail();
         app(SopTemplateService::class)->createTask($version, [
-            'activity_category' => 'planting',
+            'activity_category' => 'harvest',
             'activity_subcategory' => null,
-            'name' => 'Tanam versi baru',
+            'name' => 'Panen versi baru',
             'instructions' => null,
             'offset_days' => 0,
             'tolerance_days' => 1,
@@ -246,7 +268,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         app(SopTemplateService::class)->publish($version, $this->admin);
         $this->useDefaultSop($second);
 
-        $result = $service->generateForSubblok($subblok);
+        $result = $service->generateForSubblok($subblok, $this->admin);
 
         $this->assertSame('already_generated', $result['status']);
         $this->assertCount(2, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->get());

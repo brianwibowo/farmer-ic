@@ -25,6 +25,8 @@ const isSectionIndex = computed(() =>
         'users/Index',
         'sops/Index',
         'logbook/Index',
+        'planting-transactions/Index',
+        'harvest-transactions/Index',
         'notifications/Index',
     ].includes(page.component),
 );

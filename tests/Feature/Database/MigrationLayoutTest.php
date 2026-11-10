@@ -12,10 +12,16 @@ class MigrationLayoutTest extends TestCase
         $this->assertNotEmpty($files);
         $this->assertSame([], glob(database_path('migrations/*'), GLOB_ONLYDIR));
         $tables = [];
+        $dropped = [];
         foreach ($files as $file) {
-            preg_match_all("/Schema::create\('([^']+)'/", file_get_contents($file), $matches);
+            $contents = file_get_contents($file);
+            $up = preg_split('/public function down\(\): void/', $contents)[0] ?? $contents;
+            preg_match_all("/Schema::create\('([^']+)'/", $up, $matches);
             array_push($tables, ...$matches[1]);
+            preg_match_all("/Schema::drop(?:IfExists)?\('([^']+)'/", $up, $matches);
+            array_push($dropped, ...$matches[1]);
         }
+        $tables = array_values(array_diff($tables, $dropped));
         $this->assertCount(count($tables), array_unique($tables), 'A table must have exactly one create migration.');
         $phoneMigration = file_get_contents(database_path('migrations/2026_10_31_000001_add_phone_number_to_users.php'));
         $this->assertStringContainsString("\$table->string('phone_number', 15)->nullable()", $phoneMigration);

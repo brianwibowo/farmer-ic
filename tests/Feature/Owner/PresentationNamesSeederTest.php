@@ -38,8 +38,9 @@ class PresentationNamesSeederTest extends TestCase
     private function fixtures(): Team
     {
         $this->seed([
-            DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoActivitySeeder::class,
-            SopActivityTypeSeeder::class, DemoSopSeeder::class, DemoMonitoringSeeder::class,
+            DemoIdentitySeeder::class, DemoFarmSeeder::class,
+            SopActivityTypeSeeder::class, DemoSopSeeder::class, DemoActivitySeeder::class,
+            DemoMonitoringSeeder::class,
             DemoFinanceSeeder::class, DemoOperationsSeeder::class, DemoOwnerPortfolioSeeder::class,
         ]);
 
@@ -59,7 +60,7 @@ class PresentationNamesSeederTest extends TestCase
             'activity_photos' => ['id', 'activity_id', 'image_url', 'uploaded_at'],
             'weather_records' => ['id', 'farm_id', 'recorded_at', 'temperature_c', 'humidity_percentage'],
             'plant_observations' => ['id', 'activity_id', 'planting_cycle_id', 'observed_at', 'observed_by'],
-            'planting_cycles' => ['id', 'farm_id', 'planting_round_id', 'planted_at', 'reserved_area_ha', 'planted_area_ha', 'estimated_weight_ton', 'created_at'],
+            'planting_cycles' => ['id', 'farm_id', 'block_id', 'planted_at', 'reserved_area_ha', 'planted_area_ha', 'estimated_weight_ton', 'created_at'],
             'financial_transactions' => ['id', 'farm_id', 'planting_cycle_id', 'amount', 'transaction_date', 'created_at'],
         ] as $table => $columns) {
             $snapshot[$table] = DB::table($table)->select($columns)->orderBy($columns[0])->get()->all();
@@ -82,7 +83,7 @@ class PresentationNamesSeederTest extends TestCase
         WeatherRecord::query()->where('farm_id', $base->id)->update(['data_source' => 'Stasiun cuaca demo']);
         FinancialTransaction::query()->where('farm_id', $base->id)->where('description', 'Pembelian benih jagung Bisi 18 untuk siklus')
             ->update(['description' => 'Pembelian benih jagung Bisi 18 untuk siklus demo']);
-        $fertilization = FarmActivity::query()->where('farm_id', $base->id)->where('description', 'Pemupukan dasar Blok 1')->firstOrFail();
+        $fertilization = FarmActivity::query()->where('farm_id', $base->id)->where('description', 'Pemupukan susulan pertama Blok 1')->firstOrFail();
         FertilizationDetail::query()->where('activity_id', $fertilization->id)->update(['brand_name' => 'NPK Demo']);
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $farmId = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
