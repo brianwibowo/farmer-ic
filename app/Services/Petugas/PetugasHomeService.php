@@ -110,6 +110,6 @@ class PetugasHomeService
                 ];
             })->all();
 
-        return ['data' => $items, 'total' => $total];
+        return ['data' => array_values($items), 'total' => $total];
     }
 }

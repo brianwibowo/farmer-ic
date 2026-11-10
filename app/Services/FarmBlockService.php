@@ -14,6 +14,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Support\LandArea;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -98,10 +99,11 @@ class FarmBlockService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, PlantingCycle>  $batches
+     * @param  EloquentCollection<int, PlantingCycle>  $batches
+     * @param  \Illuminate\Support\Collection<array-key, EloquentCollection<int, PlantingCycleStage>>  $stages
      * @return array<string, array<string, mixed>>
      */
-    private function growthOverview(Farm $farm, \Illuminate\Support\Collection $batches, \Illuminate\Support\Collection $stages, User $actor, Team $team): array
+    private function growthOverview(Farm $farm, EloquentCollection $batches, \Illuminate\Support\Collection $stages, User $actor, Team $team): array
     {
         $today = CarbonImmutable::today('Asia/Jakarta');
         $eligible = $batches->filter(function (PlantingCycle $batch) use ($stages, $today): bool {
@@ -133,7 +135,7 @@ class FarmBlockService
                 'available' => true,
                 'as_of' => $today->toDateString(),
                 'hst' => (int) CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today),
-                'commodity' => $commodities->get($variety?->commodity_id ?? $farm->getAttribute('commodity_id')),
+                'commodity' => $commodities->get($variety->commodity_id ?? $farm->getAttribute('commodity_id')),
                 'variety' => $variety?->name,
                 'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
                 'observation' => $observation === null ? null : [
