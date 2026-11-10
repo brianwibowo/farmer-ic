@@ -20,7 +20,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use RuntimeException;
 
 /** Explicit preview seed; deliberately excluded from DatabaseSeeder. */
 class DemoPetugasTodoSeeder extends Seeder
@@ -29,9 +28,6 @@ class DemoPetugasTodoSeeder extends Seeder
 
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Contoh tugas petugas hanya boleh diisi pada environment local atau testing.');
-        }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])->firstOrFail();
         $team = $actor->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
         $gate = Gate::forUser($actor);

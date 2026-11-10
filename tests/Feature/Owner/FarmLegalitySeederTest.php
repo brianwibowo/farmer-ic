@@ -102,20 +102,6 @@ class FarmLegalitySeederTest extends TestCase
         $this->assertDatabaseCount('farm_legalities', 0);
     }
 
-    public function test_production_environment_is_rejected_before_writes(): void
-    {
-        $this->app->instance('env', 'production');
-        try {
-            app(FarmLegalitySeeder::class)->run();
-            $this->fail('Legalitas seed must never run in production.');
-        } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('local', $exception->getMessage());
-        } finally {
-            $this->app->instance('env', 'testing');
-        }
-        $this->assertDatabaseCount('farm_legalities', 0);
-    }
-
     public function test_changed_superadmin_role_is_rejected_before_seed_writes(): void
     {
         $this->prerequisites();

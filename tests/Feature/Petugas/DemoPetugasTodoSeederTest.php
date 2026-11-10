@@ -14,7 +14,6 @@ use Database\Seeders\DemoSopSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
-use RuntimeException;
 use Tests\TestCase;
 
 /** Seeder integration on the guarded, dedicated PostgreSQL test database. */
@@ -57,13 +56,5 @@ class DemoPetugasTodoSeederTest extends TestCase
             ->has('home.tasks.data', 4)->where('home.tasks.data.0.name', 'Pengairan pagi')
             ->where('home.tasks.data.0.status', 'in_progress')->where('home.tasks.data.0.hst', 14)
             ->where('home.tasks.data.0.scheduled_date', '2026-11-05')->where('home.tasks.data.3.status', 'completed'));
-    }
-
-    public function test_preview_cannot_be_seeded_in_production(): void
-    {
-        app()->instance('env', 'production');
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Contoh tugas petugas hanya boleh diisi');
-        app(DemoPetugasTodoSeeder::class)->run();
     }
 }

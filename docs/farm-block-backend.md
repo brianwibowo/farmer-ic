@@ -153,7 +153,7 @@ DemoFarmSeeder. Bisa dijalankan terpisah setelah identitas dan kebun demo ada:
 php artisan db:seed --class=DemoFarmBlockSeeder
 ```
 
-Seeder hanya local/testing, idempotent dan tidak menimpa blok existing.
+Seeder idempotent dan tidak menimpa blok existing.
 Membuat B01 Blok Utara dan B02 Blok Selatan pada kebun demo.
 Tidak mengarang hubungan siklus existing. Jangan menjalankan
 `migrate:fresh` pada database aplikasi untuk memasang fitur ini.

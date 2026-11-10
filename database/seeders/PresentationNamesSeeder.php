@@ -34,9 +34,6 @@ class PresentationNamesSeeder extends Seeder
 
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Pembaruan nama presentasi hanya tersedia pada environment local atau testing.');
-        }
         // Bootstrap only the fixed trusted actor; protected work below uses native policies.
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();

@@ -185,7 +185,7 @@ class PresentationNamesSeederTest extends TestCase
         }
     }
 
-    public function test_missing_trusted_actor_and_production_guard_reject_before_changes(): void
+    public function test_missing_trusted_actor_rejects_before_changes(): void
     {
         try {
             $this->seed(PresentationNamesSeeder::class);
@@ -194,14 +194,5 @@ class PresentationNamesSeederTest extends TestCase
             $this->assertStringContainsString('Superadmin', $exception->getMessage());
         }
         $this->assertDatabaseCount('farms', 0);
-        $this->app->instance('env', 'production');
-        try {
-            app(PresentationNamesSeeder::class)->run();
-            $this->fail('Name refresh is restricted to local/testing.');
-        } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('local', $exception->getMessage());
-        } finally {
-            $this->app->instance('env', 'testing');
-        }
     }
 }

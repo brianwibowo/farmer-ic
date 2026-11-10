@@ -19,10 +19,6 @@ class DemoFinanceSeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Data keuangan hanya dapat diisi pada environment local atau testing.');
-        }
-
         $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->first();
         $team = $admin?->teams()->where('slug', 'farm-ic-demo')->first();
         if ($admin === null || $team === null) {

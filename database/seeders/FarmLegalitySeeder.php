@@ -16,10 +16,6 @@ class FarmLegalitySeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Seed legalitas hanya tersedia pada environment local atau testing.');
-        }
-
         // Bootstrap a fixed, persisted seed actor, then authorize all protected work.
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();

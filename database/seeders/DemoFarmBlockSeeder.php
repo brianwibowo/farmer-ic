@@ -13,15 +13,11 @@ use App\Services\FarmBlockService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use RuntimeException;
 
 class DemoFarmBlockSeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Blok percontohan hanya dapat diisi pada environment local atau testing.');
-        }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
         $team = $actor->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
         Gate::forUser($actor)->authorize('viewAny', [Farm::class, $team]);
