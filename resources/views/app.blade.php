@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="application-name" content="{{ config('app.name') }}">
         <link rel="stylesheet" href="/css/startup-screen.css">
         <link rel="preload" href="/images/logo-hijauan.jpeg" as="image" type="image/jpeg">
 
@@ -39,7 +40,7 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title>{{ config('app.name') }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

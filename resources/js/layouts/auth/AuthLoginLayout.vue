@@ -2,6 +2,9 @@
 import { Link } from '@inertiajs/vue3';
 import BrandLogo from '@/components/BrandLogo.vue';
 import { home } from '@/routes';
+import { useAppName } from '@/composables/useAppName';
+
+const appName = useAppName();
 
 defineProps<{
     title?: string;
@@ -21,7 +24,7 @@ const year = new Date().getFullYear();
             <header class="mx-auto w-full max-w-sm">
                 <Link
                     :href="home()"
-                    aria-label="Beranda Hijauan"
+                    :aria-label="`Beranda ${appName}`"
                     class="inline-flex items-center gap-2.5 rounded-xl text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
                 >
                     <BrandLogo
@@ -49,13 +52,13 @@ const year = new Date().getFullYear();
 
             <footer class="mx-auto w-full max-w-sm">
                 <p class="text-xs leading-5 text-muted-foreground">
-                    &copy; {{ year }} Hijauan. All rights reserved.
+                    &copy; {{ year }} {{ appName }}. All rights reserved.
                 </p>
             </footer>
         </div>
 
         <aside
-            aria-label="Hijauan"
+            :aria-label="appName"
             class="relative hidden min-h-[calc(100dvh-2rem)] overflow-hidden rounded-xl bg-surface lg:block"
         >
             <img
