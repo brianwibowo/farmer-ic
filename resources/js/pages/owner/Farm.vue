@@ -150,7 +150,7 @@ const severity: Record<string, string> = {
                             : 'Mitra kerja sama'
                     }}
                 </dt>
-                <dd class="mt-1 [overflow-wrap:anywhere]">
+                <dd class="mt-1 select-text [overflow-wrap:anywhere]">
                     {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}
                 </dd>
             </div>

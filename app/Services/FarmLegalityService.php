@@ -54,6 +54,19 @@ class FarmLegalityService
         return FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id)->first();
     }
 
+    /** @return array{starts_at: string|null, ends_at: string|null, not_applicable: bool} */
+    public function contractSummary(User $actor, Team $team, Farm $farm): array
+    {
+        $record = $this->record($actor, $team, $farm);
+
+        return [
+            'starts_at' => $record?->pks_started_at?->toDateString(),
+            'ends_at' => $record?->pks_ends_at?->toDateString(),
+            'not_applicable' => $farm->land_tenure === 'owned'
+                && $record?->pks_started_at === null && $record?->pks_ends_at === null,
+        ];
+    }
+
     /** @return Collection<int, FarmLegalityDocument> */
     public function documents(User $actor, Team $team, FarmLegality $legality): Collection
     {

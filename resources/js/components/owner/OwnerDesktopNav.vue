@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ChartNoAxesCombined, House, LayoutGrid } from '@lucide/vue';
+import {
+    ChartNoAxesCombined,
+    House,
+    LayoutDashboard,
+    LayoutGrid,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import type { FarmerNavKey } from '@/components/farmer/FarmerBottomNav.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
@@ -10,12 +15,20 @@ const props = withDefaults(defineProps<{ activeKey?: FarmerNavKey }>(), {
 });
 const { isCurrentUrl } = useCurrentUrl();
 const active = computed(() =>
-    props.activeKey === 'home' || props.activeKey === 'projection'
-        ? props.activeKey
-        : 'more',
+    isCurrentUrl('/ringkasan-eksekutif')
+        ? 'executive'
+        : props.activeKey === 'home' || props.activeKey === 'projection'
+          ? props.activeKey
+          : 'more',
 );
 const items = [
     { key: 'home', label: 'Beranda', href: '/', icon: House },
+    {
+        key: 'executive',
+        label: 'Ringkasan Eksekutif',
+        href: '/ringkasan-eksekutif',
+        icon: LayoutDashboard,
+    },
     {
         key: 'projection',
         label: 'Proyeksi',
