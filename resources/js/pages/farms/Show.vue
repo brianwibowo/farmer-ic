@@ -5,7 +5,6 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
     ArrowLeft,
     ClipboardList,
-    ExternalLink,
     LandPlot,
     MapPin,
     Target,
@@ -363,14 +362,6 @@ const progressStages = computed(() =>
                 >
                     {{ farm.address }}
                 </p>
-                <a
-                    v-if="farm.image_url"
-                    :href="farm.image_url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="mt-3 inline-flex min-h-11 items-center gap-2 text-sm text-primary underline underline-offset-4"
-                    >Lihat foto kebun<ExternalLink class="size-4"
-                /></a>
             </div>
         </section>
         <FarmBlocksTable

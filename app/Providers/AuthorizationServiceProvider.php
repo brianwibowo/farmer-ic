@@ -31,7 +31,12 @@ class AuthorizationServiceProvider extends ServiceProvider
         Gate::define('users.manageAll', fn (User $user): bool => false);
 
         // Sidebar visibility only; switching teams still requires membership.
-        Gate::define('navigation.teamSwitcher', fn (User $user): bool => app(RolePermissions::class)->roleName($user) === 'owner');
+        Gate::define('navigation.teamSwitcher', function (User $user): bool {
+            $permissions = app(RolePermissions::class);
+
+            return $permissions->roleName($user) === 'owner'
+                && $permissions->teamMemberships($user)->where('is_personal', false)->unique('id')->count() > 1;
+        });
 
         // Owner may list users across their own non-personal teams, not globally.
         Gate::define('users.viewAcrossTeams', function (User $user): bool {

@@ -276,7 +276,10 @@ admin tokens. The Owner's main sidebar has Dashboard (`/`), Ringkasan Eksekutif
 backend navigation permissions. The executive prototype stays isolated from
 operational data and uses the same Owner sidebar workspace.
 The account menu keeps settings/logout, and the sidebar team switcher lists
-persisted non-personal tenant memberships. Switching tenant uses the existing
+persisted non-personal tenant memberships. Hide the entire Tim aktif switcher
+for Owners with zero or one active non-personal tenant membership; show it only
+for multiple memberships, using the backend navigation boolean. Personal teams
+and soft-deleted tenants do not count. Switching tenant uses the existing
 Owner endpoint and returns to Dashboard. Do not grant Owner admin portal access.
 On desktop, use the existing collapsible sidebar; below 1024px use its accessible
 drawer. Owner pages no longer use the Farmer bottom navigation or horizontal nav.
