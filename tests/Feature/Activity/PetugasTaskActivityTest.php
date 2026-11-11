@@ -90,6 +90,37 @@ class PetugasTaskActivityTest extends TestCase
         $this->post('/petugas/aktivitas/mandiri/harvest', $harvest)->assertSessionHasNoErrors();
     }
 
+    public function test_empty_opposite_location_field_does_not_fail_validation(): void
+    {
+        $this->actingAs($this->actor);
+
+        $this->post('/petugas/aktivitas/mandiri/land_cleaning', [
+            ...$this->payload(),
+            'cycle_id' => '',
+            'block_id' => $this->cycle->block_id,
+            'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual'],
+        ])->assertSessionHasNoErrors();
+
+        $this->post('/petugas/aktivitas/mandiri/irrigation', [
+            ...$this->payload(),
+            'cycle_id' => $this->cycle->id,
+            'block_id' => '',
+            'details' => [
+                'area' => 500, 'area_unit' => 'm²', 'water_source' => 'Sumur bor',
+                'method' => 'Pompa', 'pump' => 'Pompa diesel', 'duration_hours' => 1,
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('farm_activities', [
+            'block_id' => $this->cycle->block_id,
+            'planting_cycle_id' => null,
+        ]);
+        $this->assertDatabaseHas('farm_activities', [
+            'block_id' => $this->cycle->block_id,
+            'planting_cycle_id' => $this->cycle->id,
+        ]);
+    }
+
     public function test_sop_harvest_is_blocked_until_maintenance_tasks_finish(): void
     {
         $harvest = $this->newTask(['planting_cycle_stage_id' => $this->cycle->stages()->where('code', 'harvest')->firstOrFail()->id,
