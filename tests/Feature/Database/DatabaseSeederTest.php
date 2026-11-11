@@ -12,20 +12,31 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\Owner\HarvestProjectionService;
 use Database\Seeders\DatabaseSeeder;
-use Database\Seeders\DemoActivitySeeder;
 use Database\Seeders\DemoFarmSeeder;
 use Database\Seeders\DemoOwnerPortfolioData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
-use RuntimeException;
 use Tests\TestCase;
 
 /** Full seed integration on the separate, guarded PostgreSQL test database. */
 class DatabaseSeederTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_complete_seed_runs_in_production_environment(): void
+    {
+        $this->app->instance('env', 'production');
+        try {
+            $this->artisan('db:seed', ['--force' => true])->assertSuccessful();
+            $this->assertDatabaseHas('teams', ['slug' => 'farm-ic-demo']);
+            $this->assertDatabaseCount('farms', 7);
+            $this->assertDatabaseCount('farm_legalities', 7);
+        } finally {
+            $this->app->instance('env', 'testing');
+        }
+    }
 
     public function test_complete_seed_includes_owner_details_and_refreshes_names_without_duplicates_on_rerun(): void
     {
@@ -178,38 +189,6 @@ class DatabaseSeederTest extends TestCase
             ->whereHas('activityType', fn ($query) => $query->where('code', 'block_mapping'))
             ->firstOrFail();
         $this->assertLessThan($planted, $mapping->activity_date->setTimezone('Asia/Jakarta')->toDateString());
-    }
-
-    public function test_complete_seed_rejects_production_before_writing_any_records(): void
-    {
-        $this->app->instance('env', 'production');
-        try {
-            app(DatabaseSeeder::class)->run();
-            $this->fail('The full demo seed must reject production before creating identities.');
-        } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('local', $exception->getMessage());
-        } finally {
-            $this->app->instance('env', 'testing');
-        }
-        $this->assertDatabaseCount('roles', 0);
-        $this->assertDatabaseCount('users', 0);
-        $this->assertDatabaseCount('teams', 0);
-        $this->assertDatabaseCount('farms', 0);
-        $this->assertDatabaseCount('administrative_regions', 0);
-    }
-
-    public function test_activity_seed_rejects_production_before_writing_any_records(): void
-    {
-        $this->app->instance('env', 'production');
-        try {
-            app(DemoActivitySeeder::class)->run();
-            $this->fail('The activity demo seed must reject production.');
-        } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('local', $exception->getMessage());
-        } finally {
-            $this->app->instance('env', 'testing');
-        }
-        $this->assertDatabaseCount('farm_activities', 0);
     }
 
     public function test_owner_farm_prune_previews_then_deletes_only_non_approved_demo_farms_and_their_finance(): void

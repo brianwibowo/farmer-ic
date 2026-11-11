@@ -29,9 +29,6 @@ class DemoOwnerPortfolioSeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Portofolio Owner hanya dapat diisi pada environment local atau testing.');
-        }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
         $team = $actor?->teams()->where('slug', 'farm-ic-demo')->where('is_personal', false)->first();

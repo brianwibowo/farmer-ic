@@ -213,7 +213,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->get('/kebun/'.$foreign->id)->assertForbidden();
     }
 
-    public function test_missing_identity_and_production_guards_fail_before_writes(): void
+    public function test_missing_identity_guard_fails_before_writes(): void
     {
         try {
             $this->seed(DemoOwnerPortfolioSeeder::class);
@@ -223,17 +223,6 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         }
         $this->assertDatabaseCount('farms', 0);
         $this->assertDatabaseCount('commodities', 0);
-
-        $this->app->instance('env', 'production');
-        try {
-            app(DemoOwnerPortfolioSeeder::class)->run();
-            $this->fail('Portfolio seeding must not run in production.');
-        } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('local', $exception->getMessage());
-        } finally {
-            $this->app->instance('env', 'testing');
-        }
-        $this->assertDatabaseCount('farms', 0);
     }
 
     public function test_tampered_demo_actor_role_is_rejected_before_portfolio_writes(): void

@@ -20,9 +20,6 @@ class DemoActivitySeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new \RuntimeException('Aktivitas demo hanya dapat diisi pada environment local atau testing.');
-        }
         $petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
         $team = $petugas->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
         \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('viewAny', [Farm::class, $team]);
