@@ -75,13 +75,13 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->seed(DemoOwnerPortfolioSeeder::class);
         $team = $this->demoTeam();
         $expectedSites = [
-            'Kebun Cileuksa' => ['Kabupaten Bogor', 'Cileuksa', '100.0000'],
-            'Kebun Cariu' => ['Kabupaten Bogor', 'Cariu', '50.0000'],
-            'Kebun Jonggol' => ['Kabupaten Bogor', 'Jonggol', '110.0000'],
-            'Kebun Pamijahan' => ['Kabupaten Bogor', 'Pamijahan', '25.0000'],
-            'Kebun Sirnasari' => ['Kabupaten Bogor', 'Sirnasari', '187.0000'],
-            'Kebun Megamendung' => ['Kabupaten Bogor', 'Megamendung', '25.0000'],
-            'Kebun Cipanengah' => ['Kabupaten Sukabumi', 'Cipanengah', '100.0000'],
+            'Lahan Cileuksa' => ['Kabupaten Bogor', 'Cileuksa', '100.0000'],
+            'Lahan Cariu' => ['Kabupaten Bogor', 'Cariu', '50.0000'],
+            'Lahan Jonggol' => ['Kabupaten Bogor', 'Jonggol', '110.0000'],
+            'Lahan Pamijahan' => ['Kabupaten Bogor', 'Pamijahan', '25.0000'],
+            'Lahan Sirnasari' => ['Kabupaten Bogor', 'Sirnasari', '187.0000'],
+            'Lahan Megamendung' => ['Kabupaten Bogor', 'Megamendung', '25.0000'],
+            'Lahan Cipanengah' => ['Kabupaten Sukabumi', 'Cipanengah', '100.0000'],
         ];
         foreach ($expectedSites as $name => [$city, $district, $area]) {
             $this->assertDatabaseHas('farms', [
@@ -100,7 +100,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             ->where('status', 'active')->where('subblock_label', 'A2')->firstOrFail();
         $this->assertSame('active', $activeMegamendungBatch->status);
         $projection = app(HarvestProjectionService::class)->summary($this->owner(), $team);
-        $this->assertEquals(2500, collect($projection['rows'])->firstWhere('farm_name', 'Kebun Megamendung')['projection_ton']);
+        $this->assertEquals(2500, collect($projection['rows'])->firstWhere('farm_name', 'Lahan Megamendung')['projection_ton']);
 
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Dashboard')->where('landTable.total', 7)
@@ -167,7 +167,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
     public function test_rerun_preserves_operational_history_and_syncs_requested_site_data(): void
     {
         $this->prerequisites();
-        $original = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
+        $original = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $originalAttributes = $original->getRawOriginal();
         $accounts = User::query()->orderBy('id')->get()->map(fn (User $user) => $user->getRawOriginal())->all();
         $this->seed(DemoOwnerPortfolioSeeder::class);
@@ -181,7 +181,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->seed(DemoOwnerPortfolioSeeder::class);
 
         $this->assertSame($ids, $this->recordIds());
-        $this->assertSame('Kebun Cariu', $farm->refresh()->name);
+        $this->assertSame('Lahan Cariu', $farm->refresh()->name);
         $this->assertSame('50.0000', $farm->total_area_ha);
         $this->assertSame('Catatan hasil kunjungan yang disesuaikan pengguna', $activity->refresh()->description);
         $this->assertSame($originalAttributes, $original->refresh()->getRawOriginal());
