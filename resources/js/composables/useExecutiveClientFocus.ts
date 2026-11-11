@@ -7,6 +7,12 @@ export type ExecutiveClient = {
     delivered: number;
     fulfillment: number;
     crops: string;
+    commodities: {
+        id: string;
+        name: string;
+        contracted: number;
+        delivered: number;
+    }[];
     status: string;
 };
 
@@ -21,12 +27,21 @@ export function useExecutiveClientFocus(
     const chartClients = computed(() =>
         selectedClient.value ? [selectedClient.value] : toValue(source),
     );
+    const chartGroups = computed(() =>
+        chartClients.value.flatMap((client) =>
+            client.commodities.map((crop) => ({
+                ...crop,
+                clientId: client.id,
+                clientName: client.name,
+            })),
+        ),
+    );
     function toggle(id: string) {
         selectedId.value = selectedId.value === id ? '' : id;
     }
     function selectBar(index: number) {
-        const client = chartClients.value[index];
-        if (client) toggle(client.id);
+        const group = chartGroups.value[index];
+        if (group) toggle(group.clientId);
     }
     watch(
         () => toValue(source),
@@ -35,5 +50,12 @@ export function useExecutiveClientFocus(
                 selectedId.value = '';
         },
     );
-    return { selectedId, selectedClient, chartClients, toggle, selectBar };
+    return {
+        selectedId,
+        selectedClient,
+        chartClients,
+        chartGroups,
+        toggle,
+        selectBar,
+    };
 }

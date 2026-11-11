@@ -30,6 +30,7 @@ export type ExecutiveDemoData = {
         city: string;
         region: string;
         partnerId: string;
+        landCategory: string;
         areaHa: number;
         commodityId: string;
         latitude: number;

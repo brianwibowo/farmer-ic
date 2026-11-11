@@ -10,6 +10,8 @@ import {
     executiveMoney as money,
     executiveNumber as number,
     executiveCommodities,
+    executiveClients,
+    executiveLandCategories,
     executiveRows,
     executiveTotals,
     loadExecutiveDemo,
@@ -116,37 +118,9 @@ export function useExecutiveSummary() {
             .sort((a, b) => b.area - a.area),
     );
     const commodities = computed(() => executiveCommodities(rows.value));
+    const landCategories = computed(() => executiveLandCategories(rows.value));
     const clients = computed(() =>
-        (data.value?.clients ?? [])
-            .map((client) => {
-                const group = rows.value.filter(
-                    (row) => row.client?.id === client.id,
-                );
-                const contracted = group.reduce(
-                    (sum, row) => sum + (row.contract?.monthlyTon ?? 0),
-                    0,
-                );
-                const delivered = group.reduce(
-                    (sum, row) => sum + row.monthlyDeliveredTon,
-                    0,
-                );
-                return {
-                    ...client,
-                    contracted,
-                    delivered,
-                    fulfillment: contracted
-                        ? (delivered / contracted) * 100
-                        : 0,
-                    crops: [
-                        ...new Set(group.map((row) => row.commodity.name)),
-                    ].join(', '),
-                    status: [
-                        ...new Set(group.map((row) => row.contract?.status)),
-                    ].join(', '),
-                };
-            })
-            .filter((row) => row.contracted > 0)
-            .sort((a, b) => b.contracted - a.contracted),
+        executiveClients(rows.value, data.value?.clients ?? []),
     );
     const mapFarms = computed(() =>
         rows.value.map(({ farm }) => ({
@@ -199,6 +173,7 @@ export function useExecutiveSummary() {
         regions,
         farmOptions,
         partnerSummary,
+        landCategories,
         commodities,
         clients,
         mapFarms,
