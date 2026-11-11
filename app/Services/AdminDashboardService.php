@@ -194,11 +194,21 @@ class AdminDashboardService
             ->selectRaw('code, COUNT(*) as total')->groupBy('code')->pluck('total', 'code');
         $stageNames = ['soil_preparation' => 'Persiapan tanah', 'basic_fertilizer' => 'Pupuk dasar', 'planting' => 'Penanaman', 'maintenance' => 'Pemeliharaan', 'harvest' => 'Panen'];
         $stages = collect($stageNames)->map(fn (string $label, string $code): array => ['code' => $code, 'label' => $label, 'count' => (int) ($stageCounts[$code] ?? 0)])->values()->all();
-        $cleanedBlocks = FarmActivity::visibleTo($actor, $team)->whereNotNull('block_id')
-            ->whereHas('activityType', fn ($types) => $types->visibleTo($actor, $team)->where('code', 'land_cleaning'))->select('block_id');
-        $landClearing = (clone $blocks)->where('is_active', true)->whereNotIn('id', $cleanedBlocks)->count();
         $timelineUnknown = max(0, $runningCount - array_sum(array_column($stages, 'count')));
         $trend = $this->activityTrend($trendActivities, $weekStart, $period);
+        $riskItems = (clone $openRisks)
+            ->orderByDesc('detected_at')
+            ->orderByDesc('id')
+            ->get(['id', 'risk_description', 'detected_at'])
+            ->map(fn (FarmRisk $risk): array => [
+                'id' => (string) $risk->id,
+                'title' => $risk->risk_description,
+                'detectedAt' => $risk->detected_at
+                    ->settings(['locale' => 'id'])
+                    ->isoFormat('HH:mm · D MMMM YYYY'),
+            ])
+            ->values()
+            ->all();
 
         return [
             'filters' => ['farm_id' => $farmId, 'period' => (string) $period],
@@ -212,12 +222,9 @@ class AdminDashboardService
                 'stages' => $stages,
                 'withoutTimeline' => $timelineUnknown,
             ],
-            'attention' => [
-                ['key' => 'risks', 'label' => 'Risiko belum ditutup', 'count' => (clone $openRisks)->count(), 'description' => 'Risiko berstatus selain resolved atau closed pada kebun dalam cakupan akses.'],
-                ['key' => 'harvest', 'label' => 'Estimasi panen 14 hari', 'count' => (clone $activeCycles)->whereBetween('estimated_harvest_at', [CarbonImmutable::today(), CarbonImmutable::today()->addDays(14)])->count(), 'description' => 'Batch aktif dengan estimasi panen mulai hari ini hingga 14 hari ke depan.'],
-                ['key' => 'clearing', 'label' => 'Blok land clearing', 'count' => $landClearing, 'description' => 'Blok aktif yang pembersihan lahannya belum selesai. Tahap ini dicatat pada tingkat blok.'],
-                ['key' => 'maintenance', 'label' => 'Batch pemeliharaan', 'count' => (int) ($stageCounts['maintenance'] ?? 0), 'description' => 'Batch berjalan dengan tahap pemeliharaan berstatus sedang berlangsung.'],
-                ['key' => 'officers', 'label' => 'Petugas lapangan aktif', 'count' => count($officers), 'description' => 'Akun petugas aktif yang dapat dilihat dalam cakupan akses saat ini.'],
+            'risks' => [
+                'total' => (clone $openRisks)->count(),
+                'items' => $riskItems,
             ],
             'generatedAt' => CarbonImmutable::now()->settings(['locale' => 'id'])->isoFormat('D MMMM YYYY'),
             'metrics' => [
