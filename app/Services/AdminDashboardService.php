@@ -318,10 +318,10 @@ class AdminDashboardService
      * coordinates intact so the Leaflet client can display a real map.
      *
      * @param  EloquentCollection<int, Farm>  $farms
-     * @param  EloquentCollection<int, PlantingCycle>  $cycles
+     * @param  Collection<int, PlantingCycle>  $cycles
      * @return array{hasCoordinates: bool, farms: array<int, array<string, mixed>>}
      */
-    private function landMap(EloquentCollection $farms, EloquentCollection $cycles, User $actor, Team $team, bool $includePreviews): array
+    private function landMap(EloquentCollection $farms, Collection $cycles, User $actor, Team $team, bool $includePreviews): array
     {
         $pics = $includePreviews ? User::visibleTo($actor, $team)
             ->whereIn('id', $farms->pluck('pic_user_id')->filter())
