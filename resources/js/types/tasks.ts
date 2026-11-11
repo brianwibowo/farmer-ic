@@ -12,6 +12,14 @@ export type AdminTaskStatus =
 
 export type AdminTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
+export type AdminTaskView =
+    | 'actionable'
+    | 'overdue'
+    | 'today'
+    | 'upcoming'
+    | 'completed'
+    | 'all';
+
 export type AdminTaskCategory = 'maintenance' | 'harvest';
 
 export type AdminTask = {
@@ -20,6 +28,7 @@ export type AdminTask = {
     instructions: string | null;
     status: AdminTaskStatus;
     urgency: AdminTaskUrgency;
+    overdue_days: number | null;
     activity_category: AdminTaskCategory;
     activity_subcategory: SopActivitySubcategory | null;
     offset_days: number;
@@ -60,6 +69,7 @@ export type AdminTaskFilters = {
     subblok_id?: string;
     status?: string;
     category?: string;
+    view?: AdminTaskView;
     per_page?: number;
 };
 
@@ -105,6 +115,15 @@ export const adminTaskStatusOptions = Object.entries(adminTaskStatusLabels) as [
     AdminTaskStatus,
     string,
 ][];
+
+export const adminTaskViewOptions: [AdminTaskView, string][] = [
+    ['actionable', 'Perlu tindakan'],
+    ['overdue', 'Terlambat'],
+    ['today', 'Hari ini'],
+    ['upcoming', 'Mendatang'],
+    ['completed', 'Selesai'],
+    ['all', 'Semua'],
+];
 
 export const adminTaskCategoryOptions: [AdminTaskCategory, string][] = [
     ['maintenance', sopActivityCategoryLabels.maintenance],
