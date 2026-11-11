@@ -12,7 +12,11 @@ import { computed, reactive, unref } from 'vue';
 import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import type { PetugasTaskPageProps } from '@/types/petugas-task';
+import type {
+    PetugasTask,
+    PetugasTaskPageProps,
+    PetugasTaskUrgency,
+} from '@/types/petugas-task';
 import { sopActivitySubcategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
@@ -28,38 +32,74 @@ const filter = reactive(
             {
                 q: '',
                 status:
-                    props.filters.status === 'all'
+                    props.filters.status === 'all' ||
+                    props.filters.status === 'overdue' ||
+                    props.filters.status === 'today'
                         ? 'active'
                         : props.filters.status,
                 category: '',
                 block: '',
+                subblok: '',
             },
             'petugas-activities',
         ),
     ),
 );
+if (filter.status === 'overdue' || filter.status === 'today') {
+    filter.status = 'active';
+}
+filter.subblok ??= '';
 const options = [
-    { key: 'active', label: 'Aktif' },
-    { key: 'overdue', label: 'Terlambat' },
-    { key: 'today', label: 'Hari ini' },
+    { key: 'active', label: 'Perlu tindakan' },
     { key: 'upcoming', label: 'Mendatang' },
     { key: 'completed', label: 'Ditutup' },
+    { key: 'all', label: 'Semua' },
 ];
+const urgencyLabels: Record<PetugasTaskUrgency, string> = {
+    overdue: 'Terlambat',
+    today: 'Hari ini',
+    upcoming: 'Mendatang',
+    completed: 'Ditutup',
+};
+
 const blocks = computed(() => [
     ...new Map(
         props.tasks.map((t) => [t.subblok.block.id, t.subblok.block]),
     ).values(),
 ]);
+const subblokOptions = computed(() => {
+    if (!filter.block) return [];
+
+    return [
+        ...new Map(
+            props.tasks
+                .filter((t) => t.subblok.block.id === filter.block)
+                .map((t) => [t.subblok.id, t.subblok]),
+        ).values(),
+    ].sort((a, b) =>
+        (a.label ?? `Subblok ${a.number}`).localeCompare(
+            b.label ?? `Subblok ${b.number}`,
+            'id',
+        ),
+    );
+});
+function matchesStatus(task: PetugasTask): boolean {
+    if (filter.status === 'all') return true;
+    if (filter.status === 'active') {
+        return task.urgency === 'overdue' || task.urgency === 'today';
+    }
+
+    return task.urgency === filter.status;
+}
 const tasks = computed(() =>
     props.tasks.filter(
         (t) =>
-            (filter.status === 'active'
-                ? t.urgency !== 'completed'
-                : t.urgency === filter.status) &&
+            matchesStatus(t) &&
             (!filter.category ||
                 (t.activity_subcategory ?? t.activity_category) ===
                     filter.category) &&
             (!filter.block || t.subblok.block.id === filter.block) &&
+            (!filter.subblok || t.subblok.id === filter.subblok) &&
             `${t.name} ${t.subblok.block.name} ${t.subblok.label}`
                 .toLocaleLowerCase()
                 .includes(filter.q.toLocaleLowerCase().trim()),
@@ -76,8 +116,17 @@ function label(code: string): string {
         (code === 'harvest' ? 'Panen' : code)
     );
 }
+function changeBlock(): void {
+    filter.subblok = '';
+}
 function reset(): void {
-    Object.assign(filter, { q: '', status: 'active', category: '', block: '' });
+    Object.assign(filter, {
+        q: '',
+        status: 'active',
+        category: '',
+        block: '',
+        subblok: '',
+    });
 }
 </script>
 
@@ -135,21 +184,10 @@ function reset(): void {
             /></label>
             <div class="grid grid-cols-2 gap-2">
                 <AppSelect
-                    v-model="filter.category"
-                    aria-label="Kategori tugas"
-                    class="min-h-11"
-                    ><AppSelectOption value="">Semua kategori</AppSelectOption
-                    ><AppSelectOption
-                        v-for="code in categoryOptions"
-                        :key="code"
-                        :value="code"
-                        >{{ label(code) }}</AppSelectOption
-                    ></AppSelect
-                >
-                <AppSelect
                     v-model="filter.block"
                     aria-label="Blok"
                     class="min-h-11"
+                    @change="changeBlock"
                     ><AppSelectOption value="">Semua blok</AppSelectOption
                     ><AppSelectOption
                         v-for="block in blocks"
@@ -158,24 +196,47 @@ function reset(): void {
                         >{{ block.name }}</AppSelectOption
                     ></AppSelect
                 >
+                <AppSelect
+                    v-model="filter.subblok"
+                    aria-label="Subblok"
+                    :disabled="!filter.block"
+                    :placeholder="filter.block ? 'Semua subblok' : 'Pilih blok'"
+                    class="min-h-11"
+                    ><AppSelectOption v-if="filter.block" value=""
+                        >Semua subblok</AppSelectOption
+                    ><AppSelectOption
+                        v-for="subblok in subblokOptions"
+                        :key="subblok.id"
+                        :value="subblok.id"
+                        >{{
+                            subblok.label ?? `Subblok ${subblok.number}`
+                        }}</AppSelectOption
+                    ></AppSelect
+                >
+                <AppSelect
+                    v-model="filter.status"
+                    aria-label="Status tugas"
+                    class="col-span-2 min-h-11 min-[360px]:col-span-1"
+                    ><AppSelectOption
+                        v-for="option in options"
+                        :key="option.key"
+                        :value="option.key"
+                        >{{ option.label }}</AppSelectOption
+                    ></AppSelect
+                >
+                <AppSelect
+                    v-model="filter.category"
+                    aria-label="Kategori tugas"
+                    class="col-span-2 min-h-11 min-[360px]:col-span-1"
+                    ><AppSelectOption value="">Semua kategori</AppSelectOption
+                    ><AppSelectOption
+                        v-for="code in categoryOptions"
+                        :key="code"
+                        :value="code"
+                        >{{ label(code) }}</AppSelectOption
+                    ></AppSelect
+                >
             </div>
-        </div>
-        <div class="flex gap-2 overflow-x-auto" aria-label="Filter jadwal">
-            <button
-                v-for="option in options"
-                :key="option.key"
-                type="button"
-                :aria-pressed="filter.status === option.key"
-                class="min-h-11 shrink-0 rounded-xl border px-3 text-xs font-medium focus-visible:outline-2 focus-visible:outline-ring"
-                :class="
-                    filter.status === option.key
-                        ? 'border-secondary bg-secondary text-secondary-foreground'
-                        : 'border-border bg-card'
-                "
-                @click="filter.status = option.key"
-            >
-                {{ option.label }}
-            </button>
         </div>
         <p
             v-if="defaultSopMissing && farm"
@@ -263,9 +324,7 @@ function reset(): void {
                                     ? 'bg-warning/15 text-foreground'
                                     : 'bg-muted text-muted-foreground'
                             "
-                            >{{
-                                options.find((o) => o.key === task.urgency)
-                                    ?.label ?? 'Aktif'
+                            >{{ urgencyLabels[task.urgency]
                             }}<template v-if="task.linked_activities_count">
                                 ·
                                 {{ task.linked_activities_count }}
