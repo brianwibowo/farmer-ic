@@ -35,9 +35,6 @@ class VoluntaryActivityService
                 $type = ActivityType::visibleTo($actor, $team)->whereKey($type->id)->where('is_active', true)->where('is_selectable', true)->firstOrFail();
                 if ($block !== null) {
                     $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->whereKey($block->id)->lockForUpdate()->firstOrFail();
-                    if ($reason = $this->sequence->blockReason($actor, $block, $type->code)) {
-                        throw ValidationException::withMessages(['block_id' => $reason]);
-                    }
                 }
                 if ($cycle !== null) {
                     $cycle = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereKey($cycle->id)->lockForUpdate()->firstOrFail();
