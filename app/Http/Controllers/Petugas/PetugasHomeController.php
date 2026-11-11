@@ -9,6 +9,7 @@ use App\Models\IncidentDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\Team;
+use App\Services\Activity\VoluntaryActivityCategoryService;
 use App\Services\Petugas\PetugasHomeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -17,7 +18,7 @@ use Inertia\Response;
 
 class PetugasHomeController extends Controller
 {
-    public function __invoke(Request $request, PetugasHomeService $home): Response
+    public function __invoke(Request $request, PetugasHomeService $home, VoluntaryActivityCategoryService $categories): Response
     {
         $farm = $request->user()->assignedFarm;
         $team = null;
@@ -33,6 +34,7 @@ class PetugasHomeController extends Controller
 
         return Inertia::render('petugas/Home', [
             'home' => $home->overview($request->user(), $farm, $team),
+            'categories' => $farm instanceof Farm ? $categories->forFarm($request->user(), $farm) : [],
         ]);
     }
 }

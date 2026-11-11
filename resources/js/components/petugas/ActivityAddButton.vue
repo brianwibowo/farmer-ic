@@ -10,21 +10,16 @@ import {
     DialogDescription,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import type { PetugasActivityCategory } from '@/types/petugas-activity';
 
-type ActivityCategory = {
-    id: string;
-    code: string;
-    name: string;
-    group?: string | null;
-};
 type CategoryEntry = {
     key: string;
     name: string | null;
-    items: ActivityCategory[];
+    items: PetugasActivityCategory[];
 };
 
 const props = defineProps<{
-    categories: ActivityCategory[];
+    categories: PetugasActivityCategory[];
 }>();
 const open = ref(false);
 const entries = computed<CategoryEntry[]>(() => {

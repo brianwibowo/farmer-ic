@@ -9,7 +9,6 @@ import {
     Sprout,
 } from '@lucide/vue';
 import { computed, reactive, unref } from 'vue';
-import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import type {
@@ -21,11 +20,7 @@ import { sopActivitySubcategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<
-    PetugasTaskPageProps & {
-        categories: { id: string; code: string; name: string }[];
-    }
->();
+const props = defineProps<PetugasTaskPageProps>();
 const filter = reactive(
     unref(
         useRemember(
@@ -131,12 +126,16 @@ function reset(): void {
 </script>
 
 <template>
-    <Head title="Aktivitas" />
+    <Head title="Tugas" />
     <div class="min-w-0 space-y-4 pb-16 text-foreground">
         <header>
-            <h1 class="text-xl leading-7 font-semibold">Aktivitas</h1>
+            <h1 class="text-xl leading-7 font-semibold">Tugas</h1>
             <p class="mt-1 text-sm text-muted-foreground">
-                {{ farm?.name ?? 'Belum ada penugasan kebun' }}
+                {{
+                    farm
+                        ? `Tugas dari SOP · ${farm.name}`
+                        : 'Belum ada penugasan kebun'
+                }}
             </p>
         </header>
         <section class="grid grid-cols-3 gap-2" aria-label="Ringkasan tugas">
@@ -178,7 +177,7 @@ function reset(): void {
                 ><input
                     v-model="filter.q"
                     type="search"
-                    placeholder="Cari aktivitas atau subblok"
+                    placeholder="Cari tugas atau subblok"
                     class="min-h-11 w-full rounded-xl border border-primary bg-card px-3 pr-10 text-sm focus-visible:outline-2 focus-visible:outline-ring" /><Search
                     class="pointer-events-none absolute top-3 right-3 size-5 text-primary"
             /></label>
@@ -277,12 +276,12 @@ function reset(): void {
             <p class="mt-2 text-sm text-muted-foreground">
                 {{
                     farm
-                        ? 'Ubah filter, atau gunakan tombol + untuk mencatat aktivitas mandiri.'
+                        ? 'Ubah filter untuk melihat tugas lain.'
                         : 'Hubungi Admin untuk mendapatkan penugasan.'
                 }}
             </p>
         </div>
-        <ul v-else class="space-y-3" aria-label="To-do aktivitas">
+        <ul v-else class="space-y-3" aria-label="Daftar tugas">
             <li v-for="task in tasks" :key="task.id">
                 <Link
                     :href="`/petugas/tasks/${task.id}`"
@@ -338,6 +337,5 @@ function reset(): void {
                 </Link>
             </li>
         </ul>
-        <ActivityAddButton :categories="categories" />
     </div>
 </template>

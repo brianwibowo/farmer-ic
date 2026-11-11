@@ -272,7 +272,9 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertDatabaseHas('fertilization_details', ['quantity_kg' => null]);
         $this->assertSame('pending', $this->task->refresh()->status);
         $this->assertSame(0, FarmActivity::whereNotNull('planting_cycle_task_id')->count());
-        $this->get('/petugas/laporan')->assertInertia(fn (Assert $page) => $page->component('petugas/Laporan')->where('reports.total', 13));
+        $this->get('/petugas/laporan')->assertInertia(fn (Assert $page) => $page
+            ->component('petugas/Laporan')->where('reports.total', 13)
+            ->where('categories', fn ($categories) => collect($categories)->pluck('code')->contains('irrigation')));
         $activity = FarmActivity::latest('activity_date')->firstOrFail();
         $this->get('/petugas/laporan/'.$activity->id)->assertInertia(fn (Assert $page) => $page->component('petugas/ReportShow')->has('log.activities', 1));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
