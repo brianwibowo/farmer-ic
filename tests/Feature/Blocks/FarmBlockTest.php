@@ -737,7 +737,7 @@ class FarmBlockTest extends TestCase
     public function test_demo_seeder_is_idempotent_and_does_not_rewrite_existing_blocks(): void
     {
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoFarmBlockSeeder::class]);
-        $demo = Farm::where('name', 'Kebun Cileuksa')->firstOrFail();
+        $demo = Farm::where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $this->assertSame('80.000', $demo->getAttribute('target_volume_ton'));
         $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), $demo->getAttribute('commodity_id'));
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();
