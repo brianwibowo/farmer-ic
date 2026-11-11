@@ -31,10 +31,12 @@ const props = withDefaults(
         farms: FarmPoint[];
         selectable?: boolean;
         fitOnResize?: boolean;
+        singleFarmZoom?: number;
     }>(),
     {
         selectable: false,
         fitOnResize: false,
+        singleFarmZoom: 14,
     },
 );
 const emit = defineEmits<{ select: [farmId: string] }>();
@@ -60,7 +62,7 @@ function showAllFarms(): void {
 
     const bounds = markers.getBounds();
     if (locatedFarms.value.length === 1) {
-        map.setView(bounds.getCenter(), 14);
+        map.setView(bounds.getCenter(), props.singleFarmZoom);
         return;
     }
 

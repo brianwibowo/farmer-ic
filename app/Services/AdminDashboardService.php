@@ -15,6 +15,7 @@ use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 class AdminDashboardService
@@ -28,7 +29,7 @@ class AdminDashboardService
      * @param  int|null  $commodityLimit  Null returns every scoped commodity for complete charts.
      * @return array<string, mixed>
      */
-    public function summary(User $actor, Team $team, array $filters = [], ?int $commodityLimit = 3): array
+    public function summary(User $actor, Team $team, array $filters = [], ?int $commodityLimit = 3, bool $includeMapPreviews = false): array
     {
         $farmId = $filters['farm_id'] ?? null;
         $period = (int) ($filters['period'] ?? 7);
@@ -143,7 +144,7 @@ class AdminDashboardService
         $projectedExpense = (float) (clone $currentProjections)->sum('projected_expense');
         $mapFarms = (clone $farms)
             ->orderBy('name')
-            ->get(['id', 'name', 'city', 'total_area_ha', 'latitude', 'longitude']);
+            ->get(['id', 'name', 'city', 'total_area_ha', 'latitude', 'longitude', 'pic_user_id']);
         $commodityCycles = PlantingCycle::query()
             ->visibleTo($actor, $team)
             ->whereIn('farm_id', $farmIds)
@@ -257,7 +258,7 @@ class AdminDashboardService
                 'projectedExpense' => $this->currency($projectedExpense),
                 'projectedNet' => $this->currency($projectedIncome - $projectedExpense),
             ],
-            'landMap' => $this->landMap($mapFarms),
+            'landMap' => $this->landMap($mapFarms, $commodityCycles, $actor, $team, $includeMapPreviews),
             'activities' => $recentActivities->map(fn (FarmActivity $activity): array => [
                 'id' => (string) $activity->id,
                 'title' => $activity->activityType->name ?? 'Aktivitas lapangan',
@@ -316,14 +317,48 @@ class AdminDashboardService
      * Farm rows provide map points, not boundary polygons. Keep the original
      * coordinates intact so the Leaflet client can display a real map.
      *
-     * @param  Collection<int, Farm>  $farms
+     * @param  EloquentCollection<int, Farm>  $farms
+     * @param  EloquentCollection<int, PlantingCycle>  $cycles
      * @return array{hasCoordinates: bool, farms: array<int, array<string, mixed>>}
      */
-    private function landMap(Collection $farms): array
+    private function landMap(EloquentCollection $farms, EloquentCollection $cycles, User $actor, Team $team, bool $includePreviews): array
     {
+        $pics = $includePreviews ? User::visibleTo($actor, $team)
+            ->whereIn('id', $farms->pluck('pic_user_id')->filter())
+            ->whereIn('assigned_farm_id', $farms->modelKeys())->where('is_active', true)
+            ->whereHas('role', fn ($roles) => $roles->visibleTo($actor, $team)->where('name', 'petugas'))
+            ->whereHas('teams', fn ($teams) => $teams->whereKey($team->id)->where('is_personal', false))
+            ->get(['id', 'name', 'assigned_farm_id'])->keyBy('id') : collect();
+        $cyclesByFarm = $cycles->groupBy('farm_id');
+
         return [
             'hasCoordinates' => $farms->contains(fn (Farm $farm): bool => $farm->latitude !== null && $farm->longitude !== null),
-            'farms' => $farms->values()->map(function (Farm $farm): array {
+            'farms' => $farms->values()->map(function (Farm $farm) use ($includePreviews, $cyclesByFarm, $pics): array {
+                $preview = [];
+                if ($includePreviews) {
+                    $crops = [];
+                    foreach ($cyclesByFarm->get($farm->id, collect()) as $cycle) {
+                        $variety = $cycle->variety;
+                        $commodity = $variety?->commodity;
+                        if ($commodity === null) {
+                            continue;
+                        }
+                        $key = (string) $commodity->id;
+                        $crops[$key] ??= ['id' => $key, 'name' => $commodity->name, 'varieties' => []];
+                        if (! in_array($variety->name, $crops[$key]['varieties'], true)) {
+                            $crops[$key]['varieties'][] = $variety->name;
+                        }
+                    }
+                    $crops = array_values($crops);
+                    usort($crops, fn (array $first, array $second): int => strcmp($first['name'], $second['name']));
+                    $pic = $pics->get($farm->getAttribute('pic_user_id'));
+                    $preview = [
+                        'crops' => $crops,
+                        'pic' => $pic !== null && (string) $pic->assigned_farm_id === (string) $farm->id ? $pic->only(['id', 'name']) : null,
+                        'detail_url' => route('farm-management.show', $farm, false),
+                    ];
+                }
+
                 return [
                     'id' => (string) $farm->id,
                     'name' => $farm->name,
@@ -331,6 +366,7 @@ class AdminDashboardService
                     'area' => $this->decimal((float) $farm->total_area_ha),
                     'latitude' => $farm->latitude === null ? null : (float) $farm->latitude,
                     'longitude' => $farm->longitude === null ? null : (float) $farm->longitude,
+                    ...$preview,
                 ];
             })->all(),
         ];
