@@ -4,7 +4,8 @@ namespace App\Jobs;
 
 use App\Notifications\DailyReportNotification;
 use App\Notifications\HarvestReminderNotification;
-use App\Policies\NotificationPolicy;
+use App\Notifications\TaskReminderNotification;
+use App\Notifications\WeeklyReportNotification;
 use App\Services\Notifications\FonnteClient;
 use App\Services\Notifications\FonnteException;
 use App\Services\Notifications\NotificationService;
@@ -23,7 +24,7 @@ final class SendWhatsAppNotification implements ShouldQueue
 
     public bool $failOnTimeout = true;
 
-    public function __construct(public readonly DailyReportNotification|HarvestReminderNotification $notification)
+    public function __construct(public readonly WeeklyReportNotification|TaskReminderNotification|DailyReportNotification|HarvestReminderNotification $notification)
     {
         $this->onConnection(config('operational_notifications.connection'));
         $this->onQueue(config('operational_notifications.whatsapp_queue'));
@@ -48,6 +49,9 @@ final class SendWhatsAppNotification implements ShouldQueue
         if (! $recipient) {
             return;
         }
+        if ($notifications->dataForDelivery($recipient, $data) === null) {
+            return;
+        }
         $number = $recipient->phone_number;
         if (! is_string($number) || ! preg_match('/^[1-9][0-9]{7,14}$/D', $number)) {
             Log::warning('Operational WhatsApp skipped', ['notification_id' => $data['id'], 'reason' => 'missing_or_invalid_number']);
@@ -67,9 +71,12 @@ final class SendWhatsAppNotification implements ShouldQueue
 
                 return;
             }
-            $message = $this->notification instanceof DailyReportNotification
-                ? $this->notification->toWhatsAppText(app(NotificationPolicy::class)->showsTenantContext($recipient))
-                : $this->notification->toWhatsAppText();
+            $data = $notifications->dataForDelivery($recipient, $data);
+            if ($data === null) {
+                return;
+            }
+            $notification = new ($this->notification::class)($data);
+            $message = $notification->toWhatsAppText();
             $client->send($number, $message);
             Log::info('Operational WhatsApp accepted by provider', ['notification_id' => $data['id']]);
         } catch (FonnteException $exception) {

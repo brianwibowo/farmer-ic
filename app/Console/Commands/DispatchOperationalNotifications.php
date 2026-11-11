@@ -7,19 +7,20 @@ use Illuminate\Console\Command;
 
 class DispatchOperationalNotifications extends Command
 {
-    protected $signature = 'notifications:dispatch {kind : daily-report or harvest-reminder}';
+    protected $signature = 'notifications:dispatch {kind : weekly-report, task-reminder or sop-deviation}';
 
     protected $description = 'Queue operational notifications for the current day';
 
     public function handle(NotificationService $notifications): int
     {
         $count = match ($this->argument('kind')) {
-            'daily-report' => $notifications->dailyReports(),
-            'harvest-reminder' => $notifications->harvestReminders(),
+            'weekly-report' => $notifications->weeklyReports(),
+            'task-reminder' => $notifications->taskReminders(),
+            'sop-deviation' => $notifications->sopDeviations(),
             default => null,
         };
         if ($count === null) {
-            $this->error('Unknown kind. Use daily-report or harvest-reminder.');
+            $this->error('Unknown kind. Use weekly-report, task-reminder or sop-deviation.');
 
             return self::INVALID;
         }

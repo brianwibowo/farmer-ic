@@ -5,11 +5,31 @@ namespace Tests\Feature\Notifications;
 use App\Notifications\Channels\InAppChannel;
 use App\Notifications\DailyReportNotification;
 use App\Notifications\HarvestReminderNotification;
+use App\Notifications\SopDeviationNotification;
+use App\Notifications\TaskReminderNotification;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class NotificationContentTest extends TestCase
 {
+    public function test_task_messages_roll_up_identical_subblock_tasks_to_their_block(): void
+    {
+        $task = ['farm_id' => 'farm', 'farm_name' => 'Kebun Cianjur', 'block_id' => 'block', 'block_name' => 'Blok Utara',
+            'name' => 'Pengairan awal', 'scheduled_date' => '2026-11-16', 'due_date' => '2026-11-18', 'days_before' => 1];
+        $reminder = new TaskReminderNotification(['tasks' => [$task, $task]]);
+        $message = $reminder->toInApp()['message'];
+        $this->assertSame(1, substr_count($message, 'Tugas: Pengairan awal'));
+        $this->assertStringContainsString('Jumlah tugas: 2', $message);
+        $this->assertStringContainsString('H-1', $message);
+        $this->assertStringContainsString('Blok: Blok Utara', $message);
+        $this->assertStringContainsString('16 November 2026', $message);
+        $this->assertStringNotContainsString('Subblok', $message);
+        $deviation = new SopDeviationNotification(['tasks' => [$task]]);
+        $this->assertSame('Laporan Ketidaksesuaian SOP', $deviation->toInApp()['title']);
+        $this->assertStringContainsString('Belum selesai melewati toleransi', $deviation->toWhatsAppText());
+        $this->assertStringNotContainsString('H-1', $deviation->toWhatsAppText());
+    }
+
     public function test_daily_report_owns_the_template_and_both_channel_formats(): void
     {
         $notification = new DailyReportNotification([

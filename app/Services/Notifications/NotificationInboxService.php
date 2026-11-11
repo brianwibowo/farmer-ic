@@ -27,7 +27,8 @@ final class NotificationInboxService
             $until = CarbonImmutable::parse($filters['date_to'], config('app.timezone'))->addDay()->startOfDay();
             $query->where('created_at', '>=', $from->toIso8601String())->where('created_at', '<', $until->toIso8601String());
             if (! empty($filters['team_id'])) {
-                $query->where('team_id', $filters['team_id']);
+                $query->where(fn ($tenants) => $tenants->where('team_id', $filters['team_id'])
+                    ->orWhereJsonContains('team_ids', (int) $filters['team_id']));
             }
         }
 
@@ -54,6 +55,11 @@ final class NotificationInboxService
     public function messageFor(User $actor, Notification $notification, bool $tenantBadge = false): string
     {
         $message = $notification->message ?? '';
+        if ($notification->type === 'weekly_report') {
+            return $tenantBadge || ! app(NotificationPolicy::class)->showsTenantContext($actor)
+                ? preg_replace('/\ATenant:[^\r\n]*(?:\r?\n|$)/u', '', $message) ?? $message
+                : $message;
+        }
         if ($notification->type !== 'daily_report') {
             return $message;
         }
@@ -79,7 +85,7 @@ final class NotificationInboxService
     private function query(User $actor): Builder
     {
         return Notification::visibleTo($actor)->where('user_id', $actor->id)
-            ->whereIn('type', ['daily_report', 'harvest_reminder']);
+            ->whereIn('type', ['weekly_report', 'task_reminder', 'sop_deviation', 'daily_report', 'harvest_reminder']);
     }
 
     public function markRead(Notification $notification): void

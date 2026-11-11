@@ -4,16 +4,14 @@ namespace Tests\Feature\Notifications;
 
 use App\Jobs\SendWhatsAppNotification;
 use App\Models\ActivityType;
-use App\Models\Commodity;
-use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmActivity;
-use App\Models\PlantingCycle;
+use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Channels\InAppChannel;
-use App\Notifications\DailyReportNotification;
-use App\Notifications\HarvestReminderNotification;
+use App\Notifications\SopDeviationNotification;
+use App\Services\Notifications\FonnteClient;
 use App\Services\Notifications\NotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,11 +19,13 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\CreatesNotificationTasks;
 use Tests\TestCase;
 
+/** Integrated PostgreSQL workflow, recipient boundaries and queue revalidation. */
 class NotificationWorkflowTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesNotificationTasks, RefreshDatabase;
 
     private Team $team;
 
@@ -40,7 +40,7 @@ class NotificationWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->travelTo(CarbonImmutable::parse('2026-10-30 20:00:00', 'Asia/Jakarta'));
+        $this->travelTo(CarbonImmutable::parse('2026-11-15 20:00:00', 'Asia/Jakarta'));
         config(['inertia.ssr.enabled' => false, 'operational_notifications.enabled' => true,
             'operational_notifications.connection' => 'database', 'operational_notifications.fonnte.enabled' => true,
             'operational_notifications.fonnte.token' => 'fake-token']);
@@ -50,8 +50,7 @@ class NotificationWorkflowTest extends TestCase
         $this->admin = $this->actor('admin');
         $this->owner = $this->actor('owner');
         $this->officer = $this->actor('petugas');
-        $this->farm = new Farm(['name' => 'Kebun Cianjur', 'total_area_ha' => '5.0000']);
-        $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
+        $this->farm = $this->makeFarm('Kebun Cianjur');
         $this->officer->forceFill(['assigned_farm_id' => $this->farm->id])->save();
     }
 
@@ -63,334 +62,320 @@ class NotificationWorkflowTest extends TestCase
         return $user;
     }
 
-    private function cycle(string $date = '2026-11-06', string $status = 'active'): PlantingCycle
-    {
-        $commodity = Commodity::firstOrCreate(['name' => 'Jagung Notifikasi']);
-        $variety = CropVariety::firstOrCreate(['commodity_id' => $commodity->id, 'name' => 'Bisi Notifikasi']);
-
-        return PlantingCycle::create(['farm_id' => $this->farm->id, 'variety_id' => $variety->id,
-            'planted_at' => '2026-09-01', 'estimated_harvest_at' => $date, 'planted_area_ha' => '1.0000', 'status' => $status]);
-    }
-
-    private function activity(User $performer, string $description, ?Farm $farm = null): void
-    {
-        $type = ActivityType::firstOrCreate(['code' => 'block_mapping'], ['name' => 'Pemetaan Blok']);
-        $activity = FarmActivity::create(['farm_id' => ($farm ?? $this->farm)->id, 'activity_type_id' => $type->id,
-            'performed_by' => $performer->id, 'activity_date' => now(), 'description' => $description]);
-        $activity->blockMappingDetail()->create(['block_name' => 'Blok A', 'length_m' => 10, 'width_m' => 10]);
-    }
-
-    private function reminderData(): array
-    {
-        $this->cycle();
-        $this->assertSame(1, app(NotificationService::class)->harvestReminders());
-        $job = Bus::dispatched(SendWhatsAppNotification::class)->first();
-
-        return $job->notification->data;
-    }
-
-    public function test_daily_report_targets_active_tenant_admins_and_owners_and_combines_petugas_logs(): void
-    {
-        $other = $this->actor('petugas');
-        $this->actor('owner', Team::factory()->create(['is_personal' => false]));
-        $this->activity($this->officer, 'Menyiram tanaman');
-        $this->activity($other, 'Memeriksa daun');
-        $this->activity($this->admin, 'Catatan admin');
-        $this->assertSame(2, app(NotificationService::class)->dailyReports());
-        $jobs = Bus::dispatched(SendWhatsAppNotification::class);
-        $this->assertEqualsCanonicalizing([$this->admin->id, $this->owner->id], $jobs->map(fn ($job) => $job->notification->data['user_id'])->all());
-        foreach ($jobs as $job) {
-            $this->assertInstanceOf(DailyReportNotification::class, $job->notification);
-            $this->assertStringContainsString('Menyiram tanaman', $job->notification->toWhatsAppText());
-            $this->assertStringContainsString('Memeriksa daun', $job->notification->toInApp()['message']);
-            $this->assertStringNotContainsString('Catatan admin', $job->notification->toInApp()['message']);
-        }
-    }
-
     private function makeFarm(string $name, ?Team $team = null): Farm
     {
-        $farm = new Farm(['name' => $name, 'total_area_ha' => '2.0000']);
+        $farm = new Farm(['name' => $name, 'total_area_ha' => '100.0000']);
         $farm->forceFill(['team_id' => ($team ?? $this->team)->id, 'created_by' => $this->admin->id])->save();
 
         return $farm;
     }
 
-    public function test_three_farms_are_delivered_as_one_tenant_report_per_admin_and_owner(): void
+    private function officerJob(): SendWhatsAppNotification
     {
-        $bogor = $this->makeFarm('Kebun Bogor');
-        $this->makeFarm('Kebun Sukabumi');
-        $other = $this->actor('petugas');
-        $other->forceFill(['assigned_farm_id' => $bogor->id])->save();
-        $this->activity($this->officer, 'Menyiram kebun Cianjur');
-        $this->activity($other, 'Memeriksa daun kebun Bogor', $bogor);
+        return Bus::dispatched(SendWhatsAppNotification::class)->first(fn ($job) => $job->notification->data['user_id'] === $this->officer->id);
+    }
+
+    private function fakeProvider(): void
+    {
         Http::fake([
             'api.fonnte.com/validate' => Http::response(['status' => true, 'registered' => ['6281234567890'], 'not_registered' => []]),
-            'api.fonnte.com/send' => Http::response(['status' => true, 'id' => ['tenant-report']]),
+            'api.fonnte.com/send' => Http::response(['status' => true, 'id' => ['accepted']]),
         ]);
-        $this->assertSame(2, app(NotificationService::class)->dailyReports());
-        $jobs = Bus::dispatched(SendWhatsAppNotification::class);
-        $this->assertCount(2, $jobs);
-        foreach ($jobs as $job) {
-            $data = $job->notification->data;
-            $this->assertSame(['Kebun Bogor', 'Kebun Cianjur', 'Kebun Sukabumi'], array_column($data['farms'], 'name'));
-            $this->assertSame('Memeriksa daun kebun Bogor', $data['farms'][0]['activities'][0]['description']);
-            $this->assertSame('Menyiram kebun Cianjur', $data['farms'][1]['activities'][0]['description']);
-            $this->assertSame([], $data['farms'][2]['activities']);
-            $this->assertStringContainsString('*3. Kebun: Kebun Sukabumi*', $job->notification->toWhatsAppText());
-            $this->assertSame(1, substr_count($job->notification->toWhatsAppText(), 'Petugas belum mengisi aktivitas hari ini'));
-            app(InAppChannel::class)->send(User::findOrFail($data['user_id']), $job->notification);
-            $job->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
-        }
-        $this->assertDatabaseCount('notifications', 2);
-        Http::assertSentCount(4);
-        Http::assertSent(fn ($request) => $request->url() === 'https://api.fonnte.com/send'
-            && str_contains($request['message'], '*1. Kebun: Kebun Bogor*')
-            && str_contains($request['message'], '*2. Kebun: Kebun Cianjur*')
-            && str_contains($request['message'], '*3. Kebun: Kebun Sukabumi*'));
     }
 
-    public function test_owner_gets_separate_reports_per_tenant_and_admins_never_receive_other_tenants(): void
-    {
-        $secondTeam = Team::factory()->create(['is_personal' => false]);
-        $secondTeam->members()->attach($this->owner, ['role' => 'member']);
-        $secondAdmin = $this->actor('admin', $secondTeam);
-        $secondOfficer = $this->actor('petugas', $secondTeam);
-        $otherFarm = $this->makeFarm('Kebun Tenant Kedua', $secondTeam);
-        $this->activity($this->officer, 'Aktivitas tenant pertama');
-        $this->activity($secondOfficer, 'Aktivitas tenant kedua', $otherFarm);
-        $this->assertSame(4, app(NotificationService::class)->dailyReports());
-        $jobs = Bus::dispatched(SendWhatsAppNotification::class);
-        $this->assertCount(2, $jobs->filter(fn ($job) => $job->notification->data['user_id'] === $this->owner->id));
-        foreach ($jobs as $job) {
-            $data = $job->notification->data;
-            $isFirst = $data['team_id'] === $this->team->id;
-            $this->assertSame([$isFirst ? $this->farm->id : $otherFarm->id], array_column($data['farms'], 'id'));
-            $this->assertStringContainsString($isFirst ? 'Aktivitas tenant pertama' : 'Aktivitas tenant kedua', $job->notification->toWhatsAppText());
-            $this->assertStringNotContainsString($isFirst ? 'Aktivitas tenant kedua' : 'Aktivitas tenant pertama', $job->notification->toWhatsAppText());
-            if ($data['user_id'] === $this->admin->id) {
-                $this->assertSame($this->team->id, $data['team_id']);
-            }
-            if ($data['user_id'] === $secondAdmin->id) {
-                $this->assertSame($secondTeam->id, $data['team_id']);
-            }
-        }
-    }
-
-    public function test_repeated_daily_dispatch_keeps_one_in_app_report_per_tenant_recipient_date(): void
+    public function test_weekly_admin_is_per_farm_and_owner_is_per_region(): void
     {
         $this->makeFarm('Kebun Bogor');
-        $this->assertSame(2, app(NotificationService::class)->dailyReports());
-        $this->assertSame(2, app(NotificationService::class)->dailyReports());
+        $this->makeFarm('Kebun Sukabumi');
+        $this->actor('superadmin');
+        $this->assertSame(2, app(NotificationService::class)->weeklyReports());
         $jobs = Bus::dispatched(SendWhatsAppNotification::class);
         $this->assertCount(4, $jobs);
+        $this->assertCount(3, $jobs->filter(fn ($job) => $job->notification->data['audience'] === 'admin'));
+        $ownerJob = $jobs->first(fn ($job) => $job->notification->data['audience'] === 'owner');
+        $this->assertCount(3, $ownerJob->notification->data['farms']);
+        $this->fakeProvider();
         foreach ($jobs as $job) {
-            app(InAppChannel::class)->send(User::findOrFail($job->notification->data['user_id']), $job->notification);
+            $job->handle(app(NotificationService::class), app(FonnteClient::class));
         }
-        $this->assertDatabaseCount('notifications', 2);
-    }
-
-    public function test_moving_a_snapshot_farm_to_another_tenant_prevents_both_channel_effects(): void
-    {
-        $farm = $this->makeFarm('Kebun Bogor');
-        app(NotificationService::class)->dailyReports();
-        $notification = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification;
-        $team = Team::factory()->create(['is_personal' => false]);
-        $farm->forceFill(['team_id' => $team->id])->save();
-        $this->assertNull(app(NotificationService::class)->validRecipient($notification->data));
-        app(InAppChannel::class)->send(User::findOrFail($notification->data['user_id']), $notification);
-        (new SendWhatsAppNotification($notification))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
-        $this->assertDatabaseCount('notifications', 0);
-        Http::assertNothingSent();
-    }
-
-    public function test_revoked_membership_and_old_per_farm_payload_do_not_send_a_daily_report(): void
-    {
-        app(NotificationService::class)->dailyReports();
-        $notification = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification;
-        $oldData = $notification->data;
-        unset($oldData['farms']);
-        $oldData['farm_id'] = $this->farm->id;
-        $this->assertNull(app(NotificationService::class)->validRecipient($oldData));
-        $this->team->members()->detach($notification->data['user_id']);
-        app(InAppChannel::class)->send(User::findOrFail($notification->data['user_id']), $notification);
-        (new SendWhatsAppNotification($notification))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
-        $this->assertDatabaseCount('notifications', 0);
-        Http::assertNothingSent();
-    }
-
-    public function test_tenant_without_visible_farms_gets_no_empty_daily_notification(): void
-    {
-        $this->actor('admin', Team::factory()->create(['is_personal' => false]));
-        $this->assertSame(2, app(NotificationService::class)->dailyReports());
-        Bus::assertDispatchedTimes(SendWhatsAppNotification::class, 2);
-    }
-
-    public function test_empty_farm_report_has_default_and_duplicate_in_app_job_only_stores_one_row(): void
-    {
-        app(NotificationService::class)->dailyReports();
-        $notification = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification;
-        $data = $notification->data;
-        $this->assertStringContainsString('Petugas belum mengisi aktivitas hari ini', $notification->toInApp()['message']);
-        $recipient = User::findOrFail($data['user_id']);
-        $channel = app(InAppChannel::class);
-        $channel->send($recipient, $notification);
-        $channel->send($recipient, $notification);
+        Http::assertSentCount(8);
+        $queued = Bus::dispatched(\Illuminate\Notifications\SendQueuedNotifications::class)
+            ->first(fn ($job) => $job->notification->data['audience'] === 'owner')->notification;
+        app(InAppChannel::class)->send($this->owner, $queued);
+        app(InAppChannel::class)->send($this->owner, $queued);
         $this->assertDatabaseCount('notifications', 1);
-        $this->actingAs($recipient)->getJson('/notifications/unread')->assertOk()->assertJson(['count' => 1]);
-        $this->get('/notifications')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
-            ->where('notifications.data.0.created_at', '30 Oktober 2026 20:00 WIB'));
-        $this->patch('/notifications/'.$data['id'].'/read')->assertRedirect();
-        $this->getJson('/notifications/unread')->assertJson(['count' => 0]);
+        $this->assertDatabaseHas('notifications', ['user_id' => $this->owner->id, 'type' => 'weekly_report', 'team_id' => null]);
     }
 
-    public function test_scheduled_times_and_harvest_milestones(): void
+    public function test_weekly_is_sent_without_activity_or_harvest_but_not_without_farms(): void
     {
-        $events = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events());
-        $this->assertSame('0 20 * * *', $events->first(fn ($e) => str_contains($e->command ?? '', 'daily-report'))->expression);
-        $this->assertSame('0 6 * * *', $events->first(fn ($e) => str_contains($e->command ?? '', 'harvest-reminder'))->expression);
-        $this->assertFalse($events->contains(fn ($e) => str_contains($e->command ?? '', 'notifications:dispatch pending')));
-        $this->cycle();
-        $this->travelTo(CarbonImmutable::parse('2026-10-30 05:59:00', 'Asia/Jakarta'));
-        // The scheduler controls the official time; direct manual dispatch is allowed before it.
-        $this->assertSame(1, app(NotificationService::class)->harvestReminders());
-        $this->travelTo(CarbonImmutable::parse('2026-10-30 06:00:00', 'Asia/Jakarta'));
-        $this->assertSame(1, app(NotificationService::class)->harvestReminders());
-        $this->travelTo(CarbonImmutable::parse('2026-11-03 06:00:00', 'Asia/Jakarta'));
-        $this->assertSame(1, app(NotificationService::class)->harvestReminders());
-        $this->travelTo(CarbonImmutable::parse('2026-11-06 06:00:00', 'Asia/Jakarta'));
-        $this->assertSame(1, app(NotificationService::class)->harvestReminders());
-        $this->assertSame([7, 7, 3, 0], Bus::dispatched(SendWhatsAppNotification::class)->map(fn ($job) => $job->notification->data['days_before'])->all());
+        $emptyTeam = Team::factory()->create(['is_personal' => false]);
+        $emptyOwner = $this->actor('owner', $emptyTeam);
+        $this->assertSame(2, app(NotificationService::class)->weeklyReports());
+        Bus::assertNotDispatched(SendWhatsAppNotification::class, fn ($job) => $job->notification->data['user_id'] === $emptyOwner->id);
+        foreach (Bus::dispatched(SendWhatsAppNotification::class) as $job) {
+            $expected = $job->notification->data['audience'] === 'owner'
+                ? 'Tidak ada panen yang terjadi minggu ini.' : 'Belum ada aktivitas yang dilaporkan Petugas minggu ini.';
+            $this->assertStringContainsString($expected, $job->notification->toInApp()['message']);
+        }
     }
 
-    public function test_no_matching_active_schedule_or_assignment_produces_no_reminder(): void
+    public function test_admin_weekly_uses_only_petugas_activity_inside_the_week_and_rolls_up_blocks(): void
     {
-        $this->cycle('2026-11-05');
-        $this->cycle('2026-11-06', 'harvested');
-        $this->assertSame(0, app(NotificationService::class)->harvestReminders());
-        $this->officer->forceFill(['assigned_farm_id' => null])->save();
-        $this->cycle();
-        $this->assertSame(0, app(NotificationService::class)->harvestReminders());
+        $first = $this->notificationTask($this->farm);
+        $block = FarmBlock::findOrFail($first->plantingCycle->block_id);
+        $this->notificationTask($this->farm, 1, [], $block);
+        $type = ActivityType::firstOrCreate(['code' => 'block_mapping'], ['name' => 'Pemetaan Blok']);
+        foreach (['2026-11-08 23:59:59', '2026-11-09 00:00:00', '2026-11-15 20:00:00', '2026-11-15 20:00:01'] as $at) {
+            $activity = FarmActivity::create(['farm_id' => $this->farm->id, 'block_id' => $block->id, 'activity_type_id' => $type->id,
+                'performed_by' => $this->officer->id, 'activity_date' => CarbonImmutable::parse($at, 'Asia/Jakarta'), 'description' => 'Memeriksa kebun']);
+            $activity->forceFill(['block_id' => $block->id])->save();
+            $activity->blockMappingDetail()->create(['block_name' => $block->getAttribute('name'), 'length_m' => 10, 'width_m' => 10]);
+        }
+        $activity = FarmActivity::create(['farm_id' => $this->farm->id, 'activity_type_id' => $type->id,
+            'performed_by' => $this->admin->id, 'activity_date' => now(), 'description' => 'Catatan Admin']);
+        $activity->blockMappingDetail()->create(['block_name' => 'Blok Admin', 'length_m' => 10, 'width_m' => 10]);
+        app(NotificationService::class)->weeklyReports();
+        $notification = Bus::dispatched(SendWhatsAppNotification::class)
+            ->first(fn ($job) => $job->notification->data['audience'] === 'admin')->notification;
+        $report = $notification->data['farms'][0];
+        $this->assertSame('2026-11-09', $notification->data['period_start']);
+        $this->assertSame('2026-11-15', $notification->data['period_end']);
+        $this->assertSame(2, $report['activity_count']);
+        $this->assertCount(1, $report['blocks']);
+        $this->assertSame(['Pemetaan Blok' => 2], $report['blocks'][0]['activity_counts']);
+        $this->assertStringNotContainsString('Subblok', $notification->toInApp()['message']);
+        $this->assertStringNotContainsString('Catatan Admin', $notification->toInApp()['message']);
     }
 
-    public function test_reschedule_cancellation_and_midnight_prevent_queued_in_app_delivery(): void
+    public function test_owner_combines_tenants_and_never_includes_foreign_farms(): void
     {
-        $data = $this->reminderData();
-        $channel = app(InAppChannel::class);
-        $cycle = PlantingCycle::findOrFail($data['cycle_id']);
-        $cycle->update(['estimated_harvest_at' => '2026-11-02']);
-        $channel->send($this->officer, new HarvestReminderNotification($data));
+        $second = Team::factory()->create(['is_personal' => false]);
+        $second->members()->attach($this->owner, ['role' => 'member']);
+        $this->makeFarm('Kebun Bandung', $second);
+        $foreign = Team::factory()->create(['is_personal' => false]);
+        $this->makeFarm('Kebun Rahasia', $foreign);
+        $this->assertSame(2, app(NotificationService::class)->weeklyReports());
+        $job = Bus::dispatched(SendWhatsAppNotification::class)->first(fn ($job) => $job->notification->data['audience'] === 'owner');
+        $this->assertEqualsCanonicalizing([$this->team->id, $second->id], $job->notification->data['team_ids']);
+        $this->assertCount(2, $job->notification->data['farms']);
+    }
+
+    public function test_reminders_include_only_h3_h1_h0_and_only_the_assigned_officer(): void
+    {
+        foreach ([3, 1, 0, 2, 7, -1] as $days) {
+            $this->notificationTask($this->farm, $days);
+        }
+        $this->notificationTask($this->farm, 0, ['status' => 'completed', 'completed_at' => now()]);
+        $this->notificationTask($this->farm, 0, ['status' => 'skipped', 'skip_reason' => 'Tidak diperlukan']);
+        $otherFarm = $this->makeFarm('Kebun Bogor');
+        $otherTask = $this->notificationTask($otherFarm);
+        $foreign = Team::factory()->create(['is_personal' => false]);
+        $foreignTask = $this->notificationTask($this->makeFarm('Kebun Rahasia', $foreign));
+        $this->assertSame(1, app(NotificationService::class)->taskReminders());
+        $jobs = Bus::dispatched(SendWhatsAppNotification::class);
+        $this->assertSame([$this->officer->id], $jobs->map(fn ($job) => $job->notification->data['user_id'])->all());
+        $this->assertCount(3, $this->officerJob()->notification->data['tasks']);
+        $this->assertEqualsCanonicalizing([0, 1, 3], array_column($this->officerJob()->notification->data['tasks'], 'days_before'));
+        $this->assertNotContains($otherTask->id, array_column($this->officerJob()->notification->data['tasks'], 'id'));
+        $this->assertNotContains($foreignTask->id, array_column($this->officerJob()->notification->data['tasks'], 'id'));
+        Bus::assertNotDispatched(\Illuminate\Notifications\SendQueuedNotifications::class,
+            fn ($job) => $job->notification->data['user_id'] === $this->admin->id);
+    }
+
+    public function test_already_queued_admin_reminders_are_rejected_by_both_channels(): void
+    {
+        $this->notificationTask($this->farm);
+        app(NotificationService::class)->taskReminders();
+        $data = [...$this->officerJob()->notification->data, 'user_id' => $this->admin->id];
+        $notification = new \App\Notifications\TaskReminderNotification($data);
+        app(InAppChannel::class)->send($this->admin, $notification);
+        (new SendWhatsAppNotification($notification))->handle(app(NotificationService::class), app(FonnteClient::class));
         $this->assertDatabaseCount('notifications', 0);
-        $cycle->update(['estimated_harvest_at' => $data['harvest_date'], 'status' => 'cancelled']);
-        $channel->send($this->officer, new HarvestReminderNotification($data));
-        $this->assertDatabaseCount('notifications', 0);
-        $cycle->update(['status' => 'active']);
-        $this->travelTo(CarbonImmutable::parse('2026-10-31 00:00:00', 'Asia/Jakarta'));
-        $channel->send($this->officer, new HarvestReminderNotification($data));
-        $this->assertDatabaseCount('notifications', 0);
+        Http::assertNothingSent();
+        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('notifications.taskReminder', $this->team));
+        $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('notifications.sopDeviation', $this->team));
     }
 
-    public function test_whatsapp_uses_current_number_and_skips_changed_or_expired_schedule(): void
+    public function test_empty_reminders_and_deviations_queue_nothing(): void
     {
-        $data = $this->reminderData();
-        Http::fake([
-            'api.fonnte.com/validate' => Http::response(['status' => true, 'registered' => ['6289876543210'], 'not_registered' => []]),
-            'api.fonnte.com/send' => Http::response(['status' => true, 'id' => ['123']]),
+        $this->assertSame(0, app(NotificationService::class)->taskReminders());
+        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
+        Bus::assertNothingDispatched();
+    }
+
+    public function test_cancelled_and_unplanted_cycles_produce_no_task_notifications(): void
+    {
+        $task = $this->notificationTask($this->farm);
+        $task->plantingCycle->update(['status' => 'cancelled']);
+        $this->assertSame(0, app(NotificationService::class)->taskReminders());
+        $task->plantingCycle->update(['status' => 'active', 'planted_at' => now()->addDay()->toDateString()]);
+        $this->assertSame(0, app(NotificationService::class)->taskReminders());
+    }
+
+    public function test_reschedule_moves_reminders_and_tolerance_without_violating_the_old_limit(): void
+    {
+        $task = $this->notificationTask($this->farm, -10);
+        app(\App\Services\PlantingCycleTaskManagementService::class)->reschedule($task, $this->admin, [
+            'rescheduled_date' => now()->addDay()->toDateString(), 'reschedule_reason' => 'Menunggu kondisi cuaca',
         ]);
-        $this->officer->update(['phone_number' => '6289876543210']);
-        (new SendWhatsAppNotification(new HarvestReminderNotification($data)))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
-        Http::assertSent(fn ($request) => $request['target'] === '6289876543210');
-        PlantingCycle::findOrFail($data['cycle_id'])->update(['status' => 'cancelled']);
-        (new SendWhatsAppNotification(new HarvestReminderNotification($data)))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
-        Http::assertSentCount(2);
+        $this->assertSame(1, app(NotificationService::class)->taskReminders());
+        $this->assertSame(1, $this->officerJob()->notification->data['tasks'][0]['days_before']);
+        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
     }
 
-    public function test_repeated_scheduler_can_queue_whatsapp_again_without_outbox(): void
+    public function test_deviation_is_admin_only_strictly_after_dynamic_tolerance_and_repeats_daily(): void
     {
-        $this->cycle();
-        $this->assertSame(1, app(NotificationService::class)->harvestReminders());
-        $this->assertSame(1, app(NotificationService::class)->harvestReminders());
-        Bus::assertDispatchedTimes(SendWhatsAppNotification::class, 2);
-    }
-
-    public function test_not_registered_number_receives_in_app_without_sending_whatsapp(): void
-    {
-        $data = $this->reminderData();
-        Http::fake(['api.fonnte.com/validate' => Http::response([
-            'status' => true, 'registered' => [], 'not_registered' => ['6281234567890'],
-        ])]);
-        $notification = new HarvestReminderNotification($data);
-        (new SendWhatsAppNotification($notification))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
-        app(InAppChannel::class)->send($this->officer, $notification);
+        $task = $this->notificationTask($this->farm, -20, [
+            'rescheduled_date' => now()->subDays(2)->toDateString(), 'due_date' => now()->toDateString(),
+        ]);
+        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
+        $this->travel(1)->days();
+        $this->assertSame(1, app(NotificationService::class)->sopDeviations());
+        $job = Bus::dispatched(SendWhatsAppNotification::class)->first();
+        $this->assertInstanceOf(SopDeviationNotification::class, $job->notification);
+        $this->assertSame($this->admin->id, $job->notification->data['user_id']);
+        $this->assertSame($task->id, $job->notification->data['tasks'][0]['id']);
+        app(InAppChannel::class)->send($this->admin, $job->notification);
+        app(InAppChannel::class)->send($this->admin, $job->notification);
         $this->assertDatabaseCount('notifications', 1);
-        Http::assertNotSent(fn ($request) => $request->url() === 'https://api.fonnte.com/send');
-        Http::assertSentCount(1);
+        $this->travel(1)->days();
+        $this->assertSame(1, app(NotificationService::class)->sopDeviations());
+        $next = Bus::dispatched(SendWhatsAppNotification::class)->last();
+        app(InAppChannel::class)->send($this->admin, $next->notification);
+        $this->assertDatabaseCount('notifications', 2);
+        $task->update(['status' => 'completed', 'completed_at' => now()]);
+        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
     }
 
-    public function test_missing_number_and_disabled_provider_do_not_even_validate_the_number(): void
+    public function test_zero_tolerance_reports_only_from_the_following_day(): void
     {
-        $data = $this->reminderData();
-        $job = new SendWhatsAppNotification(new HarvestReminderNotification($data));
-        $this->officer->update(['phone_number' => null]);
-        $job->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
-        $this->officer->update(['phone_number' => '6281234567890']);
-        config(['operational_notifications.fonnte.enabled' => false]);
-        $job->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
-        Http::assertNothingSent();
+        $this->notificationTask($this->farm, 0, ['tolerance_days' => 0, 'due_date' => today()]);
+        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
+        $this->travel(1)->days();
+        $this->assertSame(1, app(NotificationService::class)->sopDeviations());
     }
 
-    public function test_reschedule_during_registration_check_prevents_send(): void
+    public function test_changed_task_is_removed_without_suppressing_other_tasks_in_the_bundle(): void
     {
-        $data = $this->reminderData();
-        Http::fake(function ($request) use ($data) {
-            $this->assertSame('https://api.fonnte.com/validate', $request->url());
-            PlantingCycle::findOrFail($data['cycle_id'])->update(['estimated_harvest_at' => '2026-11-02']);
+        $completed = $this->notificationTask($this->farm, 0, ['name' => 'Selesai sebelum dikirim']);
+        $this->notificationTask($this->farm, 0, ['name' => 'Masih perlu dikerjakan']);
+        app(NotificationService::class)->taskReminders();
+        $completed->update(['status' => 'completed', 'completed_at' => now()]);
+        $job = $this->officerJob();
+        app(InAppChannel::class)->send($this->officer, $job->notification);
+        $notice = $this->officer->notifications()->firstOrFail();
+        $this->assertStringContainsString('Masih perlu dikerjakan', $notice->message);
+        $this->assertStringNotContainsString('Selesai sebelum dikirim', $notice->message);
+    }
+
+    public function test_reschedule_during_whatsapp_validation_cancels_the_send(): void
+    {
+        $task = $this->notificationTask($this->farm);
+        app(NotificationService::class)->taskReminders();
+        Http::fake(function () use ($task) {
+            $task->update(['rescheduled_date' => now()->addDays(7)->toDateString(), 'due_date' => now()->addDays(9)->toDateString()]);
 
             return Http::response(['status' => true, 'registered' => ['6281234567890'], 'not_registered' => []]);
         });
-        (new SendWhatsAppNotification(new HarvestReminderNotification($data)))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
+        $this->officerJob()->handle(app(NotificationService::class), app(FonnteClient::class));
         Http::assertSentCount(1);
+        app(InAppChannel::class)->send($this->officer, $this->officerJob()->notification);
+        $this->assertDatabaseCount('notifications', 0);
     }
 
     public static function accessChanges(): array
     {
-        return [['membership'], ['assignment'], ['inactive'], ['role']];
+        return [['membership'], ['assignment'], ['inactive'], ['role'], ['admin'], ['superadmin']];
     }
 
     #[DataProvider('accessChanges')]
-    public function test_access_changes_during_registration_check_are_not_hidden_by_permission_snapshots(string $change): void
+    public function test_access_changes_during_whatsapp_validation_prevent_sending(string $change): void
     {
-        $data = $this->reminderData();
-        Http::fake(function ($request) use ($change) {
-            $this->assertSame('https://api.fonnte.com/validate', $request->url());
+        $this->notificationTask($this->farm);
+        app(NotificationService::class)->taskReminders();
+        Http::fake(function () use ($change) {
             match ($change) {
                 'membership' => $this->team->members()->detach($this->officer),
                 'assignment' => $this->officer->forceFill(['assigned_farm_id' => null])->save(),
                 'inactive' => $this->officer->forceFill(['is_active' => false])->save(),
-                'role' => $this->officer->forceFill(['role_id' => \App\Models\Role::firstOrCreate(['name' => 'admin'])->id])->save(),
+                // Owner is not a task-reminder recipient.
+                'role' => $this->officer->forceFill(['role_id' => \App\Models\Role::firstOrCreate(['name' => 'owner'])->id])->save(),
+                'admin' => $this->officer->forceFill(['role_id' => \App\Models\Role::firstOrCreate(['name' => 'admin'])->id])->save(),
+                'superadmin' => $this->officer->forceFill(['role_id' => \App\Models\Role::firstOrCreate(['name' => 'superadmin'])->id])->save(),
             };
 
             return Http::response(['status' => true, 'registered' => ['6281234567890'], 'not_registered' => []]);
         });
-        (new SendWhatsAppNotification(new HarvestReminderNotification($data)))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
+        $this->officerJob()->handle(app(NotificationService::class), app(FonnteClient::class));
         Http::assertSentCount(1);
     }
 
-    public function test_too_little_time_for_validation_and_send_skips_all_provider_requests(): void
+    public function test_foreign_farm_and_revoked_membership_invalidate_weekly_payloads(): void
     {
-        $data = $this->reminderData();
-        $this->travelTo(CarbonImmutable::parse('2026-10-30 23:59:35', 'Asia/Jakarta'));
-        (new SendWhatsAppNotification(new HarvestReminderNotification($data)))->handle(app(NotificationService::class), app(\App\Services\Notifications\FonnteClient::class));
+        app(NotificationService::class)->weeklyReports();
+        $job = Bus::dispatched(SendWhatsAppNotification::class)->first(fn ($job) => $job->notification->data['audience'] === 'owner');
+        $this->farm->forceFill(['team_id' => Team::factory()->create(['is_personal' => false])->id])->save();
+        app(InAppChannel::class)->send($this->owner, $job->notification);
+        $this->assertDatabaseCount('notifications', 0);
+        $this->farm->forceFill(['team_id' => $this->team->id])->save();
+        $this->team->members()->detach($this->owner);
+        $job->handle(app(NotificationService::class), app(FonnteClient::class));
         Http::assertNothingSent();
     }
 
-    public function test_inbox_filters_by_type_so_template_title_changes_keep_history_visible(): void
+    public function test_disabled_whatsapp_and_expired_payload_do_not_contact_provider(): void
     {
-        $notification = new \App\Models\Notification;
-        $notification->forceFill(['user_id' => $this->admin->id, 'type' => 'daily_report',
-            'title' => 'Judul rekap yang diperbarui', 'message' => 'Kegiatan kebun hari ini.'])->save();
-        $this->admin->notifications()->create(['title' => 'Notifikasi lama lainnya']);
-        $this->actingAs($this->admin)->getJson('/notifications/unread')->assertOk()->assertJson(['count' => 1]);
-        $this->actingAs($this->owner)->getJson('/notifications/unread')->assertOk()->assertJson(['count' => 0]);
+        $this->notificationTask($this->farm);
+        app(NotificationService::class)->taskReminders();
+        config(['operational_notifications.fonnte.enabled' => false]);
+        $this->officerJob()->handle(app(NotificationService::class), app(FonnteClient::class));
+        config(['operational_notifications.fonnte.enabled' => true]);
+        $this->travelTo(now()->endOfDay());
+        $this->officerJob()->handle(app(NotificationService::class), app(FonnteClient::class));
+        $this->travel(1)->days();
+        app(InAppChannel::class)->send($this->officer, $this->officerJob()->notification);
+        $this->assertDatabaseCount('notifications', 0);
+        Http::assertNothingSent();
+    }
+
+    public function test_new_types_are_visible_in_inbox_and_cannot_be_read_by_other_users(): void
+    {
+        foreach (['weekly_report', 'task_reminder', 'sop_deviation', 'daily_report', 'harvest_reminder'] as $type) {
+            $notice = new \App\Models\Notification;
+            $notice->forceFill(['user_id' => $this->admin->id, 'team_id' => $this->team->id, 'type' => $type, 'title' => 'Judul bebas'])->save();
+        }
+        $this->actingAs($this->admin)->getJson('/notifications/unread')->assertOk()->assertJson(['count' => 5]);
+        $this->get('/notifications')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page->has('notifications.data', 5));
+        $notice = $this->admin->notifications()->firstOrFail();
+        $this->actingAs($this->owner)->patch('/notifications/'.$notice->id.'/read')->assertForbidden();
+    }
+
+    public function test_schedules_use_sunday_evening_and_daily_0600_wib(): void
+    {
+        $events = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events());
+        $this->assertSame('0 20 * * 0', $events->first(fn ($event) => str_contains($event->command ?? '', 'weekly-report'))->expression);
+        foreach (['task-reminder', 'sop-deviation'] as $kind) {
+            $event = $events->first(fn ($event) => str_contains($event->command ?? '', $kind));
+            $this->assertSame('0 6 * * *', $event->expression);
+            $this->assertSame('Asia/Jakarta', $event->timezone);
+        }
+        $this->artisan('notifications:dispatch', ['kind' => 'daily-report'])->assertExitCode(2);
+    }
+
+    public function test_missing_grants_and_master_switch_prevent_dispatch(): void
+    {
+        $this->notificationTask($this->farm);
+        foreach (['owner', 'admin', 'petugas'] as $role) {
+            $grants = config('access.roles.'.$role);
+            unset($grants['planting_cycle_tasks.view'], $grants['farm_activities.view']);
+            config(['access.roles.'.$role => $grants]);
+        }
+        $this->assertSame(0, app(NotificationService::class)->weeklyReports());
+        $this->assertSame(0, app(NotificationService::class)->taskReminders());
+        config(['operational_notifications.enabled' => false]);
+        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
+        Bus::assertNothingDispatched();
     }
 
     public function test_type_migration_classifies_old_operational_rows_without_changing_their_content(): void

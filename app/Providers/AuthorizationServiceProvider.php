@@ -3,10 +3,16 @@
 namespace App\Providers;
 
 use App\Models\ActivityType;
+use App\Models\Commodity;
+use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
+use App\Models\HarvestDetail;
+use App\Models\IncidentDetail;
 use App\Models\Notification;
 use App\Models\PlantingCycle;
+use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\RolePermissions;
@@ -89,26 +95,38 @@ class AuthorizationServiceProvider extends ServiceProvider
                 && $permissions->withinTeam($user, $team);
         });
 
-        Gate::define('notifications.dailyReport', function (User $user, Team $team): bool {
+        Gate::define('notifications.weeklyReport', function (User $user, Team $team, ?string $audience = null): bool {
+            $permissions = app(RolePermissions::class);
+            $role = $permissions->roleName($user);
+            if (! $user->is_active || ! in_array($role, ['owner', 'admin'], true)
+                || ($audience !== null && $audience !== $role)
+                || $team->is_personal || ! $permissions->withinTeam($user, $team)) {
+                return false;
+            }
+            $models = [Notification::class, Farm::class, FarmActivity::class, PlantingCycle::class];
+            array_push($models, ...($role === 'owner'
+                ? [HarvestDetail::class, Commodity::class, CropVariety::class]
+                : [FarmBlock::class, ActivityType::class, IncidentDetail::class]));
+            foreach ($models as $model) {
+                if (! Gate::forUser($user)->allows('viewAny', [$model, $team])) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+        $canReceiveTaskNotification = function (User $user, Team $team, string $role): bool {
             $permissions = app(RolePermissions::class);
 
-            return $user->is_active && in_array($permissions->roleName($user), ['owner', 'admin'], true)
+            return $user->is_active && $permissions->roleName($user) === $role
                 && ! $team->is_personal && $permissions->withinTeam($user, $team)
                 && Gate::forUser($user)->allows('viewAny', [Notification::class, $team])
                 && Gate::forUser($user)->allows('viewAny', [Farm::class, $team])
-                && Gate::forUser($user)->allows('viewAny', [FarmActivity::class, $team])
-                && Gate::forUser($user)->allows('viewAny', [ActivityType::class, $team])
-                && Gate::forUser($user)->allows('viewAny', [User::class, $team]);
-        });
-        Gate::define('notifications.harvestReminder', function (User $user, Farm $farm): bool {
-            $permissions = app(RolePermissions::class);
-            $team = $farm->team;
-
-            return $user->is_active && $permissions->roleName($user) === 'petugas'
-                && $team instanceof Team && ! $team->is_personal && $permissions->withinTeam($user, $team)
-                && Gate::forUser($user)->allows('viewAny', [Notification::class, $team])
-                && Gate::forUser($user)->allows('view', $farm)
-                && Gate::forUser($user)->allows('viewAny', [PlantingCycle::class, $team]);
-        });
+                && Gate::forUser($user)->allows('viewAny', [FarmBlock::class, $team])
+                && Gate::forUser($user)->allows('viewAny', [PlantingCycle::class, $team])
+                && Gate::forUser($user)->allows('viewAny', [PlantingCycleTask::class, $team]);
+        };
+        Gate::define('notifications.taskReminder', fn (User $user, Team $team): bool => $canReceiveTaskNotification($user, $team, 'petugas'));
+        Gate::define('notifications.sopDeviation', fn (User $user, Team $team): bool => $canReceiveTaskNotification($user, $team, 'admin'));
     }
 }

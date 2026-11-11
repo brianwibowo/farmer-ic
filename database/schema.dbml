@@ -692,8 +692,9 @@ Table notifications {
   is_read boolean [not null, default: false]
   created_at timestamptz [not null]
   read_at timestamptz
-  type varchar(32) [note: 'daily_report or harvest_reminder; nullable for legacy non-operational entries']
+  type varchar(32) [note: 'weekly_report, task_reminder, sop_deviation; legacy daily_report and harvest_reminder remain readable']
   team_id bigint [ref: > teams.id, note: 'Nullable for legacy inbox entries whose tenant cannot be proven']
+  team_ids jsonb [note: 'Persisted tenant IDs for a combined Owner weekly report; null for single-tenant and legacy notifications']
 }
 
 Table audit_logs {

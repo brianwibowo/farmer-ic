@@ -1,5 +1,11 @@
 # Audit dan optimasi query notifikasi
 
+Dokumen ini adalah checkpoint historis alur daily report/harvest reminder.
+Aturan aktif sekarang adalah [weekly report dan notifikasi tugas SOP](operational-notifications.md).
+Pengujian pertumbuhan query telah disesuaikan menjadi weekly (1 vs 8 kebun)
+dan reminder tugas (1 vs 30 tugas, H-3/H-1/H-0); angka checkpoint di bawah
+tidak menjadi pengukuran latensi implementasi baru.
+
 Checkpoint: 1 November 2026. Cakupan meliputi inbox HTTP, pemilihan penerima,
 daily report, harvest reminder, dan validasi penerima pada queue. Pengukuran
 menggunakan PostgreSQL pengujian, tanpa request Fonnte nyata.

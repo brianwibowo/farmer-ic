@@ -12,7 +12,7 @@ use App\Models\Notification;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
-use App\Notifications\DailyReportNotification;
+use App\Notifications\WeeklyReportNotification;
 use App\Services\Notifications\FonnteClient;
 use App\Services\Notifications\NotificationInboxService;
 use App\Services\Notifications\NotificationService;
@@ -26,12 +26,13 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Tests\Support\CreatesNotificationTasks;
 use Tests\TestCase;
 
 /** Integrated PostgreSQL query-growth and authorization regression tests. */
 class NotificationQueryPerformanceTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesNotificationTasks, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -119,48 +120,93 @@ class NotificationQueryPerformanceTest extends TestCase
         $this->assertSame($one, $fifteen, 'Inbox query count must not scale per card.');
     }
 
-    public function test_daily_queries_do_not_grow_per_farm_and_all_farms_are_preserved(): void
+    public static function weeklyAudiences(): array
+    {
+        return [['owner'], ['admin']];
+    }
+
+    #[DataProvider('weeklyAudiences')]
+    public function test_weekly_queries_do_not_grow_per_farm(string $role): void
     {
         $team = Team::factory()->create(['is_personal' => false]);
-        $this->actor($team, 'owner');
-        $this->actor($team, 'admin');
+        $this->actor($team, $role);
         $officer = $this->actor($team, 'petugas');
         $farm = $this->farm($team);
+        $this->notificationTask($farm);
         $this->activity($farm, $officer);
         $service = app(NotificationService::class);
-        $one = $this->queryCount(fn () => $this->assertSame(2, $service->dailyReports()));
+        $one = $this->queryCount(fn () => $this->assertSame(1, $service->weeklyReports()));
         for ($i = 0; $i < 7; $i++) {
-            $this->activity($this->farm($team), $officer);
+            $farm = $this->farm($team);
+            $this->notificationTask($farm);
+            $this->activity($farm, $officer);
         }
         Bus::fake();
-        $eight = $this->queryCount(fn () => $this->assertSame(2, $service->dailyReports()));
-        $this->assertSame($one, $eight, 'Daily queries must not scale per farm.');
-        foreach (Bus::dispatched(SendWhatsAppNotification::class) as $job) {
-            $this->assertCount(8, $job->notification->data['farms']);
-            foreach ($job->notification->data['farms'] as $report) {
-                $this->assertCount(1, $report['activities']);
-                $this->assertSame($officer->name, $report['activities'][0]['performer_name']);
-            }
+        $eight = $this->queryCount(fn () => $this->assertSame(1, $service->weeklyReports()));
+        $this->assertSame($one, $eight, 'Weekly queries must not scale per farm.');
+        $jobs = Bus::dispatched(SendWhatsAppNotification::class);
+        $this->assertCount($role === 'owner' ? 1 : 8, $jobs);
+        foreach ($jobs as $job) {
+            $this->assertCount($role === 'owner' ? 8 : 1, $job->notification->data['farms']);
         }
     }
 
-    public function test_harvest_queries_do_not_grow_per_cycle_and_all_three_margins_are_kept(): void
+    public function test_reminder_queries_do_not_grow_per_task_and_keep_all_milestones(): void
     {
         $team = Team::factory()->create(['is_personal' => false]);
         $officer = $this->actor($team, 'petugas');
         $farm = $this->farm($team);
         $officer->forceFill(['assigned_farm_id' => $farm->id])->save();
-        $this->cycle($farm, 7);
+        $this->notificationTask($farm, 3);
         $service = app(NotificationService::class);
-        $one = $this->queryCount(fn () => $this->assertSame(1, $service->harvestReminders()));
+        $one = $this->queryCount(fn () => $this->assertSame(1, $service->taskReminders()));
         for ($i = 0; $i < 29; $i++) {
-            $this->cycle($farm, [7, 3, 0][$i % 3]);
+            $this->notificationTask($farm, [3, 1, 0][$i % 3]);
         }
         Bus::fake();
-        $thirty = $this->queryCount(fn () => $this->assertSame(30, $service->harvestReminders()));
-        $this->assertSame($one, $thirty, 'Harvest queries must not scale per cycle.');
-        $this->assertEqualsCanonicalizing([0, 3, 7], Bus::dispatched(SendWhatsAppNotification::class)
-            ->map(fn ($job) => $job->notification->data['days_before'])->unique()->values()->all());
+        $thirty = $this->queryCount(fn () => $this->assertSame(1, $service->taskReminders()));
+        $this->assertSame($one, $thirty, 'Reminder queries must not scale per task.');
+        $tasks = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification->data['tasks'];
+        $this->assertCount(30, $tasks);
+        $this->assertEqualsCanonicalizing([0, 1, 3], array_values(array_unique(array_column($tasks, 'days_before'))));
+    }
+
+    public static function taskNotificationKinds(): array
+    {
+        return [['task_reminder', 'petugas', 0], ['sop_deviation', 'admin', -3]];
+    }
+
+    #[DataProvider('taskNotificationKinds')]
+    public function test_task_dispatch_and_delivery_queries_do_not_grow_per_task(string $kind, string $role, int $days): void
+    {
+        $team = Team::factory()->create(['is_personal' => false]);
+        $actor = $this->actor($team, $role);
+        $farm = $this->farm($team);
+        if ($role === 'petugas') {
+            $actor->forceFill(['assigned_farm_id' => $farm->id])->save();
+        }
+        $this->notificationTask($farm, $days);
+        $service = app(NotificationService::class);
+        $dispatch = fn (): int => $kind === 'task_reminder' ? $service->taskReminders() : $service->sopDeviations();
+        $checkDelivery = function (array $data, int $expected) use ($service): void {
+            $recipient = $service->validRecipient($data);
+            $this->assertInstanceOf(User::class, $recipient);
+            $fresh = $service->dataForDelivery($recipient, $data);
+            $this->assertNotNull($fresh);
+            $this->assertCount($expected, $fresh['tasks']);
+        };
+        $oneDispatch = $this->queryCount(fn () => $this->assertSame(1, $dispatch()));
+        $oneData = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification->data;
+        $oneDelivery = $this->queryCount(fn () => $checkDelivery($oneData, 1));
+        for ($i = 0; $i < 29; $i++) {
+            $this->notificationTask($farm, $days);
+        }
+        Bus::fake();
+        $thirtyDispatch = $this->queryCount(fn () => $this->assertSame(1, $dispatch()));
+        $thirtyData = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification->data;
+        $thirtyDelivery = $this->queryCount(fn () => $checkDelivery($thirtyData, 30));
+        $this->assertSame($oneDispatch, $thirtyDispatch, $kind.' dispatcher queries must not scale per task.');
+        $this->assertSame($oneDelivery, $thirtyDelivery, $kind.' queue validation queries must not scale per task.');
     }
 
     public function test_tenant_options_have_constant_round_trips_and_exclude_foreign_tenants(): void
@@ -195,7 +241,7 @@ class NotificationQueryPerformanceTest extends TestCase
         $this->assertFalse($permissions->withinTeam($owner, $team));
         $permissions->withMembershipSnapshot($owner, function () use ($owner, $team, $permissions): void {
             $this->assertFalse($permissions->withinTeam($owner, $team));
-            $this->assertFalse(Gate::forUser($owner)->allows('notifications.dailyReport', $team));
+            $this->assertFalse(Gate::forUser($owner)->allows('notifications.weeklyReport', $team));
         });
     }
 
@@ -215,13 +261,16 @@ class NotificationQueryPerformanceTest extends TestCase
         $team = Team::factory()->create(['is_personal' => false]);
         $owner = $this->actor($team, 'owner');
         $farm = $this->farm($team);
-        $data = ['kind' => 'daily_report', 'user_id' => $owner->id, 'team_id' => $team->id,
-            'event_date' => now()->toDateString(), 'farms' => [['id' => $farm->id]]];
         $service = app(NotificationService::class);
+        $service->weeklyReports();
+        $data = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification->data;
         $one = $this->queryCount(fn () => $this->assertNotNull($service->validRecipient($data)));
         for ($i = 0; $i < 7; $i++) {
-            $data['farms'][] = ['id' => $this->farm($team)->id];
+            $this->farm($team);
         }
+        Bus::fake();
+        $service->weeklyReports();
+        $data = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification->data;
         $eight = $this->queryCount(fn () => $this->assertNotNull($service->validRecipient($data)));
         $this->assertSame($one, $eight, 'Queue snapshot checks must not query each farm.');
         $team->members()->detach($owner);
@@ -234,7 +283,7 @@ class NotificationQueryPerformanceTest extends TestCase
         $team = Team::factory()->create(['is_personal' => false]);
         $owner = $this->actor($team, 'owner');
         $farm = $this->farm($team);
-        $notification = new DailyReportNotification(['kind' => 'daily_report', 'user_id' => $owner->id,
+        $notification = new WeeklyReportNotification(['kind' => 'weekly_report', 'user_id' => $owner->id,
             'team_id' => $team->id, 'event_date' => now()->toDateString(), 'farms' => [['id' => $farm->id]]]);
         $queries = $this->queryCount(fn () => (new SendWhatsAppNotification($notification))
             ->handle(app(NotificationService::class), app(FonnteClient::class)));

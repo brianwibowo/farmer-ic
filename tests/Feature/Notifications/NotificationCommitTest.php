@@ -2,10 +2,7 @@
 
 namespace Tests\Feature\Notifications;
 
-use App\Models\Commodity;
-use App\Models\CropVariety;
 use App\Models\Farm;
-use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Notifications\NotificationService;
@@ -13,12 +10,15 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\CreatesNotificationTasks;
 use Tests\Support\TestDatabase;
 use Tests\TestCase;
 
 /** No enclosing transaction: exercises real database queue and commit callbacks. */
 class NotificationCommitTest extends TestCase
 {
+    use CreatesNotificationTasks;
+
     protected function tearDown(): void
     {
         while (DB::connection()->transactionLevel() > 0) {
@@ -36,48 +36,45 @@ class NotificationCommitTest extends TestCase
         $farm = new Farm(['name' => 'Kebun Commit Notifikasi', 'total_area_ha' => '2.0000']);
         $farm->forceFill(['created_by' => $user->id, 'team_id' => $team->id])->save();
         $user->forceFill(['assigned_farm_id' => $farm->id, 'current_team_id' => $team->id])->save();
-        $commodity = Commodity::create(['name' => 'Jagung Commit']);
-        $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi Commit']);
-        PlantingCycle::create(['farm_id' => $farm->id, 'variety_id' => $variety->id,
-            'planted_at' => '2026-09-01', 'estimated_harvest_at' => '2026-11-06', 'planted_area_ha' => '1.0000', 'status' => 'active']);
-        $this->assertSame(1, app(NotificationService::class)->harvestReminders());
+        $this->notificationTask($farm);
+        $this->assertSame(1, app(NotificationService::class)->taskReminders());
     }
 
-    private function prepareDailyReport(): void
+    private function prepareWeeklyReport(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $team = Team::factory()->create(['name' => 'Tenant Rekap Harian', 'is_personal' => false]);
+        $admin = User::factory()->create(['role' => 'owner']);
+        $team = Team::factory()->create(['name' => 'Tenant Rekap Weekly', 'is_personal' => false]);
         $team->members()->attach($admin, ['role' => 'member']);
         foreach (['Kebun Bogor', 'Kebun Cianjur', 'Kebun Sukabumi'] as $name) {
-            $farm = new Farm(['name' => $name, 'total_area_ha' => '2.0000']);
+            $farm = new Farm(['name' => $name, 'city' => str_replace('Kebun ', 'Kabupaten ', $name), 'province' => 'Jawa Barat', 'total_area_ha' => '2.0000']);
             $farm->forceFill(['created_by' => $admin->id, 'team_id' => $team->id])->save();
         }
-        $this->assertSame(1, app(NotificationService::class)->dailyReports());
+        $this->assertSame(1, app(NotificationService::class)->weeklyReports());
     }
 
-    public function test_tenant_daily_snapshot_rolls_back_or_commits_and_is_rendered_by_the_real_worker(): void
+    public function test_tenant_weekly_snapshot_rolls_back_or_commits_and_is_rendered_by_the_real_worker(): void
     {
         Http::preventStrayRequests();
         config(['operational_notifications.enabled' => true, 'operational_notifications.connection' => 'database',
             'operational_notifications.fonnte.enabled' => false]);
-        $this->travelTo(CarbonImmutable::parse('2026-10-30 20:00:00', 'Asia/Jakarta'));
+        $this->travelTo(CarbonImmutable::parse('2026-11-15 20:00:00', 'Asia/Jakarta'));
         DB::beginTransaction();
-        $this->prepareDailyReport();
+        $this->prepareWeeklyReport();
         $this->assertDatabaseCount('jobs', 0);
         DB::rollBack();
         $this->assertDatabaseCount('jobs', 0);
-        DB::transaction(fn () => $this->prepareDailyReport());
-        $this->assertDatabaseCount('jobs', 2);
+        DB::transaction(fn () => $this->prepareWeeklyReport());
+        $this->assertDatabaseCount('jobs', 4);
         $this->assertDatabaseCount('notifications', 0);
         Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'notifications', '--once' => true, '--sleep' => 0]);
         $this->assertDatabaseCount('notifications', 1);
         $message = DB::table('notifications')->value('message');
-        $this->assertStringNotContainsString('Tenant Rekap Harian', $message);
-        $this->assertStringContainsString('1. Kebun: Kebun Bogor', $message);
-        $this->assertStringContainsString('2. Kebun: Kebun Cianjur', $message);
-        $this->assertStringContainsString('3. Kebun: Kebun Sukabumi', $message);
-        $this->assertSame(3, substr_count($message, 'Petugas belum mengisi aktivitas hari ini'));
-        Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'whatsapp', '--once' => true, '--sleep' => 0]);
+        $this->assertStringContainsString('Total seluruh kebun', $message);
+        $this->assertStringContainsString('Kabupaten Bogor', $message);
+        $this->assertStringContainsString('Kabupaten Cianjur', $message);
+        $this->assertStringContainsString('Kabupaten Sukabumi', $message);
+        $this->assertSame(4, substr_count($message, 'Tidak ada panen yang terjadi minggu ini.'));
+        Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'whatsapp', '--stop-when-empty' => true, '--sleep' => 0]);
         $this->assertDatabaseCount('jobs', 0);
         Http::assertNothingSent();
     }

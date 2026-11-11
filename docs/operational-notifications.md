@@ -1,300 +1,182 @@
 # Notifikasi operasional
 
-Implementasi ini memakai scheduler Laravel, service orkestrasi dan dua antrean:
-`notifications` untuk inbox dan `whatsapp` untuk Fonnte. Kedua pekerjaan
-ditambahkan setelah transaksi database terluar commit. Rollback tidak mengantrekan
-pekerjaan. Nomor dan token tidak disimpan dalam payload; isi pesan dan konteks
-kebun berupa snapshot data di payload queue dan dapat tersimpan di `failed_jobs`.
-Batasi akses dan retensi tabel queue sesuai kebutuhan.
+Scheduler Laravel memanggil NotificationService dan mengantrekan pekerjaan setelah
+transaksi terluar commit. Rollback tidak mengirim pekerjaan. Seluruh tanggal dan
+jadwal berikut menggunakan Asia/Jakarta (WIB).
 
-## Alur
+## Jenis dan jadwal
 
-```mermaid
-flowchart TD
-    A[Scheduler WIB] --> B[NotificationService]
-    B --> C{Penerima dan data valid?}
-    C -- Tidak --> D[Selesai]
-    C -- Ya --> E[Setelah commit]
-    E --> F[Queued notification: notifications]
-    E --> G[Queue job: whatsapp]
-    F --> H[Cek ulang hak dan jadwal]
-    H --> T[toInApp pada notification class]
-    T --> I[Simpan ke tabel notifications]
-    G --> J[Cek ulang hak, jadwal, nomor dan waktu]
-    J --> V[Fonnte validate: nomor terdaftar?]
-    V -- Tidak atau belum pasti --> D
-    V -- Ya --> W[Cek ulang konteks dan toWhatsAppText]
-    W --> K[Fonnte send: request HTTPS]
-    K --> L[Respons diterima, gagal atau tidak pasti]
-```
-
-| Jenis | Waktu Asia/Jakarta | Penerima | Isi |
+| Jenis / command | Jadwal | Penerima | Saat kosong |
 | --- | --- | --- | --- |
-| Report Harian Kebun dari Petugas | 20:00 | Admin dan Owner aktif yang berhak pada tenant | Satu rekap seluruh kebun per penerima, tenant, dan tanggal, dari `FarmActivity` yang dilakukan Petugas pada hari itu sampai 20:00 WIB. Setiap kebun tanpa aktivitas Petugas menampilkan `Petugas belum mengisi aktivitas hari ini`. |
-| Panen Reminder | 06:00 | Petugas aktif pada kebun yang ditugaskan | Siklus tanam aktif dengan tanggal panen tepat H-7, H-3 atau H-0. Tanpa jadwal yang cocok, tidak ada notifikasi. |
+| Laporan Weekly / weekly-report | Minggu 20:00 | Admin dan Owner aktif | Admin tetap mendapat ringkasan jika belum ada aktivitas; Owner tetap mendapat target dan keterangan tidak ada panen. Penerima tanpa kebun yang terlihat tidak menerima apa pun. |
+| Reminder Tugas SOP / task-reminder | Setiap hari 06:00 | Petugas kebun penugasannya | Tidak mengirim apa pun jika tidak ada tugas H-3, H-1, atau H-0. Admin tidak menerima reminder ini. |
+| Laporan Ketidaksesuaian SOP / sop-deviation | Setiap hari 06:00 | Admin tenant | Tidak mengirim apa pun jika tidak ada tugas melewati toleransi. Diulang setiap hari selama masih bermasalah. |
 
-Pemilihan penerima memakai membership tenant dan Gate; pembacaan kebun dan
-aktivitas memakai `visibleTo`. Semua aktivitas Petugas pada kebun digabungkan;
-identitas aktivitas mengikuti catatan tersimpan, bukan assignment Petugas saat
-ini. Nama yang tidak terlihat ditampilkan sebagai `Petugas tidak tersedia`.
-Aktivitas Admin tidak ikut dalam rekap. Setiap kebun yang terlihat mendapat
-bagian tersendiri dalam rekap tenant walaupun tidak memiliki Petugas yang
-ditugaskan saat ini. Superadmin
-tidak otomatis menjadi penerima bisnis.
+Laporan harian dan reminder panen berbasis estimated_harvest_at tidak lagi
+dijadwalkan atau didukung oleh command dispatch.
 
-Contoh: tenant dengan tiga kebun, satu Owner, dan satu Admin menghasilkan dua
-report, bukan enam. Masing-masing penerima mendapat satu inbox dan satu percobaan
-pengiriman WhatsApp yang berisi ketiga kebun (WhatsApp tetap mengikuti validasi
-nomor dan retry). Owner dengan beberapa tenant mendapat rekap terpisah per tenant.
-Tenant tanpa kebun yang terlihat tidak menghasilkan report kosong.
+## Laporan Weekly
 
-Kebun diurutkan berdasarkan nama dan ID. Setiap bagian menampilkan nomor urut,
-nama kebun, serta aktivitasnya; WhatsApp juga menampilkan jumlah aktivitas dan
-garis pemisah antar kebun. Pesan default hanya berlaku untuk bagian kebun yang
-belum memiliki aktivitas. Data kebun atau aktivitas tenant lain tidak digabungkan.
+Periode adalah Senin 00:00 sampai Minggu 20:00 pada minggu pengiriman. Aktivitas
+Minggu setelah 20:00 berada di luar batas rekap tersebut.
 
-## Mengelola konten
+Admin menerima satu inbox per tenant dan satu job/pesan WhatsApp per kebun.
+Kontennya adalah ringkasan FarmActivity yang dilaporkan Petugas selama periode:
+jumlah aktivitas per jenis, jumlah laporan hambatan beserta kutipan singkat
+hambatan yang paling sering dilaporkan (maksimal 100 karakter), serta semua IncidentDetail
+yang dikelompokkan berdasarkan kategori dan tingkat keparahan beserta jumlahnya.
+Petugas yang sudah soft-deleted tetap tercakup melalui performer withTrashed.
+Kegiatan dari seluruh subblok diringkas ke bloknya; nama/ID subblok dan catatan
+aktivitas panjang tidak ditampilkan. Aktivitas tanpa tautan blok tetap dicakup
+pada bagian Tanpa blok. Kebun tanpa aktivitas menampilkan
+"Belum ada aktivitas yang dilaporkan Petugas minggu ini."
 
-Halaman `/notifications` memiliki dua tab: **Belum dibaca** dan **Semua**.
-Tab Belum dibaca menampilkan seluruh notifikasi pribadi yang belum dibaca lintas
-tanggal dan tenant yang diizinkan, tanpa form filter. Tab Semua menyediakan filter
-rentang tanggal diterima Dari?Sampai dalam WIB (default hari ini), dan pilihan tenant
-khusus Owner. Perubahan filter langsung diterapkan; Reset pada tab Semua mengembalikan
-rentang hari ini dan semua tenant. Setiap masuk atau memuat ulang halaman dimulai
-dari tab Belum dibaca. Filter tidak disimpan di localStorage, session, atau URL browser.
-Pagination tetap 15 notifikasi per halaman, sehingga seluruh notifikasi lama dapat
-diakses tanpa pembatasan tanggal pada tab Belum dibaca.
+Owner menerima satu inbox lintas seluruh tenant yang berhak diaksesnya.
+Inbox menampilkan target per komoditas pada level total seluruh kebun dan per
+kabupaten/kota, beserta realisasi panen minggu tersebut. Tidak ada rincian
+kebun/blok/subblok. WhatsApp Owner dipisahkan menjadi satu job/pesan per
+kabupaten/kota, menggabungkan kebun lintas tenant; total seluruh kebun hanya
+ditampilkan di inbox, tidak diulang pada setiap pesan WhatsApp.
 
-Kedua tab mengelompokkan kartu berdasarkan tanggal diterima dalam WIB, dengan jarak
-antar kelompok. Kartu awalnya tertutup dan menampilkan judul, waktu, indikator status,
-serta nama tenant khusus Owner. Klik kartu untuk membuka detail; membuka detail tidak
-menandai dibaca. Tombol Tandai dibaca tersedia di dalam detail dan mengeluarkan kartu
-dari tab Belum dibaca setelah berhasil. Pagination dan tindakan ini mempertahankan tab aktif.
+Target selalu memakai HarvestProjectionService dengan period=cycle agar sama
+dengan dashboard. Kalkulator saat ini memakai luas seluruh kebun × produktivitas
+komoditas, sekali per kebun-komoditas dengan siklus aktif; beberapa siklus aktif
+komoditas sama tidak melipatgandakan luas. Ini adalah target per cycle, bukan
+target mingguan dan bukan perhitungan tahunan.
 
-Filter diterapkan di backend setelah scope inbox pribadi dan sebelum pagination
-serta total hasil. Rentang tanggal inklusif mengikuti `created_at`, bukan tanggal
-panen/aktivitas: dari 00:00 WIB tanggal awal sampai sebelum 00:00 WIB setelah
-tanggal akhir. Angka belum dibaca di header/bell tetap total inbox pribadi lintas
-tanggal; jumlah hasil di atas daftar mengikuti filter. Admin/Petugas/Superadmin
-tidak mendapat filter tenant; parameter tenant yang dipaksakan ditolak 403.
+Realisasi memakai FarmActivity jenis harvest dengan activity_date dalam periode
+dan HarvestDetail yang terlihat: berat panen bruto (ton) dan luas panen tercatat
+(ha), dikelompokkan berdasarkan komoditas siklus atau komoditas kebun jika siklus
+tidak tersedia. Data komoditas/target/berat yang hilang diberi keterangan,
+tidak disamarkan sebagai hasil nol. Aktivitas panen tanpa detail berat tetap
+dihitung sebagai laporan panen dengan berat belum tercatat.
+Kabupaten tanpa panen tetap mendapat target dan pesan
+"Tidak ada panen yang terjadi minggu ini."
 
-Nama tenant ditampilkan sebagai badge hanya pada kartu Owner. Template report
-in-app dan WhatsApp hanya menyebut tenant bagi Owner; Admin menerima rekap kebun
-tanpa label, nama, atau kalimat konteks tenant. Aturan presentasi ada di helper
-`NotificationPolicy::showsTenantContext()` dan tidak memperluas grant mana pun,
-termasuk bypass Superadmin. Channel/job memeriksa penerima terkini saat rendering.
-Untuk inbox lama, header tenant yang dikenali disembunyikan pada respons Admin
-tanpa menulis ulang isi tersimpan atau menghapus catatan aktivitas.
+Nama provinsi dan kabupaten/kota yang tersimpan menjadi identitas gabungan
+(setelah normalisasi spasi/huruf), sehingga kebun berkode wilayah dan data legacy
+dapat digabung. Nama kabupaten sama di provinsi berbeda tetap terpisah. Kode
+wilayah menjadi fallback jika nama belum lengkap. Kebun tanpa data kabupaten
+tetap dicakup dalam total dan bagian "Kabupaten belum diisi" agar panen tidak hilang.
 
-Hanya ada dua jenis notifikasi operasional:
+Laporan Owner gabungan menyimpan team_id=null dan daftar team_ids JSONB yang
+berasal dari konteks backend berizin. Filter tenant memilih laporan gabungan
+yang memuat tenant tersebut; isinya tetap satu rekap lintas tenant milik Owner.
+Laporan Admin dan reminder tetap mempunyai team_id tunggal. Payload weekly
+format lama yang belum membedakan audience Admin/Owner tidak dikirim lagi;
+riwayat inbox yang sudah tersimpan tetap dapat dibaca.
 
-| Jenis | Class pemilik teks |
-| --- | --- |
-| `daily_report` | `app/Notifications/DailyReportNotification.php` |
-| `harvest_reminder` | `app/Notifications/HarvestReminderNotification.php` |
+## Reminder dan ketidaksesuaian
 
-Ubah `toInApp()` pada class terkait untuk judul dan isi inbox. `toWhatsAppText()`
-menentukan teks WhatsApp dengan judul dan label `*tebal*`, sapaan, serta baris
-kosong antarbagian. Kebun dipisahkan dalam bagian bernomor, kemudian aktivitas
-di dalamnya ditampilkan per blok berisi waktu, Petugas, dan catatan agar mudah
-dibaca di ponsel.
-In-app memakai format teksnya sendiri. Tidak ada channel email untuk kedua
-notifikasi operasional ini.
+Sumber jadwal adalah PlantingCycleTask, bukan tanggal perkiraan panen.
+Tugas harus pending atau in_progress pada siklus active yang sudah ditanam.
+Completed dan skipped dikeluarkan.
 
-Tanggal pesan menggunakan nama bulan Indonesia, misalnya `31 Oktober 2026`.
-Timestamp inbox juga memakai nama bulan Indonesia dan tetap menampilkan jam WIB.
-Locale diterapkan pada pemformatan notifikasi, tanpa mengubah locale global aplikasi.
+Tanggal efektif = rescheduled_date jika tersedia, selain itu scheduled_date.
+Batas toleransi = tanggal efektif + tolerance_days.
 
-Pesan WhatsApp diakhiri tautan detail sementara. Ganti konstanta `DETAIL_URL`
-pada masing-masing class ketika URL halaman detail sudah tersedia: report memakai
-`https://example.com/laporan-harian-kebun`, reminder memakai
-`https://example.com/jadwal-panen`. Kedua URL ini placeholder, belum menuju
-halaman aplikasi yang sebenarnya.
+Reminder memeriksa selisih tanggal lokal 3, 1, atau 0 hari. Tanggal efektif
+menggantikan jadwal lama setelah reschedule. Task tanpa tanggal tidak dikirim.
 
-`NotificationService` hanya memilih penerima, mengambil data yang sudah diotorisasi,
-menyiapkan snapshot, dan mengantrekan class yang sesuai setelah commit.
-`InAppChannel` memanggil `toInApp()`. Job WhatsApp menerima objek notifikasi dan
-memanggil `toWhatsAppText()` setelah pemeriksaan konteks dan nomor. Teks tidak
-dibangun di service atau job.
+Ketidaksesuaian berarti tanggal pemeriksaan sudah lebih besar daripada batas
+toleransi, bukan tepat pada batasnya. Contoh: jadwal 10 November dan toleransi
+2 hari masih diperbolehkan sampai akhir 12 November; mulai pemeriksaan pagi
+13 November, tugas yang belum selesai dilaporkan.
+Reschedule boleh melewati batas jadwal lama dan tidak otomatis dianggap
+pelanggaran. Batas baru mengikuti tanggal reschedule beserta toleransinya.
 
-Inbox memilih berdasarkan kolom `notifications.type`, bukan teks judul. Migrasi
-mengisi jenis untuk row report/reminder lama yang judulnya dikenali. Mengubah
-judul pada template tidak menyembunyikan histori yang sudah memiliki `type`.
+Kedua jenis ini masing-masing digabung menjadi satu record inbox dan satu pesan
+WhatsApp per penerima, tenant, dan tanggal. Tugas subblok yang memiliki kebun,
+blok, nama tugas, jadwal, dan batas toleransi sama diringkas menjadi satu baris
+dengan jumlah tugas. Pesan hanya menampilkan kebun dan blok.
 
-Sebelum kedua channel melakukan efek, service memeriksa ulang penerima, hak,
-tenant dan kebun. Reminder juga memeriksa assignment, status dan tanggal siklus.
-Report tenant memeriksa ulang semua ID kebun dalam snapshot. Jika salah satu
-kebun berpindah tenant, dihapus, atau tidak lagi terlihat, seluruh report yang
-tertunda dilewati agar isi lama tidak membocorkan data. Data yang ditambahkan
-setelah snapshot dibuat masuk pada report berikutnya, bukan mengubah snapshot.
-Setelah tanggal WIB berganti, pekerjaan hari sebelumnya dilewati. Job WhatsApp
-tidak memulai validasi dan pengiriman dalam 25 detik terakhir sebelum pergantian
-hari. Sesudah validasi, job memeriksa konteks dan sisa 15 detik lagi. Perubahan
-setelah request dimulai tidak dapat menarik kembali pesan yang sudah dikirim.
+## Kanal, konfigurasi dan proses
 
-## Batas penyederhanaan
+- OPERATIONAL_NOTIFICATIONS_ENABLED=true mengaktifkan ketiga jenis.
+- FONNTE_ENABLED=false secara default. WhatsApp hanya mengirim saat true,
+  token Fonnte tersedia, nomor penerima valid, dan terdaftar di WhatsApp.
+- Fonnte nonaktif tidak menghentikan inbox.
+- Antrean notifications menyimpan inbox melalui InAppChannel.
+- Antrean whatsapp memanggil Fonnte validate lalu send melalui HTTPS.
+- Keduanya memakai NOTIFICATION_QUEUE_CONNECTION (default database).
 
-Tidak ada lagi `notification_deliveries` maupun command `pending`. Scheduler
-tidak melakukan catch-up otomatis jika waktu utama terlewat; operator dapat
-menjalankan command untuk hari yang sama. Pemanggilan manual tidak dibatasi
-jam; scheduler tetap memakai 20:00 dan 06:00 WIB. Job yang sudah masuk
-queue tetap diproses worker dan mengikuti kebijakan retry queue.
+Recipient discovery membatasi akun aktif dan role bisnis yang tepat; Gate
+notifications.weeklyReport, notifications.taskReminder, dan
+notifications.sopDeviation memeriksa role, membership dan grant pembacaan.
+Data Farm, FarmBlock, PlantingCycle, PlantingCycleTask, FarmActivity, IncidentDetail,
+HarvestDetail dan referensi komoditas dibaca
+melalui visibleTo sebelum pengelompokan/total/serialisasi. Admin tidak mendapat
+data tenant lain, Petugas hanya mendapat kebun yang ditugaskan. Superadmin
+tidak dipilih sebagai penerima bisnis.
 
-In-app menggunakan ID deterministik dan `insertOrIgnore`, sehingga job dengan
-identitas yang sama tidak membuat dua baris inbox. Identitas report adalah jenis,
-penerima, tenant, dan tanggal; identitas reminder tetap penerima, siklus, tanggal
-panen, dan milestone. WhatsApp tidak memiliki
-catatan deduplikasi persisten: menjalankan scheduler atau job berulang, atau
-worker berhenti saat request berlangsung, **dapat mengirim WhatsApp ganda**.
-Tidak ada status pengiriman WhatsApp permanen; log tersanitasi dan `failed_jobs`
-dapat membantu diagnosis. Terdapat jendela setelah commit dan sebelum kedua job
-berhasil dimasukkan ke queue; jika proses berhenti di sana, sebagian pekerjaan
-dapat hilang. Pengingat untuk jadwal yang diubah setelah scheduler berjalan
-tidak dibuat ulang otomatis; job tanggal lama dilewati saat dieksekusi.
+Channel/job memeriksa ulang keaktifan, role sesuai audience, membership, visibilitas,
+identitas kabupaten dan tanggal payload pada saat eksekusi. Semua tenant dalam
+snapshot Owner diverifikasi kembali; membership yang dicabut membatalkan payload
+tersebut, termasuk setelah validasi nomor Fonnte. Reminder/ketidaksesuaian memeriksa ulang tiap tugas
+sebelum render, termasuk setelah validasi nomor Fonnte. Tugas yang telah selesai,
+berpindah konteks atau berubah jadwal dikeluarkan; tugas lain yang masih valid
+tetap dikirim. Jika hasil akhirnya kosong, tidak ada pengiriman.
+Payload hanya berlaku pada tanggal pengiriman; tidak dikirim setelah tengah malam.
 
-Inbox menyimpan report yang sudah terbentuk. Log baru atau perubahan yang
-ditambahkan setelah report pertama dibuat tidak memperbarui baris itu. Inbox
-menampilkan dua jenis operasional melalui penanda `type`; data inbox lama lainnya
-tetap tersimpan tetapi tidak muncul di halaman ini.
+Payload antrean berisi snapshot data tetapi tidak menyimpan nomor telepon/token.
+Batasi akses dan retensi tabel jobs/failed_jobs. Pengiriman transient dicoba
+maksimal tiga kali dengan backoff 60/300/900 detik, selama masih ada waktu sebelum
+kedaluwarsa. Respons provider yang permanen atau hasil kirim yang tidak pasti
+tidak diulang secara buta. Respons accepted bukan konfirmasi pesan sampai ke ponsel.
 
-## WhatsApp dan konfigurasi
+ID inbox deterministik mencegah record ganda untuk penerima/audience/minggu atau
+penerima/tenant/hari yang sama.
+WhatsApp belum mempunyai deduplikasi persisten: menjalankan command berulang
+dapat mengirim pesan lagi. withoutOverlapping melindungi eksekusi scheduler yang
+bertumpuk, bukan pengulangan command manual setelah pekerjaan sebelumnya selesai.
 
-Atur placeholder di `.env` sesuai lingkungan tanpa memasukkan rahasia ke repo:
+## Inbox dan kompatibilitas
 
-```dotenv
-OPERATIONAL_NOTIFICATIONS_ENABLED=true
-NOTIFICATION_QUEUE_CONNECTION=database
-FONNTE_ENABLED=false
-FONNTE_TOKEN=
-```
+Halaman /notifications menampilkan jenis baru weekly_report, task_reminder dan
+sop_deviation. Riwayat daily_report dan harvest_reminder tetap bisa dibaca;
+kelas lamanya dipertahankan untuk deserialisasi antrean lama. Payload jenis lama
+ditolak saat diproses, sehingga tidak menghasilkan pengiriman dengan aturan lama.
 
-WhatsApp nonaktif secara default. `phone_number` pada User opsional dan
-dinormalisasi, misalnya `+62081212345678` atau `081212345678` menjadi
-`6281212345678`. Nomor kosong atau tidak valid melewati WhatsApp; inbox tetap
-berjalan. Nomor dapat diubah di profil atau User Management sesuai hak akses.
+Tab Belum dibaca menampilkan seluruh notifikasi pribadi belum dibaca. Tab Semua
+menyediakan rentang tanggal diterima (inklusif dalam WIB), serta filter tenant
+khusus Owner. Semua filter diterapkan setelah scope penerima. Tenant ditampilkan
+pada badge Owner; pesan mingguan tidak mengulang header tenant ketika badge ada.
+Admin/Petugas tidak memperoleh nama tenant dari template reminder/ketidaksesuaian.
 
-Sebelum mengirim, worker memanggil [API validate Fonnte](https://docs.fonnte.com/api-validate-number/)
-dan hanya melanjutkan bila respons sukses boolean `status: true`, serta nomor
-tujuan yang sama ada pada daftar `registered` dan tidak ada pada `not_registered`.
-Nomor tidak terdaftar dilewati. Hasil kosong, ambigu, atau respons validasi gagal
-tidak mengizinkan pengiriman. Validasi diulang saat retry, tanpa cache permanen.
-Perubahan nomor, hak, atau jadwal selama validasi membuat job melewati pengiriman.
-Gunakan satu consumer WhatsApp: dokumentasi provider menyebut validasi yang
-berjalan bersamaan dapat mengganggu pemeriksaan sebelumnya. Tidak ada klaim
-bahwa validasi menjamin pesan kelak diterima; registrasi nomor dapat berubah.
+## Menjalankan dan menguji
 
-Fonnte memakai connect timeout 5 detik, timeout validasi 10 detik dan timeout
-pengiriman 15 detik, dan tidak
-mengikuti redirect. Respons hanya dianggap diterima provider jika HTTP sukses,
-`status` boolean `true`, dan tepat satu ID valid. Ini belum membuktikan pesan
-diterima atau dibaca pengguna. Penolakan sementara yang eksplisit, HTTP 429,
-atau kegagalan DNS/koneksi sebelum submit dicoba ulang maksimal tiga attempt per
-job dengan jeda 60 lalu 300 detik selama masih ada waktu. Penolakan permanen
-dan hasil pengiriman yang tidak pasti gagal tanpa retry otomatis. Validasi yang
-timeout atau responsnya tidak lengkap boleh diulang karena belum mengirim pesan;
-konfigurasi sertifikat TLS yang bermasalah gagal permanen. Setiap attempt job
-dapat memanggil satu validasi dan satu pengiriman. Error dan log tidak
-mencatat nomor, token atau isi pesan; payload queue tetap memuat isi pesan.
+Sebelum memakai kode ini, terapkan migrasi additive
+2026_11_11_000001_add_team_ids_to_notifications pada database aplikasi yang benar.
+CD saat ini menolak deployment jika masih ada migrasi pending; migrasi perlu
+operasi deployment yang ditinjau, bukan menghapus gate tersebut.
 
-## Menjalankan worker dan scheduler
+Scheduler dan worker notifications,whatsapp harus aktif dengan environment yang
+sama. Setelah deployment, buat ulang cache konfigurasi jika digunakan dan restart
+worker/scheduler agar kode serta konfigurasi baru berlaku.
 
-Migrasikan hanya database yang sesuai lingkungan setelah memeriksa statusnya.
-Jangan menjalankan reset atau migrasi destruktif pada database non-demo.
+Command berikut benar-benar mengantrekan pengiriman sesuai konfigurasi, sehingga
+gunakan akun demo dan nomor yang sudah diizinkan saat mencoba:
 
-```shell
-php artisan migrate
-php artisan queue:work database --queue=notifications,whatsapp --sleep=1 --tries=3 --timeout=30 --max-time=3600
-```
+~~~sh
+php artisan notifications:dispatch weekly-report
+php artisan notifications:dispatch task-reminder
+php artisan notifications:dispatch sop-deviation
+~~~
 
-Untuk pengembangan, jalankan `php artisan schedule:work` dalam proses lain.
-Di Linux production gunakan cron tiap menit untuk `php artisan schedule:run`
-dan process manager seperti systemd atau Supervisor untuk worker. Di Windows,
-gunakan Task Scheduler tiap menit untuk `php artisan schedule:run` dan jalankan
-worker sebagai service yang dapat restart. Pastikan working directory dan PHP
-executable benar. Di Windows, perilaku hard timeout worker berbeda karena tidak
-ada PCNTL; HTTP timeout tetap berlaku. Pastikan `retry_after` antrean lebih besar
-dari timeout worker. Setelah deployment atau perubahan konfigurasi, rebuild
-config cache bila digunakan dan restart worker dengan `php artisan queue:restart`.
+Tes menggunakan PostgreSQL terisolasi dan HTTP fake untuk Fonnte:
 
-Pada upgrade refaktor ini, selesaikan antrean versi lama dengan kode lama sebelum
-mengganti kode dan memulai worker baru. Payload lama memakai class generik
-`OperationalNotification` atau array job lama dan tidak dikonversi otomatis.
-Jangan menghapus antrean atau mengulang `failed_jobs` tanpa memeriksa riwayat
-pengiriman; job WhatsApp dapat menimbulkan pesan ganda.
+~~~sh
+php artisan test tests/Feature/Notifications
+~~~
 
-Setelah perubahan report menjadi per tenant, job report per kebun yang masih
-tertunda ditolak oleh pemeriksaan snapshot. Buat ulang report dengan command
-manual bila diperlukan, dengan mempertimbangkan kemungkinan WhatsApp sebelumnya
-sudah terkirim. Histori inbox yang sudah tersimpan tidak ditulis ulang.
+WeeklyReportRevisionTest membuktikan kesamaan target dengan dashboard, penggabungan
+kabupaten lintas tenant, semua kategori insiden, batas periode panen, filter inbox
+gabungan, data yang belum lengkap dan pencabutan akses saat pengiriman.
+NotificationWorkflowTest mencakup role, tenant, assignment, batas minggu,
+milestone, reschedule, toleransi, kasus kosong dan perubahan saat job berjalan.
+NotificationCommitTest menjalankan database queue worker nyata untuk commit,
+rollback, retry dan kegagalan provider. NotificationQueryPerformanceTest
+memeriksa bahwa jumlah query tidak tumbuh per kebun/tugas.
 
-Command manual pada hari yang sama:
-
-```shell
-php artisan notifications:dispatch daily-report
-php artisan notifications:dispatch harvest-reminder
-```
-
-Jangan menjalankan command berulang tanpa mempertimbangkan risiko WhatsApp
-ganda. Pengujian provider/perangkat nyata hanya dilakukan dengan instruksi
-pengguna dan target yang disetujui.
-
-## Skema
-
-Migrasi `2026_10_31_000001_add_phone_number_to_users` menambahkan nomor nullable,
-maksimum 15 karakter. Rollback menolak menghapus kolom jika ada nomor tersimpan.
-Migrasi `2026_10_31_000002_add_type_to_notifications` menambahkan penanda jenis
-dan indeks inbox pada tabel yang sudah ada. Tidak ada tabel outbox.
-
-Migrasi `2026_10_31_000003_add_team_id_to_notifications` menambahkan FK nullable
-`team_id` dan indeks untuk pemilihan tenant. Metadata baru berasal dari snapshot
-yang sudah diotorisasi. Backfill report lama hanya dilakukan jika UUID deterministik
-per penerima/tenant/tanggal cocok secara tepat dengan membership yang tersimpan;
-nama pada teks pesan tidak digunakan untuk menebak tenant. Histori yang tidak
-bisa dipastikan tetap tersimpan dengan metadata null: terlihat di Semua tenant,
-tetapi tidak dicocokkan ke salah satu tenant tertentu. Identitas record, isi,
-status dibaca dan waktu histori tetap dipertahankan.
-
-## Referensi kode
-
-- [Audit dan optimasi query notifikasi](notification-query-performance.md), termasuk pengukuran N+1, batas snapshot membership, dan tes pertumbuhan query.
-- [NotificationService](../app/Services/Notifications/NotificationService.php)
-- [DailyReportNotification](../app/Notifications/DailyReportNotification.php), [HarvestReminderNotification](../app/Notifications/HarvestReminderNotification.php), dan [InAppChannel](../app/Notifications/Channels/InAppChannel.php)
-- [SendWhatsAppNotification](../app/Jobs/SendWhatsAppNotification.php) dan [FonnteClient](../app/Services/Notifications/FonnteClient.php)
-- [Scheduler](../routes/console.php), [konfigurasi](../config/operational_notifications.php), dan [inbox](../app/Services/Notifications/NotificationInboxService.php)
-- [Pengujian notification](../tests/Feature/Notifications)
-
-## Verifikasi terakhir
-
-Suite penuh setelah optimasi query notifikasi: 405 lulus, 1 dilewati karena fitur Fortify
-2FA tidak aktif, dengan 8.506 assertions. Cakupan mencakup template kedua jenis, inbox personal, metadata
-jenis, commit/rollback, worker database, validasi registrasi nomor, respons provider
-gagal, retry terbatas, perubahan jadwal dan batas waktu. Pint, PHPStan untuk kode
-runtime yang berubah, serta build frontend lulus. Build masih memunculkan warning
-opsional `fontaine` dan chunk `Laporan` yang besar.
-
-Cakupan rekap tenant meliputi tiga kebun dalam satu pesan per penerima, bagian
-kebun kosong, Owner multi-tenant, isolasi Admin, identitas inbox berulang,
-perpindahan kebun, membership dicabut, payload per kebun lama, tenant tanpa kebun,
-serta rollback/commit snapshot melalui worker database nyata.
-
-Cakupan filter meliputi default belum dibaca lintas tanggal, batas hari WIB pada tab Semua, kombinasi
-tanggal/tenant sebelum pagination, reset saat masuk ulang, penolakan filter
-tenant lintas membership atau dari non-Owner, validasi tanggal, dan backfill yang
-tidak menebak dari teks. Pemeriksaan browser sebelumnya mencakup Admin/Owner/Petugas/inbox
-kosong di lebar 320, 390, 430, dan 1280 pada tema terang/gelap. Alur status,
-rentang tanggal, tenant, pagination, read, serta reset saat reload diuji pada
-database browser khusus tes. Grid memakai lebar container agar field tanggal
-tetap terbaca pada layout Owner yang sempit di desktop.
-
-Tes query memastikan jumlah query tetap saat jumlah kartu bertambah dari 1 ke 15,
-kebun dari 1 ke 8, serta siklus panen dari 1 ke 30. Snapshot membership dibuang
-setelah operasi dan divalidasi ulang pada pemanggilan job berikutnya, termasuk
-ketika membership, assignment, status aktif, atau role berubah selama request
-validasi Fonnte. Detail pengukuran dan batas kesimpulan tersedia pada
-[audit query](notification-query-performance.md).
-
-Provider menggunakan respons tiruan selama pengujian; tidak ada panggilan
-validasi/pengiriman nyata atau restart worker lingkungan aplikasi. Migrasi
-metadata tenant sudah diterapkan pada database lokal setelah memverifikasi
-environment local/development dan koneksi loopback. Pesan, status dibaca dan
-identitas histori tidak diubah. File `.env` tidak diedit.
+Diagram operational-notifications-backend.svg dan .excalidraw adalah dokumentasi
+historis alur daily/harvest lama; aturan aktif ada di dokumen ini dan kode.

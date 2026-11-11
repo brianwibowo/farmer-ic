@@ -97,6 +97,23 @@ tenant copy/filter controls Owner-only even for Superadmin. It adds no grant or
 bypass. Tenant metadata is saved from the authorized notification snapshot;
 request input never sets a notification's tenant or recipient.
 
+Operational delivery uses the non-resource Gates
+`notifications.weeklyReport` (Owner/Admin dengan audience payload yang sesuai), `notifications.taskReminder`
+(Petugas), and `notifications.sopDeviation` (Admin). These require active
+accounts, valid non-personal tenant membership and the underlying read grants.
+The dispatcher selects the same business audience again at delivery time, so a
+role change to Superadmin does not subscribe an account through its developer
+Gate bypass. Farms, blocks, cycles, tasks and weekly activities use `visibleTo`
+before totals or serialization; Petugas task queries remain assigned-farm only.
+Owner weekly reports combine the Owner's authorized non-personal tenants. They
+store team_id=null and a persisted team_ids JSONB list for tenant filtering;
+every tenant/farm in a queued payload is reauthorized before delivery. Admin
+weekly reports remain single-tenant. Role-specific data grants (harvest details
+and commodity references for Owner, incident details and activity types for Admin)
+are required by the weekly Gate.
+See [operational notifications](operational-notifications.md) for the schedule,
+dynamic tolerance and channel grouping.
+
 Notification reads can reuse persisted membership data inside
 `RolePermissions::withMembershipSnapshot()` for one bounded callback. The snapshot
 is removed in `finally`; it never grants a new permission. HTTP inbox rendering

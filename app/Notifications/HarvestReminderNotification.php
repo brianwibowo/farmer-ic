@@ -8,6 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
+/** @deprecated Retained to deserialize old queued notifications; new deliveries are rejected. */
 final class HarvestReminderNotification extends Notification implements ShouldQueue
 {
     use Queueable;
