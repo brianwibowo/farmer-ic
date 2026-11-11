@@ -92,6 +92,20 @@ class FarmerIcMigrationsTest extends TestCase
             $this->artisan('migrate:rollback', $options)->assertSuccessful();
         }
         $this->assertSame(['migrations'], $this->tableNames());
+
+        // Exercise the legacy-data backfill in its own migrated cycle. The
+        // rollback above deliberately returns the database to migrations-only.
+        $this->artisan('migrate', $options)->assertSuccessful();
+        try {
+            $this->seedFixtures();
+            $this->assertTypedDetailBackfill();
+        } finally {
+            while ($this->database->transactionLevel() > 0) {
+                $this->database->rollBack();
+            }
+            $this->artisan('migrate:rollback', $options)->assertSuccessful();
+        }
+        $this->assertSame(['migrations'], $this->tableNames());
     }
 
     private function assertAiUpgradePreservesExistingRecords(): void
@@ -418,7 +432,7 @@ SQL, [$table]), 'columns');
         }
         $farmTeamAlreadyDocumented = in_array('team_id', array_column($this->definition['farms'], 'name'), true);
         $this->assertSame($simpleForeignKeys + ($farmTeamAlreadyDocumented ? 0 : 1), (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
-        $this->assertSame(10, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
+        $this->assertSame(12, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
     }
 
     /** @param array<string, mixed> $overrides
@@ -478,8 +492,29 @@ SQL, [$table]), 'columns');
             'farm_id' => $this->ids['other_farm'], 'status' => 'active',
             'planted_at' => '2026-09-01', 'variety_id' => $this->ids['crop_varieties'],
         ]);
-        foreach (['planting', 'fertilization', 'irrigation', 'growth_check', 'pesticide', 'incident', 'harvest'] as $code) {
-            $this->types[$code] = $this->insert('activity_types', ['code' => $code, 'name' => $code]);
+        $types = [
+            'planting' => ['detail_key' => 'planting'],
+            'follow_up_fertilization' => ['detail_key' => 'fertilization'],
+            'base_fertilization' => ['detail_key' => 'fertilization'],
+            'irrigation' => ['detail_key' => 'irrigation'],
+            'growth_check' => ['detail_key' => 'growth_check'],
+            'pest_control' => ['detail_key' => 'pesticide'],
+            'incident' => ['detail_key' => 'incident'],
+            'harvest' => ['detail_key' => 'harvest'],
+            'land_cleaning' => ['detail_key' => 'land_cleaning'],
+            'loosening' => ['detail_key' => 'loosening'],
+            'weeding' => ['detail_key' => 'weeding'],
+            'beds' => ['detail_key' => 'bed_preparation'],
+            'liming' => ['detail_key' => 'liming'],
+            'other' => ['detail_key' => 'other'],
+        ];
+        foreach ($types as $code => $attributes) {
+            $this->types[$code] = $this->database->table('activity_types')->where('code', $code)->value('id')
+                ?? $this->insert('activity_types', [
+                    'code' => $code,
+                    'name' => $code,
+                    ...$attributes,
+                ]);
         }
         $this->ids['financial_categories'] = $this->insert('financial_categories', ['name' => 'Sales', 'transaction_type' => 'income']);
         $this->ids['expense_category'] = $this->insert('financial_categories', ['name' => 'Fertilizer', 'transaction_type' => 'expense']);
@@ -497,6 +532,9 @@ SQL, [$table]), 'columns');
             ], $overrides));
             $detail = match ($code) {
                 'growth_check' => 'plant_observations',
+                'follow_up_fertilization', 'base_fertilization' => 'fertilization_details',
+                'pest_control' => 'pesticide_details',
+                'beds' => 'bed_preparation_details',
                 default => $code === 'harvest' ? 'harvest_details' : $code.'_details',
             };
             $this->insert($detail, ['activity_id' => $id]);
@@ -568,27 +606,55 @@ SQL, [$table]), 'columns');
             $this->ids[$code.'_activity'] = $this->activity($code);
         }
         $this->reject(fn () => $this->insert('farm_activities', ['activity_type_id' => $this->types['irrigation']]), '23514');
+        $this->reject(fn () => $this->insert('farm_activities', ['activity_type_id' => $this->types['weeding']]), '23514');
         $this->reject(function () {
             $id = $this->insert('farm_activities', ['activity_type_id' => $this->types['irrigation']]);
             $this->insert('fertilization_details', ['activity_id' => $id]);
         }, '23514');
         $this->reject(fn () => $this->insert('planting_details', ['activity_id' => $this->ids['irrigation_activity']]), '23514');
+        $this->reject(fn () => $this->insert('weeding_details', ['activity_id' => $this->ids['loosening_activity']]), '23514');
         $this->reject(fn () => $this->database->table('irrigation_details')->where('activity_id', $this->ids['irrigation_activity'])->delete(), '23514');
-        $this->reject(fn () => $this->database->table('farm_activities')->where('id', $this->ids['irrigation_activity'])->update(['activity_type_id' => $this->types['fertilization']]), '23514');
+        $this->reject(fn () => $this->database->table('weeding_details')->where('activity_id', $this->ids['weeding_activity'])->delete(), '23514');
+        $this->reject(fn () => $this->database->table('farm_activities')->where('id', $this->ids['irrigation_activity'])->update(['activity_type_id' => $this->types['follow_up_fertilization']]), '23514');
+        $this->reject(fn () => $this->database->table('farm_activities')->where('id', $this->ids['weeding_activity'])->update(['activity_type_id' => $this->types['loosening']]), '23514');
         $this->reject(fn () => $this->activity('harvest', ['activity_date' => '2026-08-01 00:00:00+00']), '23514');
         foreach ([
             ['planting_details', 'planting', 'quantity_kg', -1],
             ['planting_details', 'planting', 'area_ha', -1],
-            ['fertilization_details', 'fertilization', 'quantity_kg', -1],
+            ['fertilization_details', 'follow_up_fertilization', 'quantity_kg', -1],
+            ['fertilization_details', 'base_fertilization', 'area_ha', -1],
+            ['fertilization_details', 'base_fertilization', 'sack_size_kg', -1],
             ['irrigation_details', 'irrigation', 'duration_hours', -1],
-            ['pesticide_details', 'pesticide', 'tank_count', -1],
-            ['pesticide_details', 'pesticide', 'tank_size_liters', -1],
+            ['pesticide_details', 'pest_control', 'tank_count', -1],
+            ['pesticide_details', 'pest_control', 'tank_size_liters', -1],
             ['incident_details', 'incident', 'affected_area_ha', -1],
             ['harvest_details', 'harvest', 'gross_weight_ton', -1],
             ['harvest_details', 'harvest', 'moisture_percentage', 101],
+            ['land_cleaning_details', 'land_cleaning', 'area_ha', -1],
+            ['land_cleaning_details', 'land_cleaning', 'water_liters', -1],
+            ['land_cleaning_details', 'land_cleaning', 'tank_count', -1],
+            ['loosening_details', 'loosening', 'area_ha', -1],
+            ['loosening_details', 'loosening', 'depth_cm', -1],
+            ['weeding_details', 'weeding', 'area_ha', -1],
+            ['weeding_details', 'weeding', 'depth_cm', -1],
+            ['bed_preparation_details', 'beds', 'bed_count', -1],
+            ['bed_preparation_details', 'beds', 'length_m', -1],
+            ['bed_preparation_details', 'beds', 'width_m', -1],
+            ['bed_preparation_details', 'beds', 'height_cm', -1],
+            ['bed_preparation_details', 'beds', 'bed_spacing_cm', -1],
+            ['bed_preparation_details', 'beds', 'area_ha', -1],
+            ['liming_details', 'liming', 'area_ha', -1],
+            ['liming_details', 'liming', 'quantity_value', -1],
+            ['liming_details', 'liming', 'sack_size_kg', -1],
+            ['other_details', 'other', 'area_ha', -1],
         ] as [$table, $code, $column, $value]) {
             $this->reject(fn () => $this->database->table($table)->where('activity_id', $this->ids[$code.'_activity'])->update([$column => $value]), '23514');
         }
+
+        // Migration 000015 refuses to roll back while activities reference the
+        // new taxonomy. Remove these fixtures after their guards are verified.
+        $newCodes = ['land_cleaning', 'loosening', 'weeding', 'beds', 'liming', 'base_fertilization', 'other'];
+        $this->database->table('farm_activities')->whereIn('activity_type_id', array_map(fn (string $code): string => $this->types[$code], $newCodes))->delete();
     }
 
     private function assertCrossTableIntegrity(): void
@@ -642,5 +708,87 @@ SQL, [$table]), 'columns');
         $this->assertNull($this->database->table('ai_usage_logs')->where('id', $usage)->value('message_id'));
         $this->database->table('ai_conversations')->where('id', $this->ids['ai_conversations'])->delete();
         $this->assertFalse($this->database->table('ai_attachments')->where('id', $attachment)->exists());
+    }
+
+    private function assertTypedDetailBackfill(): void
+    {
+        $migration = require database_path('migrations/2026_11_03_000019_add_typed_detail_tables.php');
+        $stageId = $taskId = $weedingId = $baseId = $otherId = null;
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('farmer_ic_test');
+
+        try {
+            $migration->down();
+            $this->assertNull($this->database->table('activity_types')->where('code', 'weeding')->value('detail_key'));
+
+            $stageId = $this->insert('planting_cycle_stages', [
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'code' => 'maintenance',
+                'position' => 5,
+                'status' => 'in_progress',
+                'started_at' => now(),
+            ]);
+            $taskId = $this->insert('planting_cycle_tasks', [
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'planting_cycle_stage_id' => $stageId,
+                'activity_category' => 'maintenance',
+                'activity_subcategory' => 'weeding',
+                'name' => 'Pendangiran lama',
+            ]);
+
+            $weedingId = $this->insert('farm_activities', [
+                'activity_type_id' => $this->types['weeding'],
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'planting_cycle_task_id' => $taskId,
+                'task_details' => json_encode(['area_ha' => '1.25', 'method' => 'Cangkul', 'depth_cm' => '5.5'], JSON_THROW_ON_ERROR),
+            ]);
+            $baseId = $this->insert('farm_activities', [
+                'activity_type_id' => $this->types['base_fertilization'],
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'task_details' => json_encode([
+                    'area_ha' => '2', 'fertilizer' => 'NPK', 'quantity_kg' => '50',
+                    'quantity_unit' => 'kg', 'sack_size_kg' => '25', 'method' => 'Tabur',
+                ], JSON_THROW_ON_ERROR),
+            ]);
+            $otherId = $this->insert('farm_activities', [
+                'activity_type_id' => $this->types['other'],
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+                'description' => 'Pembersihan saluran air',
+                'task_details' => json_encode(['area_ha' => '0.25'], JSON_THROW_ON_ERROR),
+            ]);
+
+            $migration->up();
+
+            $weeding = $this->database->table('weeding_details')->where('activity_id', $weedingId)->first();
+            $this->assertNotNull($weeding);
+            $this->assertSame('1.2500', $weeding->area_ha);
+            $this->assertSame('Cangkul', $weeding->method);
+            $this->assertSame('5.50', $weeding->depth_cm);
+
+            $base = $this->database->table('fertilization_details')->where('activity_id', $baseId)->first();
+            $this->assertNotNull($base);
+            $this->assertSame('dasar', $base->fertilization_stage);
+            $this->assertSame('2.0000', $base->area_ha);
+            $this->assertSame('50.000', $base->quantity_kg);
+            $this->assertSame('kg', $base->quantity_unit);
+            $this->assertSame('25.000', $base->sack_size_kg);
+
+            $other = $this->database->table('other_details')->where('activity_id', $otherId)->first();
+            $this->assertNotNull($other);
+            $this->assertSame('Pembersihan saluran air', $other->description);
+            $this->assertSame('0.2500', $other->area_ha);
+        } finally {
+            $activityIds = array_values(array_filter([$weedingId, $baseId, $otherId]));
+            if ($activityIds !== []) {
+                $this->database->table('farm_activities')->whereIn('id', $activityIds)->delete();
+            }
+            if ($taskId !== null) {
+                $this->database->table('planting_cycle_tasks')->where('id', $taskId)->delete();
+            }
+            if ($stageId !== null) {
+                $this->database->table('planting_cycle_stages')->where('id', $stageId)->delete();
+            }
+            DB::setDefaultConnection($original);
+        }
     }
 }

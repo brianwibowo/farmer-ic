@@ -46,9 +46,9 @@ class OwnerPortalTest extends TestCase
         $this->seed([
             DemoIdentitySeeder::class,
             DemoFarmSeeder::class,
-            DemoActivitySeeder::class,
             SopActivityTypeSeeder::class,
             DemoSopSeeder::class,
+            DemoActivitySeeder::class,
             DemoMonitoringSeeder::class,
         ]);
         $this->owner = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['owner']['email'])->firstOrFail();
@@ -151,22 +151,25 @@ class OwnerPortalTest extends TestCase
         $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Block')->where('block.id', $block->id)
-            ->has('cycles', 1)->has('cycles.0.stages', 6)
-            ->where('cycles.0.planted_area_ha', '4.2500'));
+            ->has('cycles', 2)->has('cycles.0.stages', 6)->has('cycles.1.stages', 6)
+            ->where('cycles', fn ($rows) => collect($rows)->contains(
+                fn ($cycle) => $cycle['status'] === 'active' && $cycle['planted_area_ha'] === '4.2500',
+            )));
     }
 
     public function test_owner_reads_all_activity_types_including_records_without_logbooks(): void
     {
         $this->get('/aktivitas?per_page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/Activities')->where('activities.total', 8)->has('activities.data', 2));
+            ->component('owner/Activities')->where('activities.total', 12)->has('activities.data', 2));
 
         $activity = FarmActivity::query()->where('description', 'Penanaman Blok 1')->firstOrFail();
-        $this->assertNull($activity->daily_activity_log_id);
+        $activity->forceFill(['daily_activity_log_id' => null, 'position' => null])->save();
         $this->get('/aktivitas/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Activity')->where('activity.id', $activity->id)
             ->where('activity.farm.id', $this->farm->id)
             ->where('activity.performer.id', $this->petugas->id)
             ->has('activity.photos', 1)
+            ->where('activity.photos.0.image_url', fn ($url) => str_contains($url, '/daily-logs/activities/'.$activity->id.'/photos/'))
             ->where('activity.details', fn ($details) => collect($details)->contains(fn ($detail) => $detail['label'] === 'Jumlah benih (kg)' && $detail['value'] === '18,5')
                 && collect($details)->contains(fn ($detail) => $detail['label'] === 'Luas tanam (ha)' && $detail['value'] === '4,25'))
             ->where('activity.log', null));
@@ -179,8 +182,8 @@ class OwnerPortalTest extends TestCase
             'farm_id' => $this->farm->id,
             'performed_by' => $this->petugas->id,
             'activity_type_id' => $harvest->id,
-            'from_date' => '2026-12-01',
-            'to_date' => '2026-12-31',
+            'from_date' => '2026-08-30',
+            'to_date' => '2026-08-30',
         ]);
         $this->get('/aktivitas?'.$query)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('activities.total', 1)->where('activities.data.0.type.code', 'harvest'));
@@ -199,7 +202,7 @@ class OwnerPortalTest extends TestCase
             ->component('owner/Sops')->where('sops.total', 1)->where('sops.data.0.id', $sop->id));
         $this->get('/lainnya/sop/'.$sop->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Sop')->where('template.id', $sop->id)->has('template.versions', 1)
-            ->where('template.versions.0.status', 'published')->has('template.versions.0.tasks', 6));
+            ->where('template.versions.0.status', 'published')->has('template.versions.0.tasks', 5));
         $this->get('/lainnya/pengguna')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Users')->where('users.total', 3)
             ->where('users.data', fn ($rows) => collect($rows)->every(fn ($row) => $row['role'] !== 'superadmin')));
@@ -223,7 +226,7 @@ class OwnerPortalTest extends TestCase
     public function test_admin_batch_labels_refresh_for_owner_and_owner_cannot_edit_them(): void
     {
         $batch = PlantingCycle::query()->where('farm_id', $this->farm->id)->where('status', 'planned')->firstOrFail();
-        $block = $batch->plantingRound->block;
+        $block = $batch->block;
         $url = '/kebun/'.$this->farm->id.'/blocks/'.$block->id.'/batches/'.$batch->id;
         $data = ['reserved_area_ha' => $batch->reserved_area_ha, 'subblock_label' => 'SELATAN-02'];
 
@@ -238,7 +241,7 @@ class OwnerPortalTest extends TestCase
     public function test_persisted_petugas_logbook_activity_appears_in_owner_feed(): void
     {
         $this->actingAs($this->petugas)->post('/kebun/'.$this->farm->id.'/daily-logs', [
-            'work_date' => '2026-11-04', 'start_time' => '08:00', 'end_time' => '12:00', 'worker_count' => 3,
+            'work_date' => '2026-11-04', 'start_time' => '08:00', 'end_time' => null, 'worker_count' => 3,
             'notes' => 'Pemetaan ulang batas blok setelah hujan.',
             'activities' => [[
                 'type' => 'block_mapping', 'notes' => 'Pengukuran ulang sisi timur blok',
@@ -252,7 +255,7 @@ class OwnerPortalTest extends TestCase
         $this->actingAs($this->owner)->get('/aktivitas?search=Pengukuran')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('activities.total', 1)->where('activities.data.0.id', $activity->id));
         $this->get('/aktivitas/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('activity.log.worker_count', 3));
+            ->where('activity.worker_count', 3)->where('activity.log.end_time', null));
     }
 
     public function test_farms_without_coordinates_or_observations_remain_in_lists_and_totals(): void
@@ -276,7 +279,7 @@ class OwnerPortalTest extends TestCase
             ->where('farms.total', 1)->where('summary.count', 1)
             ->where('farms.data.0.id', $this->farm->id));
         $this->get('/aktivitas?team_id='.$otherTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('activities.total', 8)->has('farms', 1)
+            ->where('activities.total', 12)->has('farms', 1)
             ->where('activities.data', fn ($rows) => ! collect($rows)->contains('id', $activity->id)));
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.0.value', 1)->has('dashboard.farmOptions', 1));

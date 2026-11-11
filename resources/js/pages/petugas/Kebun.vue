@@ -122,7 +122,7 @@ defineProps<{ garden: PetugasGarden }>();
                                     garden.selected_block
                                         .land_clearing_completed_at
                                         ? `Selesai ${gardenDate(garden.selected_block.land_clearing_completed_at)}`
-                                        : `Dimulai ${gardenDate(garden.selected_block.land_clearing_started_at)}`
+                                        : 'Belum dimulai'
                                 }}
                             </p>
                         </div>

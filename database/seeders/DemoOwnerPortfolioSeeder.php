@@ -9,7 +9,6 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
-use App\Models\PlantingRound;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
@@ -30,9 +29,6 @@ class DemoOwnerPortfolioSeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Portofolio Owner hanya dapat diisi pada environment local atau testing.');
-        }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
         $team = $actor?->teams()->where('slug', 'farm-ic-demo')->where('is_personal', false)->first();
@@ -55,8 +51,14 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 $id = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
                 $existing = Farm::visibleTo($actor, $team)->where('team_id', $team->id)->find($id);
                 if ($existing instanceof Farm) {
-                    // Stable IDs make renamed/edited presentation records recognizable.
-                    // Do not reset their fields, stages, task dates or latest user edits.
+                    // Keep operational history intact while synchronizing the requested
+                    // demo portfolio labels and areas on deterministic fixture records.
+                    Gate::forUser($actor)->authorize('update', $existing);
+                    $existing->forceFill($this->sitePresentation($site))->save();
+                    if ($site['key'] === 'cisarua') {
+                        $this->ensureMegamendungActiveBatch($actor, $team, $existing, $site);
+                    }
+
                     continue;
                 }
                 $this->assertUnusedId(Farm::class, $id);
@@ -79,6 +81,59 @@ class DemoOwnerPortfolioSeeder extends Seeder
             }
             $this->call(DemoOwnerPortfolioActivitySeeder::class);
         });
+    }
+
+    /** @param array<string, mixed> $site
+     * @return array<string, mixed>
+     */
+    private function sitePresentation(array $site): array
+    {
+        return [
+            'name' => $site['name'], 'address' => $site['address'], 'city' => $site['city'],
+            'district' => $site['district'], 'province' => $site['province'],
+            'total_area_ha' => $site['area_ha'],
+            'land_tenure_party' => $site['land_tenure_party'] ?? null,
+        ];
+    }
+
+    /** @param array<string, mixed> $site */
+    private function ensureMegamendungActiveBatch(User $actor, Team $team, Farm $farm, array $site): void
+    {
+        $batchData = DemoOwnerPortfolioData::megamendungActiveBatch();
+
+        $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->where('code', $batchData['block_code'])->firstOrFail();
+        $existing = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->where('subblock_label', $batchData['subblock_label'])
+            ->where('block_id', $block->id)->first();
+        if ($existing instanceof PlantingCycle) {
+            return;
+        }
+
+        $commodity = $this->commodity($actor, $team, $site);
+        $variety = $this->variety($actor, $team, $commodity, $site);
+        Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
+        $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
+            'reserved_area_ha' => $batchData['reserved_area_ha'],
+            'subblock_label' => $batchData['subblock_label'],
+            'planned_planting_at' => $batchData['planned_planting_at'],
+        ]);
+        Gate::forUser($actor)->authorize('update', $batch);
+        $batch->forceFill([
+            'status' => 'active', 'variety_id' => $variety->id,
+            'planted_at' => $batchData['planted_at'], 'planted_area_ha' => $batchData['planted_area_ha'],
+            'estimated_harvest_at' => $batchData['estimated_harvest_at'],
+            'estimated_weight_ton' => $batchData['estimated_weight_ton'],
+        ])->save();
+
+        foreach (PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $batch->id)->orderBy('position')->get() as $stage) {
+            Gate::forUser($actor)->authorize('update', $stage);
+            [$status, $started, $completed] = $this->stageDates($batchData)[$stage->getAttribute('code')];
+            $stage->forceFill(['status' => $status, 'started_at' => $started, 'completed_at' => $completed])->save();
+        }
+        Gate::forUser($actor)->authorize('create', [PlantingCycleTask::class, $batch]);
+        app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor);
+        $this->taskStatuses($actor, $team, $batch, 'active');
     }
 
     /** @param array<string, mixed> $site */
@@ -135,7 +190,8 @@ class DemoOwnerPortfolioSeeder extends Seeder
         Gate::forUser($actor)->authorize('create', [SopTemplateVersion::class, $template]);
         $version = $template->versions()->create(['version' => 1, 'status' => 'draft', 'notes' => 'Snapshot presentasi 5 November 2026.', 'created_by' => $actor->id]);
         $tasks = [
-            ['planting', null, 'Penanaman '.$site['variety'], 0, 'Catat varietas, luas tanam dan kondisi awal pada batch.'],
+            // Planting is recorded through the planting activity, not authored
+            // as an SOP step (see 2026_11_03_000014).
             ['maintenance', 'irrigation', 'Pemeriksaan pengairan '.$site['commodity'], 7, 'Periksa saluran dan kelembapan tanah; catat kondisi pengairan pada laporan lapangan.'],
             ['maintenance', 'weeding', 'Penyiangan area tanam '.$site['commodity'], 14, 'Bersihkan gulma pada area tanam tanpa merusak perakaran; dokumentasikan area yang ditangani.'],
             ['maintenance', 'growth_check', 'Pengamatan pertumbuhan '.$site['commodity'], 21, 'Catat fase tumbuh, tinggi sampel dan kondisi kesehatan tanaman.'],
@@ -181,15 +237,17 @@ class DemoOwnerPortfolioSeeder extends Seeder
         }
         foreach ($site['batches'] as $data) {
             $block = $blocks[$data['block_code']];
-            Gate::forUser($actor)->authorize('create', [PlantingRound::class, $block]);
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
             $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
                 'reserved_area_ha' => $data['reserved_area_ha'], 'subblock_label' => $data['subblock_label'],
                 'planned_planting_at' => $data['planned_planting_at'],
             ]);
             Gate::forUser($actor)->authorize('update', $batch);
+            // Generate historical tasks while the batch is still active. The
+            // task service deliberately refuses to build tasks for closed cycles.
+            $generationStatus = $data['status'] === 'harvested' ? 'active' : $data['status'];
             $batch->forceFill([
-                'status' => $data['status'], 'variety_id' => $data['status'] === 'planned' ? null : $variety->id,
+                'status' => $generationStatus, 'variety_id' => $data['status'] === 'planned' ? null : $variety->id,
                 'planted_at' => $data['planted_at'], 'planted_area_ha' => $data['planted_area_ha'],
                 'estimated_harvest_at' => $data['estimated_harvest_at'], 'estimated_weight_ton' => $data['estimated_weight_ton'],
             ])->save();
@@ -200,15 +258,11 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 $stage->forceFill(['status' => $status, 'started_at' => $started, 'completed_at' => $completed])->save();
             }
             Gate::forUser($actor)->authorize('create', [PlantingCycleTask::class, $batch]);
-            app(PlantingCycleTaskService::class)->generateForSubblok($batch);
-            $this->taskStatuses($actor, $team, $batch, $data['status']);
-        }
-        foreach (PlantingRound::visibleTo($actor, $team)->whereIn('block_id', collect($blocks)->pluck('id'))->get() as $round) {
-            $running = PlantingCycle::visibleTo($actor, $team)->where('planting_round_id', $round->id)->whereIn('status', ['planned', 'active'])->exists();
-            if (! $running) {
-                Gate::forUser($actor)->authorize('update', $round);
-                $round->forceFill(['status' => 'closed'])->save();
+            app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor);
+            if ($data['status'] === 'harvested') {
+                $batch->forceFill(['status' => 'harvested'])->save();
             }
+            $this->taskStatuses($actor, $team, $batch, $data['status']);
         }
     }
 

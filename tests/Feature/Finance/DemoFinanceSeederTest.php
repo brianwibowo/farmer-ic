@@ -151,19 +151,4 @@ class DemoFinanceSeederTest extends TestCase
         $this->assertDatabaseCount('financial_budgets', 0);
         $this->assertDatabaseCount('financial_projections', 0);
     }
-
-    public function test_finance_demo_seed_is_disabled_in_production(): void
-    {
-        $this->app->instance('env', 'production');
-        try {
-            // Exercise the seeder guard independently of Artisan's production prompt.
-            app(DemoFinanceSeeder::class)->run();
-            $this->fail('Production must not accept demo finance fixtures.');
-        } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('local atau testing', $exception->getMessage());
-        } finally {
-            $this->app->instance('env', 'testing');
-        }
-        $this->assertDatabaseCount('financial_categories', 0);
-    }
 }

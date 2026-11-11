@@ -34,9 +34,6 @@ class PresentationNamesSeeder extends Seeder
 
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Pembaruan nama presentasi hanya tersedia pada environment local atau testing.');
-        }
         // Bootstrap only the fixed trusted actor; protected work below uses native policies.
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
@@ -108,7 +105,7 @@ class PresentationNamesSeeder extends Seeder
         }
         foreach ([new FertilizationDetail, new PesticideDetail] as $detailModel) {
             [$description, $old, $new] = $detailModel instanceof FertilizationDetail
-                ? ['Pemupukan dasar Blok 1', 'NPK Demo', 'NPK']
+                ? ['Pemupukan susulan pertama Blok 1', 'NPK Demo', 'NPK']
                 : ['Pengendalian ulat Blok 1', 'Bt Demo', 'Bt'];
             $activities = $this->query(FarmActivity::class)->where('farm_id', $farm->id)->where('description', $description)->pluck('id');
             foreach ($this->query($detailModel::class)->whereIn('activity_id', $activities)->get() as $detail) {

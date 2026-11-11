@@ -175,7 +175,7 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertDatabaseMissing('farm_blocks', ['id' => $block->id]);
     }
 
-    public function test_target_volume_and_progress_are_persisted_and_scoped_to_current_farm_rounds(): void
+    public function test_target_volume_and_progress_are_persisted_and_scoped_to_current_farm_cycles(): void
     {
         $this->post('/admin/farm-management', $this->payload(['target_volume_ton' => '80.125']))->assertSessionHasNoErrors();
         $farm = Farm::firstOrFail();
@@ -194,7 +194,7 @@ class FarmManagementInertiaTest extends TestCase
         }
         $this->patch($url, ['target_volume_ton' => '125.500'])->assertSessionHasNoErrors();
         $this->assertSame('125.500', $farm->fresh()->getAttribute('target_volume_ton'));
-        \App\Models\PlantingCycle::where('planting_round_id', $first->planting_round_id)->update(['status' => 'cancelled']);
+        \App\Models\PlantingCycle::where('block_id', $first->block_id)->update(['status' => 'cancelled']);
         $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
         $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.progress_overview.total', 1)->where('farm.progress_overview.stages.1.count', 1));
         $worker = $this->actor('petugas', $this->team);
@@ -413,7 +413,7 @@ class FarmManagementInertiaTest extends TestCase
         $farm = $this->farm();
         DB::table('daily_activity_logs')->insert([
             'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $this->admin->id,
-            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 2, 'created_at' => now(),
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
         ]);
         $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors('delete');
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
@@ -461,7 +461,7 @@ class FarmManagementInertiaTest extends TestCase
         ]);
         DB::table('daily_activity_logs')->insert([
             'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $worker->id,
-            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 1, 'created_at' => now(),
+            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
         ]);
         $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
             'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',

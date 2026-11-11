@@ -80,7 +80,7 @@ class FarmService
     {
         $blocks = (string) \App\Models\FarmBlock::visibleTo($user, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha');
         $usage = PlantingCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->toBase()
-            ->selectRaw("COALESCE(SUM(CASE WHEN planting_round_id IS NULL AND status = 'active' THEN planted_area_ha WHEN planting_round_id IS NOT NULL AND status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS reserved")
+            ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NULL AND status = 'active' THEN planted_area_ha WHEN block_id IS NOT NULL AND status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS reserved")
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'active' THEN planted_area_ha ELSE 0 END), 0) AS planted")->first();
 
         return ['block_area_ha' => $blocks, 'reserved_area_ha' => (string) $usage->reserved,
@@ -153,8 +153,7 @@ class FarmService
     public function progressOverview(Farm $farm, User $actor, Team $team): array
     {
         $blocks = \App\Models\FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->select('id');
-        $rounds = \App\Models\PlantingRound::visibleTo($actor, $team)->whereIn('block_id', $blocks)->where('status', 'active')->select('id');
-        $batches = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('planting_round_id', $rounds)
+        $batches = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('block_id', $blocks)
             ->whereIn('status', ['planned', 'active', 'harvested'])->get(['id', 'status']);
         $stages = \App\Models\PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())
             ->where('status', 'in_progress')->orderBy('position')->get(['planting_cycle_id', 'code'])->keyBy('planting_cycle_id');
@@ -208,9 +207,9 @@ class FarmService
                     throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total luas blok aktif.']);
                 }
                 $reservationCapacity = DB::table('planting_cycles')->where('farm_id', $locked->id)
-                    ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('planting_round_id')->where('status', 'active'))
-                        ->orWhere(fn ($batch) => $batch->whereNotNull('planting_round_id')->whereIn('status', ['planned', 'active'])))
-                    ->selectRaw('COALESCE(SUM(CASE WHEN planting_round_id IS NULL THEN planted_area_ha ELSE reserved_area_ha END), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
+                    ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('block_id')->where('status', 'active'))
+                        ->orWhere(fn ($batch) => $batch->whereNotNull('block_id')->whereIn('status', ['planned', 'active'])))
+                    ->selectRaw('COALESCE(SUM(CASE WHEN block_id IS NULL THEN planted_area_ha ELSE reserved_area_ha END), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
                 if ($reservationCapacity) {
                     throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total alokasi tanam berjalan.']);
                 }

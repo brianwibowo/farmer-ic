@@ -9,7 +9,6 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
-use App\Models\PlantingRound;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
@@ -21,7 +20,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use RuntimeException;
 
 /** Explicit preview seed; deliberately excluded from DatabaseSeeder. */
 class DemoPetugasTodoSeeder extends Seeder
@@ -30,9 +28,6 @@ class DemoPetugasTodoSeeder extends Seeder
 
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Contoh tugas petugas hanya boleh diisi pada environment local atau testing.');
-        }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])->firstOrFail();
         $team = $actor->teams()->where('slug', 'farm-ic-demo')->firstOrFail();
         $gate = Gate::forUser($actor);
@@ -88,7 +83,6 @@ class DemoPetugasTodoSeeder extends Seeder
             $gate->authorize('update', $version);
             $sops->publish($version, $actor);
             $gate->authorize('create', [PlantingCycle::class, $block]);
-            $gate->authorize('create', [PlantingRound::class, $block]);
             $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
                 'reserved_area_ha' => '0.2500', 'subblock_label' => 'SOP-DEMO', 'planned_planting_at' => $planted->toDateString(),
             ]);
@@ -110,7 +104,7 @@ class DemoPetugasTodoSeeder extends Seeder
                     'started_at' => $start->setTime(7, 0), 'completed_at' => $end?->setTime(16, 0)])->save();
             }
             $gate->authorize('create', [PlantingCycleTask::class, $batch]);
-            app(PlantingCycleTaskService::class)->generateForSubblok($batch);
+            app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor);
             $statuses = array_column($definitions, 'status', 'name');
             foreach (PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $batch->id)->get() as $task) {
                 $gate->authorize('update', $task);

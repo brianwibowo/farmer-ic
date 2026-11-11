@@ -56,8 +56,7 @@ const stageStatuses = {
                     <p
                         class="mt-1 text-xs leading-5 break-words text-muted-foreground"
                     >
-                        Subblok {{ batch.subblock_label }} · Periode
-                        {{ batch.round_number }}
+                        Subblok {{ batch.subblock_label }}
                     </p>
                 </div>
             </div>

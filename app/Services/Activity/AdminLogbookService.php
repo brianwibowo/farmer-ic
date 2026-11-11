@@ -5,6 +5,7 @@ namespace App\Services\Activity;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -60,7 +61,7 @@ class AdminLogbookService
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, array{id: string, worker_count: int, notes: string|null, work_date: string, start_time: string, end_time: string, recorder_name: string|null, activities_count: int, obstacle_count: int}>
+     * @return LengthAwarePaginator<int, array{id: string, notes: string|null, work_date: string, start_time: string, end_time: string|null, recorder_name: string|null, activities_count: int, obstacle_count: int}>
      */
     public function paginate(Farm $farm, User $actor, Team $team, array $filters): LengthAwarePaginator
     {
@@ -82,10 +83,10 @@ class AdminLogbookService
         return $query->orderByDesc('work_date')->orderByDesc('created_at')->orderBy('id')
             ->paginate($filters['per_page'] ?? 15)->appends($filters)
             ->through(fn (DailyActivityLog $log): array => [
-                ...$log->only(['id', 'worker_count', 'notes']),
+                ...$log->only(['id', 'notes']),
                 'work_date' => $log->work_date->format('Y-m-d'),
                 'start_time' => substr($log->start_time, 0, 5),
-                'end_time' => substr($log->end_time, 0, 5),
+                'end_time' => $log->end_time === null ? null : substr($log->end_time, 0, 5),
                 'recorder_name' => $log->recorder?->name,
                 'activities_count' => (int) $log->getAttribute('activities_count'),
                 'obstacle_count' => (int) $log->getAttribute('obstacle_count'),
@@ -101,12 +102,19 @@ class AdminLogbookService
 
     public function find(Farm $farm, User $actor, Team $team, string $id): DailyActivityLog
     {
-        return $this->logs($actor, $team, $farm)->with([
+        $log = $this->logs($actor, $team, $farm)->with([
             'recorder' => fn ($query) => $query->visibleTo($actor, $team)->select('id', 'name'),
             'activities' => fn ($query) => $query->visibleTo($actor, $team)->with([
                 'activityType' => fn ($query) => $query->visibleTo($actor, $team),
                 'blockMappingDetail' => fn ($query) => $query->visibleTo($actor, $team),
             ]),
         ])->findOrFail($id);
+        $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->whereIn('id', $log->activities->pluck('block_id')->filter())->get(['id', 'name'])->keyBy('id');
+        foreach ($log->activities as $activity) {
+            $activity->setAttribute('block_name', $blocks->get($activity->getAttribute('block_id'))?->name);
+        }
+
+        return $log;
     }
 }

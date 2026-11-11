@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
-import { Head, Link } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
     ArrowLeft,
     ClipboardList,
@@ -61,6 +61,41 @@ const contractLabel = computed(() => {
         value ? formatter.format(new Date(value)) : 'Belum diisi';
 
     return `${dateLabel(contract.starts_at)} – ${dateLabel(contract.ends_at)}`;
+});
+let growthRefreshTimer: ReturnType<typeof setInterval> | undefined;
+let refreshingGrowth = false;
+function refreshGrowthDate(): void {
+    if (document.hidden || refreshingGrowth) return;
+    const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(new Date());
+    if (
+        !props.blocks.some((block) =>
+            block.batches.some(
+                (batch) => batch.growth && batch.growth.as_of !== today,
+            ),
+        )
+    )
+        return;
+    refreshingGrowth = true;
+    router.reload({
+        only: ['blocks'],
+        onFinish: () => {
+            refreshingGrowth = false;
+        },
+    });
+}
+onMounted(() => {
+    growthRefreshTimer = setInterval(refreshGrowthDate, 60_000);
+    document.addEventListener('visibilitychange', refreshGrowthDate);
+    refreshGrowthDate();
+});
+onBeforeUnmount(() => {
+    clearInterval(growthRefreshTimer);
+    document.removeEventListener('visibilitychange', refreshGrowthDate);
 });
 const coordinates = computed<[number, number] | null>(() =>
     props.farm.latitude !== null && props.farm.longitude !== null
@@ -285,7 +320,7 @@ const progressStages = computed(() =>
                                 farm.land_tenure === 'rented' ||
                                 farm.land_tenure === 'partnership'
                             "
-                            class="mt-1 text-xs font-normal select-text [overflow-wrap:anywhere] text-muted-foreground"
+                            class="mt-1 text-xs font-normal [overflow-wrap:anywhere] text-muted-foreground select-text"
                         >
                             {{
                                 farm.land_tenure_party ||

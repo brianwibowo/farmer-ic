@@ -415,6 +415,24 @@ and request states. Styling a prototype form does not imply working persistence.
 
 ### Petugas home
 
+Above the to-do heading, show up to four active incident alerts from the assigned
+farm, ordered by emergency level and then newest report. Use the persisted
+IncidentDetail severity and FarmActivity status; hide resolved/completed/closed,
+cancelled/draft, future, unknown-severity, unassigned-farm, and foreign-tenant
+records. Show the scoped total if more incidents exist. No incidents means no
+alert placeholder. Ringan uses info blue, Sedang warning amber, Berat the scoped
+`--incident-heavy` orange token, and Darurat error red. Match HomeSopTask:
+use the shared `petugas-card` white/dark surface, 20px corners, 16px padding,
+a 32px circular leading icon, and a 14px/600 description as the card title.
+Apply severity colors only to the icon circle and compact pill badge. Use
+neutral date/status text and no colored outer border or full-card tint.
+Optional handling notes expand below a subtle divider using a 44px touch target.
+Keep labels readable in both themes and do not rely on color alone. Darurat
+announces an alert; lower levels use a status announcement. Do not dismiss or
+resolve a persisted incident from frontend state. Alerts read database records;
+the existing ActivityCreate prototype still validates locally until its separate
+submission flow is connected to backend persistence.
+
 The `/petugas` home follows the supplied two-part mobile composition: a full-width
 three-stop emerald gradient hero, darker at the upper left and lighter at the
 lower right, with a compact weather header and three unboxed statistic
@@ -775,6 +793,35 @@ Activity bars use stable type codes for planting/harvest and a labeled group
 for maintenance and other activities. Do not display fabricated trend deltas.
 
 ### Farm Management pages
+
+On farm detail, retain one continuous batch timeline. Insert a compact
+`Perkembangan tanaman` disclosure between Penanaman and Pemeliharaan, without
+adding a persisted operational stage. Show its detailed panel below the complete
+timeline, never between two separated groups of operational stages. The marker
+toggles the initially collapsed panel with an accessible expanded state and
+preserves the current HST-based reference view. Keep all operational stages visible together.
+Use a
+20px white/dark card, emerald accents, and shared admin typography and spacing.
+Growth is available only for active/harvested batches with a real, non-future
+planting date, completed Penanaman, and started/completed Pemeliharaan. Earlier
+or cancelled batches have a disabled marker, no detail panel, and no observation
+payload. Eligibility is enforced by the backend using scoped persisted stages.
+HST is the calendar-day difference between actual planting and today in Asia/Jakarta;
+day of planting is 0 HST. Reload block props when the Jakarta date changes or
+the tab resumes after midnight. Current visual phase follows the commodity and
+variety's HST boundaries automatically, never a manually selected phase or old
+observation label. Keep the last phase beyond the reference's final age, without
+claiming that the operational harvest stage has completed.
+Percentage comes from the latest visible observation and is labeled separately;
+harvest projection comes from the saved batch estimate. Missing data has concise empty
+states. Do not invent AI confidence, photo analysis, or growth/harvest values.
+Reuse `data/growthStages.ts` and existing local crop images as reference material
+for Jagung, Kedelai, and Rumput, separately from the actual observation. Phase
+thumbnails are a non-interactive list; highlight only today's phase and do not
+render selection controls. Provide HST/code, a larger current-phase image, description, expandable
+care guidance, and an accessible image preview. Use five columns on wider screens
+and a horizontally scrollable strip on phones. Dialogs inherit the admin theme;
+failed images and unavailable commodity profiles have readable fallback states.
 
 Start the Farm Management index directly with three summary cards for total farms, registered area and city coverage, backed by the existing database props. Do not show the former Kelola kebun heading or its introductory sentence. Place Tambah kebun beside the Daftar kebun table heading, above search and filters. Keep one screen-reader page heading. Summaries describe all visible farms;
 the list count reflects applied filters. On phones show two cards and a full-width

@@ -8,7 +8,6 @@ use App\Http\Requests\Blocks\StorePreparationBatchRequest;
 use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
-use App\Models\PlantingRound;
 use App\Models\Team;
 use App\Services\FarmBlockService;
 use Illuminate\Http\RedirectResponse;
@@ -41,9 +40,9 @@ class FarmBlockController extends Controller
 
         return Inertia::render('farmer/blocks/Index', [
             'farm' => $farm->only(['id', 'name', 'total_area_ha']),
-            'blocks' => $this->blocks->paginate($farm, $request->user(), $team, $request->validated())->through(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block), 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block]) && Gate::allows('create', [PlantingRound::class, $block])]]),
-            'batchPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('planting_round_id')
-                ->with(['farm.team', 'plantingRound.block'])->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $batch->plantingRound?->block !== null && $this->blocks->isBatchEditable($batch->plantingRound->block, $batch)]),
+            'blocks' => $this->blocks->paginate($farm, $request->user(), $team, $request->validated())->through(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block), 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block])]]),
+            'batchPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
+                ->with(['farm.team', 'block'])->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $batch->block !== null && $this->blocks->isBatchEditable($batch->block, $batch)]),
             'summary' => $this->blocks->summary($farm, $request->user(), $team),
             'blockCapacity' => $this->blocks->formCapacity($farm, $request->user(), $team),
             'filters' => array_replace(['search' => '', 'status' => 'all', 'per_page' => 15], $request->validated()),
@@ -112,10 +111,8 @@ class FarmBlockController extends Controller
     {
         $this->matchFarm($farm, $block);
         Gate::authorize('create', [PlantingCycle::class, $block]);
-        // A new round may be derived by this action when the previous one has ended.
-        Gate::authorize('create', [PlantingRound::class, $block]);
-        $this->blocks->createBatch($block, $request->user(), $this->team($farm), $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Subblok/batch dibuat. Pengolahan tanah dimulai tanpa persetujuan Admin.']);
+        $result = $this->blocks->prepareBatch($block, $request->user(), $this->team($farm), $request->validated());
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Subblok/batch dibuat. '.\App\Support\TaskGenerationFeedback::message($result['generation'])]);
 
         return $this->returnToFarm($request, $farm) ?? to_route('blocks.index', $farm);
     }
@@ -123,7 +120,7 @@ class FarmBlockController extends Controller
     public function updateBatch(StorePreparationBatchRequest $request, Farm $farm, FarmBlock $block, PlantingCycle $batch): RedirectResponse
     {
         $this->matchFarm($farm, $block);
-        abort_unless($batch->farm_id === $farm->id && $batch->plantingRound?->block_id === $block->id, 404);
+        abort_unless($batch->farm_id === $farm->id && $batch->block_id === $block->id, 404);
         Gate::authorize('update', $batch);
         $this->blocks->updateBatch($block, $batch, $request->user(), $this->team($farm), $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan sub blok disimpan.']);

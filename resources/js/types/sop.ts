@@ -1,7 +1,7 @@
 export type SopTeam = { id: number; name: string };
 export type SopCommodity = { id: string; name: string };
 
-export type SopActivityCategory = 'planting' | 'maintenance' | 'harvest';
+export type SopActivityCategory = 'maintenance' | 'harvest';
 export type SopActivitySubcategory =
     | 'irrigation'
     | 'weeding'
@@ -90,7 +90,6 @@ export type SopSummary = {
 };
 
 export const sopActivityCategoryLabels: Record<SopActivityCategory, string> = {
-    planting: 'Penanaman',
     maintenance: 'Perawatan',
     harvest: 'Panen',
 };

@@ -72,7 +72,7 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.rows.0.progress.current_stages', ['Penanaman'])
             ->where('landTable.rows.0.progress.running_batches', 2)
             ->where('landTable.rows.0.resume.id', $latest->id)
-            ->where('landTable.rows.0.resume.title', 'Pengamatan pertumbuhan')
+            ->where('landTable.rows.0.resume.title', 'Pengecekan pertumbuhan')
             ->where('landTable.rows.0.resume.description', 'Penanaman terbaru Cibogo')
             ->where('landTable.rows.0.resume.detail_url', '/aktivitas/'.$latest->id)
             ->where('dashboard.metrics.0.value', 1));

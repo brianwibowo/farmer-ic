@@ -1,14 +1,12 @@
 export type PetugasTaskStatus =
     | 'pending'
     | 'in_progress'
-    | 'submitted'
     | 'completed'
-    | 'skipped'
-    | 'cancelled';
+    | 'skipped';
 
 export type PetugasTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
-export type PetugasTaskCategory = 'planting' | 'maintenance' | 'harvest';
+export type PetugasTaskCategory = 'maintenance' | 'harvest';
 
 export type PetugasTaskSubcategory =
     | 'irrigation'
@@ -16,12 +14,6 @@ export type PetugasTaskSubcategory =
     | 'follow_up_fertilization'
     | 'growth_check'
     | 'pest_control';
-
-export type PetugasTaskSubmission = {
-    status: 'submitted' | 'approved' | 'rejected';
-    submitted_at: string | null;
-    review_note: string | null;
-};
 
 export type PetugasTask = {
     id: string;
@@ -36,10 +28,12 @@ export type PetugasTask = {
     due_date: string | null;
     is_required: boolean;
     linked_activities_count: number;
-    latest_submission: PetugasTaskSubmission | null;
+    completed_at: string | null;
+    completed_by: string | null;
+    completion_note: string | null;
     can: {
-        start: boolean;
-        submit: boolean;
+        record: boolean;
+        complete: boolean;
     };
     subblok: {
         id: string;
@@ -80,5 +74,29 @@ export type PetugasActivityPageProps = {
 export type PetugasTaskPageProps = {
     tasks: PetugasTask[];
     filters: PetugasTaskFilters;
-    isFixture: boolean;
+    summary: Record<PetugasTaskUrgency, number>;
+    farm: { id: string; name: string } | null;
+    defaultSopMissing: boolean;
+};
+
+export type TaskActivityField = {
+    key: string;
+    label: string;
+    type: 'text' | 'number' | 'select';
+    optional?: boolean;
+    max?: number;
+    step?: string;
+    options?: string[];
+};
+
+export type TaskActivityReport = {
+    id: string;
+    performer_name: string | null;
+    work_date: string;
+    start_time: string;
+    end_time: string | null;
+    worker_count: number;
+    notes: string | null;
+    details: Record<string, string | number | null>;
+    photos: { id: string; url: string }[];
 };

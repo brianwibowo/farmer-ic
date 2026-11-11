@@ -15,8 +15,8 @@ operational targets, and a notification. It then adds the five Owner portfolio
 farms and their operational details, and refreshes recognized legacy presentation
 names. All seeders run through this command, including dependent seeders called
 by their parents. Existing records outside the named demo records are left
-untouched. The complete seed accepts only `local` or `testing`, rejecting other
-environments before writing any records.
+untouched. The complete seed may run in any environment, including production,
+as long as it targets the intended demo database.
 
 Fresh seeds create only three commodities: `Jagung`, `Rumput`, and `Sorgum`,
 with the presentation varieties `Bisi 18`, `Pakchong`, and `Bioguma 1`.
@@ -70,8 +70,8 @@ This command neither recreates fixture records nor resets accounts. IDs,
 relationships, credentials, memberships, current teams, Petugas assignments,
 profile fields other than the requested display names, dates, land areas, and
 financial amounts remain intact. Other tenants and unrecognized custom content
-are left untouched. Repeating the command makes no further changes. It is
-restricted to `local` and `testing`. Do not run the complete `DatabaseSeeder`
+are left untouched. Repeating the command makes no further changes. It may run
+in any environment, including production. Do not run the complete `DatabaseSeeder`
 or `DemoIdentitySeeder` merely to refresh names, because those seeders update
 account credentials and assignments.
 
@@ -131,8 +131,8 @@ php artisan --env=local migrate --database=pgsql
 php artisan --env=local db:seed --database=pgsql
 ```
 
-The finance seeder requires `local` or `testing`, resolves the persisted demo
-admin and its team/farm, and authorizes the financial model policies before
+The finance seeder resolves the persisted demo admin and its team/farm, and
+authorizes the financial model policies before
 writing. Missing prerequisites produce a message naming the required seeder;
 finance-only seeding does not reset demo passwords or create a new farm.
 The complete finance batch is transactional. It does not truncate tables or
@@ -165,8 +165,8 @@ remains available without rerunning identity or finance fixtures:
 php artisan --env=local db:seed --database=pgsql --class=DemoOwnerPortfolioSeeder
 ```
 
-Run it only against the intended local demo database; the seeder accepts only
-`local`/`testing` and requires the persisted `farm-ic-demo` tenant and its demo
+Run it only against the intended demo database; the seeder requires the
+persisted `farm-ic-demo` tenant and its demo
 identities. It does not call `DemoIdentitySeeder`, change passwords/profiles,
 switch active tenants, reassign Petugas, truncate tables, or reset demo data.
 It uses the existing persisted demo Superadmin with native policy checks for
@@ -182,7 +182,7 @@ tenant. The complete portfolio is inserted in one transaction.
 | Kebun Cisarua | 3.5 | Owned | Rumput / Pakchong | 1.25 ha harvested; 0.75 ha planned |
 
 The fixed demonstration snapshot is **5 November 2026**. It includes coordinates,
-two permanent blocks per new site, persisted planting rounds/batches, all six
+two permanent blocks per new site, persisted block batches, all six
 batch stages, published commodity SOPs and scheduled task snapshots. Matching
 activity detail records, growth observations, selected risks, local placeholder
 documentation and demo weather fill the Owner farm/block/activity detail pages.

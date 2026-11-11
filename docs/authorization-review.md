@@ -1,5 +1,13 @@
 # Native authorization review - 26 October 2026
 
+> **Historical snapshot.** This review predates the typed activity-detail tables
+> added on 3 November 2026 (`bed_preparation_details`, `land_cleaning_details`,
+> `liming_details`, `loosening_details`, `other_details`, `weeding_details`).
+> The grant matrix and totals below are not the current authorization state.
+> Current model coverage is in
+> [authorization-scaffolding.md](authorization-scaffolding.md); current schema is
+> in `database/schema.dbml`.
+
 Initial inspection was reported before code edits. This document is a historical
 review record; the current implementation supersedes its pre-refactor references
 to `farm_user`, `User::farms()`, and `assignedFarmIds()` with
@@ -238,7 +246,7 @@ product owner. Missing entries deny. `viewAny` consumes the corresponding view.
 | petugas | `plant_observations` | update | own |
 | petugas | `planting_details` | update | own |
 
-Unchanged grant totals: owner 47, superadmin 39, admin 15, petugas 38 (139 total).
+Grant totals at the time of this review: owner 47, superadmin 39, admin 15, petugas 38 (139 total). These totals predate the typed detail tables.
 
 ## Model file inventory against the pre-refactor merge
 

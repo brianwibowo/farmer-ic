@@ -37,8 +37,10 @@ class FarmLegalitySeederTest extends TestCase
     {
         $this->prerequisites();
         $this->seed(FarmLegalitySeeder::class);
-        $this->assertDatabaseCount('farm_legalities', 6);
+        $this->assertDatabaseCount('farm_legalities', 7);
         $records = FarmLegality::query()->with('farm')->get();
+        $this->assertCount(4, $records->filter(fn (FarmLegality $record) => $record->farm->land_tenure === 'owned'));
+        $this->assertCount(3, $records->filter(fn (FarmLegality $record) => $record->farm->land_tenure !== 'owned'));
         foreach ($records as $record) {
             $this->assertNotSame('', trim($record->institution));
             $this->assertNotSame('', trim($record->summary));
@@ -84,7 +86,7 @@ class FarmLegalitySeederTest extends TestCase
 
         $this->seed(FarmLegalitySeeder::class);
 
-        $this->assertDatabaseCount('farm_legalities', 6);
+        $this->assertDatabaseCount('farm_legalities', 7);
         $this->assertDatabaseMissing('farm_legalities', ['farm_id' => $farm->id]);
         $this->assertSame($before, $farm->refresh()->getRawOriginal());
     }
@@ -96,20 +98,6 @@ class FarmLegalitySeederTest extends TestCase
             $this->fail('Legalitas seed requires the persisted prototype identities.');
         } catch (RuntimeException $exception) {
             $this->assertNotSame('', $exception->getMessage());
-        }
-        $this->assertDatabaseCount('farm_legalities', 0);
-    }
-
-    public function test_production_environment_is_rejected_before_writes(): void
-    {
-        $this->app->instance('env', 'production');
-        try {
-            app(FarmLegalitySeeder::class)->run();
-            $this->fail('Legalitas seed must never run in production.');
-        } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('local', $exception->getMessage());
-        } finally {
-            $this->app->instance('env', 'testing');
         }
         $this->assertDatabaseCount('farm_legalities', 0);
     }

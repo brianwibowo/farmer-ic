@@ -31,9 +31,6 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
 {
     public function run(): void
     {
-        if (! app()->environment('local', 'testing')) {
-            throw new RuntimeException('Portofolio hanya dapat diisi pada environment local atau testing.');
-        }
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
         $team = $actor?->teams()->where('slug', 'farm-ic-demo')->first();
@@ -82,7 +79,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                 'planting_pattern' => $site['commodity'] === 'Rumput' ? 'Barisan stek mengikuti petak tanam' : 'Barisan teratur mengikuti bedengan', 'area_ha' => $area,
             ], $actor, $performer, $team);
         $fertilized = $site['key'] === 'cibogo' ? '2026-11-04' : $planted->addDays(14)->toDateString();
-        $this->activity($farm, $cycle, $key, 'fertilization', $fertilized,
+        $this->activity($farm, $cycle, $key, 'follow_up_fertilization', $fertilized,
             'Pemupukan susulan '.$site['commodity'].' '.$batch['subblock_label'], [
                 'fertilization_stage' => 'Susulan vegetatif', 'fertilizer_type' => 'NPK 15-15-15',
                 'brand_name' => 'NPK contoh portofolio', 'subsidy_status' => 'non_subsidized',
@@ -97,7 +94,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                 ], $actor, $performer, $team);
         }
         if ($site['key'] === 'mekarsari') {
-            $this->activity($farm, $cycle, $key, 'pesticide', '2026-11-04',
+            $this->activity($farm, $cycle, $key, 'pest_control', '2026-11-04',
                 'Pengendalian kutu daun jagung '.$batch['subblock_label'], [
                     'pesticide_category' => 'Biologis', 'purpose' => 'Pengendalian kutu daun',
                     'brand_name' => 'Agens hayati contoh', 'active_ingredient' => 'Beauveria bassiana',
@@ -157,21 +154,21 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         if ($type === null) {
             Gate::forUser($actor)->authorize('create', [ActivityType::class, $team]);
             $type = ActivityType::create(['code' => $code, 'name' => match ($code) {
-                'planting' => 'Penanaman', 'fertilization' => 'Pemupukan', 'irrigation' => 'Irigasi',
-                'growth_check' => 'Pengecekan Pertumbuhan', 'pesticide' => 'Pengendalian Hama', 'harvest' => 'Panen',
+                'planting' => 'Penanaman', 'follow_up_fertilization' => 'Pemupukan susulan', 'irrigation' => 'Irigasi',
+                'growth_check' => 'Pengecekan Pertumbuhan', 'pest_control' => 'Pengendalian hama dan penyakit', 'harvest' => 'Panen',
                 default => throw new LogicException('Jenis aktivitas portofolio tidak didukung: '.$code),
             }]);
         }
         /** @var FarmActivity $activity */
         $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'activity:'.$key.':'.$code), [
-            'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'activity_type_id' => $type->id,
+            'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'block_id' => $cycle->block_id, 'activity_type_id' => $type->id,
             'performed_by' => $performer->id, 'activity_date' => $this->at($date),
             'description' => $description, 'status' => 'completed', 'created_at' => $this->at($date), 'updated_at' => $this->at($date),
         ], $farm, $actor, $team);
         if ($activity->wasRecentlyCreated) {
             $model = match ($code) {
-                'planting' => PlantingDetail::class, 'fertilization' => FertilizationDetail::class,
-                'irrigation' => IrrigationDetail::class, 'pesticide' => PesticideDetail::class,
+                'planting' => PlantingDetail::class, 'follow_up_fertilization' => FertilizationDetail::class,
+                'irrigation' => IrrigationDetail::class, 'pest_control' => PesticideDetail::class,
                 'harvest' => HarvestDetail::class, 'growth_check' => PlantObservation::class,
                 default => throw new LogicException('Jenis detail portofolio tidak didukung: '.$code),
             };

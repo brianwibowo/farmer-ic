@@ -6,6 +6,7 @@ import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
 import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import { Button } from '@/components/ui/button';
 import HomeSopTask from '@/components/petugas/HomeSopTask.vue';
+import HomeIncidentAlerts from '@/components/petugas/HomeIncidentAlerts.vue';
 import type { PetugasHome } from '@/types/petugas-home';
 
 defineOptions({ inheritAttrs: false });
@@ -82,6 +83,7 @@ const cards = computed(() => [
             aria-labelledby="home-today-tasks"
             class="petugas-home-tasks space-y-4"
         >
+            <HomeIncidentAlerts :incidents="home.incidents" />
             <header class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <h2 id="home-today-tasks" class="admin-section-title">
                     To-do hari ini

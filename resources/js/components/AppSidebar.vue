@@ -7,10 +7,13 @@ import {
     FolderGit2,
     LandPlot,
     LayoutGrid,
+    ListChecks,
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
+    Sprout,
     Users,
+    Wheat,
     X,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -62,82 +65,94 @@ const dashboardUrl = computed(() =>
     page.props.navigation?.admin ? admin.home().url : '/',
 );
 
-const mainNavItems = computed<NavItem[]>(() =>
-    page.props.navigation?.owner
-        ? [
-              { title: 'Dashboard', href: '/', icon: LayoutGrid, exact: true },
-              {
-                  title: 'Proyeksi',
-                  href: '/proyeksi',
-                  icon: ChartNoAxesCombined,
-              },
-              ...(page.props.navigation.farms
-                  ? [
-                        {
-                            title: 'Lahan',
-                            href: farmsUrl.value,
-                            icon: LandPlot,
-                            isActive: isCurrentOrParentUrl(farmsUrl.value),
-                        },
-                    ]
-                  : []),
-          ]
-        : [
-              {
-                  title: page.props.navigation?.admin ? 'Dashboard' : 'Beranda',
-                  href: page.props.navigation?.admin
-                      ? admin.dashboard().url
-                      : dashboardUrl.value,
-                  icon: LayoutGrid,
-                  exact: true,
-              },
-              ...(page.props.navigation?.farms
-                  ? [
-                        {
-                            title: props.adminTheme
-                                ? 'Manajemen Kebun'
-                                : 'Farm Management',
-                            href: '/admin/farm-management',
-                            icon: LandPlot,
-                            isActive:
-                                isCurrentOrParentUrl(
-                                    '/admin/farm-management',
-                                ) ||
-                                page.component.startsWith('farmer/blocks/'),
-                        },
-                    ]
-                  : []),
-              ...(page.props.navigation?.admin && page.props.navigation?.logbook
-                  ? [
-                        {
-                            title: 'Logbook',
-                            href: '/admin/logbook',
-                            icon: BookOpen,
-                        },
-                    ]
-                  : []),
-              ...(page.props.navigation?.admin
-                  ? [
-                        {
-                            title: 'SOP',
-                            href: '/admin/sops',
-                            icon: ClipboardList,
-                        },
-                    ]
-                  : []),
-              ...(page.props.navigation?.users
-                  ? [
-                        {
-                            title: props.adminTheme
-                                ? 'Manajemen Pengguna'
-                                : 'User Management',
-                            href: '/admin/user-management',
-                            icon: Users,
-                        },
-                    ]
-                  : []),
-          ],
-);
+const mainNavItems = computed<NavItem[]>(() => {
+    if (page.props.navigation?.owner)
+        return [
+            { title: 'Dashboard', href: '/', icon: LayoutGrid, exact: true },
+            {
+                title: 'Proyeksi',
+                href: '/proyeksi',
+                icon: ChartNoAxesCombined,
+            },
+            ...(page.props.navigation.farms
+                ? [
+                      {
+                          title: 'Lahan',
+                          href: farmsUrl.value,
+                          icon: LandPlot,
+                          isActive: isCurrentOrParentUrl(farmsUrl.value),
+                      },
+                  ]
+                : []),
+        ];
+    return [
+        {
+            title: page.props.navigation?.admin ? 'Dashboard' : 'Beranda',
+            href: page.props.navigation?.admin
+                ? admin.dashboard().url
+                : dashboardUrl.value,
+            icon: LayoutGrid,
+            exact: true,
+        },
+        ...(page.props.navigation?.farms
+            ? [
+                  {
+                      title: props.adminTheme
+                          ? 'Manajemen Kebun'
+                          : 'Farm Management',
+                      href: '/admin/farm-management',
+                      icon: LandPlot,
+                      isActive:
+                          isCurrentOrParentUrl('/admin/farm-management') ||
+                          page.component.startsWith('farmer/blocks/'),
+                  },
+              ]
+            : []),
+        ...(page.props.navigation?.admin && page.props.navigation?.logbook
+            ? [{ title: 'Logbook', href: '/admin/logbook', icon: BookOpen }]
+            : []),
+        ...(page.props.navigation?.admin
+            ? [
+                  {
+                      title: 'Transaksi Penanaman',
+                      href: '/admin/transaksi-penanaman',
+                      icon: Sprout,
+                      isActive: isCurrentOrParentUrl(
+                          '/admin/transaksi-penanaman',
+                      ),
+                  },
+                  {
+                      title: 'Transaksi Panen',
+                      href: '/admin/transaksi-panen',
+                      icon: Wheat,
+                      isActive: isCurrentOrParentUrl('/admin/transaksi-panen'),
+                  },
+                  {
+                      title: 'SOP',
+                      href: '/admin/sops',
+                      icon: ClipboardList,
+                  },
+                  {
+                      title: 'Tugas',
+                      href: '/admin/tasks',
+                      icon: ListChecks,
+                      isActive: isCurrentOrParentUrl('/admin/tasks'),
+                  },
+              ]
+            : []),
+        ...(page.props.navigation?.users
+            ? [
+                  {
+                      title: props.adminTheme
+                          ? 'Manajemen Pengguna'
+                          : 'User Management',
+                      href: '/admin/user-management',
+                      icon: Users,
+                  },
+              ]
+            : []),
+    ];
+});
 
 const settingsNavItems = computed<NavItem[]>(() => [
     {

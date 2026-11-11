@@ -144,8 +144,8 @@ force deletion includes legalities/PDFs in the confirmation graph and removes
 their private files after commit. A scoped graph that omits physical child rows
 blocks cascading deletion instead of silently deleting unseen records.
 
-`FarmLegalitySeeder` adds missing examples for the recognized six prototype
-farms, including three owned records without PKS and three rental/partnership
+`FarmLegalitySeeder` adds missing examples for the recognized seven prototype
+farms, including four owned records without PKS and three rental/partnership
 agreements. It is included after portfolio/name seeders for fresh local/testing
 installs and can also be run alone with
 `php artisan db:seed --class=FarmLegalitySeeder`. It requires the fixed active
@@ -339,11 +339,11 @@ bukan perhitungan AI atau perkiraan dari luas lahan. Presisi maksimal 3 desimal;
 kebun existing. Seeder instalasi demo baru menggunakan target 80 ton dan komoditas
 Jagung; target existing tidak ditimpa.
 
-Progres menghitung sub blok dalam periode aktif, dikelompokkan menurut tahap
-berstatus in_progress yang tersimpan. Sub blok harvested pada periode aktif
-masuk kelompok Panen; yang tidak memiliki tahap berjalan ditandai Belum dimulai.
-Periode tertutup dan sub blok cancelled tidak dihitung. Semua query model,
-termasuk tahap dan periode, memakai visibleTo sebelum agregasi.
+Progres menghitung batch/siklus yang terhubung langsung ke blok dan tidak
+cancelled, dikelompokkan menurut tahap berstatus in_progress yang tersimpan.
+Batch harvested masuk kelompok Panen; yang tidak memiliki tahap berjalan
+ditandai Belum dimulai. Semua query model, termasuk tahap dan siklus, memakai
+visibleTo sebelum agregasi.
 
 Dialog blok/sub blok memakai lebar desktop maksimal 768px, header berkonteks,
 ringkasan kapasitas, body yang dapat digulir, dan footer tindakan yang tetap

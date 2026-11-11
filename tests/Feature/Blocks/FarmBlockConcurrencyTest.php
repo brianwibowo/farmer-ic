@@ -4,7 +4,6 @@ namespace Tests\Feature\Blocks;
 
 use App\Enums\TeamRole;
 use App\Models\Farm;
-use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
@@ -79,8 +78,6 @@ class FarmBlockConcurrencyTest extends TestCase
                 $cycles = DB::table('planting_cycles')->where('farm_id', $farm->id)->pluck('id');
                 DB::table('planting_cycle_stages')->whereIn('planting_cycle_id', $cycles)->delete();
                 DB::table('planting_cycles')->where('farm_id', $farm->id)->delete();
-                $blocks = FarmBlock::where('farm_id', $farm->id)->pluck('id');
-                DB::table('planting_rounds')->whereIn('block_id', $blocks)->delete();
                 DB::table('farm_blocks')->where('farm_id', $farm->id)->delete();
                 DB::table('farms')->where('id', $farm->id)->delete();
                 $personal = $actor->teams()->where('is_personal', true)->pluck('teams.id');

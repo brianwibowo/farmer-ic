@@ -13,11 +13,12 @@ import {
     Plus,
     Save,
     Trash2,
-    Users,
 } from '@lucide/vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
+import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
+import { ref } from 'vue';
 
 type Farm = {
     id: string;
@@ -40,7 +41,9 @@ type BlockMapping = {
 type Activity = {
     id: string;
     type: string | null;
+    name: string | null;
     position: number;
+    worker_count: number | null;
     notes: string | null;
     obstacle_status: 'none' | 'reported' | 'not_recorded';
     obstacles: string | null;
@@ -54,9 +57,8 @@ type DailyLog = {
     farm_id: string;
     work_date: string;
     start_time: string;
-    end_time: string;
+    end_time: string | null;
     timezone: string;
-    worker_count: number;
     recorded_by: string;
     recorder_name: string | null;
     notes: string | null;
@@ -114,6 +116,9 @@ type Props = {
 const props = defineProps<Props>();
 const page = usePage();
 const { indexUrl } = useFarmManagementNavigation();
+const headerReady = ref(false);
+const existingHeader = ref(false);
+const headerVersion = ref(0);
 function selectBlock(activity: ActivityForm): void {
     activity.block_mapping.block_name =
         props.blocks.find(
@@ -170,9 +175,20 @@ function removeActivity(index: number): void {
 }
 
 function submit(): void {
-    form.post(`/kebun/${props.farm.id}/daily-logs`, {
+    if (!headerReady.value || form.processing) return;
+    form.transform((data) =>
+        existingHeader.value
+            ? {
+                  ...data,
+                  start_time: undefined,
+                  end_time: undefined,
+                  notes: undefined,
+              }
+            : data,
+    ).post(`/kebun/${props.farm.id}/daily-logs`, {
         preserveScroll: true,
         onSuccess: () => {
+            headerVersion.value++;
             form.reset(
                 'start_time',
                 'end_time',
@@ -212,7 +228,14 @@ function detailUrl(log: DailyLog): string {
 <template>
     <Head :title="`Logbook Harian - ${farm.name}`" />
 
-    <component :is="page.props.navigation?.owner ? FarmManagementLayout : FarmerMobileShell" v-bind="page.props.navigation?.owner ? {} : { activeKey: 'garden' }">
+    <component
+        :is="
+            page.props.navigation?.owner
+                ? FarmManagementLayout
+                : FarmerMobileShell
+        "
+        v-bind="page.props.navigation?.owner ? {} : { activeKey: 'garden' }"
+    >
         <Link
             v-if="page.props.navigation?.farms"
             :href="`${indexUrl}/${farm.id}`"
@@ -250,8 +273,9 @@ function detailUrl(log: DailyLog): string {
                             Catat kegiatan hari ini
                         </h2>
                         <p class="mt-1 text-xs leading-5 text-muted-foreground">
-                            Isi satu laporan untuk beberapa kegiatan pemetaan
-                            blok pada hari yang sama.
+                            Tambahkan pemetaan ke laporan bersama kebun pada
+                            tanggal yang dipilih. Informasi harian yang sudah
+                            ada tidak ditimpa.
                         </p>
                     </div>
                     <ClipboardList
@@ -284,18 +308,31 @@ function detailUrl(log: DailyLog): string {
                                 {{ fieldError('work_date') }}
                             </p>
                         </label>
+                    </div>
+
+                    <DailyHeaderContext
+                        :key="headerVersion"
+                        v-model:start="form.start_time"
+                        v-model:end="form.end_time"
+                        v-model:notes="form.notes"
+                        :farm-id="farm.id"
+                        :date="form.work_date"
+                        :errors="form.errors"
+                        :report-base="`/kebun/${farm.id}/daily-logs`"
+                        @ready="headerReady = $event"
+                        @existing="existingHeader = $event"
+                    />
+
+                    <div class="space-y-3">
                         <label
-                            class="space-y-1.5 text-xs font-medium text-foreground"
-                        >
-                            <span class="flex items-center gap-1.5"
-                                ><Users :size="15" class="text-primary" />Jumlah
-                                pekerja</span
-                            >
-                            <input
+                            class="block space-y-1.5 text-xs font-medium text-foreground"
+                            ><span>Jumlah pekerja untuk kegiatan pemetaan</span
+                            ><input
                                 v-model.number="form.worker_count"
                                 type="number"
                                 min="1"
                                 max="32767"
+                                step="1"
                                 class="form-input"
                             />
                             <p
@@ -303,68 +340,8 @@ function detailUrl(log: DailyLog): string {
                                 class="form-error"
                             >
                                 {{ fieldError('worker_count') }}
-                            </p>
-                        </label>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <label
-                            class="space-y-1.5 text-xs font-medium text-foreground"
+                            </p></label
                         >
-                            <span class="flex items-center gap-1.5"
-                                ><Clock3
-                                    :size="15"
-                                    class="text-primary"
-                                />Mulai</span
-                            >
-                            <input
-                                v-model="form.start_time"
-                                type="time"
-                                class="form-input"
-                            />
-                            <p
-                                v-if="fieldError('start_time')"
-                                class="form-error"
-                            >
-                                {{ fieldError('start_time') }}
-                            </p>
-                        </label>
-                        <label
-                            class="space-y-1.5 text-xs font-medium text-foreground"
-                        >
-                            <span class="flex items-center gap-1.5"
-                                ><Clock3
-                                    :size="15"
-                                    class="text-primary"
-                                />Selesai</span
-                            >
-                            <input
-                                v-model="form.end_time"
-                                type="time"
-                                class="form-input"
-                            />
-                            <p v-if="fieldError('end_time')" class="form-error">
-                                {{ fieldError('end_time') }}
-                            </p>
-                        </label>
-                    </div>
-
-                    <label
-                        class="space-y-1.5 text-xs font-medium text-foreground"
-                    >
-                        <span>Catatan laporan</span>
-                        <textarea
-                            v-model="form.notes"
-                            rows="2"
-                            class="form-input resize-y"
-                            placeholder="Contoh: Pemetaan awal sebelum pembuatan bedengan."
-                        />
-                        <p v-if="fieldError('notes')" class="form-error">
-                            {{ fieldError('notes') }}
-                        </p>
-                    </label>
-
-                    <div class="space-y-3">
                         <div class="flex items-center justify-between gap-3">
                             <div>
                                 <h3
@@ -679,7 +656,7 @@ function detailUrl(log: DailyLog): string {
                     <button
                         type="submit"
                         class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                        :disabled="form.processing"
+                        :disabled="form.processing || !headerReady"
                     >
                         <Save :size="17" />
                         {{
@@ -782,8 +759,10 @@ function detailUrl(log: DailyLog): string {
                                     {{ log.work_date }}
                                 </p>
                                 <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ log.start_time }}–{{ log.end_time }} WIB
-                                    · {{ log.worker_count }} pekerja
+                                    {{ log.start_time }}-{{
+                                        log.end_time ?? 'Belum diisi'
+                                    }}
+                                    WIB
                                 </p>
                             </div>
                             <Link
@@ -803,8 +782,17 @@ function detailUrl(log: DailyLog): string {
                                     class="size-1.5 rounded-full bg-primary"
                                 />{{
                                     activity.block_mapping?.block_name ??
-                                    'Pemetaan blok'
-                                }}
+                                    activity.name ??
+                                    'Aktivitas'
+                                }}<template
+                                    v-if="activity.worker_count !== null"
+                                >
+                                    ·
+                                    {{
+                                        activity.worker_count
+                                    }}
+                                    pekerja</template
+                                >
                             </span>
                         </div>
                         <p
@@ -847,7 +835,6 @@ function detailUrl(log: DailyLog): string {
 </template>
 
 <style scoped>
-
 .form-input {
     width: 100%;
     min-height: 40px;

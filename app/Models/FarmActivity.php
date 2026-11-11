@@ -21,12 +21,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $updated_at
  * @property string|null $daily_activity_log_id
  * @property int|null $position
+ * @property int|null $worker_count
  * @property string $obstacle_status
  * @property string|null $obstacles
  * @property string|null $proposed_solution
  * @property string|null $action_taken
  */
-#[Fillable(['farm_id', 'planting_cycle_id', 'activity_type_id', 'performed_by', 'activity_date', 'description', 'status', 'daily_activity_log_id', 'position', 'obstacle_status', 'obstacles', 'proposed_solution', 'action_taken'])]
+#[Fillable(['farm_id', 'planting_cycle_id', 'activity_type_id', 'performed_by', 'activity_date', 'description', 'status', 'daily_activity_log_id', 'position', 'worker_count', 'obstacle_status', 'obstacles', 'proposed_solution', 'action_taken'])]
 class FarmActivity extends FarmerModel
 {
     protected $table = 'farm_activities';
@@ -43,6 +44,7 @@ class FarmActivity extends FarmerModel
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
             'position' => 'integer',
+            'worker_count' => 'integer',
         ];
     }
 
@@ -56,6 +58,12 @@ class FarmActivity extends FarmerModel
     public function plantingCycle(): BelongsTo
     {
         return $this->belongsTo(PlantingCycle::class, 'planting_cycle_id');
+    }
+
+    /** @return BelongsTo<PlantingCycleTask, $this> */
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(PlantingCycleTask::class, 'planting_cycle_task_id');
     }
 
     /** @return BelongsTo<ActivityType, $this> */
@@ -128,5 +136,41 @@ class FarmActivity extends FarmerModel
     public function observation(): HasOne
     {
         return $this->hasOne(PlantObservation::class, 'activity_id');
+    }
+
+    /** @return HasOne<LandCleaningDetail, $this> */
+    public function landCleaningDetail(): HasOne
+    {
+        return $this->hasOne(LandCleaningDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<LooseningDetail, $this> */
+    public function looseningDetail(): HasOne
+    {
+        return $this->hasOne(LooseningDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<WeedingDetail, $this> */
+    public function weedingDetail(): HasOne
+    {
+        return $this->hasOne(WeedingDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<BedPreparationDetail, $this> */
+    public function bedPreparationDetail(): HasOne
+    {
+        return $this->hasOne(BedPreparationDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<LimingDetail, $this> */
+    public function limingDetail(): HasOne
+    {
+        return $this->hasOne(LimingDetail::class, 'activity_id');
+    }
+
+    /** @return HasOne<OtherDetail, $this> */
+    public function otherDetail(): HasOne
+    {
+        return $this->hasOne(OtherDetail::class, 'activity_id');
     }
 }
