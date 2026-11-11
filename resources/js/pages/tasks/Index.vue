@@ -70,31 +70,26 @@ const summaryCards = computed(() => [
         label: 'Total tugas',
         value: props.summary.total,
         tone: 'text-foreground',
-        view: 'all' as AdminTaskView,
     },
     {
         label: 'Terbuka',
         value: props.summary.open,
         tone: 'text-primary',
-        view: 'actionable' as AdminTaskView,
     },
     {
         label: 'Terlambat',
         value: props.summary.overdue,
         tone: 'text-error',
-        view: 'overdue' as AdminTaskView,
     },
     {
         label: 'Hari ini',
         value: props.summary.today,
         tone: 'text-warning',
-        view: 'today' as AdminTaskView,
     },
     {
         label: 'Selesai / tidak dikerjakan',
         value: props.summary.completed,
         tone: 'text-success',
-        view: 'completed' as AdminTaskView,
     },
 ]);
 const emptyCopy = computed(() => {
@@ -183,25 +178,16 @@ function reset(): void {
         </header>
 
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <button
+            <div
                 v-for="item in summaryCards"
                 :key="item.label"
-                type="button"
-                class="rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60"
-                :class="
-                    form.view === item.view
-                        ? 'border-primary ring-1 ring-primary'
-                        : 'border-border'
-                "
-                :aria-pressed="form.view === item.view"
-                :disabled="form.processing"
-                @click="selectView(item.view)"
+                class="rounded-xl border border-border bg-card p-4"
             >
                 <p class="text-xs text-muted-foreground">{{ item.label }}</p>
                 <p class="admin-metric-value mt-2" :class="item.tone">
                     {{ item.value }}
                 </p>
-            </button>
+            </div>
         </div>
 
         <div class="flex flex-wrap gap-2" role="group" aria-label="Tampilan tugas">

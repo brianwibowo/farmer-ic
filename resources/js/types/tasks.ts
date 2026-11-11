@@ -121,7 +121,7 @@ export const adminTaskViewOptions: [AdminTaskView, string][] = [
     ['overdue', 'Terlambat'],
     ['today', 'Hari ini'],
     ['upcoming', 'Mendatang'],
-    ['completed', 'Selesai'],
+    ['completed', 'Ditutup'],
     ['all', 'Semua'],
 ];
 
