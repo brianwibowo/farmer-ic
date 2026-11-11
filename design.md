@@ -271,8 +271,10 @@ Use semantic tab markup when switching content in place. Keep the selected indic
 
 Owner portal pages use the shared AdminWorkspaceLayout, AppSidebar and
 AdminHeader, with `admin-dashboard-theme`, Plus Jakarta Sans and the existing
-admin tokens. The Owner's main sidebar has exactly Dashboard (`/`), Proyeksi
-(`/proyeksi`) and Lahan (`/kebun`), subject to backend navigation permissions.
+admin tokens. The Owner's main sidebar has Dashboard (`/`), Ringkasan Eksekutif
+(`/ringkasan-eksekutif`), Proyeksi (`/proyeksi`) and Lahan (`/kebun`), subject to
+backend navigation permissions. The executive prototype stays isolated from
+operational data and uses the same Owner sidebar workspace.
 The account menu keeps settings/logout, and the sidebar team switcher lists
 persisted non-personal tenant memberships. Switching tenant uses the existing
 Owner endpoint and returns to Dashboard. Do not grant Owner admin portal access.
@@ -390,6 +392,47 @@ with the same header, independently scrolling content, and bottom safe area.
 Empty pages show their title and an honest placeholder without fabricated
 operational records, metrics, or inactive action buttons. Keep the active
 navigation indicator, request loading feedback, keyboard focus, and both themes.
+
+### Owner executive summary
+
+The `/ringkasan-eksekutif` page is a compact, read-only executive overview in
+the existing Owner profile. Its current JSON dataset is illustrative and stays
+separate from operational records. Keep the period controls visible; collapse
+partner, region, farm, and commodity filters behind a Filter button with an
+active count and removable selections.
+
+Client selection in the sales panel is local to that panel. Clicking a client
+name or its chart bars shows only that client's contract/reality comparison,
+while the complete client selector remains visible. Mark the active client and
+provide Tampilkan semua client; clicking the active selection again also clears
+it. Use a shorter chart for one client and reset a selection removed by global
+filters. This interaction must not change the page's global filters or KPIs.
+
+Use `OwnerDistributionChart` for every distribution donut, including the
+Beranda commodity chart. Preserve its center total, sector percentages,
+keyboard-accessible legend, selection, semantic colors, and empty state.
+Keep the center unit on its own line below the total so long values fit inside
+the donut without pushing the unit into its sectors.
+Executive panels use its compact embedded mode and contextual legend slots.
+Combine partner contribution with planted/unplanted area bars, and combine
+commodity composition with three concise commodity summaries. Show two separate
+cards side by side: planted hectares and actual harvest tonnes. Each card has
+its own donut and keyboard-accessible commodity summary showing only planted
+area, actual harvest, and projected harvest. Keep matching commodity colors,
+omit revenue from both cards, and do not use a measure dropdown. Stack the cards
+on smaller viewports.
+Avoid adjacent tall chart/table panels and stretched blank surfaces.
+
+Harvest charts remain visible while the farm table starts collapsed. Financial
+projections use per-commodity prices from the dataset, aggregate actual monetary
+amounts before computing the gross-margin percentage, and provide no simulator
+inputs. Prioritize revenue, total costs, and gross profit. Do not reintroduce the
+operational detail table, pagination, or its exports on this overview.
+
+Map markers open `OwnerDashboardFarmPreview`, shared with Beranda. Its summary
+and footer slots adapt the executive context without sending dummy IDs to real
+farm-detail routes. Existing Beranda popup content and navigation remain the
+defaults.
 
 ### Shared dashboard components for Petugas
 

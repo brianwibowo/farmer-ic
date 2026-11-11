@@ -6,6 +6,7 @@ import {
     ClipboardList,
     FolderGit2,
     LandPlot,
+    LayoutDashboard,
     LayoutGrid,
     ListChecks,
     PanelLeftClose,
@@ -69,6 +70,11 @@ const mainNavItems = computed<NavItem[]>(() => {
     if (page.props.navigation?.owner)
         return [
             { title: 'Dashboard', href: '/', icon: LayoutGrid, exact: true },
+            {
+                title: 'Ringkasan Eksekutif',
+                href: '/ringkasan-eksekutif',
+                icon: LayoutDashboard,
+            },
             {
                 title: 'Proyeksi',
                 href: '/proyeksi',

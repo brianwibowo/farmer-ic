@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { ChartNoAxesCombined, LandPlot, LayoutGrid } from '@lucide/vue';
+import {
+    ChartNoAxesCombined,
+    LandPlot,
+    LayoutDashboard,
+    LayoutGrid,
+} from '@lucide/vue';
 import AdminWorkspaceLayout from '@/layouts/AdminWorkspaceLayout.vue';
 
 const page = usePage();
 const section = computed(() => {
     const path = page.url.split('?')[0];
+    if (path === '/ringkasan-eksekutif')
+        return {
+            title: 'Ringkasan Eksekutif',
+            href: '/ringkasan-eksekutif',
+            icon: LayoutDashboard,
+        };
     if (path === '/proyeksi')
         return {
             title: 'Proyeksi',

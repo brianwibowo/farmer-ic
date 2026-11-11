@@ -1,0 +1,913 @@
+{
+  "updatedAt": "2026-11-10T16:30:00+07:00",
+  "defaultYear": 2026,
+  "defaultCycle": 1,
+  "referenceMonth": 11,
+  "commodities": [
+    {
+      "id": "jagung",
+      "name": "Jagung",
+      "tonPerHa": 40,
+      "pricing": {
+        "sellingPrice": 2200,
+        "hpp": 477,
+        "transport": 500
+      }
+    },
+    {
+      "id": "rumput",
+      "name": "Rumput",
+      "tonPerHa": 100,
+      "pricing": {
+        "sellingPrice": 1500,
+        "hpp": 477,
+        "transport": 500
+      }
+    },
+    {
+      "id": "sorgum",
+      "name": "Sorgum",
+      "tonPerHa": 45,
+      "pricing": {
+        "sellingPrice": 2000,
+        "hpp": 477,
+        "transport": 500
+      }
+    }
+  ],
+  "partners": [
+    {
+      "id": "bumi",
+      "name": "PT Bumi Hijau Nusantara"
+    },
+    {
+      "id": "tani",
+      "name": "Koperasi Tani Sejahtera"
+    },
+    {
+      "id": "lestari",
+      "name": "CV Lestari Agro Mandiri"
+    }
+  ],
+  "clients": [
+    {
+      "id": "sentosa",
+      "name": "PT Sentosa Feedmill"
+    },
+    {
+      "id": "prima",
+      "name": "PT Prima Dairy Indonesia"
+    },
+    {
+      "id": "makmur",
+      "name": "Koperasi Ternak Makmur"
+    },
+    {
+      "id": "agro",
+      "name": "PT Agro Pakan Persada"
+    }
+  ],
+  "farms": [
+    {
+      "id": "cariu",
+      "name": "Kebun Cariu",
+      "city": "Bogor",
+      "region": "Jawa Barat",
+      "partnerId": "bumi",
+      "areaHa": 14,
+      "commodityId": "jagung",
+      "latitude": -6.513,
+      "longitude": 107.136,
+      "partnershipStatus": "Aktif"
+    },
+    {
+      "id": "cileuksa",
+      "name": "Kebun Cileuksa",
+      "city": "Bogor",
+      "region": "Jawa Barat",
+      "partnerId": "bumi",
+      "areaHa": 22,
+      "commodityId": "rumput",
+      "latitude": -6.612,
+      "longitude": 106.508,
+      "partnershipStatus": "Aktif"
+    },
+    {
+      "id": "jonggol",
+      "name": "Kebun Jonggol",
+      "city": "Bogor",
+      "region": "Jawa Barat",
+      "partnerId": "bumi",
+      "areaHa": 12,
+      "commodityId": "sorgum",
+      "latitude": -6.468,
+      "longitude": 107.061,
+      "partnershipStatus": "Aktif"
+    },
+    {
+      "id": "subang",
+      "name": "Kebun Cipunagara",
+      "city": "Subang",
+      "region": "Jawa Barat",
+      "partnerId": "tani",
+      "areaHa": 18,
+      "commodityId": "jagung",
+      "latitude": -6.462,
+      "longitude": 107.854,
+      "partnershipStatus": "Aktif"
+    },
+    {
+      "id": "lembang",
+      "name": "Kebun Cikole",
+      "city": "Bandung Barat",
+      "region": "Jawa Barat",
+      "partnerId": "tani",
+      "areaHa": 16,
+      "commodityId": "rumput",
+      "latitude": -6.788,
+      "longitude": 107.652,
+      "partnershipStatus": "Aktif"
+    },
+    {
+      "id": "batang",
+      "name": "Kebun Gringsing",
+      "city": "Batang",
+      "region": "Jawa Tengah",
+      "partnerId": "lestari",
+      "areaHa": 25,
+      "commodityId": "sorgum",
+      "latitude": -6.974,
+      "longitude": 110.035,
+      "partnershipStatus": "Aktif"
+    },
+    {
+      "id": "boyolali",
+      "name": "Kebun Musuk",
+      "city": "Boyolali",
+      "region": "Jawa Tengah",
+      "partnerId": "lestari",
+      "areaHa": 15,
+      "commodityId": "jagung",
+      "latitude": -7.559,
+      "longitude": 110.544,
+      "partnershipStatus": "Aktif"
+    },
+    {
+      "id": "sleman",
+      "name": "Kebun Pakem",
+      "city": "Sleman",
+      "region": "DI Yogyakarta",
+      "partnerId": "lestari",
+      "areaHa": 20,
+      "commodityId": "rumput",
+      "latitude": -7.663,
+      "longitude": 110.418,
+      "partnershipStatus": "Aktif"
+    },
+    {
+      "id": "bantul",
+      "name": "Kebun Pundong",
+      "city": "Bantul",
+      "region": "DI Yogyakarta",
+      "partnerId": "tani",
+      "areaHa": 10,
+      "commodityId": "sorgum",
+      "latitude": -7.969,
+      "longitude": 110.351,
+      "partnershipStatus": "Aktif"
+    }
+  ],
+  "contracts": [
+    {
+      "id": "contract-cariu",
+      "farmId": "cariu",
+      "clientId": "sentosa",
+      "monthlyTon": 100,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    },
+    {
+      "id": "contract-cileuksa",
+      "farmId": "cileuksa",
+      "clientId": "prima",
+      "monthlyTon": 220,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    },
+    {
+      "id": "contract-jonggol",
+      "farmId": "jonggol",
+      "clientId": "makmur",
+      "monthlyTon": 90,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    },
+    {
+      "id": "contract-subang",
+      "farmId": "subang",
+      "clientId": "agro",
+      "monthlyTon": 140,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    },
+    {
+      "id": "contract-lembang",
+      "farmId": "lembang",
+      "clientId": "sentosa",
+      "monthlyTon": 160,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    },
+    {
+      "id": "contract-batang",
+      "farmId": "batang",
+      "clientId": "prima",
+      "monthlyTon": 180,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    },
+    {
+      "id": "contract-boyolali",
+      "farmId": "boyolali",
+      "clientId": "makmur",
+      "monthlyTon": 110,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    },
+    {
+      "id": "contract-sleman",
+      "farmId": "sleman",
+      "clientId": "agro",
+      "monthlyTon": 190,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    },
+    {
+      "id": "contract-bantul",
+      "farmId": "bantul",
+      "clientId": "sentosa",
+      "monthlyTon": 70,
+      "status": "Aktif",
+      "startYear": 2025,
+      "endYear": 2026
+    }
+  ],
+  "operations": [
+    {
+      "id": "cariu-2025-1",
+      "farmId": "cariu",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 9.0,
+      "harvestedTon": 331.2,
+      "dispatchedTon": 225.216,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 94.0,
+      "status": "Siap panen"
+    },
+    {
+      "id": "cariu-2025-2",
+      "farmId": "cariu",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 8.55,
+      "harvestedTon": 276.883,
+      "dispatchedTon": 188.28,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 94.0,
+      "status": "Siap panen"
+    },
+    {
+      "id": "cariu-2025-3",
+      "farmId": "cariu",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 7.65,
+      "harvestedTon": 247.738,
+      "dispatchedTon": 168.462,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 94.0,
+      "status": "Siap panen"
+    },
+    {
+      "id": "cariu-2026-1",
+      "farmId": "cariu",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 10,
+      "harvestedTon": 368.0,
+      "dispatchedTon": 250.24,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 94.0,
+      "status": "Siap panen"
+    },
+    {
+      "id": "cariu-2026-2",
+      "farmId": "cariu",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 9.5,
+      "harvestedTon": 307.648,
+      "dispatchedTon": 209.201,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 94.0,
+      "status": "Siap panen"
+    },
+    {
+      "id": "cariu-2026-3",
+      "farmId": "cariu",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 8.5,
+      "harvestedTon": 275.264,
+      "dispatchedTon": 187.18,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 94.0,
+      "status": "Siap panen"
+    },
+    {
+      "id": "cileuksa-2025-1",
+      "farmId": "cileuksa",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 16.2,
+      "harvestedTon": 1360.8,
+      "dispatchedTon": 925.344,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 193.6,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "cileuksa-2025-2",
+      "farmId": "cileuksa",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 15.39,
+      "harvestedTon": 1137.629,
+      "dispatchedTon": 773.588,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 193.6,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "cileuksa-2025-3",
+      "farmId": "cileuksa",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 13.77,
+      "harvestedTon": 1017.878,
+      "dispatchedTon": 692.157,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 193.6,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "cileuksa-2026-1",
+      "farmId": "cileuksa",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 18,
+      "harvestedTon": 1512.0,
+      "dispatchedTon": 1028.16,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 193.6,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "cileuksa-2026-2",
+      "farmId": "cileuksa",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 17.1,
+      "harvestedTon": 1264.032,
+      "dispatchedTon": 859.542,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 193.6,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "cileuksa-2026-3",
+      "farmId": "cileuksa",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 15.3,
+      "harvestedTon": 1130.976,
+      "dispatchedTon": 769.064,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 193.6,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "jonggol-2025-1",
+      "farmId": "jonggol",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 8.1,
+      "harvestedTon": 375.435,
+      "dispatchedTon": 255.296,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 72.9,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "jonggol-2025-2",
+      "farmId": "jonggol",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 7.69,
+      "harvestedTon": 313.66,
+      "dispatchedTon": 213.289,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 72.9,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "jonggol-2025-3",
+      "farmId": "jonggol",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 6.88,
+      "harvestedTon": 280.621,
+      "dispatchedTon": 190.822,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 72.9,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "jonggol-2026-1",
+      "farmId": "jonggol",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 9,
+      "harvestedTon": 417.15,
+      "dispatchedTon": 283.662,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 72.9,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "jonggol-2026-2",
+      "farmId": "jonggol",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 8.55,
+      "harvestedTon": 348.737,
+      "dispatchedTon": 237.141,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 72.9,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "jonggol-2026-3",
+      "farmId": "jonggol",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 7.65,
+      "harvestedTon": 312.028,
+      "dispatchedTon": 212.179,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 72.9,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "subang-2025-1",
+      "farmId": "subang",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 12.6,
+      "harvestedTon": 393.12,
+      "dispatchedTon": 267.322,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 140,
+      "status": "Siap panen"
+    },
+    {
+      "id": "subang-2025-2",
+      "farmId": "subang",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 11.97,
+      "harvestedTon": 328.648,
+      "dispatchedTon": 223.481,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 140,
+      "status": "Siap panen"
+    },
+    {
+      "id": "subang-2025-3",
+      "farmId": "subang",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 10.71,
+      "harvestedTon": 294.054,
+      "dispatchedTon": 199.957,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 140,
+      "status": "Siap panen"
+    },
+    {
+      "id": "subang-2026-1",
+      "farmId": "subang",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 14,
+      "harvestedTon": 436.8,
+      "dispatchedTon": 297.024,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 140,
+      "status": "Siap panen"
+    },
+    {
+      "id": "subang-2026-2",
+      "farmId": "subang",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 13.3,
+      "harvestedTon": 365.165,
+      "dispatchedTon": 248.312,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 140,
+      "status": "Siap panen"
+    },
+    {
+      "id": "subang-2026-3",
+      "farmId": "subang",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 11.9,
+      "harvestedTon": 326.726,
+      "dispatchedTon": 222.174,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 140,
+      "status": "Siap panen"
+    },
+    {
+      "id": "lembang-2025-1",
+      "farmId": "lembang",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 10.8,
+      "harvestedTon": 1015.2,
+      "dispatchedTon": 690.336,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 147.2,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "lembang-2025-2",
+      "farmId": "lembang",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 10.26,
+      "harvestedTon": 848.707,
+      "dispatchedTon": 577.121,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 147.2,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "lembang-2025-3",
+      "farmId": "lembang",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 9.18,
+      "harvestedTon": 759.37,
+      "dispatchedTon": 516.372,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 147.2,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "lembang-2026-1",
+      "farmId": "lembang",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 12,
+      "harvestedTon": 1128.0,
+      "dispatchedTon": 767.04,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 147.2,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "lembang-2026-2",
+      "farmId": "lembang",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 11.4,
+      "harvestedTon": 943.008,
+      "dispatchedTon": 641.245,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 147.2,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "lembang-2026-3",
+      "farmId": "lembang",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 10.2,
+      "harvestedTon": 843.744,
+      "dispatchedTon": 573.746,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 147.2,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "batang-2025-1",
+      "farmId": "batang",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 18.0,
+      "harvestedTon": 696.6,
+      "dispatchedTon": 473.688,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 136.8,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "batang-2025-2",
+      "farmId": "batang",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 17.1,
+      "harvestedTon": 582.358,
+      "dispatchedTon": 396.003,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 136.8,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "batang-2025-3",
+      "farmId": "batang",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 15.3,
+      "harvestedTon": 521.057,
+      "dispatchedTon": 354.319,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 136.8,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "batang-2026-1",
+      "farmId": "batang",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 20,
+      "harvestedTon": 774.0,
+      "dispatchedTon": 526.32,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 136.8,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "batang-2026-2",
+      "farmId": "batang",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 19.0,
+      "harvestedTon": 647.064,
+      "dispatchedTon": 440.004,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 136.8,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "batang-2026-3",
+      "farmId": "batang",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 17.0,
+      "harvestedTon": 578.952,
+      "dispatchedTon": 393.687,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 136.8,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "boyolali-2025-1",
+      "farmId": "boyolali",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 9.9,
+      "harvestedTon": 356.4,
+      "dispatchedTon": 242.352,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 93.5,
+      "status": "Siap panen"
+    },
+    {
+      "id": "boyolali-2025-2",
+      "farmId": "boyolali",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 9.4,
+      "harvestedTon": 297.792,
+      "dispatchedTon": 202.499,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 93.5,
+      "status": "Siap panen"
+    },
+    {
+      "id": "boyolali-2025-3",
+      "farmId": "boyolali",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 8.42,
+      "harvestedTon": 266.746,
+      "dispatchedTon": 181.387,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 93.5,
+      "status": "Siap panen"
+    },
+    {
+      "id": "boyolali-2026-1",
+      "farmId": "boyolali",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 11,
+      "harvestedTon": 396.0,
+      "dispatchedTon": 269.28,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 93.5,
+      "status": "Siap panen"
+    },
+    {
+      "id": "boyolali-2026-2",
+      "farmId": "boyolali",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 10.45,
+      "harvestedTon": 331.056,
+      "dispatchedTon": 225.118,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 93.5,
+      "status": "Siap panen"
+    },
+    {
+      "id": "boyolali-2026-3",
+      "farmId": "boyolali",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 9.35,
+      "harvestedTon": 296.208,
+      "dispatchedTon": 201.421,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 93.5,
+      "status": "Siap panen"
+    },
+    {
+      "id": "sleman-2025-1",
+      "farmId": "sleman",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 14.4,
+      "harvestedTon": 1382.4,
+      "dispatchedTon": 940.032,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 184.3,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "sleman-2025-2",
+      "farmId": "sleman",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 13.68,
+      "harvestedTon": 1155.686,
+      "dispatchedTon": 785.866,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 184.3,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "sleman-2025-3",
+      "farmId": "sleman",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 12.24,
+      "harvestedTon": 1034.035,
+      "dispatchedTon": 703.144,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 184.3,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "sleman-2026-1",
+      "farmId": "sleman",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 16,
+      "harvestedTon": 1536.0,
+      "dispatchedTon": 1044.48,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 184.3,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "sleman-2026-2",
+      "farmId": "sleman",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 15.2,
+      "harvestedTon": 1284.096,
+      "dispatchedTon": 873.185,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 184.3,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "sleman-2026-3",
+      "farmId": "sleman",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 13.6,
+      "harvestedTon": 1148.928,
+      "dispatchedTon": 781.271,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 184.3,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "bantul-2025-1",
+      "farmId": "bantul",
+      "year": 2025,
+      "cycle": 1,
+      "plantedHa": 6.3,
+      "harvestedTon": 232.47,
+      "dispatchedTon": 158.08,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 63.0,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "bantul-2025-2",
+      "farmId": "bantul",
+      "year": 2025,
+      "cycle": 2,
+      "plantedHa": 5.98,
+      "harvestedTon": 194.183,
+      "dispatchedTon": 132.044,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 63.0,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "bantul-2025-3",
+      "farmId": "bantul",
+      "year": 2025,
+      "cycle": 3,
+      "plantedHa": 5.35,
+      "harvestedTon": 173.725,
+      "dispatchedTon": 118.133,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 63.0,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "bantul-2026-1",
+      "farmId": "bantul",
+      "year": 2026,
+      "cycle": 1,
+      "plantedHa": 7,
+      "harvestedTon": 258.3,
+      "dispatchedTon": 175.644,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 63.0,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "bantul-2026-2",
+      "farmId": "bantul",
+      "year": 2026,
+      "cycle": 2,
+      "plantedHa": 6.65,
+      "harvestedTon": 215.939,
+      "dispatchedTon": 146.839,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 63.0,
+      "status": "Panen berjalan"
+    },
+    {
+      "id": "bantul-2026-3",
+      "farmId": "bantul",
+      "year": 2026,
+      "cycle": 3,
+      "plantedHa": 5.95,
+      "harvestedTon": 193.208,
+      "dispatchedTon": 131.381,
+      "adjustmentTon": 0,
+      "monthlyDeliveredTon": 63.0,
+      "status": "Panen berjalan"
+    }
+  ]
+}
