@@ -16,6 +16,7 @@ use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
+use App\Support\RolePermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -133,5 +134,47 @@ class DashboardSummaryTest extends TestCase
         $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.cycles.running', 0)->where('dashboard.trend.total', 0)
             ->has('dashboard.landMap.farms', 0)->has('dashboard.activities', 0));
+    }
+
+    public function test_admin_map_preview_contains_scoped_crops_pic_and_admin_detail_link(): void
+    {
+        $farm = $this->farm('Kebun Peta');
+        $this->cycle($farm);
+        $pic = User::factory()->create(['role' => 'petugas', 'assigned_farm_id' => $farm->id, 'is_active' => true]);
+        $this->team->members()->attach($pic, ['role' => TeamRole::Member->value]);
+        $farm->forceFill(['pic_user_id' => $pic->id])->save();
+        $foreign = $this->farm('Kebun Rahasia', Team::factory()->create(['is_personal' => false]));
+        $this->cycle($foreign);
+
+        $this->get('/admin/dashboard?team_id='.$foreign->team_id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('dashboard.landMap.farms', 1)
+            ->where('dashboard.landMap.farms.0.id', $farm->id)
+            ->where('dashboard.landMap.farms.0.detail_url', '/admin/farm-management/'.$farm->id)
+            ->where('dashboard.landMap.farms.0.crops.0.name', 'Jagung')
+            ->where('dashboard.landMap.farms.0.crops.0.varieties', ['Bisi 18'])
+            ->where('dashboard.landMap.farms.0.pic', ['id' => $pic->id, 'name' => $pic->name])
+            ->missing('dashboard.landMap.farms.0.pic.email'));
+
+        $other = $this->farm('Kebun Lain');
+        $pic->forceFill(['assigned_farm_id' => $other->id])->save();
+        $this->get('/admin/dashboard?farm_id='.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('dashboard.landMap.farms.0.pic', null));
+        $this->get('/admin/dashboard?farm_id='.$foreign->id)->assertForbidden();
+    }
+
+    public function test_admin_map_preview_respects_related_resource_grants(): void
+    {
+        $farm = $this->farm('Kebun Peta');
+        $this->cycle($farm);
+        $pic = User::factory()->create(['role' => 'petugas', 'assigned_farm_id' => $farm->id, 'is_active' => true]);
+        $this->team->members()->attach($pic, ['role' => TeamRole::Member->value]);
+        $farm->forceFill(['pic_user_id' => $pic->id])->save();
+        $roles = app(RolePermissions::class)->roles();
+        unset($roles['admin']['users.view'], $roles['admin']['crop_varieties.view']);
+        config(['access.roles' => $roles]);
+
+        $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('dashboard.landMap.farms.0.pic', null)
+            ->has('dashboard.landMap.farms.0.crops', 0));
     }
 }

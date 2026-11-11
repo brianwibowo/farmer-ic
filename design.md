@@ -346,12 +346,20 @@ Accept only the known origin flag, never a caller-supplied back URL or browser
 history as the destination; reloads and new tabs must keep the same behavior.
 
 Owner Beranda map markers open a farm summary dialog instead of a small Leaflet
-text bubble. Match the farm-preview hierarchy: name, location/hectares and close
+text bubble. Match the farm-preview hierarchy: name, location and close
 action; selected farm's satellite map; Jenis tanaman with varieties; PIC yang
 ditugaskan; and the full-width Detail kebun link. Omit health/condition and
 financial projection panels. Use the same scoped crops as the table. PIC is the
 persisted farm PIC with a matching active Petugas assignment/membership; missing
-data is stated honestly. This interaction is opt-in so other map usages keep
+data is stated honestly.
+Use the shared 12px popup and inset-map corners, Farmer semantic colors, and
+the page's typography. Keep a compact icon/name/location header, an inset
+satellite map initially at zoom 18. Omit the land-area summary and the divider
+above the Detail kebun footer.
+Render crops as plain divided rows and PIC as a compact avatar/name row. Use
+the shared secondary-green Button for the full-width Detail kebun action.
+Keep the header/footer fixed within the dialog while its body scrolls.
+This interaction is opt-in so other map usages keep
 their existing behavior. Marker hit targets are 44px without enlarging the dot,
 and support click, Enter and Space. Dialogs trap focus, close with Escape/X and
 return focus to the originating marker. Keep header/footer visible and the
@@ -784,6 +792,11 @@ and show activity cards. Farm selection applies to the entire overview; the
 Use persisted stage statuses for the planting breakdown. Show batches without
 a recorded running stage explicitly, and keep land clearing at block level.
 The map represents saved coordinate points, not invented parcel boundaries.
+Admin dashboard markers open the same shared farm-summary dialog as Owner,
+with admin theme tokens applied to the portaled dialog. Include the selected
+farm's zoomed-in satellite map, scoped planted crops/varieties and actual PIC.
+The Detail kebun action opens `/admin/farm-management/{farm}`. Keep the
+area summary and footer divider omitted, matching the Owner popup.
 Place the map beside a weather card at wide desktop widths, using a 3:1 ratio
 and a readable minimum weather column; stack weather below the map on smaller
 screens. The weather card follows the selected farm and offers its own farm
