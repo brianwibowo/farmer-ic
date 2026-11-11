@@ -50,6 +50,7 @@ require __DIR__.'/reference.php';
 Route::get('/', HomeController::class)->middleware(['auth', 'verified'])->name('home');
 
 Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): void {
+    Route::get('ringkasan-eksekutif', [OwnerController::class, 'executiveSummary'])->name('owner.executive-summary');
     Route::get('kebun', [OwnerController::class, 'farms'])->name('kebun');
     Route::get('kebun/detail', function (Request $request) {
         $id = (string) $request->query('id', '');

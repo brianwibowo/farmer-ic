@@ -111,44 +111,47 @@ const hasCoordinates = computed(
                         </p>
                     </section>
 
-                    <section
-                        class="rounded-xl bg-muted/60 p-4"
-                        aria-label="PIC yang ditugaskan"
+                    <slot name="summary"
+                        ><section
+                            class="rounded-xl bg-muted/60 p-4"
+                            aria-label="PIC yang ditugaskan"
+                        >
+                            <h3
+                                class="flex items-center gap-2 text-sm font-medium text-muted-foreground"
+                            >
+                                <UserRound
+                                    class="size-4 shrink-0 text-secondary dark:text-primary"
+                                    aria-hidden="true"
+                                />
+                                PIC yang ditugaskan
+                            </h3>
+                            <p
+                                v-if="farm.pic"
+                                class="mt-2 text-base leading-6 font-semibold break-words"
+                            >
+                                {{ farm.pic.name }}
+                            </p>
+                            <p
+                                v-else
+                                class="mt-2 text-sm leading-6 text-muted-foreground"
+                            >
+                                Belum ada PIC ditugaskan.
+                            </p>
+                        </section></slot
                     >
-                        <h3
-                            class="flex items-center gap-2 text-sm font-medium text-muted-foreground"
-                        >
-                            <UserRound
-                                class="size-4 shrink-0 text-secondary dark:text-primary"
-                                aria-hidden="true"
-                            />
-                            PIC yang ditugaskan
-                        </h3>
-                        <p
-                            v-if="farm.pic"
-                            class="mt-2 text-base leading-6 font-semibold break-words"
-                        >
-                            {{ farm.pic.name }}
-                        </p>
-                        <p
-                            v-else
-                            class="mt-2 text-sm leading-6 text-muted-foreground"
-                        >
-                            Belum ada PIC ditugaskan.
-                        </p>
-                    </section>
                 </div>
             </div>
 
             <footer class="shrink-0 border-t border-border bg-card p-4 sm:p-5">
-                <Link
-                    :href="withOwnerFarmOrigin(farm.detail_url, 'home')"
-                    class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    @click="open = false"
-                >
-                    Detail kebun
-                    <ArrowRight class="size-4" aria-hidden="true" />
-                </Link>
+                <slot name="footer"
+                    ><Link
+                        :href="withOwnerFarmOrigin(farm.detail_url, 'home')"
+                        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        @click="open = false"
+                    >
+                        Detail kebun
+                        <ArrowRight class="size-4" aria-hidden="true" /> </Link
+                ></slot>
             </footer>
         </DialogContent>
     </Dialog>

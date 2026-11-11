@@ -4,6 +4,7 @@ import {
     Activity,
     ArrowRight,
     BookOpen,
+    LayoutDashboard,
     Sprout,
     UsersRound,
 } from '@lucide/vue';
@@ -15,6 +16,14 @@ import OwnerTenantContext from '@/components/owner/OwnerTenantContext.vue';
 const page = usePage();
 const entries = computed(() =>
     [
+        {
+            allowed: true,
+            title: 'Ringkasan Eksekutif',
+            description:
+                'Lahan, penjualan, panen, dan simulasi keuangan dengan data contoh.',
+            href: '/ringkasan-eksekutif',
+            icon: LayoutDashboard,
+        },
         {
             allowed: page.props.ownerNavigation?.farms,
             title: 'Kebun',

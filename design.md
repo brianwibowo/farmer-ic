@@ -395,6 +395,40 @@ Empty pages show their title and an honest placeholder without fabricated
 operational records, metrics, or inactive action buttons. Keep the active
 navigation indicator, request loading feedback, keyboard focus, and both themes.
 
+### Owner executive summary
+
+The `/ringkasan-eksekutif` page is a compact, read-only executive overview in
+the existing Owner profile. Its current JSON dataset is illustrative and stays
+separate from operational records. Keep the period controls visible; collapse
+partner, region, farm, and commodity filters behind a Filter button with an
+active count and removable selections.
+
+Client selection in the sales panel is local to that panel. Clicking a client
+name or its chart bars shows only that client's contract/reality comparison,
+while the complete client selector remains visible. Mark the active client and
+provide Tampilkan semua client; clicking the active selection again also clears
+it. Use a shorter chart for one client and reset a selection removed by global
+filters. This interaction must not change the page's global filters or KPIs.
+
+Use `OwnerDistributionChart` for every distribution donut, including the
+Beranda commodity chart. Preserve its center total, sector percentages,
+keyboard-accessible legend, selection, semantic colors, and empty state.
+Executive panels use its compact embedded mode and contextual legend slots.
+Combine partner contribution with planted/unplanted area bars, and combine
+commodity composition with three concise commodity summaries; avoid adjacent
+tall chart/table panels and stretched blank surfaces.
+
+Harvest charts remain visible while the farm table starts collapsed. Financial
+projections use per-commodity prices from the dataset, aggregate actual monetary
+amounts before computing the gross-margin percentage, and provide no simulator
+inputs. Prioritize revenue, total costs, and gross profit. Do not reintroduce the
+operational detail table, pagination, or its exports on this overview.
+
+Map markers open `OwnerDashboardFarmPreview`, shared with Beranda. Its summary
+and footer slots adapt the executive context without sending dummy IDs to real
+farm-detail routes. Existing Beranda popup content and navigation remain the
+defaults.
+
 ### Shared dashboard components for Petugas
 
 Petugas opts into `FarmerMobileShell`'s `dashboardTheme` presentation prop.
