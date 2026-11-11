@@ -46,6 +46,7 @@ const props = defineProps<{
     };
     unreadCount: number;
     hasPhoneNumber: boolean;
+    fonnteEnabled: boolean;
     filters: Filters;
     defaultFilters: Filters;
     tenantOptions: { id: number; name: string }[];
@@ -400,7 +401,7 @@ onUnmounted(() => {
             </form>
 
             <div
-                v-if="showPhoneWarning && !props.hasPhoneNumber"
+                v-if="showPhoneWarning && props.fonnteEnabled && !props.hasPhoneNumber"
                 class="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted p-4 text-sm leading-6"
                 role="status"
             >

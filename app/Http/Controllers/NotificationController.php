@@ -50,6 +50,7 @@ class NotificationController extends Controller
                 ]),
                 'unreadCount' => $inbox->unreadCount($request->user()),
                 'hasPhoneNumber' => filled($request->user()->phone_number),
+                'fonnteEnabled' => (bool) config('operational_notifications.fonnte.enabled', false),
                 'filters' => [...$filters, 'team_id' => isset($filters['team_id']) ? (int) $filters['team_id'] : null],
                 'defaultFilters' => ['status' => 'unread', 'date_from' => $today, 'date_to' => $today, 'team_id' => null],
                 'tenantOptions' => $context['options'],
