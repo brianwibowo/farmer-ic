@@ -43,7 +43,7 @@ const groupRowsId = (groupId: string) =>
             class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3"
         >
             <div>
-                <h2 id="owner-land-heading" class="text-base font-semibold">
+                <h2 id="owner-land-heading" class="admin-section-title">
                     Ringkasan lahan
                 </h2>
                 <p class="mt-1 text-xs text-muted-foreground">
@@ -52,7 +52,7 @@ const groupRowsId = (groupId: string) =>
             </div>
             <Link
                 href="/proyeksi"
-                class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
                 >Lihat detail<ArrowUpRight class="size-4" aria-hidden="true"
             /></Link>
         </header>
@@ -86,37 +86,37 @@ const groupRowsId = (groupId: string) =>
                     <tr>
                         <th
                             scope="col"
-                            class="sticky top-0 left-0 z-30 min-w-[166px] border-r border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
+                            class="sticky top-0 left-0 z-30 min-w-[166px] border-r border-b border-border bg-primary px-3 py-3 font-semibold text-primary-foreground"
                         >
                             Site
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-r border-b border-border bg-[#1f5b2a] px-3 py-3 text-right font-semibold whitespace-nowrap text-white"
+                            class="sticky top-0 z-20 border-r border-b border-border bg-primary px-3 py-3 text-right font-semibold whitespace-nowrap text-primary-foreground"
                         >
                             Luas (ha)
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-r border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
+                            class="sticky top-0 z-20 border-r border-b border-border bg-primary px-3 py-3 font-semibold text-primary-foreground"
                         >
                             Legalitas
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-r border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
+                            class="sticky top-0 z-20 border-r border-b border-border bg-primary px-3 py-3 font-semibold text-primary-foreground"
                         >
                             Jenis tanaman
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-r border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
+                            class="sticky top-0 z-20 border-r border-b border-border bg-primary px-3 py-3 font-semibold text-primary-foreground"
                         >
                             Progress
                         </th>
                         <th
                             scope="col"
-                            class="sticky top-0 z-20 border-b border-border bg-[#1f5b2a] px-3 py-3 font-semibold text-white"
+                            class="sticky top-0 z-20 border-b border-border bg-primary px-3 py-3 font-semibold text-primary-foreground"
                         >
                             Proyeksi panen
                         </th>
@@ -283,7 +283,7 @@ const groupRowsId = (groupId: string) =>
                                                 'home',
                                             )
                                         "
-                                        class="block min-h-11 max-w-full rounded-md font-bold [overflow-wrap:anywhere] text-secondary underline decoration-secondary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                                        class="block min-h-11 max-w-full rounded-md font-bold [overflow-wrap:anywhere] text-primary underline decoration-primary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
                                         >{{ row.name }}</Link
                                     >
                                 </th>
@@ -295,35 +295,31 @@ const groupRowsId = (groupId: string) =>
                                 <td
                                     class="border-r border-b border-border bg-card px-3 py-3 align-top"
                                 >
-                                    <Link
-                                        :href="
-                                            withOwnerFarmOrigin(
-                                                row.legality_url,
-                                                'home',
-                                            )
-                                        "
-                                        :aria-label="`Lihat legalitas ${row.name}`"
-                                        class="block min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:outline-ring"
-                                    >
-                                        <span
-                                            class="block font-medium text-secondary underline decoration-secondary/30 underline-offset-4 dark:text-primary"
+                                    <div>
+                                        <Link
+                                            :href="
+                                                withOwnerFarmOrigin(
+                                                    row.legality_url,
+                                                    'home',
+                                                )
+                                            "
+                                            :aria-label="`Lihat legalitas ${row.name}`"
+                                            class="inline-block min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] font-medium text-primary underline decoration-primary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
                                         >
                                             {{
                                                 row.legality ?? 'Belum tercatat'
                                             }}
-                                        </span>
-                                        <span
-                                            v-if="
-                                                row.requires_land_tenure_party
-                                            "
-                                            class="mt-1 block text-xs text-muted-foreground"
-                                        >
-                                            {{
-                                                row.land_tenure_party ||
-                                                'Pihak terkait belum diisi'
-                                            }}
-                                        </span>
-                                    </Link>
+                                        </Link>
+                                    </div>
+                                    <p
+                                        v-if="row.requires_land_tenure_party"
+                                        class="mt-1 text-xs text-muted-foreground select-text [overflow-wrap:anywhere]"
+                                    >
+                                        {{
+                                            row.land_tenure_party ||
+                                            "Pihak terkait belum diisi"
+                                        }}
+                                    </p>
                                 </td>
                                 <td
                                     class="border-r border-b border-border bg-card px-3 py-3 align-top"

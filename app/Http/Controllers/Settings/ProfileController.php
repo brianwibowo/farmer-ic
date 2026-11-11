@@ -25,7 +25,7 @@ class ProfileController extends Controller
         $user = $request->user();
         $user->refresh();
         $role = app(RolePermissions::class)->roleName($user);
-        $usesMobileProfile = in_array($role, ['owner', 'petugas'], true);
+        $usesMobileProfile = $role === 'petugas';
 
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,

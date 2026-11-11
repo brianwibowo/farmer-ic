@@ -33,17 +33,17 @@ function setPeriod(period: "cycle" | "year"): void {
 </script>
 
 <template>
-    <Head title="Detail Kebun" />
+    <Head title="Proyeksi Panen" />
     <OwnerPageHeader
         title="Total Proyeksi Panen"
         :back-href="urls.home"
-        back-label="Kembali ke Beranda"
+        back-label="Kembali ke Dashboard"
     >
         <template #heading>
             <div class="flex min-w-0 items-center justify-between gap-3">
                 <h1
                     id="total-projection-heading"
-                    class="min-w-0 text-lg leading-6 font-semibold break-words sm:text-2xl sm:leading-8"
+                    class="admin-page-title min-w-0 break-words"
                 >
                     Total Proyeksi Panen
                 </h1>
@@ -61,10 +61,10 @@ function setPeriod(period: "cycle" | "year"): void {
                         type="button"
                         :aria-pressed="projection.period === option.value"
                         :disabled="loading"
-                        class="min-h-11 rounded-lg px-4 text-sm font-medium transition-colors hover:text-secondary focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none dark:hover:text-primary"
+                        class="min-h-11 rounded-lg px-4 text-sm font-medium transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none"
                         :class="
                             projection.period === option.value
-                                ? 'bg-card text-secondary shadow-sm dark:text-primary'
+                                ? 'bg-card text-primary shadow-sm'
                                 : 'text-muted-foreground'
                         "
                         @click="setPeriod(option.value)"
@@ -111,7 +111,7 @@ function setPeriod(period: "cycle" | "year"): void {
                         class="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1"
                     >
                         <span
-                            class="text-3xl leading-tight font-bold break-all text-secondary tabular-nums lg:text-4xl dark:text-primary"
+                            class="admin-metric-value break-all text-primary tabular-nums"
                             >{{ projectionNumber(card.projection_ton) }}</span
                         >
                         <span class="text-sm text-muted-foreground">ton</span>

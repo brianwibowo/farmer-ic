@@ -53,6 +53,7 @@ class HandleInertiaRequests extends Middleware
         $guestPage = $request->route()?->defaults['farmer_guest'] ?? false;
         $user = $guestPage ? null : $request->user();
         $adminAccess = $user !== null && Gate::forUser($user)->allows('admin.access');
+        $ownerAccess = $user !== null && ! $adminAccess && Gate::forUser($user)->allows('owner.access');
         $logbookTeam = $user ? (app(RolePermissions::class)->singleTenant($user) ?? $user->currentTeam) : null;
 
         return [
@@ -68,6 +69,7 @@ class HandleInertiaRequests extends Middleware
                 && Gate::forUser($user)->allows('viewAny', [$model, $user->currentTeam]))->all(),
             'navigation' => [
                 'admin' => $adminAccess,
+                'owner' => $ownerAccess,
                 'petugas' => $user !== null && Gate::forUser($user)->allows('petugas.access'),
                 'logbook' => $adminAccess && $logbookTeam instanceof Team
                     && Gate::forUser($user)->allows('viewAny', [Farm::class, $logbookTeam])
@@ -84,7 +86,7 @@ class HandleInertiaRequests extends Middleware
                     && Gate::forUser($user)->allows('viewAny', [$model, $user->currentTeam]))->all(),
                 'users' => $user !== null && Gate::forUser($user)->allows('users.manage'),
                 'teamSwitcher' => $user !== null && Gate::forUser($user)->allows('navigation.teamSwitcher'),
-                'farms' => $adminAccess && $user->currentTeam !== null
+                'farms' => ($adminAccess || $ownerAccess) && $user->currentTeam !== null
                     && Gate::forUser($user)->allows('viewAny', [Farm::class, $user->currentTeam]),
             ],
             'auth' => [

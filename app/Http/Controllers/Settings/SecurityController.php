@@ -26,7 +26,7 @@ class SecurityController extends Controller
         $props = [
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
             'securityPresentation' => [
-                'surface' => in_array($role, ['owner', 'petugas'], true) ? 'mobile' : 'desktop',
+                'surface' => $role === 'petugas' ? 'mobile' : 'desktop',
                 'returnUrl' => route('profile.edit', absolute: false),
             ],
         ];

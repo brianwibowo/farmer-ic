@@ -27,8 +27,12 @@ class StoreVoluntaryActivityRequest extends FormRequest
             'start_time' => ['nullable', 'date_format:H:i'], 'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
             'worker_count' => ['required', 'integer', 'between:1,32767'], 'daily_notes' => ['nullable', 'string', 'max:5000'],
             'notes' => ['nullable', 'string', 'max:5000'],
-            'cycle_id' => [$blockOnly ? 'prohibited' : ($optional ? 'nullable' : 'required'), 'uuid'],
-            'block_id' => [$blockOnly ? 'required' : ($optional ? 'nullable' : 'prohibited'), 'uuid', 'prohibits:cycle_id'],
+            'cycle_id' => $blockOnly
+                ? ['prohibited']
+                : [$optional ? 'nullable' : 'required', 'uuid'],
+            'block_id' => $blockOnly
+                ? ['required', 'uuid', 'prohibits:cycle_id']
+                : ($optional ? ['nullable', 'uuid', 'prohibits:cycle_id'] : ['prohibited']),
             'photos' => ['required', 'array', 'list', 'min:1', 'max:5'],
             'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'farm_id' => ['prohibited'], 'team_id' => ['prohibited'], 'performed_by' => ['prohibited'],

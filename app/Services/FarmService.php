@@ -144,7 +144,7 @@ class FarmService
             'progress_overview' => $this->progressOverview($visible, $user, $team),
             'active_cycles' => (clone $cycles)->count(),
             'active_area_ha' => (string) (clone $cycles)->sum('planted_area_ha'),
-            'default_sop' => $this->sops->defaultForFarm($visible),
+            'default_sop' => $this->sops->visibleDefaultForFarm($visible, $user),
             'created_at' => $visible->created_at?->toISOString(),
         ];
     }

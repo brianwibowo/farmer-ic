@@ -122,9 +122,9 @@ function submit(): void {
     <Head :title="`Catat ${type.name}`" />
     <div class="space-y-4">
         <Link
-            href="/petugas/aktivitas"
+            href="/petugas/laporan"
             class="inline-flex min-h-11 items-center text-sm text-secondary"
-            >← Kembali ke aktivitas</Link
+            >← Kembali ke laporan</Link
         >
         <header>
             <span class="text-xs font-medium text-secondary"

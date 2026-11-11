@@ -211,7 +211,7 @@ hanya 26 → 26. Tanggal pertama disimpan terpisah sebagai batas jendela.
 - Admin menyusun **SOP modular**: nama langkah, kategori/subkategori aktivitas, offset HST, instruksi, dan bukti yang diminta.
 - SOP dikaitkan ke **komoditas**, bukan varietas. Setiap kebun memiliki satu **SOP default**; Petugas tidak memilih SOP saat mencatat penanaman.
 - SOP mencakup langkah **Perawatan dan Panen**; pembersihan lahan dan pengolahan tanah dikelola sebagai persiapan batch/blok. **Penanaman** dicatat sebagai aktivitas tanam dan menjadi acuan HST, bukan langkah SOP.
-- Saat SOP diterapkan ke subblok, sistem membuat task untuk setiap langkah SOP **Perawatan dan Panen** pada tanggal tanam + offset HST. Sebelum realisasi tanam, `planned_planting_at` menjadi acuan sementara.
+- Setelah realisasi tanam dicatat, sistem membuat task untuk setiap langkah SOP **Perawatan dan Panen** pada tanggal `planted_at` + offset HST. `planned_planting_at` bukan acuan pembuatan tugas.
 - Task terikat pada batch/sub-blok; cycle diperoleh dari batch.
 - Petugas mencatat activity log yang terhubung ke task. Laporan pertama
   memindahkan task ke `in_progress`; Petugas menandai `completed` secara

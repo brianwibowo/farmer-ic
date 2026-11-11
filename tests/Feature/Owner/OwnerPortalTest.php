@@ -76,6 +76,58 @@ class OwnerPortalTest extends TestCase
         $this->get('/proyeksi')->assertRedirect(route('login'));
     }
 
+    public function test_owner_workspace_shares_admin_farm_pages_without_admin_access_or_write_permissions(): void
+    {
+        foreach (['/' => 'owner/Dashboard', '/proyeksi' => 'owner/Projection', '/kebun' => 'farms/Index', '/kebun/'.$this->farm->id => 'farms/Show'] as $url => $component) {
+            $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->component($component)->where('navigation.owner', true)
+                ->where('navigation.admin', false)->where('navigation.farms', true));
+        }
+        $this->get('/kebun')->assertInertia(fn (Assert $page) => $page
+            ->where('can.create', false)->where('farms.data.0.can.update', false)
+            ->where('farms.data.0.can.delete', false)->where('farms.data.0.can.forceDelete', false));
+
+        $detailUrl = $this->get('/')->viewData('page')['props']['dashboard']['landMap']['farms'][0]['detail_url'];
+        $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Show')->where('farm.id', $this->farm->id)
+            ->where('legalityUrl', '/kebun/'.$this->farm->id.'/legalitas')
+            ->where('can.update', false)->where('can.delete', false)->where('can.forceDelete', false)
+            ->where('can.createBlock', false)
+            ->where('blocks', fn ($blocks) => collect($blocks)->every(fn ($block) => ! $block['can']['update'] && ! $block['can']['delete'] && ! $block['can']['createBatch']))
+            ->where('batchPermissions', fn ($permissions) => collect($permissions)->every(fn ($allowed) => $allowed === false)));
+
+        foreach (['/admin/dashboard', '/admin/farm-management', '/admin/farm-management/'.$this->farm->id, '/admin/farm-management/create', '/admin/farm-management/'.$this->farm->id.'/edit'] as $url) {
+            $this->get($url)->assertForbidden();
+        }
+        $this->post('/admin/farm-management', ['name' => 'Dilarang'])->assertForbidden();
+        $this->delete('/admin/farm-management/'.$this->farm->id)->assertForbidden();
+    }
+
+    public function test_owner_farm_filters_pagination_and_related_sop_grants_stay_scoped(): void
+    {
+        $this->makeFarm($this->team, 'Kebun Selatan A');
+        $this->makeFarm($this->team, 'Kebun Selatan B');
+        $otherTeam = Team::factory()->create(['is_personal' => false]);
+        $this->makeFarm($otherTeam, 'Kebun Selatan Rahasia');
+
+        $response = $this->get('/kebun?search=Kebun%20Selatan&sort=name&direction=desc&per_page=1');
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('farms.total', 2)->has('farms.data', 1)->where('summary.count', 3)
+            ->where('farms.data.0.name', 'Kebun Selatan B')
+            ->where('farms.next_page_url', fn ($url) => str_contains($url, '/kebun?') && ! str_contains($url, '/admin/')));
+        $this->get($response->viewData('page')['props']['farms']['next_page_url'])
+            ->assertOk()->assertInertia(fn (Assert $page) => $page->where('farms.data.0.name', 'Kebun Selatan A'));
+
+        $sop = SopTemplate::query()->where('team_id', $this->team->id)->firstOrFail();
+        $this->farm->forceFill(['default_sop_template_id' => $sop->id])->save();
+        $this->revoke(['sop_template_versions.view']);
+        $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('farm.default_sop.published_version', null)->where('farm.default_sop.tasks_count', 0));
+        $this->revoke(['sop_templates.view']);
+        $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('farm.default_sop', null));
+    }
+
     public function test_owner_reads_database_dashboard_farms_blocks_and_monitoring(): void
     {
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -87,15 +139,14 @@ class OwnerPortalTest extends TestCase
             ->where('dashboard.farmOptions.0.id', $this->farm->id));
 
         $this->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/Farms')->where('farms.total', 1)
+            ->component('farms/Index')->where('farms.total', 1)
             ->where('farms.data.0.id', $this->farm->id)
             ->where('farms.data.0.name', DemoFarmSeeder::FARM_NAME)
             ->where('summary.count', 1));
 
         $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/Farm')->where('farm.id', $this->farm->id)
-            ->has('blocks', 2)->has('observations', 1)->has('risks', 1)
-            ->where('weather.temperature_c', '28.40'));
+            ->component('farms/Show')->where('farm.id', $this->farm->id)
+            ->has('blocks', 2)->where('can.update', false)->where('can.delete', false));
 
         $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -215,7 +266,7 @@ class OwnerPortalTest extends TestCase
             ->where('farms.data', fn ($rows) => collect($rows)->contains('id', $farm->id)));
         $this->get('/kebun/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('farm.latitude', null)->where('farm.longitude', null)
-            ->has('blocks', 0)->has('observations', 0)->where('weather', null));
+            ->has('blocks', 0)->where('can.createBlock', false));
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.metrics.0.value', 2));
     }
 
@@ -405,7 +456,7 @@ class OwnerPortalTest extends TestCase
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('cycles.0.variety', null));
         $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('observations.0.cycle.variety', null));
+            ->missing('observations')->missing('blocks.0.batches.0.variety'));
     }
 
     public function test_malformed_filters_are_validated_on_the_server(): void

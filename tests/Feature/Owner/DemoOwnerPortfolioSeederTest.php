@@ -120,9 +120,9 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $farm = Farm::query()->findOrFail(DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']));
             $this->get('/kebun/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-                ->component('owner/Farm')->where('farm.id', $farm->id)
+                ->component('farms/Show')->where('farm.id', $farm->id)
                 ->where('farm.default_sop.is_active', true)->has('blocks', 2)
-                ->has('legacyCycles', 0)->where('weather', fn ($weather) => $weather !== null));
+                ->where('can.update', false)->where('can.createBlock', false));
 
             $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->with('block')->firstOrFail();
             $block = $cycle->block;
@@ -145,8 +145,13 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->assertCount(10, $batches);
         foreach ($batches as $batch) {
             $this->assertSame(6, $batch->stages_count);
-            $this->assertGreaterThan(0, $batch->tasks_count);
-            $this->assertNotNull($batch->sop_template_version_id);
+            if ($batch->status === 'planned') {
+                $this->assertSame(0, $batch->tasks_count);
+                $this->assertNull($batch->sop_template_version_id);
+            } else {
+                $this->assertGreaterThan(0, $batch->tasks_count);
+                $this->assertNotNull($batch->sop_template_version_id);
+            }
         }
         $detailTypes = [
             'planting' => 'plantingDetail', 'follow_up_fertilization' => 'fertilizationDetail',

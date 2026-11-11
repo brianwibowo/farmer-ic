@@ -35,7 +35,13 @@ const updateIsMobile = () => {
 };
 
 const currentTeam = computed(() => page.props.currentTeam);
-const teams = computed(() => page.props.teams ?? []);
+const teams = computed(() =>
+    (page.props.teams ?? []).filter(
+        (team) => !page.props.navigation?.owner || !team.isPersonal,
+    ),
+);
+const switching = ref(false);
+const switchError = ref('');
 const canCreateTeam = computed(() => page.props.canCreateTeam);
 const menuContentClass = computed(() =>
     props.inHeader
@@ -51,6 +57,34 @@ const checkIconClass = computed(() =>
 const plusIconClass = computed(() => (props.inHeader ? 'size-4' : 'h-4 w-4'));
 
 const switchTeam = (team: Team) => {
+    if (switching.value || team.id === currentTeam.value?.id) return;
+    if (page.props.navigation?.owner) {
+        switching.value = true;
+        switchError.value = '';
+        const failed = () => {
+            switchError.value =
+                'Tenant belum berhasil diganti. Silakan coba lagi.';
+        };
+        router.post(
+            `/owner/tenant/${encodeURIComponent(team.slug)}`,
+            {},
+            {
+                onError: failed,
+                onNetworkError: () => {
+                    failed();
+                    return false;
+                },
+                onHttpException: () => {
+                    failed();
+                    return false;
+                },
+                onFinish: () => {
+                    switching.value = false;
+                },
+            },
+        );
+        return;
+    }
     const previousTeamSlug = currentTeam.value?.slug;
 
     router.visit(switchMethod(team.slug), {
@@ -93,6 +127,8 @@ onUnmounted(() => {
         <DropdownMenuTrigger as-child>
             <Button
                 data-test="team-switcher-trigger"
+                :disabled="switching"
+                :aria-busy="switching"
                 :aria-label="`Pilih tim: ${currentTeam?.name ?? 'belum dipilih'}`"
                 :title="currentTeam?.name ?? 'Pilih tim'"
                 variant="ghost"
@@ -176,4 +212,7 @@ onUnmounted(() => {
             </template>
         </DropdownMenuContent>
     </DropdownMenu>
+    <p v-if="switchError" role="alert" class="px-2 text-xs text-error">
+        {{ switchError }}
+    </p>
 </template>
