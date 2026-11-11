@@ -63,7 +63,7 @@ app/Services/PlantingCycleTaskManagementService.php
 `maintenance` / `harvest` tasks. The HST anchor is:
 
 ```text
-planted_at ?? planned_planting_at
+planted_at
 ```
 
 Call it after the real planting save has set `planted_at` on the subblok.
