@@ -10,6 +10,7 @@ use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -108,7 +109,8 @@ class TaskManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('tasks/Index')
-                ->where('tasks.total', 3)
+                ->where('filters.view', 'actionable')
+                ->where('tasks.total', 2)
                 ->has('blocks', 2)
                 ->where('blocks.0.code', 'B01')
                 ->where('blocks.1.code', 'B02')
@@ -118,13 +120,14 @@ class TaskManagementTest extends TestCase
                 ->where('subbloks.1.id', $secondSubblok->id)
                 ->where('subbloks.1.label', 'B')
                 ->where('summary.total', 3)
+                ->where('summary.open', 2)
                 ->where('summary.completed', 1));
 
         $this->get('/admin/tasks?block_id='.$this->block->id)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.block_id', $this->block->id)
-                ->where('tasks.total', 2));
+                ->where('tasks.total', 1));
 
         $this->get('/admin/tasks?block_id='.$secondBlock->id.'&subblok_id='.$secondSubblok->id)
             ->assertOk()
@@ -147,6 +150,85 @@ class TaskManagementTest extends TestCase
                 ->where('tasks.data.0.id', $pending->id));
     }
 
+    public function test_actionable_default_views_and_stable_summary(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 09:00:00', 'Asia/Jakarta'));
+        $overdue = $this->task([
+            'name' => 'Tugas terlambat',
+            'scheduled_date' => '2026-11-01',
+            'due_date' => '2026-11-03',
+        ]);
+        $today = $this->task([
+            'name' => 'Tugas hari ini',
+            'scheduled_date' => '2026-11-09',
+            'due_date' => '2026-11-11',
+        ]);
+        $upcoming = $this->task([
+            'name' => 'Tugas mendatang',
+            'scheduled_date' => '2026-11-12',
+            'due_date' => '2026-11-14',
+        ]);
+        $completed = $this->task([
+            'name' => 'Tugas selesai',
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        $this->get('/admin/tasks')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'actionable')
+                ->where('tasks.total', 3)
+                ->where('tasks.data.0.id', $overdue->id)
+                ->where('tasks.data.0.overdue_days', 7)
+                ->where('tasks.data.1.id', $today->id)
+                ->where('tasks.data.2.id', $upcoming->id)
+                ->where('summary.total', 4)
+                ->where('summary.open', 3)
+                ->where('summary.overdue', 1)
+                ->where('summary.today', 1)
+                ->where('summary.completed', 1));
+
+        $this->get('/admin/tasks?view=overdue')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'overdue')
+                ->where('tasks.total', 1)
+                ->where('tasks.data.0.id', $overdue->id));
+
+        $this->get('/admin/tasks?view=today')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.total', 1)
+                ->where('tasks.data.0.id', $today->id));
+
+        $this->get('/admin/tasks?view=upcoming')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.total', 1)
+                ->where('tasks.data.0.id', $upcoming->id));
+
+        $this->get('/admin/tasks?view=completed')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.total', 1)
+                ->where('tasks.data.0.id', $completed->id));
+
+        $this->get('/admin/tasks?view=all')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.total', 4)
+                ->where('summary.total', 4));
+
+        $this->get('/admin/tasks?search=Mendatang')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.total', 1)
+                ->where('tasks.data.0.id', $upcoming->id)
+                ->where('summary.total', 4)
+                ->where('summary.open', 3));
+    }
+
     public function test_invalid_task_filters_are_rejected(): void
     {
         $this->get('/admin/tasks?block_id=not-a-block&subblok_id=not-a-subblok')
@@ -157,6 +239,9 @@ class TaskManagementTest extends TestCase
 
         $this->get('/admin/tasks?status=cancelled')
             ->assertSessionHasErrors('status');
+
+        $this->get('/admin/tasks?view=unknown')
+            ->assertSessionHasErrors('view');
     }
 
     public function test_admin_can_open_task_detail(): void

@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
 import { useAppearance } from '@/composables/useAppearance';
 import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
+import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
 import '../../css/farm-block-styling.css';
 
 defineOptions({ inheritAttrs: false });
 
 const { resolvedAppearance, updateAppearance } = useAppearance();
 const page = usePage();
+const { indexUrl, title: sectionTitle } = useFarmManagementNavigation();
 const farm = computed(
     () => page.props.farm as { id: string; name: string } | undefined,
 );
@@ -24,12 +26,12 @@ const farm = computed(
             <Link
                 :href="
                     farm
-                        ? `/admin/farm-management/${farm.id}`
-                        : '/admin/farm-management'
+                        ? `${indexUrl}/${farm.id}`
+                        : indexUrl
                 "
                 class="inline-flex min-h-10 items-center rounded-lg text-sm font-medium text-muted-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
                 >{{
-                    farm ? `Manajemen Kebun / ${farm.name}` : 'Manajemen Kebun'
+                    farm ? `${sectionTitle} / ${farm.name}` : sectionTitle
                 }}</Link
             >
             <div class="space-y-[18px]"><slot /></div>

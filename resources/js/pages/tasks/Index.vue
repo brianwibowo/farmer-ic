@@ -9,6 +9,7 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
+import TaskQuickActions from '@/components/tasks/TaskQuickActions.vue';
 import { Button } from '@/components/ui/button';
 import {
     adminTaskCategoryLabel,
@@ -21,11 +22,13 @@ import {
     adminTaskSubcategoryLabel,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
+    adminTaskViewOptions,
     type AdminTaskBlockOption,
     type AdminTaskFilters,
     type AdminTaskPage,
     type AdminTaskSubblokOption,
     type AdminTaskSummary,
+    type AdminTaskView,
 } from '@/types/tasks';
 
 const props = defineProps<{
@@ -42,6 +45,7 @@ const form = useForm({
     subblok_id: props.filters.subblok_id ?? '',
     status: props.filters.status ?? '',
     category: props.filters.category ?? '',
+    view: (props.filters.view ?? 'actionable') as AdminTaskView,
     per_page: props.filters.per_page ?? 15,
 });
 const subblokOptions = computed(() =>
@@ -58,8 +62,63 @@ const hasFilters = computed(
         !!form.block_id ||
         !!form.subblok_id ||
         !!form.status ||
-        !!form.category,
+        !!form.category ||
+        form.view !== 'actionable',
 );
+const summaryCards = computed(() => [
+    {
+        label: 'Total tugas',
+        value: props.summary.total,
+        tone: 'text-foreground',
+    },
+    {
+        label: 'Terbuka',
+        value: props.summary.open,
+        tone: 'text-primary',
+    },
+    {
+        label: 'Terlambat',
+        value: props.summary.overdue,
+        tone: 'text-error',
+    },
+    {
+        label: 'Hari ini',
+        value: props.summary.today,
+        tone: 'text-warning',
+    },
+    {
+        label: 'Selesai / tidak dikerjakan',
+        value: props.summary.completed,
+        tone: 'text-success',
+    },
+]);
+const emptyCopy = computed(() => {
+    if (hasFilters.value) {
+        return {
+            title: 'Tugas tidak ditemukan',
+            description: 'Coba kata kunci atau filter lain.',
+        };
+    }
+    if (form.view === 'actionable') {
+        return {
+            title: 'Tidak ada tugas terbuka',
+            description:
+                'Semua tugas sudah selesai atau belum ada jadwal yang perlu ditindaklanjuti.',
+        };
+    }
+    if (form.view === 'completed') {
+        return {
+            title: 'Belum ada tugas selesai',
+            description:
+                'Tugas yang selesai atau ditandai tidak dikerjakan akan muncul di sini.',
+        };
+    }
+
+    return {
+        title: 'Belum ada tugas',
+        description: 'Tugas akan muncul setelah SOP diterapkan ke subblok.',
+    };
+});
 
 function changeBlock(): void {
     if (
@@ -70,6 +129,17 @@ function changeBlock(): void {
     ) {
         form.subblok_id = '';
     }
+}
+
+function selectView(view: AdminTaskView): void {
+    if (form.processing) return;
+    form.view = view;
+    form.status = '';
+    apply();
+}
+
+function changeStatus(): void {
+    if (form.status) form.view = 'all';
 }
 
 function apply(): void {
@@ -86,6 +156,7 @@ function reset(): void {
     form.subblok_id = '';
     form.status = '';
     form.category = '';
+    form.view = 'actionable';
     apply();
 }
 </script>
@@ -108,19 +179,34 @@ function reset(): void {
 
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <div
-                v-for="item in [
-                    { label: 'Total tugas', value: summary.total, tone: 'text-foreground' },
-                    { label: 'Terbuka', value: summary.open, tone: 'text-primary' },
-                    { label: 'Terlambat', value: summary.overdue, tone: 'text-error' },
-                    { label: 'Hari ini', value: summary.today, tone: 'text-warning' },
-                    { label: 'Selesai / tidak dikerjakan', value: summary.completed, tone: 'text-success' },
-                ]"
+                v-for="item in summaryCards"
                 :key="item.label"
                 class="rounded-xl border border-border bg-card p-4"
             >
                 <p class="text-xs text-muted-foreground">{{ item.label }}</p>
-                <p class="admin-metric-value mt-2" :class="item.tone">{{ item.value }}</p>
+                <p class="admin-metric-value mt-2" :class="item.tone">
+                    {{ item.value }}
+                </p>
             </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2" role="group" aria-label="Tampilan tugas">
+            <button
+                v-for="[value, label] in adminTaskViewOptions"
+                :key="value"
+                type="button"
+                :aria-pressed="form.view === value"
+                class="min-h-11 shrink-0 rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60"
+                :class="
+                    form.view === value
+                        ? 'border-secondary bg-secondary text-secondary-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted/40'
+                "
+                :disabled="form.processing"
+                @click="selectView(value)"
+            >
+                {{ label }}
+            </button>
         </div>
 
         <section class="overflow-hidden rounded-xl border border-border bg-card">
@@ -175,7 +261,7 @@ function reset(): void {
                         </select>
                     </FarmField>
                     <FarmField id="task-status" label="Status" :error="form.errors.status" v-slot="field">
-                        <select :id="field.id" v-model="form.status" class="admin-field">
+                        <select :id="field.id" v-model="form.status" class="admin-field" @change="changeStatus">
                             <option value="">Semua status</option>
                             <option v-for="[value, label] in adminTaskStatusOptions" :key="value" :value="value">
                                 {{ label }}
@@ -215,9 +301,9 @@ function reset(): void {
                 <div class="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent text-primary">
                     <ClipboardList class="size-7" />
                 </div>
-                <h3 class="mt-4 font-semibold">{{ hasFilters ? 'Tugas tidak ditemukan' : 'Belum ada tugas' }}</h3>
+                <h3 class="mt-4 font-semibold">{{ emptyCopy.title }}</h3>
                 <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                    {{ hasFilters ? 'Coba kata kunci atau filter lain.' : 'Tugas akan muncul setelah SOP diterapkan ke subblok.' }}
+                    {{ emptyCopy.description }}
                 </p>
                 <Button v-if="hasFilters" variant="outline" class="mt-5 rounded-xl" @click="reset">Reset filter</Button>
             </div>
@@ -256,6 +342,28 @@ function reset(): void {
                                     <p class="mt-1 text-xs text-muted-foreground">
                                         {{ adminTaskDate(task.effective_scheduled_date) }}
                                     </p>
+                                    <p
+                                        v-if="task.urgency === 'overdue'"
+                                        class="mt-1 text-xs font-medium text-error"
+                                    >
+                                        {{
+                                            task.overdue_days
+                                                ? `Terlambat ${task.overdue_days} hari`
+                                                : 'Terlambat'
+                                        }}
+                                    </p>
+                                    <p
+                                        v-else-if="task.urgency === 'today'"
+                                        class="mt-1 text-xs font-medium text-warning"
+                                    >
+                                        Hari ini
+                                    </p>
+                                    <p
+                                        v-if="task.due_date"
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        Tenggat {{ adminTaskDate(task.due_date) }}
+                                    </p>
                                 </td>
                                 <td class="px-5 py-4">
                                     <div class="flex flex-wrap gap-2">
@@ -268,7 +376,8 @@ function reset(): void {
                                     </div>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <div class="flex justify-end">
+                                    <div class="flex justify-end gap-1">
+                                        <TaskQuickActions :task="task" />
                                         <Button as-child variant="ghost" size="icon" :aria-label="`Lihat ${task.name}`">
                                             <Link :href="`/admin/tasks/${task.id}`"><ArrowUpRight /></Link>
                                         </Button>
@@ -300,6 +409,19 @@ function reset(): void {
                                 <CalendarDays class="size-3.5" />
                                 {{ adminTaskDate(task.effective_scheduled_date) }}
                             </span>
+                            <span
+                                v-if="task.urgency === 'overdue'"
+                                class="text-xs font-medium text-error"
+                            >
+                                {{
+                                    task.overdue_days
+                                        ? `Terlambat ${task.overdue_days} hari`
+                                        : 'Terlambat'
+                                }}
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <TaskQuickActions :task="task" show-labels />
                         </div>
                     </li>
                 </ul>

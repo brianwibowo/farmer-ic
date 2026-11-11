@@ -23,7 +23,7 @@ const isNotifications = computed(
 );
 const isAdmin = computed(
     () =>
-        page.url.startsWith('/admin/') || page.props.navigation?.admin === true,
+        page.url.startsWith('/admin/') || page.props.navigation?.admin === true || page.props.navigation?.owner === true,
 );
 const adminSection = computed(() => {
     if (isNotifications.value) {
@@ -34,7 +34,7 @@ const adminSection = computed(() => {
         return { title: 'Pengaturan', href: '/settings/profile' };
     }
 
-    return { title: 'Dashboard', href: '/admin/dashboard' };
+    return { title: 'Dashboard', href: page.props.navigation?.owner ? '/' : '/admin/dashboard' };
 });
 </script>
 

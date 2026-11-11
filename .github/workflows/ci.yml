@@ -197,6 +197,20 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Tag the tested main image as latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          # Do not promote a completed run if main has already advanced.
+          main_sha=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$main_sha" != "$GITHUB_SHA" ]; then
+            echo 'A newer main commit exists; skipping the latest tag.'
+            exit 0
+          fi
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker tag "$image:$GITHUB_SHA" "$image:latest"
+          docker push "$image:latest"
+
       - name: Show container logs on failure
         if: failure()
         run: docker compose --env-file .env.production -f compose.production.yaml --profile rag logs --tail=100

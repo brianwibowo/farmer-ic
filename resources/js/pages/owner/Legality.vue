@@ -70,7 +70,7 @@ const status = computed(() =>
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="flex min-w-0 flex-1 items-start gap-3">
                 <span
-                    class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-secondary dark:text-primary"
+                    class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
                 >
                     <ShieldCheck class="size-5" aria-hidden="true" />
                 </span>
@@ -99,7 +99,7 @@ const status = computed(() =>
                 </div>
             </div>
             <span
-                class="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-secondary dark:text-primary"
+                class="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"
             >
                 {{
                     tenure[farm.land_tenure ?? ''] ??

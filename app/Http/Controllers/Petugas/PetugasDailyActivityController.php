@@ -10,6 +10,7 @@ use App\Models\FarmActivity;
 use App\Services\Activity\DailyActivityHeaderService;
 use App\Services\Activity\DailyActivityReportService;
 use App\Services\Activity\PetugasReportReadService;
+use App\Services\Activity\VoluntaryActivityCategoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -17,21 +18,22 @@ use Inertia\Response;
 
 class PetugasDailyActivityController extends Controller
 {
-    public function history(Request $request, PetugasReportReadService $reports): Response
+    public function history(Request $request, PetugasReportReadService $reports, VoluntaryActivityCategoryService $categories): Response
     {
         $filters = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'type' => ['nullable', 'string', 'max:50'],
             'source' => ['nullable', 'in:sop,mandiri'], 'date' => ['nullable', 'date_format:Y-m-d'], 'mine' => ['nullable', 'boolean']]);
         $filters['mine'] = $request->boolean('mine');
         $farm = $request->user()->assignedFarm;
         if (! $farm instanceof Farm) {
-            return Inertia::render('petugas/Laporan', ['farm' => null, 'reports' => null, 'filters' => $filters, 'types' => []]);
+            return Inertia::render('petugas/Laporan', ['farm' => null, 'reports' => null, 'filters' => $filters, 'types' => [], 'categories' => []]);
         }
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [FarmActivity::class, $farm->team]);
 
         return Inertia::render('petugas/Laporan', ['farm' => $farm->only(['id', 'name']), 'filters' => $filters,
             'reports' => $reports->listing($request->user(), $farm, $filters),
-            'types' => ActivityType::visibleTo($request->user(), $farm->team)->where('is_selectable', true)->orderBy('sort_order')->get(['code', 'name'])]);
+            'types' => ActivityType::visibleTo($request->user(), $farm->team)->where('is_selectable', true)->orderBy('sort_order')->get(['code', 'name']),
+            'categories' => $categories->forFarm($request->user(), $farm)]);
     }
 
     public function show(Request $request, FarmActivity $activity, DailyActivityReportService $reports): Response

@@ -30,7 +30,7 @@ class PetugasVoluntaryActivityController extends Controller
         return Inertia::render('petugas/VoluntaryCreate', [
             'farm' => $farm->only(['id', 'name']), 'type' => $type->only(['id', 'code', 'name']),
             'fields' => VoluntaryActivityFields::forCode($type->code),
-            'blocks' => FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('code')->get()->map(fn ($block) => [...$block->only(['id', 'code', 'name']), 'blocked_reason' => $sequence->blockReason($request->user(), $block, $type->code)])->all(),
+            'blocks' => FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('code')->get()->map(fn ($block) => [...$block->only(['id', 'code', 'name']), 'blocked_reason' => null])->all(),
             'cycles' => $planting->cycles($request->user(), $farm)->filter(fn ($cycle) => in_array($cycle->status, ['planned', 'active'], true))
                 ->map(fn ($cycle) => [...$planting->context($request->user(), $cycle), 'blocked_reason' => $sequence->blockedReason($request->user(), $cycle, $type->code)])->values()->all(),
             'matchingTasks' => PlantingCycleTask::visibleTo($request->user(), $farm->team)

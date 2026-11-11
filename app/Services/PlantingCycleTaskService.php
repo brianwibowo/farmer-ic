@@ -33,7 +33,7 @@ class PlantingCycleTaskService
             if (! in_array($cycle->status, ['planned', 'active'], true)) {
                 return $this->result('closed_cycle');
             }
-            $anchor = $cycle->planted_at ?? $cycle->planned_planting_at;
+            $anchor = $cycle->planted_at;
             if ($anchor === null) {
                 return $this->result('missing_anchor');
             }

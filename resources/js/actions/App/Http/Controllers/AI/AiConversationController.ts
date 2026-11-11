@@ -29,7 +29,7 @@ index.url = (args?: { current_team?: string | { slug: string } } | [current_team
             if (typeof args === 'object' && !Array.isArray(args) && 'slug' in args) {
             args = { current_team: args.slug }
         }
-    
+
     if (Array.isArray(args)) {
         args = {
                     current_team: args[0],
@@ -110,7 +110,7 @@ index.head = (args?: { current_team?: string | { slug: string } } | [current_tea
                     }),
             method: 'get',
         })
-    
+
     index.form = indexForm
 /**
 * @see \App\Http\Controllers\AI\AiConversationController::store
@@ -142,7 +142,7 @@ store.url = (args?: { current_team?: string | { slug: string } } | [current_team
             if (typeof args === 'object' && !Array.isArray(args) && 'slug' in args) {
             args = { current_team: args.slug }
         }
-    
+
     if (Array.isArray(args)) {
         args = {
                     current_team: args[0],
@@ -198,7 +198,7 @@ store.post = (args?: { current_team?: string | { slug: string } } | [current_tea
             action: store.url(args, options),
             method: 'post',
         })
-    
+
     store.form = storeForm
 /**
 * @see \App\Http\Controllers\AI\AiConversationController::show
@@ -308,7 +308,7 @@ show.head = (args: { current_team?: string | { slug: string }, conversation: str
                     }),
             method: 'get',
         })
-    
+
     show.form = showForm
 const AiConversationController = { index, store, show }
 
