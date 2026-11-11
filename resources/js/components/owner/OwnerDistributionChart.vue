@@ -18,6 +18,7 @@ const props = withDefaults(
         embedded?: boolean;
         compact?: boolean;
         showFooter?: boolean;
+        showLegend?: boolean;
     }>(),
     {
         title: 'Distribusi',
@@ -28,6 +29,7 @@ const props = withDefaults(
         embedded: false,
         compact: false,
         showFooter: true,
+        showLegend: true,
     },
 );
 const selectedId = defineModel<string | null>('selected', { default: null });
@@ -45,7 +47,12 @@ const colors = [
     'var(--chart-4)',
 ];
 const crops = computed(() =>
-    props.items.filter((crop) => Number.isFinite(crop.value) && crop.value > 0),
+    props.items
+        .map((crop, index) => ({
+            ...crop,
+            color: colors[index % colors.length],
+        }))
+        .filter((crop) => Number.isFinite(crop.value) && crop.value > 0),
 );
 const total = computed(() =>
     crops.value.reduce((sum, crop) => sum + crop.value, 0),
@@ -86,7 +93,7 @@ const slices = computed(() => {
             valueLabel: areaFormat.format(crop.value),
             percentage: percent(share),
             share,
-            color: colors[index % colors.length],
+            color: crop.color,
             path: sector(angle, end),
             label: point(106, midpoint),
             offset: `translate(${offset.x - 140} ${offset.y - 140})`,
@@ -120,7 +127,9 @@ const selectionAnnouncement = computed(() =>
 );
 
 watch(slices, (items) => {
-    if (!items.some((crop) => crop.id === selectedId.value))
+    // A shared legend can select a crop with zero value in one of its diagrams.
+    const selectable = props.showLegend ? items : props.items;
+    if (!selectable.some((crop) => crop.id === selectedId.value))
         selectedId.value = null;
     if (!items.some((crop) => crop.id === previewId.value))
         previewId.value = null;
@@ -149,6 +158,7 @@ function clearSelection(): void {
                 ? 'owner-distribution-embedded'
                 : 'h-full rounded-xl border border-border bg-card p-4 lg:p-5',
             compact ? 'owner-distribution-compact' : '',
+            !showLegend ? 'owner-distribution-plot-only' : '',
         ]"
         :aria-labelledby="headingId"
     >
@@ -274,7 +284,7 @@ function clearSelection(): void {
                                 activeSlice?.valueLabel ??
                                 areaFormat.format(total)
                             }}<span
-                                class="ml-1 text-sm font-medium tracking-normal text-muted-foreground"
+                                class="block text-xs leading-4 font-medium tracking-normal text-muted-foreground"
                                 >{{ unit }}</span
                             >
                         </p>
@@ -288,6 +298,7 @@ function clearSelection(): void {
                     </div>
                 </div>
                 <ul
+                    v-if="showLegend"
                     class="min-w-0 space-y-1.5"
                     :aria-label="`Pilih ${categoryLabel}`"
                 >
@@ -467,5 +478,12 @@ function clearSelection(): void {
         grid-template-columns: minmax(170px, 208px) minmax(0, 1fr);
         gap: 24px;
     }
+}
+.owner-distribution-plot-only .owner-commodity-body {
+    grid-template-columns: minmax(0, 1fr);
+}
+.owner-distribution-plot-only .owner-commodity-center > p:nth-child(2) {
+    font-size: 1.5rem;
+    line-height: 2rem;
 }
 </style>

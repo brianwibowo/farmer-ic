@@ -413,10 +413,17 @@ filters. This interaction must not change the page's global filters or KPIs.
 Use `OwnerDistributionChart` for every distribution donut, including the
 Beranda commodity chart. Preserve its center total, sector percentages,
 keyboard-accessible legend, selection, semantic colors, and empty state.
+Keep the center unit on its own line below the total so long values fit inside
+the donut without pushing the unit into its sectors.
 Executive panels use its compact embedded mode and contextual legend slots.
 Combine partner contribution with planted/unplanted area bars, and combine
-commodity composition with three concise commodity summaries; avoid adjacent
-tall chart/table panels and stretched blank surfaces.
+commodity composition with three concise commodity summaries. Show two separate
+cards side by side: planted hectares and actual harvest tonnes. Each card has
+its own donut and keyboard-accessible commodity summary showing only planted
+area, actual harvest, and projected harvest. Keep matching commodity colors,
+omit revenue from both cards, and do not use a measure dropdown. Stack the cards
+on smaller viewports.
+Avoid adjacent tall chart/table panels and stretched blank surfaces.
 
 Harvest charts remain visible while the farm table starts collapsed. Financial
 projections use per-commodity prices from the dataset, aggregate actual monetary

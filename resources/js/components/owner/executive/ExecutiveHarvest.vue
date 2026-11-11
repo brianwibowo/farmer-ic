@@ -43,7 +43,7 @@ const table = computed(() =>
 <template>
     <ExecutivePanel
         id="panen"
-        title="Panen aktual vs proyeksi"
+        title="Panen aktual vs proyeksi per kebun"
         :description="period"
     >
         <template #actions>
