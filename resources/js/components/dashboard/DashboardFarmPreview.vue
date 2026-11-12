@@ -1,24 +1,31 @@
 <script setup lang="ts">
-import { Link } from "@inertiajs/vue3";
-import { ArrowRight, LandPlot, MapPin, Sprout, UserRound, X } from "@lucide/vue";
-import { computed } from "vue";
-import DashboardFarmMap from "@/components/dashboard/DashboardFarmMap.vue";
-import { Button } from "@/components/ui/button";
+import { Link } from '@inertiajs/vue3';
+import {
+    ArrowRight,
+    LandPlot,
+    MapPin,
+    Sprout,
+    UserRound,
+    X,
+} from '@lucide/vue';
+import { computed } from 'vue';
+import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogClose,
     DialogContent,
     DialogDescription,
     DialogTitle,
-} from "@/components/ui/dialog";
-import type { DashboardMapFarmPreview } from "@/types/dashboard";
+} from '@/components/ui/dialog';
+import type { DashboardMapFarmPreview } from '@/types/dashboard';
 
 const props = defineProps<{
     farm: DashboardMapFarmPreview;
     detailUrl?: string;
     adminTheme?: boolean;
 }>();
-const open = defineModel<boolean>("open", { default: false });
+const open = defineModel<boolean>('open', { default: false });
 const emit = defineEmits<{ closed: [] }>();
 const mapFarms = computed(() => [props.farm]);
 const picInitials = computed(() =>
@@ -27,11 +34,13 @@ const picInitials = computed(() =>
         .split(/\s+/)
         .slice(0, 2)
         .map((part) => part[0])
-        .join("")
-        .toLocaleUpperCase("id-ID"),
+        .join('')
+        .toLocaleUpperCase('id-ID'),
 );
 const hasCoordinates = computed(
-    () => Number.isFinite(props.farm.latitude) && Number.isFinite(props.farm.longitude),
+    () =>
+        Number.isFinite(props.farm.latitude) &&
+        Number.isFinite(props.farm.longitude),
 );
 </script>
 
@@ -43,21 +52,30 @@ const hasCoordinates = computed(
             class="owner-farm-preview flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-xl border-border bg-card p-0 text-card-foreground sm:max-w-[560px]"
             @close-auto-focus="emit('closed')"
         >
-            <header class="flex shrink-0 items-start gap-3 px-4 pt-4 pb-4 sm:px-5 sm:pt-5">
+            <header
+                class="flex shrink-0 items-start gap-3 px-4 pt-4 pb-4 sm:px-5 sm:pt-5"
+            >
                 <span
                     class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-secondary dark:text-primary"
                 >
                     <LandPlot class="size-5" aria-hidden="true" />
                 </span>
                 <div class="min-w-0 flex-1">
-                    <DialogTitle class="text-xl leading-7 font-semibold [overflow-wrap:anywhere]">
+                    <DialogTitle
+                        class="text-xl leading-7 font-semibold [overflow-wrap:anywhere]"
+                    >
                         {{ farm.name }}
                     </DialogTitle>
                     <DialogDescription
                         class="mt-1 flex items-start gap-1.5 text-sm leading-5 text-muted-foreground"
                     >
-                        <MapPin class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                        <span class="min-w-0 [overflow-wrap:anywhere]">{{ farm.location }}</span>
+                        <MapPin
+                            class="mt-0.5 size-3.5 shrink-0"
+                            aria-hidden="true"
+                        />
+                        <span class="min-w-0 [overflow-wrap:anywhere]">{{
+                            farm.location
+                        }}</span>
                     </DialogDescription>
                 </div>
                 <Button
@@ -105,24 +123,32 @@ const hasCoordinates = computed(
                         />
                         Jenis tanaman
                     </h3>
-                    <ul v-if="farm.crops.length" class="mt-2 divide-y divide-border">
+                    <ul
+                        v-if="farm.crops.length"
+                        class="mt-2 divide-y divide-border"
+                    >
                         <li
                             v-for="crop in farm.crops"
                             :key="crop.id"
                             class="py-3 first:pt-1 last:pb-0"
                         >
-                            <p class="text-base leading-6 font-semibold [overflow-wrap:anywhere]">
+                            <p
+                                class="text-base leading-6 font-semibold [overflow-wrap:anywhere]"
+                            >
                                 {{ crop.name }}
                             </p>
                             <p
                                 v-if="crop.varieties.length"
-                                class="mt-1 text-sm leading-5 text-muted-foreground [overflow-wrap:anywhere]"
+                                class="mt-1 text-sm leading-5 [overflow-wrap:anywhere] text-muted-foreground"
                             >
-                                {{ crop.varieties.join(", ") }}
+                                {{ crop.varieties.join(', ') }}
                             </p>
                         </li>
                     </ul>
-                    <p v-else class="mt-2 text-sm leading-6 text-muted-foreground">
+                    <p
+                        v-else
+                        class="mt-2 text-sm leading-6 text-muted-foreground"
+                    >
                         Jenis tanaman belum tercatat.
                     </p>
                 </section>
@@ -136,7 +162,9 @@ const hasCoordinates = computed(
                             class="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-secondary dark:text-primary"
                             aria-hidden="true"
                         >
-                            <template v-if="farm.pic">{{ picInitials }}</template>
+                            <template v-if="farm.pic">{{
+                                picInitials
+                            }}</template>
                             <UserRound v-else class="size-5" />
                         </span>
                         <div class="min-w-0">
@@ -149,7 +177,10 @@ const hasCoordinates = computed(
                             >
                                 {{ farm.pic.name }}
                             </p>
-                            <p v-else class="mt-0.5 text-sm leading-6 text-muted-foreground">
+                            <p
+                                v-else
+                                class="mt-0.5 text-sm leading-6 text-muted-foreground"
+                            >
                                 Belum ada PIC ditugaskan.
                             </p>
                         </div>
@@ -157,7 +188,9 @@ const hasCoordinates = computed(
                 </slot>
             </div>
 
-            <footer class="shrink-0 border-0 bg-transparent p-4 shadow-none sm:px-5">
+            <footer
+                class="shrink-0 border-0 bg-transparent p-4 shadow-none sm:px-5"
+            >
                 <slot name="footer">
                     <Button
                         as-child
@@ -165,7 +198,10 @@ const hasCoordinates = computed(
                         size="lg"
                         class="min-h-12 w-full justify-between rounded-xl px-4 text-sm font-semibold"
                     >
-                        <Link :href="detailUrl ?? farm.detail_url" @click="open = false">
+                        <Link
+                            :href="detailUrl ?? farm.detail_url"
+                            @click="open = false"
+                        >
                             Detail kebun
                             <ArrowRight class="size-4" aria-hidden="true" />
                         </Link>

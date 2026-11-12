@@ -151,21 +151,26 @@ class PlantingTransactionTest extends TestCase
 
         $this->get('/admin/transaksi-penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('planting-transactions/Index')
-            ->where('summary.reports', 2)->where('summary.area_ha', '2.0000')
-            ->where('summary.seed_kg', '17.500')->has('summary', 3)
+            ->where('summary.subblocks', 2)->where('summary.reports', 2)
+            ->where('summary.area_ha', '2.0000')->where('summary.seed_kg', '17.500')
+            ->has('summary', 4)
             ->where('transactions.total', 2)->has('transactions.data', 2)
             ->where('transactions.data.0.farm.name', 'Kebun Penanaman B')
             ->where('transactions.data.0.block.code', 'B02')
             ->where('transactions.data.0.variety.name', 'Bisi 18')
             ->where('transactions.data.0.area_ha', '0.5000')
-            ->where('transactions.data.0.quantity_kg', '5.000')
-            ->has('transactions.data.0.photos', 1)
+            ->where('transactions.data.0.seed_kg', '5.000')
+            ->where('transactions.data.0.report_count', 1)
+            ->where('transactions.data.0.first_activity_date', '2026-11-05')
+            ->where('transactions.data.0.last_activity_date', '2026-11-05')
+            ->has('transactions.data.0.reports', 1)
+            ->has('transactions.data.0.reports.0.photos', 1)
             ->has('farms', 2)->has('blocks', 2)->has('varieties', 1)
             ->where('filters.per_page', 15));
 
         $this->get('/admin/transaksi-penanaman?farm_id='.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('summary.reports', 1)->where('summary.area_ha', '1.5000')
-            ->where('summary.seed_kg', '12.500')
+            ->where('summary.subblocks', 1)->where('summary.reports', 1)
+            ->where('summary.area_ha', '1.5000')->where('summary.seed_kg', '12.500')
             ->where('transactions.total', 1)
             ->where('transactions.data.0.farm.id', $this->farm->id));
 
@@ -176,7 +181,7 @@ class PlantingTransactionTest extends TestCase
             ->where('transactions.total', 2));
 
         $this->get('/admin/transaksi-penanaman?from_date=2026-11-05')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('transactions.total', 1)->where('transactions.data.0.activity_date', '2026-11-05'));
+            ->where('transactions.total', 1)->where('transactions.data.0.last_activity_date', '2026-11-05'));
 
         $this->get('/admin/transaksi-penanaman?search=Bisi')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('transactions.total', 2));
@@ -188,11 +193,36 @@ class PlantingTransactionTest extends TestCase
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
+    public function test_multiple_planting_reports_for_the_same_subblock_are_one_grouped_row(): void
+    {
+        $this->report($this->farm, $this->block, $this->cycle, $this->admin, '2026-11-04', '1.0000', '10.000', 2);
+        $this->report($this->farm, $this->block, $this->cycle, $this->admin, '2026-11-05', '0.5000', '5.000', 3);
+
+        $this->get('/admin/transaksi-penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('summary.subblocks', 1)
+            ->where('summary.reports', 2)
+            ->where('summary.area_ha', '1.5000')
+            ->where('summary.seed_kg', '15.000')
+            ->where('transactions.total', 1)
+            ->has('transactions.data', 1)
+            ->where('transactions.data.0.report_count', 2)
+            ->where('transactions.data.0.area_ha', '1.5000')
+            ->where('transactions.data.0.seed_kg', '15.000')
+            ->where('transactions.data.0.first_activity_date', '2026-11-04')
+            ->where('transactions.data.0.last_activity_date', '2026-11-05')
+            ->has('transactions.data.0.reports', 2)
+            ->where('transactions.data.0.reports.0.activity_date', '2026-11-04')
+            ->where('transactions.data.0.reports.0.area_ha', '1.0000')
+            ->where('transactions.data.0.reports.1.activity_date', '2026-11-05')
+            ->where('transactions.data.0.reports.1.area_ha', '0.5000'));
+    }
+
     public function test_empty_state_and_filter_validation(): void
     {
         $this->get('/admin/transaksi-penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('summary.reports', 0)->where('summary.area_ha', '0.0000')
-            ->where('summary.seed_kg', '0.000')->has('summary', 3)
+            ->where('summary.subblocks', 0)->where('summary.reports', 0)
+            ->where('summary.area_ha', '0.0000')->where('summary.seed_kg', '0.000')
+            ->has('summary', 4)
             ->where('transactions.total', 0)->has('transactions.data', 0));
 
         $this->get('/admin/transaksi-penanaman?from_date=2026-11-05&to_date=2026-11-04')
