@@ -20,7 +20,7 @@ final class DemoOwnerPortfolioData
     {
         return [
             [
-                'key' => 'sukamaju', 'name' => 'Kebun Cariu', 'commodity' => 'Rumput', 'variety' => 'Pakchong',
+                'key' => 'sukamaju', 'name' => 'Lahan Cariu', 'commodity' => 'Rumput', 'variety' => 'Pakchong',
                 'area_ha' => '50.0000', 'land_tenure' => 'owned', 'latitude' => '-6.5730000', 'longitude' => '106.8990000',
                 'address' => 'Cariu, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Cariu', 'province' => 'Jawa Barat', 'target_volume_ton' => '44.000', 'harvest_offset' => 107,
@@ -34,7 +34,7 @@ final class DemoOwnerPortfolioData
                 ],
             ],
             [
-                'key' => 'cibogo', 'name' => 'Kebun Jonggol', 'commodity' => 'Sorgum', 'variety' => 'Bioguma 1',
+                'key' => 'cibogo', 'name' => 'Lahan Jonggol', 'commodity' => 'Sorgum', 'variety' => 'Bioguma 1',
                 'area_ha' => '110.0000', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Kelompok Tani Jonggol Sejahtera', 'latitude' => '-6.6260000', 'longitude' => '106.9470000',
                 'address' => 'Jonggol, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Jonggol', 'province' => 'Jawa Barat', 'target_volume_ton' => '12.000', 'harvest_offset' => 80,
@@ -45,7 +45,7 @@ final class DemoOwnerPortfolioData
                 'batches' => [self::batch('active', 'B01', 'A', '3.0000', '2026-10-20', '2027-01-08', '6.000', 'maintenance')],
             ],
             [
-                'key' => 'mekarsari', 'name' => 'Kebun Pamijahan', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
+                'key' => 'mekarsari', 'name' => 'Lahan Pamijahan', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
                 'area_ha' => '25.0000', 'land_tenure' => 'rented', 'land_tenure_party' => 'Koperasi Tani Pamijahan', 'latitude' => '-6.5280000', 'longitude' => '106.9940000',
                 'address' => 'Pamijahan, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Pamijahan', 'province' => 'Jawa Barat', 'target_volume_ton' => '28.000', 'harvest_offset' => 90,
@@ -56,7 +56,7 @@ final class DemoOwnerPortfolioData
                 'batches' => [self::batch('active', 'B01', 'A', '1.5000', '2026-09-01', '2026-11-30', '10.500', 'maintenance')],
             ],
             [
-                'key' => 'cikeas', 'name' => 'Kebun Sirnasari', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
+                'key' => 'cikeas', 'name' => 'Lahan Sirnasari', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
                 'area_ha' => '187.0000', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Kelompok Tani Sirnasari Makmur', 'latitude' => '-6.4920000', 'longitude' => '106.9380000',
                 'address' => 'Sirnasari, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Sirnasari', 'province' => 'Jawa Barat', 'target_volume_ton' => '64.000', 'harvest_offset' => 110,
@@ -70,7 +70,7 @@ final class DemoOwnerPortfolioData
                 ],
             ],
             [
-                'key' => 'cisarua', 'name' => 'Kebun Megamendung', 'commodity' => 'Rumput', 'variety' => 'Pakchong',
+                'key' => 'cisarua', 'name' => 'Lahan Megamendung', 'commodity' => 'Rumput', 'variety' => 'Pakchong',
                 'area_ha' => '25.0000', 'land_tenure' => 'owned', 'latitude' => '-6.6800000', 'longitude' => '106.9510000',
                 'address' => 'Megamendung, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Megamendung', 'province' => 'Jawa Barat', 'target_volume_ton' => '70.000', 'harvest_offset' => 107,
@@ -85,7 +85,7 @@ final class DemoOwnerPortfolioData
                 ],
             ],
             [
-                'key' => 'cipaneng', 'name' => 'Kebun Cipanengah', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
+                'key' => 'cipaneng', 'name' => 'Lahan Cipanengah', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
                 'area_ha' => '100.0000', 'land_tenure' => 'owned', 'latitude' => null, 'longitude' => null,
                 'address' => 'Cipanengah, Kabupaten Sukabumi, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Sukabumi',
                 'district' => 'Cipanengah', 'province' => 'Jawa Barat', 'target_volume_ton' => '28.000', 'harvest_offset' => 90,

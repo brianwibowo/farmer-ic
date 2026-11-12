@@ -29,7 +29,7 @@ index.url = (args?: { current_team?: string | { slug: string } } | [current_team
             if (typeof args === 'object' && !Array.isArray(args) && 'slug' in args) {
             args = { current_team: args.slug }
         }
-    
+
     if (Array.isArray(args)) {
         args = {
                     current_team: args[0],
@@ -110,7 +110,7 @@ index.head = (args?: { current_team?: string | { slug: string } } | [current_tea
                     }),
             method: 'get',
         })
-    
+
     index.form = indexForm
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::store
@@ -142,7 +142,7 @@ store.url = (args?: { current_team?: string | { slug: string } } | [current_team
             if (typeof args === 'object' && !Array.isArray(args) && 'slug' in args) {
             args = { current_team: args.slug }
         }
-    
+
     if (Array.isArray(args)) {
         args = {
                     current_team: args[0],
@@ -198,7 +198,7 @@ store.post = (args?: { current_team?: string | { slug: string } } | [current_tea
             action: store.url(args, options),
             method: 'post',
         })
-    
+
     store.form = storeForm
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::update
@@ -293,7 +293,7 @@ update.patch = (args: { current_team?: string | { slug: string }, document: stri
                     }),
             method: 'post',
         })
-    
+
     update.form = updateForm
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::destroy
@@ -388,7 +388,7 @@ destroy.delete = (args: { current_team?: string | { slug: string }, document: st
                     }),
             method: 'post',
         })
-    
+
     destroy.form = destroyForm
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::publish
@@ -473,7 +473,7 @@ publish.post = (args: { current_team?: string | { slug: string }, document: stri
             action: publish.url(args, options),
             method: 'post',
         })
-    
+
     publish.form = publishForm
 /**
 * @see \App\Http\Controllers\AI\AiKnowledgeDocumentController::archive
@@ -558,7 +558,7 @@ archive.post = (args: { current_team?: string | { slug: string }, document: stri
             action: archive.url(args, options),
             method: 'post',
         })
-    
+
     archive.form = archiveForm
 const AiKnowledgeDocumentController = { index, store, update, destroy, publish, archive }
 

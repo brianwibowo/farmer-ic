@@ -18,11 +18,11 @@ class ProfileAndForbiddenTest extends TestCase
     {
         $owner = User::factory()->create(['role' => 'owner']);
         $this->actingAs($owner)->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/Farms')
+            ->component('farms/Index')
             ->where('auth.user.id', $owner->id)
             ->where('account', ['name' => $owner->name, 'email' => $owner->email])
             ->where('currentTeam.id', $owner->current_team_id)
-            ->where('navigation.admin', false)->where('navigation.farms', false));
+            ->where('navigation.admin', false)->where('navigation.owner', true)->where('navigation.farms', true));
     }
 
     public function test_logout_ends_the_real_owner_session_and_clears_profile_identity(): void

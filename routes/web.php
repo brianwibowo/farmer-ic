@@ -50,7 +50,8 @@ require __DIR__.'/reference.php';
 Route::get('/', HomeController::class)->middleware(['auth', 'verified'])->name('home');
 
 Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): void {
-    Route::get('kebun', [OwnerController::class, 'farms'])->name('kebun');
+    Route::get('ringkasan-eksekutif', [OwnerController::class, 'executiveSummary'])->name('owner.executive-summary');
+    Route::get('kebun', [FarmManagementController::class, 'index'])->name('kebun');
     Route::get('kebun/detail', function (Request $request) {
         $id = (string) $request->query('id', '');
 
@@ -58,7 +59,7 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
     })->name('kebun.detail');
     Route::get('kebun/aktivitas', fn (Request $request) => to_route('aktivitas',
         Str::isUuid((string) $request->query('id', '')) ? ['farm_id' => $request->query('id')] : []))->name('kebun.aktivitas');
-    Route::get('kebun/{farm}', [OwnerController::class, 'farm'])->whereUuid('farm')->name('owner.farms.show');
+    Route::get('kebun/{farm}', [FarmManagementController::class, 'show'])->whereUuid('farm')->name('owner.farms.show');
     Route::get('kebun/{farm}/legalitas', [OwnerController::class, 'legality'])->whereUuid('farm')->name('owner.farms.legality');
     Route::get('kebun/{farm}/blok/{block}', [OwnerController::class, 'block'])
         ->whereUuid(['farm', 'block'])->name('owner.blocks.show');

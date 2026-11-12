@@ -108,6 +108,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $version = $template->versions()->where('status', 'published')->firstOrFail();
         $this->useDefaultSop($template);
         $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-05'])->save();
 
         $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
 
@@ -162,6 +163,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $template = $this->publishedSop();
         $this->useDefaultSop($template);
         $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-05'])->save();
         $service = app(PlantingCycleTaskService::class);
         $service->generateForSubblok($subblok, $this->admin);
 
@@ -193,11 +195,11 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertSame('2027-02-06', $harvest->scheduled_date->toDateString());
     }
 
-    public function test_defers_generation_when_the_subblok_has_no_anchor(): void
+    public function test_defers_generation_until_actual_planting_even_with_a_planned_date(): void
     {
         $template = $this->publishedSop();
         $this->useDefaultSop($template);
-        $subblok = $this->subblok(null);
+        $subblok = $this->subblok();
 
         $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
 
@@ -206,11 +208,16 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertSame(0, PlantingCycleTask::query()
             ->where('planting_cycle_id', $subblok->id)
             ->count());
+        $this->assertNull($subblok->fresh()->sop_template_version_id);
+        $subblok->forceFill(['planted_at' => '2026-11-08'])->save();
+        $this->assertSame('generated', app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin)['status']);
+        $this->assertSame('2026-11-15', $subblok->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail()->scheduled_date->toDateString());
     }
 
     public function test_reports_missing_or_unpublished_default_sop(): void
     {
         $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-05'])->save();
         $service = app(PlantingCycleTaskService::class);
 
         $this->assertSame('missing_sop', $service->generateForSubblok($subblok, $this->admin)['status']);
@@ -234,6 +241,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $foreign = $this->publishedSop($otherTeam);
         $this->farm->forceFill(['default_sop_template_id' => $foreign->id])->save();
         $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-05'])->save();
 
         $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
 
@@ -246,6 +254,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $first = $this->publishedSop();
         $this->useDefaultSop($first);
         $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-05'])->save();
         $service = app(PlantingCycleTaskService::class);
         $service->generateForSubblok($subblok, $this->admin);
 

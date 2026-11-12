@@ -22,7 +22,7 @@ class ProfileUpdateTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_owner_and_petugas_receive_the_mobile_profile_presentation(): void
+    public function test_owner_receives_sidebar_profile_and_petugas_keeps_mobile_profile(): void
     {
         foreach (['owner' => '/', 'petugas' => '/petugas'] as $role => $returnUrl) {
             $user = User::factory()->create(['role' => $role]);
@@ -33,7 +33,7 @@ class ProfileUpdateTest extends TestCase
                 ->assertInertia(fn (Assert $page) => $page
                     ->component('settings/Profile')
                     ->where('profilePresentation', [
-                        'surface' => 'mobile',
+                        'surface' => $role === 'owner' ? 'desktop' : 'mobile',
                         'returnUrl' => $returnUrl,
                     ]));
         }

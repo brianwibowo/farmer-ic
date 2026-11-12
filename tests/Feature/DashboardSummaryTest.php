@@ -16,6 +16,7 @@ use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
+use App\Support\RolePermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -80,12 +81,16 @@ class DashboardSummaryTest extends TestCase
             ->has('dashboard.farmOptions', 2)->where('dashboard.metrics.0.value', 2)
             ->where('dashboard.metrics.3.value', 2)->where('dashboard.trend.total', 2)
             ->has('dashboard.activities', 2)->has('dashboard.landMap.farms', 2)
+            ->where('dashboard.risks.total', 2)->has('dashboard.risks.items', 2)
+            ->where('dashboard.risks.items.0.title', 'Drainase perlu diperiksa')
+            ->has('dashboard.risks.items.0.detectedAt')
             ->where('dashboard.cycles.withoutTimeline', 2)->where('dashboard.financial.projectedIncome', 'Rp300'));
         $this->get('/admin/dashboard?farm_id='.$first->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('dashboard.farmOptions', 2)->where('dashboard.filters.farm_id', $first->id)
             ->where('dashboard.metrics.0.value', 1)->where('dashboard.metrics.3.value', 1)
             ->where('dashboard.trend.total', 1)->has('dashboard.activities', 1)
             ->has('dashboard.landMap.farms', 1)->where('dashboard.landMap.farms.0.id', $first->id)
+            ->where('dashboard.risks.total', 1)->has('dashboard.risks.items', 1)
             ->where('dashboard.cycles.running', 1)->where('dashboard.commodities.0.cycleCount', 1)
             ->where('dashboard.financial.projectedIncome', 'Rp100'));
         $this->get('/admin/dashboard?farm_id='.$hidden->id)->assertForbidden();
@@ -106,24 +111,18 @@ class DashboardSummaryTest extends TestCase
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
-    public function test_preparation_batch_uses_persisted_stage_and_land_clearing_requires_report(): void
+    public function test_preparation_batch_uses_persisted_stage_summary(): void
     {
         $farm = $this->farm('Kebun Timeline');
         Gate::forUser($this->admin)->authorize('create', [FarmBlock::class, $farm]);
         $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => 5]);
-        $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.attention.2.count', 1));
+        $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.cycles.running', 0));
         Gate::forUser($this->admin)->authorize('create', [PlantingCycle::class, $block]);
         app(FarmBlockService::class)->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => 1]);
         $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.cycles.running', 1)->where('dashboard.cycles.planned', 1)
             ->where('dashboard.cycles.stages.0.count', 1)->where('dashboard.cycles.withoutTimeline', 0)
-            ->where('dashboard.attention.2.count', 1)->where('dashboard.metrics.1.breakdown.blocks', 1));
-        $type = ActivityType::firstOrCreate(['code' => 'land_cleaning'], ['name' => 'Pembersihan lahan']);
-        $activity = FarmActivity::create(['farm_id' => $farm->id, 'activity_type_id' => $type->id,
-            'performed_by' => $this->admin->id, 'activity_date' => now(), 'description' => 'Pembersihan blok', 'status' => 'completed']);
-        $activity->forceFill(['block_id' => $block->id])->save();
-        $activity->landCleaningDetail()->create(['area_ha' => 1, 'method' => 'Manual']);
-        $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.attention.2.count', 0));
+            ->where('dashboard.metrics.1.breakdown.blocks', 1));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
@@ -132,6 +131,49 @@ class DashboardSummaryTest extends TestCase
         $this->get('/admin/dashboard?farm_id=invalid&period=99')->assertSessionHasErrors(['farm_id', 'period']);
         $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.cycles.running', 0)->where('dashboard.trend.total', 0)
+            ->where('dashboard.risks.total', 0)->has('dashboard.risks.items', 0)
             ->has('dashboard.landMap.farms', 0)->has('dashboard.activities', 0));
+    }
+
+    public function test_admin_map_preview_contains_scoped_crops_pic_and_admin_detail_link(): void
+    {
+        $farm = $this->farm('Kebun Peta');
+        $this->cycle($farm);
+        $pic = User::factory()->create(['role' => 'petugas', 'assigned_farm_id' => $farm->id, 'is_active' => true]);
+        $this->team->members()->attach($pic, ['role' => TeamRole::Member->value]);
+        $farm->forceFill(['pic_user_id' => $pic->id])->save();
+        $foreign = $this->farm('Kebun Rahasia', Team::factory()->create(['is_personal' => false]));
+        $this->cycle($foreign);
+
+        $this->get('/admin/dashboard?team_id='.$foreign->team_id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('dashboard.landMap.farms', 1)
+            ->where('dashboard.landMap.farms.0.id', $farm->id)
+            ->where('dashboard.landMap.farms.0.detail_url', '/admin/farm-management/'.$farm->id)
+            ->where('dashboard.landMap.farms.0.crops.0.name', 'Jagung')
+            ->where('dashboard.landMap.farms.0.crops.0.varieties', ['Bisi 18'])
+            ->where('dashboard.landMap.farms.0.pic', ['id' => $pic->id, 'name' => $pic->name])
+            ->missing('dashboard.landMap.farms.0.pic.email'));
+
+        $other = $this->farm('Kebun Lain');
+        $pic->forceFill(['assigned_farm_id' => $other->id])->save();
+        $this->get('/admin/dashboard?farm_id='.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('dashboard.landMap.farms.0.pic', null));
+        $this->get('/admin/dashboard?farm_id='.$foreign->id)->assertForbidden();
+    }
+
+    public function test_admin_map_preview_respects_related_resource_grants(): void
+    {
+        $farm = $this->farm('Kebun Peta');
+        $this->cycle($farm);
+        $pic = User::factory()->create(['role' => 'petugas', 'assigned_farm_id' => $farm->id, 'is_active' => true]);
+        $this->team->members()->attach($pic, ['role' => TeamRole::Member->value]);
+        $farm->forceFill(['pic_user_id' => $pic->id])->save();
+        $roles = app(RolePermissions::class)->roles();
+        unset($roles['admin']['users.view'], $roles['admin']['crop_varieties.view']);
+        config(['access.roles' => $roles]);
+
+        $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('dashboard.landMap.farms.0.pic', null)
+            ->has('dashboard.landMap.farms.0.crops', 0));
     }
 }

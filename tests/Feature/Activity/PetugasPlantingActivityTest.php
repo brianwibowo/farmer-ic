@@ -228,6 +228,7 @@ class PetugasPlantingActivityTest extends TestCase
     public function test_actual_date_reschedules_only_pending_tasks_without_changing_the_snapshot(): void
     {
         $this->sop();
+        $this->cycle->forceFill(['planted_at' => now('Asia/Jakarta')->subDays(3)->toDateString(), 'variety_id' => $this->variety->id])->save();
         $this->actingAs($this->actor)->post('/petugas/subbloks/'.$this->cycle->id.'/tasks/sync')->assertRedirect();
         $versionId = $this->cycle->refresh()->sop_template_version_id;
         $completed = $this->cycle->tasks()->where('activity_category', 'harvest')->firstOrFail();
@@ -259,6 +260,7 @@ class PetugasPlantingActivityTest extends TestCase
     public function test_actual_planting_keeps_an_admin_schedule_override_and_its_due_date(): void
     {
         $this->sop();
+        $this->cycle->forceFill(['planted_at' => now('Asia/Jakarta')->subDays(3)->toDateString(), 'variety_id' => $this->variety->id])->save();
         $this->actingAs($this->actor)->post('/petugas/subbloks/'.$this->cycle->id.'/tasks/sync')->assertRedirect();
         $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
         $override = now('Asia/Jakarta')->addDays(10)->toDateString();
@@ -337,12 +339,12 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertDatabaseCount('farm_activities', 0);
     }
 
-    public function test_creating_a_subblok_through_the_application_triggers_generation_if_ready(): void
+    public function test_creating_a_subblok_does_not_generate_tasks_before_actual_planting(): void
     {
         $this->sop();
         $this->actingAs($this->actor)->post('/kebun/'.$this->farm->id.'/blocks/'.$this->block->id.'/batches', ['subblock_label' => 'B', 'reserved_area_ha' => '1', 'planned_planting_at' => today()->toDateString()])->assertSessionHasNoErrors()->assertRedirect();
         $cycle = PlantingCycle::where('subblock_label', 'B')->firstOrFail();
-        $this->assertSame(2, $cycle->tasks()->count());
+        $this->assertSame(0, $cycle->tasks()->count());
         $this->assertNull($cycle->planted_at);
     }
 

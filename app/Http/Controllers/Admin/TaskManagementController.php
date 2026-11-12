@@ -34,11 +34,12 @@ class TaskManagementController extends Controller
         Gate::authorize('viewAny', [PlantingCycleTask::class, $team]);
 
         $filters = array_replace([
-            'search' => '', 'block_id' => '', 'subblok_id' => '', 'status' => '', 'category' => '', 'per_page' => 15,
+            'search' => '', 'block_id' => '', 'subblok_id' => '', 'status' => '', 'category' => '', 'view' => 'actionable', 'per_page' => 15,
         ], $request->validated());
 
-        $query = $this->query($user, $team, $filters);
-        $summary = $this->summary($query);
+        $base = $this->baseQuery($user, $team, $filters);
+        $summary = $this->summary($base);
+        $query = $this->filteredQuery(clone $base, $filters);
 
         return Inertia::render('tasks/Index', [
             'tasks' => $query->paginate((int) $filters['per_page'])->withQueryString()
@@ -107,13 +108,34 @@ class TaskManagementController extends Controller
      * @param  array<string, mixed>  $filters
      * @return Builder<PlantingCycleTask>
      */
-    private function query(User $user, Team $team, array $filters): Builder
+    private function baseQuery(User $user, Team $team, array $filters): Builder
     {
         $query = PlantingCycleTask::query()
             ->visibleTo($user, $team)
             ->whereIn('activity_category', PlantingCycleTask::CATEGORIES)
             ->with($this->relations());
 
+        if (($filters['block_id'] ?? '') !== '') {
+            $query->whereHas('plantingCycle.block', fn (Builder $block) => $block
+                ->whereKey($filters['block_id']));
+        }
+        if (($filters['subblok_id'] ?? '') !== '') {
+            $query->where('planting_cycle_id', $filters['subblok_id']);
+        }
+        if (($filters['category'] ?? '') !== '') {
+            $query->where('activity_category', $filters['category']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  Builder<PlantingCycleTask>  $query
+     * @param  array<string, mixed>  $filters
+     * @return Builder<PlantingCycleTask>
+     */
+    private function filteredQuery(Builder $query, array $filters): Builder
+    {
         if (($filters['search'] ?? '') !== '') {
             $search = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $filters['search']).'%';
             $query->where(function (Builder $query) use ($search): void {
@@ -127,21 +149,86 @@ class TaskManagementController extends Controller
             });
         }
 
-        if (($filters['block_id'] ?? '') !== '') {
-            $query->whereHas('plantingCycle.block', fn (Builder $block) => $block
-                ->whereKey($filters['block_id']));
-        }
-        if (($filters['subblok_id'] ?? '') !== '') {
-            $query->where('planting_cycle_id', $filters['subblok_id']);
-        }
+        // A specific status is a deliberate drill-down; otherwise the selected
+        // tab controls the default actionable/completed/history view.
         if (($filters['status'] ?? '') !== '') {
             $query->where('status', $filters['status']);
-        }
-        if (($filters['category'] ?? '') !== '') {
-            $query->where('activity_category', $filters['category']);
+            $view = 'all';
+        } else {
+            $view = (string) ($filters['view'] ?? 'actionable');
+            $this->applyView($query, $view);
         }
 
+        return $this->order($query, $view);
+    }
+
+    /** @param Builder<PlantingCycleTask> $query */
+    private function applyView(Builder $query, string $view): void
+    {
+        $today = CarbonImmutable::today()->toDateString();
+
+        switch ($view) {
+            case 'completed':
+                $query->whereIn('status', self::TERMINAL_STATUSES);
+                break;
+            case 'overdue':
+                $query->whereIn('status', ['pending', 'in_progress'])
+                    ->whereNotNull('due_date')
+                    ->whereRaw('COALESCE(rescheduled_date, scheduled_date) IS NOT NULL')
+                    ->where('due_date', '<', $today);
+                break;
+            case 'today':
+                $query->whereIn('status', ['pending', 'in_progress'])
+                    ->whereNotNull('due_date')
+                    ->whereRaw('COALESCE(rescheduled_date, scheduled_date) IS NOT NULL')
+                    ->whereRaw('COALESCE(rescheduled_date, scheduled_date) <= ?', [$today])
+                    ->where('due_date', '>=', $today);
+                break;
+            case 'upcoming':
+                $query->whereIn('status', ['pending', 'in_progress'])
+                    ->where(function (Builder $query) use ($today): void {
+                        $query->whereRaw('COALESCE(rescheduled_date, scheduled_date) IS NULL')
+                            ->orWhereNull('due_date')
+                            ->orWhereRaw('COALESCE(rescheduled_date, scheduled_date) > ?', [$today]);
+                    });
+                break;
+            case 'all':
+                break;
+            case 'actionable':
+            default:
+                $query->whereIn('status', ['pending', 'in_progress']);
+        }
+    }
+
+    /**
+     * @param  Builder<PlantingCycleTask>  $query
+     * @return Builder<PlantingCycleTask>
+     */
+    private function order(Builder $query, string $view): Builder
+    {
+        if ($view === 'completed') {
+            return $query->orderByDesc('completed_at')
+                ->orderByDesc('updated_at')
+                ->orderBy('id');
+        }
+
+        $today = CarbonImmutable::today()->toDateString();
+
         return $query
+            ->orderByRaw(
+                "CASE
+                    WHEN status IN ('completed', 'skipped') THEN 3
+                    WHEN due_date IS NOT NULL
+                        AND COALESCE(rescheduled_date, scheduled_date) IS NOT NULL
+                        AND due_date < ? THEN 0
+                    WHEN due_date IS NOT NULL
+                        AND COALESCE(rescheduled_date, scheduled_date) IS NOT NULL
+                        AND COALESCE(rescheduled_date, scheduled_date) <= ?
+                        AND due_date >= ? THEN 1
+                    ELSE 2
+                END",
+                [$today, $today, $today],
+            )
             ->orderByRaw('COALESCE(rescheduled_date, scheduled_date) ASC NULLS LAST')
             ->orderBy('offset_days')
             ->orderByRaw("CASE activity_category WHEN 'planting' THEN 1 WHEN 'maintenance' THEN 2 WHEN 'harvest' THEN 3 ELSE 4 END")
@@ -161,9 +248,12 @@ class TaskManagementController extends Controller
             'total' => (clone $query)->count(),
             'open' => (clone $query)->whereIn('status', ['pending', 'in_progress'])->count(),
             'overdue' => (clone $query)->whereNotIn('status', self::TERMINAL_STATUSES)
-                ->whereNotNull('due_date')->where('due_date', '<', $today)->count(),
+                ->whereNotNull('due_date')
+                ->whereRaw('COALESCE(rescheduled_date, scheduled_date) IS NOT NULL')
+                ->where('due_date', '<', $today)->count(),
             'today' => (clone $query)->whereNotIn('status', self::TERMINAL_STATUSES)
-                ->whereNotNull('due_date')->whereNotNull('scheduled_date')
+                ->whereNotNull('due_date')
+                ->whereRaw('COALESCE(rescheduled_date, scheduled_date) IS NOT NULL')
                 ->whereRaw('COALESCE(rescheduled_date, scheduled_date) <= ?', [$today])
                 ->where('due_date', '>=', $today)->count(),
             'completed' => (clone $query)->whereIn('status', self::TERMINAL_STATUSES)->count(),
@@ -176,6 +266,11 @@ class TaskManagementController extends Controller
         $cycle = $task->plantingCycle;
         $block = $cycle?->block;
         $effective = $task->effectiveScheduledDate();
+        $overdueDays = null;
+        if ($task->due_date !== null && $this->urgency($task) === 'overdue') {
+            $overdueDays = max(0, (int) $task->due_date->startOfDay()
+                ->diffInDays(CarbonImmutable::today()->startOfDay()));
+        }
 
         return [
             'id' => $task->id,
@@ -183,6 +278,7 @@ class TaskManagementController extends Controller
             'instructions' => $task->instructions,
             'status' => $task->status,
             'urgency' => $this->urgency($task),
+            'overdue_days' => $overdueDays,
             'activity_category' => $task->activity_category,
             'activity_subcategory' => $task->activity_subcategory,
             'offset_days' => $task->offset_days,

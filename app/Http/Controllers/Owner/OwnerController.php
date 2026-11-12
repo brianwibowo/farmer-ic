@@ -112,6 +112,13 @@ class OwnerController extends Controller
         return Inertia::render('owner/User', ['managedUser' => $this->reads->user($request->user(), $this->team($request), $managedUser)]);
     }
 
+    public function executiveSummary(): Response
+    {
+        // This explicitly labelled JSON demo does not read operational/tenant records.
+        // Admission is enforced by the owner.access route middleware.
+        return Inertia::render('owner/ExecutiveSummary');
+    }
+
     public function more(): Response
     {
         return Inertia::render('owner/More');

@@ -4,7 +4,6 @@ namespace Tests\Feature\Reference;
 
 use App\Enums\TeamRole;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\Owner\OwnerController;
 use App\Models\AiConversation;
 use App\Models\Farm;
 use App\Models\FinancialTransaction;
@@ -97,7 +96,7 @@ class LegacyMobileReferenceTest extends TestCase
         $this->assertSame('/finance', route('finance', absolute: false));
         $this->assertSame('/aktivitas', route('aktivitas', absolute: false));
         $this->assertSame(HomeController::class, Route::getRoutes()->getByName('home')->getActionName());
-        $this->assertSame(OwnerController::class.'@farms', Route::getRoutes()->getByName('kebun')->getActionName());
+        $this->assertSame(\App\Http\Controllers\FarmManagementController::class.'@index', Route::getRoutes()->getByName('kebun')->getActionName());
         $this->assertContains('can:owner.access', Route::getRoutes()->getByName('kebun')->gatherMiddleware());
         $this->actingAs(User::factory()->create(['role' => 'petugas']))->get('/kebun')->assertForbidden();
     }

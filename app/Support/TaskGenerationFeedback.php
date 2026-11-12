@@ -10,7 +10,7 @@ class TaskGenerationFeedback
         return match ($result['status']) {
             'generated' => $result['created'].' tugas SOP berhasil dibuat.',
             'already_generated' => $result['rescheduled'].' tugas pending dijadwalkan ulang; tugas tidak digandakan.',
-            'missing_anchor' => 'Tugas belum dibuat: tanggal rencana maupun aktual tanam belum diisi.',
+            'missing_anchor' => 'Tugas belum dibuat: tanggal tanam aktual belum dicatat.',
             'missing_sop' => 'Tugas belum dibuat: SOP default kebun belum diatur.',
             'inactive_sop' => 'Tugas belum dibuat: SOP default tidak aktif atau tidak dapat diakses.',
             'missing_published_version' => 'Tugas belum dibuat: versi SOP published belum tersedia atau versi tersimpan tidak valid.',

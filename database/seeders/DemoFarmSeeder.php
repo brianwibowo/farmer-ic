@@ -12,10 +12,10 @@ use Illuminate\Support\Facades\Gate;
 
 class DemoFarmSeeder extends Seeder
 {
-    public const FARM_NAME = 'Kebun Cileuksa';
+    public const FARM_NAME = 'Lahan Cileuksa';
 
     /** Legacy name is only a lookup alias, never a new display value. */
-    public const FARM_NAMES = [self::FARM_NAME, 'Kebun Cileuksa Demo'];
+    public const FARM_NAMES = [self::FARM_NAME, 'Kebun Cileuksa', 'Kebun Cileuksa Demo'];
 
     public function run(): void
     {

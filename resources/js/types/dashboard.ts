@@ -34,7 +34,7 @@ export type DashboardData = {
     filters: { farm_id: string | null; period: string };
     farmOptions: Array<{ id: string; name: string }>;
     metrics: Array<{
-        key: 'farms' | 'area' | 'cycles' | 'risks';
+        key: "farms" | "area" | "cycles" | "risks";
         label: string;
         value: number | string;
         unit: string;
@@ -50,12 +50,14 @@ export type DashboardData = {
         stages: Array<{ code: string; label: string; count: number }>;
         withoutTimeline: number;
     };
-    attention: Array<{
-        key: string;
-        label: string;
-        count: number;
-        description: string;
-    }>;
+    risks: {
+        total: number;
+        items: Array<{
+            id: string;
+            title: string;
+            detectedAt: string;
+        }>;
+    };
     commodities: Array<{
         id: string;
         name: string;
@@ -84,4 +86,16 @@ export type DashboardData = {
     };
     activities: DashboardActivity[];
     officers: DashboardOfficer[];
+};
+
+export type DashboardMapFarmPreview = DashboardData["landMap"]["farms"][number] & {
+    crops: Array<{ id: string; name: string; varieties: string[] }>;
+    pic: { id: string; name: string } | null;
+    detail_url: string;
+};
+
+export type AdminDashboardData = Omit<DashboardData, "landMap"> & {
+    landMap: Omit<DashboardData["landMap"], "farms"> & {
+        farms: DashboardMapFarmPreview[];
+    };
 };

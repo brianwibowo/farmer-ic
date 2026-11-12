@@ -8,6 +8,7 @@ use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoFarmSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -27,7 +28,7 @@ class ForceDeleteFarmTest extends TestCase
     {
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
-        $this->farm = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
+        $this->farm = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $this->developer = User::query()->where('email', 'superadmin@farmer-ic.test')->firstOrFail();
         $this->actingAs($this->developer);
     }

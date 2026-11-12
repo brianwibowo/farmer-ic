@@ -87,7 +87,9 @@ class PresentationNamesSeederTest extends TestCase
         FertilizationDetail::query()->where('activity_id', $fertilization->id)->update(['brand_name' => 'NPK Demo']);
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $farmId = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
-            Farm::query()->whereKey($farmId)->update(['name' => $site['name'].' Demo']);
+            Farm::query()->whereKey($farmId)->update([
+                'name' => str_replace('Lahan ', 'Kebun ', $site['name']).' Demo',
+            ]);
             FarmBlock::query()->where('farm_id', $farmId)->update([
                 'description' => 'Blok fisik pada skenario portofolio '.$site['name'].' Demo, snapshot 5 November 2026.',
             ]);

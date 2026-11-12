@@ -55,7 +55,10 @@ class PresentationNamesSeeder extends Seeder
             $base = $this->query(Farm::class)->where('team_id', $this->team->id)
                 ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->lockForUpdate()->first();
             if ($base instanceof Farm) {
-                $this->replace($base, ['name' => ['Kebun Cileuksa Demo' => DemoFarmSeeder::FARM_NAME]]);
+                $this->replace($base, ['name' => [
+                    'Kebun Cileuksa' => DemoFarmSeeder::FARM_NAME,
+                    'Kebun Cileuksa Demo' => DemoFarmSeeder::FARM_NAME,
+                ]]);
                 $this->baseDetails($base);
             }
             foreach (DemoOwnerPortfolioData::sites() as $site) {
@@ -114,7 +117,7 @@ class PresentationNamesSeeder extends Seeder
         }
         foreach ($this->query(AuditLog::class)->where('action', 'demo_seeded')->where('record_id', $farm->id)->get() as $audit) {
             $values = $audit->new_values;
-            if (is_array($values) && ($values['farm'] ?? null) === 'Kebun Cileuksa Demo') {
+            if (is_array($values) && in_array(($values['farm'] ?? null), ['Kebun Cileuksa', 'Kebun Cileuksa Demo'], true)) {
                 $values['farm'] = DemoFarmSeeder::FARM_NAME;
                 $this->write($audit, ['new_values' => $values]);
             }
@@ -129,7 +132,12 @@ class PresentationNamesSeeder extends Seeder
         if (! $farm instanceof Farm) {
             return;
         }
-        $this->replace($farm, ['name' => [$site['name'].' Demo' => $site['name']]]);
+        $legacyName = str_replace('Lahan ', 'Kebun ', $site['name']);
+        $this->replace($farm, ['name' => [
+            $legacyName => $site['name'],
+            $legacyName.' Demo' => $site['name'],
+            $site['name'].' Demo' => $site['name'],
+        ]]);
         foreach ($this->query(FarmBlock::class)->where('farm_id', $farm->id)->get() as $block) {
             $this->replace($block, ['description' => [
                 'Blok fisik pada skenario portofolio '.$site['name'].' Demo, snapshot 5 November 2026.' => 'Blok fisik pada skenario portofolio '.$site['name'].', snapshot 5 November 2026.',

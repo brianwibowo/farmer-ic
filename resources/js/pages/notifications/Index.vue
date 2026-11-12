@@ -6,7 +6,6 @@ import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, router, usePage, Link } from '@inertiajs/vue3';
 import { Bell, RotateCcw, SlidersHorizontal, X } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import PetugasLayout from '@/layouts/PetugasLayout.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -36,13 +35,10 @@ const props = defineProps<{
     canFilterTenant: boolean;
 }>();
 const page = usePage();
-const layout = computed(() =>
-    page.props.navigation?.admin
-        ? AppLayout
-        : props.canFilterTenant
-          ? OwnerLayout
-          : PetugasLayout,
+const usesAdminShell = computed(
+    () => page.props.navigation?.admin || page.props.navigation?.owner,
 );
+const layout = computed(() => usesAdminShell.value ? AppLayout : PetugasLayout);
 const filters = reactive<Filters>({ ...props.filters });
 const loading = ref(false);
 const pending = ref<string | null>(null);
@@ -77,7 +73,7 @@ const groups = computed(() => {
     return [...result.values()];
 });
 const fieldClass = computed(() =>
-    page.props.navigation?.admin
+    usesAdminShell.value
         ? 'admin-field w-full min-w-0 [color-scheme:light] dark:[color-scheme:dark]'
         : 'w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring [color-scheme:light] dark:[color-scheme:dark]',
 );
@@ -228,14 +224,14 @@ onUnmounted(() => {
         <div
             class="space-y-[18px] text-foreground"
             :class="
-                page.props.navigation?.admin
+                usesAdminShell
                     ? 'admin-dashboard-theme admin-page-content'
                     : 'mx-auto w-full max-w-4xl min-w-0'
             "
             :aria-busy="loading || pending !== null"
         >
             <header
-                v-if="!page.props.navigation?.admin"
+                v-if="!usesAdminShell"
                 class="flex flex-wrap items-center justify-between gap-3"
             >
                 <div>
