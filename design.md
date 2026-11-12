@@ -862,8 +862,9 @@ content instead of inheriting the default 40px button height. Use 14px padding,
 from the last-activity date so the panel remains readable at its narrow width.
 
 Order content as four metrics, the activity chart and attention panel, three
-planting/commodity panels, the financial summary, the farm map, and the field
-activity table. Keep the map and activity table visible. On phones, stack panels
+planting/commodity panels, the farm map, and the field activity table. The
+dashboard omits the OPEX and financial-projection summary card. Keep the map and
+activity table visible. On phones, stack panels
 and show activity cards. Farm selection applies to the entire overview; the
 7/30 day selector applies only to the activity chart.
 
@@ -1108,7 +1109,22 @@ preserved until changed.
 Block pages reuse `FarmManagementLayout` when the backend shared navigation
 permits Farm Management, including the Admin sidebar, header, typography,
 `admin-field` controls, and themed dialog portals. Keep Manajemen Kebun active
-while visiting block routes. Farm detail uses one overview panel: registered area, location, user-entered harvest target in tonnes, and the number of sub blocks at each persisted stage come first; the location map follows within the same panel. The header combines the back action and farm name on one row, with compact top padding so the overview is visible immediately. Use the shared 36px/700 metric style (32px on phones) for area, target, and sub block counts, with a bold location name. Use complete, beginner-friendly labels: Status lahan before Milik sendiri/Sewa/Kerja sama, Komoditas yang ditanam, and Panduan budidaya (SOP). Each progress item names its unit and action, for example 2 sub blok sedang dalam pengolahan tanah. Never show unexplained fragments such as 1 Pengolahan tanah. Team and owner information do not appear in the detail. Logbook is a text link. The block table follows the overview; create/edit actions open a shared dialog and return to that detail. Farm forms choose a commodity before its matching SOP. Sub block create/edit uses a dialog, with stages and start/completion dates visible by default. A per-block collapse control keeps a stage summary and the add action visible when details are collapsed.
+while visiting block routes. Farm detail uses one overview panel: registered
+area, location, user-entered harvest target in tonnes, and the total number of
+sub blocks come first; the location map follows within the same panel. Progres
+pekerjaan displays only the total and its `sub blok` unit, without a stage
+description list. The header combines the back action and farm name on one row,
+with compact top padding so the overview is visible immediately. Use the shared
+36px/700 metric style (32px on phones) for area, target, and sub block counts,
+with a bold location name. Supporting information contains PIC kebun, Komoditas
+yang ditanam, and Legalitas / Kontrak in three desktop columns. Omit Panduan
+budidaya (SOP) information and the Lihat foto kebun link from this detail page.
+Team and owner information do not appear in the detail. Logbook is a text link.
+The block table follows the overview; create/edit actions open a shared dialog
+and return to that detail. Farm forms choose a commodity before its matching
+SOP. Sub block create/edit uses a dialog, with stages and start/completion dates
+visible by default. A per-block collapse control keeps a stage summary and the
+add action visible when details are collapsed.
 
 Owner farm detail keeps only the total number and unit under Progres pekerjaan;
 hide the per-stage sentences and the Belum ada progres helper there. Keep the
@@ -1125,7 +1141,7 @@ per-stage progress explanations. Do not change SOP assignments or contract data.
 Block and sub block editor dialogs use a roomy 768px maximum desktop width, constrained to the viewport on phones. Use card surfaces, semantic tokens, a context header with the existing icon system, a visible capacity summary, two form columns where space permits, and an independently scrolling body. Keep the separated Batal/Simpan footer visible while scrolling; hide duplicate submit/close actions while processing. Retain focus trapping, keyboard dismissal, unsaved-change confirmation, inline errors, and both profile themes. Block forms follow the farm
 form width, and compact list metrics retain their units.
 
-Admin farm detail includes a clickable Legalitas value inside the existing
+Admin farm detail includes a clickable Legalitas / Kontrak value inside the existing
 farm information, using the same tenure label and alignment as its other
 metadata, without an arrow or separate legality card. It opens
 `/admin/farm-management/{farm}/legalitas`. That detail page contains the
@@ -1208,8 +1224,17 @@ luas, tahap saat ini, dan rencana tanam. Letakkan timeline pada area bg-muted/40
 dengan judul Tahap & tanggal progres; tahap mendatang cukup diberi status Belum
 dimulai tanpa teks tanggal kosong berulang. Gunakan jarak dan pemisah internal,
 bukan card di dalam card atau border luar pada profil Admin. Ringkasan kebun dan
-peta tetap satu panel, dengan judul Peta lokasi yang terlihat dan empat kolom
+peta tetap satu panel, dengan judul Peta lokasi yang terlihat dan tiga kolom
 informasi pendukung pada desktop.
+
+Pada detail kebun Admin, header setiap sub blok menampilkan HST hari ini dari
+tanggal tanam aktual di database. Hitung selisih hari kalender Asia/Jakarta,
+dengan hari tanam sebagai 0 HST; perbarui props ketika tanggal Jakarta berganti
+atau tab aktif kembali setelah tengah malam. Umur ini tetap tersedia ketika
+panel perkembangan tanaman belum memenuhi syarat tahap operasional. Tanggal
+tanam kosong, tanggal di masa depan, dan sub blok dibatalkan memakai label
+status yang jelas tanpa angka HST perkiraan. Izinkan header membungkus pada
+ponsel agar identitas, HST, dan tombol Ubah tetap terbaca.
 
 Judul Ringkasan kebun, Peta lokasi, Blok kebun, Sub blok & progres, serta judul
 timeline memakai text-primary sebagai aksen hijau yang konsisten di kedua tema.
