@@ -1,22 +1,21 @@
 <script setup lang="ts">
-import AppSelect from '@/components/selects/AppSelect.vue';
-import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { RefreshCw, WalletCards } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
-import DashboardActivities from '@/components/dashboard/DashboardActivities.vue';
-import DashboardActivityChart from '@/components/dashboard/DashboardActivityChart.vue';
-import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
-import DashboardFarmPreview from '@/components/dashboard/DashboardFarmPreview.vue';
-import DashboardRisks from '@/components/dashboard/DashboardRisks.vue';
-import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
-import DashboardMetricCards from '@/components/dashboard/DashboardMetricCards.vue';
-import DashboardPlantingOverview from '@/components/dashboard/DashboardPlantingOverview.vue';
-import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
-import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
-import { Button } from '@/components/ui/button';
-import type { DashboardInvitation } from '@/types';
-import type { AdminDashboardData } from '@/types/dashboard';
+import AppSelect from "@/components/selects/AppSelect.vue";
+import AppSelectOption from "@/components/selects/AppSelectOption.vue";
+import { Head, Link, router, usePage } from "@inertiajs/vue3";
+import { RefreshCw } from "@lucide/vue";
+import { computed, ref, watch } from "vue";
+import DashboardActivities from "@/components/dashboard/DashboardActivities.vue";
+import DashboardActivityChart from "@/components/dashboard/DashboardActivityChart.vue";
+import DashboardRisks from "@/components/dashboard/DashboardRisks.vue";
+import DashboardFarmMap from "@/components/dashboard/DashboardFarmMap.vue";
+import DashboardFarmPreview from "@/components/dashboard/DashboardFarmPreview.vue";
+import DashboardWeather from "@/components/dashboard/DashboardWeather.vue";
+import DashboardMetricCards from "@/components/dashboard/DashboardMetricCards.vue";
+import DashboardPlantingOverview from "@/components/dashboard/DashboardPlantingOverview.vue";
+import PendingInvitationsModal from "@/components/PendingInvitationsModal.vue";
+import { Button } from "@/components/ui/button";
+import type { DashboardInvitation } from "@/types";
+import type { AdminDashboardData } from "@/types/dashboard";
 
 defineOptions({ inheritAttrs: false });
 const page = usePage();
@@ -54,32 +53,6 @@ watch(
         period.value = filters.period;
     },
 );
-const financialItems = computed(() => [
-    {
-        label: "OPEX tercatat",
-        value: props.dashboard.financial.opexThisMonth,
-        description: "Transaksi pengeluaran pada bulan berjalan, sesuai cakupan kebun.",
-        period: props.dashboard.financial.monthLabel,
-    },
-    {
-        label: "Proyeksi pemasukan",
-        value: props.dashboard.financial.projectedIncome,
-        description: "Total proyeksi pemasukan pada periode yang mencakup hari ini.",
-        period: "Periode proyeksi aktif",
-    },
-    {
-        label: "Proyeksi biaya",
-        value: props.dashboard.financial.projectedExpense,
-        description: "Total proyeksi biaya pada periode yang mencakup hari ini.",
-        period: "Periode proyeksi aktif",
-    },
-    {
-        label: "Proyeksi bersih",
-        value: props.dashboard.financial.projectedNet,
-        description: "Proyeksi pemasukan dikurangi biaya; bukan saldo kas.",
-        period: `${props.dashboard.financial.projectionCount} periode proyeksi aktif`,
-    },
-]);
 function reportFailure(): false {
     failed.value = true;
     feedback.value = "Dashboard belum dapat diperbarui. Silakan coba lagi.";
@@ -203,32 +176,9 @@ function loadDashboard(): void {
             :cycles="dashboard.cycles"
             :commodities="dashboard.commodities"
         />
-        <section class="dashboard-panel" aria-labelledby="finance-heading">
-            <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.1fr_repeat(4,minmax(0,1fr))]">
-                <div>
-                    <h2 id="finance-heading" class="flex items-center gap-2 text-sm font-semibold">
-                        <WalletCards :size="17" aria-hidden="true" />OPEX & proyeksi
-                    </h2>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                        {{ dashboard.financial.monthLabel }} · sesuai kebun terpilih
-                    </p>
-                </div>
-                <dl v-for="item in financialItems" :key="item.label" class="min-w-0">
-                    <dt class="flex items-center gap-2 text-xs text-muted-foreground">
-                        {{ item.label
-                        }}<MetricInfoTooltip
-                            :label="item.label"
-                            :description="item.description"
-                            :period="item.period"
-                        />
-                    </dt>
-                    <dd class="mt-2 text-xl font-bold break-words tabular-nums">
-                        {{ item.value }}
-                    </dd>
-                </dl>
-            </div>
-        </section>
-        <div class="grid items-stretch gap-[18px] xl:grid-cols-[minmax(0,3fr)_minmax(260px,1fr)]">
+        <div
+            class="grid items-stretch gap-[18px] xl:grid-cols-[minmax(0,3fr)_minmax(260px,1fr)]"
+        >
             <section
                 id="dashboard-map"
                 class="dashboard-panel flex min-w-0 flex-col"
