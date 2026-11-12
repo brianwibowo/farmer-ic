@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ListTasksRequest;
 use App\Http\Requests\Admin\RescheduleTaskRequest;
 use App\Http\Requests\Admin\SkipTaskRequest;
+use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
@@ -34,7 +35,7 @@ class TaskManagementController extends Controller
         Gate::authorize('viewAny', [PlantingCycleTask::class, $team]);
 
         $filters = array_replace([
-            'search' => '', 'block_id' => '', 'subblok_id' => '', 'status' => '', 'category' => '', 'view' => 'actionable', 'per_page' => 15,
+            'search' => '', 'farm_id' => '', 'block_id' => '', 'subblok_id' => '', 'status' => '', 'category' => '', 'view' => 'actionable', 'per_page' => 15,
         ], $request->validated());
 
         $base = $this->baseQuery($user, $team, $filters);
@@ -46,9 +47,12 @@ class TaskManagementController extends Controller
                 ->through(fn (PlantingCycleTask $task, int $key): array => $this->row($task)),
             'filters' => $filters,
             'summary' => $summary,
+            'farms' => Farm::query()
+                ->visibleTo($user, $team)
+                ->orderBy('name')
+                ->get(['id', 'name']),
             'blocks' => FarmBlock::query()
                 ->visibleTo($user, $team)
-                ->with('farm:id,name')
                 ->orderBy('code')
                 ->get(['id', 'farm_id', 'code', 'name'])
                 ->map(fn (FarmBlock $block): array => [
@@ -56,7 +60,6 @@ class TaskManagementController extends Controller
                     'farm_id' => $block->farm_id,
                     'code' => $block->code,
                     'name' => $block->name,
-                    'farm_name' => $block->farm?->name,
                 ])->all(),
             'subbloks' => PlantingCycle::query()
                 ->visibleTo($user, $team)
@@ -115,6 +118,10 @@ class TaskManagementController extends Controller
             ->whereIn('activity_category', PlantingCycleTask::CATEGORIES)
             ->with($this->relations());
 
+        if (($filters['farm_id'] ?? '') !== '') {
+            $query->whereHas('plantingCycle', fn (Builder $cycle) => $cycle
+                ->where('farm_id', $filters['farm_id']));
+        }
         if (($filters['block_id'] ?? '') !== '') {
             $query->whereHas('plantingCycle.block', fn (Builder $block) => $block
                 ->whereKey($filters['block_id']));

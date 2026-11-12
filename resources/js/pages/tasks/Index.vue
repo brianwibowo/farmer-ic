@@ -24,6 +24,7 @@ import {
     adminTaskUrgencyLabels,
     adminTaskViewOptions,
     type AdminTaskBlockOption,
+    type AdminTaskFarmOption,
     type AdminTaskFilters,
     type AdminTaskPage,
     type AdminTaskSubblokOption,
@@ -35,30 +36,54 @@ const props = defineProps<{
     tasks: AdminTaskPage;
     filters: AdminTaskFilters;
     summary: AdminTaskSummary;
+    farms: AdminTaskFarmOption[];
     blocks: AdminTaskBlockOption[];
     subbloks: AdminTaskSubblokOption[];
 }>();
 
+const initialSubblok = props.subbloks.find(
+    (subblok) => subblok.id === props.filters.subblok_id,
+);
+const initialBlockId = props.filters.block_id || initialSubblok?.block_id || '';
+const initialBlock = props.blocks.find((block) => block.id === initialBlockId);
+const initialFarmId = props.filters.farm_id || initialBlock?.farm_id || '';
+
 const form = useForm({
     search: props.filters.search ?? '',
-    block_id: props.filters.block_id ?? '',
+    farm_id: initialFarmId,
+    block_id: initialBlockId,
     subblok_id: props.filters.subblok_id ?? '',
     status: props.filters.status ?? '',
     category: props.filters.category ?? '',
     view: (props.filters.view ?? 'actionable') as AdminTaskView,
     per_page: props.filters.per_page ?? 15,
 });
-const subblokOptions = computed(() =>
-    form.block_id
-        ? props.subbloks.filter((subblok) => subblok.block_id === form.block_id)
-        : props.subbloks,
+const blockOptions = computed(() =>
+    form.farm_id
+        ? props.blocks.filter((block) => block.farm_id === form.farm_id)
+        : [],
 );
-const showBlockFarm = computed(
-    () => new Set(props.blocks.map((block) => block.farm_id)).size > 1,
+const scopedBlockIds = computed(() => {
+    if (form.block_id) {
+        return new Set([form.block_id]);
+    }
+    if (form.farm_id) {
+        return new Set(blockOptions.value.map((block) => block.id));
+    }
+
+    return new Set<string>();
+});
+const subblokOptions = computed(() =>
+    props.subbloks.filter(
+        (subblok) =>
+            subblok.block_id !== null &&
+            scopedBlockIds.value.has(subblok.block_id),
+    ),
 );
 const hasFilters = computed(
     () =>
         !!form.search ||
+        !!form.farm_id ||
         !!form.block_id ||
         !!form.subblok_id ||
         !!form.status ||
@@ -120,12 +145,15 @@ const emptyCopy = computed(() => {
     };
 });
 
+function changeFarm(): void {
+    form.block_id = '';
+    form.subblok_id = '';
+}
+
 function changeBlock(): void {
     if (
         form.subblok_id &&
-        !subblokOptions.value.some(
-            (subblok) => subblok.id === form.subblok_id,
-        )
+        !subblokOptions.value.some((subblok) => subblok.id === form.subblok_id)
     ) {
         form.subblok_id = '';
     }
@@ -152,6 +180,7 @@ function apply(): void {
 
 function reset(): void {
     form.search = '';
+    form.farm_id = '';
     form.block_id = '';
     form.subblok_id = '';
     form.status = '';
@@ -166,11 +195,17 @@ function reset(): void {
     <div class="space-y-6">
         <header class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <p class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase">
+                <p
+                    class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase"
+                >
                     Operasional / Tugas
                 </p>
-                <h1 class="admin-page-title tracking-tight">Tugas operasional</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                <h1 class="admin-page-title tracking-tight">
+                    Tugas operasional
+                </h1>
+                <p
+                    class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground"
+                >
                     Pantau tugas yang dihasilkan dari SOP subblok. Lepaskan,
                     batalkan, atau jadwalkan ulang tugas yang belum dikerjakan.
                 </p>
@@ -190,7 +225,11 @@ function reset(): void {
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-2" role="group" aria-label="Tampilan tugas">
+        <div
+            class="flex flex-wrap gap-2"
+            role="group"
+            aria-label="Tampilan tugas"
+        >
             <button
                 v-for="[value, label] in adminTaskViewOptions"
                 :key="value"
@@ -209,138 +248,331 @@ function reset(): void {
             </button>
         </div>
 
-        <section class="overflow-hidden rounded-xl border border-border bg-card">
+        <section
+            class="overflow-hidden rounded-xl border border-border bg-card"
+        >
             <div class="border-b border-border p-4 md:p-5">
                 <div class="mb-4 flex items-center gap-2">
                     <h2 class="admin-section-title">Daftar tugas</h2>
-                    <span class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                    <span
+                        class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
+                    >
                         {{ tasks.total }}
                     </span>
                 </div>
-                <form class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-6" @submit.prevent="apply">
-                    <FarmField id="task-search" label="Cari" :error="form.errors.search" class="sm:col-span-2 xl:col-span-2" v-slot="field">
+                <form
+                    class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-4"
+                    @submit.prevent="apply"
+                >
+                    <FarmField
+                        id="task-search"
+                        label="Cari"
+                        :error="form.errors.search"
+                        class="sm:col-span-2"
+                        v-slot="field"
+                    >
                         <div class="relative">
-                            <Search class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" aria-hidden="true" />
+                            <Search
+                                class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground"
+                                aria-hidden="true"
+                            />
                             <input
                                 :id="field.id"
                                 v-model="form.search"
                                 class="admin-field pl-9!"
                                 type="search"
                                 maxlength="100"
-                                placeholder="Nama tugas, blok, atau subblok"
+                                placeholder="Nama tugas, kebun, blok, atau subblok"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             />
                         </div>
                     </FarmField>
-                    <FarmField id="task-block" label="Blok" :error="form.errors.block_id" v-slot="field">
+                    <FarmField
+                        id="task-farm"
+                        label="Kebun"
+                        :error="form.errors.farm_id"
+                        v-slot="field"
+                    >
+                        <select
+                            :id="field.id"
+                            v-model="form.farm_id"
+                            class="admin-field"
+                            :aria-invalid="field.invalid"
+                            :aria-describedby="field.description"
+                            @change="changeFarm"
+                        >
+                            <option value="">Semua kebun</option>
+                            <option
+                                v-for="farm in farms"
+                                :key="farm.id"
+                                :value="farm.id"
+                            >
+                                {{ farm.name }}
+                            </option>
+                        </select>
+                    </FarmField>
+                    <FarmField
+                        id="task-block"
+                        label="Blok"
+                        :error="form.errors.block_id"
+                        v-slot="field"
+                    >
                         <select
                             :id="field.id"
                             v-model="form.block_id"
                             class="admin-field"
+                            :disabled="!form.farm_id"
+                            :aria-invalid="field.invalid"
+                            :aria-describedby="field.description"
                             @change="changeBlock"
                         >
-                            <option value="">Semua blok</option>
-                            <option v-for="block in blocks" :key="block.id" :value="block.id">
+                            <option value="">
+                                {{
+                                    form.farm_id
+                                        ? 'Semua blok'
+                                        : 'Pilih kebun terlebih dahulu'
+                                }}
+                            </option>
+                            <option
+                                v-for="block in blockOptions"
+                                :key="block.id"
+                                :value="block.id"
+                            >
                                 {{ block.code }} · {{ block.name }}
-                                <template v-if="showBlockFarm && block.farm_name">
-                                    · {{ block.farm_name }}
-                                </template>
                             </option>
                         </select>
                     </FarmField>
-                    <FarmField id="task-subblok" label="Subblok" :error="form.errors.subblok_id" v-slot="field">
-                        <select :id="field.id" v-model="form.subblok_id" class="admin-field">
-                            <option value="">Semua subblok</option>
-                            <option v-for="subblok in subblokOptions" :key="subblok.id" :value="subblok.id">
-                                {{ subblok.label ?? `Subblok ${subblok.number}` }}
-                                <template v-if="!form.block_id && subblok.block_name">
+                    <FarmField
+                        id="task-subblok"
+                        label="Subblok"
+                        :error="form.errors.subblok_id"
+                        v-slot="field"
+                    >
+                        <select
+                            :id="field.id"
+                            v-model="form.subblok_id"
+                            class="admin-field"
+                            :disabled="!form.farm_id"
+                            :aria-invalid="field.invalid"
+                            :aria-describedby="field.description"
+                        >
+                            <option value="">
+                                {{
+                                    form.farm_id
+                                        ? 'Semua subblok'
+                                        : 'Pilih kebun terlebih dahulu'
+                                }}
+                            </option>
+                            <option
+                                v-for="subblok in subblokOptions"
+                                :key="subblok.id"
+                                :value="subblok.id"
+                            >
+                                {{
+                                    subblok.label ?? `Subblok ${subblok.number}`
+                                }}
+                                <template
+                                    v-if="!form.block_id && subblok.block_name"
+                                >
                                     · {{ subblok.block_name }}
                                 </template>
                             </option>
                         </select>
                     </FarmField>
-                    <FarmField id="task-status" label="Status" :error="form.errors.status" v-slot="field">
-                        <select :id="field.id" v-model="form.status" class="admin-field" @change="changeStatus">
+                    <FarmField
+                        id="task-status"
+                        label="Status"
+                        :error="form.errors.status"
+                        v-slot="field"
+                    >
+                        <select
+                            :id="field.id"
+                            v-model="form.status"
+                            class="admin-field"
+                            @change="changeStatus"
+                        >
                             <option value="">Semua status</option>
-                            <option v-for="[value, label] in adminTaskStatusOptions" :key="value" :value="value">
+                            <option
+                                v-for="[value, label] in adminTaskStatusOptions"
+                                :key="value"
+                                :value="value"
+                            >
                                 {{ label }}
                             </option>
                         </select>
                     </FarmField>
-                    <FarmField id="task-category" label="Kategori" :error="form.errors.category" v-slot="field">
-                        <select :id="field.id" v-model="form.category" class="admin-field">
+                    <FarmField
+                        id="task-category"
+                        label="Kategori"
+                        :error="form.errors.category"
+                        v-slot="field"
+                    >
+                        <select
+                            :id="field.id"
+                            v-model="form.category"
+                            class="admin-field"
+                        >
                             <option value="">Semua kategori</option>
-                            <option v-for="[value, label] in adminTaskCategoryOptions" :key="value" :value="value">
+                            <option
+                                v-for="[
+                                    value,
+                                    label,
+                                ] in adminTaskCategoryOptions"
+                                :key="value"
+                                :value="value"
+                            >
                                 {{ label }}
                             </option>
                         </select>
                     </FarmField>
-                    <div class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-6">
-                        <select v-model.number="form.per_page" class="admin-field w-auto!" aria-label="Jumlah per halaman">
+                    <div
+                        class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-4"
+                    >
+                        <select
+                            v-model.number="form.per_page"
+                            class="admin-field w-auto!"
+                            aria-label="Jumlah per halaman"
+                        >
                             <option :value="15">15 / halaman</option>
                             <option :value="30">30 / halaman</option>
                             <option :value="50">50 / halaman</option>
                         </select>
-                        <Button type="submit" class="h-10 rounded-xl" :disabled="form.processing">
-                            <LoaderCircle v-if="form.processing" class="animate-spin" />
+                        <Button
+                            type="submit"
+                            class="h-10 rounded-xl"
+                            :disabled="form.processing"
+                        >
+                            <LoaderCircle
+                                v-if="form.processing"
+                                class="animate-spin"
+                            />
                             <Search v-else />Terapkan
                         </Button>
-                        <Button v-if="hasFilters" type="button" variant="ghost" :disabled="form.processing" @click="reset">
+                        <Button
+                            v-if="hasFilters"
+                            type="button"
+                            variant="ghost"
+                            :disabled="form.processing"
+                            @click="reset"
+                        >
                             Reset filter
                         </Button>
                     </div>
                 </form>
             </div>
 
-            <div v-if="form.processing" class="space-y-4 p-6" role="status" aria-label="Memuat tugas">
-                <div v-for="row in 3" :key="row" class="h-12 animate-pulse rounded-xl bg-muted" />
+            <div
+                v-if="form.processing"
+                class="space-y-4 p-6"
+                role="status"
+                aria-label="Memuat tugas"
+            >
+                <div
+                    v-for="row in 3"
+                    :key="row"
+                    class="h-12 animate-pulse rounded-xl bg-muted"
+                />
                 <p class="text-sm text-muted-foreground">Memuat tugas.</p>
             </div>
             <div v-else-if="!tasks.data.length" class="px-5 py-16 text-center">
-                <div class="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent text-primary">
+                <div
+                    class="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent text-primary"
+                >
                     <ClipboardList class="size-7" />
                 </div>
                 <h3 class="mt-4 font-semibold">{{ emptyCopy.title }}</h3>
-                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                <p
+                    class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground"
+                >
                     {{ emptyCopy.description }}
                 </p>
-                <Button v-if="hasFilters" variant="outline" class="mt-5 rounded-xl" @click="reset">Reset filter</Button>
+                <Button
+                    v-if="hasFilters"
+                    variant="outline"
+                    class="mt-5 rounded-xl"
+                    @click="reset"
+                    >Reset filter</Button
+                >
             </div>
 
             <template v-else>
-                <div class="hidden overflow-x-auto md:block" role="region" aria-label="Tabel tugas operasional" tabindex="0">
+                <div
+                    class="hidden overflow-x-auto md:block"
+                    role="region"
+                    aria-label="Tabel tugas operasional"
+                    tabindex="0"
+                >
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-muted/50 text-xs text-muted-foreground">
+                        <thead
+                            class="bg-muted/50 text-xs text-muted-foreground"
+                        >
                             <tr>
-                                <th scope="col" class="px-5 py-3 font-semibold">Tugas</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Lokasi</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Jadwal</th>
-                                <th scope="col" class="px-5 py-3 font-semibold">Status</th>
-                                <th scope="col" class="px-5 py-3 text-right font-semibold">Tindakan</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">
+                                    Tugas
+                                </th>
+                                <th scope="col" class="px-5 py-3 font-semibold">
+                                    Lokasi
+                                </th>
+                                <th scope="col" class="px-5 py-3 font-semibold">
+                                    Jadwal
+                                </th>
+                                <th scope="col" class="px-5 py-3 font-semibold">
+                                    Status
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="px-5 py-3 text-right font-semibold"
+                                >
+                                    Tindakan
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border">
-                            <tr v-for="task in tasks.data" :key="task.id" class="align-top hover:bg-muted/40">
+                            <tr
+                                v-for="task in tasks.data"
+                                :key="task.id"
+                                class="align-top hover:bg-muted/40"
+                            >
                                 <td class="px-5 py-4">
-                                    <Link :href="`/admin/tasks/${task.id}`" class="font-semibold hover:text-primary focus-visible:outline-2 focus-visible:outline-ring">
+                                    <Link
+                                        :href="`/admin/tasks/${task.id}`"
+                                        class="font-semibold hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
+                                    >
                                         {{ task.name }}
                                     </Link>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ adminTaskCategoryLabel(task) }} · {{ adminTaskSubcategoryLabel(task) }}
+                                    <p
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        {{ adminTaskCategoryLabel(task) }} ·
+                                        {{ adminTaskSubcategoryLabel(task) }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">
                                     <p>{{ task.farm?.name ?? '-' }}</p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ task.block?.code ?? '-' }} · {{ task.block?.name ?? 'Blok belum diisi' }}
-                                        <template v-if="task.subblok?.label"> · {{ task.subblok.label }}</template>
+                                    <p
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        {{ task.block?.code ?? '-' }} ·
+                                        {{
+                                            task.block?.name ??
+                                            'Blok belum diisi'
+                                        }}
+                                        <template v-if="task.subblok?.label">
+                                            · {{ task.subblok.label }}</template
+                                        >
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
                                     <p>{{ adminTaskHst(task.offset_days) }}</p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ adminTaskDate(task.effective_scheduled_date) }}
+                                    <p
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        {{
+                                            adminTaskDate(
+                                                task.effective_scheduled_date,
+                                            )
+                                        }}
                                     </p>
                                     <p
                                         v-if="task.urgency === 'overdue'"
@@ -362,24 +594,55 @@ function reset(): void {
                                         v-if="task.due_date"
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        Tenggat {{ adminTaskDate(task.due_date) }}
+                                        Tenggat
+                                        {{ adminTaskDate(task.due_date) }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">
                                     <div class="flex flex-wrap gap-2">
-                                        <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="adminTaskStatusClass(task.status)">
-                                            {{ adminTaskStatusLabels[task.status] }}
+                                        <span
+                                            class="rounded-full px-2.5 py-1 text-xs font-medium"
+                                            :class="
+                                                adminTaskStatusClass(
+                                                    task.status,
+                                                )
+                                            "
+                                        >
+                                            {{
+                                                adminTaskStatusLabels[
+                                                    task.status
+                                                ]
+                                            }}
                                         </span>
-                                        <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="adminTaskUrgencyClass(task.urgency)">
-                                            {{ adminTaskUrgencyLabels[task.urgency] }}
+                                        <span
+                                            class="rounded-full px-2.5 py-1 text-xs font-medium"
+                                            :class="
+                                                adminTaskUrgencyClass(
+                                                    task.urgency,
+                                                )
+                                            "
+                                        >
+                                            {{
+                                                adminTaskUrgencyLabels[
+                                                    task.urgency
+                                                ]
+                                            }}
                                         </span>
                                     </div>
                                 </td>
                                 <td class="px-5 py-4">
                                     <div class="flex justify-end gap-1">
                                         <TaskQuickActions :task="task" />
-                                        <Button as-child variant="ghost" size="icon" :aria-label="`Lihat ${task.name}`">
-                                            <Link :href="`/admin/tasks/${task.id}`"><ArrowUpRight /></Link>
+                                        <Button
+                                            as-child
+                                            variant="ghost"
+                                            size="icon"
+                                            :aria-label="`Lihat ${task.name}`"
+                                        >
+                                            <Link
+                                                :href="`/admin/tasks/${task.id}`"
+                                                ><ArrowUpRight
+                                            /></Link>
                                         </Button>
                                     </div>
                                 </td>
@@ -388,26 +651,47 @@ function reset(): void {
                     </table>
                 </div>
 
-                <ul class="divide-y divide-border md:hidden" aria-label="Daftar tugas operasional">
+                <ul
+                    class="divide-y divide-border md:hidden"
+                    aria-label="Daftar tugas operasional"
+                >
                     <li v-for="task in tasks.data" :key="task.id" class="p-4">
-                        <Link :href="`/admin/tasks/${task.id}`" class="flex items-start justify-between gap-3 font-semibold">
+                        <Link
+                            :href="`/admin/tasks/${task.id}`"
+                            class="flex items-start justify-between gap-3 font-semibold"
+                        >
                             <span>{{ task.name }}</span>
-                            <ArrowUpRight class="size-4 shrink-0 text-primary" />
+                            <ArrowUpRight
+                                class="size-4 shrink-0 text-primary"
+                            />
                         </Link>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            {{ task.farm?.name ?? '-' }} · {{ task.block?.code ?? '-' }}
-                            <template v-if="task.subblok?.label"> · {{ task.subblok.label }}</template>
+                            {{ task.farm?.name ?? '-' }} ·
+                            {{ task.block?.code ?? '-' }}
+                            <template v-if="task.subblok?.label">
+                                · {{ task.subblok.label }}</template
+                            >
                         </p>
                         <div class="mt-3 flex flex-wrap items-center gap-2">
-                            <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="adminTaskStatusClass(task.status)">
+                            <span
+                                class="rounded-full px-2.5 py-1 text-xs font-medium"
+                                :class="adminTaskStatusClass(task.status)"
+                            >
                                 {{ adminTaskStatusLabels[task.status] }}
                             </span>
-                            <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="adminTaskUrgencyClass(task.urgency)">
+                            <span
+                                class="rounded-full px-2.5 py-1 text-xs font-medium"
+                                :class="adminTaskUrgencyClass(task.urgency)"
+                            >
                                 {{ adminTaskUrgencyLabels[task.urgency] }}
                             </span>
-                            <span class="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <span
+                                class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                            >
                                 <CalendarDays class="size-3.5" />
-                                {{ adminTaskDate(task.effective_scheduled_date) }}
+                                {{
+                                    adminTaskDate(task.effective_scheduled_date)
+                                }}
                             </span>
                             <span
                                 v-if="task.urgency === 'overdue'"
@@ -426,15 +710,29 @@ function reset(): void {
                     </li>
                 </ul>
 
-                <div v-if="tasks.last_page > 1" class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
+                <div
+                    v-if="tasks.last_page > 1"
+                    class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm"
+                >
                     <p class="text-muted-foreground">
-                        Menampilkan {{ tasks.from }}–{{ tasks.to }} dari {{ tasks.total }}
+                        Menampilkan {{ tasks.from }}–{{ tasks.to }} dari
+                        {{ tasks.total }}
                     </p>
                     <div class="flex gap-2">
-                        <Button v-if="tasks.prev_page_url" as-child variant="outline" size="sm">
+                        <Button
+                            v-if="tasks.prev_page_url"
+                            as-child
+                            variant="outline"
+                            size="sm"
+                        >
                             <Link :href="tasks.prev_page_url">Sebelumnya</Link>
                         </Button>
-                        <Button v-if="tasks.next_page_url" as-child variant="outline" size="sm">
+                        <Button
+                            v-if="tasks.next_page_url"
+                            as-child
+                            variant="outline"
+                            size="sm"
+                        >
                             <Link :href="tasks.next_page_url">Berikutnya</Link>
                         </Button>
                     </div>
