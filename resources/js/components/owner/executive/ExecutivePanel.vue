@@ -4,7 +4,7 @@ defineProps<{ title: string; description?: string }>();
 
 <template>
     <section
-        class="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6"
+        class="min-w-0 h-full rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6"
     >
         <header class="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">

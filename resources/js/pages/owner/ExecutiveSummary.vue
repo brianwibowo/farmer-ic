@@ -14,7 +14,6 @@ import {
 import { computed, ref, watch } from 'vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
 import OwnerDashboardFarmPreview from '@/components/owner/dashboard/OwnerDashboardFarmPreview.vue';
-import OwnerDistributionChart from '@/components/owner/OwnerDistributionChart.vue';
 import ExecutiveSales from '@/components/owner/executive/ExecutiveSales.vue';
 import ExecutiveCommoditySummary from '@/components/owner/executive/ExecutiveCommoditySummary.vue';
 import ExecutiveFilters from '@/components/owner/executive/ExecutiveFilters.vue';
@@ -39,6 +38,7 @@ const {
     regions,
     farmOptions,
     partnerSummary,
+    landCategories,
     commodities,
     clients,
     mapFarms,
@@ -280,38 +280,11 @@ function focusFarm(id: string) {
             <template v-else>
                 <ExecutiveLandSummary
                     :partners="partnerSummary"
+                    :categories="landCategories"
                     :selected="filters.partner"
                     @select="filters.partner = $event"
                 />
-                <div
-                    class="grid min-w-0 items-start gap-4 lg:gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
-                >
-                    <ExecutiveSales :clients="clients" :month="monthlyLabel" />
-                    <ExecutivePanel
-                        title="Pemanfaatan lahan"
-                        :description="`${number(totals.utilization)}% lahan telah ditanami.`"
-                        ><OwnerDistributionChart
-                            title="Pemanfaatan lahan"
-                            total-label="Total lahan"
-                            category-label="status"
-                            unit="Ha"
-                            embedded
-                            compact
-                            :show-footer="false"
-                            :items="[
-                                {
-                                    id: 'planted',
-                                    name: 'Tertanam',
-                                    value: totals.planted,
-                                },
-                                {
-                                    id: 'unused',
-                                    name: 'Belum ditanam',
-                                    value: totals.unused,
-                                },
-                            ]"
-                    /></ExecutivePanel>
-                </div>
+                <ExecutiveSales :clients="clients" :month="monthlyLabel" />
                 <ExecutiveCommoditySummary
                     :commodities="commodities"
                     :selected="filters.commodity"

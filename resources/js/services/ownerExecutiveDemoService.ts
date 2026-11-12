@@ -123,6 +123,76 @@ export const executiveMoney = (value: number, compact = false) =>
         ...(compact ? { notation: 'compact' as const } : {}),
     }).format(value);
 
+export function executiveLandCategories(rows: ExecutiveRow[]) {
+    return [
+        { id: 'pks', name: 'PKS — Kerja sama' },
+        { id: 'bhi', name: 'BHI — Milik sendiri' },
+        { id: 'plasma', name: 'Plasma — Koperasi' },
+    ].map((category) => ({
+        ...category,
+        value: executiveTotals(
+            rows.filter((row) => row.farm.landCategory === category.id),
+        ).area,
+    }));
+}
+
+export function executiveClients(
+    rows: ExecutiveRow[],
+    clients: ExecutiveDemoData['clients'],
+) {
+    return clients
+        .map((client) => {
+            const group = rows.filter(
+                (row) =>
+                    row.client?.id === client.id &&
+                    row.contract?.status === 'Aktif',
+            );
+            const commodities = [
+                ...new Map(
+                    group.map((row) => [row.commodity.id, row.commodity]),
+                ).values(),
+            ];
+            const breakdown = commodities.map((commodity) => {
+                const cropRows = group.filter(
+                    (row) => row.commodity.id === commodity.id,
+                );
+                return {
+                    id: commodity.id,
+                    name: commodity.name,
+                    contracted: cropRows.reduce(
+                        (sum, row) => sum + (row.contract?.monthlyTon ?? 0),
+                        0,
+                    ),
+                    delivered: cropRows.reduce(
+                        (sum, row) => sum + row.monthlyDeliveredTon,
+                        0,
+                    ),
+                };
+            });
+            const contracted = breakdown.reduce(
+                (sum, crop) => sum + crop.contracted,
+                0,
+            );
+            const delivered = breakdown.reduce(
+                (sum, crop) => sum + crop.delivered,
+                0,
+            );
+            return {
+                ...client,
+                contracted,
+                delivered,
+                fulfillment: contracted ? (delivered / contracted) * 100 : 0,
+                crops: commodities.map((crop) => crop.name).join(', '),
+                commodities: breakdown,
+                status: [
+                    ...new Set(group.map((row) => row.contract?.status)),
+                ].join(', '),
+            };
+        })
+        .filter((client) => client.contracted > 0)
+        .sort((a, b) => b.contracted - a.contracted);
+}
+
 export function executiveCommodities(rows: ExecutiveRow[]) {
     const commodities = [
         ...new Map(

@@ -408,8 +408,31 @@ Client selection in the sales panel is local to that panel. Clicking a client
 name or its chart bars shows only that client's contract/reality comparison,
 while the complete client selector remains visible. Mark the active client and
 provide Tampilkan semua client; clicking the active selection again also clears
-it. Use a shorter chart for one client and reset a selection removed by global
-filters. This interaction must not change the page's global filters or KPIs.
+it. Use a vertical chart grouped by client and commodity. Keep full client
+labels wrapped
+and allow local chart scrolling when needed; show every client, without a top-N
+limit. Separate client groups with alternating subtle background bands, vertical
+dividers and bold group labels. Use two filled side-by-side bars per commodity: a lighter shade for Kontrak
+and a stronger shade of the same commodity color for Realisasi. Do not use
+outline-only contract bars.
+Keep corn and grain shades strongly separated using opaque color tokens, not
+alpha or opacity. Show both exact shades in each commodity legend entry and
+state that Kontrak is the left bar and Realisasi the right bar.
+Use the supplied exact pairs in both themes: sorghum contract #D9B99B and
+realization #8A5A2B; corn contract #F2D98A and realization #C9962B. Contract bars
+and their legend swatches also have a 1px outline in the stronger commodity
+color, so identification has a shape cue beyond color/lightness. Grass uses
+#2F6B37 for realization in light mode and a legible green in dark mode.
+Do not overlap the two bars or use a single progress bar. Keep actual values
+honest if realization exceeds the contract; never cap the source values. Use
+fixed sales colors: corn yellow, grass green, and sorghum/soybean golden brown,
+with theme-aware tokens. Keep commodity colors and the contract/realization key outside
+the scrollable canvas. Tooltips show contract, realization and fulfillment.
+Provide a native
+Lihat rincian penjualan disclosure, closed initially, with every client and
+commodity, contract, realization, difference and fulfillment percentage. The
+details table uses bounded local scrolling; selecting a client there focuses
+only the sales chart. Reset a selection removed by global filters. This interaction must not change the page's global filters or KPIs.
 
 Use `OwnerDistributionChart` for every distribution donut, including the
 Beranda commodity chart. Preserve its center total, sector percentages,
@@ -417,7 +440,11 @@ keyboard-accessible legend, selection, semantic colors, and empty state.
 Keep the center unit on its own line below the total so long values fit inside
 the donut without pushing the unit into its sectors.
 Executive panels use its compact embedded mode and contextual legend slots.
-Combine partner contribution with planted/unplanted area bars, and combine
+Place two compact land donuts side by side: explicit land categories
+(PKS — Kerja sama, BHI — Milik sendiri, Plasma — Koperasi) and partners.
+Keep partner selection connected to global filters; category selection highlights
+its donut locally. Stack the two diagrams on smaller viewports. Remove the
+separate Pemanfaatan lahan card and give sales the full content width. Combine
 commodity composition with three concise commodity summaries. Show two separate
 cards side by side: planted hectares and actual harvest tonnes. Each card has
 its own donut and keyboard-accessible commodity summary showing only planted
@@ -429,7 +456,9 @@ Avoid adjacent tall chart/table panels and stretched blank surfaces.
 Harvest charts remain visible while the farm table starts collapsed. Financial
 projections use per-commodity prices from the dataset, aggregate actual monetary
 amounts before computing the gross-margin percentage, and provide no simulator
-inputs. Prioritize revenue, total costs, and gross profit. Do not reintroduce the
+inputs. Use vertical grouped bars per commodity, with HPP, Transport and
+Laba kotor as three separate bars. Show the numeric axis in Rp juta and full
+rupiah amounts in tooltips. Prioritize revenue, total costs, and gross profit. Do not reintroduce the
 operational detail table, pagination, or its exports on this overview.
 
 Map markers open `OwnerDashboardFarmPreview`, shared with Beranda. Its summary

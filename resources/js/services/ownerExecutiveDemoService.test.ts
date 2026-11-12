@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import data from '@/data/ownerExecutiveDemo.json';
 import {
     executiveCommodities,
+    executiveClients,
+    executiveLandCategories,
     executiveRows,
     executiveTotals,
 } from './ownerExecutiveDemoService';
@@ -106,6 +108,86 @@ describe('Executive JSON summary', () => {
         const loss = executiveTotals(executiveRows(lossData, filters));
         expect(loss.grossProfit).toBe(7620000 * -77);
         expect(loss.grossMarginPercent).toBeLessThan(0);
+    });
+    it('aggregates explicit land categories without duplicating farms', () => {
+        const rows = executiveRows(data, filters);
+        const categories = executiveLandCategories(rows);
+        expect(categories.map((category) => category.id)).toEqual([
+            'pks',
+            'bhi',
+            'plasma',
+        ]);
+        expect(categories.every((category) => category.value > 0)).toBe(true);
+        expect(
+            categories.reduce((sum, category) => sum + category.value, 0),
+        ).toBe(152);
+        expect(executiveLandCategories([...rows, rows[0]])).toEqual(categories);
+        const selected = executiveRows(data, { ...filters, partner: 'bumi' });
+        expect(
+            executiveLandCategories(selected)
+                .filter((category) => category.value > 0)
+                .map((category) => category.id),
+        ).toEqual(['bhi']);
+    });
+    it('keeps client and commodity sales totals consistent with the selected rows', () => {
+        const rows = executiveRows(data, filters);
+        const clients = executiveClients(rows, data.clients);
+        expect(clients).toHaveLength(4);
+        expect(
+            clients.reduce((sum, client) => sum + client.contracted, 0),
+        ).toBe(executiveTotals(rows).contracts);
+        for (const client of clients) {
+            expect(
+                client.commodities.reduce(
+                    (sum, crop) => sum + crop.contracted,
+                    0,
+                ),
+            ).toBe(client.contracted);
+            expect(
+                client.commodities.reduce(
+                    (sum, crop) => sum + crop.delivered,
+                    0,
+                ),
+            ).toBe(client.delivered);
+            for (const crop of client.commodities) {
+                const group = rows.filter(
+                    (row) =>
+                        row.client?.id === client.id &&
+                        row.commodity.id === crop.id,
+                );
+                expect(crop.contracted).toBe(
+                    group.reduce(
+                        (sum, row) => sum + (row.contract?.monthlyTon ?? 0),
+                        0,
+                    ),
+                );
+                expect(crop.delivered).toBe(
+                    group.reduce(
+                        (sum, row) => sum + row.monthlyDeliveredTon,
+                        0,
+                    ),
+                );
+            }
+        }
+        const filtered = executiveClients(
+            executiveRows(data, { ...filters, commodity: 'jagung' }),
+            data.clients,
+        );
+        expect(
+            filtered.every(
+                (client) =>
+                    client.commodities.length === 1 &&
+                    client.commodities[0].id === 'jagung',
+            ),
+        ).toBe(true);
+        expect(executiveClients([], data.clients)).toEqual([]);
+        const inactive = rows.map((row) => ({
+            ...row,
+            contract: row.contract
+                ? { ...row.contract, status: 'Selesai' }
+                : undefined,
+        }));
+        expect(executiveClients(inactive, data.clients)).toEqual([]);
     });
     it('keeps fixture areas and stocks valid and uses only the three specified crops', () => {
         expect(data.commodities.map((crop) => crop.name)).toEqual([

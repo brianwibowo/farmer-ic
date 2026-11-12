@@ -44,17 +44,15 @@ const metrics = computed(() => [
                 </dd>
             </div>
         </dl>
-        <div
-            class="grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]"
-        >
+        <div class="space-y-4">
             <div>
                 <p class="mb-1 text-xs text-muted-foreground">
                     Komponen omzet · Rp juta
                 </p>
                 <ExecutiveChart
                     title="Komponen omzet dan laba kotor per komoditas"
-                    kind="horizontal"
-                    stacked
+                    kind="grouped"
+                    :format-value="(value) => money(value * 1000000)"
                     :labels="commodities.map((crop) => crop.name)"
                     :series="[
                         {
@@ -80,14 +78,10 @@ const metrics = computed(() => [
                 />
             </div>
             <ul
-                class="divide-y divide-border"
+                class="grid gap-4 border-t border-border pt-4 sm:grid-cols-3"
                 aria-label="Ringkasan keuangan per komoditas"
             >
-                <li
-                    v-for="crop in commodities"
-                    :key="crop.id"
-                    class="py-3 first:pt-0 last:pb-0"
-                >
+                <li v-for="crop in commodities" :key="crop.id" class="min-w-0">
                     <div
                         class="flex flex-wrap items-start justify-between gap-2"
                     >
