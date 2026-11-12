@@ -63,22 +63,10 @@ const blockOptions = computed(() =>
         ? props.blocks.filter((block) => block.farm_id === form.farm_id)
         : [],
 );
-const scopedBlockIds = computed(() => {
-    if (form.block_id) {
-        return new Set([form.block_id]);
-    }
-    if (form.farm_id) {
-        return new Set(blockOptions.value.map((block) => block.id));
-    }
-
-    return new Set<string>();
-});
 const subblokOptions = computed(() =>
-    props.subbloks.filter(
-        (subblok) =>
-            subblok.block_id !== null &&
-            scopedBlockIds.value.has(subblok.block_id),
-    ),
+    form.block_id
+        ? props.subbloks.filter((subblok) => subblok.block_id === form.block_id)
+        : [],
 );
 const hasFilters = computed(
     () =>
@@ -353,15 +341,17 @@ function reset(): void {
                             :id="field.id"
                             v-model="form.subblok_id"
                             class="admin-field"
-                            :disabled="!form.farm_id"
+                            :disabled="!form.block_id"
                             :aria-invalid="field.invalid"
                             :aria-describedby="field.description"
                         >
                             <option value="">
                                 {{
-                                    form.farm_id
+                                    form.block_id
                                         ? 'Semua subblok'
-                                        : 'Pilih kebun terlebih dahulu'
+                                        : form.farm_id
+                                          ? 'Pilih blok terlebih dahulu'
+                                          : 'Pilih kebun terlebih dahulu'
                                 }}
                             </option>
                             <option
@@ -372,11 +362,6 @@ function reset(): void {
                                 {{
                                     subblok.label ?? `Subblok ${subblok.number}`
                                 }}
-                                <template
-                                    v-if="!form.block_id && subblok.block_name"
-                                >
-                                    · {{ subblok.block_name }}
-                                </template>
                             </option>
                         </select>
                     </FarmField>
