@@ -181,10 +181,14 @@ function rowSubblock(row: HarvestTransactionRow): string {
     if (!row.cycle) {
         return 'Subblok belum terhubung';
     }
-    const label = row.cycle.subblock_label
-        ? `Subblok ${row.cycle.subblock_label}`
-        : 'Subblok';
-    return `${label} · Batch ${row.cycle.batch_number ?? '-'}`;
+    if (row.cycle.subblock_label) {
+        return `Subblok ${row.cycle.subblock_label}`;
+    }
+    if (row.cycle.batch_number !== null) {
+        return `Batch ${row.cycle.batch_number}`;
+    }
+
+    return 'Subblok';
 }
 </script>
 
