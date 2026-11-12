@@ -12,6 +12,8 @@ const props = withDefaults(
             label: string;
             values: number[];
             colorTokens?: string[];
+            borderColorTokens?: string[];
+            borderWidth?: number;
         }[];
         kind?: 'horizontal' | 'grouped';
         stacked?: boolean;
@@ -156,10 +158,10 @@ async function draw() {
                         style.getPropertyValue(token).trim(),
                     ) ?? colors.value[index % colors.value.length],
                 borderColor:
-                    series.colorTokens?.map((token) =>
-                        style.getPropertyValue(token).trim(),
+                    (series.borderColorTokens ?? series.colorTokens)?.map(
+                        (token) => style.getPropertyValue(token).trim(),
                     ) ?? colors.value[index % colors.value.length],
-                borderWidth: 0,
+                borderWidth: series.borderWidth ?? 0,
                 borderSkipped: false,
                 borderRadius: 4,
                 maxBarThickness: 30,

@@ -415,6 +415,14 @@ limit. Separate client groups with alternating subtle background bands, vertical
 dividers and bold group labels. Use two filled side-by-side bars per commodity: a lighter shade for Kontrak
 and a stronger shade of the same commodity color for Realisasi. Do not use
 outline-only contract bars.
+Keep corn and grain shades strongly separated using opaque color tokens, not
+alpha or opacity. Show both exact shades in each commodity legend entry and
+state that Kontrak is the left bar and Realisasi the right bar.
+Use the supplied exact pairs in both themes: sorghum contract #D9B99B and
+realization #8A5A2B; corn contract #F2D98A and realization #C9962B. Contract bars
+and their legend swatches also have a 1px outline in the stronger commodity
+color, so identification has a shape cue beyond color/lightness. Grass uses
+#2F6B37 for realization in light mode and a legible green in dark mode.
 Do not overlap the two bars or use a single progress bar. Keep actual values
 honest if realization exceeds the contract; never cap the source values. Use
 fixed sales colors: corn yellow, grass green, and sorghum/soybean golden brown,
