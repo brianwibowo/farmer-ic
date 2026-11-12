@@ -63,7 +63,7 @@ const hasFilters = computed(() =>
 );
 const summaryCards = computed(() => [
     {
-        label: 'Subblok ditanam',
+        label: 'Subblok tertanam',
         value: String(props.summary.subblocks),
         hint: 'Subblok dengan realisasi tanam',
         icon: ClipboardList,

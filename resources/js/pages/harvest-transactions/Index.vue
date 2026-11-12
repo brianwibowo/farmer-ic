@@ -62,7 +62,7 @@ const hasFilters = computed(() =>
 );
 const summaryCards = computed(() => [
     {
-        label: 'Subblok dipanen',
+        label: 'Subblok terpanen',
         value: String(props.summary.subblocks),
         hint: 'Subblok dengan realisasi panen',
         icon: ClipboardList,
