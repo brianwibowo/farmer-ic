@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import AppSelect from "@/components/selects/AppSelect.vue";
-import AppSelectOption from "@/components/selects/AppSelectOption.vue";
-import { Head, Link, router, usePage } from "@inertiajs/vue3";
-import { RefreshCw, WalletCards } from "@lucide/vue";
-import { computed, ref, watch } from "vue";
-import DashboardActivities from "@/components/dashboard/DashboardActivities.vue";
-import DashboardActivityChart from "@/components/dashboard/DashboardActivityChart.vue";
-import DashboardAttention from "@/components/dashboard/DashboardAttention.vue";
-import DashboardFarmMap from "@/components/dashboard/DashboardFarmMap.vue";
-import DashboardFarmPreview from "@/components/dashboard/DashboardFarmPreview.vue";
-import DashboardWeather from "@/components/dashboard/DashboardWeather.vue";
-import DashboardMetricCards from "@/components/dashboard/DashboardMetricCards.vue";
-import DashboardPlantingOverview from "@/components/dashboard/DashboardPlantingOverview.vue";
-import MetricInfoTooltip from "@/components/MetricInfoTooltip.vue";
-import PendingInvitationsModal from "@/components/PendingInvitationsModal.vue";
-import { Button } from "@/components/ui/button";
-import type { DashboardInvitation } from "@/types";
-import type { AdminDashboardData } from "@/types/dashboard";
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { RefreshCw, WalletCards } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
+import DashboardActivities from '@/components/dashboard/DashboardActivities.vue';
+import DashboardActivityChart from '@/components/dashboard/DashboardActivityChart.vue';
+import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
+import DashboardFarmPreview from '@/components/dashboard/DashboardFarmPreview.vue';
+import DashboardRisks from '@/components/dashboard/DashboardRisks.vue';
+import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
+import DashboardMetricCards from '@/components/dashboard/DashboardMetricCards.vue';
+import DashboardPlantingOverview from '@/components/dashboard/DashboardPlantingOverview.vue';
+import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
+import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
+import { Button } from '@/components/ui/button';
+import type { DashboardInvitation } from '@/types';
+import type { AdminDashboardData } from '@/types/dashboard';
 
 defineOptions({ inheritAttrs: false });
 const page = usePage();
@@ -194,10 +194,10 @@ function loadDashboard(): void {
         </p>
         <DashboardMetricCards :dashboard="dashboard" />
         <section
-            class="grid items-stretch gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]"
+            class="grid items-stretch gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]"
         >
             <DashboardActivityChart :trend="dashboard.trend" />
-            <DashboardAttention :items="dashboard.attention" />
+            <DashboardRisks :risks="dashboard.risks" />
         </section>
         <DashboardPlantingOverview
             :cycles="dashboard.cycles"
