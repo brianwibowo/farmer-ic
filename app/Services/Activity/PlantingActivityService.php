@@ -9,7 +9,6 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
-use App\Models\PlantingCycleStage;
 use App\Models\PlantingDetail;
 use App\Models\User;
 use App\Services\PlantingCycleTaskService;
@@ -159,12 +158,7 @@ class PlantingActivityService
                     $paths[] = $path;
                     ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $path]);
                 }
-                $stage = PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)->where('code', 'planting')->lockForUpdate()->firstOrFail();
-                $finished = $log->end_time === null ? $started : CarbonImmutable::parse($data['work_date'].' '.$log->end_time, 'Asia/Jakarta');
-                $stage->forceFill(['status' => 'completed',
-                    'started_at' => $stage->started_at === null || $started->lt($stage->started_at) ? $started : $stage->started_at,
-                    'completed_at' => $stage->completed_at === null || $finished->gt($stage->completed_at) ? $finished : $stage->completed_at,
-                ])->save();
+                app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
 
                 return $this->tasks->generateForSubblok($cycle, $actor);
             });

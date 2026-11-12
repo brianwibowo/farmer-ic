@@ -5,6 +5,9 @@
 > status and remaining work, read `docs/petugas-activity-handoff.md` and
 > `docs/petugas-task-list-contract.md`. Task approval/review is no longer in
 > scope. Admin skip/reschedule remains available; cancel was merged into skip.
+> Harvest is now task-only and its completion happens when Admin closes the
+> harvest, rather than through direct Petugas completion. See
+> `docs/farm-block-backend.md` for the current workflow.
 
 Status: **Ownership split confirmed.** The Petugas flow — activity creation,
 planting logging, and task completion — is owned by the friend. The Admin

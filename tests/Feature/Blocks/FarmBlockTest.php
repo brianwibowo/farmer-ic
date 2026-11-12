@@ -638,8 +638,10 @@ class FarmBlockTest extends TestCase
         $batchIds = PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all();
         $this->assertCount(3, $batchIds);
         $this->assertSame(0, PlantingCycle::where('farm_id', $demo->id)->whereNull('block_id')->count());
-        $this->assertSame(['harvested', 'active', 'planned'], PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('status')->all());
+        // The block seeder creates the cycles; DemoActivitySeeder records and closes the historical harvest later.
+        $this->assertSame(['active', 'active', 'planned'], PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('status')->all());
         $this->assertSame(18, PlantingCycleStage::whereIn('planting_cycle_id', $batchIds)->count());
+        $this->assertSame(18, PlantingCycleStage::whereIn('planting_cycle_id', $batchIds)->where('status', 'upcoming')->count());
         $this->seed(DemoFarmBlockSeeder::class);
         $this->assertSame($ids, FarmBlock::where('farm_id', $demo->id)->pluck('id')->all());
         $this->assertSame(2, count($ids));

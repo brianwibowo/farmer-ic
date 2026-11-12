@@ -29,6 +29,7 @@ const props = defineProps<{
     farm: ManagedFarm;
     blocks: ManagedBlock[];
     batchPermissions: Record<string, boolean>;
+    harvestPermissions: Record<string, boolean>;
     blockCapacity: BlockFormCapacity | null;
     deletionBlockers: string[];
     legalityUrl: string | null;
@@ -108,7 +109,7 @@ const progressDescriptions: Record<string, string> = {
     planting: 'sedang ditanami',
     maintenance: 'sedang dalam pemeliharaan',
     harvest: 'berada di tahap panen',
-    not_started: 'belum memulai pekerjaan',
+    not_started: 'belum memiliki tahap berjalan',
 };
 const progressStages = computed(() =>
     props.farm.progress_overview.stages.filter((stage) => stage.count > 0),
@@ -257,7 +258,7 @@ const progressStages = computed(() =>
                             >
                             {{
                                 progressDescriptions[stage.code] ??
-                                'belum memulai pekerjaan'
+                                'belum memiliki tahap berjalan'
                             }}.
                         </li>
                     </ul>
@@ -369,6 +370,7 @@ const progressStages = computed(() =>
             :farm="farm"
             :blocks="blocks"
             :batch-permissions="batchPermissions"
+            :harvest-permissions="harvestPermissions"
             :capacity="blockCapacity"
             :can-create="can.createBlock"
             return-to="farm"

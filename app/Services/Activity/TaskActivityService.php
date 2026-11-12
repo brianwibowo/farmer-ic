@@ -45,6 +45,9 @@ class TaskActivityService
                 $cycleQuery = PlantingCycle::visibleTo($actor, $farm->team)->whereKey($task->planting_cycle_id)
                     ->where('farm_id', $farm->id);
                 $cycle = ($code === 'harvest' ? $cycleQuery->lockForUpdate() : $cycleQuery->sharedLock())->firstOrFail();
+                if (! in_array($cycle->status, ['planned', 'active'], true)) {
+                    throw ValidationException::withMessages(['task' => 'Subblok sudah ditutup.']);
+                }
                 if ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString()) {
                     throw ValidationException::withMessages(['work_date' => 'Laporan tugas lanjutan harus pada atau setelah tanggal tanam aktual.']);
                 }
@@ -114,6 +117,8 @@ class TaskActivityService
                     $paths[] = $path;
                     ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $path]);
                 }
+
+                app(PlantingCycleStageService::class)->record($actor, $farm->team, $activity, $type);
 
                 if ($task->status === 'pending') {
                     $task->forceFill(['status' => 'in_progress'])->save();

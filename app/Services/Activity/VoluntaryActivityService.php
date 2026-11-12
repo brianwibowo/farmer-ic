@@ -21,7 +21,6 @@ class VoluntaryActivityService
     public function __construct(
         private readonly DailyActivityHeaderService $headers,
         private readonly ActivitySequenceService $sequence,
-        private readonly HarvestGuard $harvest,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -33,6 +32,9 @@ class VoluntaryActivityService
                 $team = $farm->team;
                 $farm = Farm::visibleTo($actor, $team)->whereKey($farm->id)->lockForUpdate()->firstOrFail();
                 $type = ActivityType::visibleTo($actor, $team)->whereKey($type->id)->where('is_active', true)->where('is_selectable', true)->firstOrFail();
+                if (VoluntaryActivityCategoryService::requiresTask($type->code)) {
+                    throw ValidationException::withMessages(['type' => 'Panen hanya dapat dicatat melalui tugas SOP.']);
+                }
                 if ($block !== null) {
                     $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->whereKey($block->id)->lockForUpdate()->firstOrFail();
                 }
@@ -44,18 +46,13 @@ class VoluntaryActivityService
                     $this->sequence->ensureAllowed($actor, $cycle, $type->code);
                     $blockId = $cycle->getAttribute('block_id');
                     $block = $blockId === null ? null : FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereKey($blockId)->firstOrFail();
-                    if (in_array($type->code, ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control', 'harvest'], true)
+                    if (in_array($type->code, ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control'], true)
                         && ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString())) {
                         throw ValidationException::withMessages(['work_date' => 'Perawatan dan panen dicatat pada atau setelah tanggal acuan tanam.']);
                     }
                 }
                 $d = VoluntaryActivityFields::normalized($data['details']);
-                if ($type->code === 'harvest') {
-                    if ($cycle === null) {
-                        throw ValidationException::withMessages(['cycle_id' => 'Pilih subblok untuk laporan panen.']);
-                    }
-                    $this->harvest->ensureValid($actor, $team, $cycle, $d);
-                } elseif (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->getAttribute('reserved_area_ha')) || (! $cycle && $block && $d['area_ha'] > (float) $block->area_ha))) {
+                if (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->getAttribute('reserved_area_ha')) || (! $cycle && $block && $d['area_ha'] > (float) $block->area_ha))) {
                     throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi luas lokasi yang dipilih.']);
                 }
                 if (($d['quantity_kg'] ?? 0) > 999999999.999) {
@@ -84,7 +81,6 @@ class VoluntaryActivityService
                     ]),
                     'weeding' => $activity->weedingDetail()->create(['area_ha' => $d['area_ha'], 'method' => $d['method'], 'depth_cm' => $d['depth_cm'] ?? null]),
                     'pesticide' => $activity->pesticideDetail()->create(['pesticide_category' => $d['control_type'], 'purpose' => $d['target'], 'brand_name' => $d['product'], 'dosage_per_tank' => $d['dosage'].' ml/L', 'tank_size_liters' => $d['water_liters'], 'tank_count' => $d['tank_count']]),
-                    'harvest' => $activity->harvestDetail()->create(['harvested_area_ha' => $d['area_ha'], 'gross_weight_ton' => $d['weight_ton'], 'moisture_percentage' => $d['moisture'] ?? null]),
                     'growth_check' => $activity->observation()->create(['planting_cycle_id' => $cycle->id, 'observed_by' => $actor->id, 'observed_at' => $date, 'growth_phase' => $d['phase'], 'average_height_cm' => $d['height_cm'], 'pest_indication' => $d['pest'], 'disease_indication' => $d['disease']]),
                     'incident' => $activity->incidentDetail()->create(['incident_category' => $d['incident_category'], 'severity' => $d['severity'], 'affected_area_ha' => $d['area_ha']]),
                     'land_cleaning' => $activity->landCleaningDetail()->create(['area_ha' => $d['area_ha'], 'method' => $d['method'], 'product_name' => $d['product'] ?? null, 'dosage_per_tank' => $d['dosage'] ?? null, 'water_liters' => $d['water_liters'] ?? null, 'tank_count' => $d['tank_count'] ?? null]),
@@ -102,6 +98,8 @@ class VoluntaryActivityService
                     $paths[] = $path;
                     ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $path]);
                 }
+
+                app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
 
                 return $activity;
             });

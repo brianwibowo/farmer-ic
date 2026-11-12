@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\FarmActivity;
+use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
+use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +27,17 @@ class PlantingCycleTaskManagementService
     public function complete(PlantingCycleTask $task, User $actor, ?string $note = null): PlantingCycleTask
     {
         return DB::transaction(function () use ($task, $actor, $note): PlantingCycleTask {
-            $locked = PlantingCycleTask::query()->lockForUpdate()->findOrFail($task->id);
+            $team = $task->plantingCycle?->farm?->team;
+            if (! $team instanceof Team) {
+                throw ValidationException::withMessages(['status' => 'Konteks kebun tugas tidak tersedia.']);
+            }
+            $locked = PlantingCycleTask::visibleTo($actor, $team)->whereKey($task->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->activity_category === 'harvest') {
+                throw ValidationException::withMessages([
+                    'status' => 'Tugas panen diselesaikan oleh Admin saat penutupan panen subblok.',
+                ]);
+            }
 
             if (! in_array($locked->status, ['pending', 'in_progress'], true)) {
                 throw ValidationException::withMessages([
@@ -33,16 +45,14 @@ class PlantingCycleTaskManagementService
                 ]);
             }
 
-            $cycle = $locked->plantingCycle;
+            $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($locked->planting_cycle_id)->firstOrFail();
             if ($cycle->planted_at === null) {
                 throw ValidationException::withMessages([
                     'status' => 'Tugas belum dapat diselesaikan sebelum tanggal tanam aktual dicatat.',
                 ]);
             }
 
-            $team = $cycle->farm?->team;
-            $hasReport = $team !== null
-                && FarmActivity::visibleTo($actor, $team)->where('planting_cycle_task_id', $locked->id)->exists();
+            $hasReport = FarmActivity::visibleTo($actor, $team)->where('planting_cycle_task_id', $locked->id)->exists();
             if (! $hasReport) {
                 throw ValidationException::withMessages([
                     'status' => 'Tambahkan minimal satu aktivitas sebelum menyelesaikan tugas.',

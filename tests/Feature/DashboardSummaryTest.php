@@ -106,7 +106,7 @@ class DashboardSummaryTest extends TestCase
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
-    public function test_preparation_batch_uses_persisted_stage_and_land_clearing_requires_report(): void
+    public function test_preparation_batch_uses_reported_stages_and_land_clearing_requires_report(): void
     {
         $farm = $this->farm('Kebun Timeline');
         Gate::forUser($this->admin)->authorize('create', [FarmBlock::class, $farm]);
@@ -116,7 +116,7 @@ class DashboardSummaryTest extends TestCase
         app(FarmBlockService::class)->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => 1]);
         $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.cycles.running', 1)->where('dashboard.cycles.planned', 1)
-            ->where('dashboard.cycles.stages.0.count', 1)->where('dashboard.cycles.withoutTimeline', 0)
+            ->where('dashboard.cycles.stages.0.count', 0)->where('dashboard.cycles.withoutTimeline', 1)
             ->where('dashboard.attention.2.count', 1)->where('dashboard.metrics.1.breakdown.blocks', 1));
         $type = ActivityType::firstOrCreate(['code' => 'land_cleaning'], ['name' => 'Pembersihan lahan']);
         $activity = FarmActivity::create(['farm_id' => $farm->id, 'activity_type_id' => $type->id,
@@ -124,6 +124,36 @@ class DashboardSummaryTest extends TestCase
         $activity->forceFill(['block_id' => $block->id])->save();
         $activity->landCleaningDetail()->create(['area_ha' => 1, 'method' => 'Manual']);
         $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.attention.2.count', 0));
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
+    public function test_fertilizer_progress_reads_persisted_stage_in_dashboard_and_farm_detail(): void
+    {
+        $farm = $this->farm('Kebun Pupuk');
+        $service = app(FarmBlockService::class);
+        $block = $service->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => 5]);
+        $batch = $service->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => 1]);
+        $batch->stages()->where('code', 'soil_preparation')->update(['status' => 'upcoming', 'started_at' => null]);
+        $stage = $batch->stages()->where('code', 'basic_fertilizer')->firstOrFail();
+        $stage->forceFill(['status' => 'in_progress', 'started_at' => now()])->save();
+        $this->get('/admin/dashboard?farm_id='.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('dashboard.cycles.stages.1.code', 'basic_fertilizer')->where('dashboard.cycles.stages.1.count', 1)
+            ->where('dashboard.cycles.withoutTimeline', 0));
+        $this->get('/admin/farm-management/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('farm.progress_overview.stages.2.count', 1)->where('farm.progress_overview.stages.6.count', 0)
+            ->where('blocks.0.batches.0.stages.2.status', 'in_progress'));
+
+        $type = ActivityType::where('code', 'base_fertilization')->firstOrFail();
+        $activity = FarmActivity::create(['farm_id' => $farm->id, 'activity_type_id' => $type->id,
+            'performed_by' => $this->admin->id, 'activity_date' => now(), 'description' => 'Pemupukan kandang', 'status' => 'completed']);
+        $activity->forceFill(['block_id' => $block->id])->save();
+        $activity->fertilizationDetail()->create(['fertilization_stage' => 'dasar', 'fertilizer_type' => 'Kandang', 'quantity_kg' => 50]);
+        $this->get('/admin/dashboard?farm_id='.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('dashboard.cycles.stages.1.count', 1)->where('dashboard.cycles.withoutTimeline', 0));
+        $this->get('/admin/farm-management/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('farm.progress_overview.stages.2.count', 1)->where('farm.progress_overview.stages.6.count', 0)
+            ->where('blocks.0.batches.0.stages.2.status', 'in_progress'));
+        $this->assertSame('in_progress', $stage->fresh()->status);
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 

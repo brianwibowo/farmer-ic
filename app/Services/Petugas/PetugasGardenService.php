@@ -51,7 +51,6 @@ class PetugasGardenService
                 ->with(['stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')])
                 ->orderByRaw("CASE WHEN status IN ('planned', 'active') THEN 0 ELSE 1 END")
                 ->orderByDesc('batch_number')->orderBy('id')->paginate(6, ['*'], 'page', max(1, min($page, $lastPage)))->appends(['block' => $selected->id]);
-            app(\App\Services\Activity\BlockPreparationTimeline::class)->apply($actor, $team, $batches->getCollection());
             $batches = $batches->through(function (PlantingCycle $batch) use ($today): array {
                 $stages = $batch->stages;
                 $current = $stages->firstWhere('status', 'in_progress') ?? $stages->where('status', 'completed')->last();

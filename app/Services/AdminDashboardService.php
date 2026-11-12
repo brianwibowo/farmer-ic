@@ -10,7 +10,6 @@ use App\Models\FinancialProjection;
 use App\Models\FinancialTransaction;
 use App\Models\OperationalTarget;
 use App\Models\PlantingCycle;
-use App\Models\PlantingCycleStage;
 use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -187,17 +186,18 @@ class AdminDashboardService
         })->values()->all();
 
         $runningCycles = (clone $cycles)->whereIn('status', ['planned', 'active']);
-        $runningCount = (clone $runningCycles)->count();
-        $stageCounts = PlantingCycleStage::query()->visibleTo($actor, $team)
-            ->whereIn('planting_cycle_id', (clone $runningCycles)->select('id'))
-            ->where('status', 'in_progress')
-            ->selectRaw('code, COUNT(*) as total')->groupBy('code')->pluck('total', 'code');
+        $runningBatches = (clone $runningCycles)
+            ->with(['stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')])
+            ->get(['id', 'farm_id', 'block_id', 'status']);
+        $runningCount = $runningBatches->count();
+        $stageCounts = $runningBatches->flatMap(fn (PlantingCycle $batch) => $batch->stages->where('status', 'in_progress'))
+            ->countBy('code');
         $stageNames = ['soil_preparation' => 'Persiapan tanah', 'basic_fertilizer' => 'Pupuk dasar', 'planting' => 'Penanaman', 'maintenance' => 'Pemeliharaan', 'harvest' => 'Panen'];
         $stages = collect($stageNames)->map(fn (string $label, string $code): array => ['code' => $code, 'label' => $label, 'count' => (int) ($stageCounts[$code] ?? 0)])->values()->all();
         $cleanedBlocks = FarmActivity::visibleTo($actor, $team)->whereNotNull('block_id')
             ->whereHas('activityType', fn ($types) => $types->visibleTo($actor, $team)->where('code', 'land_cleaning'))->select('block_id');
         $landClearing = (clone $blocks)->where('is_active', true)->whereNotIn('id', $cleanedBlocks)->count();
-        $timelineUnknown = max(0, $runningCount - array_sum(array_column($stages, 'count')));
+        $timelineUnknown = max(0, $runningCount - $stageCounts->sum());
         $trend = $this->activityTrend($trendActivities, $weekStart, $period);
 
         return [
@@ -215,7 +215,7 @@ class AdminDashboardService
             'attention' => [
                 ['key' => 'risks', 'label' => 'Risiko belum ditutup', 'count' => (clone $openRisks)->count(), 'description' => 'Risiko berstatus selain resolved atau closed pada kebun dalam cakupan akses.'],
                 ['key' => 'harvest', 'label' => 'Estimasi panen 14 hari', 'count' => (clone $activeCycles)->whereBetween('estimated_harvest_at', [CarbonImmutable::today(), CarbonImmutable::today()->addDays(14)])->count(), 'description' => 'Batch aktif dengan estimasi panen mulai hari ini hingga 14 hari ke depan.'],
-                ['key' => 'clearing', 'label' => 'Blok land clearing', 'count' => $landClearing, 'description' => 'Blok aktif yang pembersihan lahannya belum selesai. Tahap ini dicatat pada tingkat blok.'],
+                ['key' => 'clearing', 'label' => 'Blok tanpa laporan pembersihan', 'count' => $landClearing, 'description' => 'Blok aktif tanpa laporan pembersihan lahan. Adanya laporan tidak otomatis berarti pekerjaan selesai.'],
                 ['key' => 'maintenance', 'label' => 'Batch pemeliharaan', 'count' => (int) ($stageCounts['maintenance'] ?? 0), 'description' => 'Batch berjalan dengan tahap pemeliharaan berstatus sedang berlangsung.'],
                 ['key' => 'officers', 'label' => 'Petugas lapangan aktif', 'count' => count($officers), 'description' => 'Akun petugas aktif yang dapat dilihat dalam cakupan akses saat ini.'],
             ],

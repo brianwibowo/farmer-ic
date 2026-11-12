@@ -12,6 +12,7 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Services\Activity\ActivitySequenceService;
 use App\Services\Activity\PlantingActivityService;
+use App\Services\Activity\VoluntaryActivityCategoryService;
 use App\Services\Activity\VoluntaryActivityService;
 use App\Support\VoluntaryActivityFields;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ class PetugasVoluntaryActivityController extends Controller
     {
         $farm = $this->farm($request);
         Gate::authorize('recordVoluntary', [FarmActivity::class, $farm, $type]);
+        abort_if(VoluntaryActivityCategoryService::requiresTask($type->code), 404);
 
         return Inertia::render('petugas/VoluntaryCreate', [
             'farm' => $farm->only(['id', 'name']), 'type' => $type->only(['id', 'code', 'name']),
@@ -46,6 +48,7 @@ class PetugasVoluntaryActivityController extends Controller
     {
         $farm = $this->farm($request);
         Gate::authorize('recordVoluntary', [FarmActivity::class, $farm, $type]);
+        abort_if(VoluntaryActivityCategoryService::requiresTask($type->code), 404);
         $data = $request->validated();
         $cycle = empty($data['cycle_id']) ? null : PlantingCycle::query()->whereKey($data['cycle_id'])->firstOrFail();
         if ($cycle !== null) {

@@ -121,7 +121,6 @@ class OwnerReadService
                     ->with(['commodity' => fn ($commodities) => $commodities->visibleTo($actor, $team)]),
                 'stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')->orderBy('id'),
             ])->get()->groupBy('farm_id');
-        app(\App\Services\Activity\BlockPreparationTimeline::class)->apply($actor, $team, $cyclesByFarm->flatten(1));
 
         $rows = [];
         foreach ($farms as $farm) {
@@ -400,7 +399,6 @@ class OwnerReadService
         $cycles = $this->cycleQuery($actor, $team)->where('farm_id', $farm->id)
             ->where('block_id', $block->id)
             ->orderByDesc('created_at')->orderBy('batch_number')->get();
-        app(\App\Services\Activity\BlockPreparationTimeline::class)->apply($actor, $team, $cycles);
 
         return [
             'farm' => $farm->only(['id', 'name']),

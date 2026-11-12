@@ -23,11 +23,11 @@ class PlantingCycleTaskPolicy extends ResourcePolicy
             && $this->viewAny($user, $cycle->farm->team);
     }
 
-    /** Direct completion after at least one linked activity report. */
+    /** Harvest is completed through the authorized cycle closure instead. */
     public function complete(User $user, PlantingCycleTask $task): bool
     {
         $farm = $task->plantingCycle?->farm;
-        if (! $farm instanceof Farm || ! $this->view($user, $task)) {
+        if ($task->activity_category === 'harvest' || ! $farm instanceof Farm || ! $this->view($user, $task)) {
             return false;
         }
 

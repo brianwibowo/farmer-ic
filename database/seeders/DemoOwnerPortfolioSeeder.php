@@ -7,7 +7,6 @@ use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
-use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
@@ -17,7 +16,6 @@ use App\Models\User;
 use App\Services\FarmBlockService;
 use App\Services\PlantingCycleTaskService;
 use App\Services\SopTemplateService;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -126,11 +124,6 @@ class DemoOwnerPortfolioSeeder extends Seeder
             'estimated_weight_ton' => $batchData['estimated_weight_ton'],
         ])->save();
 
-        foreach (PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $batch->id)->orderBy('position')->get() as $stage) {
-            Gate::forUser($actor)->authorize('update', $stage);
-            [$status, $started, $completed] = $this->stageDates($batchData)[$stage->getAttribute('code')];
-            $stage->forceFill(['status' => $status, 'started_at' => $started, 'completed_at' => $completed])->save();
-        }
         Gate::forUser($actor)->authorize('create', [PlantingCycleTask::class, $batch]);
         app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor);
         $this->taskStatuses($actor, $team, $batch, 'active');
@@ -221,18 +214,6 @@ class DemoOwnerPortfolioSeeder extends Seeder
             $block = app(FarmBlockService::class)->create($farm, $actor, $team, [
                 ...$data, 'description' => 'Blok fisik pada skenario portofolio '.$site['name'].', snapshot 5 November 2026.', 'is_active' => true,
             ]);
-            $batchData = null;
-            foreach ($site['batches'] as $candidate) {
-                if ($candidate['block_code'] === $data['code']) {
-                    $batchData = $candidate;
-                    break;
-                }
-            }
-            $clearing = $batchData === null
-                ? ['completed', '2026-08-01 07:00:00+07', '2026-08-03 16:00:00+07']
-                : $this->stageDates($batchData)['land_clearing'];
-            Gate::forUser($actor)->authorize('update', $block);
-            $block->forceFill(['land_clearing_started_at' => $clearing[1], 'land_clearing_completed_at' => $clearing[2]])->save();
             $blocks[$data['code']] = $block;
         }
         foreach ($site['batches'] as $data) {
@@ -251,53 +232,20 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 'planted_at' => $data['planted_at'], 'planted_area_ha' => $data['planted_area_ha'],
                 'estimated_harvest_at' => $data['estimated_harvest_at'], 'estimated_weight_ton' => $data['estimated_weight_ton'],
             ])->save();
-            $dates = $this->stageDates($data);
-            foreach (PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $batch->id)->orderBy('position')->get() as $stage) {
-                Gate::forUser($actor)->authorize('update', $stage);
-                [$status, $started, $completed] = $dates[$stage->getAttribute('code')];
-                $stage->forceFill(['status' => $status, 'started_at' => $started, 'completed_at' => $completed])->save();
-            }
             Gate::forUser($actor)->authorize('create', [PlantingCycleTask::class, $batch]);
             app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor);
-            if ($data['status'] === 'harvested') {
-                $batch->forceFill(['status' => 'harvested'])->save();
-            }
+            // The activity seeder creates the evidence and closes harvested batches.
             $this->taskStatuses($actor, $team, $batch, $data['status']);
         }
-    }
-
-    /** @param array<string, mixed> $batch
-     * @return array<string, array{string, string|null, string|null}>
-     */
-    private function stageDates(array $batch): array
-    {
-        if ($batch['status'] === 'planned') {
-            $basic = $batch['current_stage'] === 'basic_fertilizer';
-
-            return [
-                'land_clearing' => ['completed', '2026-10-20 07:00:00+07', '2026-10-22 16:00:00+07'],
-                'soil_preparation' => [$basic ? 'completed' : 'in_progress', '2026-10-23 07:00:00+07', $basic ? '2026-10-28 16:00:00+07' : null],
-                'basic_fertilizer' => [$basic ? 'in_progress' : 'upcoming', $basic ? '2026-10-29 07:00:00+07' : null, null],
-                'planting' => ['upcoming', null, null], 'maintenance' => ['upcoming', null, null], 'harvest' => ['upcoming', null, null],
-            ];
-        }
-        $planted = CarbonImmutable::parse($batch['planted_at'], 'Asia/Jakarta');
-        $stamp = fn (int $offset, string $time): string => $planted->addDays($offset)->format('Y-m-d').' '.$time.'+07';
-        $harvested = $batch['harvested_at'];
-
-        return [
-            'land_clearing' => ['completed', $stamp(-15, '07:00:00'), $stamp(-13, '16:00:00')],
-            'soil_preparation' => ['completed', $stamp(-12, '07:00:00'), $stamp(-8, '16:00:00')],
-            'basic_fertilizer' => ['completed', $stamp(-7, '07:00:00'), $stamp(-2, '16:00:00')],
-            'planting' => ['completed', $stamp(0, '07:00:00'), $stamp(0, '16:00:00')],
-            'maintenance' => [$harvested === null ? 'in_progress' : 'completed', $stamp(1, '07:00:00'), $harvested === null ? null : CarbonImmutable::parse($harvested)->subDay()->format('Y-m-d').' 16:00:00+07'],
-            'harvest' => [$harvested === null ? 'upcoming' : 'completed', $harvested === null ? null : $harvested.' 07:00:00+07', $harvested === null ? null : $harvested.' 16:00:00+07'],
-        ];
     }
 
     private function taskStatuses(User $actor, Team $team, PlantingCycle $batch, string $batchStatus): void
     {
         foreach (PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $batch->id)->get() as $task) {
+            // Harvest tasks remain open until the activity seeder closes the cycle.
+            if ($task->activity_category === 'harvest') {
+                continue;
+            }
             $date = $task->scheduled_date?->toDateString();
             $completed = $batchStatus === 'harvested' || ($batchStatus === 'active' && $date !== null && $date < DemoOwnerPortfolioData::SNAPSHOT_DATE);
             $inProgress = $batchStatus === 'active' && $date === DemoOwnerPortfolioData::SNAPSHOT_DATE;

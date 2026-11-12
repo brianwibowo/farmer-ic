@@ -85,9 +85,12 @@ const growthId = useId();
                                     ? `Mulai ${blockDate(stage.started_at)}`
                                     : 'Tanggal belum tersedia'
                             }}<span v-if="stage.completed_at" class="block"
-                                >Selesai
+                                >Laporan terakhir
                                 {{ blockDate(stage.completed_at) }}</span
                             >
+                        </p>
+                        <p v-else-if="stage.status === 'completed'" class="mt-1 text-xs text-muted-foreground">
+                            Tidak ada laporan pada tahap ini
                         </p>
                     </div>
                 </li>

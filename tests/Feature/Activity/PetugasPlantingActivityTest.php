@@ -86,6 +86,15 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame('2026-10-27', $this->cycle->refresh()->planted_at->toDateString());
         $this->assertSame('2026-10-26', $this->cycle->getAttribute('planting_started_on'));
         $this->assertSame('1.2000', $this->cycle->planted_area_ha);
+        $stage = $this->cycle->stages()->where('code', 'planting')->firstOrFail();
+        $this->assertSame('in_progress', $stage->status);
+        $this->assertSame('2026-10-26', $stage->started_at->setTimezone('Asia/Jakarta')->toDateString());
+        $this->assertSame('2026-10-28', $stage->completed_at->setTimezone('Asia/Jakarta')->toDateString());
+        foreach ($this->cycle->stages()->where('position', '<', 4)->get() as $skipped) {
+            $this->assertSame('completed', $skipped->status);
+            $this->assertNull($skipped->started_at);
+            $this->assertNull($skipped->completed_at);
+        }
         $this->assertSame('2026-11-03', $task->refresh()->scheduled_date->toDateString());
         $this->assertDatabaseCount('planting_cycle_tasks', 2);
         $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.1', 'work_date' => '2026-10-29'])->assertSessionHasErrors('work_date');
@@ -182,7 +191,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame(4, $activity->worker_count);
         $this->assertNull($activity->getAttribute('planting_cycle_task_id'));
         $this->assertDatabaseHas('planting_details', ['activity_id' => $activity->id, 'seed_name' => $data['seed_name']]);
-        $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $cycle->id, 'code' => 'planting', 'status' => 'completed']);
+        $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $cycle->id, 'code' => 'planting', 'status' => 'in_progress']);
         $this->assertSame(2, $cycle->tasks()->count());
         $this->assertSame(now('Asia/Jakarta')->subDays(2)->addDays(7)->toDateString(), $cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail()->scheduled_date->toDateString());
         $photo = ActivityPhoto::firstOrFail();
@@ -217,6 +226,8 @@ class PetugasPlantingActivityTest extends TestCase
             'details' => ['area_ha' => '1', 'water_source' => 'Sumur', 'method' => 'Pompa', 'duration_hours' => '1'],
             'photos' => [UploadedFile::fake()->image('pengairan.jpg')],
         ])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $this->cycle->id, 'code' => 'planting', 'status' => 'completed']);
+        $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $this->cycle->id, 'code' => 'maintenance', 'status' => 'in_progress']);
         $this->assertDatabaseCount('daily_activity_logs', 1);
         $this->assertSame([1, 2], FarmActivity::orderBy('position')->pluck('position')->all());
         $this->assertSame(1, FarmActivity::distinct()->count('daily_activity_log_id'));

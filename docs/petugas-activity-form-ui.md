@@ -131,7 +131,8 @@ Label blok bukan bukti relasi master block. Jangan menggunakannya untuk otorisas
 | Kategori | Subkategori atau detail utama |
 | --- | --- |
 | Pembersihan lahan | Luas, metode; produk, dosis, air, tangki bila herbisida. |
-| Pengolahan tanah | Penggemburan, bedengan, dolomit, pemupukan dasar. |
+| Pengolahan tanah | Penggemburan, bedengan, dolomit. |
+| Pemupukan dasar | Aktivitas mandiri pada tingkat blok: luas, jenis pupuk, jumlah, dan metode. |
 | Penanaman | Varietas, benih, pola tanam, luas, kedalaman. |
 | Perawatan | Pengairan, pendangiran, pemupukan susulan, pertumbuhan, hama/penyakit. |
 | Panen | Luas, berat/satuan hasil, kadar air, metode. |
@@ -242,4 +243,3 @@ Warning optional fontaine atau chunk lebih dari 500 kB pada build perlu dicatat,
 - Blok/sub-blok masih berupa label karena master data belum menjadi prop page.
 - Border field memakai token desain Farmer/mobile; perbaikan token hex dicatat agar tidak terulang.
 - Tidak ada API/database integration yang disengaja pada tahap ini.
-

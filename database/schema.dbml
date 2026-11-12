@@ -191,7 +191,7 @@ Table farm_blocks {
     (farm_id, code) [unique]
     (id, farm_id) [unique]
   }
-  Note: 'Active block areas fit within the farm. First batch automatically completes Land Clearing. Historical blocks are deactivated rather than deleted.'
+  Note: 'Active block areas fit within the farm. Block clearing reports are shared by all subblocks. Historical blocks are deactivated rather than deleted.'
 }
 
 Table planting_cycle_stages {
@@ -201,7 +201,7 @@ Table planting_cycle_stages {
   position int [not null]
   status varchar(30) [not null]
   started_at timestamptz
-  completed_at timestamptz
+  completed_at timestamptz [note: 'Timestamp of the latest report, even while in progress; null for skipped stages']
   created_at timestamptz
   updated_at timestamptz
   indexes {
@@ -209,7 +209,7 @@ Table planting_cycle_stages {
     (planting_cycle_id, code) [unique]
     (planting_cycle_id, position) [unique]
   }
-  Note: 'Six stages per new batch: land_clearing completed, soil_preparation in_progress, remaining stages upcoming. No fabricated dates or progress percentages.'
+  Note: 'Six stages begin upcoming. Authorized activity reports advance the persisted timeline; earlier skipped stages are completed without dates. Admin explicitly closes harvest.'
 }
 
 Table planting_cycle_tasks {
