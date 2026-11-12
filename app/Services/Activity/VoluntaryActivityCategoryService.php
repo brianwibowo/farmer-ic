@@ -17,7 +17,7 @@ class VoluntaryActivityCategoryService
     {
         $team = $farm->team;
 
-        return ActivityType::visibleTo($actor, $team)
+        $categories = ActivityType::visibleTo($actor, $team)
             ->with(['parent' => fn ($query) => $query->visibleTo($actor, $team)])
             ->where('is_active', true)
             ->where('is_selectable', true)
@@ -31,7 +31,8 @@ class VoluntaryActivityCategoryService
                 ...$type->only(['id', 'code', 'name', 'parent_id']),
                 'group' => $type->parent?->name,
             ])
-            ->values()
             ->all();
+
+        return array_values($categories);
     }
 }
