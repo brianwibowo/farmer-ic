@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $team_id
  * @property string|null $title
  * @property string|null $message
+ * @property array<string, mixed>|null $content
  * @property bool $is_read
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $read_at
@@ -32,6 +33,7 @@ class Notification extends FarmerModel
     protected function casts(): array
     {
         return [
+            'content' => 'array',
             'is_read' => 'boolean',
             'created_at' => 'immutable_datetime',
             'read_at' => 'immutable_datetime',

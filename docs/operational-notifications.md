@@ -132,6 +132,18 @@ bertumpuk, bukan pengulangan command manual setelah pekerjaan sebelumnya selesai
 
 ## Inbox dan kompatibilitas
 
+Notifikasi baru menyimpan kolom content JSONB versi 1 sebagai snapshot ringkasan
+pada saat pengiriman. Inbox membuka rincian langsung di dalam kartu:
+Owner melihat total target/panen serta rincian kabupaten, Admin melihat aktivitas,
+hambatan dan semua kategori insiden per kebun/blok. Reminder dan ketidaksesuaian
+memakai kartu terpisah dengan jadwal serta batas toleransi. Dropdown membantu
+menyaring kabupaten, kebun atau H-0/H-1/H-3 di dalam laporan.
+
+Tabel pada kartu lebar berubah menjadi rincian berlabel pada kartu sempit.
+Membuka kartu tidak otomatis menandainya dibaca. Rincian berasal dari snapshot
+tersimpan, tanpa query tambahan untuk setiap kebun/blok ketika inbox dibuka.
+Pesan WhatsApp tetap menggunakan template teks.
+
 Halaman /notifications menampilkan jenis baru weekly_report, task_reminder dan
 sop_deviation. Riwayat daily_report dan harvest_reminder tetap bisa dibaca;
 kelas lamanya dipertahankan untuk deserialisasi antrean lama. Payload jenis lama
@@ -146,7 +158,8 @@ Admin/Petugas tidak memperoleh nama tenant dari template reminder/ketidaksesuaia
 ## Menjalankan dan menguji
 
 Sebelum memakai kode ini, terapkan migrasi additive
-2026_11_11_000001_add_team_ids_to_notifications pada database aplikasi yang benar.
+2026_11_11_000001_add_team_ids_to_notifications dan
+2026_11_12_000001_add_content_to_notifications pada database aplikasi yang benar.
 CD saat ini menolak deployment jika masih ada migrasi pending; migrasi perlu
 operasi deployment yang ditinjau, bukan menghapus gate tersebut.
 

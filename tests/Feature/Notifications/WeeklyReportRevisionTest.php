@@ -173,6 +173,14 @@ class WeeklyReportRevisionTest extends TestCase
         $this->assertStringNotContainsString('Catatan Admin', $message);
         $this->assertStringNotContainsString('target per cycle', $message);
         $this->assertStringNotContainsString('subblok', mb_strtolower($message));
+        $content = $notification->toInApp()['content'];
+        $this->assertSame('weekly_admin', $content['kind']);
+        $this->assertSame(5, $content['farms'][0]['activity_count']);
+        $this->assertSame(2, $content['farms'][0]['blocks'][0]['obstacle_count']);
+        $this->assertSame([
+            ['label' => 'Alat rusak (Ringan)', 'count' => 1],
+            ['label' => 'Cuaca (Berat)', 'count' => 2],
+        ], $content['farms'][0]['blocks'][0]['incidents']);
     }
 
     public function test_harvest_uses_actual_activity_date_with_inclusive_monday_and_sunday_cutoffs(): void
@@ -206,6 +214,34 @@ class WeeklyReportRevisionTest extends TestCase
         }
         $foreign = Team::factory()->create(['is_personal' => false]);
         $this->get('/notifications?status=all&team_id='.$foreign->id)->assertForbidden();
+    }
+
+    public function test_rich_owner_content_is_persisted_and_remains_a_historical_snapshot(): void
+    {
+        $cycle = $this->cycle($this->farm('Kebun Snapshot'));
+        $this->harvest($cycle, 1.5);
+        app(NotificationService::class)->weeklyReports();
+        $notification = Bus::dispatched(SendQueuedNotifications::class)
+            ->first(fn ($job) => $job->notification->data['audience'] === 'owner')->notification;
+        app(InAppChannel::class)->send($this->owner, $notification);
+        $stored = $this->owner->notifications()->firstOrFail();
+        $this->assertSame('weekly_owner', $stored->content['kind']);
+        $this->assertSame(1, $stored->content['version']);
+        $this->assertSame('2026-11-09', $stored->content['period']['from']);
+        $jagung = collect($stored->content['totals']['commodities'])->firstWhere('name', 'Jagung');
+        $this->assertEquals(1.5, $jagung['harvest_ton']);
+        $this->assertEquals(400, $jagung['target_ton']);
+        $this->assertArrayNotHasKey('farms', $stored->content);
+        $this->assertArrayNotHasKey('user_id', $stored->content);
+        $cycle->activities()->whereHas('harvestDetail')->firstOrFail()->harvestDetail()->update(['gross_weight_ton' => 8]);
+        $this->actingAs($this->owner)->get('/notifications')
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+                ->where('notifications.data.0.content.kind', 'weekly_owner')
+                ->where('notifications.data.0.content.totals.commodities.0.harvest_ton', 1.5));
+        $other = $this->actor('owner', $this->team);
+        $this->actingAs($other)->get('/notifications')->assertInertia(
+            fn (\Inertia\Testing\AssertableInertia $page) => $page->has('notifications.data', 0),
+        );
     }
 
     public function test_revocation_after_fonnte_validation_blocks_combined_county_payload(): void

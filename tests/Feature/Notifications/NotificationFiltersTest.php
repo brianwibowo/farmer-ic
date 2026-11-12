@@ -24,6 +24,18 @@ class NotificationFiltersTest extends TestCase
         config(['inertia.ssr.enabled' => false]);
     }
 
+    public function test_text_history_remains_readable_without_structured_content(): void
+    {
+        $team = Team::factory()->create(['is_personal' => false]);
+        $owner = $this->actor('owner', $team);
+        $notice = $this->notice($owner, $team);
+        $this->actingAs($owner)->get('/notifications')->assertInertia(
+            fn (Assert $page) => $page->where('notifications.data.0.content', null)
+                ->where('notifications.data.0.id', $notice->id)
+                ->where('notifications.data.0.message', fn ($message) => str_contains($message, 'Catatan kebun.')),
+        );
+    }
+
     private function actor(string $role, Team $team): User
     {
         $user = User::factory()->create(['role' => $role]);

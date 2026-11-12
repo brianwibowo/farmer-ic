@@ -40,6 +40,8 @@ class NotificationController extends Controller
             return Inertia::render('notifications/Index', [
                 'notifications' => $inbox->paginate($actor, $filters)->through(fn (Notification $notification): array => [
                     'id' => $notification->id, 'title' => $notification->title,
+                    'type' => $notification->type,
+                    'content' => $notification->content,
                     'message' => $inbox->messageFor($actor, $notification, isset($tenantNames[$notification->team_id])),
                     'tenant_name' => $tenantNames[$notification->team_id] ?? null,
                     'is_read' => $notification->is_read,

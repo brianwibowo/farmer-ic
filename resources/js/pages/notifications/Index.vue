@@ -1,20 +1,13 @@
 <script setup lang="ts">
 import AppSelect from '@/components/selects/AppSelect.vue';
+import NotificationCard from '@/components/notifications/NotificationCard.vue';
+import type { InboxNotice as Notice } from '@/types/notifications';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, router, usePage, Link } from '@inertiajs/vue3';
-import {
-    Bell,
-    Building2,
-    Check,
-    CheckCheck,
-    ChevronDown,
-    LoaderCircle,
-    RotateCcw,
-    SlidersHorizontal,
-    X,
-} from '@lucide/vue';
+import { Bell, RotateCcw, SlidersHorizontal, X } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import OwnerLayout from '@/layouts/OwnerLayout.vue';
+import PetugasLayout from '@/layouts/PetugasLayout.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 
@@ -26,17 +19,7 @@ type Filters = {
     date_to: string;
     team_id: number | null;
 };
-type Notice = {
-    id: string;
-    title: string;
-    message: string;
-    tenant_name: string | null;
-    is_read: boolean;
-    created_at: string;
-    date_key: string;
-    date_label: string;
-    can_read: boolean;
-};
+
 const props = defineProps<{
     notifications: {
         data: Notice[];
@@ -54,7 +37,11 @@ const props = defineProps<{
 }>();
 const page = usePage();
 const layout = computed(() =>
-    page.props.navigation?.admin ? AppLayout : FarmerMobileShell,
+    page.props.navigation?.admin
+        ? AppLayout
+        : props.canFilterTenant
+          ? OwnerLayout
+          : PetugasLayout,
 );
 const filters = reactive<Filters>({ ...props.filters });
 const loading = ref(false);
@@ -243,7 +230,7 @@ onUnmounted(() => {
             :class="
                 page.props.navigation?.admin
                     ? 'admin-dashboard-theme admin-page-content'
-                    : 'mx-auto w-full max-w-4xl px-4 py-5 md:p-6'
+                    : 'mx-auto w-full max-w-4xl min-w-0'
             "
             :aria-busy="loading || pending !== null"
         >
@@ -401,7 +388,11 @@ onUnmounted(() => {
             </form>
 
             <div
-                v-if="showPhoneWarning && props.fonnteEnabled && !props.hasPhoneNumber"
+                v-if="
+                    showPhoneWarning &&
+                    props.fonnteEnabled &&
+                    !props.hasPhoneNumber
+                "
                 class="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted p-4 text-sm leading-6"
                 role="status"
             >
@@ -498,88 +489,13 @@ onUnmounted(() => {
                             :key="notice.id"
                             :data-notification-id="notice.id"
                         >
-                            <details
-                                class="group rounded-xl border border-border bg-card"
-                            >
-                                <summary
-                                    class="flex min-h-16 cursor-pointer list-none items-center gap-3 rounded-xl p-3 focus-visible:outline-2 focus-visible:outline-ring md:p-4 [&::-webkit-details-marker]:hidden"
-                                >
-                                    <span
-                                        class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-                                        aria-hidden="true"
-                                        ><Bell class="size-4"
-                                    /></span>
-                                    <span class="min-w-0 flex-1 space-y-1">
-                                        <span
-                                            class="block text-sm leading-5 font-semibold"
-                                            >{{ notice.title }}</span
-                                        >
-                                        <span
-                                            v-if="
-                                                props.canFilterTenant &&
-                                                notice.tenant_name
-                                            "
-                                            class="flex items-center gap-1 text-xs text-muted-foreground"
-                                            ><Building2
-                                                class="size-3 shrink-0"
-                                                aria-hidden="true"
-                                            /><span class="truncate">{{
-                                                notice.tenant_name
-                                            }}</span></span
-                                        >
-                                        <time
-                                            class="block text-xs text-muted-foreground"
-                                            >{{ notice.created_at }}</time
-                                        >
-                                    </span>
-                                    <span
-                                        v-if="!notice.is_read"
-                                        class="size-2 shrink-0 rounded-full bg-primary"
-                                        role="img"
-                                        aria-label="Belum dibaca"
-                                    />
-                                    <CheckCheck
-                                        v-else
-                                        class="size-4 shrink-0 text-muted-foreground"
-                                        role="img"
-                                        aria-label="Sudah dibaca"
-                                    />
-                                    <ChevronDown
-                                        class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
-                                        aria-hidden="true"
-                                    />
-                                </summary>
-                                <div
-                                    class="border-t border-border px-4 py-4 md:px-5"
-                                >
-                                    <p
-                                        class="text-sm leading-6 break-words whitespace-pre-wrap"
-                                    >
-                                        {{ notice.message }}
-                                    </p>
-                                    <Button
-                                        v-if="
-                                            notice.can_read && !notice.is_read
-                                        "
-                                        variant="outline"
-                                        size="sm"
-                                        class="mt-4 rounded-lg bg-primary text-white"
-                                        :disabled="pending !== null || loading"
-                                        @click="read(notice)"
-                                    >
-                                        <LoaderCircle
-                                            v-if="pending === notice.id"
-                                            class="size-4 animate-spin"
-                                            aria-hidden="true"
-                                        />
-                                        <Check
-                                            v-else
-                                            class="size-4"
-                                            aria-hidden="true"
-                                        />Tandai dibaca
-                                    </Button>
-                                </div>
-                            </details>
+                            <NotificationCard
+                                :notice="notice"
+                                :loading="loading"
+                                :pending="pending"
+                                :show-tenant="props.canFilterTenant"
+                                @read="read"
+                            />
                         </li>
                     </ol>
                 </section>

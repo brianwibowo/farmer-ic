@@ -267,6 +267,9 @@ class NotificationWorkflowTest extends TestCase
         $notice = $this->officer->notifications()->firstOrFail();
         $this->assertStringContainsString('Masih perlu dikerjakan', $notice->message);
         $this->assertStringNotContainsString('Selesai sebelum dikirim', $notice->message);
+        $this->assertSame('task_reminder', $notice->content['kind']);
+        $names = collect($notice->content['groups'])->flatMap(fn ($group) => array_column($group['items'], 'name'))->all();
+        $this->assertSame(['Masih perlu dikerjakan'], $names);
     }
 
     public function test_reschedule_during_whatsapp_validation_cancels_the_send(): void

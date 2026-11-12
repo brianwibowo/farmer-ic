@@ -30,6 +30,7 @@ final class InAppChannel
             'team_ids' => isset($data['team_ids']) ? json_encode($data['team_ids'], JSON_THROW_ON_ERROR) : null,
             'title' => $content['title'],
             'message' => $content['message'], 'is_read' => false, 'created_at' => now(),
+            'content' => isset($content['content']) ? json_encode($content['content'], JSON_THROW_ON_ERROR) : null,
         ]);
     }
 }

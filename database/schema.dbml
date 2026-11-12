@@ -695,6 +695,7 @@ Table notifications {
   type varchar(32) [note: 'weekly_report, task_reminder, sop_deviation; legacy daily_report and harvest_reminder remain readable']
   team_id bigint [ref: > teams.id, note: 'Nullable for legacy inbox entries whose tenant cannot be proven']
   team_ids jsonb [note: 'Persisted tenant IDs for a combined Owner weekly report; null for single-tenant and legacy notifications']
+  content jsonb [note: 'Versioned presentation snapshot for the interactive inbox']
 }
 
 Table audit_logs {
