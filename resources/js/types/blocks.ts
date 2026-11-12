@@ -37,7 +37,13 @@ export type PreparationBatch = {
     planted_at: string | null;
     status: string;
     stages: BatchStage[];
+    age?: BatchAge;
     growth?: BatchGrowth;
+};
+export type BatchAge = {
+    hst: number | null;
+    as_of: string;
+    status: 'available' | 'not_planted' | 'future' | 'cancelled';
 };
 export type BatchGrowth = {
     available: boolean;

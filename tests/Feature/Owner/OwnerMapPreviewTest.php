@@ -125,7 +125,7 @@ class OwnerMapPreviewTest extends TestCase
             ->has('dashboard.landMap.farms.0.crops', 0));
     }
 
-    public function test_previous_farm_filter_keeps_all_scoped_popup_data_and_admin_payload_unchanged(): void
+    public function test_previous_farm_filter_keeps_owner_data_and_admin_uses_its_own_detail_links(): void
     {
         $first = $this->farm('Kebun A');
         $second = $this->farm('Kebun B');
@@ -143,9 +143,9 @@ class OwnerMapPreviewTest extends TestCase
             ->where('dashboard.landMap.farms.1.crops.0.name', 'Padi'));
 
         $this->actingAs($this->admin)->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->missing('dashboard.landMap.farms.0.crops')
-            ->missing('dashboard.landMap.farms.0.pic')
-            ->missing('dashboard.landMap.farms.0.detail_url'));
+            ->has('dashboard.landMap.farms.0.crops', 0)
+            ->where('dashboard.landMap.farms.0.pic', null)
+            ->where('dashboard.landMap.farms.0.detail_url', '/admin/farm-management/'.$first->id));
     }
 
     private function farm(string $name, ?Team $team = null): Farm
