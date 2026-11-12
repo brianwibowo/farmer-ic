@@ -15,6 +15,7 @@ use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 class AdminDashboardService
@@ -309,10 +310,11 @@ class AdminDashboardService
      * Farm rows provide map points, not boundary polygons. Keep the original
      * coordinates intact so the Leaflet client can display a real map.
      *
-     * @param  Collection<int, Farm>  $farms
+     * @param  EloquentCollection<int, Farm>  $farms
+     * @param  Collection<int, PlantingCycle>  $cycles
      * @return array{hasCoordinates: bool, farms: array<int, array<string, mixed>>}
      */
-    private function landMap(Collection $farms, Collection $cycles, User $actor, Team $team, bool $includePreviews): array
+    private function landMap(EloquentCollection $farms, Collection $cycles, User $actor, Team $team, bool $includePreviews): array
     {
         $pics = $includePreviews ? User::visibleTo($actor, $team)
             ->whereIn('id', $farms->pluck('pic_user_id')->filter())
