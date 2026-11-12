@@ -111,7 +111,14 @@ const detailRows = computed(() =>
                     class="inline-flex items-center gap-1.5"
                 >
                     <span
-                        class="size-3 rounded-full"
+                        class="h-4 w-2.5 rounded-sm border"
+                        :style="{
+                            background: `var(${commodityTokens[crop.id] ? `${commodityTokens[crop.id]}-contract` : '--muted-foreground'})`,
+                            borderColor: `var(${commodityTokens[crop.id] ?? '--chart-4'})`,
+                        }"
+                        aria-hidden="true"
+                    /><span
+                        class="h-4 w-2.5 rounded-sm"
                         :style="{
                             background: `var(${commodityTokens[crop.id] ?? '--chart-4'})`,
                         }"
@@ -120,18 +127,7 @@ const detailRows = computed(() =>
                 </li>
             </ul>
             <ul class="flex gap-4 text-muted-foreground" aria-label="Jenis bar">
-                <li class="inline-flex items-center gap-1.5">
-                    <span
-                        class="h-3 w-4 rounded-sm bg-foreground/35"
-                        aria-hidden="true"
-                    />Kontrak (muda)
-                </li>
-                <li class="inline-flex items-center gap-1.5">
-                    <span
-                        class="h-3 w-4 rounded-sm bg-foreground"
-                        aria-hidden="true"
-                    />Realisasi (pekat)
-                </li>
+                <li>Kiri: Kontrak · kanan: Realisasi</li>
             </ul>
         </div>
         <ExecutiveChart
@@ -160,6 +156,8 @@ const detailRows = computed(() =>
                 {
                     label: 'Kontrak',
                     colorTokens: contractColorTokens,
+                    borderColorTokens: colorTokens,
+                    borderWidth: 1,
                     values: chartGroups.map((crop) => crop.contracted),
                 },
                 {

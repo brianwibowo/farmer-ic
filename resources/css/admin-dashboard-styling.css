@@ -55,12 +55,12 @@
     --admin-sidebar-menu-radius: 6px;
     --admin-chart-secondary: #6ee7b7;
     --admin-chart-tertiary: #d1fae5;
-    --commodity-corn: #b68a00;
-    --commodity-corn-contract: #dfc464;
-    --commodity-grass: #328245;
+    --commodity-corn: #c9962b;
+    --commodity-corn-contract: #f2d98a;
+    --commodity-grass: #2f6b37;
     --commodity-grass-contract: #91bb9c;
-    --commodity-grain: #946431;
-    --commodity-grain-contract: #c4a37f;
+    --commodity-grain: #8a5a2b;
+    --commodity-grain-contract: #d9b99b;
     --admin-overview-background: var(--background);
     --admin-page-title-size: 1.75rem;
     --admin-section-title-size: 1rem;
@@ -98,12 +98,8 @@
 }
 
 .dark .admin-dashboard-theme {
-    --commodity-corn: #f0cf4b;
-    --commodity-corn-contract: #f7e9ab;
     --commodity-grass: #78c86e;
     --commodity-grass-contract: #bee4b8;
-    --commodity-grain: #d9ad73;
-    --commodity-grain-contract: #ead6b9;
     --admin-chart-secondary: #059669;
     --admin-chart-tertiary: #065f46;
     color-scheme: dark;
