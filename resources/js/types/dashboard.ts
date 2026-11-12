@@ -50,12 +50,14 @@ export type DashboardData = {
         stages: Array<{ code: string; label: string; count: number }>;
         withoutTimeline: number;
     };
-    attention: Array<{
-        key: string;
-        label: string;
-        count: number;
-        description: string;
-    }>;
+    risks: {
+        total: number;
+        items: Array<{
+            id: string;
+            title: string;
+            detectedAt: string;
+        }>;
+    };
     commodities: Array<{
         id: string;
         name: string;

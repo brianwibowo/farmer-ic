@@ -138,6 +138,112 @@ class FarmBlockTest extends TestCase
         $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page->missing('blocks.data.0.batches.0.growth'));
     }
 
+    public function test_subblock_header_age_uses_actual_planting_before_growth_is_available_and_rolls_over_at_jakarta_midnight(): void
+    {
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-08 16:59:00', 'UTC'));
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', [
+            'reserved_area_ha' => '1', 'planned_planting_at' => '2026-11-01',
+        ])->assertRedirect();
+        $batch = PlantingCycle::firstOrFail();
+        $commodity = Commodity::create(['name' => 'Jagung Umur Tanam']);
+        $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'BISI-18 Umur Tanam']);
+        $batch->forceFill([
+            'variety_id' => $variety->id, 'status' => 'active',
+            'planted_area_ha' => 1, 'planted_at' => '2026-11-07',
+        ])->save();
+
+        $url = '/admin/farm-management/'.$this->farm->id;
+        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('blocks.0.batches.0.age.hst', 1)
+            ->where('blocks.0.batches.0.age.as_of', '2026-11-08')
+            ->where('blocks.0.batches.0.age.status', 'available')
+            ->where('blocks.0.batches.0.growth.available', false));
+
+        $this->travel(1)->minutes();
+        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('blocks.0.batches.0.age.hst', 2)
+            ->where('blocks.0.batches.0.age.as_of', '2026-11-09')
+            ->where('blocks.0.batches.0.age.status', 'available'));
+        $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->missing('blocks.data.0.batches.0.age'));
+        $this->constraints();
+    }
+
+    #[DataProvider('subblockAges')]
+    public function test_subblock_header_age_distinguishes_zero_missing_future_cancelled_and_harvested_planting(
+        ?string $plantedAt, string $cycleStatus, string $ageStatus, ?int $hst,
+    ): void {
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-09 10:00:00', 'Asia/Jakarta'));
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', [
+            'reserved_area_ha' => '1', 'planned_planting_at' => '2026-11-01',
+        ])->assertRedirect();
+        $batch = PlantingCycle::firstOrFail();
+        $commodity = Commodity::create(['name' => 'Jagung Status Umur']);
+        $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'BISI-18 Status Umur']);
+        $batch->forceFill([
+            'variety_id' => $plantedAt ? $variety->id : null,
+            'status' => $cycleStatus, 'planted_area_ha' => $plantedAt ? 1 : 0,
+            'planted_at' => $plantedAt,
+        ])->save();
+
+        $this->get('/admin/farm-management/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('blocks.0.batches.0.age.hst', $hst)
+            ->where('blocks.0.batches.0.age.as_of', '2026-11-09')
+            ->where('blocks.0.batches.0.age.status', $ageStatus));
+        $this->constraints();
+    }
+
+    public static function subblockAges(): array
+    {
+        return [
+            'planting day is zero' => ['2026-11-09', 'active', 'available', 0],
+            'planned date is not actual planting' => [null, 'planned', 'not_planted', null],
+            'future actual date has no negative age' => ['2026-11-10', 'active', 'future', null],
+            'cancelled cycle has no current age' => ['2026-11-07', 'cancelled', 'cancelled', null],
+            'harvested history uses its actual date' => ['2026-11-01', 'harvested', 'available', 8],
+        ];
+    }
+
+    public function test_subblock_header_age_is_independent_per_batch_and_never_exposes_other_farms_or_hidden_cycles(): void
+    {
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-09 10:00:00', 'Asia/Jakarta'));
+        $block = $this->block();
+        $commodity = Commodity::create(['name' => 'Jagung Cakupan Umur']);
+        $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'BISI-18 Cakupan Umur']);
+        $batches = [];
+        foreach (['2026-11-01', '2026-11-05'] as $date) {
+            $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
+            $batch = PlantingCycle::where('block_id', $block->id)->orderByDesc('batch_number')->firstOrFail();
+            $batch->forceFill([
+                'variety_id' => $variety->id, 'status' => 'active',
+                'planted_area_ha' => 1, 'planted_at' => $date,
+            ])->save();
+            $batches[] = $batch;
+        }
+        $otherFarm = $this->farm();
+        $otherBlock = $this->block('B02', '2', $otherFarm);
+        $this->post($this->url($otherBlock, $otherFarm).'/batches', ['reserved_area_ha' => '1'])->assertRedirect();
+
+        $url = '/admin/farm-management/'.$this->farm->id;
+        $this->get($url.'?farm_id='.$otherFarm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('blocks', 1)->has('blocks.0.batches', 2)
+            ->where('blocks.0.batches.0.id', $batches[0]->id)
+            ->where('blocks.0.batches.0.age.hst', 8)
+            ->where('blocks.0.batches.1.id', $batches[1]->id)
+            ->where('blocks.0.batches.1.age.hst', 4));
+        $foreignFarm = $this->farm(Team::factory()->create());
+        $this->get('/admin/farm-management/'.$foreignFarm->id)->assertForbidden();
+
+        $grants = config('access.roles.admin');
+        unset($grants['planting_cycles.view']);
+        config(['access.roles.admin' => $grants]);
+        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('blocks', 1)->has('blocks.0.batches', 0));
+        $this->constraints();
+    }
+
     public function test_growth_is_blocked_until_planting_is_completed_and_maintenance_has_started(): void
     {
         $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-09 10:00:00', 'Asia/Jakarta'));
@@ -631,7 +737,7 @@ class FarmBlockTest extends TestCase
     public function test_demo_seeder_is_idempotent_and_does_not_rewrite_existing_blocks(): void
     {
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoFarmBlockSeeder::class]);
-        $demo = Farm::where('name', 'Kebun Cileuksa')->firstOrFail();
+        $demo = Farm::where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $this->assertSame('80.000', $demo->getAttribute('target_volume_ton'));
         $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), $demo->getAttribute('commodity_id'));
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();

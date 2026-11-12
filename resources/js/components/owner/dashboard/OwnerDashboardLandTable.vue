@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { Link } from "@inertiajs/vue3";
-import { ArrowUpRight, ChevronDown } from "@lucide/vue";
-import { computed, ref } from "vue";
-import OwnerDashboardCropIcon from "@/components/owner/dashboard/OwnerDashboardCropIcon.vue";
-import { ownerArea } from "@/types/owner";
-import type { OwnerDashboardLandTable } from "@/types/owner-dashboard";
+import { Link } from '@inertiajs/vue3';
+import { ArrowUpRight, ChevronDown } from '@lucide/vue';
+import { computed, ref } from 'vue';
+import OwnerDashboardCropIcon from '@/components/owner/dashboard/OwnerDashboardCropIcon.vue';
+import { withOwnerFarmOrigin } from '@/lib/ownerFarmNavigation';
+import { ownerArea } from '@/types/owner';
+import type { OwnerDashboardLandTable } from '@/types/owner-dashboard';
 
 const props = defineProps<{
     table: OwnerDashboardLandTable;
     loading?: boolean;
 }>();
 const expandedGroups = ref<string[]>([]);
-const tonFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
-const percentageFormat = new Intl.NumberFormat("id-ID", {
+const tonFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+const percentageFormat = new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 0,
 });
 const expandedSet = computed(() => new Set(expandedGroups.value));
@@ -29,7 +30,7 @@ const toggleGroup = (groupId: string) => {
         : [...expandedGroups.value, groupId];
 };
 const groupRowsId = (groupId: string) =>
-    `owner-land-group-${groupId.replace(/[^a-z0-9_-]/gi, "-")}`;
+    `owner-land-group-${groupId.replace(/[^a-z0-9_-]/gi, '-')}`;
 </script>
 
 <template>
@@ -46,7 +47,7 @@ const groupRowsId = (groupId: string) =>
                     Ringkasan lahan
                 </h2>
                 <p class="mt-1 text-xs text-muted-foreground">
-                    Dikelompokkan berdasarkan kota / kabupaten.
+                    Site dikelompokkan berdasarkan kabupaten.
                 </p>
             </div>
             <Link
@@ -57,7 +58,7 @@ const groupRowsId = (groupId: string) =>
         </header>
         <div
             role="region"
-            aria-label="Tabel lahan per kota atau kabupaten. Pilih baris wilayah untuk menampilkan kebun di dalamnya."
+            aria-label="Tabel site yang dikelompokkan berdasarkan kabupaten. Pilih baris wilayah untuk menampilkan lahan di dalamnya."
             tabindex="0"
             class="owner-land-scroll isolate overflow-auto overscroll-x-contain border-y border-border focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
             :class="loading ? 'opacity-60' : ''"
@@ -66,8 +67,8 @@ const groupRowsId = (groupId: string) =>
                 class="w-full min-w-[860px] table-fixed border-separate border-spacing-0 text-left text-sm leading-5 text-foreground 2xl:text-base 2xl:leading-6"
             >
                 <caption class="sr-only">
-                    Data kebun pada tenant terpilih yang memiliki kota atau
-                    kabupaten, dengan total
+                    Data lahan pada tenant terpilih yang dikelompokkan
+                    berdasarkan kabupaten, dengan total
                     {{
                         ownerArea(groupedArea)
                     }}
@@ -87,7 +88,7 @@ const groupRowsId = (groupId: string) =>
                             scope="col"
                             class="sticky top-0 left-0 z-30 min-w-[166px] border-r border-b border-border bg-primary px-3 py-3 font-semibold text-primary-foreground"
                         >
-                            Kota / kabupaten
+                            Site
                         </th>
                         <th
                             scope="col"
@@ -127,15 +128,14 @@ const groupRowsId = (groupId: string) =>
                             colspan="6"
                             class="h-24 px-4 py-6 text-muted-foreground"
                         >
-                            Belum ada data lahan berkota/kabupaten pada filter
-                            ini.
+                            Belum ada data site pada filter ini.
                         </td>
                     </tr>
                     <template v-for="group in table.groups" :key="group.id">
                         <tr>
                             <th
                                 scope="row"
-                                class="bg-muted sticky left-0 z-10 border-r border-b border-border p-0 text-left align-top font-medium"
+                                class="sticky left-0 z-10 border-r border-b border-border bg-muted p-0 text-left align-top font-medium"
                             >
                                 <button
                                     type="button"
@@ -159,11 +159,11 @@ const groupRowsId = (groupId: string) =>
                                         }}</span
                                         ><span
                                             class="mt-1 block text-xs font-normal text-muted-foreground"
-                                            >{{ group.farm_count }} kebun ·
+                                            >{{ group.farm_count }} lahan ·
                                             {{
                                                 isExpanded(group.id)
-                                                    ? "Sembunyikan"
-                                                    : "Tampilkan"
+                                                    ? 'Sembunyikan'
+                                                    : 'Tampilkan'
                                             }}
                                             rincian</span
                                         ></span
@@ -277,8 +277,13 @@ const groupRowsId = (groupId: string) =>
                                     class="sticky left-0 z-10 border-r border-b border-border bg-card px-3 py-3 pl-9 text-left align-top font-medium"
                                 >
                                     <Link
-                                        :href="row.detail_url"
-                                        class="block font-bold min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] text-primary underline decoration-primary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                                        :href="
+                                            withOwnerFarmOrigin(
+                                                row.detail_url,
+                                                'home',
+                                            )
+                                        "
+                                        class="block min-h-11 max-w-full rounded-md font-bold [overflow-wrap:anywhere] text-primary underline decoration-primary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
                                         >{{ row.name }}</Link
                                     >
                                 </th>
@@ -292,12 +297,17 @@ const groupRowsId = (groupId: string) =>
                                 >
                                     <div>
                                         <Link
-                                            :href="row.legality_url"
+                                            :href="
+                                                withOwnerFarmOrigin(
+                                                    row.legality_url,
+                                                    'home',
+                                                )
+                                            "
                                             :aria-label="`Lihat legalitas ${row.name}`"
-                                            class="inline-block rounded-md [overflow-wrap:anywhere] font-medium text-primary underline decoration-primary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                                            class="inline-block min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] font-medium text-primary underline decoration-primary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
                                         >
                                             {{
-                                                row.legality ?? "Belum tercatat"
+                                                row.legality ?? 'Belum tercatat'
                                             }}
                                         </Link>
                                     </div>
@@ -335,7 +345,7 @@ const groupRowsId = (groupId: string) =>
                                                 >
                                                     {{
                                                         crop.varieties.join(
-                                                            ", ",
+                                                            ', ',
                                                         )
                                                     }}
                                                 </p></span
@@ -372,7 +382,7 @@ const groupRowsId = (groupId: string) =>
                                     >
                                         {{
                                             row.progress.current_stages.join(
-                                                ", ",
+                                                ', ',
                                             )
                                         }}
                                     </p>
@@ -402,7 +412,7 @@ const groupRowsId = (groupId: string) =>
                                                 class="shrink-0 tabular-nums"
                                                 >{{
                                                     crop.ton === null
-                                                        ? "Belum tersedia"
+                                                        ? 'Belum tersedia'
                                                         : `${tonFormat.format(crop.ton)} ton`
                                                 }}</span
                                             >
