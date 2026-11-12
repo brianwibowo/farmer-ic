@@ -145,8 +145,13 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->assertCount(10, $batches);
         foreach ($batches as $batch) {
             $this->assertSame(6, $batch->stages_count);
-            $this->assertGreaterThan(0, $batch->tasks_count);
-            $this->assertNotNull($batch->sop_template_version_id);
+            if ($batch->status === 'planned') {
+                $this->assertSame(0, $batch->tasks_count);
+                $this->assertNull($batch->sop_template_version_id);
+            } else {
+                $this->assertGreaterThan(0, $batch->tasks_count);
+                $this->assertNotNull($batch->sop_template_version_id);
+            }
         }
         $detailTypes = [
             'planting' => 'plantingDetail', 'follow_up_fertilization' => 'fertilizationDetail',

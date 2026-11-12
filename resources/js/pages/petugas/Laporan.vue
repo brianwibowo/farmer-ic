@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ClipboardList, ChevronRight, Search } from '@lucide/vue';
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
+import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import type { PetugasActivityCategory } from '@/types/petugas-activity';
 
 defineOptions({ inheritAttrs: false });
 
@@ -34,6 +36,7 @@ const props = defineProps<{
         mine?: boolean;
     };
     types: { code: string; name: string }[];
+    categories: PetugasActivityCategory[];
 }>();
 const filter = reactive({
     q: props.filters.q ?? '',
@@ -43,6 +46,13 @@ const filter = reactive({
     mine: !!props.filters.mine,
 });
 const loading = ref(false);
+const emptyDescription = computed(() => {
+    if (!props.farm) return 'Hubungi Admin untuk penugasan kebun.';
+
+    return props.categories.length
+        ? 'Coba ubah filter atau ketuk tombol + untuk mencatat aktivitas mandiri.'
+        : 'Coba ubah filter untuk melihat laporan lain.';
+});
 function apply(): void {
     router.get(
         '/petugas/laporan',
@@ -68,7 +78,7 @@ function reset(): void {
 </script>
 <template>
     <Head title="Laporan" />
-    <div class="space-y-4" :aria-busy="loading">
+    <div class="space-y-4 pb-28" :aria-busy="loading">
         <header>
             <h1 class="text-xl font-semibold">Laporan</h1>
             <p class="mt-1 text-sm text-muted-foreground">
@@ -165,17 +175,8 @@ function reset(): void {
                 Belum ada laporan yang ditampilkan
             </h2>
             <p class="mt-2 text-sm text-muted-foreground">
-                {{
-                    farm
-                        ? 'Coba ubah filter atau catat pekerjaan melalui halaman Aktivitas.'
-                        : 'Hubungi Admin untuk penugasan kebun.'
-                }}
+                {{ emptyDescription }}
             </p>
-            <Link
-                href="/petugas/aktivitas"
-                class="mt-3 inline-flex min-h-11 items-center text-sm text-secondary underline"
-                >Buka aktivitas</Link
-            >
         </div>
         <ul v-else class="space-y-3" aria-label="Riwayat aktivitas">
             <li v-for="(report, index) in reports.data" :key="report.id">
@@ -184,7 +185,7 @@ function reset(): void {
                         index === 0 ||
                         reports.data[index - 1].date !== report.date
                     "
-                    class="mb-2 mt-4 text-xs font-semibold text-muted-foreground"
+                    class="mt-4 mb-2 text-xs font-semibold text-muted-foreground"
                 >
                     {{ report.date }}
                 </h2>
@@ -242,5 +243,6 @@ function reset(): void {
                 >Berikutnya →</Link
             >
         </nav>
+        <ActivityAddButton :categories="categories" />
     </div>
 </template>
