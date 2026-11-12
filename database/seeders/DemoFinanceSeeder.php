@@ -29,8 +29,12 @@ class DemoFinanceSeeder extends Seeder
             // Serialize reruns against this named demo farm, never another team's farm.
             $farm = Farm::visibleTo($admin, $team)->where('team_id', $team->id)
                 ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->lockForUpdate()->first();
+            // Existing demo databases may retain a legacy active cycle with a
+            // different planting date. Bind finance fixtures to the current
+            // active cycle instead of assuming a fixed calendar date.
             $cycle = $farm === null ? null : PlantingCycle::visibleTo($admin, $team)
-                ->where('farm_id', $farm->id)->whereDate('planted_at', '2026-10-01')->orderBy('id')->first();
+                ->where('farm_id', $farm->id)->where('status', 'active')
+                ->whereNotNull('planted_at')->orderByDesc('planted_at')->orderBy('id')->first();
             if ($farm === null || $cycle === null) {
                 throw new RuntimeException('Kebun atau siklus tanam belum tersedia. Jalankan DemoFarmSeeder terlebih dahulu.');
             }
