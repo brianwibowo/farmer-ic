@@ -387,7 +387,7 @@ Preserve Owner profile, AI and existing authorization; keep empty/loading/error
 states, working filters, touch/keyboard scrolling and both themes.
 
 The Petugas portal uses four equally sized destinations: Beranda, Kebun,
-Aktivitas, and Laporan. These open the authenticated `/petugas` pages through
+Tugas, and Laporan. These open the authenticated `/petugas` pages through
 Inertia links. Do not include AI or Finance in the Petugas portal navigation.
 The Petugas screens reuse the Farmer mobile shell at every viewport size:
 full width on phones and a centered phone-width frame on tablets/desktops,
@@ -569,6 +569,10 @@ This overview does not change task status. Use pagination for long lists, the
 shared shell's navigation loading feedback, and clear empty states for missing
 assignments or schedules. Do not add a manual refresh button to the home page.
 Never substitute example tasks when the database has no scheduled work.
+Keep the shared Tambah aktivitas mandiri floating button above the bottom
+navigation on Beranda and Laporan. Reserve bottom scroll padding on both pages
+so it never covers the last task or report card, progress content, or pagination.
+Do not show that button on the Tugas page.
 
 ### Petugas garden
 

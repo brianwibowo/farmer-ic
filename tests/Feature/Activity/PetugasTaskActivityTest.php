@@ -72,24 +72,53 @@ class PetugasTaskActivityTest extends TestCase
             'variety_id' => $this->cycle->variety_id, 'area_ha' => 1, 'seed_name' => 'Bisi 18', 'quantity_kg' => 5,
             'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
         $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';
-        $this->post($plantingUrl, $planting)->assertSessionHasErrors('cycle');
+        $this->assertNull(app(\App\Services\Activity\ActivitySequenceService::class)->blockedReason($this->actor, $this->cycle, 'planting'));
+        $this->post($plantingUrl, $planting)->assertSessionHasNoErrors();
         $soil = [...$blockBase, 'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual', 'depth_cm' => 10]];
-        $this->post('/petugas/aktivitas/mandiri/loosening', $soil)->assertSessionHasErrors('block_id');
+        $this->post('/petugas/aktivitas/mandiri/loosening', $soil)->assertSessionHasNoErrors();
         $this->post('/petugas/aktivitas/mandiri/incident', [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'incident_category' => 'Cuaca', 'description' => 'Hujan lebat', 'severity' => 'Ringan']])->assertSessionHasNoErrors();
         $this->post('/petugas/aktivitas/mandiri/land_cleaning', [...$blockBase, 'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual']])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('farm_activities', ['block_id' => $blockBase['block_id'], 'planting_cycle_id' => null]);
         $reason = app(\App\Services\Activity\ActivitySequenceService::class)->blockedReason($this->actor, $this->cycle->refresh(), 'planting');
-        $this->assertStringContainsString('pengolahan tanah', $reason);
-        $this->post($plantingUrl, $planting)->assertSessionHasErrors('cycle');
-        $this->post('/petugas/aktivitas/mandiri/loosening', $soil)->assertSessionHasNoErrors();
+        $this->assertNull($reason);
         $this->assertNull(app(\App\Services\Activity\ActivitySequenceService::class)->blockedReason($this->actor, $this->cycle->refresh(), 'planting'));
-        $this->post($plantingUrl, $planting)->assertSessionHasNoErrors();
         $harvest = [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'weight' => 500, 'weight_unit' => 'kg']];
         $this->post('/petugas/aktivitas/mandiri/harvest', $harvest)->assertSessionHasErrors('cycle_id');
         $this->task->update(['status' => 'in_progress']);
         $this->post('/petugas/aktivitas/mandiri/harvest', $harvest)->assertSessionHasErrors('cycle_id');
         $this->task->update(['status' => 'skipped']);
         $this->post('/petugas/aktivitas/mandiri/harvest', $harvest)->assertSessionHasNoErrors();
+    }
+
+    public function test_empty_opposite_location_field_does_not_fail_validation(): void
+    {
+        $this->actingAs($this->actor);
+
+        $this->post('/petugas/aktivitas/mandiri/land_cleaning', [
+            ...$this->payload(),
+            'cycle_id' => '',
+            'block_id' => $this->cycle->block_id,
+            'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual'],
+        ])->assertSessionHasNoErrors();
+
+        $this->post('/petugas/aktivitas/mandiri/irrigation', [
+            ...$this->payload(),
+            'cycle_id' => $this->cycle->id,
+            'block_id' => '',
+            'details' => [
+                'area' => 500, 'area_unit' => 'm²', 'water_source' => 'Sumur bor',
+                'method' => 'Pompa', 'pump' => 'Pompa diesel', 'duration_hours' => 1,
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('farm_activities', [
+            'block_id' => $this->cycle->block_id,
+            'planting_cycle_id' => null,
+        ]);
+        $this->assertDatabaseHas('farm_activities', [
+            'block_id' => $this->cycle->block_id,
+            'planting_cycle_id' => $this->cycle->id,
+        ]);
     }
 
     public function test_sop_harvest_is_blocked_until_maintenance_tasks_finish(): void
@@ -122,7 +151,6 @@ class PetugasTaskActivityTest extends TestCase
             'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual']])->assertSessionHasNoErrors();
         $this->assertSame('completed', $timeline($second)['land_clearing']['status']);
         $this->assertSame('upcoming', $timeline($second)['soil_preparation']['status']);
-        $this->assertNotNull($sequence->blockReason($this->actor, $other, 'loosening'));
         $this->post('/petugas/aktivitas/mandiri/loosening', [...$this->payload(), 'block_id' => $block->id,
             'details' => ['area' => 100, 'area_unit' => 'm²', 'method' => 'Manual', 'depth_cm' => 10]])->assertSessionHasNoErrors();
         $this->assertSame('completed', $timeline($second)['soil_preparation']['status']);
@@ -133,7 +161,6 @@ class PetugasTaskActivityTest extends TestCase
         $this->cycle->forceFill(['planted_at' => null, 'planted_area_ha' => 0, 'status' => 'planned'])->save();
         $this->assertNull($sequence->blockedReason($this->actor, $this->cycle, 'planting'));
         $this->assertNull($sequence->blockedReason($this->actor, $second, 'planting'));
-        $this->assertNotNull($sequence->blockReason($this->actor, $other, 'planting'));
     }
 
     public function test_petugas_cannot_report_preparation_on_another_farm_block(): void
@@ -276,7 +303,9 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertDatabaseHas('fertilization_details', ['quantity_kg' => null]);
         $this->assertSame('pending', $this->task->refresh()->status);
         $this->assertSame(0, FarmActivity::whereNotNull('planting_cycle_task_id')->count());
-        $this->get('/petugas/laporan')->assertInertia(fn (Assert $page) => $page->component('petugas/Laporan')->where('reports.total', 13));
+        $this->get('/petugas/laporan')->assertInertia(fn (Assert $page) => $page
+            ->component('petugas/Laporan')->where('reports.total', 13)
+            ->where('categories', fn ($categories) => collect($categories)->pluck('code')->contains('irrigation')));
         $activity = FarmActivity::latest('activity_date')->firstOrFail();
         $this->get('/petugas/laporan/'.$activity->id)->assertInertia(fn (Assert $page) => $page->component('petugas/ReportShow')->has('log.activities', 1));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');

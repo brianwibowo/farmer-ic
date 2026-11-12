@@ -74,7 +74,7 @@
     flex: 1;
     margin-top: -1.25rem;
     border-radius: var(--admin-card-radius) var(--admin-card-radius) 0 0;
-    padding: 1.5rem 1.25rem 2rem;
+    padding: 1.5rem 1.25rem 7rem;
     background: var(--background);
 }
 

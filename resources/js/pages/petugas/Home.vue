@@ -5,13 +5,18 @@ import { computed } from 'vue';
 import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
 import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import { Button } from '@/components/ui/button';
+import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
 import HomeSopTask from '@/components/petugas/HomeSopTask.vue';
 import HomeIncidentAlerts from '@/components/petugas/HomeIncidentAlerts.vue';
+import type { PetugasActivityCategory } from '@/types/petugas-activity';
 import type { PetugasHome } from '@/types/petugas-home';
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<{ home: PetugasHome }>();
+const props = defineProps<{
+    home: PetugasHome;
+    categories: PetugasActivityCategory[];
+}>();
 const cards = computed(() => [
     {
         label: 'Pra Tanam',
@@ -54,7 +59,7 @@ const cards = computed(() => [
                 <article
                     v-for="card in cards"
                     :key="card.label"
-                    class="flex w-fit min-w-0 flex-col items-center justify-self-center text-center first:justify-self-start last:justify-self-end min-w-[73px]"
+                    class="flex w-fit min-w-0 min-w-[73px] flex-col items-center justify-self-center text-center first:justify-self-start last:justify-self-end"
                 >
                     <h2
                         class="text-xs leading-5 font-medium min-[360px]:text-[13px]"
@@ -164,5 +169,6 @@ const cards = computed(() => [
                 </nav>
             </template>
         </section>
+        <ActivityAddButton :categories="categories" />
     </div>
 </template>

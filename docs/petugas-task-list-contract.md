@@ -119,7 +119,7 @@ Task generation now runs:
 - from the existing demo seeder with explicit non-HTTP authorization.
 
 Both dates remain nullable. No tasks or version binding are created without
-either `planted_at` or `planned_planting_at`. For new snapshots the default SOP
+`planted_at`; `planned_planting_at` is not a generation anchor. For new snapshots the default SOP
 must be active, in the same tenant, and have a published version. Existing
 snapshots retain their bound published/retired version even if the default
 changes. Only pending tasks are rescheduled; work already started, completed,

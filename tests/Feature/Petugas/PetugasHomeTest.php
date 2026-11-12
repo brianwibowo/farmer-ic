@@ -100,6 +100,7 @@ class PetugasHomeTest extends TestCase
 
     public function test_home_scopes_batch_counts_and_today_sop_to_the_assigned_farm_in_wib(): void
     {
+        ActivityType::firstOrCreate(['code' => 'incident'], ['name' => 'Pelaporan insiden']);
         $planned = $this->batch($this->farm);
         $active = $this->batch($this->farm, 'active');
         $harvested = $this->batch($this->farm, 'harvested');
@@ -136,7 +137,8 @@ class PetugasHomeTest extends TestCase
             ->where('home.tasks.data.1.stage', 'maintenance')
             ->where('home.tasks.data.1.instructions', $pending->instructions)
             ->where('home.tasks.data.2.hst', null)
-            ->where('home.tasks.data.3.status', 'completed'));
+            ->where('home.tasks.data.3.status', 'completed')
+            ->where('categories', fn ($categories) => collect($categories)->pluck('code')->contains('incident')));
     }
 
     public function test_task_pagination_counts_all_visible_tasks_without_leaking_unassigned_records(): void
@@ -174,7 +176,8 @@ class PetugasHomeTest extends TestCase
 
         $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('home.farm', null)->where('home.summary', ['pre_planting' => 0, 'planting' => 0, 'harvest' => 0])
-            ->where('home.task_summary.total', 0)->where('home.tasks.total', 0)->has('home.tasks.data', 0));
+            ->where('home.task_summary.total', 0)->where('home.tasks.total', 0)->has('home.tasks.data', 0)
+            ->has('categories', 0));
     }
 
     public function test_assignment_alone_cannot_bypass_team_membership(): void
