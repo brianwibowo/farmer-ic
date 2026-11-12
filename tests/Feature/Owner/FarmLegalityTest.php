@@ -76,6 +76,68 @@ class FarmLegalityTest extends TestCase
             ->component('owner/Legality')->where('farm.id', $farm->id)->where('legality', null));
     }
 
+    public function test_owner_farm_summary_reads_the_current_contract_end_date_without_changing_admin_detail(): void
+    {
+        $farm = $this->farm('Kebun Kontrak Owner');
+        $record = $this->legality($farm);
+        $detailUrl = '/kebun/'.$farm->id;
+
+        $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Show')->where('ownerSummary.contract', [
+                'starts_at' => '2026-01-01', 'ends_at' => '2028-12-31', 'not_applicable' => false,
+            ])->has('farm.progress_overview.total')->has('blocks'));
+
+        $record->update(['pks_started_at' => '2027-01-01', 'pks_ends_at' => '2029-06-30']);
+        $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('ownerSummary.contract.starts_at', '2027-01-01')
+            ->where('ownerSummary.contract.ends_at', '2029-06-30'));
+
+        $this->actingAs($this->admin)->get('/admin/farm-management/'.$farm->id)
+            ->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Show')->missing('ownerSummary')
+            ->has('farm.default_sop')->has('farm.progress_overview.stages'));
+    }
+
+    public function test_owner_contract_summary_distinguishes_missing_dates_from_owned_land_without_a_contract(): void
+    {
+        $farm = $this->farm('Kebun Belum Ada Kontrak');
+        $this->legality($this->farm('Kebun Kontrak Berbeda'));
+        $detailUrl = '/kebun/'.$farm->id;
+        $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('ownerSummary.contract', ['starts_at' => null, 'ends_at' => null, 'not_applicable' => false]));
+
+        $farm->update(['land_tenure' => 'owned']);
+        $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('ownerSummary.contract', ['starts_at' => null, 'ends_at' => null, 'not_applicable' => true]));
+
+        $record = $this->legality($farm, ['pks_started_at' => '2026-01-01', 'pks_ends_at' => null]);
+        $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('ownerSummary.contract', ['starts_at' => '2026-01-01', 'ends_at' => null, 'not_applicable' => false]));
+        $record->update(['pks_ends_at' => '2028-12-31']);
+        $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('ownerSummary.contract', ['starts_at' => '2026-01-01', 'ends_at' => '2028-12-31', 'not_applicable' => false]));
+        $record->update(['pks_started_at' => null]);
+        $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('ownerSummary.contract', ['starts_at' => null, 'ends_at' => '2028-12-31', 'not_applicable' => false]));
+    }
+
+    public function test_owner_contract_summary_respects_legality_grants_and_active_tenant(): void
+    {
+        $farm = $this->farm('Kebun Kontrak Terbatas');
+        $this->legality($farm);
+        $otherTeam = Team::factory()->create(['is_personal' => false]);
+        $otherTeam->members()->attach($this->owner, ['role' => TeamRole::Member->value]);
+        $foreign = $this->farm('Kebun Tenant Kedua', $otherTeam);
+        $this->legality($foreign);
+
+        $this->get('/kebun/'.$foreign->id.'?team_id='.$otherTeam->id)->assertNotFound();
+        $roles = app(RolePermissions::class)->roles();
+        unset($roles['owner']['farm_legalities.view']);
+        config(['access.roles' => $roles]);
+        $this->get('/kebun/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('ownerSummary.contract', null)->where('legalityUrl', null));
+    }
+
     public function test_status_is_derived_from_dates_including_pks_boundaries_and_owned_land(): void
     {
         $farm = $this->farm('Kebun Status PKS');

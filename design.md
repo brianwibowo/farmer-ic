@@ -10,10 +10,9 @@ Read this document before implementing or changing any UI.
 
 - **Shared components:** use the button, input, dialog, tab, pagination,
   accessibility, and state requirements below across all screen sizes.
-- **Farmer/mobile profile:** use the Farmer IC palette and mobile typography for
-  the Owner/farmer interface. Keep this profile when
-  those screens are opened on desktop; viewport width alone does not change the
-  product's colors or font.
+- **Farmer/mobile profile:** retain the Farmer IC palette and mobile typography
+  for legacy Farmer and AI screens. Owner portal pages use the admin profile
+  described below at every viewport size.
 - **Petugas/mobile profile:** retain the phone-width shell and four-item bottom
   navigation, while sharing the admin dashboard's palette, Plus Jakarta Sans,
   component surfaces, typography hierarchy, and 20px content-card corners.
@@ -270,36 +269,41 @@ Use semantic tab markup when switching content in place. Keep the selected indic
 
 ## Farmer/mobile bottom navigation
 
-The Owner/farmer bottom bar has three destinations: Beranda, Proyeksi, and
-Lainnya. Proyeksi replaces the emphasized center AI entry and opens the read-only
-harvest projection at `/proyeksi` (`owner.projection`). It shares the same page
-as the land table's Lihat detail link, with Cycle/Year filters and scoped backend
-data. Keep the period switch at the right of the Total Proyeksi Panen title in
-one row; let the title wrap on narrow phones without displacing the switch.
-Hide AI navigation without removing its
-existing backend/workflow. Lainnya opens Kebun, the read-only activity feed,
-SOP, and user directory. Hide its Keuangan entry without removing finance routes.
-Keep Lainnya selected when visiting these sections and their nested pages.
-Owner screens use the same persisted domain records and metric definitions as
-Admin, presented in the Farmer/mobile profile. Farm detail links to blocks,
-batches, persisted stages, and SOP schedules. Distinguish planned allocation,
-actual planted area, and recorded harvest. Keep missing observations explicit.
-Tenant selection appears only inside Lainnya, not in the shared header. The
-Owner theme action sits immediately left of the notification bell. Preserve
-the profile/settings forms and avatar dropdown behavior.
+Owner portal pages use the shared AdminWorkspaceLayout, AppSidebar and
+AdminHeader, with `admin-dashboard-theme`, Plus Jakarta Sans and the existing
+admin tokens. The Owner's main sidebar has Dashboard (`/`), Ringkasan Eksekutif
+(`/ringkasan-eksekutif`), Proyeksi (`/proyeksi`) and Lahan (`/kebun`), subject to
+backend navigation permissions. The executive prototype stays isolated from
+operational data and uses the same Owner sidebar workspace.
+The account menu keeps settings/logout, and the sidebar team switcher lists
+persisted non-personal tenant memberships. Hide the entire Tim aktif switcher
+for Owners with zero or one active non-personal tenant membership; show it only
+for multiple memberships, using the backend navigation boolean. Personal teams
+and soft-deleted tenants do not count. Switching tenant uses the existing
+Owner endpoint and returns to Dashboard. Do not grant Owner admin portal access.
+On desktop, use the existing collapsible sidebar; below 1024px use its accessible
+drawer. Owner pages no longer use the Farmer bottom navigation or horizontal nav.
+Profile, security and notifications retain the same sidebar presentation. Keep
+Petugas and the existing AI page/workflow independent.
+
+Dashboard and Proyeksi retain their existing content, data sources, filters and
+metric definitions. Proyeksi keeps its Cycle/Year switch beside the heading,
+wrapping the heading on narrow phones as needed. Lahan reuses `farms/Index` and
+`farms/Show`, with the same filters, sorting, pagination, overview, map, blocks
+and sub-block progress as Admin. Render only Policy-approved controls; Owner
+cannot create, update or delete operational records. Keep every read scoped to
+the persisted active tenant. Auxiliary farm, legality, block and logbook pages
+keep Lahan active. Existing legacy activity/SOP/user and AI/finance routes remain
+protected and accessible by their existing rules; do not add main sidebar items.
 
 ### Owner database Beranda
 
-Owner Beranda is adaptive while retaining the Farmer palette and existing
-phone design. Below 640px keep the existing mobile frame/navigation. From
-640–1023px use a fluid tablet canvas and bottom navigation. At 1024px and wider,
-use a full-height Owner desktop canvas with horizontal header navigation and a
-2240px content limit for large/TV screens. This is an OwnerLayout opt-in; keep
-Petugas, the existing AI page and profile forms independent. Render the page
-slot once so maps, data, filter state and IDs are not duplicated.
-Use AdminDashboardService summary definitions and active-tenant/farm filters,
-with the Farmer palette. Show only two metrics: Total lahan (Farm count) and
-Luas lahan (hectares), using the same filtered totals as the land table.
+Owner Dashboard renders its existing content once inside the admin workspace.
+Use its responsive content spacing and admin typography/tokens in both themes.
+Keep tables locally scrollable and charts/maps responsive without page overflow.
+Use AdminDashboardService summary definitions and the active tenant, preserving
+the current behavior of showing all visible farms. Show only two metrics: Total
+lahan (Farm count) and Luas lahan (hectares), using the same totals as the table.
 Place the full-width table immediately below the metrics, with a `Lihat detail`
 link at its upper right pointing to `/proyeksi`. Below it, put the Komoditas
 pie chart on the left and Peta lahan on the right from 768px; stack chart then
@@ -336,22 +340,30 @@ surfaces and the intersection above both. The table may overflow locally; the
 page must not. Desktop columns use proportional widths and a taller scroll
 region; mobile column widths and freeze behavior stay unchanged. Keep the
 current filtered total hectares visible below the table.
-Site names link to the read-only Owner farm detail, and resume links to its
-actual latest activity. Never send Owners to Admin routes.
-Farm detail links from the Beranda table or map carry the explicit `from=home`
-context: their back action says Kembali ke Beranda and returns to `/`. Carry
-that context through farm-to-block and block-to-farm links. Entries from the
-farm directory or direct URLs retain Daftar kebun and `/kebun` as the fallback.
-Accept only the known origin flag, never a caller-supplied back URL or browser
-history as the destination; reloads and new tabs must keep the same behavior.
+Site names and map preview detail actions link directly to `/kebun/{farm}`,
+which renders the shared `farms/Show` page with Lahan active. The back action
+returns to `/kebun`, including when the visitor came from Dashboard; do not add
+`from=home` to these links. Resume links keep opening the actual latest activity.
+Never send Owners to Admin routes.
 
 Owner Beranda map markers open a farm summary dialog instead of a small Leaflet
-text bubble. Match the farm-preview hierarchy: name, location/hectares and close
+text bubble. Match the farm-preview hierarchy: name, location and close
 action; selected farm's satellite map; Jenis tanaman with varieties; PIC yang
 ditugaskan; and the full-width Detail kebun link. Omit health/condition and
 financial projection panels. Use the same scoped crops as the table. PIC is the
 persisted farm PIC with a matching active Petugas assignment/membership; missing
-data is stated honestly. This interaction is opt-in so other map usages keep
+data is stated honestly.
+Use the shared 12px popup and inset-map corners, admin semantic colors, and
+the page's typography. Keep a compact icon/name/location header, an inset
+satellite map initially at zoom 18. Omit the land-area summary and the divider
+above the Detail kebun footer.
+Render crops as plain divided rows and PIC as a compact avatar/name row. Use
+the shared secondary-green Button for the full-width Detail kebun action.
+Keep the header/footer fixed within the dialog while its body scrolls.
+The Owner wrapper keeps the admin theme and forwards the optional `summary`
+and `footer` slots used by Ringkasan Eksekutif. Without overrides, show the
+PIC row and the Detail kebun action. Use the persisted Owner detail URL as-is.
+This interaction is opt-in so other map usages keep
 their existing behavior. Marker hit targets are 44px without enlarging the dot,
 and support click, Enter and Space. Dialogs trap focus, close with Escape/X and
 return focus to the originating marker. Keep header/footer visible and the
@@ -371,7 +383,7 @@ remain explicit. The Legalitas cell links to the farm's read-only legality page
 at `/kebun/{farm}/legalitas`, also accessible from farm information. Show the
 persisted PKS start/end dates, related institution, and legality summary. For
 owned land without a PKS, state that its period does not apply; never invent
-agreement dates. An absent record has an explicit empty state. Keep the Farmer
+agreement dates. An absent record has an explicit empty state. Keep the admin
 profile, semantic status colors, and responsive cards. List optional draft PDF
 attachments below the summary with their original filenames, sizes, and labeled
 download links. Wrap long filenames on phones; fetch documents only through
@@ -386,7 +398,7 @@ Preserve Owner profile, AI and existing authorization; keep empty/loading/error
 states, working filters, touch/keyboard scrolling and both themes.
 
 The Petugas portal uses four equally sized destinations: Beranda, Kebun,
-Aktivitas, and Laporan. These open the authenticated `/petugas` pages through
+Tugas, and Laporan. These open the authenticated `/petugas` pages through
 Inertia links. Do not include AI or Finance in the Petugas portal navigation.
 The Petugas screens reuse the Farmer mobile shell at every viewport size:
 full width on phones and a centered phone-width frame on tablets/desktops,
@@ -394,6 +406,76 @@ with the same header, independently scrolling content, and bottom safe area.
 Empty pages show their title and an honest placeholder without fabricated
 operational records, metrics, or inactive action buttons. Keep the active
 navigation indicator, request loading feedback, keyboard focus, and both themes.
+
+### Owner executive summary
+
+The `/ringkasan-eksekutif` page is a compact, read-only executive overview in
+the existing Owner profile. Its current JSON dataset is illustrative and stays
+separate from operational records. Keep the period controls visible; collapse
+partner, region, farm, and commodity filters behind a Filter button with an
+active count and removable selections.
+
+Client selection in the sales panel is local to that panel. Clicking a client
+name or its chart bars shows only that client's contract/reality comparison,
+while the complete client selector remains visible. Mark the active client and
+provide Tampilkan semua client; clicking the active selection again also clears
+it. Use a vertical chart grouped by client and commodity. Keep full client
+labels wrapped
+and allow local chart scrolling when needed; show every client, without a top-N
+limit. Separate client groups with alternating subtle background bands, vertical
+dividers and bold group labels. Use two filled side-by-side bars per commodity: a lighter shade for Kontrak
+and a stronger shade of the same commodity color for Realisasi. Do not use
+outline-only contract bars.
+Keep corn and grain shades strongly separated using opaque color tokens, not
+alpha or opacity. Show both exact shades in each commodity legend entry and
+state that Kontrak is the left bar and Realisasi the right bar.
+Use the supplied exact pairs in both themes: sorghum contract #D9B99B and
+realization #8A5A2B; corn contract #F2D98A and realization #C9962B. Contract bars
+and their legend swatches also have a 1px outline in the stronger commodity
+color, so identification has a shape cue beyond color/lightness. Grass uses
+#2F6B37 for realization in light mode and a legible green in dark mode.
+Do not overlap the two bars or use a single progress bar. Keep actual values
+honest if realization exceeds the contract; never cap the source values. Use
+fixed sales colors: corn yellow, grass green, and sorghum/soybean golden brown,
+with theme-aware tokens. Keep commodity colors and the contract/realization key outside
+the scrollable canvas. Tooltips show contract, realization and fulfillment.
+Provide a native
+Lihat rincian penjualan disclosure, closed initially, with every client and
+commodity, contract, realization, difference and fulfillment percentage. The
+details table uses bounded local scrolling; selecting a client there focuses
+only the sales chart. Reset a selection removed by global filters. This interaction must not change the page's global filters or KPIs.
+
+Use `OwnerDistributionChart` for every distribution donut, including the
+Beranda commodity chart. Preserve its center total, sector percentages,
+keyboard-accessible legend, selection, semantic colors, and empty state.
+Keep the center unit on its own line below the total so long values fit inside
+the donut without pushing the unit into its sectors.
+Executive panels use its compact embedded mode and contextual legend slots.
+Place two compact land donuts side by side: explicit land categories
+(PKS — Kerja sama, BHI — Milik sendiri, Plasma — Koperasi) and partners.
+Keep partner selection connected to global filters; category selection highlights
+its donut locally. Stack the two diagrams on smaller viewports. Remove the
+separate Pemanfaatan lahan card and give sales the full content width. Combine
+commodity composition with three concise commodity summaries. Show two separate
+cards side by side: planted hectares and actual harvest tonnes. Each card has
+its own donut and keyboard-accessible commodity summary showing only planted
+area, actual harvest, and projected harvest. Keep matching commodity colors,
+omit revenue from both cards, and do not use a measure dropdown. Stack the cards
+on smaller viewports.
+Avoid adjacent tall chart/table panels and stretched blank surfaces.
+
+Harvest charts remain visible while the farm table starts collapsed. Financial
+projections use per-commodity prices from the dataset, aggregate actual monetary
+amounts before computing the gross-margin percentage, and provide no simulator
+inputs. Use vertical grouped bars per commodity, with HPP, Transport and
+Laba kotor as three separate bars. Show the numeric axis in Rp juta and full
+rupiah amounts in tooltips. Prioritize revenue, total costs, and gross profit. Do not reintroduce the
+operational detail table, pagination, or its exports on this overview.
+
+Map markers open `OwnerDashboardFarmPreview`, shared with Beranda. Its summary
+and footer slots adapt the executive context without sending dummy IDs to real
+farm-detail routes. Existing Beranda popup content and navigation remain the
+defaults.
 
 ### Shared dashboard components for Petugas
 
@@ -498,6 +580,10 @@ This overview does not change task status. Use pagination for long lists, the
 shared shell's navigation loading feedback, and clear empty states for missing
 assignments or schedules. Do not add a manual refresh button to the home page.
 Never substitute example tasks when the database has no scheduled work.
+Keep the shared Tambah aktivitas mandiri floating button above the bottom
+navigation on Beranda and Laporan. Reserve bottom scroll padding on both pages
+so it never covers the last task or report card, progress content, or pagination.
+Do not show that button on the Tugas page.
 
 ### Petugas garden
 
@@ -625,7 +711,7 @@ and support Escape, overlay dismissal, light/dark themes, and reduced motion.
 Do not add reference-only store setup progress, integrations, or help links
 without corresponding application features. Admin navigation does not include
 the starter's Repository/Documentation links. Preserve backend permission props
-and the mobile Owner/Petugas navigation profiles.
+and the Petugas mobile navigation profile.
 
 ### Desktop extended color palette
 
@@ -784,6 +870,11 @@ and show activity cards. Farm selection applies to the entire overview; the
 Use persisted stage statuses for the planting breakdown. Show batches without
 a recorded running stage explicitly, and keep land clearing at block level.
 The map represents saved coordinate points, not invented parcel boundaries.
+Admin dashboard markers open the same shared farm-summary dialog as Owner,
+with admin theme tokens applied to the portaled dialog. Include the selected
+farm's zoomed-in satellite map, scoped planted crops/varieties and actual PIC.
+The Detail kebun action opens `/admin/farm-management/{farm}`. Keep the
+area summary and footer divider omitted, matching the Owner popup.
 Place the map beside a weather card at wide desktop widths, using a 3:1 ratio
 and a readable minimum weather column; stack weather below the map on smaller
 screens. The weather card follows the selected farm and offers its own farm
@@ -1018,6 +1109,18 @@ Block pages reuse `FarmManagementLayout` when the backend shared navigation
 permits Farm Management, including the Admin sidebar, header, typography,
 `admin-field` controls, and themed dialog portals. Keep Manajemen Kebun active
 while visiting block routes. Farm detail uses one overview panel: registered area, location, user-entered harvest target in tonnes, and the number of sub blocks at each persisted stage come first; the location map follows within the same panel. The header combines the back action and farm name on one row, with compact top padding so the overview is visible immediately. Use the shared 36px/700 metric style (32px on phones) for area, target, and sub block counts, with a bold location name. Use complete, beginner-friendly labels: Status lahan before Milik sendiri/Sewa/Kerja sama, Komoditas yang ditanam, and Panduan budidaya (SOP). Each progress item names its unit and action, for example 2 sub blok sedang dalam pengolahan tanah. Never show unexplained fragments such as 1 Pengolahan tanah. Team and owner information do not appear in the detail. Logbook is a text link. The block table follows the overview; create/edit actions open a shared dialog and return to that detail. Farm forms choose a commodity before its matching SOP. Sub block create/edit uses a dialog, with stages and start/completion dates visible by default. A per-block collapse control keeps a stage summary and the add action visible when details are collapsed.
+
+Owner farm detail keeps only the total number and unit under Progres pekerjaan;
+hide the per-stage sentences and the Belum ada progres helper there. Keep the
+full block/sub-block table and its timelines below the overview. In the Owner
+metadata row, replace Panduan budidaya (SOP) with Periode kontrak, using
+the persisted PKS start and end dates from the visible legality record. Format
+both as long Indonesian dates in a start–end range that may wrap on phones.
+Missing dates display Belum diisi on their respective side (once if both are
+missing); owned land with no PKS dates
+displays Tidak berlaku. If legality viewing is denied, show Tidak tersedia.
+The backend supplies this Owner-only summary; Admin keeps its SOP metadata and
+per-stage progress explanations. Do not change SOP assignments or contract data.
 
 Block and sub block editor dialogs use a roomy 768px maximum desktop width, constrained to the viewport on phones. Use card surfaces, semantic tokens, a context header with the existing icon system, a visible capacity summary, two form columns where space permits, and an independently scrolling body. Keep the separated Batal/Simpan footer visible while scrolling; hide duplicate submit/close actions while processing. Retain focus trapping, keyboard dismissal, unsaved-change confirmation, inline errors, and both profile themes. Block forms follow the farm
 form width, and compact list metrics retain their units.

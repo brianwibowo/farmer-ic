@@ -80,7 +80,7 @@ const navigationItems = computed<FarmerNavItem[]>(() => {
         return [
             { key: 'home', label: 'Beranda', href: '/petugas' },
             { key: 'garden', label: 'Kebun', href: '/petugas/kebun' },
-            { key: 'activity', label: 'Aktivitas', href: '/petugas/aktivitas' },
+            { key: 'activity', label: 'Tugas', href: '/petugas/aktivitas' },
             { key: 'report', label: 'Laporan', href: '/petugas/laporan' },
         ];
     }
