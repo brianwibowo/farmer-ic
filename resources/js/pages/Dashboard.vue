@@ -2,28 +2,47 @@
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { RefreshCw, WalletCards } from '@lucide/vue';
+import { RefreshCw } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DashboardActivities from '@/components/dashboard/DashboardActivities.vue';
 import DashboardActivityChart from '@/components/dashboard/DashboardActivityChart.vue';
-import DashboardAttention from '@/components/dashboard/DashboardAttention.vue';
+import DashboardRisks from '@/components/dashboard/DashboardRisks.vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
+import DashboardFarmPreview from '@/components/dashboard/DashboardFarmPreview.vue';
 import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
 import DashboardMetricCards from '@/components/dashboard/DashboardMetricCards.vue';
 import DashboardPlantingOverview from '@/components/dashboard/DashboardPlantingOverview.vue';
-import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
 import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
 import { Button } from '@/components/ui/button';
 import type { DashboardInvitation } from '@/types';
-import type { DashboardData } from '@/types/dashboard';
+import type { AdminDashboardData } from '@/types/dashboard';
 
 defineOptions({ inheritAttrs: false });
 const page = usePage();
 const welcomeName = computed(() => page.props.auth.user?.name?.trim() ?? '');
 const props = defineProps<{
     pendingInvitations?: DashboardInvitation[];
-    dashboard: DashboardData;
+    dashboard: AdminDashboardData;
 }>();
+const selectedMapFarmId = ref<string | null>(null);
+const selectedMapFarm = computed(() =>
+    props.dashboard.landMap.farms.find(
+        (farm) => farm.id === selectedMapFarmId.value,
+    ),
+);
+const mapPreviewOpen = computed({
+    get: () => selectedMapFarm.value !== undefined,
+    set: (open: boolean) => {
+        if (!open) selectedMapFarmId.value = null;
+    },
+});
+watch(
+    () => props.dashboard.landMap.farms,
+    (farms) => {
+        if (!farms.some((farm) => farm.id === selectedMapFarmId.value))
+            selectedMapFarmId.value = null;
+    },
+);
 const farmId = ref(props.dashboard.filters.farm_id ?? '');
 const period = ref(props.dashboard.filters.period);
 const refreshing = ref(false);
@@ -36,35 +55,6 @@ watch(
         period.value = filters.period;
     },
 );
-const financialItems = computed(() => [
-    {
-        label: 'OPEX tercatat',
-        value: props.dashboard.financial.opexThisMonth,
-        description:
-            'Transaksi pengeluaran pada bulan berjalan, sesuai cakupan kebun.',
-        period: props.dashboard.financial.monthLabel,
-    },
-    {
-        label: 'Proyeksi pemasukan',
-        value: props.dashboard.financial.projectedIncome,
-        description:
-            'Total proyeksi pemasukan pada periode yang mencakup hari ini.',
-        period: 'Periode proyeksi aktif',
-    },
-    {
-        label: 'Proyeksi biaya',
-        value: props.dashboard.financial.projectedExpense,
-        description:
-            'Total proyeksi biaya pada periode yang mencakup hari ini.',
-        period: 'Periode proyeksi aktif',
-    },
-    {
-        label: 'Proyeksi bersih',
-        value: props.dashboard.financial.projectedNet,
-        description: 'Proyeksi pemasukan dikurangi biaya; bukan saldo kas.',
-        period: `${props.dashboard.financial.projectionCount} periode proyeksi aktif`,
-    },
-]);
 function reportFailure(): false {
     failed.value = true;
     feedback.value = 'Dashboard belum dapat diperbarui. Silakan coba lagi.';
@@ -190,53 +180,15 @@ function loadDashboard(): void {
         </p>
         <DashboardMetricCards :dashboard="dashboard" />
         <section
-            class="grid items-stretch gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)]"
+            class="grid items-stretch gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]"
         >
             <DashboardActivityChart :trend="dashboard.trend" />
-            <DashboardAttention :items="dashboard.attention" />
+            <DashboardRisks :risks="dashboard.risks" />
         </section>
         <DashboardPlantingOverview
             :cycles="dashboard.cycles"
             :commodities="dashboard.commodities"
         />
-        <section class="dashboard-panel" aria-labelledby="finance-heading">
-            <div
-                class="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.1fr_repeat(4,minmax(0,1fr))]"
-            >
-                <div>
-                    <h2
-                        id="finance-heading"
-                        class="flex items-center gap-2 text-sm font-semibold"
-                    >
-                        <WalletCards :size="17" aria-hidden="true" />OPEX &
-                        proyeksi
-                    </h2>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                        {{ dashboard.financial.monthLabel }} · sesuai kebun
-                        terpilih
-                    </p>
-                </div>
-                <dl
-                    v-for="item in financialItems"
-                    :key="item.label"
-                    class="min-w-0"
-                >
-                    <dt
-                        class="flex items-center gap-2 text-xs text-muted-foreground"
-                    >
-                        {{ item.label
-                        }}<MetricInfoTooltip
-                            :label="item.label"
-                            :description="item.description"
-                            :period="item.period"
-                        />
-                    </dt>
-                    <dd class="mt-2 text-xl font-bold break-words tabular-nums">
-                        {{ item.value }}
-                    </dd>
-                </dl>
-            </div>
-        </section>
         <div
             class="grid items-stretch gap-[18px] xl:grid-cols-[minmax(0,3fr)_minmax(260px,1fr)]"
         >
@@ -267,6 +219,8 @@ function loadDashboard(): void {
                 </div>
                 <DashboardFarmMap
                     :farms="dashboard.landMap.farms"
+                    selectable
+                    @select="selectedMapFarmId = $event"
                     class="xl:min-h-96 xl:flex-1"
                 />
                 <p class="mt-3 text-xs leading-5 text-muted-foreground">
@@ -285,6 +239,12 @@ function loadDashboard(): void {
         <DashboardActivities
             :activities="dashboard.activities"
             :officers="dashboard.officers"
+        />
+        <DashboardFarmPreview
+            v-if="selectedMapFarm"
+            v-model:open="mapPreviewOpen"
+            :farm="selectedMapFarm"
+            admin-theme
         />
     </div>
 </template>

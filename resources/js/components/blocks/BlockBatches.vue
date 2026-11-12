@@ -74,6 +74,12 @@ const statusLabels: Record<string, string> = {
     harvested: 'Selesai panen',
     cancelled: 'Dibatalkan',
 };
+const ageLabels: Record<string, string> = {
+    available: 'HST belum tersedia',
+    not_planted: 'Belum tanam',
+    future: 'Tanggal tanam mendatang',
+    cancelled: 'Dibatalkan',
+};
 function currentStage(batch: PreparationBatch): string {
     if (batch.status === 'cancelled') return 'Dibatalkan';
     if (batch.status === 'harvested') return 'Selesai panen';
@@ -82,7 +88,7 @@ function currentStage(batch: PreparationBatch): string {
     );
     return current
         ? (stageLabels[current.code] ?? current.code)
-        : 'Menunggu dimulai';
+        : 'Belum ada tahap berjalan';
 }
 const progressSummary = computed(() => {
     const counts = new Map<string, number>();
@@ -192,9 +198,22 @@ const progressSummary = computed(() => {
                 class="border-t border-border pt-6"
             >
                 <header class="flex items-start justify-between gap-4">
-                    <div>
-                        <h5 class="text-lg font-bold text-foreground">
+                    <div class="min-w-0">
+                        <h5
+                            class="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-bold [overflow-wrap:anywhere] text-foreground"
+                        >
                             Sub blok {{ block.code }}{{ batch.subblock_label }}
+                            <span
+                                v-if="returnTo === 'farm' && batch.age"
+                                class="rounded-lg bg-primary/10 px-2 py-1 text-xs font-semibold text-primary tabular-nums"
+                                :title="`Umur tanaman per ${blockDate(batch.age.as_of)}`"
+                            >
+                                {{
+                                    batch.age.hst !== null
+                                        ? `${batch.age.hst} HST`
+                                        : ageLabels[batch.age.status]
+                                }}
+                            </span>
                         </h5>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Batch {{ batch.batch_number }} ·

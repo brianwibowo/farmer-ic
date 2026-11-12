@@ -46,7 +46,7 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseCount('farms', 7);
         $this->assertDatabaseCount('financial_transactions', 24);
         $this->assertSame(['Jagung', 'Rumput', 'Sorgum'], Commodity::query()->orderBy('name')->pluck('name')->all());
-        $demoFarm = Farm::query()->where('name', 'Kebun Cileuksa')->firstOrFail();
+        $demoFarm = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $this->assertTrue(DB::table('block_mapping_details as d')->join('farm_activities as a', 'a.id', '=', 'd.activity_id')
             ->where('a.farm_id', $demoFarm->id)->exists());
         foreach (['B01', 'B02'] as $code) {
@@ -95,7 +95,7 @@ class DatabaseSeederTest extends TestCase
 
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertSame('Kebun Cariu', $farm->refresh()->name);
+        $this->assertSame('Lahan Cariu', $farm->refresh()->name);
         $this->assertSame(['Jagung', 'Rumput', 'Sorgum'], Commodity::query()->orderBy('name')->pluck('name')->all());
         foreach ($counts as $table => $count) {
             $this->assertDatabaseCount($table, $count);
@@ -261,13 +261,13 @@ class DatabaseSeederTest extends TestCase
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $this->assertDatabaseHas('farms', ['id' => DemoOwnerPortfolioData::id($team, 'farm:'.$site['key'])]);
         }
-        $this->assertDatabaseHas('farms', ['name' => 'Kebun Cileuksa', 'team_id' => $team->id]);
+        $this->assertDatabaseHas('farms', ['name' => DemoFarmSeeder::FARM_NAME, 'team_id' => $team->id]);
         $owner = User::query()->where('email', 'owner@farmer-ic.test')->firstOrFail();
         $projection = app(HarvestProjectionService::class)->summary($owner, $team);
         $this->assertSame(7, $projection['farm_count']);
         $this->assertEqualsCanonicalizing([
-            'Kebun Cariu', 'Kebun Cileuksa', 'Kebun Cipanengah', 'Kebun Jonggol',
-            'Kebun Megamendung', 'Kebun Pamijahan', 'Kebun Sirnasari',
+            'Lahan Cariu', 'Lahan Cileuksa', 'Lahan Cipanengah', 'Lahan Jonggol',
+            'Lahan Megamendung', 'Lahan Pamijahan', 'Lahan Sirnasari',
         ], array_column($projection['rows'], 'farm_name'));
 
         $this->actingAs($owner)
@@ -275,8 +275,8 @@ class DatabaseSeederTest extends TestCase
             ->where('landTable.total', 7)
             ->where('landTable.rows', fn ($rows) => collect($rows)->count() === 7
                 && collect($rows)->pluck('name')->sort()->values()->all() === [
-                    'Kebun Cariu', 'Kebun Cileuksa', 'Kebun Cipanengah', 'Kebun Jonggol',
-                    'Kebun Megamendung', 'Kebun Pamijahan', 'Kebun Sirnasari',
+                    'Lahan Cariu', 'Lahan Cileuksa', 'Lahan Cipanengah', 'Lahan Jonggol',
+                    'Lahan Megamendung', 'Lahan Pamijahan', 'Lahan Sirnasari',
                 ])
             ->where('landTable.groups', fn ($groups) => collect($groups)->count() === 2
                 && collect($groups)->pluck('name')->all() === ['Kabupaten Bogor', 'Kabupaten Sukabumi']));

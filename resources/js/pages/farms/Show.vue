@@ -74,9 +74,10 @@ function refreshGrowthDate(): void {
     }).format(new Date());
     if (
         !props.blocks.some((block) =>
-            block.batches.some(
-                (batch) => batch.growth && batch.growth.as_of !== today,
-            ),
+            block.batches.some((batch) => {
+                const asOf = batch.age?.as_of ?? batch.growth?.as_of;
+                return asOf !== undefined && asOf !== today;
+            }),
         )
     )
         return;
@@ -101,18 +102,6 @@ const coordinates = computed<[number, number] | null>(() =>
     props.farm.latitude !== null && props.farm.longitude !== null
         ? [Number(props.farm.latitude), Number(props.farm.longitude)]
         : null,
-);
-const progressDescriptions: Record<string, string> = {
-    land_clearing: 'sedang dibersihkan',
-    soil_preparation: 'sedang dalam pengolahan tanah',
-    basic_fertilizer: 'sedang dalam pemupukan dasar',
-    planting: 'sedang ditanami',
-    maintenance: 'sedang dalam pemeliharaan',
-    harvest: 'berada di tahap panen',
-    not_started: 'belum memiliki tahap berjalan',
-};
-const progressStages = computed(() =>
-    props.farm.progress_overview.stages.filter((stage) => stage.count > 0),
 );
 </script>
 <template>
@@ -246,32 +235,10 @@ const progressStages = computed(() =>
                             >sub blok</span
                         >
                     </dd>
-                    <ul
-                        v-if="!ownerSummary && progressStages.length"
-                        class="mt-2 space-y-2 text-xs leading-5 text-muted-foreground"
-                        aria-label="Tahap pekerjaan sub blok saat ini"
-                    >
-                        <li v-for="stage in progressStages" :key="stage.code">
-                            <strong
-                                class="font-semibold text-foreground tabular-nums"
-                                >{{ stage.count }} sub blok</strong
-                            >
-                            {{
-                                progressDescriptions[stage.code] ??
-                                'belum memiliki tahap berjalan'
-                            }}.
-                        </li>
-                    </ul>
-                    <p
-                        v-else-if="!ownerSummary"
-                        class="mt-1 text-xs text-muted-foreground"
-                    >
-                        Belum ada progres.
-                    </p>
                 </div>
             </dl>
             <dl
-                class="grid gap-x-6 gap-y-4 border-t border-border bg-muted/20 px-5 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4"
+                class="grid gap-x-6 gap-y-4 border-t border-border bg-muted/20 px-5 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-3"
             >
                 <div>
                     <dt class="text-xs text-muted-foreground">PIC kebun</dt>
@@ -300,7 +267,9 @@ const progressStages = computed(() =>
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-xs text-muted-foreground">Legalitas</dt>
+                    <dt class="text-xs text-muted-foreground">
+                        Legalitas / Kontrak
+                    </dt>
                     <dd class="mt-1 text-sm font-semibold">
                         <div>
                             <Link

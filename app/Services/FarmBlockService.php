@@ -63,12 +63,13 @@ class FarmBlockService
         $batches = PlantingCycle::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->orderBy('batch_number')->get();
         $stages = PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())->orderBy('position')->get()->groupBy('planting_cycle_id');
         $clearing = app(BlockPreparationTimeline::class)->clearingForBlocks($actor, $team, collect($blocks->modelKeys()));
-        $growth = $includeGrowth ? $this->growthOverview($farm, $batches, $stages, $actor, $team) : [];
+        $today = CarbonImmutable::today('Asia/Jakarta');
+        $growth = $includeGrowth ? $this->growthOverview($farm, $batches, $stages, $actor, $team, $today) : [];
         $mapped = \App\Models\BlockMappingDetail::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->distinct()->pluck('block_id');
         $activeArea = LandArea::squareMetres(FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha')) ?? 0;
         $farmCapacity = $this->batchCapacity($farm, $blocks->firstOrFail(), PlantingCycle::visibleTo($actor, $team)->toBase());
 
-        return $blocks->map(function (FarmBlock $block) use ($farm, $batches, $stages, $clearing, $mapped, $activeArea, $farmCapacity, $growth): FarmBlock {
+        return $blocks->map(function (FarmBlock $block) use ($farm, $batches, $stages, $clearing, $mapped, $activeArea, $farmCapacity, $growth, $includeGrowth, $today): FarmBlock {
             $block->setAttribute('land_clearing_started_at', $clearing[$block->id]['started_at'] ?? null);
             $block->setAttribute('land_clearing_completed_at', $clearing[$block->id]['completed_at'] ?? null);
             $blockBatches = $batches->where('block_id', $block->id);
@@ -90,6 +91,7 @@ class FarmBlockService
             $block->setAttribute('batches', $blockBatches->map(fn (PlantingCycle $batch): array => [
                 ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
                 'planned_planting_at' => $batch->planned_planting_at?->toDateString(), 'planted_at' => $batch->planted_at?->toDateString(),
+                ...($includeGrowth ? ['age' => $this->batchAge($batch, $today)] : []),
                 ...(isset($growth[$batch->id]) ? ['growth' => $growth[$batch->id]] : []),
                 'stages' => ($stages->get($batch->id) ?? collect())->map(fn ($stage) => $stage->only(['code', 'position', 'status', 'started_at', 'completed_at']))->values(),
             ])->values());
@@ -98,14 +100,31 @@ class FarmBlockService
         });
     }
 
+    /** @return array{hst: int|null, as_of: string, status: string} */
+    private function batchAge(PlantingCycle $batch, CarbonImmutable $today): array
+    {
+        $age = ['hst' => null, 'as_of' => $today->toDateString(), 'status' => 'not_planted'];
+        if ($batch->status === 'cancelled') {
+            return [...$age, 'status' => 'cancelled'];
+        }
+        if ($batch->planted_at === null) {
+            return $age;
+        }
+        $planted = CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta');
+        if ($planted->gt($today)) {
+            return [...$age, 'status' => 'future'];
+        }
+
+        return [...$age, 'hst' => (int) $planted->diffInDays($today), 'status' => 'available'];
+    }
+
     /**
      * @param  EloquentCollection<int, PlantingCycle>  $batches
      * @param  \Illuminate\Support\Collection<array-key, EloquentCollection<int, PlantingCycleStage>>  $stages
      * @return array<string, array<string, mixed>>
      */
-    private function growthOverview(Farm $farm, EloquentCollection $batches, \Illuminate\Support\Collection $stages, User $actor, Team $team): array
+    private function growthOverview(Farm $farm, EloquentCollection $batches, \Illuminate\Support\Collection $stages, User $actor, Team $team, CarbonImmutable $today): array
     {
-        $today = CarbonImmutable::today('Asia/Jakarta');
         $eligible = $batches->filter(function (PlantingCycle $batch) use ($stages, $today): bool {
             $timeline = $stages->get($batch->id, collect());
 

@@ -5,9 +5,22 @@ export type HarvestTransactionPhoto = {
     url: string;
 };
 
-export type HarvestTransactionRow = {
+export type HarvestTransactionRecord = {
     id: string;
     activity_date: string;
+    harvested_area_ha: string;
+    gross_weight_ton: string;
+    performer_name: string | null;
+    notes: string | null;
+    photos: HarvestTransactionPhoto[];
+    log_url: string | null;
+};
+
+export type HarvestTransactionRow = {
+    key: string;
+    cycle_id: string | null;
+    first_activity_date: string | null;
+    last_activity_date: string | null;
     farm: { id: string; name: string } | null;
     block: { id: string; code: string; name: string } | null;
     cycle: {
@@ -21,10 +34,8 @@ export type HarvestTransactionRow = {
     commodity: { id: string; name: string } | null;
     harvested_area_ha: string;
     gross_weight_ton: string;
-    performer_name: string | null;
-    notes: string | null;
-    photos: HarvestTransactionPhoto[];
-    log_url: string | null;
+    report_count: number;
+    reports: HarvestTransactionRecord[];
 };
 
 export type HarvestTransactionPage = {
@@ -49,6 +60,7 @@ export type HarvestTransactionFilters = {
 };
 
 export type HarvestTransactionSummary = {
+    subblocks: number;
     reports: number;
     area_ha: string;
     weight_ton: string;

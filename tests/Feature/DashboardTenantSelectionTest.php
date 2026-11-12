@@ -64,7 +64,7 @@ class DashboardTenantSelectionTest extends TestCase
             ->has('dashboard.landMap.farms', 1)->where('dashboard.landMap.farms.0.id', $first->id)
             ->where('dashboard.trend.total', 1)->where('dashboard.activity.total', 1)->has('dashboard.activity.farms', 1)
             ->where('dashboard.cycles.running', 1)->where('dashboard.cycles.stages.0.count', 0)->where('dashboard.cycles.withoutTimeline', 1)
-            ->where('dashboard.attention.0.count', 1)->where('dashboard.attention.4.count', 1)
+            ->where('dashboard.risks.total', 1)
             ->where('dashboard.financial.opexThisMonth', 'Rp100')->where('dashboard.financial.projectionCount', 1)
             ->where('dashboard.financial.projectedIncome', 'Rp1.000')->where('dashboard.financial.projectedExpense', 'Rp10'));
         $this->get('/admin/dashboard?farm_id='.$foreign->id)->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -124,7 +124,7 @@ class DashboardTenantSelectionTest extends TestCase
             ->where('dashboard.metrics.2.value', 0)->where('dashboard.metrics.3.value', 0)
             ->where('dashboard.cycles.running', 0)->where('dashboard.cycles.stages.0.count', 0)->where('dashboard.cycles.withoutTimeline', 0)
             ->where('dashboard.trend.total', 0)->where('dashboard.activity.total', 0)->has('dashboard.activity.farms', 0)->has('dashboard.commodities', 0)
-            ->where('dashboard.attention.0.count', 0)->where('dashboard.attention.2.count', 0)->where('dashboard.attention.4.count', 0)
+            ->where('dashboard.risks.total', 0)->has('dashboard.risks.items', 0)
             ->where('dashboard.financial.opexThisMonth', 'Rp0')->where('dashboard.financial.projectionCount', 0)
             ->where('dashboard.financial.projectedIncome', 'Rp0')->where('dashboard.financial.projectedExpense', 'Rp0')->where('dashboard.financial.projectedNet', 'Rp0'));
     }
