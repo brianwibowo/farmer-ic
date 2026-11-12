@@ -210,3 +210,8 @@ volumes:
     redis_data:
     qdrant_storage:
     https-portal-data:
+
+networks:
+    default:
+        driver_opts:
+            com.docker.network.driver.mtu: "1450"
