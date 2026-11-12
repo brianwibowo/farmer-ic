@@ -15,6 +15,8 @@ import {
     Trash2,
 } from '@lucide/vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
+import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
 import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
 import { ref } from 'vue';
 
@@ -113,6 +115,7 @@ type Props = {
 
 const props = defineProps<Props>();
 const page = usePage();
+const { indexUrl } = useFarmManagementNavigation();
 const headerReady = ref(false);
 const existingHeader = ref(false);
 const headerVersion = ref(0);
@@ -225,10 +228,17 @@ function detailUrl(log: DailyLog): string {
 <template>
     <Head :title="`Logbook Harian - ${farm.name}`" />
 
-    <FarmerMobileShell active-key="garden">
+    <component
+        :is="
+            page.props.navigation?.owner
+                ? FarmManagementLayout
+                : FarmerMobileShell
+        "
+        v-bind="page.props.navigation?.owner ? {} : { activeKey: 'garden' }"
+    >
         <Link
             v-if="page.props.navigation?.farms"
-            :href="`/admin/farm-management/${farm.id}`"
+            :href="`${indexUrl}/${farm.id}`"
             class="mx-4 mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
             ><ArrowLeft :size="16" />Kembali ke detail kebun</Link
         >
@@ -324,7 +334,8 @@ function detailUrl(log: DailyLog): string {
                                 max="32767"
                                 step="1"
                                 class="form-input"
-                            /><p
+                            />
+                            <p
                                 v-if="fieldError('worker_count')"
                                 class="form-error"
                             >
@@ -748,7 +759,10 @@ function detailUrl(log: DailyLog): string {
                                     {{ log.work_date }}
                                 </p>
                                 <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ log.start_time }}-{{ log.end_time ?? 'Belum diisi' }} WIB
+                                    {{ log.start_time }}-{{
+                                        log.end_time ?? 'Belum diisi'
+                                    }}
+                                    WIB
                                 </p>
                             </div>
                             <Link
@@ -770,8 +784,14 @@ function detailUrl(log: DailyLog): string {
                                     activity.block_mapping?.block_name ??
                                     activity.name ??
                                     'Aktivitas'
-                                }}<template v-if="activity.worker_count !== null">
-                                    · {{ activity.worker_count }} pekerja</template
+                                }}<template
+                                    v-if="activity.worker_count !== null"
+                                >
+                                    ·
+                                    {{
+                                        activity.worker_count
+                                    }}
+                                    pekerja</template
                                 >
                             </span>
                         </div>
@@ -811,7 +831,7 @@ function detailUrl(log: DailyLog): string {
                 </div>
             </section>
         </div>
-    </FarmerMobileShell>
+    </component>
 </template>
 
 <style scoped>

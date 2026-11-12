@@ -34,7 +34,7 @@ const page = usePage();
 <template>
     <div
         :class="
-            page.props.navigation?.admin
+            page.props.navigation?.admin || page.props.navigation?.owner
                 ? 'admin-page-content'
                 : 'mx-auto w-full max-w-screen-2xl p-4 md:p-6 lg:p-8'
         "

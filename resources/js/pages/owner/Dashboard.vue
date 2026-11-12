@@ -44,7 +44,7 @@ watch(
 </script>
 
 <template>
-    <Head title="Beranda Owner" />
+    <Head title="Dashboard Owner" />
     <div
         class="owner-dashboard min-w-0 space-y-4 lg:space-y-6"
         :aria-busy="loading"
@@ -54,11 +54,11 @@ watch(
         >
             <header class="min-w-0">
                 <h1
-                    class="text-xl leading-7 font-semibold break-words lg:text-2xl lg:leading-9 2xl:text-3xl"
+                    class="admin-page-title break-words"
                 >
                     Selamat datang<template v-if="welcomeName"
                         >,
-                        <span class="text-secondary dark:text-primary">{{
+                        <span class="text-primary">{{
                             welcomeName
                         }}</span></template
                     >!
@@ -70,7 +70,7 @@ watch(
                 size="icon"
                 class="min-h-11 min-w-11 shrink-0"
                 :disabled="loading"
-                aria-label="Perbarui Beranda"
+                aria-label="Perbarui dashboard"
                 @click="submit()"
                 ><RefreshCw
                     class="size-4"
@@ -101,13 +101,13 @@ watch(
                 <div class="mb-3 flex items-center justify-between gap-3">
                     <h2
                         id="owner-map-heading"
-                        class="text-base font-semibold 2xl:text-lg"
+                        class="admin-section-title"
                     >
                         Peta lahan
                     </h2>
                     <Link
                         href="/kebun"
-                        class="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
+                        class="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
                         >Lihat kebun</Link
                     >
                 </div>

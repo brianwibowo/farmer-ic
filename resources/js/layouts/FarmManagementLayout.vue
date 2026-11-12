@@ -1,29 +1,13 @@
 <script setup lang="ts">
 import { LandPlot } from '@lucide/vue';
-import AdminHeader from '@/components/AdminHeader.vue';
-import AppContent from '@/components/AppContent.vue';
-import AppShell from '@/components/AppShell.vue';
-import AppSidebar from '@/components/AppSidebar.vue';
-import { Toaster } from '@/components/ui/sonner';
+import AdminWorkspaceLayout from '@/layouts/AdminWorkspaceLayout.vue';
+import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
+
+const { title, indexUrl } = useFarmManagementNavigation();
 </script>
 
 <template>
-    <div
-        class="admin-dashboard-theme min-h-dvh bg-background font-sans text-sm text-foreground"
-    >
-        <AppShell variant="sidebar" admin>
-            <AppSidebar admin-theme />
-            <AppContent variant="sidebar" class="min-w-0 bg-background">
-                <AdminHeader
-                    title="Manajemen Kebun"
-                    href="/admin/farm-management"
-                    :icon="LandPlot"
-                />
-                <div class="admin-page-content">
-                    <slot />
-                </div>
-            </AppContent>
-            <Toaster class="admin-dashboard-theme" />
-        </AppShell>
-    </div>
+    <AdminWorkspaceLayout :title="title" :href="indexUrl" :icon="LandPlot">
+        <slot />
+    </AdminWorkspaceLayout>
 </template>

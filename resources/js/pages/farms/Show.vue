@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
     ArrowLeft,
     ClipboardList,
-    ExternalLink,
     LandPlot,
     MapPin,
     Target,
@@ -24,6 +24,7 @@ import {
 } from '@/types/farms';
 import type { ManagedBlock, BlockFormCapacity } from '@/types/blocks';
 defineOptions({ inheritAttrs: false });
+const { indexUrl } = useFarmManagementNavigation();
 const props = defineProps<{
     farm: ManagedFarm;
     blocks: ManagedBlock[];
@@ -31,6 +32,13 @@ const props = defineProps<{
     blockCapacity: BlockFormCapacity | null;
     deletionBlockers: string[];
     legalityUrl: string | null;
+    ownerSummary?: {
+        contract: {
+            starts_at: string | null;
+            ends_at: string | null;
+            not_applicable: boolean;
+        } | null;
+    };
     can: FarmPermissions & {
         dailyLogs: boolean;
         blocks: boolean;
@@ -38,6 +46,21 @@ const props = defineProps<{
     };
 }>();
 const deleting = ref(false);
+const contractLabel = computed(() => {
+    const contract = props.ownerSummary?.contract;
+    if (!contract) return 'Tidak tersedia';
+    if (contract.not_applicable) return 'Tidak berlaku';
+    if (!contract.starts_at && !contract.ends_at) return 'Belum diisi';
+
+    const formatter = new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'long',
+        timeZone: 'Asia/Jakarta',
+    });
+    const dateLabel = (value: string | null) =>
+        value ? formatter.format(new Date(value)) : 'Belum diisi';
+
+    return `${dateLabel(contract.starts_at)} – ${dateLabel(contract.ends_at)}`;
+});
 let growthRefreshTimer: ReturnType<typeof setInterval> | undefined;
 let refreshingGrowth = false;
 function refreshGrowthDate(): void {
@@ -100,7 +123,7 @@ const progressStages = computed(() =>
             <div class="flex min-w-0 items-center gap-2">
                 <Button as-child variant="ghost" size="icon" class="shrink-0"
                     ><Link
-                        href="/admin/farm-management"
+                        :href="indexUrl"
                         aria-label="Daftar kebun"
                         title="Daftar kebun"
                         ><ArrowLeft class="size-5" /></Link
@@ -110,11 +133,11 @@ const progressStages = computed(() =>
                 </h1>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <a
+                <Link
                     v-if="can.dailyLogs"
                     :href="`/kebun/${farm.id}/daily-logs`"
                     class="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
-                    ><ClipboardList class="size-4" />Logbook</a
+                    ><ClipboardList class="size-4" />Logbook</Link
                 >
                 <Button v-if="can.update" as-child variant="outline"
                     ><Link :href="`/admin/farm-management/${farm.id}/edit`"
@@ -223,7 +246,7 @@ const progressStages = computed(() =>
                         >
                     </dd>
                     <ul
-                        v-if="progressStages.length"
+                        v-if="!ownerSummary && progressStages.length"
                         class="mt-2 space-y-2 text-xs leading-5 text-muted-foreground"
                         aria-label="Tahap pekerjaan sub blok saat ini"
                     >
@@ -238,7 +261,10 @@ const progressStages = computed(() =>
                             }}.
                         </li>
                     </ul>
-                    <p v-else class="mt-1 text-xs text-muted-foreground">
+                    <p
+                        v-else-if="!ownerSummary"
+                        class="mt-1 text-xs text-muted-foreground"
+                    >
                         Belum ada progres.
                     </p>
                 </div>
@@ -275,45 +301,42 @@ const progressStages = computed(() =>
                 <div>
                     <dt class="text-xs text-muted-foreground">Legalitas</dt>
                     <dd class="mt-1 text-sm font-semibold">
-                        <Link
-                            v-if="legalityUrl"
-                            :href="legalityUrl"
-                            :aria-label="`Lihat legalitas ${farm.name}`"
-                            class="block min-h-11 rounded-md focus-visible:outline-2 focus-visible:outline-ring"
+                        <div>
+                            <Link
+                                v-if="legalityUrl"
+                                :href="legalityUrl"
+                                :aria-label="`Lihat legalitas ${farm.name}`"
+                                class="inline-block rounded-md text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                            >
+                                {{ landTenureLabel(farm.land_tenure) }}
+                            </Link>
+                            <template v-else>
+                                {{ landTenureLabel(farm.land_tenure) }}
+                            </template>
+                        </div>
+                        <p
+                            v-if="
+                                farm.land_tenure === 'rented' ||
+                                farm.land_tenure === 'partnership'
+                            "
+                            class="mt-1 text-xs font-normal [overflow-wrap:anywhere] text-muted-foreground select-text"
                         >
-                            <span
-                                class="block text-primary underline underline-offset-4"
-                                >{{ landTenureLabel(farm.land_tenure) }}</span
-                            >
-                            <span
-                                v-if="
-                                    farm.land_tenure === 'rented' ||
-                                    farm.land_tenure === 'partnership'
-                                "
-                                class="mt-1 block text-xs font-normal [overflow-wrap:anywhere] text-muted-foreground"
-                                >{{
-                                    farm.land_tenure_party ||
-                                    'Pihak terkait belum diisi'
-                                }}</span
-                            >
-                        </Link>
-                        <template v-else>
-                            {{ landTenureLabel(farm.land_tenure) }}
-                            <span
-                                v-if="
-                                    farm.land_tenure === 'rented' ||
-                                    farm.land_tenure === 'partnership'
-                                "
-                                class="mt-1 block text-xs font-normal [overflow-wrap:anywhere] text-muted-foreground"
-                                >{{
-                                    farm.land_tenure_party ||
-                                    'Pihak terkait belum diisi'
-                                }}</span
-                            >
-                        </template>
+                            {{
+                                farm.land_tenure_party ||
+                                'Pihak terkait belum diisi'
+                            }}
+                        </p>
                     </dd>
                 </div>
-                <div>
+                <div v-if="ownerSummary">
+                    <dt class="text-xs text-muted-foreground">
+                        Periode kontrak
+                    </dt>
+                    <dd class="mt-1 text-sm font-semibold">
+                        {{ contractLabel }}
+                    </dd>
+                </div>
+                <div v-else>
                     <dt class="text-xs text-muted-foreground">
                         Panduan budidaya (SOP)
                     </dt>
@@ -339,14 +362,6 @@ const progressStages = computed(() =>
                 >
                     {{ farm.address }}
                 </p>
-                <a
-                    v-if="farm.image_url"
-                    :href="farm.image_url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="mt-3 inline-flex min-h-11 items-center gap-2 text-sm text-primary underline underline-offset-4"
-                    >Lihat foto kebun<ExternalLink class="size-4"
-                /></a>
             </div>
         </section>
         <FarmBlocksTable

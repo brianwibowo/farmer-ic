@@ -29,7 +29,7 @@ stored9ea11ce0ed9b1a22a692f5b77006ae4.url = (args?: { current_team?: string | { 
             if (typeof args === 'object' && !Array.isArray(args) && 'slug' in args) {
             args = { current_team: args.slug }
         }
-    
+
     if (Array.isArray(args)) {
         args = {
                     current_team: args[0],
@@ -85,7 +85,7 @@ stored9ea11ce0ed9b1a22a692f5b77006ae4.post = (args?: { current_team?: string | {
             action: stored9ea11ce0ed9b1a22a692f5b77006ae4.url(args, options),
             method: 'post',
         })
-    
+
     stored9ea11ce0ed9b1a22a692f5b77006ae4.form = stored9ea11ce0ed9b1a22a692f5b77006ae4Form
     /**
 * @see \App\Http\Controllers\AI\AiMessageController::store
@@ -170,7 +170,7 @@ store297d73f8b26d2a49485ac523c54950f6.post = (args: { current_team?: string | { 
             action: store297d73f8b26d2a49485ac523c54950f6.url(args, options),
             method: 'post',
         })
-    
+
     store297d73f8b26d2a49485ac523c54950f6.form = store297d73f8b26d2a49485ac523c54950f6Form
 
 /**

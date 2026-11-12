@@ -120,9 +120,9 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $farm = Farm::query()->findOrFail(DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']));
             $this->get('/kebun/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-                ->component('owner/Farm')->where('farm.id', $farm->id)
+                ->component('farms/Show')->where('farm.id', $farm->id)
                 ->where('farm.default_sop.is_active', true)->has('blocks', 2)
-                ->has('legacyCycles', 0)->where('weather', fn ($weather) => $weather !== null));
+                ->where('can.update', false)->where('can.createBlock', false));
 
             $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->with('block')->firstOrFail();
             $block = $cycle->block;

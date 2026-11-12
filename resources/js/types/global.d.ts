@@ -32,6 +32,7 @@ declare module '@inertiajs/core' {
             };
             navigation?: {
                 admin: boolean;
+                owner?: boolean;
                 petugas?: boolean;
                 notifications: boolean;
                 farms: boolean;

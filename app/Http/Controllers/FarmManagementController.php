@@ -14,6 +14,7 @@ use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmDeletionService;
+use App\Services\FarmLegalityService;
 use App\Services\FarmService;
 use App\Services\SopTemplateService;
 use App\Support\RolePermissions;
@@ -89,16 +90,24 @@ class FarmManagementController extends Controller
         return to_route('farm-management.show', $farm);
     }
 
-    public function show(Request $request, Farm $farm): Response
+    public function show(Request $request, Farm $farm, FarmLegalityService $legalities): Response
     {
         Gate::authorize('view', $farm);
         $team = $request->user()->currentTeam;
         $inActiveTeam = $team instanceof Team && (int) $farm->team_id === (int) $team->id;
+        if ($request->routeIs('owner.farms.show')) {
+            abort_unless($inActiveTeam, 404);
+        }
         $canViewLegality = $inActiveTeam && Gate::allows('viewAny', [FarmLegality::class, $team]);
 
         return Inertia::render('farms/Show', [
             'farm' => $this->farms->detail($farm, $request->user()),
-            'legalityUrl' => $canViewLegality ? route('farm-management.legality.show', $farm, false) : null,
+            'legalityUrl' => $canViewLegality ? route($request->routeIs('owner.farms.show') ? 'owner.farms.legality' : 'farm-management.legality.show', $farm, false) : null,
+            ...($request->routeIs('owner.farms.show') ? [
+                'ownerSummary' => [
+                    'contract' => $canViewLegality ? $legalities->contractSummary($request->user(), $team, $farm) : null,
+                ],
+            ] : []),
             'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]) ? $this->blocks->overview($farm, $request->user(), $farm->team, includeGrowth: true)->map(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block), 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block])]]) : [],
             'batchPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
                 ->with(['farm.team', 'block'])->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $batch->block !== null && $this->blocks->isBatchEditable($batch->block, $batch)]),
