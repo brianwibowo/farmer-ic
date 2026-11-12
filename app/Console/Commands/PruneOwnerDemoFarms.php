@@ -21,7 +21,6 @@ class PruneOwnerDemoFarms extends Command
     public function handle(): int
     {
 
-
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
         $team = $actor?->teams()->where('slug', 'farm-ic-demo')->where('is_personal', false)->first();
