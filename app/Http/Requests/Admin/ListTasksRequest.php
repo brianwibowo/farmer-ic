@@ -25,6 +25,7 @@ class ListTasksRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:100'],
+            'farm_id' => ['nullable', 'uuid'],
             'block_id' => ['nullable', 'uuid'],
             'subblok_id' => ['nullable', 'uuid'],
             'status' => ['nullable', Rule::in(PlantingCycleTask::STATUSES)],

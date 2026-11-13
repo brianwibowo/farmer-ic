@@ -1,11 +1,26 @@
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue';
-import { ChevronDown, ChevronUp, Pencil, Plus } from '@lucide/vue';
+import { useForm } from '@inertiajs/vue3';
+import {
+    ChevronDown,
+    ChevronUp,
+    LoaderCircle,
+    Pencil,
+    Plus,
+} from '@lucide/vue';
 import BatchDialog from './BatchDialog.vue';
 import BatchTimeline from './BatchTimeline.vue';
 import BatchPlantGrowth from './BatchPlantGrowth.vue';
 import MetricInfoTooltip from '@/components/MetricInfoTooltip.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     blockDate,
     stageLabels,
@@ -18,6 +33,7 @@ const props = defineProps<{
     farm: BlockFarm;
     block: ManagedBlock;
     batchPermissions: Record<string, boolean>;
+    harvestPermissions: Record<string, boolean>;
     theme: string;
     returnTo: 'farm' | 'blocks';
 }>();
@@ -25,10 +41,32 @@ const editing = ref(false);
 const expanded = ref(true);
 const contentId = useId();
 const selected = ref<PreparationBatch | null>(null);
+const closing = ref<PreparationBatch | null>(null);
+const closeForm = useForm({ return_to: props.returnTo });
+const closeError = computed(
+    () => (closeForm.errors as Record<string, string>).harvest,
+);
 const base = computed(() => `/kebun/${props.farm.id}/blocks/${props.block.id}`);
 function open(batch: PreparationBatch | null): void {
     selected.value = batch;
     editing.value = true;
+}
+function closeHarvest(): void {
+    if (!closing.value) return;
+    closeForm.post(`${base.value}/batches/${closing.value.id}/close-harvest`, {
+        preserveScroll: true,
+        onSuccess: () => (closing.value = null),
+    });
+}
+function canCloseHarvest(batch: PreparationBatch): boolean {
+    return (
+        !!props.harvestPermissions[batch.id] &&
+        batch.status === 'active' &&
+        batch.stages.some(
+            (stage) =>
+                stage.code === 'harvest' && stage.status === 'in_progress',
+        )
+    );
 }
 const statusLabels: Record<string, string> = {
     planned: 'Persiapan',
@@ -50,7 +88,7 @@ function currentStage(batch: PreparationBatch): string {
     );
     return current
         ? (stageLabels[current.code] ?? current.code)
-        : 'Menunggu dimulai';
+        : 'Belum ada tahap berjalan';
 }
 const progressSummary = computed(() => {
     const counts = new Map<string, number>();
@@ -120,11 +158,12 @@ const progressSummary = computed(() => {
             v-if="!expanded || !block.batches.length"
             class="text-xs leading-relaxed text-muted-foreground"
         >
-            Pembersihan lahan
-            {{ block.land_clearing_completed_at ? 'selesai' : 'belum dimulai'
+            {{
+                block.land_clearing_completed_at
+                    ? 'Laporan terakhir pembersihan lahan'
+                    : 'Belum ada laporan pembersihan lahan'
             }}<span v-if="block.land_clearing_completed_at">
-                · Dilaporkan
-                {{ blockDate(block.land_clearing_completed_at) }}</span
+                · {{ blockDate(block.land_clearing_completed_at) }}</span
             >
         </p>
         <ul
@@ -181,15 +220,29 @@ const progressSummary = computed(() => {
                             {{ statusLabels[batch.status] ?? batch.status }}
                         </p>
                     </div>
-                    <Button
-                        v-if="batchPermissions[batch.id]"
-                        variant="ghost"
-                        size="sm"
-                        class="block-action"
-                        :aria-label="`Ubah sub blok ${block.code}${batch.subblock_label}`"
-                        @click="open(batch)"
-                        ><Pencil class="size-4" />Ubah</Button
-                    >
+                    <div class="flex flex-wrap justify-end gap-2">
+                        <Button
+                            v-if="canCloseHarvest(batch)"
+                            variant="outline"
+                            size="sm"
+                            class="block-action"
+                            :aria-label="`Tutup panen sub blok ${block.code}${batch.subblock_label}`"
+                            @click="
+                                closing = batch;
+                                closeForm.clearErrors();
+                            "
+                            >Tutup panen</Button
+                        >
+                        <Button
+                            v-if="batchPermissions[batch.id]"
+                            variant="ghost"
+                            size="sm"
+                            class="block-action"
+                            :aria-label="`Ubah sub blok ${block.code}${batch.subblock_label}`"
+                            @click="open(batch)"
+                            ><Pencil class="size-4" />Ubah</Button
+                        >
+                    </div>
                 </header>
                 <dl
                     class="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3"
@@ -238,7 +291,7 @@ const progressSummary = computed(() => {
                     </div>
                 </dl>
                 <div class="mt-5 bg-muted/40 p-4 sm:p-5">
-                    <h6 class="mb-4 text-sm font-semibold text-primary">
+                    <h6 class="mb-1 text-sm font-semibold text-primary">
                         Tahap &amp; tanggal progres
                     </h6>
                     <BatchTimeline
@@ -282,4 +335,39 @@ const progressSummary = computed(() => {
         :theme="theme"
         :return-to="returnTo"
     />
+    <Dialog
+        :open="!!closing"
+        @update:open="(value) => { if (!value && !closeForm.processing) closing = null; }"
+    >
+        <DialogContent
+            :class="theme"
+            :show-close-button="!closeForm.processing"
+            @interact-outside.prevent
+            @escape-key-down="(event) => { if (closeForm.processing) event.preventDefault(); }"
+        >
+            <DialogHeader>
+                <DialogTitle>
+                    Tutup panen sub blok {{ block.code }}{{ closing?.subblock_label }}?
+                </DialogTitle>
+                <DialogDescription>
+                    Pastikan laporan panen sudah lengkap. Subblok akan selesai
+                    dan tidak dapat menerima laporan panen tambahan. Tugas panen
+                    yang masih terbuka akan ditandai selesai. Penutupan tidak
+                    mengharuskan seluruh luas tanam sudah dipanen.
+                </DialogDescription>
+            </DialogHeader>
+            <p v-if="closeError" role="alert" class="text-sm text-error">
+                {{ closeError }}
+            </p>
+            <DialogFooter>
+                <Button variant="outline" :disabled="closeForm.processing" @click="closing = null">
+                    Batal
+                </Button>
+                <Button :disabled="closeForm.processing" @click="closeHarvest">
+                    <LoaderCircle v-if="closeForm.processing" class="animate-spin" />
+                    {{ closeForm.processing ? 'Menutup…' : 'Ya, tutup panen' }}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

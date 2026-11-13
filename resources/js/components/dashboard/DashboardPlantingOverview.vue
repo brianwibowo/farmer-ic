@@ -169,6 +169,9 @@ const ring = computed(() => ({
                         : 'Berdasarkan tahap yang sedang berlangsung pada batch.'
                 }}
             </p>
+            <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                Pembersihan lahan dicatat pada tingkat blok.
+            </p>
         </article>
         <article class="dashboard-panel">
             <div class="flex items-center justify-between gap-2">

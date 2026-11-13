@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import {
-    ArrowUpRight,
+    ChevronDown,
     ClipboardList,
     LoaderCircle,
     Ruler,
     Search,
     Wheat,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
+import HarvestReportList from '@/components/harvest/HarvestReportList.vue';
 import LogbookPagination from '@/components/logbook/LogbookPagination.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,18 +53,18 @@ const blockOptions = computed(() =>
 const hasFilters = computed(() =>
     Boolean(
         filters.search ||
-            filters.farm_id ||
-            filters.block_id ||
-            filters.variety_id ||
-            filters.from_date ||
-            filters.to_date,
+        filters.farm_id ||
+        filters.block_id ||
+        filters.variety_id ||
+        filters.from_date ||
+        filters.to_date,
     ),
 );
 const summaryCards = computed(() => [
     {
-        label: 'Laporan panen',
-        value: String(props.summary.reports),
-        hint: 'Laporan realisasi panen',
+        label: 'Subblok terpanen',
+        value: String(props.summary.subblocks),
+        hint: 'Subblok dengan realisasi panen',
         icon: ClipboardList,
     },
     {
@@ -150,16 +151,45 @@ function varietyLabel(variety: HarvestTransactionVarietyOption): string {
         : variety.name;
 }
 
+const expandedKeys = ref<string[]>([]);
+
+function isExpanded(key: string): boolean {
+    return expandedKeys.value.includes(key);
+}
+
+function toggleExpanded(key: string): void {
+    expandedKeys.value = isExpanded(key)
+        ? expandedKeys.value.filter((item) => item !== key)
+        : [...expandedKeys.value, key];
+}
+
+function activityDateRange(row: HarvestTransactionRow): string {
+    if (!row.first_activity_date) {
+        return '-';
+    }
+    if (
+        !row.last_activity_date ||
+        row.first_activity_date === row.last_activity_date
+    ) {
+        return formatDate(row.first_activity_date);
+    }
+
+    return `${formatDate(row.first_activity_date)} – ${formatDate(row.last_activity_date)}`;
+}
+
 function rowSubblock(row: HarvestTransactionRow): string {
     if (!row.cycle) {
         return 'Subblok belum terhubung';
     }
-    const label = row.cycle.subblock_label
-        ? `Subblok ${row.cycle.subblock_label}`
-        : 'Subblok';
-    return `${label} · Batch ${row.cycle.batch_number ?? '-'}`;
-}
+    if (row.cycle.subblock_label) {
+        return `Subblok ${row.cycle.subblock_label}`;
+    }
+    if (row.cycle.batch_number !== null) {
+        return `Batch ${row.cycle.batch_number}`;
+    }
 
+    return 'Subblok';
+}
 </script>
 
 <template>
@@ -183,15 +213,19 @@ function rowSubblock(row: HarvestTransactionRow): string {
                     />
                 </div>
                 <p class="admin-metric-value mt-3">{{ item.value }}</p>
-                <p class="mt-1 text-xs text-muted-foreground">{{ item.hint }}</p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    {{ item.hint }}
+                </p>
             </article>
         </section>
 
         <section class="admin-card overflow-hidden rounded-xl bg-card">
             <div class="border-b border-border p-4 md:p-5">
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div
+                    class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                >
                     <div class="flex items-center gap-2">
-                        <h2 class="admin-section-title">Daftar transaksi</h2>
+                        <h2 class="admin-section-title">Daftar subblok</h2>
                         <span
                             class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
                         >
@@ -247,7 +281,11 @@ function rowSubblock(row: HarvestTransactionRow): string {
                             @change="changeFarm"
                         >
                             <option value="">Semua kebun</option>
-                            <option v-for="farm in farms" :key="farm.id" :value="farm.id">
+                            <option
+                                v-for="farm in farms"
+                                :key="farm.id"
+                                :value="farm.id"
+                            >
                                 {{ farm.name }}
                             </option>
                         </select>
@@ -274,7 +312,11 @@ function rowSubblock(row: HarvestTransactionRow): string {
                                         : 'Pilih kebun terlebih dahulu'
                                 }}
                             </option>
-                            <option v-for="block in blockOptions" :key="block.id" :value="block.id">
+                            <option
+                                v-for="block in blockOptions"
+                                :key="block.id"
+                                :value="block.id"
+                            >
                                 {{ block.code }} · {{ block.name }}
                             </option>
                         </select>
@@ -294,7 +336,11 @@ function rowSubblock(row: HarvestTransactionRow): string {
                             :aria-describedby="field.description"
                         >
                             <option value="">Semua varietas</option>
-                            <option v-for="variety in varieties" :key="variety.id" :value="variety.id">
+                            <option
+                                v-for="variety in varieties"
+                                :key="variety.id"
+                                :value="variety.id"
+                            >
                                 {{ varietyLabel(variety) }}
                             </option>
                         </select>
@@ -373,20 +419,29 @@ function rowSubblock(row: HarvestTransactionRow): string {
                 </p>
             </div>
 
-            <div v-else-if="!transactions.data.length" class="px-5 py-16 text-center">
+            <div
+                v-else-if="!transactions.data.length"
+                class="px-5 py-16 text-center"
+            >
                 <div
                     class="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent text-primary"
                 >
                     <Wheat class="size-7" />
                 </div>
                 <h3 class="mt-4 font-semibold">
-                    {{ hasFilters ? 'Transaksi tidak ditemukan' : 'Belum ada transaksi panen' }}
+                    {{
+                        hasFilters
+                            ? 'Subblok tidak ditemukan'
+                            : 'Belum ada subblok dipanen'
+                    }}
                 </h3>
-                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                <p
+                    class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground"
+                >
                     {{
                         hasFilters
                             ? 'Coba kata kunci, tanggal, atau filter lain.'
-                            : 'Transaksi akan muncul setelah Petugas mencatat realisasi panen.'
+                            : 'Subblok akan muncul setelah Petugas mencatat realisasi panen.'
                     }}
                 </p>
                 <Button
@@ -403,91 +458,165 @@ function rowSubblock(row: HarvestTransactionRow): string {
                 <div
                     class="hidden overflow-x-auto md:block"
                     role="region"
-                    aria-label="Tabel transaksi panen"
+                    aria-label="Tabel subblok panen"
                     tabindex="0"
                 >
                     <table class="w-full table-fixed text-left text-sm">
-                        <thead class="bg-muted/50 text-xs text-muted-foreground">
+                        <thead
+                            class="bg-muted/50 text-xs text-muted-foreground"
+                        >
                             <tr>
-                                <th scope="col" class="w-[14%] px-4 py-3 font-semibold">Tanggal</th>
-                                <th scope="col" class="w-[22%] px-4 py-3 font-semibold">Lokasi</th>
-                                <th scope="col" class="w-[16%] px-4 py-3 font-semibold">Varietas</th>
-                                <th scope="col" class="w-[18%] px-4 py-3 font-semibold">Luas &amp; berat</th>
-                                <th scope="col" class="w-[30%] px-4 py-3 text-right font-semibold">Detail</th>
+                                <th
+                                    scope="col"
+                                    class="w-[20%] px-4 py-3 font-semibold"
+                                >
+                                    Panen
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[24%] px-4 py-3 font-semibold"
+                                >
+                                    Lokasi
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[18%] px-4 py-3 font-semibold"
+                                >
+                                    Varietas
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[20%] px-4 py-3 font-semibold"
+                                >
+                                    Luas &amp; berat
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[18%] px-4 py-3 text-right font-semibold"
+                                >
+                                    Laporan
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border">
-                            <tr
+                            <template
                                 v-for="row in transactions.data"
-                                :key="row.id"
-                                class="align-top hover:bg-muted/40"
+                                :key="row.key"
                             >
-                                <td class="px-4 py-4">
-                                    <p class="font-medium">{{ formatDate(row.activity_date) }}</p>
-                                    <p v-if="row.log_url" class="mt-2 text-xs">
-                                        <Link
-                                            :href="row.log_url"
-                                            class="inline-flex items-center gap-1 text-primary underline underline-offset-2"
+                                <tr class="align-top hover:bg-muted/40">
+                                    <td class="px-4 py-4">
+                                        <p class="font-medium">
+                                            {{ activityDateRange(row) }}
+                                        </p>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <p class="font-medium">
+                                            {{ row.farm?.name ?? '-' }}
+                                        </p>
+                                        <p
+                                            class="mt-1 text-xs text-muted-foreground"
                                         >
-                                            Logbook <ArrowUpRight class="size-3" />
-                                        </Link>
-                                    </p>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <p class="font-medium">{{ row.farm?.name ?? '-' }}</p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ row.block?.code ?? '-' }} · {{ row.block?.name ?? 'Blok belum diisi' }}
-                                    </p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ rowSubblock(row) }}
-                                    </p>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <p class="font-medium">{{ row.variety?.name ?? '-' }}</p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ row.commodity?.name ?? 'Komoditas belum diisi' }}
-                                    </p>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <p class="font-medium">{{ formatDecimal(row.harvested_area_ha) }} ha</p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        {{ formatDecimal(row.gross_weight_ton) }} ton
-                                    </p>
-                                    <p class="mt-1 text-xs text-muted-foreground">
-                                        Tanam {{ formatDecimal(row.cycle?.planted_area_ha ?? null) }} ha
-                                    </p>
-                                </td>
-                                <td class="px-4 py-4 text-right">
-                                    <div class="flex flex-wrap justify-end gap-1">
-                                        <a
-                                            v-for="photo in row.photos"
-                                            :key="photo.id"
-                                            :href="photo.url"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="overflow-hidden rounded-md border border-border"
-                                            :aria-label="photo.caption ?? photo.label ?? 'Foto panen'"
+                                            {{ row.block?.code ?? '-' }} ·
+                                            {{
+                                                row.block?.name ??
+                                                'Blok belum diisi'
+                                            }}
+                                        </p>
+                                        <p
+                                            class="mt-1 text-xs text-muted-foreground"
                                         >
-                                            <img
-                                                :src="photo.url"
-                                                :alt="photo.caption ?? photo.label ?? 'Foto panen'"
-                                                class="size-10 object-cover"
-                                                loading="lazy"
+                                            {{ rowSubblock(row) }}
+                                        </p>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <p class="font-medium">
+                                            {{ row.variety?.name ?? '-' }}
+                                        </p>
+                                        <p
+                                            class="mt-1 text-xs text-muted-foreground"
+                                        >
+                                            {{
+                                                row.commodity?.name ??
+                                                'Komoditas belum diisi'
+                                            }}
+                                        </p>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <p class="font-medium">
+                                            {{
+                                                formatDecimal(
+                                                    row.harvested_area_ha,
+                                                )
+                                            }}
+                                            ha
+                                        </p>
+                                        <p
+                                            class="mt-1 text-xs text-muted-foreground"
+                                        >
+                                            {{
+                                                formatDecimal(
+                                                    row.gross_weight_ton,
+                                                )
+                                            }}
+                                            ton
+                                        </p>
+                                        <p
+                                            class="mt-1 text-xs text-muted-foreground"
+                                        >
+                                            Tanam
+                                            {{
+                                                formatDecimal(
+                                                    row.cycle
+                                                        ?.planted_area_ha ??
+                                                        null,
+                                                )
+                                            }}
+                                            ha
+                                        </p>
+                                    </td>
+                                    <td class="px-4 py-4 text-right">
+                                        <button
+                                            type="button"
+                                            class="inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs font-medium text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring"
+                                            :aria-expanded="isExpanded(row.key)"
+                                            :aria-controls="`harvest-reports-${row.key}`"
+                                            @click="toggleExpanded(row.key)"
+                                        >
+                                            {{ row.report_count }} laporan
+                                            <ChevronDown
+                                                class="size-4 transition-transform motion-reduce:transition-none"
+                                                :class="{
+                                                    'rotate-180': isExpanded(
+                                                        row.key,
+                                                    ),
+                                                }"
+                                                aria-hidden="true"
                                             />
-                                        </a>
-                                    </div>
-                                    <p v-if="!row.photos.length" class="text-xs text-muted-foreground">
-                                        Tanpa foto
-                                    </p>
-                                    <p
-                                        v-if="row.notes"
-                                        class="mt-2 max-w-52 text-xs leading-5 text-muted-foreground md:ml-auto"
-                                        :title="row.notes"
-                                    >
-                                        {{ row.notes }}
-                                    </p>
-                                </td>
-                            </tr>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr
+                                    v-if="isExpanded(row.key)"
+                                    :id="`harvest-reports-${row.key}`"
+                                    class="bg-muted/30"
+                                >
+                                    <td colspan="5" class="px-4 py-4">
+                                        <div class="mb-3">
+                                            <h3 class="text-sm font-semibold">
+                                                Laporan panen
+                                            </h3>
+                                            <p
+                                                class="mt-1 text-xs text-muted-foreground"
+                                            >
+                                                {{ rowSubblock(row) }}
+                                            </p>
+                                        </div>
+                                        <HarvestReportList
+                                            :reports="row.reports"
+                                        />
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
@@ -495,59 +624,93 @@ function rowSubblock(row: HarvestTransactionRow): string {
                 <div class="divide-y divide-border md:hidden">
                     <article
                         v-for="row in transactions.data"
-                        :key="row.id"
-                        class="space-y-3 p-4"
+                        :key="row.key"
+                        class="p-4"
                     >
-                        <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="font-semibold">
+                                {{ row.farm?.name ?? '-' }} ·
+                                {{ row.block?.code ?? '-' }}
+                            </p>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                {{ rowSubblock(row) }}
+                            </p>
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
                             <div>
-                                <p class="font-semibold">{{ formatDate(row.activity_date) }}</p>
-                                <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ row.farm?.name ?? '-' }} · {{ row.block?.code ?? '-' }}
+                                <p class="text-xs text-muted-foreground">
+                                    Varietas
+                                </p>
+                                <p class="font-medium">
+                                    {{ row.variety?.name ?? '-' }}
+                                </p>
+                                <p class="text-xs text-muted-foreground">
+                                    {{
+                                        row.commodity?.name ??
+                                        'Komoditas belum diisi'
+                                    }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-muted-foreground">
+                                    Panen
+                                </p>
+                                <p class="font-medium">
+                                    {{ activityDateRange(row) }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-muted-foreground">
+                                    Luas panen
+                                </p>
+                                <p class="font-medium">
+                                    {{ formatDecimal(row.harvested_area_ha) }}
+                                    ha
+                                </p>
+                                <p class="text-xs text-muted-foreground">
+                                    dari
+                                    {{
+                                        formatDecimal(
+                                            row.cycle?.planted_area_ha ?? null,
+                                        )
+                                    }}
+                                    ha ditanam
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-muted-foreground">
+                                    Berat
+                                </p>
+                                <p class="font-medium">
+                                    {{ formatDecimal(row.gross_weight_ton) }}
+                                    ton
                                 </p>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                                <p class="text-xs text-muted-foreground">Varietas</p>
-                                <p class="font-medium">{{ row.variety?.name ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-muted-foreground">Luas panen</p>
-                                <p class="font-medium">{{ formatDecimal(row.harvested_area_ha) }} ha</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-muted-foreground">Berat</p>
-                                <p class="font-medium">{{ formatDecimal(row.gross_weight_ton) }} ton</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-muted-foreground">{{ rowSubblock(row) }}</p>
-                        <p v-if="row.notes" class="text-xs leading-5 text-muted-foreground">
-                            {{ row.notes }}
-                        </p>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <Link
-                                v-if="row.log_url"
-                                :href="row.log_url"
-                                class="inline-flex items-center gap-1 text-xs font-medium text-primary"
+                        <div class="mt-3 flex justify-end">
+                            <button
+                                type="button"
+                                class="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-sm font-medium text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring"
+                                :aria-expanded="isExpanded(row.key)"
+                                :aria-controls="`harvest-reports-mobile-${row.key}`"
+                                @click="toggleExpanded(row.key)"
                             >
-                                Buka logbook <ArrowUpRight class="size-3" />
-                            </Link>
-                            <a
-                                v-for="photo in row.photos"
-                                :key="photo.id"
-                                :href="photo.url"
-                                target="_blank"
-                                rel="noopener"
-                                class="overflow-hidden rounded-md border border-border"
-                                :aria-label="photo.caption ?? photo.label ?? 'Foto panen'"
-                            >
-                                <img
-                                    :src="photo.url"
-                                    :alt="photo.caption ?? photo.label ?? 'Foto panen'"
-                                    class="size-10 object-cover"
-                                    loading="lazy"
+                                {{ row.report_count }} laporan
+                                <ChevronDown
+                                    class="size-4 transition-transform motion-reduce:transition-none"
+                                    :class="{
+                                        'rotate-180': isExpanded(row.key),
+                                    }"
+                                    aria-hidden="true"
                                 />
-                            </a>
+                            </button>
+                        </div>
+                        <div
+                            v-if="isExpanded(row.key)"
+                            :id="`harvest-reports-mobile-${row.key}`"
+                            class="mt-3"
+                        >
+                            <HarvestReportList :reports="row.reports" />
                         </div>
                     </article>
                 </div>
@@ -556,7 +719,7 @@ function rowSubblock(row: HarvestTransactionRow): string {
                     v-model:size="filters.per_page"
                     :page="transactions"
                     :loading="filters.processing"
-                    label="transaksi"
+                    label="subblok"
                     @change="apply"
                 />
             </template>

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Petugas;
 
 use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
+use App\Support\ActivityInputLimits;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 
@@ -34,7 +35,7 @@ class StorePlantingActivityRequest extends FormRequest
             'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
-            'worker_count' => ['required', 'integer', 'between:1,32767'],
+            'worker_count' => ['required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
             'daily_notes' => ['nullable', 'string', 'max:5000'],
             'variety_id' => ['required', 'uuid'],
             'area_ha' => ['required', 'numeric', 'decimal:0,4', 'between:0.0001,99999999.9999'],
@@ -49,12 +50,12 @@ class StorePlantingActivityRequest extends FormRequest
         if ($this->input('schema') === 'taxonomy') {
             $rules['area_ha'] = ['prohibited'];
             $rules['quantity_kg'] = ['prohibited'];
-            $rules['area'] = ['required', 'numeric', 'min:0.0001', 'max:99999999', $this->input('area_unit') === 'm²' ? 'integer' : 'decimal:0,4'];
+            $rules['area'] = ['required', 'numeric', 'min:0.0001', 'max:'.ActivityInputLimits::PLANTING_AREA, $this->input('area_unit') === 'm²' ? 'integer' : 'decimal:0,4'];
             $rules['area_unit'] = ['required', 'in:m²,Ha'];
-            $rules['quantity'] = ['required', 'numeric', 'min:0.001', 'max:999999999'];
+            $rules['quantity'] = ['required', 'numeric', 'min:0.001', 'max:'.ActivityInputLimits::PLANTING_QUANTITY];
             $rules['quantity_unit'] = ['required', 'in:kg,sak,butir'];
-            $rules['bag_size'] = ['exclude_unless:quantity_unit,sak', 'required', 'numeric', 'min:0.001', 'max:99999'];
-            $rules['depth_cm'] = ['nullable', 'numeric', 'min:0.01', 'max:1000'];
+            $rules['bag_size'] = ['exclude_unless:quantity_unit,sak', 'required', 'numeric', 'min:0.001', 'max:'.ActivityInputLimits::PLANTING_BAG_SIZE];
+            $rules['depth_cm'] = ['nullable', 'numeric', 'min:0.01', 'max:'.ActivityInputLimits::PLANTING_DEPTH];
         }
         foreach (['daily_activity_log_id', 'farm_id', 'team_id', 'planting_cycle_id', 'task_id', 'activity_type_id', 'performed_by', 'recorded_by', 'status', 'planted_at', 'planned_planting_at', 'sop_template_version_id', 'activity_category', 'activity_subcategory'] as $key) {
             $rules[$key] = ['prohibited'];

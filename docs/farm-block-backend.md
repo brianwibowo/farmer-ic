@@ -12,15 +12,16 @@ minimal disediakan agar backend dapat digunakan langsung melalui form Inertia.
 2. Petugas pada kebun tugasnya atau Admin membuat subblok/batch dengan alokasi
    luas. Label kosong mendapat A, B, ..., Z, AA, dan seterusnya.
 3. Pembuatan batch tidak mengklaim penyelesaian Land Clearing secara fisik.
-   Mulai/selesai Land Clearing dan persiapan tanah dibaca dari laporan
-   `land_cleaning`, `loosening`, `beds`, `liming`, dan `base_fertilization`
-   yang terhubung ke blok; stage historis tidak ditulis ulang.
+   Laporan `land_cleaning`, `loosening`, `beds`, `liming`, dan
+   `base_fertilization` terhubung ke blok dan memperbarui tahap tersimpan pada
+   setiap subblok dalam blok itu, termasuk yang sudah ditutup. Batch yang dibuat
+   setelah laporan juga menerima riwayat laporan blok. Tidak ada pemisahan periode.
 4. Satu batch disimpan pada `planting_cycles`, bukan tabel subblok permanen.
    Enam baris `planting_cycle_stages` dibuat dalam transaksi yang sama:
-   `land_clearing` completed, `soil_preparation` in_progress, empat sisanya upcoming.
-   Status tersimpan ini menjadi basis dashboard; tampilan timeline blok
-   memproyeksikan ulang dua tahap persiapan dari laporan. Tidak ada persentase
-   progres buatan.
+   seluruhnya `upcoming` tanpa tanggal, lalu laporan blok yang telah ada diterapkan.
+   Timeline, ringkasan progres kebun, dan ringkasan tahap dashboard membaca
+   status serta tanggal dari `planting_cycle_stages`. Tidak ada proyeksi ulang
+   status untuk ditampilkan dan tidak ada persentase progres buatan.
 5. Batch persiapan berstatus siklus `planned`, luas realisasi 0, tanggal tanam
    realisasi dan varietas belum diisi. Tanggal rencana tanam
    (`planned_planting_at`) boleh diisi saat pembuatan batch, tetapi tidak menjadi
@@ -32,7 +33,7 @@ Nomor batch **berurutan per kebun**, dilindungi unique key dan lock kebun.
 Setiap batch langsung terikat ke blok melalui `planting_cycles.block_id`; tidak
 ada tabel periode terpisah. Batch baru dapat dibuat selama kapasitas blok dan
 kebun tersedia, dengan label subblok unik per blok. Nomor batch berlanjut.
-Pengulangan Land Clearing pada batch berikutnya belum diotomasi.
+Laporan blok berlaku untuk semua batch pada blok yang sama, tanpa batas waktu.
 
 Laporan aktivitas menyimpan `farm_activities.block_id` nullable. Laporan SOP dan
 mandiri menurunkan blok dari `planting_cycles.block_id`; laporan pemetaan dapat
@@ -40,11 +41,89 @@ mengisi blok opsional. Trigger PostgreSQL menolak laporan yang bloknya tidak sam
 dengan blok siklus. Backfill migrasi hanya mengisi lokasi yang dapat dibuktikan
 dari siklus atau detail pemetaan; aktivitas tanpa bukti tetap null.
 
-Modul ini belum menyediakan aksi menyelesaikan tahap berikutnya, mengajukan atau
-menyetujui task SOP, realisasi tanam, panen, pembatalan batch, atau pengulangan
-Land Clearing pada batch berikutnya. Endpoint status bebas tidak ditambahkan.
-Penyelesaian seluruh panen harus dibedakan dari laporan panen sebagian ketika
-modul panen diimplementasikan; satu laporan tidak boleh otomatis menutup batch.
+Penanaman, laporan SOP/mandiri, dan panen bertahap tersedia. Laporan panen baru
+hanya dapat dicatat melalui tugas SOP; panen mandiri tidak tersedia. Penutupan
+panen oleh Admin merupakan aksi terpisah dan tidak dipicu otomatis oleh satu laporan.
+Endpoint untuk mengubah status tahap secara bebas tidak disediakan.
+
+### Pembaruan tahap oleh laporan
+
+| Tahap | `activity_types.code` |
+| --- | --- |
+| Pembersihan lahan | `land_cleaning` |
+| Pengolahan tanah | `loosening`, `beds`, `liming` |
+| Pemupukan dasar | `base_fertilization` |
+| Penanaman | `planting` |
+| Pemeliharaan | `irrigation`, `weeding`, `follow_up_fertilization`, `growth_check`, `pest_control` |
+| Panen | `harvest` |
+
+`incident` dan `other` tidak mengubah tahap. Laporan pertama/terawal mengisi
+`started_at`; laporan terakhir berdasarkan `activity_date` mengisi `completed_at`,
+bahkan saat `in_progress`. Laporan terlambat bertanggal mundur memperbarui tanggal
+awal tanpa menggeser tanggal terakhir. Nama `completed_at` bukan waktu penutupan;
+timeline menampilkan **Laporan Pertama / Laporan Terakhir** saat `in_progress` dan
+**Mulai / Selesai** saat `completed`, dengan keterangan bahwa tanggal berdasarkan
+aktivitas yang dilaporkan. Tahap sebelumnya menjadi `completed` begitu
+tahap mana pun setelahnya mulai, termasuk tahap yang dilewati tanpa laporan: kedua
+tanggal tahap yang dilewati tetap `null`. Laporan yang datang belakangan untuk
+tahap terdahulu mengisi tanggalnya tetapi tidak memundurkan tahap yang berjalan.
+Panen tetap berjalan sampai Admin menutupnya setelah minimal satu laporan panen
+berdetail, tanpa syarat seluruh luas sudah dipanen. Petugas tidak dapat menyelesaikan
+tugas panen secara manual dan dapat menambah laporan selama tugas tetap terbuka.
+Penutupan menyelesaikan semua tugas panen `pending`/`in_progress` pada subblok
+tersebut, menyimpan `completed_at` dan `completed_by` pada tugas dengan waktu dan
+aktor penutupan, serta mengubah tahap panen menjadi `completed` dan siklus menjadi
+`harvested` dalam satu transaksi. Tugas yang sudah selesai atau dilewati tidak
+ditulis ulang. Laporan tambahan ditolak setelah penutupan. Laporan panen mandiri
+yang sudah ada tetap menjadi histori dan tetap dihitung dalam batas luas panen.
+
+Tanggal `started_at` dan `completed_at` **tahap** menggunakan `activity_date`
+laporan pertama dan terakhir. Untuk laporan Petugas, waktunya merupakan tanggal
+kerja ditambah jam mulai header harian bersama per kebun/tanggal; banyak laporan
+pada hari yang sama dapat memiliki waktu yang sama. `created_at` dan `updated_at`
+adalah waktu baris tahap dibuat dan terakhir diubah, bukan waktu aktivitas lapangan.
+
+### Estimasi awal panen dari tugas SOP
+
+`planting_cycles.estimated_harvest_at` merupakan proyeksi tanggal efektif paling
+awal dari tugas panen `pending`/`in_progress` pada subblok yang sama, setelah
+tanggal tanam aktual tersedia. Tanggal efektif menggunakan `rescheduled_date`
+Admin jika ada, selain itu `scheduled_date` dari tanggal acuan tanam + offset
+SOP. Tugas yang dilewati, selesai, atau tidak memiliki tanggal tidak dihitung.
+Jika tidak ada tugas yang memenuhi syarat, estimasi yang dikelola alur ini menjadi
+`null`. Estimasi bukan kepastian kesiapan tanaman dan tidak menghalangi laporan
+panen lebih awal.
+
+Pembuatan tugas mengisi estimasi yang masih kosong. Perubahan jadwal efektif
+akibat tanggal acuan tanam, penjadwalan ulang, atau skip tugas panen memperbarui
+estimasi dalam transaksi yang sama. Jadwal panen tidak boleh sebelum tanggal
+tanam; jika tanggal tanam bergeser melewati override yang sudah tersimpan,
+laporan ditolak dengan pesan agar Admin meninjau jadwal, tanpa perubahan parsial.
+Saat panen ditutup, estimasi terakhir dipertahankan sebagai histori; realisasi
+panen tetap berasal dari laporan. Pengingat panen yang diaktifkan memakai kolom
+estimasi yang sama dan memeriksa ulang tanggal sebelum pengiriman.
+
+Tidak ada backfill atau perubahan massal data lama. Jika estimasi sudah terisi,
+pembuatan atau sinkronisasi tugas tanpa perubahan jadwal mempertahankan nilai
+tersebut, meski berbeda dari SOP. Aksi berikutnya yang benar-benar mengubah jadwal
+panen atau acuan tanam akan menyinkronkan nilainya. Sinkronisasi tugas yang sudah
+ada dapat mengisi estimasi yang masih kosong. Data lama dengan estimasi yang
+tidak dapat dibuktikan asalnya dan akan melanggar batas tanggal tidak ditimpa
+diam-diam; pengguna menerima pesan untuk meninjau data tersebut. Perubahan
+tanggal SOP dasar yang tidak mengubah tanggal efektif karena override tetap
+mempertahankan estimasi lama saat tidak ada perubahan acuan tanam. Tugas lama
+tanpa tanggal SOP perlu disinkronkan sebelum dapat dijadwalkan ulang.
+
+Perintah terjadwal `planting:reconcile-windows` melanjutkan subblok lain bila
+satu subblok memerlukan peninjauan jadwal. Ia melaporkan subblok yang gagal dan
+menghasilkan status gagal agar masalah dapat ditindaklanjuti; perubahan pada
+subblok yang gagal dibatalkan secara utuh.
+
+Migrasi `2026_11_13_000001_allow_early_task_reschedule` tidak mengubah data atau
+menambah kolom. Ia memperluas constraint tenggat agar reschedule lebih awal dari
+jadwal SOP asli tetap dapat disimpan. Untuk kompatibilitas, constraint tetap
+menerima baris lama; service menghitung tenggat baru dari jadwal efektif. Rollback
+ditolak jika ada reschedule lebih awal yang tidak memenuhi constraint lama.
 
 ## Route dan halaman
 
@@ -70,6 +149,7 @@ pagination, jumlah dan total. Parameter block harus milik farm di URL.
 | PUT/PATCH | `/kebun/{farm}/blocks/{block}` | Edit informasi/status, redirect detail |
 | DELETE | `/kebun/{farm}/blocks/{block}` | Hapus hanya jika tanpa histori |
 | POST | `/kebun/{farm}/blocks/{block}/batches` | Buat batch persiapan, redirect detail |
+| POST | `/kebun/{farm}/blocks/{block}/batches/{batch}/close-harvest` | Admin/Superadmin menutup panen setelah konfirmasi |
 
 Halaman: `farmer/blocks/Farms`, `Index`, `Form`, `Show`. Layout bersama
 `BlockLayout` mempertahankan profil Farmer pada desktop/mobile, menyediakan
@@ -82,15 +162,16 @@ membuka `/blocks`; halaman demo kebun publik belum diganti dengan direktori ini.
 | Resource | Owner | Admin | Petugas | Superadmin |
 | --- | --- | --- | --- | --- |
 | Master blok | Baca dalam tenant terkait | CRUD dalam tenant | Baca kebun tugas; CRUD hanya PIC kebun tugas | Semua |
-| Batch persiapan | Baca | Buat sesuai izin planting_cycles existing | Buat pada kebun tugas | Semua |
+| Batch persiapan | Baca | Buat dan tutup panen dalam tenant | Buat pada kebun tugas; tidak dapat menutup panen | Semua |
 | Timeline | Baca | Baca | Baca kebun tugas | Semua |
 
 Prefix baru: `farm_blocks`, `planting_cycles`, `planting_cycle_stages`.
 Parent create FarmBlock adalah Farm; parent PlantingCycle adalah FarmBlock.
 PlantingCyclePolicy menerima Farm existing atau FarmBlock baru. ResourcePolicy
 hanya menambahkan resolusi FarmBlock -> farm sebagai parent terpercaya.
-Timeline dibuat internal sebagai konsekuensi pembuatan batch, bukan endpoint
-konfigurasi terpisah. Batch baru langsung terikat ke blok melalui
+Timeline diperbarui internal oleh laporan yang diotorisasi, bukan endpoint
+konfigurasi tahap terpisah. Penutupan memakai `planting_cycles.configure = any`
+untuk Admin dan bypass Superadmin, dengan Gate pada siklus tersimpan. Batch baru langsung terikat ke blok melalui
 `planting_cycles.block_id`; tidak ada tabel periode terpisah.
 Tidak ada hak update/delete timeline bagi Admin/Petugas.
 
@@ -139,6 +220,13 @@ Migration baru:
 `farm_activities.block_id`, backfill lokasi yang terbukti, dan guard konsistensi.
 Migration terakhir memindahkan setiap siklus ke `planting_cycles.block_id` lalu
 menghapus tabel periode.
+Migration `2026_11_12_000001_allow_activity_driven_stage_dates.php` mengizinkan
+tanggal laporan terakhir pada tahap berjalan dan tahap selesai tanpa tanggal.
+Migration ini tidak merekonsiliasi histori lama; constraint juga tetap menerima
+tanggal laporan terakhir kosong untuk kompatibilitas legacy. Seed demo baru memakai
+aturan laporan. Data demo lama perlu di-reset dan di-seed ulang secara sengaja;
+jangan menerapkan reset pada database non-demo. Rollback dicegah jika data baru
+tidak kompatibel dengan constraint lama.
 Untuk menambahkan hanya modul ini ke database existing, periksa koneksi dan
 migration pending, lalu jalankan migration spesifik setelah mendapat izin:
 
@@ -160,14 +248,13 @@ Tidak mengarang hubungan siklus existing. Jangan menjalankan
 
 ## Batas integrasi authorization di luar modul
 
-Route baru seluruhnya terlindungi; query baca baru menggunakan visibleTo.
-Halaman demo publik existing `/`, `/kebun`, `/kebun/detail`, `/kebun/aktivitas`,
-`/aktivitas`, `/rincian-aktivitas`, dan `/laporan` tetap belum menjadi halaman
-operasional terbatasi per pengguna. Route GET `/{current_team}/ai` existing
-hanya memakai auth/verified/team membership; pemeriksaan ai.access untuk halaman
-itu belum ditambahkan oleh pekerjaan blok ini. Endpoint aksi AI tetap mengikuti
-implementasinya yang sudah ada. Tidak dilakukan audit/perubahan menyeluruh pada
-query dan route modul lain.
+Route blok, laporan, dan penutupan panen pada pekerjaan ini memeriksa Gate/Policy;
+query baca terkait memakai `visibleTo`. Route `/referensi/*` yang sudah ada
+hanya memerlukan login/verified, tanpa resource Gate: ia menyajikan snapshot
+visual read-only, bukan query data operasional tenant. Route AI sekarang memakai
+`ai.access`. Tidak dilakukan audit menyeluruh terhadap route dan query modul lain;
+catatan historis tentang halaman publik/AI tanpa Gate pada versi sebelumnya tidak
+lagi menggambarkan route saat ini.
 
 ## Kapasitas dan satuan input batch (2 November 2026)
 
@@ -225,7 +312,7 @@ URL form lama tetap berfungsi memakai komponen form bersama. Payload dialog
 Daftar tersemat, kapasitas, dan status penghapusan memakai `visibleTo` sebelum
 serialisasi. Semua aksi tulis tetap melewati Policy pada controller.
 
-Detail blok menampilkan seluruh tahap, tanggal mulai, dan tanggal selesai setiap
+Detail blok menampilkan seluruh tahap, tanggal laporan pertama dan terakhir setiap
 sub blok tanpa tombol pembuka progres. Form tambah dan ubah sub blok berada dalam
 dialog, dengan validasi luas, konversi ha/m², dan indikator penyimpanan.
 

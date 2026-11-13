@@ -79,7 +79,26 @@ existing bypass. `visibleTo` still includes assigned-farm blocks for non-PIC
 Petugas, since reading does not require PIC. Batch cycles are created directly
 against the block as part of authorized batch creation; there is no separate
 period resource. `planting_cycle_stages` is read-only for ordinary roles and
-initialized internally by the batch service. See
+initialized internally by the batch service and updated as a consequence of an
+authorized activity report. Admin has `planting_cycles.configure = any` for
+closing a harvest in their tenant; Owner and Petugas cannot close it. The new
+controller authorizes the persisted cycle, whose configure ability also requires
+task visibility and update within that farm. The service scopes reads and locks
+the farm/cycle and open harvest tasks. Petugas cannot complete harvest tasks
+directly or create voluntary harvest reports; direct services also enforce these
+workflow restrictions for Superadmin. Existing reports remain readable.
+Admin skip/reschedule continues to authorize `update` on the persisted task. For
+harvest tasks, that Policy also requires visibility of the trusted farm and
+`update` on the parent cycle, because the same transaction updates its derived
+harvest estimate. The service scopes and locks the farm, cycle, and tasks; it
+also scopes the locked task for non-harvest skip/reschedule. Recording planting
+and synchronizing SOP tasks use composite Policy checks, including task-view
+scope for the specific farm; the derived estimate uses scoped harvest tasks and
+introduces no separate endpoint or role grant.
+Stage-tracked reports require both cycle and stage visibility as
+part of their composite FarmActivityPolicy checks, so missing grants cannot
+silently omit derived stage writes; unrelated incident/other reports do not. No
+separate stage-update endpoint is exposed. See
 [farm-block-backend.md](farm-block-backend.md) for the complete route and scope map.
 
 SOP templates are tenant-owned and variety-specific. Admin has CRUD; Owner
@@ -141,7 +160,7 @@ discover the persisted domain relationships directly.
 | `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
 | `FarmLegality` | `farm_legalities` | farm -> team; create parent Farm; Admin CRUD, Owner read-only, Petugas denied |
 | `FarmLegalityDocument` | `farm_legality_documents` | legality.farm -> team; create parent persisted FarmLegality or Farm for an atomic new legality+files submission; Admin view/create/delete, Owner view, Petugas denied; private authorized downloads |
-| `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline derived on batch creation |
+| `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline initialized at creation and updated by authorized reports/harvest closure |
 | `PlantingCycleTask` | `planting_cycle_tasks` | plantingCycle.farm -> team; generated snapshot of SOP tasks for one subblok |
 | `FarmRisk` | `farm_risks` | plantingCycle.farm -> team |
 | `FertilizationDetail` | `fertilization_details` | activity.farm -> team |

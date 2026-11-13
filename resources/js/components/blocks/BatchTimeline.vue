@@ -14,6 +14,10 @@ const growthId = useId();
 </script>
 <template>
     <div class="space-y-5">
+        <p class="text-xs leading-relaxed text-muted-foreground">
+            Tanggal tahap berdasarkan aktivitas paling awal dan paling akhir
+            yang dilaporkan.
+        </p>
         <ol
             aria-label="Tahap dan tanggal progres"
             class="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3"
@@ -82,12 +86,22 @@ const growthId = useId();
                         >
                             {{
                                 stage.started_at
-                                    ? `Mulai ${blockDate(stage.started_at)}`
+                                    ? `${stage.status === 'in_progress' ? 'Laporan Pertama' : 'Mulai'} ${blockDate(stage.started_at)}`
                                     : 'Tanggal belum tersedia'
                             }}<span v-if="stage.completed_at" class="block"
-                                >Selesai
+                                >{{
+                                    stage.status === 'completed'
+                                        ? 'Selesai'
+                                        : 'Laporan Terakhir'
+                                }}
                                 {{ blockDate(stage.completed_at) }}</span
                             >
+                        </p>
+                        <p
+                            v-else-if="stage.status === 'completed'"
+                            class="mt-1 text-xs text-muted-foreground"
+                        >
+                            Tidak ada laporan pada tahap ini
                         </p>
                     </div>
                 </li>

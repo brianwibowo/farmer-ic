@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Sop;
 
 use App\Models\SopTemplateTask;
+use App\Support\ActivityInputLimits;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -37,8 +38,8 @@ class SaveSopTemplateTaskRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:200'],
             'instructions' => ['nullable', 'string', 'max:5000'],
-            'offset_days' => ['required', 'integer', 'between:0,3650'],
-            'tolerance_days' => ['required', 'integer', 'between:0,365'],
+            'offset_days' => ['required', 'integer', 'between:0,'.ActivityInputLimits::SOP_OFFSET],
+            'tolerance_days' => ['required', 'integer', 'between:0,'.ActivityInputLimits::SOP_TOLERANCE],
             'is_required' => ['sometimes', 'boolean'],
             ...array_fill_keys([
                 'id', 'sop_template_version_id', 'version', 'status', 'position', 'schedule_anchor',

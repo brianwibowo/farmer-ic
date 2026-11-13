@@ -9,10 +9,10 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
-use App\Models\PlantingCycleStage;
 use App\Models\PlantingDetail;
 use App\Models\User;
 use App\Services\PlantingCycleTaskService;
+use App\Support\ActivityInputLimits;
 use App\Support\LandArea;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +22,12 @@ use Throwable;
 
 class PlantingActivityService
 {
-    public function __construct(private readonly PlantingCycleTaskService $tasks, private readonly DailyActivityHeaderService $headers, private readonly ActivitySequenceService $sequence) {}
+    public function __construct(
+        private readonly PlantingCycleTaskService $tasks,
+        private readonly DailyActivityHeaderService $headers,
+        private readonly ActivitySequenceService $sequence,
+        private readonly HarvestEstimateService $estimates,
+    ) {}
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, PlantingCycle> */
     public function cycles(User $actor, Farm $farm): \Illuminate\Database\Eloquent\Collection
@@ -50,6 +55,10 @@ class PlantingActivityService
     public function formData(User $actor, PlantingCycle $cycle): array
     {
         $team = $cycle->farm->team;
+        $commodityId = $cycle->farm->getAttribute('commodity_id');
+        $context = $this->context($actor, $cycle);
+        $varieties = $commodityId === null ? [] : CropVariety::visibleTo($actor, $team)
+            ->where('commodity_id', $commodityId)->orderBy('name')->get(['id', 'name'])->toArray();
         $reports = FarmActivity::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)
             ->whereHas('activityType', fn ($query) => $query->visibleTo($actor, $team)->where('code', 'planting'))->orderBy('activity_date')->get();
 
@@ -62,8 +71,11 @@ class PlantingActivityService
                 $mapping->getAttribute('row_spacing_cm') ? 'Jarak baris '.$mapping->getAttribute('row_spacing_cm').' cm' : null,
                 $mapping->getAttribute('rows_per_bed') ? $mapping->getAttribute('rows_per_bed').' baris per bedeng' : null,
             ])),
-            'cycle' => $this->context($actor, $cycle),
-            'varieties' => CropVariety::visibleTo($actor, $team)->orderBy('name')->get(['id', 'name'])->toArray(),
+            'cycle' => $context,
+            'varieties' => $varieties,
+            'commodityConfigured' => $commodityId !== null,
+            'varietyMismatch' => $context['planted_at'] !== null && $commodityId !== null && $context['variety'] !== null
+                && ! collect($varieties)->contains('id', $context['variety']['id']),
             'reports' => $reports->map(function (FarmActivity $activity) use ($actor, $team): array {
                 $detail = PlantingDetail::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
 
@@ -89,7 +101,7 @@ class PlantingActivityService
             $data['quantity_kg'] = match ($data['quantity_unit']) {
                 'kg' => $data['quantity'], 'sak' => $data['quantity'] * $data['bag_size'], default => null,
             };
-            if ($data['area_ha'] <= 0 || ($data['quantity_kg'] ?? 0) > 999999999.999) {
+            if ($data['area_ha'] <= 0 || ($data['quantity_kg'] ?? 0) > ActivityInputLimits::NORMALIZED_QUANTITY_KG) {
                 throw ValidationException::withMessages(['area' => 'Luas minimal 1 m²; jumlah benih tidak boleh melebihi batas penyimpanan.']);
             }
             if ($data['quantity_unit'] === 'butir' && floor((float) $data['quantity']) !== (float) $data['quantity']) {
@@ -126,6 +138,13 @@ class PlantingActivityService
                 if ($variety === null) {
                     throw ValidationException::withMessages(['variety_id' => 'Varietas tidak tersedia atau tidak dapat diakses.']);
                 }
+                $commodityId = $farm->getAttribute('commodity_id');
+                if ($commodityId === null) {
+                    throw ValidationException::withMessages(['variety_id' => 'Komoditas kebun belum diatur. Hubungi admin.']);
+                }
+                if ($variety->commodity_id !== $commodityId) {
+                    throw ValidationException::withMessages(['variety_id' => 'Varietas harus sesuai dengan komoditas kebun.']);
+                }
                 if ($cycle->planted_at !== null && $cycle->variety_id !== $variety->id) {
                     throw ValidationException::withMessages(['variety_id' => 'Penanaman lanjutan harus memakai varietas yang sama pada subblok ini.']);
                 }
@@ -136,7 +155,10 @@ class PlantingActivityService
                 if ($type === null) {
                     throw ValidationException::withMessages(['cycle' => 'Referensi aktivitas Penanaman belum tersedia. Hubungi admin.']);
                 }
-                $cycle->forceFill(['planting_started_on' => $dates[0], 'planted_at' => $dates[1] ?? $dates[0], 'planting_window_checked_at' => null,
+                $anchor = CarbonImmutable::parse($dates[1] ?? $dates[0]);
+                $anchorChanged = $cycle->planted_at?->toDateString() !== $anchor->toDateString();
+                $estimate = $this->estimates->forPlantingDate($actor, $team, $cycle, $anchor);
+                $cycle->forceFill(['planting_started_on' => $dates[0], 'planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate, 'planting_window_checked_at' => null,
                     'variety_id' => $variety->id, 'planted_area_ha' => $totalArea / 10000, 'status' => 'active'])->save();
                 $log = $this->headers->resolve($farm, $actor, $data);
                 $started = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
@@ -159,14 +181,9 @@ class PlantingActivityService
                     $paths[] = $path;
                     ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $path]);
                 }
-                $stage = PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)->where('code', 'planting')->lockForUpdate()->firstOrFail();
-                $finished = $log->end_time === null ? $started : CarbonImmutable::parse($data['work_date'].' '.$log->end_time, 'Asia/Jakarta');
-                $stage->forceFill(['status' => 'completed',
-                    'started_at' => $stage->started_at === null || $started->lt($stage->started_at) ? $started : $stage->started_at,
-                    'completed_at' => $stage->completed_at === null || $finished->gt($stage->completed_at) ? $finished : $stage->completed_at,
-                ])->save();
+                app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
 
-                return $this->tasks->generateForSubblok($cycle, $actor);
+                return $this->tasks->generateForSubblok($cycle, $actor, 'work_date', $anchorChanged);
             });
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($paths);
@@ -205,8 +222,11 @@ class PlantingActivityService
             if (! $dates || ! in_array($cycle->status, ['planned', 'active'], true)) {
                 return;
             }
-            $cycle->forceFill(['planted_at' => $dates[1] ?? $dates[0]])->save();
-            $this->tasks->generateForSubblok($cycle, $actor);
+            $anchor = CarbonImmutable::parse($dates[1] ?? $dates[0]);
+            $anchorChanged = $cycle->planted_at?->toDateString() !== $anchor->toDateString();
+            $estimate = $this->estimates->forPlantingDate($actor, $team, $cycle, $anchor);
+            $cycle->forceFill(['planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate])->save();
+            $this->tasks->generateForSubblok($cycle, $actor, 'status', $anchorChanged);
             if (now('Asia/Jakarta')->toDateString() > CarbonImmutable::parse($dates[0])->addDays(2)->toDateString()) {
                 $cycle->forceFill(['planting_window_checked_at' => now()])->save();
             }

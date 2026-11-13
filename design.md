@@ -1221,8 +1221,12 @@ pagination/filter, izin backend, empty state, kapasitas, dan histori. Bedakan
 baris identitas blok dengan bg-primary/8, judul tebal text-primary, serta jarak 12px antar
 kelompok blok. Setiap sub blok memakai judul tegas dan definisi terpisah untuk
 luas, tahap saat ini, dan rencana tanam. Letakkan timeline pada area bg-muted/40
-dengan judul Tahap & tanggal progres; tahap mendatang cukup diberi status Belum
-dimulai tanpa teks tanggal kosong berulang. Gunakan jarak dan pemisah internal,
+dengan judul Tahap & tanggal progres; tampilkan satu keterangan kecil di bawah
+judul bahwa tanggal tahap berdasarkan aktivitas paling awal dan paling akhir yang
+dilaporkan. Tahap berjalan menggunakan label Laporan Pertama dan Laporan Terakhir;
+tahap selesai menggunakan Mulai dan Selesai untuk tanggal yang sama, bukan waktu
+penutupan status. Tahap mendatang cukup diberi status Belum dimulai tanpa teks
+tanggal kosong berulang. Gunakan jarak dan pemisah internal,
 bukan card di dalam card atau border luar pada profil Admin. Ringkasan kebun dan
 peta tetap satu panel, dengan judul Peta lokasi yang terlihat dan tiga kolom
 informasi pendukung pada desktop.

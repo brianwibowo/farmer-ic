@@ -229,10 +229,61 @@ class TaskManagementTest extends TestCase
                 ->where('summary.open', 3));
     }
 
+    public function test_admin_can_filter_tasks_by_farm_and_keep_location_filters_scoped(): void
+    {
+        $firstTask = $this->task();
+
+        $otherFarm = new Farm([
+            'name' => 'Kebun Tugas Lain',
+            'land_tenure' => 'owned',
+            'total_area_ha' => '8.0000',
+        ]);
+        $otherFarm->forceFill([
+            'team_id' => $this->team->id,
+            'created_by' => $this->admin->id,
+        ])->save();
+        $otherBlock = app(FarmBlockService::class)->create($otherFarm, $this->admin, $this->team, [
+            'code' => 'C01',
+            'name' => 'Blok Barat',
+            'area_ha' => '4.0000',
+        ]);
+        $otherSubblok = app(FarmBlockService::class)->createBatch($otherBlock, $this->admin, $this->team, [
+            'reserved_area_ha' => '1.5000',
+            'planned_planting_at' => '2026-11-07',
+        ]);
+        $otherTask = $this->task(['name' => 'Tugas kebun lain'], $otherSubblok);
+
+        $this->get('/admin/tasks')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('filters.farm_id', '')
+            ->has('farms', 2)
+            ->where('farms.0.name', 'Kebun Tugas Admin')
+            ->where('farms.1.name', 'Kebun Tugas Lain')
+            ->where('tasks.total', 2)
+            ->where('summary.total', 2));
+
+        $this->get('/admin/tasks?farm_id='.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('filters.farm_id', $this->farm->id)
+            ->where('tasks.total', 1)
+            ->where('tasks.data.0.id', $firstTask->id)
+            ->where('summary.total', 1));
+
+        $this->get('/admin/tasks?farm_id='.$otherFarm->id.'&block_id='.$otherBlock->id.'&subblok_id='.$otherSubblok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.total', 1)
+                ->where('tasks.data.0.id', $otherTask->id));
+
+        $this->get('/admin/tasks?farm_id='.$this->farm->id.'&block_id='.$otherBlock->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.total', 0)
+                ->where('summary.total', 0));
+    }
+
     public function test_invalid_task_filters_are_rejected(): void
     {
-        $this->get('/admin/tasks?block_id=not-a-block&subblok_id=not-a-subblok')
-            ->assertSessionHasErrors(['block_id', 'subblok_id']);
+        $this->get('/admin/tasks?farm_id=not-a-farm&block_id=not-a-block&subblok_id=not-a-subblok')
+            ->assertSessionHasErrors(['farm_id', 'block_id', 'subblok_id']);
 
         $this->get('/admin/tasks?category=planting')
             ->assertSessionHasErrors('category');

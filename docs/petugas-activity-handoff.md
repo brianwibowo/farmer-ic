@@ -1,5 +1,11 @@
 # Handoff Petugas: Aktivitas, Penanaman, SOP, dan Laporan Harian
 
+> **Pembaruan alur panen:** laporan panen baru hanya melalui tugas SOP dan tugas
+> panen diselesaikan ketika Admin menutup panen pada detail subblok. Riwayat
+> panen mandiri tetap dapat dibaca dan dihitung. Bagian checkpoint historis di
+> bawah yang menyebut panen mandiri atau penyelesaian langsung tugas panen tidak
+> menggambarkan alur saat ini. Lihat `docs/farm-block-backend.md`.
+
 Tanggal checkpoint terbaru: **5 November 2026**
 Branch: **`feat/admin-sop`**
 

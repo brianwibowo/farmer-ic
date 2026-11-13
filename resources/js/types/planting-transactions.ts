@@ -5,9 +5,24 @@ export type PlantingTransactionPhoto = {
     url: string;
 };
 
-export type PlantingTransactionRow = {
+export type PlantingTransactionRecord = {
     id: string;
     activity_date: string;
+    area_ha: string;
+    seed_name: string | null;
+    quantity_kg: string | null;
+    performer_name: string | null;
+    notes: string | null;
+    photos: PlantingTransactionPhoto[];
+    log_url: string | null;
+};
+
+export type PlantingTransactionRow = {
+    key: string;
+    cycle_id: string | null;
+    first_activity_date: string | null;
+    last_activity_date: string | null;
+    planted_at: string | null;
     farm: { id: string; name: string } | null;
     block: { id: string; code: string; name: string } | null;
     cycle: {
@@ -19,13 +34,9 @@ export type PlantingTransactionRow = {
     variety: { id: string; name: string } | null;
     commodity: { id: string; name: string } | null;
     area_ha: string;
-    seed_name: string | null;
-    quantity_kg: string | null;
-    planting_pattern: string | null;
-    performer_name: string | null;
-    notes: string | null;
-    photos: PlantingTransactionPhoto[];
-    log_url: string | null;
+    seed_kg: string;
+    report_count: number;
+    reports: PlantingTransactionRecord[];
 };
 
 export type PlantingTransactionPage = {
@@ -50,6 +61,7 @@ export type PlantingTransactionFilters = {
 };
 
 export type PlantingTransactionSummary = {
+    subblocks: number;
     reports: number;
     area_ha: string;
     seed_kg: string;

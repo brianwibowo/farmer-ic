@@ -46,7 +46,12 @@ export type AdminTask = {
     created_at: string | null;
     farm: { id: string; name: string } | null;
     block: { id: string; code: string; name: string } | null;
-    subblok: { id: string; number: number; label: string | null } | null;
+    subblok: {
+        id: string;
+        number: number;
+        label: string | null;
+        planted_at: string | null;
+    } | null;
     stage: { code: string } | null;
     sop_version: { id: string; version: number } | null;
     can: { update: boolean };
@@ -65,6 +70,7 @@ export type AdminTaskPage = {
 
 export type AdminTaskFilters = {
     search?: string;
+    farm_id?: string;
     block_id?: string;
     subblok_id?: string;
     status?: string;
@@ -73,12 +79,16 @@ export type AdminTaskFilters = {
     per_page?: number;
 };
 
+export type AdminTaskFarmOption = {
+    id: string;
+    name: string;
+};
+
 export type AdminTaskBlockOption = {
     id: string;
     farm_id: string;
     code: string;
     name: string;
-    farm_name: string | null;
 };
 
 export type AdminTaskSubblokOption = {

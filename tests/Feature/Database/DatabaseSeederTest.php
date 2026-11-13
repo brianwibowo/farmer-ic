@@ -58,6 +58,11 @@ class DatabaseSeederTest extends TestCase
                     ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')->where('t.code', $type)->exists());
             }
         }
+        $this->assertDatabaseHas('activity_types', ['code' => 'base_fertilization', 'parent_id' => null, 'is_selectable' => true, 'detail_key' => 'fertilization']);
+        $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
+            ->join('farm_blocks as b', 'b.id', '=', 'a.block_id')->join('fertilization_details as d', 'd.activity_id', '=', 'a.id')
+            ->where('a.farm_id', $demoFarm->id)->where('b.code', 'B01')->whereNull('a.planting_cycle_id')
+            ->where('t.code', 'base_fertilization')->where('d.fertilization_stage', 'dasar')->exists());
         $this->assertGreaterThan(0, DB::table('farm_activities')->where('farm_id', $demoFarm->id)->whereNotNull('planting_cycle_id')->whereNotNull('block_id')->count());
         $this->assertSame(0, DB::table('farm_activities as a')->join('planting_cycles as c', 'c.id', '=', 'a.planting_cycle_id')
             ->whereNotNull('c.block_id')
@@ -99,6 +104,7 @@ class DatabaseSeederTest extends TestCase
 
     public function test_seeded_activities_follow_the_planting_anchor_and_sop_schedule(): void
     {
+        $this->travelTo(now()->startOfSecond());
         $this->seed(DatabaseSeeder::class);
 
         $farm = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
@@ -165,7 +171,7 @@ class DatabaseSeederTest extends TestCase
         $this->assertSame(3, FarmActivity::query()->where('planting_cycle_id', $cycle->id)->whereNotNull('planting_cycle_task_id')->count());
         $this->assertSame(1, FarmActivity::query()->where('planting_cycle_id', $previous->id)->whereNotNull('planting_cycle_task_id')->count());
         $this->assertSame(4, FarmActivity::query()->where('farm_id', $farm->id)->whereNotNull('planting_cycle_task_id')->count());
-        $this->assertSame(12, FarmActivity::query()->where('farm_id', $farm->id)->count());
+        $this->assertSame(14, FarmActivity::query()->where('farm_id', $farm->id)->count());
 
         $this->assertSame('2026-06-01', $previous->planted_at->toDateString());
         $this->assertSame('2026-08-30', $previous->estimated_harvest_at->toDateString());
@@ -175,10 +181,8 @@ class DatabaseSeederTest extends TestCase
         $this->assertSame('2026-08-30', $activityDate('Panen Blok Utara putaran sebelumnya'));
         $previousHarvest = $linkedTask('Panen Blok Utara putaran sebelumnya');
         $this->assertSame('completed', $previousHarvest->status);
-        $this->assertSame(
-            '2026-08-30',
-            $previousHarvest->completed_at->setTimezone('Asia/Jakarta')->toDateString(),
-        );
+        $this->assertTrue($previousHarvest->completed_at->equalTo(now()));
+        $this->assertSame(User::query()->where('email', 'admin@farmer-ic.test')->value('id'), $previousHarvest->completed_by);
 
         $planned = PlantingCycle::query()->where('farm_id', $farm->id)->where('status', 'planned')->firstOrFail();
         $this->assertSame('2026-11-20', $planned->planned_planting_at->toDateString());
@@ -189,6 +193,43 @@ class DatabaseSeederTest extends TestCase
             ->whereHas('activityType', fn ($query) => $query->where('code', 'block_mapping'))
             ->firstOrFail();
         $this->assertLessThan($planted, $mapping->activity_date->setTimezone('Asia/Jakarta')->toDateString());
+    }
+
+    public function test_seeded_stage_statuses_and_dates_are_backed_by_their_reports(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $codes = [
+            'land_clearing' => ['land_cleaning'],
+            'soil_preparation' => ['loosening', 'beds', 'liming'],
+            'basic_fertilizer' => ['base_fertilization'],
+            'planting' => ['planting'],
+            'maintenance' => ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control'],
+            'harvest' => ['harvest'],
+        ];
+        foreach (PlantingCycle::query()->with('stages')->whereNotNull('block_id')->get() as $cycle) {
+            $latestPosition = 0;
+            $reports = [];
+            foreach ($cycle->stages->sortBy('position') as $stage) {
+                $blockLevel = $stage->position <= 3;
+                $dates = FarmActivity::query()->where('farm_id', $cycle->farm_id)
+                    ->when($blockLevel, fn ($q) => $q->where('block_id', $cycle->block_id)->whereNull('planting_cycle_id'),
+                        fn ($q) => $q->where('planting_cycle_id', $cycle->id))
+                    ->whereHas('activityType', fn ($q) => $q->whereIn('code', $codes[$stage->code]))
+                    ->orderBy('activity_date')->pluck('activity_date');
+                $reports[$stage->code] = $dates;
+                if ($dates->isNotEmpty()) {
+                    $latestPosition = $stage->position;
+                }
+            }
+            foreach ($cycle->stages as $stage) {
+                $dates = $reports[$stage->code];
+                $expected = $cycle->status === 'harvested' || $stage->position < $latestPosition ? 'completed'
+                    : ($stage->position === $latestPosition ? 'in_progress' : 'upcoming');
+                $this->assertSame($expected, $stage->status, $cycle->id.' '.$stage->code);
+                $this->assertSame($dates->first()?->timestamp, $stage->started_at?->timestamp, $cycle->id.' '.$stage->code.' start');
+                $this->assertSame($dates->last()?->timestamp, $stage->completed_at?->timestamp, $cycle->id.' '.$stage->code.' last report');
+            }
+        }
     }
 
     public function test_owner_farm_prune_previews_then_deletes_only_non_approved_demo_farms_and_their_finance(): void

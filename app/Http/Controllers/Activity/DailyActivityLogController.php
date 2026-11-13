@@ -17,6 +17,7 @@ use App\Models\Team;
 use App\Services\Activity\DailyActivityHeaderService;
 use App\Services\Activity\DailyActivityLogService;
 use App\Services\Activity\DailyActivityReportService;
+use App\Support\ActivityInputLimits;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -50,6 +51,7 @@ class DailyActivityLogController extends Controller
                 'name' => $request->user()->name,
             ],
             'today' => now('Asia/Jakarta')->format('Y-m-d'),
+            'numericLimits' => ActivityInputLimits::mapping(),
             'blocks' => Gate::allows('viewAny', [\App\Models\FarmBlock::class, $team]) ? $this->logs->blockOptions($farm, $request->user(), $team) : [],
             'can' => [
                 'create' => Gate::allows('create', [DailyActivityLog::class, $farm]),

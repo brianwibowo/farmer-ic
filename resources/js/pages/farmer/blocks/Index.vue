@@ -27,6 +27,7 @@ const props = defineProps<{
     };
     blockCapacity: BlockFormCapacity;
     batchPermissions: Record<string, boolean>;
+    harvestPermissions: Record<string, boolean>;
     summary: { total: number; active: number; active_area_ha: string };
     filters: { search: string; status: string; per_page: number };
     can: { create: boolean };
@@ -157,6 +158,7 @@ function search(): void {
         :farm="farm"
         :blocks="blocks.data"
         :batch-permissions="batchPermissions"
+        :harvest-permissions="harvestPermissions"
         :capacity="blockCapacity"
         :can-create="can.create"
         :theme="theme"

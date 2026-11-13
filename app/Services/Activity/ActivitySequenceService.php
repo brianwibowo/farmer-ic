@@ -10,15 +10,18 @@ use Illuminate\Validation\ValidationException;
 /** Workflow prerequisites, separate from authorization; callers supply a scoped cycle. */
 class ActivitySequenceService
 {
-    private const SOIL = ['loosening', 'beds', 'liming', 'base_fertilization'];
+    private const BLOCK_ACTIVITIES = ['land_cleaning', 'loosening', 'beds', 'liming', 'base_fertilization'];
 
     public static function isBlockPreparation(string $code): bool
     {
-        return $code === 'land_cleaning' || in_array($code, self::SOIL, true);
+        return in_array($code, self::BLOCK_ACTIVITIES, true);
     }
 
     public function blockedReason(User $actor, PlantingCycle $cycle, string $code): ?string
     {
+        if (! in_array($cycle->status, ['planned', 'active'], true)) {
+            return 'Subblok sudah ditutup.';
+        }
         if (in_array($code, ['incident', 'other', 'land_cleaning'], true)) {
             return null;
         }

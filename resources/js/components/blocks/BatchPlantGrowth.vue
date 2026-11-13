@@ -109,13 +109,13 @@ const percentage = computed(() =>
                 </div>
                 <div>
                     <dt class="inline text-muted-foreground">
-                        Proyeksi panen:
+                        Estimasi awal panen:
                     </dt>
                     <dd class="inline font-semibold">
                         {{
                             growth.estimated_harvest_at
                                 ? blockDate(growth.estimated_harvest_at)
-                                : 'Belum ditentukan'
+                                : 'Belum ada estimasi'
                         }}
                     </dd>
                 </div>
