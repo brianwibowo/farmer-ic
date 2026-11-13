@@ -87,9 +87,14 @@ task visibility and update within that farm. The service scopes reads and locks
 the farm/cycle and open harvest tasks. Petugas cannot complete harvest tasks
 directly or create voluntary harvest reports; direct services also enforce these
 workflow restrictions for Superadmin. Existing reports remain readable.
-The existing Admin skip/reschedule controller checks `update` on the task, but
-`PlantingCycleTaskManagementService::updateActionable` still locks it by ID
-without `visibleTo`; this unrelated legacy query needs a separate scope audit.
+Admin skip/reschedule continues to authorize `update` on the persisted task. For
+harvest tasks, that Policy also requires visibility of the trusted farm and
+`update` on the parent cycle, because the same transaction updates its derived
+harvest estimate. The service scopes and locks the farm, cycle, and tasks; it
+also scopes the locked task for non-harvest skip/reschedule. Recording planting
+and synchronizing SOP tasks use composite Policy checks, including task-view
+scope for the specific farm; the derived estimate uses scoped harvest tasks and
+introduces no separate endpoint or role grant.
 Stage-tracked reports require both cycle and stage visibility as
 part of their composite FarmActivityPolicy checks, so missing grants cannot
 silently omit derived stage writes; unrelated incident/other reports do not. No

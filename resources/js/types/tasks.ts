@@ -46,7 +46,12 @@ export type AdminTask = {
     created_at: string | null;
     farm: { id: string; name: string } | null;
     block: { id: string; code: string; name: string } | null;
-    subblok: { id: string; number: number; label: string | null } | null;
+    subblok: {
+        id: string;
+        number: number;
+        label: string | null;
+        planted_at: string | null;
+    } | null;
     stage: { code: string } | null;
     sop_version: { id: string; version: number } | null;
     can: { update: boolean };

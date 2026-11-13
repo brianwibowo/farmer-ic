@@ -9,6 +9,7 @@ use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
+use App\Support\ActivityInputLimits;
 use App\Support\TaskActivityFields;
 use App\Support\VoluntaryActivityFields;
 use Carbon\CarbonImmutable;
@@ -69,13 +70,13 @@ class TaskActivityService
                     );
                 } else {
                     if (isset($details['area_ha']) && (float) $details['area_ha'] > (float) $cycle->planted_area_ha) {
-                        throw ValidationException::withMessages(['details.area_ha' => 'Luas dikerjakan tidak boleh melebihi luas tanam subblok.']);
+                        throw ValidationException::withMessages([($data['schema'] ?? null) === 'taxonomy' ? 'details.area' : 'details.area_ha' => 'Luas dikerjakan tidak boleh melebihi luas tanam subblok.']);
                     }
                     if ((isset($details['area_ha']) && $details['area_ha'] <= 0) || (isset($details['weight_ton']) && $details['weight_ton'] <= 0)) {
                         throw ValidationException::withMessages(['details' => 'Luas minimal 1 m² dan berat panen minimal 1 kg.']);
                     }
                 }
-                if (($details['quantity_kg'] ?? 0) > 999999999.999) {
+                if (($details['quantity_kg'] ?? 0) > ActivityInputLimits::NORMALIZED_QUANTITY_KG) {
                     throw ValidationException::withMessages(['details.quantity' => 'Jumlah terlalu besar setelah konversi satuan.']);
                 }
                 $log = $this->headers->resolve($farm, $actor, $data);

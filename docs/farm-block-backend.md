@@ -61,7 +61,9 @@ Endpoint untuk mengubah status tahap secara bebas tidak disediakan.
 `started_at`; laporan terakhir berdasarkan `activity_date` mengisi `completed_at`,
 bahkan saat `in_progress`. Laporan terlambat bertanggal mundur memperbarui tanggal
 awal tanpa menggeser tanggal terakhir. Nama `completed_at` bukan waktu penutupan;
-UI menyebutnya **Laporan terakhir**. Tahap sebelumnya menjadi `completed` begitu
+timeline menampilkan **Laporan Pertama / Laporan Terakhir** saat `in_progress` dan
+**Mulai / Selesai** saat `completed`, dengan keterangan bahwa tanggal berdasarkan
+aktivitas yang dilaporkan. Tahap sebelumnya menjadi `completed` begitu
 tahap mana pun setelahnya mulai, termasuk tahap yang dilewati tanpa laporan: kedua
 tanggal tahap yang dilewati tetap `null`. Laporan yang datang belakangan untuk
 tahap terdahulu mengisi tanggalnya tetapi tidak memundurkan tahap yang berjalan.
@@ -80,6 +82,48 @@ laporan pertama dan terakhir. Untuk laporan Petugas, waktunya merupakan tanggal
 kerja ditambah jam mulai header harian bersama per kebun/tanggal; banyak laporan
 pada hari yang sama dapat memiliki waktu yang sama. `created_at` dan `updated_at`
 adalah waktu baris tahap dibuat dan terakhir diubah, bukan waktu aktivitas lapangan.
+
+### Estimasi awal panen dari tugas SOP
+
+`planting_cycles.estimated_harvest_at` merupakan proyeksi tanggal efektif paling
+awal dari tugas panen `pending`/`in_progress` pada subblok yang sama, setelah
+tanggal tanam aktual tersedia. Tanggal efektif menggunakan `rescheduled_date`
+Admin jika ada, selain itu `scheduled_date` dari tanggal acuan tanam + offset
+SOP. Tugas yang dilewati, selesai, atau tidak memiliki tanggal tidak dihitung.
+Jika tidak ada tugas yang memenuhi syarat, estimasi yang dikelola alur ini menjadi
+`null`. Estimasi bukan kepastian kesiapan tanaman dan tidak menghalangi laporan
+panen lebih awal.
+
+Pembuatan tugas mengisi estimasi yang masih kosong. Perubahan jadwal efektif
+akibat tanggal acuan tanam, penjadwalan ulang, atau skip tugas panen memperbarui
+estimasi dalam transaksi yang sama. Jadwal panen tidak boleh sebelum tanggal
+tanam; jika tanggal tanam bergeser melewati override yang sudah tersimpan,
+laporan ditolak dengan pesan agar Admin meninjau jadwal, tanpa perubahan parsial.
+Saat panen ditutup, estimasi terakhir dipertahankan sebagai histori; realisasi
+panen tetap berasal dari laporan. Pengingat panen yang diaktifkan memakai kolom
+estimasi yang sama dan memeriksa ulang tanggal sebelum pengiriman.
+
+Tidak ada backfill atau perubahan massal data lama. Jika estimasi sudah terisi,
+pembuatan atau sinkronisasi tugas tanpa perubahan jadwal mempertahankan nilai
+tersebut, meski berbeda dari SOP. Aksi berikutnya yang benar-benar mengubah jadwal
+panen atau acuan tanam akan menyinkronkan nilainya. Sinkronisasi tugas yang sudah
+ada dapat mengisi estimasi yang masih kosong. Data lama dengan estimasi yang
+tidak dapat dibuktikan asalnya dan akan melanggar batas tanggal tidak ditimpa
+diam-diam; pengguna menerima pesan untuk meninjau data tersebut. Perubahan
+tanggal SOP dasar yang tidak mengubah tanggal efektif karena override tetap
+mempertahankan estimasi lama saat tidak ada perubahan acuan tanam. Tugas lama
+tanpa tanggal SOP perlu disinkronkan sebelum dapat dijadwalkan ulang.
+
+Perintah terjadwal `planting:reconcile-windows` melanjutkan subblok lain bila
+satu subblok memerlukan peninjauan jadwal. Ia melaporkan subblok yang gagal dan
+menghasilkan status gagal agar masalah dapat ditindaklanjuti; perubahan pada
+subblok yang gagal dibatalkan secara utuh.
+
+Migrasi `2026_11_13_000001_allow_early_task_reschedule` tidak mengubah data atau
+menambah kolom. Ia memperluas constraint tenggat agar reschedule lebih awal dari
+jadwal SOP asli tetap dapat disimpan. Untuk kompatibilitas, constraint tetap
+menerima baris lama; service menghitung tenggat baru dari jadwal efektif. Rollback
+ditolak jika ada reschedule lebih awal yang tidak memenuhi constraint lama.
 
 ## Route dan halaman
 

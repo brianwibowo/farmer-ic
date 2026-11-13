@@ -9,6 +9,7 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\User;
+use App\Support\ActivityInputLimits;
 use App\Support\VoluntaryActivityFields;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,7 @@ class VoluntaryActivityService
                 if (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->getAttribute('reserved_area_ha')) || (! $cycle && $block && $d['area_ha'] > (float) $block->area_ha))) {
                     throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi luas lokasi yang dipilih.']);
                 }
-                if (($d['quantity_kg'] ?? 0) > 999999999.999) {
+                if (($d['quantity_kg'] ?? 0) > ActivityInputLimits::NORMALIZED_QUANTITY_KG) {
                     throw ValidationException::withMessages(['details.quantity' => 'Jumlah terlalu besar setelah konversi satuan.']);
                 }
                 $log = $this->headers->resolve($farm, $actor, $data);

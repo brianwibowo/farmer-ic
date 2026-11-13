@@ -224,7 +224,7 @@ Table planting_cycle_tasks {
   offset_days int [not null, default: 0]
   tolerance_days int [not null, default: 0]
   scheduled_date date [note: 'Null when the subblok has no planted_at or planned_planting_at']
-  due_date date
+  due_date date [note: 'Jadwal berlaku + toleransi; constraint mempertahankan kompatibilitas data lama']
   is_required boolean [not null, default: true]
   status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | completed | skipped; skipped means deliberately not done']
   completed_at timestamptz
@@ -290,7 +290,7 @@ Table sop_template_tasks {
   name varchar(200) [not null]
   instructions text
   offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); SOP dimulai pada H+0']
-  tolerance_days int [not null, default: 0, note: 'due_date = scheduled_date + tolerance_days']
+  tolerance_days int [not null, default: 0, note: 'due_date = jadwal berlaku + tolerance_days']
   is_required boolean [not null, default: true]
   created_at timestamptz
   updated_at timestamptz

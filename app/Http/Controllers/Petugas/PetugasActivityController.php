@@ -7,8 +7,10 @@ use App\Http\Requests\Petugas\StoreTaskActivityRequest;
 use App\Models\ActivityPhoto;
 use App\Models\FarmActivity;
 use App\Models\PlantingCycleTask;
+use App\Services\Activity\ActivityFormLimits;
 use App\Services\Activity\TaskActivityService;
 use App\Services\PetugasTaskReadService;
+use App\Support\ActivityInputLimits;
 use App\Support\TaskActivityFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,12 +22,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PetugasActivityController extends Controller
 {
-    public function create(Request $request, PlantingCycleTask $task, PetugasTaskReadService $tasks): Response
+    public function create(Request $request, PlantingCycleTask $task, PetugasTaskReadService $tasks, ActivityFormLimits $limits): Response
     {
         $this->authorizeRecord($request, $task);
 
         return Inertia::render('petugas/ActivityCreate', [
             'task' => $tasks->detail($request->user(), $task), 'fields' => \App\Support\VoluntaryActivityFields::forCode(TaskActivityFields::activityCode($task) ?? ''),
+            'areaLimitM2' => $limits->taskArea($request->user(), $task),
+            'numericLimits' => ActivityInputLimits::common(),
             'today' => now('Asia/Jakarta')->toDateString(),
             'workDate' => $request->validate(['work_date' => ['sometimes', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()]])['work_date'] ?? now('Asia/Jakarta')->toDateString(),
         ]);

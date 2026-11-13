@@ -4,6 +4,7 @@ namespace App\Http\Requests\Activity;
 
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
+use App\Support\ActivityInputLimits;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -26,7 +27,7 @@ class StoreDailyActivityLogRequest extends FormRequest
             'work_date' => ['required', 'date_format:Y-m-d'],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
-            'worker_count' => ['required', 'integer', 'between:1,32767'],
+            'worker_count' => ['required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
             // The controller derives the recorder from the authenticated user.
             // Keep this optional for backwards-compatible JSON clients, but never trust it.
             'recorded_by' => ['sometimes', 'uuid', Rule::exists('users', 'id')->where('is_active', true)],
@@ -37,11 +38,11 @@ class StoreDailyActivityLogRequest extends FormRequest
             'activities.*.block_mapping' => ['required', 'array:block_id,block_name,length_m,width_m,row_spacing_cm,plant_spacing_cm,rows_per_bed'],
             'activities.*.block_mapping.block_id' => ['sometimes', 'nullable', 'uuid'],
             'activities.*.block_mapping.block_name' => ['required', 'string', 'max:100'],
-            'activities.*.block_mapping.length_m' => ['required', 'numeric', 'decimal:0,3', 'between:0.001,9999999.999'],
-            'activities.*.block_mapping.width_m' => ['required', 'numeric', 'decimal:0,3', 'between:0.001,9999999.999'],
-            'activities.*.block_mapping.row_spacing_cm' => ['nullable', 'required_with:activities.*.block_mapping.plant_spacing_cm', 'numeric', 'decimal:0,2', 'between:0.01,999999.99'],
-            'activities.*.block_mapping.plant_spacing_cm' => ['nullable', 'required_with:activities.*.block_mapping.row_spacing_cm', 'numeric', 'decimal:0,2', 'between:0.01,999999.99'],
-            'activities.*.block_mapping.rows_per_bed' => ['sometimes', 'nullable', 'integer', 'between:1,32767'],
+            'activities.*.block_mapping.length_m' => ['required', 'numeric', 'decimal:0,3', 'between:0.001,'.ActivityInputLimits::MAPPING_LENGTH],
+            'activities.*.block_mapping.width_m' => ['required', 'numeric', 'decimal:0,3', 'between:0.001,'.ActivityInputLimits::MAPPING_LENGTH],
+            'activities.*.block_mapping.row_spacing_cm' => ['nullable', 'required_with:activities.*.block_mapping.plant_spacing_cm', 'numeric', 'decimal:0,2', 'between:0.01,'.ActivityInputLimits::MAPPING_SPACING],
+            'activities.*.block_mapping.plant_spacing_cm' => ['nullable', 'required_with:activities.*.block_mapping.row_spacing_cm', 'numeric', 'decimal:0,2', 'between:0.01,'.ActivityInputLimits::MAPPING_SPACING],
+            'activities.*.block_mapping.rows_per_bed' => ['sometimes', 'nullable', 'integer', 'between:1,'.ActivityInputLimits::MAPPING_ROWS],
             'activities.*.obstacle_status' => ['required', Rule::in(['none', 'reported'])],
             'activities.*.obstacles' => ['nullable', 'required_if:activities.*.obstacle_status,reported', 'prohibited_if:activities.*.obstacle_status,none', 'string', 'max:5000'],
             'activities.*.proposed_solution' => ['sometimes', 'nullable', 'string', 'max:5000'],

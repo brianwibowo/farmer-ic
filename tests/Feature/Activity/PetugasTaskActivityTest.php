@@ -51,6 +51,7 @@ class PetugasTaskActivityTest extends TestCase
         $block = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
         $this->cycle = app(FarmBlockService::class)->createBatch($block, $admin, $this->team, ['reserved_area_ha' => '2', 'planned_planting_at' => today()->subDays(21)->toDateString()]);
         $commodity = Commodity::create(['name' => 'Jagung']);
+        $this->farm->forceFill(['commodity_id' => $commodity->id])->save();
         $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
         $this->cycle->forceFill(['planted_at' => today()->subDays(21), 'planted_area_ha' => '2', 'variety_id' => $variety->id, 'status' => 'active'])->save();
         $this->task = $this->newTask();
