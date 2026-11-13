@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
         if (CariuBaruSeeder::supportsCurrentDatabase()) {
             $this->call(CariuBaruSeeder::class);
         } elseif (app()->environment('local', 'testing')) {
-            $this->command?->warn('Seed Cariu Baru dilewati: memerlukan koneksi PostgreSQL.');
+            $this->command->warn('Seed Cariu Baru dilewati: memerlukan koneksi PostgreSQL.');
         }
     }
 }
