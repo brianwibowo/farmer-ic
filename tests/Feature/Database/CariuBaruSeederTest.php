@@ -170,6 +170,42 @@ class CariuBaruSeederTest extends TestCase
         $this->assertDatabaseMissing('farms', ['name' => 'Kebun Cariu Baru']);
     }
 
+    public function test_environment_guard_does_not_depend_on_database_name_or_host(): void
+    {
+        $originalEnvironment = $this->app->environment();
+        $originalConnection = DB::getDefaultConnection();
+        config([
+            'database.connections.cariu_guard_pgsql' => [
+                'driver' => 'pgsql', 'host' => 'postgres-demo', 'database' => 'another_demo',
+                'username' => 'demo', 'password' => '', 'prefix' => '',
+            ],
+            'database.connections.cariu_guard_other' => [
+                'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '',
+            ],
+        ]);
+
+        try {
+            // The guard reads the driver configuration only; neither fake DB is opened.
+            DB::setDefaultConnection('cariu_guard_pgsql');
+            foreach (['local', 'testing'] as $environment) {
+                $this->app->instance('env', $environment);
+                $this->assertTrue(CariuBaruSeeder::supportsCurrentDatabase());
+            }
+            foreach (['production', 'staging'] as $environment) {
+                $this->app->instance('env', $environment);
+                $this->assertFalse(CariuBaruSeeder::supportsCurrentDatabase());
+            }
+            $this->app->instance('env', 'local');
+            DB::setDefaultConnection('cariu_guard_other');
+            $this->assertFalse(CariuBaruSeeder::supportsCurrentDatabase());
+        } finally {
+            DB::setDefaultConnection($originalConnection);
+            DB::purge('cariu_guard_pgsql');
+            DB::purge('cariu_guard_other');
+            $this->app->instance('env', $originalEnvironment);
+        }
+    }
+
     public function test_production_environment_is_rejected_before_writes(): void
     {
         $this->app->instance('env', 'production');

@@ -45,8 +45,10 @@ These credentials are development fixtures only. Do not use them in a shared,
 staging, or production environment, and do not copy their passwords into real
 accounts.
 
-On the guarded local `farmer_ic_dev` database and isolated test databases, the
-full seed also includes the Cariu Baru logbook and a separate Petugas account.
+In `local` and `testing` environments using PostgreSQL, the full seed also
+includes the Cariu Baru logbook and a separate Petugas account, regardless of the
+database host or name. Only point those environments at an intended demo or
+isolated test database; `APP_ENV` does not prove that a database is safe.
 See [cariu-baru-demo.md](cariu-baru-demo.md) for its credentials and explicitly
 simulated future harvests. This additional fixture is skipped elsewhere,
 including production. `migrate:fresh` deletes all tables and data; do not use it

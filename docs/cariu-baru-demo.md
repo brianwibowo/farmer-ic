@@ -1,7 +1,7 @@
 # Kebun Cariu Baru: impor logbook dan skenario panen
 
-`DatabaseSeeder` otomatis memanggil `CariuBaruSeeder` setelah seed dasar ketika
-targetnya PostgreSQL demo lokal yang diizinkan atau database test terisolasi.
+`DatabaseSeeder` otomatis memanggil `CariuBaruSeeder` setelah seed dasar pada
+environment `local` atau `testing` dengan koneksi PostgreSQL.
 Jadi `php artisan db:seed` pada database demo tersebut juga membuat kebun dan
 akun Petugas Cariu. Perintah `migrate:fresh --seed` menghapus semua tabel dan
 datanya terlebih dahulu; jangan gunakan untuk memulihkan satu akun.
@@ -13,8 +13,10 @@ lain atau menghapus data, jalankan seeder terarah ini:
 php artisan --env=local db:seed --class=CariuBaruSeeder
 ```
 
-Pengaman membatasi seeder pada PostgreSQL lokal `127.0.0.1/farmer_ic_dev` atau
-database PostgreSQL test terisolasi dengan nama yang diizinkan. Seeder
+Pengaman tidak membatasi nama database atau host tertentu; lingkungan selain
+`local` dan `testing`, termasuk `production` dan `staging`, ditolak. Pastikan
+database yang dikonfigurasi memang database demo/test: `APP_ENV=local` atau
+`--env=local` **tidak membuktikan** bahwa database bukan production. Seeder
 transaksional ini membuat record baru saja: apabila ID/nama kebun atau email
 bertabrakan dengan data lain, impor dibatalkan. Pengulangan pada fixture yang
 masih utuh tidak memperbarui atau menghapus apa pun, termasuk perubahan yang
