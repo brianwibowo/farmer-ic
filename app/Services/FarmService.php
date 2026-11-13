@@ -159,8 +159,16 @@ class FarmService
             ->get(['id', 'farm_id', 'block_id', 'status']);
         $counts = array_fill_keys([...\App\Models\PlantingCycleStage::CODES, 'not_started'], 0);
         foreach ($batches as $batch) {
-            $code = $batch->stages->firstWhere('status', 'in_progress')?->code
-                ?? ($batch->stages->firstWhere('code', 'harvest')?->status === 'completed' ? 'harvest' : 'not_started');
+            $code = 'not_started';
+            foreach ($batch->stages as $stage) {
+                if ($stage->status === 'in_progress') {
+                    $code = $stage->code;
+                    break;
+                }
+                if ($stage->code === 'harvest' && $stage->status === 'completed') {
+                    $code = 'harvest';
+                }
+            }
             $counts[$code]++;
         }
 

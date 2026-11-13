@@ -158,6 +158,9 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
     /** @param array<string, mixed> $site */
     private function blockPreparation(Farm $farm, array $site, User $actor, User $performer, Team $team): void
     {
+        if (! is_array($site['batches'] ?? null)) {
+            throw new LogicException('Data batch portofolio tidak valid.');
+        }
         $byBlock = collect($site['batches'])->groupBy('block_code');
         foreach ($byBlock as $blockCode => $batches) {
             $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $blockCode)->firstOrFail();
@@ -216,7 +219,6 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                 ], JSON_THROW_ON_ERROR),
             ];
         }
-        /** @var FarmActivity $activity */
         $activity = $this->record(FarmActivity::class, $activityId, [
             'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'block_id' => $cycle->block_id, 'activity_type_id' => $type->id,
             'performed_by' => $performer->id, 'activity_date' => $this->at($date),
@@ -255,14 +257,20 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         ], $farm, $actor, $team);
     }
 
-    /** @param class-string<FarmerModel> $class
+    /** @template TModel of FarmerModel
+     *
+     * @param  class-string<TModel>  $class
      * @param  array<string, mixed>  $data
+     * @return TModel
      */
     private function record(string $class, string $id, array $data, Model $parent, User $actor, Team $team): FarmerModel
     {
         Gate::forUser($actor)->authorize('viewAny', [$class, $team]);
         $existing = $class::visibleTo($actor, $team)->whereKey($id)->first();
         if ($existing !== null) {
+            if (! $existing instanceof $class) {
+                throw new LogicException('Jenis data portofolio tidak sesuai dengan model yang diminta.');
+            }
             foreach (['farm_id', 'block_id', 'planting_cycle_id', 'activity_id', 'observation_id'] as $foreignKey) {
                 if (isset($data[$foreignKey]) && (string) $existing->getAttribute($foreignKey) !== (string) $data[$foreignKey]) {
                     throw new RuntimeException('ID portofolio sudah digunakan oleh relasi lain.');
