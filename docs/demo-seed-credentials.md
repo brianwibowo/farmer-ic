@@ -45,6 +45,10 @@ These credentials are development fixtures only. Do not use them in a shared,
 staging, or production environment, and do not copy their passwords into real
 accounts.
 
+The optional, separately guarded Cariu Baru logbook import and its dedicated
+Petugas account are documented in [cariu-baru-demo.md](cariu-baru-demo.md).
+It includes explicitly simulated future harvests and is not part of the full seed.
+
 ## Refresh existing presentation names safely
 
 For an existing local installation, use only the additive name refresh:
