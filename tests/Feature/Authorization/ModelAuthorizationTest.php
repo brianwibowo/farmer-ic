@@ -257,7 +257,7 @@ class ModelAuthorizationTest extends TestCase
             }
             $this->assertSame($update, Gate::forUser($user)->allows('update', $record), $role.' '.$prefix.'.update');
             $this->assertSame($delete, Gate::forUser($user)->allows('delete', $record), $role.' '.$prefix.'.delete');
-            $this->assertSame($role === 'superadmin' || ($role === 'admin' && $prefix === 'users'), Gate::forUser($user)->allows('configure', $record));
+            $this->assertSame($role === 'superadmin' || ($role === 'admin' && in_array($prefix, ['users', 'planting_cycles'], true)), Gate::forUser($user)->allows('configure', $record));
             $this->assertSame($role === 'superadmin', Gate::forUser($user)->allows('forceDelete', $record));
         }
         $this->assertSame($role === 'owner', Gate::forUser($user)->allows('ai.access', $team));

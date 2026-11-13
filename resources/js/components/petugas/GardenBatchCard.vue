@@ -148,9 +148,28 @@ const stageStatuses = {
                 </dd>
             </div>
             <div>
-                <dt class="text-muted-foreground">Estimasi panen</dt>
+                <dt class="text-muted-foreground">
+                    {{
+                        batch.status === 'harvested'
+                            ? 'Status panen'
+                            : 'Estimasi awal panen'
+                    }}
+                </dt>
                 <dd class="mt-1 font-medium">
-                    {{ gardenDate(batch.estimated_harvest_at) }}
+                    {{
+                        batch.status === 'harvested'
+                            ? 'Panen selesai'
+                            : batch.estimated_harvest_at
+                              ? gardenDate(batch.estimated_harvest_at)
+                              : 'Belum ada estimasi'
+                    }}
+                    <span
+                        v-if="batch.status === 'harvested' && batch.estimated_harvest_at"
+                        class="mt-0.5 block text-muted-foreground"
+                    >
+                        Estimasi sebelumnya:
+                        {{ gardenDate(batch.estimated_harvest_at) }}
+                    </span>
                 </dd>
             </div>
         </dl>

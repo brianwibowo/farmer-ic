@@ -8,17 +8,30 @@ import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
 import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
+import {
+    activityDetailMaximumErrors,
+    formatActivityNumber,
+    maximumError,
+} from '@/lib/activityInputLimits';
 const props = defineProps<{
     farm: { id: string; name: string };
     type: { id: string; code: string; name: string };
     today: string;
     fields: ActivityField[];
-    blocks: { id: string; code: string; name: string; blocked_reason: string | null }[];
+    numericLimits: { workerCount: number; quantityKg: number };
+    blocks: {
+        id: string;
+        code: string;
+        name: string;
+        area_limit_m2: number;
+        blocked_reason: string | null;
+    }[];
     cycles: {
         id: string;
         subblock_label: string;
         block: { name: string };
         reserved_area_ha: string;
+        area_limit_m2: number;
         blocked_reason: string | null;
     }[];
     matchingTasks: {
@@ -52,17 +65,100 @@ const form = useForm({
 const ready = ref(false);
 const existing = ref(false);
 const clientError = ref('');
-const blockOnly = computed(() => ['land_cleaning', 'loosening', 'beds', 'liming', 'base_fertilization'].includes(props.type.code));
-const optionalLocation = computed(() => ['incident', 'other'].includes(props.type.code));
-watch(() => form.cycle_id, (value) => { if (value) form.block_id = ''; });
-watch(() => form.block_id, (value) => { if (value) form.cycle_id = ''; });
+const blockOnly = computed(() =>
+    [
+        'land_cleaning',
+        'loosening',
+        'beds',
+        'liming',
+        'base_fertilization',
+    ].includes(props.type.code),
+);
+const optionalLocation = computed(() =>
+    ['incident', 'other'].includes(props.type.code),
+);
+watch(
+    () => form.cycle_id,
+    (value) => {
+        if (value) form.block_id = '';
+    },
+);
+watch(
+    () => form.block_id,
+    (value) => {
+        if (value) form.cycle_id = '';
+    },
+);
+const areaLimitM2 = computed(
+    () =>
+        props.cycles.find((cycle) => cycle.id === form.cycle_id)
+            ?.area_limit_m2 ??
+        props.blocks.find((block) => block.id === form.block_id)
+            ?.area_limit_m2 ??
+        null,
+);
+const numericErrors = computed<Record<string, string>>(() => {
+    const result = activityDetailMaximumErrors(
+        props.fields,
+        form.details,
+        areaLimitM2.value,
+        props.numericLimits.quantityKg,
+    );
+    const workerError = maximumError(
+        form.worker_count,
+        props.numericLimits.workerCount,
+        'Jumlah pekerja',
+    );
+    if (workerError) result.worker_count = workerError;
+    return result;
+});
+const errors = computed<Record<string, string>>(() => ({
+    ...form.errors,
+    ...numericErrors.value,
+}));
+const noArea = computed(
+    () =>
+        areaLimitM2.value === 0 &&
+        props.fields.some(
+            (field) =>
+                (field.key === 'area' && !field.optional) ||
+                field.key === 'bed_count',
+        ),
+);
+watch(
+    () => ({ ...form.details }),
+    (current, previous) => {
+        for (const key of Object.keys(current)) {
+            if (current[key] === previous[key]) continue;
+            form.clearErrors(`details.${key}` as keyof typeof form.errors);
+            if (key === 'area_unit')
+                form.clearErrors('details.area' as keyof typeof form.errors);
+            if (['bed_count', 'length_m', 'width_m'].includes(key))
+                form.clearErrors('details.area' as keyof typeof form.errors);
+            if (key === 'quantity_unit' || key === 'bag_size')
+                form.clearErrors(
+                    'details.quantity' as keyof typeof form.errors,
+                );
+        }
+    },
+);
+watch(
+    () => form.worker_count,
+    () => form.clearErrors('worker_count'),
+);
+watch(areaLimitM2, () =>
+    form.clearErrors('details.area' as keyof typeof form.errors),
+);
 const matches = computed(() =>
     props.matchingTasks.filter((t) => t.planting_cycle_id === form.cycle_id),
 );
 const blockedReason = computed(
     () =>
-        props.blocks.find((block) => block.id === form.block_id)?.blocked_reason ??
-        props.cycles.find((cycle) => cycle.id === form.cycle_id)?.blocked_reason ?? null,
+        props.blocks.find((block) => block.id === form.block_id)
+            ?.blocked_reason ??
+        props.cycles.find((cycle) => cycle.id === form.cycle_id)
+            ?.blocked_reason ??
+        null,
 );
 const fieldClass =
     'block min-h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [color-scheme:light] dark:[color-scheme:dark]';
@@ -84,7 +180,14 @@ function photos(event: Event): void {
     input.value = '';
 }
 function submit(): void {
-    if (form.processing || !ready.value || blockedReason.value) return;
+    if (
+        form.processing ||
+        !ready.value ||
+        blockedReason.value ||
+        noArea.value ||
+        Object.keys(numericErrors.value).length
+    )
+        return;
     clientError.value = '';
     if (!form.photos.length) {
         clientError.value = 'Tambahkan minimal satu foto dokumentasi.';
@@ -149,13 +252,30 @@ function submit(): void {
                             required
                             :max="today"
                             :class="fieldClass" /></label
-                    ><label v-if="blockOnly || optionalLocation" class="block space-y-2 text-sm">
+                    ><label
+                        v-if="blockOnly || optionalLocation"
+                        class="block space-y-2 text-sm"
+                    >
                         <span>Blok {{ blockOnly ? '*' : '(opsional)' }}</span>
-                        <AppSelect v-model="form.block_id" :required="blockOnly" aria-label="Blok" placeholder="Pilih blok" :class="fieldClass">
-                            <AppSelectOption v-if="optionalLocation" value="">Tanpa blok</AppSelectOption>
-                            <AppSelectOption v-for="block in blocks" :key="block.id" :value="block.id">{{ block.code }} · {{ block.name }}</AppSelectOption>
-                        </AppSelect>
-                    </label><label v-if="!blockOnly" class="block space-y-2 text-sm"
+                        <AppSelect
+                            v-model="form.block_id"
+                            :required="blockOnly"
+                            aria-label="Blok"
+                            placeholder="Pilih blok"
+                            :class="fieldClass"
+                        >
+                            <AppSelectOption v-if="optionalLocation" value=""
+                                >Tanpa blok</AppSelectOption
+                            >
+                            <AppSelectOption
+                                v-for="block in blocks"
+                                :key="block.id"
+                                :value="block.id"
+                                >{{ block.code }} ·
+                                {{ block.name }}</AppSelectOption
+                            >
+                        </AppSelect> </label
+                    ><label v-if="!blockOnly" class="block space-y-2 text-sm"
                         ><span
                             >Blok / subblok{{
                                 optionalLocation ? ' (opsional)' : ' *'
@@ -166,9 +286,7 @@ function submit(): void {
                             aria-label="Subblok"
                             placeholder="Pilih subblok"
                             :class="fieldClass"
-                            ><AppSelectOption
-                                v-if="optionalLocation"
-                                value=""
+                            ><AppSelectOption v-if="optionalLocation" value=""
                                 >Seluruh kebun</AppSelectOption
                             ><AppSelectOption
                                 v-for="cycle in cycles"
@@ -180,10 +298,15 @@ function submit(): void {
                         ></label
                     >
                     <p
-                        v-if="blockOnly ? !blocks.length : !cycles.length && !optionalLocation"
+                        v-if="
+                            blockOnly
+                                ? !blocks.length
+                                : !cycles.length && !optionalLocation
+                        "
                         class="text-xs text-muted-foreground"
                     >
-                        Belum ada {{ blockOnly ? 'blok' : 'subblok' }} aktif. Hubungi Admin untuk menyiapkannya.
+                        Belum ada {{ blockOnly ? 'blok' : 'subblok' }} aktif.
+                        Hubungi Admin untuk menyiapkannya.
                     </p>
                     <p
                         v-if="blockedReason"
@@ -232,22 +355,37 @@ function submit(): void {
                             v-model.number="form.worker_count"
                             type="number"
                             min="1"
-                            max="32767"
+                            :max="numericLimits.workerCount"
                             step="1"
                             required
                             :class="fieldClass"
-                            :aria-invalid="!!form.errors.worker_count"
+                            :aria-invalid="!!errors.worker_count"
+                            aria-describedby="voluntary-worker-help voluntary-worker-error"
                         /><span
-                            v-if="form.errors.worker_count"
+                            id="voluntary-worker-help"
+                            class="block text-xs text-muted-foreground"
+                            >Maksimal
+                            {{
+                                formatActivityNumber(numericLimits.workerCount)
+                            }}
+                            pekerja.</span
+                        ><span
+                            v-if="errors.worker_count"
+                            id="voluntary-worker-error"
                             class="block text-xs text-error"
-                            >{{ form.errors.worker_count }}</span
+                            aria-live="polite"
+                            >{{ errors.worker_count }}</span
                         ></label
                     >
                     <ActivityDetailFields
                         v-model="form.details"
                         :fields="fields"
-                        :errors="form.errors"
+                        :errors="errors"
+                        :area-limit-m2="areaLimitM2"
                     />
+                    <p v-if="noArea" role="status" class="text-sm text-warning">
+                        Tidak ada luas yang dapat dilaporkan untuk lokasi ini.
+                    </p>
                 </section>
                 <section
                     class="space-y-4 rounded-2xl border border-border bg-card p-4"
@@ -306,7 +444,13 @@ function submit(): void {
                 </p>
             </div>
             <button
-                :disabled="form.processing || !ready || !!blockedReason"
+                :disabled="
+                    form.processing ||
+                    !ready ||
+                    !!blockedReason ||
+                    noArea ||
+                    Object.keys(numericErrors).length > 0
+                "
                 type="submit"
                 class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-secondary px-4 font-semibold text-secondary-foreground disabled:opacity-50"
             >

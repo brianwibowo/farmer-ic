@@ -304,7 +304,7 @@ const groupRowsId = (groupId: string) =>
                                                 )
                                             "
                                             :aria-label="`Lihat legalitas ${row.name}`"
-                                            class="inline-block min-h-11 max-w-full rounded-md [overflow-wrap:anywhere] font-medium text-primary underline decoration-primary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                                            class="inline-block min-h-11 max-w-full rounded-md font-medium [overflow-wrap:anywhere] text-primary underline decoration-primary/30 underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
                                         >
                                             {{
                                                 row.legality ?? 'Belum tercatat'
@@ -313,11 +313,11 @@ const groupRowsId = (groupId: string) =>
                                     </div>
                                     <p
                                         v-if="row.requires_land_tenure_party"
-                                        class="mt-1 text-xs text-muted-foreground select-text [overflow-wrap:anywhere]"
+                                        class="mt-1 text-xs [overflow-wrap:anywhere] text-muted-foreground select-text"
                                     >
                                         {{
                                             row.land_tenure_party ||
-                                            "Pihak terkait belum diisi"
+                                            'Pihak terkait belum diisi'
                                         }}
                                     </p>
                                 </td>

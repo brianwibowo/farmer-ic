@@ -14,7 +14,7 @@ class VoluntaryActivityFields
         $s = fn ($key, $label, $options, $optional = false) => compact('key', 'label', 'options', 'optional') + ['type' => 'select'];
         $t = fn ($key, $label, $optional = false) => compact('key', 'label', 'optional') + ['type' => 'text'];
         $area = [$n('area', 'Luas area', false, '0.0001'), $s('area_unit', 'Satuan luas', ['m²', 'Ha'])];
-        $quantity = [$n('quantity', 'Jumlah'), $s('quantity_unit', 'Satuan jumlah', $code === 'follow_up_fertilization' ? ['kg', 'sak', 'liter'] : ['kg', 'sak', 'ton']), $n('bag_size', 'Berat per sak (kg)') + ['when' => ['quantity_unit', 'sak']]];
+        $quantity = [$n('quantity', 'Jumlah'), $s('quantity_unit', 'Satuan jumlah', in_array($code, ['base_fertilization', 'follow_up_fertilization'], true) ? ['kg', 'sak', 'ton', 'liter'] : ['kg', 'sak', 'ton']), $n('bag_size', 'Berat per sak (kg)') + ['when' => ['quantity_unit', 'sak']]];
         $method = fn ($options, $optional = false) => $s('method', 'Metode', $options, $optional);
         $spray = [$t('product', 'Nama produk'), $n('dosage', 'Dosis (ml per liter air)'), $n('water_liters', 'Volume air per tangki (liter)'), $n('tank_count', 'Jumlah tangki', false, '1', 32767)];
 
@@ -23,7 +23,7 @@ class VoluntaryActivityFields
             'loosening' => [...$area, $method(['Manual', 'Cultivator', 'Lainnya']), $n('depth_cm', 'Kedalaman (cm)')],
             'beds' => [$n('bed_count', 'Jumlah bedeng', false, '1', 32767), $n('length_m', 'Panjang bedeng (m)'), $n('width_m', 'Lebar bedeng (m)'), $n('height_cm', 'Tinggi bedeng (cm)', true), $n('spacing_cm', 'Jarak antar bedeng (cm)', true)],
             'liming' => [...$area, $s('material', 'Jenis material', ['Dolomit', 'Kapur pertanian', 'Lainnya']), $t('brand', 'Merek', true), ...$quantity, $method(['Tabur', 'Cover', 'Lainnya'])],
-            'base_fertilization', 'follow_up_fertilization' => [...$area, $s('fertilizer', 'Jenis pupuk', $code === 'base_fertilization' ? ['Kandang', 'Kompos', 'Lainnya'] : ['Urea', 'NPK', 'KCl', 'Lainnya']), $t('brand', 'Merek', true), ...$quantity, $method(['Tabur', 'Benam', 'Kocor', 'Lainnya'])],
+            'base_fertilization', 'follow_up_fertilization' => [...$area, $s('fertilizer', 'Jenis pupuk', ['Kandang', 'Kompos', 'Urea', 'NPK', 'KCl', 'Lainnya']), $t('brand', 'Merek', true), ...$quantity, $method(['Tabur', 'Benam', 'Kocor', 'Lainnya'])],
             'irrigation' => [...$area, $s('water_source', 'Sumber air', ['Sumur bor', 'Irigasi', 'Embung', 'Lainnya']), $method(['Irigasi parit', 'Sprinkler', 'Pompa', 'Lainnya']), $t('pump', 'Mesin pompa') + ['when' => ['method', 'Pompa']], $n('duration_hours', 'Durasi (jam)')],
             'weeding' => [...$area, $method(['Manual', 'Cangkul', 'Mesin', 'Lainnya']), $n('depth_cm', 'Kedalaman (cm)', true)],
             'growth_check' => [$s('phase', 'Fase pertumbuhan', ['Vegetatif', 'Pembungaan', 'Pengisian', 'Pemasakan', 'Lainnya']), $n('height_cm', 'Tinggi rata-rata (cm)'), $n('sample_count', 'Jumlah sampel', true, '1', 32767), $s('pest', 'Indikasi hama', ['Aman', 'Ringan', 'Sedang', 'Berat']), $s('disease', 'Indikasi penyakit', ['Aman', 'Ringan', 'Sedang', 'Berat'])],

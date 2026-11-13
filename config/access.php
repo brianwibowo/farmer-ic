@@ -209,6 +209,7 @@ return [
             'planting_cycles.view' => 'any',
             'planting_cycles.create' => 'any',
             'planting_cycles.update' => 'any',
+            'planting_cycles.configure' => 'any',
             'planting_cycles.delete' => 'any',
             'planting_details.view' => 'any',
             'planting_details.create' => 'any',

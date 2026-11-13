@@ -45,7 +45,7 @@ class PetugasTaskController extends Controller
 
             return [...$task, 'can' => [
                 'record' => $open && $reason === null && Gate::allows('recordTask', [FarmActivity::class, $model]),
-                'complete' => $open && $task['linked_activities_count'] > 0 && Gate::allows('complete', $model),
+                'complete' => $open && $model->activity_category !== 'harvest' && $task['linked_activities_count'] > 0 && Gate::allows('complete', $model),
             ]];
         }, $data['tasks']);
 
@@ -64,7 +64,7 @@ class PetugasTaskController extends Controller
         $blockedReason = $this->sequence->blockedReason($request->user(), $task->plantingCycle, TaskActivityFields::activityCode($task) ?? '');
         $open = in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null;
         $detail['can']['record'] = $open && $blockedReason === null && Gate::allows('recordTask', [FarmActivity::class, $task]);
-        $detail['can']['complete'] = $open && $detail['linked_activities_count'] > 0 && Gate::allows('complete', $task);
+        $detail['can']['complete'] = $open && $task->activity_category !== 'harvest' && $detail['linked_activities_count'] > 0 && Gate::allows('complete', $task);
 
         return Inertia::render('petugas/TaskShow', [
             'task' => $detail,
@@ -72,6 +72,9 @@ class PetugasTaskController extends Controller
             'fields' => collect([...TaskActivityFields::forTask($task), ...VoluntaryActivityFields::forCode(TaskActivityFields::activityCode($task) ?? '')])->unique('key')->values()->all(),
             'canRecord' => $detail['can']['record'],
             'blockedReason' => $blockedReason,
+            'completionGuidance' => $task->activity_category === 'harvest'
+                ? 'Laporan panen dapat ditambahkan selama tugas dan subblok masih terbuka. Admin menyelesaikan tugas saat menutup panen.'
+                : 'Menyimpan laporan tidak otomatis menyelesaikan tugas. Tandai selesai setelah seluruh pekerjaan tuntas.',
         ]);
     }
 

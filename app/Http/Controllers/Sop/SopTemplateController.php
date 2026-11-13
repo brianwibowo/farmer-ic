@@ -10,6 +10,7 @@ use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\Team;
 use App\Services\SopTemplateService;
+use App\Support\ActivityInputLimits;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,6 +86,7 @@ class SopTemplateController extends Controller
         $template = $this->sops->detail($sopTemplate);
 
         return Inertia::render('sops/Show', [
+            'numericLimits' => ActivityInputLimits::sop(),
             'template' => $template,
             'can' => [
                 'update' => Gate::allows('update', $template),

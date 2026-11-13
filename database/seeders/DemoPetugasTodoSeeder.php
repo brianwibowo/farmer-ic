@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\ActivityType;
 use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\Farm;
+use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
@@ -13,6 +15,7 @@ use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
 use App\Models\User;
+use App\Services\Activity\PlantingCycleStageService;
 use App\Services\FarmBlockService;
 use App\Services\PlantingCycleTaskService;
 use App\Services\SopTemplateService;
@@ -91,18 +94,6 @@ class DemoPetugasTodoSeeder extends Seeder
                 'planted_area_ha' => '0.2500', 'sop_template_version_id' => $version->id,
                 'estimated_harvest_at' => $planted->addDays(90)->toDateString()])->save();
 
-            foreach (PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $batch->id)
-                ->whereIn('code', ['soil_preparation', 'basic_fertilizer', 'planting', 'maintenance'])->orderBy('position')->get() as $stage) {
-                $gate->authorize('update', $stage);
-                [$start, $end] = match ($stage->code) {
-                    'soil_preparation' => [$planted->subDays(4), $planted->subDays(2)],
-                    'basic_fertilizer' => [$planted->subDay(), $planted->subDay()],
-                    'planting' => [$planted, $planted],
-                    default => [$planted->addDay(), null],
-                };
-                $stage->forceFill(['status' => $end === null ? 'in_progress' : 'completed',
-                    'started_at' => $start->setTime(7, 0), 'completed_at' => $end?->setTime(16, 0)])->save();
-            }
             $gate->authorize('create', [PlantingCycleTask::class, $batch]);
             app(PlantingCycleTaskService::class)->generateForSubblok($batch, $actor);
             $statuses = array_column($definitions, 'status', 'name');
@@ -110,6 +101,23 @@ class DemoPetugasTodoSeeder extends Seeder
                 $gate->authorize('update', $task);
                 $status = $statuses[$task->name];
                 $task->forceFill(['status' => $status, 'completed_at' => $status === 'completed' ? now() : null])->save();
+            }
+            foreach (['planting', 'pest_control'] as $code) {
+                $type = ActivityType::visibleTo($actor, $team)->where('code', $code)->firstOrFail();
+                $gate->authorize('create', [FarmActivity::class, $farm]);
+                $activity = new FarmActivity([
+                    'farm_id' => $farm->id, 'planting_cycle_id' => $batch->id, 'activity_type_id' => $type->id,
+                    'performed_by' => $petugas->id, 'activity_date' => ($code === 'planting' ? $planted : $today)->setTime(8, 0),
+                    'description' => $code === 'planting' ? 'Penanaman contoh tugas SOP.' : 'Pemantauan hama contoh tugas SOP.',
+                    'status' => 'completed',
+                ]);
+                $activity->forceFill(['block_id' => $block->id])->save();
+                if ($code === 'planting') {
+                    $activity->plantingDetail()->create(['seed_name' => 'Benih jagung Bisi 18', 'quantity_kg' => 5, 'area_ha' => '0.2500']);
+                } else {
+                    $activity->pesticideDetail()->create(['pesticide_category' => 'Biologis', 'purpose' => 'Pemantauan hama']);
+                }
+                app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
             }
             $this->command->info('Empat contoh tugas SOP ditambahkan untuk '.$today->toDateString().' (WIB).');
         });

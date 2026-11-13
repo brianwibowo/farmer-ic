@@ -111,6 +111,8 @@ class FarmManagementController extends Controller
             'blocks' => Gate::allows('viewAny', [FarmBlock::class, $farm->team]) ? $this->blocks->overview($farm, $request->user(), $farm->team, includeGrowth: true)->map(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block), 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block])]]) : [],
             'batchPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
                 ->with(['farm.team', 'block'])->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $batch->block !== null && $this->blocks->isBatchEditable($batch->block, $batch)]),
+            'harvestPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
+                ->with('farm.team')->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('configure', $batch)]),
             'blockCapacity' => Gate::allows('create', [FarmBlock::class, $farm]) ? $this->blocks->formCapacity($farm, $request->user(), $farm->team) : null,
             'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [

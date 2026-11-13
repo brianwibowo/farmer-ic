@@ -15,7 +15,7 @@ class SopActivityTypeSeeder extends Seeder
             ['code' => 'loosening', 'name' => 'Penggemburan', 'parent' => 'soil_preparation', 'detail_key' => 'loosening', 'selectable' => true, 'sort_order' => 21],
             ['code' => 'beds', 'name' => 'Pembuatan Bedengan', 'parent' => 'soil_preparation', 'detail_key' => 'bed_preparation', 'selectable' => true, 'sort_order' => 22],
             ['code' => 'liming', 'name' => 'Penebaran Dolomit', 'parent' => 'soil_preparation', 'detail_key' => 'liming', 'selectable' => true, 'sort_order' => 23],
-            ['code' => 'base_fertilization', 'name' => 'Pemupukan Dasar', 'parent' => 'soil_preparation', 'detail_key' => 'fertilization', 'selectable' => true, 'sort_order' => 24],
+            ['code' => 'base_fertilization', 'name' => 'Pemupukan Dasar', 'parent' => null, 'detail_key' => 'fertilization', 'selectable' => true, 'sort_order' => 24],
             ['code' => 'planting', 'name' => 'Penanaman', 'parent' => null, 'detail_key' => 'planting', 'selectable' => true, 'sort_order' => 30, 'description' => 'Pencatatan proses penanaman.'],
             ['code' => 'maintenance', 'name' => 'Perawatan', 'parent' => null, 'detail_key' => null, 'selectable' => false, 'sort_order' => 40],
             ['code' => 'irrigation', 'name' => 'Pengairan', 'parent' => 'maintenance', 'detail_key' => 'irrigation', 'selectable' => true, 'sort_order' => 41, 'description' => 'Pencatatan pengairan lahan.'],

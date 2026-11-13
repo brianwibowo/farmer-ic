@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Activity\PlantingActivityService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class ReconcilePlantingWindows extends Command
 {
@@ -22,6 +23,7 @@ class ReconcilePlantingWindows extends Command
         // Bootstrap persisted execution identities only. All domain retrieval and
         // work below is scoped and authorized as each assigned actor, never global.
         $processed = [];
+        $failed = 0;
         foreach (User::query()->whereNotNull('assigned_farm_id')->cursor() as $actor) {
             $gate = Gate::forUser($actor);
             $parent = $actor->assignedFarm;
@@ -40,12 +42,17 @@ class ReconcilePlantingWindows extends Command
                 }
                 $gate->authorize('recordPlanting', [FarmActivity::class, $cycle]);
                 $gate->authorize('synchronize', [PlantingCycleTask::class, $cycle]);
-                $planting->reconcile($actor, $cycle);
                 $processed[$cycle->id] = true;
+                try {
+                    $planting->reconcile($actor, $cycle);
+                } catch (ValidationException $exception) {
+                    $failed++;
+                    $this->warn('Subblok '.$cycle->id.' belum direkonsiliasi: '.$exception->getMessage());
+                }
             }
         }
-        $this->info(count($processed).' planting windows reconciled.');
+        $this->info((count($processed) - $failed).' planting windows reconciled.');
 
-        return self::SUCCESS;
+        return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 }

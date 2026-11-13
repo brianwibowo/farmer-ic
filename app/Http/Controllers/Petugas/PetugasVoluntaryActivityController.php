@@ -10,9 +10,12 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
+use App\Services\Activity\ActivityFormLimits;
 use App\Services\Activity\ActivitySequenceService;
 use App\Services\Activity\PlantingActivityService;
+use App\Services\Activity\VoluntaryActivityCategoryService;
 use App\Services\Activity\VoluntaryActivityService;
+use App\Support\ActivityInputLimits;
 use App\Support\VoluntaryActivityFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,17 +25,19 @@ use Inertia\Response;
 
 class PetugasVoluntaryActivityController extends Controller
 {
-    public function create(Request $request, ActivityType $type, PlantingActivityService $planting, ActivitySequenceService $sequence): Response
+    public function create(Request $request, ActivityType $type, PlantingActivityService $planting, ActivitySequenceService $sequence, ActivityFormLimits $limits): Response
     {
         $farm = $this->farm($request);
         Gate::authorize('recordVoluntary', [FarmActivity::class, $farm, $type]);
+        abort_if(VoluntaryActivityCategoryService::requiresTask($type->code), 404);
 
         return Inertia::render('petugas/VoluntaryCreate', [
             'farm' => $farm->only(['id', 'name']), 'type' => $type->only(['id', 'code', 'name']),
             'fields' => VoluntaryActivityFields::forCode($type->code),
-            'blocks' => FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('code')->get()->map(fn ($block) => [...$block->only(['id', 'code', 'name']), 'blocked_reason' => null])->all(),
+            'numericLimits' => ActivityInputLimits::common(),
+            'blocks' => FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('code')->get()->map(fn ($block) => [...$block->only(['id', 'code', 'name']), 'area_limit_m2' => $limits->voluntaryBlockArea($block), 'blocked_reason' => null])->all(),
             'cycles' => $planting->cycles($request->user(), $farm)->filter(fn ($cycle) => in_array($cycle->status, ['planned', 'active'], true))
-                ->map(fn ($cycle) => [...$planting->context($request->user(), $cycle), 'blocked_reason' => $sequence->blockedReason($request->user(), $cycle, $type->code)])->values()->all(),
+                ->map(fn ($cycle) => [...$planting->context($request->user(), $cycle), 'area_limit_m2' => $limits->voluntaryCycleArea($cycle), 'blocked_reason' => $sequence->blockedReason($request->user(), $cycle, $type->code)])->values()->all(),
             'matchingTasks' => PlantingCycleTask::visibleTo($request->user(), $farm->team)
                 ->whereHas('plantingCycle', fn ($q) => $q->visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id))
                 ->whereIn('status', ['pending', 'in_progress'])
@@ -46,6 +51,7 @@ class PetugasVoluntaryActivityController extends Controller
     {
         $farm = $this->farm($request);
         Gate::authorize('recordVoluntary', [FarmActivity::class, $farm, $type]);
+        abort_if(VoluntaryActivityCategoryService::requiresTask($type->code), 404);
         $data = $request->validated();
         $cycle = empty($data['cycle_id']) ? null : PlantingCycle::query()->whereKey($data['cycle_id'])->firstOrFail();
         if ($cycle !== null) {

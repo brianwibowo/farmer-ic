@@ -4,6 +4,7 @@ namespace App\Http\Requests\Petugas;
 
 use App\Models\FarmActivity;
 use App\Models\PlantingCycleTask;
+use App\Support\ActivityInputLimits;
 use App\Support\TaskActivityFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -38,7 +39,7 @@ class StoreTaskActivityRequest extends FormRequest
             'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
-            'worker_count' => ['required', 'integer', 'between:1,32767'],
+            'worker_count' => ['required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
             'daily_notes' => ['nullable', 'string', 'max:5000'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'photos' => ['required', 'array', 'min:1', 'max:5'],

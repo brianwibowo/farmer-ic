@@ -5,6 +5,7 @@ import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Save } from '@lucide/vue';
 import { computed, watch } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
+import { formatActivityNumber, maximumError } from '@/lib/activityInputLimits';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -27,6 +28,7 @@ const props = defineProps<{
     open: boolean;
     version: SopVersion;
     task: SopTask | null;
+    numericLimits: { offsetDays: number; toleranceDays: number };
 }>();
 const emit = defineEmits<{ 'update:open': [boolean] }>();
 
@@ -51,6 +53,30 @@ const form = useForm({
 
 const needsSubcategory = computed(
     () => form.activity_category === 'maintenance',
+);
+const offsetError = computed(() =>
+    maximumError(
+        form.offset_days,
+        props.numericLimits.offsetDays,
+        'Offset HST',
+        'hari',
+    ),
+);
+const toleranceError = computed(() =>
+    maximumError(
+        form.tolerance_days,
+        props.numericLimits.toleranceDays,
+        'Toleransi',
+        'hari',
+    ),
+);
+watch(
+    () => form.offset_days,
+    () => form.clearErrors('offset_days'),
+);
+watch(
+    () => form.tolerance_days,
+    () => form.clearErrors('tolerance_days'),
 );
 
 function reset(): void {
@@ -85,6 +111,7 @@ function close(): void {
 }
 
 function submit(): void {
+    if (form.processing || offsetError.value || toleranceError.value) return;
     const options = {
         preserveScroll: true,
         onSuccess: () => close(),
@@ -199,8 +226,8 @@ function submit(): void {
                             id="task-offset"
                             label="Offset HST (hari)"
                             required
-                            :error="form.errors.offset_days"
-                            hint="H+0 adalah tanggal tanam. Offset dihitung dari tanggal tanam dan tidak negatif."
+                            :error="offsetError ?? form.errors.offset_days"
+                            :hint="`H+0 adalah tanggal tanam. Offset tidak negatif dan maksimal ${formatActivityNumber(numericLimits.offsetDays)} hari.`"
                             v-slot="field"
                         >
                             <input
@@ -210,7 +237,7 @@ function submit(): void {
                                 type="number"
                                 required
                                 min="0"
-                                max="3650"
+                                :max="numericLimits.offsetDays"
                                 step="1"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
@@ -220,7 +247,10 @@ function submit(): void {
                             id="task-tolerance"
                             label="Toleransi (hari)"
                             required
-                            :error="form.errors.tolerance_days"
+                            :error="
+                                toleranceError ?? form.errors.tolerance_days
+                            "
+                            :hint="`Maksimal ${formatActivityNumber(numericLimits.toleranceDays)} hari.`"
                             v-slot="field"
                         >
                             <input
@@ -230,7 +260,7 @@ function submit(): void {
                                 type="number"
                                 required
                                 min="0"
-                                max="365"
+                                :max="numericLimits.toleranceDays"
                                 step="1"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
@@ -290,7 +320,9 @@ function submit(): void {
                     <Button
                         type="submit"
                         class="rounded-xl"
-                        :disabled="form.processing"
+                        :disabled="
+                            form.processing || !!offsetError || !!toleranceError
+                        "
                     >
                         <LoaderCircle
                             v-if="form.processing"

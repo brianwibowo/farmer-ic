@@ -52,6 +52,7 @@ export type OwnerCycle = {
         tolerance_days: number;
         is_required: boolean;
         scheduled_date: string | null;
+        effective_scheduled_date: string | null;
         due_date: string | null;
         completed_at: string | null;
     }>;

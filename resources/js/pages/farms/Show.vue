@@ -29,6 +29,7 @@ const props = defineProps<{
     farm: ManagedFarm;
     blocks: ManagedBlock[];
     batchPermissions: Record<string, boolean>;
+    harvestPermissions: Record<string, boolean>;
     blockCapacity: BlockFormCapacity | null;
     deletionBlockers: string[];
     legalityUrl: string | null;
@@ -338,6 +339,7 @@ const coordinates = computed<[number, number] | null>(() =>
             :farm="farm"
             :blocks="blocks"
             :batch-permissions="batchPermissions"
+            :harvest-permissions="harvestPermissions"
             :capacity="blockCapacity"
             :can-create="can.createBlock"
             return-to="farm"

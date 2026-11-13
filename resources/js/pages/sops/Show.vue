@@ -39,6 +39,7 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps<{
     template: SopTemplateDetail;
     can: SopCan;
+    numericLimits: { offsetDays: number; toleranceDays: number };
 }>();
 
 const taskDialogOpen = ref(false);
@@ -534,9 +535,7 @@ function statusClass(status: SopVersion['status']): string {
                             </span>
                         </div>
                         <div
-                            v-if="
-                                version.status === 'draft' && can.manageTasks
-                            "
+                            v-if="version.status === 'draft' && can.manageTasks"
                             class="mt-3 flex flex-wrap justify-end gap-2"
                         >
                             <Button
@@ -570,13 +569,12 @@ function statusClass(status: SopVersion['status']): string {
         v-model:open="taskDialogOpen"
         :version="taskVersion"
         :task="editingTask"
+        :numeric-limits="numericLimits"
     />
 
     <DeleteSopDialog
         :sop="
-            deletingTemplate
-                ? { id: template.id, name: template.name }
-                : null
+            deletingTemplate ? { id: template.id, name: template.name } : null
         "
         @close="deletingTemplate = false"
     />
@@ -585,8 +583,7 @@ function statusClass(status: SopVersion['status']): string {
         :open="!!deletingTaskTarget"
         @update:open="
             (open) => {
-                if (!open && !deletingTaskProcessing)
-                    deletingTaskTarget = null;
+                if (!open && !deletingTaskProcessing) deletingTaskTarget = null;
             }
         "
     >

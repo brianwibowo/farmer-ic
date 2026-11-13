@@ -63,7 +63,7 @@ class DashboardTenantSelectionTest extends TestCase
             ->has('dashboard.tasks', 1)->where('dashboard.tasks.0.farm', 'Kebun A')
             ->has('dashboard.landMap.farms', 1)->where('dashboard.landMap.farms.0.id', $first->id)
             ->where('dashboard.trend.total', 1)->where('dashboard.activity.total', 1)->has('dashboard.activity.farms', 1)
-            ->where('dashboard.cycles.running', 1)->where('dashboard.cycles.stages.0.count', 1)
+            ->where('dashboard.cycles.running', 1)->where('dashboard.cycles.stages.0.count', 0)->where('dashboard.cycles.withoutTimeline', 1)
             ->where('dashboard.risks.total', 1)
             ->where('dashboard.financial.opexThisMonth', 'Rp100')->where('dashboard.financial.projectionCount', 1)
             ->where('dashboard.financial.projectedIncome', 'Rp1.000')->where('dashboard.financial.projectedExpense', 'Rp10'));

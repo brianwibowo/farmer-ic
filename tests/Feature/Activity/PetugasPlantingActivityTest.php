@@ -65,6 +65,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
         $this->cycle = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team, ['reserved_area_ha' => '2', 'planned_planting_at' => now('Asia/Jakarta')->subDays(5)->toDateString()]);
         $commodity = Commodity::create(['name' => 'Jagung']);
+        $this->farm->forceFill(['commodity_id' => $commodity->id])->save();
         $this->variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
         ActivityType::firstOrCreate(['code' => 'planting'], ['name' => 'Penanaman']);
     }
@@ -86,6 +87,15 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame('2026-10-27', $this->cycle->refresh()->planted_at->toDateString());
         $this->assertSame('2026-10-26', $this->cycle->getAttribute('planting_started_on'));
         $this->assertSame('1.2000', $this->cycle->planted_area_ha);
+        $stage = $this->cycle->stages()->where('code', 'planting')->firstOrFail();
+        $this->assertSame('in_progress', $stage->status);
+        $this->assertSame('2026-10-26', $stage->started_at->setTimezone('Asia/Jakarta')->toDateString());
+        $this->assertSame('2026-10-28', $stage->completed_at->setTimezone('Asia/Jakarta')->toDateString());
+        foreach ($this->cycle->stages()->where('position', '<', 4)->get() as $skipped) {
+            $this->assertSame('completed', $skipped->status);
+            $this->assertNull($skipped->started_at);
+            $this->assertNull($skipped->completed_at);
+        }
         $this->assertSame('2026-11-03', $task->refresh()->scheduled_date->toDateString());
         $this->assertDatabaseCount('planting_cycle_tasks', 2);
         $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.1', 'work_date' => '2026-10-29'])->assertSessionHasErrors('work_date');
@@ -165,6 +175,99 @@ class PetugasPlantingActivityTest extends TestCase
         return '/petugas/subbloks/'.$this->cycle->id.'/penanaman';
     }
 
+    public function test_planting_form_lists_only_varieties_for_the_farm_commodity(): void
+    {
+        $otherCorn = CropVariety::create(['commodity_id' => $this->variety->commodity_id, 'name' => 'Bisi 2']);
+        $sorghum = Commodity::create(['name' => 'Sorgum']);
+        $otherVariety = CropVariety::create(['commodity_id' => $sorghum->id, 'name' => 'Bioguma 1']);
+
+        $this->actingAs($this->actor)->get($this->url())->assertInertia(fn (Assert $page) => $page
+            ->where('commodityConfigured', true)->where('varietyMismatch', false)
+            ->has('varieties', 2)->where('varieties.0.id', $this->variety->id)->where('varieties.1.id', $otherCorn->id));
+
+        $this->farm->forceFill(['commodity_id' => $sorghum->id])->save();
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page
+            ->has('varieties', 1)->where('varieties.0.id', $otherVariety->id));
+    }
+
+    public function test_planting_rejects_a_variety_from_another_commodity_without_saving(): void
+    {
+        $this->sop();
+        $sorghum = Commodity::create(['name' => 'Sorgum']);
+        $variety = CropVariety::create(['commodity_id' => $sorghum->id, 'name' => 'Bioguma 1']);
+
+        $this->actingAs($this->actor)->post($this->url(), [...$this->payload(), 'variety_id' => $variety->id])
+            ->assertSessionHasErrors(['variety_id' => 'Varietas harus sesuai dengan komoditas kebun.']);
+
+        $this->assertNull($this->cycle->refresh()->planted_at);
+        $this->assertNull($this->cycle->variety_id);
+        $this->assertDatabaseCount('farm_activities', 0);
+        $this->assertDatabaseCount('planting_details', 0);
+        $this->assertDatabaseCount('planting_cycle_tasks', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_missing_farm_commodity_disables_variety_selection_and_rejects_submission(): void
+    {
+        $this->farm->forceFill(['commodity_id' => null])->save();
+
+        $this->actingAs($this->actor)->get($this->url())->assertInertia(fn (Assert $page) => $page
+            ->where('commodityConfigured', false)->where('varietyMismatch', false)->has('varieties', 0));
+        $this->post($this->url(), $this->payload())
+            ->assertSessionHasErrors(['variety_id' => 'Komoditas kebun belum diatur. Hubungi admin.']);
+
+        $this->assertNull($this->cycle->refresh()->planted_at);
+        $this->assertDatabaseCount('farm_activities', 0);
+    }
+
+    public function test_planting_rechecks_the_farm_commodity_if_it_changes_after_the_form_is_opened(): void
+    {
+        $this->actingAs($this->actor)->get($this->url())->assertInertia(fn (Assert $page) => $page
+            ->has('varieties', 1)->where('varieties.0.id', $this->variety->id));
+        $sorghum = Commodity::create(['name' => 'Sorgum']);
+        $this->farm->forceFill(['commodity_id' => $sorghum->id])->save();
+
+        $this->post($this->url(), $this->payload())
+            ->assertSessionHasErrors(['variety_id' => 'Varietas harus sesuai dengan komoditas kebun.']);
+        $this->assertDatabaseCount('farm_activities', 0);
+    }
+
+    public function test_existing_mismatched_variety_is_reported_and_never_overwritten(): void
+    {
+        $sorghum = Commodity::create(['name' => 'Sorgum']);
+        $variety = CropVariety::create(['commodity_id' => $sorghum->id, 'name' => 'Bioguma 1']);
+        $this->cycle->forceFill(['planted_at' => now('Asia/Jakarta')->subDays(2)->toDateString(),
+            'planted_area_ha' => '0.5', 'variety_id' => $variety->id, 'status' => 'active'])->save();
+
+        $this->actingAs($this->actor)->get($this->url())->assertInertia(fn (Assert $page) => $page
+            ->where('commodityConfigured', true)->where('varietyMismatch', true)
+            ->where('cycle.variety.id', $variety->id)->has('varieties', 1)->where('varieties.0.id', $this->variety->id));
+        $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.1', 'variety_id' => $variety->id])
+            ->assertSessionHasErrors(['variety_id' => 'Varietas harus sesuai dengan komoditas kebun.']);
+        $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.1'])
+            ->assertSessionHasErrors(['variety_id' => 'Penanaman lanjutan harus memakai varietas yang sama pada subblok ini.']);
+
+        $this->assertSame($variety->id, $this->cycle->refresh()->variety_id);
+        $this->assertSame('0.5000', $this->cycle->planted_area_ha);
+        $this->assertDatabaseCount('farm_activities', 0);
+        $this->assertDatabaseCount('planting_cycle_tasks', 0);
+    }
+
+    public function test_unplanted_subblock_can_choose_a_matching_variety_instead_of_a_mismatched_preselection(): void
+    {
+        $sorghum = Commodity::create(['name' => 'Sorgum']);
+        $variety = CropVariety::create(['commodity_id' => $sorghum->id, 'name' => 'Bioguma 1']);
+        $this->cycle->forceFill(['variety_id' => $variety->id])->save();
+
+        $this->actingAs($this->actor)->get($this->url())->assertInertia(fn (Assert $page) => $page
+            ->where('varietyMismatch', false)->where('cycle.variety.id', $variety->id)
+            ->has('varieties', 1)->where('varieties.0.id', $this->variety->id));
+        $this->post($this->url(), $this->payload())->assertSessionHasNoErrors();
+
+        $this->assertSame($this->variety->id, $this->cycle->refresh()->variety_id);
+        $this->assertDatabaseCount('farm_activities', 1);
+    }
+
     public function test_planting_persists_all_records_and_generates_tasks_from_actual_date_atomically(): void
     {
         $this->sop();
@@ -182,7 +285,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame(4, $activity->worker_count);
         $this->assertNull($activity->getAttribute('planting_cycle_task_id'));
         $this->assertDatabaseHas('planting_details', ['activity_id' => $activity->id, 'seed_name' => $data['seed_name']]);
-        $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $cycle->id, 'code' => 'planting', 'status' => 'completed']);
+        $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $cycle->id, 'code' => 'planting', 'status' => 'in_progress']);
         $this->assertSame(2, $cycle->tasks()->count());
         $this->assertSame(now('Asia/Jakarta')->subDays(2)->addDays(7)->toDateString(), $cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail()->scheduled_date->toDateString());
         $photo = ActivityPhoto::firstOrFail();
@@ -217,6 +320,8 @@ class PetugasPlantingActivityTest extends TestCase
             'details' => ['area_ha' => '1', 'water_source' => 'Sumur', 'method' => 'Pompa', 'duration_hours' => '1'],
             'photos' => [UploadedFile::fake()->image('pengairan.jpg')],
         ])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $this->cycle->id, 'code' => 'planting', 'status' => 'completed']);
+        $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $this->cycle->id, 'code' => 'maintenance', 'status' => 'in_progress']);
         $this->assertDatabaseCount('daily_activity_logs', 1);
         $this->assertSame([1, 2], FarmActivity::orderBy('position')->pluck('position')->all());
         $this->assertSame(1, FarmActivity::distinct()->count('daily_activity_log_id'));
