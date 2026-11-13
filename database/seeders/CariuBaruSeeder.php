@@ -107,15 +107,24 @@ class CariuBaruSeeder extends Seeder
     }
 
     /** Never seed an arbitrary database just because APP_ENV was set to local. */
-    private function guardDatabase(): void
+    public static function supportsCurrentDatabase(): bool
     {
+        if (! app()->environment('local', 'testing')) {
+            return false;
+        }
         $connection = DB::connection();
         $name = (string) $connection->getDatabaseName();
         $local = app()->environment('local') && $connection->getConfig('host') === '127.0.0.1' && $name === 'farmer_ic_dev';
         $testing = app()->environment('testing') && config('database.default') === 'pgsql_testing'
             && preg_match('/^farmer_ic_(?:crud|schema)_test_[a-z0-9_]+$/', $name) === 1;
-        if ($connection->getDriverName() !== 'pgsql' || (! $local && ! $testing)
-            || $connection->scalar('SELECT current_database()') !== $name) {
+
+        return $connection->getDriverName() === 'pgsql' && ($local || $testing)
+            && $connection->scalar('SELECT current_database()') === $name;
+    }
+
+    private function guardDatabase(): void
+    {
+        if (! self::supportsCurrentDatabase()) {
             throw new RuntimeException('Impor Cariu hanya diizinkan pada database demo lokal atau database test PostgreSQL terisolasi.');
         }
     }

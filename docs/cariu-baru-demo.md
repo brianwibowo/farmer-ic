@@ -1,8 +1,13 @@
 # Kebun Cariu Baru: impor logbook dan skenario panen
 
-`CariuBaruSeeder` adalah impor **terarah dan opsional**, tidak dipanggil oleh
-`DatabaseSeeder`. Jalankan hanya setelah seed dasar menyediakan tenant
-`farm-ic-demo`, akun Superadmin/Owner, komoditas Jagung dan katalog aktivitas:
+`DatabaseSeeder` otomatis memanggil `CariuBaruSeeder` setelah seed dasar ketika
+targetnya PostgreSQL demo lokal yang diizinkan atau database test terisolasi.
+Jadi `php artisan db:seed` pada database demo tersebut juga membuat kebun dan
+akun Petugas Cariu. Perintah `migrate:fresh --seed` menghapus semua tabel dan
+datanya terlebih dahulu; jangan gunakan untuk memulihkan satu akun.
+
+Untuk menambahkan Cariu ke database demo yang sudah di-seed tanpa mengulang seed
+lain atau menghapus data, jalankan seeder terarah ini:
 
 ```sh
 php artisan --env=local db:seed --class=CariuBaruSeeder
@@ -16,11 +21,11 @@ masih utuh tidak memperbarui atau menghapus apa pun, termasuk perubahan yang
 dibuat pengguna. Seeder tidak mereset database, tidak memindahkan Petugas yang
 sudah ada, dan tidak mengubah `Kebun Cariu` yang lain.
 
-**Penting:** perintah lama `demo:prune-owner-farms --apply` memangkas kebun di
-tenant demo yang berada di luar tujuh ID portofolio; Kebun Cariu Baru termasuk
-dalam target pangkas. Jangan jalankan perintah tersebut bila fixture ini ingin
-dipertahankan. Karena email Petugas ditinggalkan oleh beberapa operasi
-penghapusan, seeder sengaja tidak mengadopsi akun yang sudah ada secara diam-diam.
+**Penting:** `demo:prune-owner-farms --apply` menghapus kebun lain di luar
+daftar demo; periksa pratinjaunya sebelum menjalankan. Versi terbaru melindungi
+ID fixture Kebun Cariu Baru selain tujuh ID portofolio. Karena email Petugas
+dapat ditinggalkan oleh beberapa operasi penghapusan, seeder sengaja tidak
+mengadopsi akun yang sudah ada secara diam-diam.
 
 ## Akses demo
 

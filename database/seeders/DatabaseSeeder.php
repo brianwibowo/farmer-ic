@@ -28,5 +28,13 @@ class DatabaseSeeder extends Seeder
             PresentationNamesSeeder::class,
             FarmLegalitySeeder::class,
         ]);
+
+        // The imported logbook contains simulated future harvests and demo credentials.
+        // It is never added to an arbitrary or production database by the full seed.
+        if (CariuBaruSeeder::supportsCurrentDatabase()) {
+            $this->call(CariuBaruSeeder::class);
+        } elseif (app()->environment('local')) {
+            $this->command?->warn('Seed Cariu Baru dilewati: database bukan farmer_ic_dev lokal yang diizinkan.');
+        }
     }
 }

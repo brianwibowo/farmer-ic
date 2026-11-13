@@ -45,9 +45,12 @@ These credentials are development fixtures only. Do not use them in a shared,
 staging, or production environment, and do not copy their passwords into real
 accounts.
 
-The optional, separately guarded Cariu Baru logbook import and its dedicated
-Petugas account are documented in [cariu-baru-demo.md](cariu-baru-demo.md).
-It includes explicitly simulated future harvests and is not part of the full seed.
+On the guarded local `farmer_ic_dev` database and isolated test databases, the
+full seed also includes the Cariu Baru logbook and a separate Petugas account.
+See [cariu-baru-demo.md](cariu-baru-demo.md) for its credentials and explicitly
+simulated future harvests. This additional fixture is skipped elsewhere,
+including production. `migrate:fresh` deletes all tables and data; do not use it
+to restore a single demo account.
 
 ## Refresh existing presentation names safely
 
@@ -102,6 +105,8 @@ for compatibility; they are not visible product labels.
   SOPs; automatically calls `DemoOwnerPortfolioActivitySeeder` for their details.
 - `DemoFarmBlockSeeder` and `BlockMappingActivityTypeSeeder` run automatically
   through `DemoFarmSeeder` and `DemoActivitySeeder`, respectively.
+- `CariuBaruSeeder`: Cariu Baru and its Petugas, imported on the guarded local
+  demo and test databases only; it can also be run independently.
 
 ## Finance dummy data
 
@@ -196,7 +201,8 @@ SOPs, 48 batch task snapshots, 25 activities with matching detail records,
 The sample coordinates, weather and observations are fictional presentation
 fixtures rather than cadastral measurements or live monitoring.
 
-On the unchanged Cileuksa baseline, Owner shows **6 sites / 44.5 ha**. The pie
+In this historical standalone portfolio example, before Cariu Baru and later
+portfolio additions, Owner showed **6 sites / 44.5 ha**. The pie
 contains three commodities totaling **19 ha** planted across active/harvested
 cycles: Jagung 9.75, Rumput 6.25 and Sorgum 3 ha.
 Planned allocations do not enter planted-area percentages. Table totals and
