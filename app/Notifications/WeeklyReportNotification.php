@@ -108,7 +108,7 @@ final class WeeklyReportNotification extends Notification implements ShouldQueue
     {
         $lines = [];
         foreach ($farms as $farm) {
-            $lines[] = 'Kebun: '.$farm['name'];
+            $lines[] = 'Lahan: '.$farm['name'];
             if ($farm['activity_count'] === 0) {
                 $lines[] = 'Belum ada aktivitas yang dilaporkan Petugas minggu ini.';
             }
@@ -147,7 +147,7 @@ final class WeeklyReportNotification extends Notification implements ShouldQueue
      */
     private function ownerLines(array $farms, bool $includeTotal): array
     {
-        $lines = $includeTotal ? ['Total seluruh kebun', ...$this->harvestLines($farms), ''] : [];
+        $lines = $includeTotal ? ['Total seluruh lahan', ...$this->harvestLines($farms), ''] : [];
         $regions = collect($farms)->groupBy('region_key')->sortBy(fn ($group) => $group->first()['region_name'], SORT_NATURAL | SORT_FLAG_CASE);
         foreach ($regions as $group) {
             $lines[] = 'Kabupaten/kota: '.$group->first()['region_name'];

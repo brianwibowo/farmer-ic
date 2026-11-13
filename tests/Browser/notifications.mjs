@@ -1,14 +1,12 @@
 // Native CDP + installed Edge; no browser package or real provider needed.
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const origin = 'http://127.0.0.1:9088';
+const origin =
+    process.env.NOTIFICATION_BROWSER_ORIGIN ?? 'http://127.0.0.1:9088';
 const output = path.resolve('storage/app/notification-browser');
 await mkdir(output, { recursive: true });
-const fixture = JSON.parse(
-    await readFile(path.join(output, 'fixture-users.json'), 'utf8'),
-);
 const debugPort = 9300 + (process.pid % 1000);
 const edge = spawn(
     'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
@@ -63,12 +61,25 @@ async function until(expression) {
         if (await evaluate(expression)) return;
         await delay(150);
     }
+    await writeFile(
+        path.join(output, 'failure.json'),
+        JSON.stringify(
+            await evaluate(
+                `({url:location.href, text:document.body.innerText, errors:document.querySelector('#app')?.getAttribute('data-page')})`,
+            ),
+            null,
+            2,
+        ),
+    );
     throw new Error(`Browser condition timed out: ${expression}`);
 }
 
 async function click(selector) {
+    await until(
+        `!document.getElementById('startup-screen') && !document.getElementById('app')?.hasAttribute('inert')`,
+    );
     const point = await evaluate(
-        `(() => { const el=document.querySelector(${JSON.stringify(selector)}); el.scrollIntoView({block:'center'}); const r=el.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`,
+        `(() => { const el=document.querySelector(${JSON.stringify(selector)}); el.scrollIntoView({block:'center',behavior:'instant'}); const r=el.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`,
     );
     await command('Input.dispatchMouseEvent', {
         type: 'mousePressed',
@@ -82,21 +93,6 @@ async function click(selector) {
         button: 'left',
         clickCount: 1,
     });
-}
-async function choose(selector, label) {
-    await click(selector);
-    await until(
-        `Array.from(document.querySelectorAll('[role="option"]')).some(el=>el.innerText.trim()===${JSON.stringify(label)})`,
-    );
-    const index = await evaluate(
-        `Array.from(document.querySelectorAll('[role="option"]')).findIndex(el=>el.innerText.trim()===${JSON.stringify(label)})`,
-    );
-    const options = await evaluate(
-        `Array.from(document.querySelectorAll('[role="option"]')).map((el,i)=>{el.dataset.browserOption=i;return el.innerText})`,
-    );
-    if (index < 0) throw new Error('Missing option ' + label + ': ' + options);
-    await click(`[data-browser-option="${index}"]`);
-    await until(`!document.querySelector('[role="listbox"]')`);
 }
 
 try {
@@ -174,40 +170,111 @@ try {
         await until(
             role === 'empty'
                 ? `document.body?.innerText.includes('Semua notifikasi sudah dibaca')`
-                : `Boolean(document.querySelector('details'))`,
+                : `Boolean(document.querySelector('[data-rich-inbox]'))`,
         );
         await until(
             `!document.getElementById('startup-screen') && !document.getElementById('app')?.hasAttribute('inert')`,
         );
         if (
             await evaluate(
-                `Boolean(document.querySelector('form[aria-label="Filter notifikasi"]'))`,
+                `Boolean(document.querySelector('[data-rich-inbox] details, [data-rich-inbox] [role="combobox"], form[aria-label="Filter notifikasi"]'))`,
             )
         )
-            throw new Error('Unread tab unexpectedly shows filters.');
+            throw new Error('Inbox still has filters or dropdown details.');
         if (
             await evaluate(
-                `document.querySelectorAll('div[aria-label="Filter status notifikasi"] button').length !== 2`,
+                `document.querySelectorAll('[aria-label="Filter status notifikasi"] button').length !== 2`,
             )
         )
-            throw new Error('Expected exactly two statuses.');
-        if (
-            role !== 'empty' &&
-            (await evaluate(
-                `document.querySelectorAll('details[data-rich-inbox][open]').length !== 0 || document.querySelectorAll('[aria-label="Daftar notifikasi berdasarkan tanggal"] > section').length < 2`,
-            ))
-        )
-            throw new Error(
-                'Unread history is not grouped or cards are not collapsed.',
+            throw new Error('Missing status tabs');
+        if (role !== 'empty') {
+            await click('[data-rich-inbox] header > button');
+            await until(
+                `document.querySelector('[data-rich-inbox] header > button')?.getAttribute('aria-expanded')==='true'`,
             );
+            await click('[data-rich-inbox] header > button');
+            await until(
+                `document.querySelector('[data-rich-inbox] header > button')?.getAttribute('aria-expanded')==='false'`,
+            );
+            await click('[data-rich-inbox] header > button');
+        }
         if (
-            role === 'admin' &&
+            role === 'owner' &&
             (await evaluate(
-                `document.body.innerText.includes('Tenant Browser Notifikasi')`,
+                `document.querySelector('[data-notification-content="weekly_owner"]').innerText.includes('kabupaten')`,
             ))
         )
-            throw new Error('Admin tenant copy leaked.');
-        for (const width of [320, 390, 430, 1280]) {
+            throw new Error('Owner has county breakdown.');
+        if (
+            role === 'owner' &&
+            !(await evaluate(
+                `(() => {const header=document.querySelector('[data-rich-inbox="weekly_owner"] header > button'); return header.innerText.includes('Laporan Mingguan Panen') && header.innerText.includes('Periode ') && !header.innerText.includes('Panen mingguan') && !header.innerText.includes('Total seluruh lahan') && !header.querySelector('time');})()`,
+            ))
+        )
+            throw new Error('Owner header is not compact');
+        if (role !== 'empty') {
+            const selector =
+                role === 'petugas'
+                    ? '[data-notification-content="task_reminder"] a'
+                    : '[data-notification-content="weekly_admin"] a';
+            if (role === 'admin' || role === 'petugas') {
+                const href = await evaluate(
+                    `document.querySelector('${selector}').getAttribute('href')`,
+                );
+                if (
+                    role === 'petugas' &&
+                    (!href.includes('block_id=') ||
+                        !href.startsWith('/petugas/aktivitas?'))
+                )
+                    throw new Error('Invalid task link');
+                if (role === 'admin' && !href.startsWith('/admin/logbook/'))
+                    throw new Error('Invalid logbook link');
+                await click(selector);
+                await until(
+                    role === 'admin'
+                        ? `location.pathname.startsWith('/admin/logbook/') && Boolean(document.querySelector('h1'))`
+                        : `location.pathname === '/petugas/aktivitas' && Boolean(document.querySelector('[role="combobox"]'))`,
+                );
+                if (
+                    role === 'petugas' &&
+                    !(await evaluate(
+                        `document.body.innerText.includes('Pemupukan susulan') && !document.body.innerText.includes('Pemeriksaan hama dan kondisi tanaman')`,
+                    ))
+                )
+                    throw new Error('Block filter did not apply');
+                await command('Page.navigate', {
+                    url: origin + '/notifications',
+                });
+                await until(
+                    `Boolean(document.querySelector('[data-rich-inbox]'))`,
+                );
+            }
+            if (role === 'admin') {
+                await click(
+                    '[data-rich-inbox="sop_deviation"] header > button',
+                );
+                await click('[data-notification-content="sop_deviation"] a');
+                await until(
+                    `location.pathname === '/admin/tasks' && location.search.includes('view=overdue') && Boolean(document.querySelector('h1'))`,
+                );
+                if (
+                    !(await evaluate(
+                        `document.body.innerText.includes('Pemupukan dasar') && !document.body.innerText.includes('Pemupukan susulan')`,
+                    ))
+                )
+                    throw new Error('Overdue view did not apply');
+                await command('Page.navigate', {
+                    url: origin + '/notifications',
+                });
+                await until(
+                    `Boolean(document.querySelector('[data-rich-inbox]'))`,
+                );
+            }
+        }
+        await until(
+            `!document.getElementById('startup-screen') && !document.getElementById('app')?.hasAttribute('inert')`,
+        );
+        for (const width of [320, 390, 430, 768, 1280]) {
             await command('Emulation.setDeviceMetricsOverride', {
                 width,
                 height: 900,
@@ -218,224 +285,35 @@ try {
                 await evaluate(
                     `document.documentElement.classList.toggle('dark', ${theme === 'dark'})`,
                 );
-                await delay(150);
-                const check = await evaluate(
-                    `({overflow:document.documentElement.scrollWidth > innerWidth, width:innerWidth, theme:getComputedStyle(document.querySelector('h1')).color})`,
-                );
-                if (check.overflow)
-                    throw new Error(`Page overflow: ${role}/${width}/${theme}`);
-                const screenshot = await command('Page.captureScreenshot', {
+                await delay(100);
+                if (
+                    await evaluate(
+                        `document.documentElement.scrollWidth > innerWidth`,
+                    )
+                )
+                    throw new Error('Inbox overflows');
+                const shot = await command('Page.captureScreenshot', {
                     format: 'png',
-                    captureBeyondViewport: false,
                 });
                 await writeFile(
-                    path.join(output, `${role}-${width}-${theme}.png`),
-                    Buffer.from(screenshot.data, 'base64'),
+                    path.join(output, `${role}-links-${width}-${theme}.png`),
+                    Buffer.from(shot.data, 'base64'),
                 );
-                results.push({
-                    role,
-                    width,
-                    theme,
-                    overflow: check.overflow,
-                    foreground: check.theme,
-                });
+                results.push({ role, width, theme });
             }
         }
         if (role === 'empty') continue;
-        await evaluate(`document.querySelector('details summary').click()`);
-        await until(`document.querySelector('details')?.open`);
-        const kind =
-            role === 'owner'
-                ? 'weekly_owner'
-                : role === 'admin'
-                  ? 'weekly_admin'
-                  : 'task_reminder';
-        const scope = `[data-notification-content="${kind}"]`;
-        await until(`Boolean(document.querySelector('${scope}'))`);
-        if (
-            await evaluate(
-                `document.querySelector('details[data-rich-inbox][open]').innerText.includes('Belum ditentukan')`,
-            )
-        )
-            throw new Error('Report date failed to render.');
-        if (role === 'owner') {
-            await choose(scope + ' [role="combobox"]', 'Bandung');
-            await until(
-                `document.querySelector('${scope} details')?.open && document.querySelectorAll('${scope} details').length===1`,
-            );
-            if (
-                !(await evaluate(
-                    `document.querySelector('${scope} details').innerText.includes('Tidak ada panen')`,
-                ))
-            )
-                throw new Error('Missing empty harvest summary.');
-            await choose(
-                scope + ' [role="combobox"]',
-                'Semua kabupaten / kota',
-            );
-        } else if (role === 'admin') {
-            await choose(scope + ' [role="combobox"]', 'Kebun Jonggol');
-            await until(
-                `document.querySelector('${scope} details')?.innerText.includes('Belum ada aktivitas')`,
-            );
-            await choose(scope + ' [role="combobox"]', 'Kebun Cianjur');
-        } else {
-            await choose(scope + ' [role="combobox"]', 'H-0');
-            await until(
-                `document.querySelector('${scope}')?.innerText.includes('Tidak ada tugas')`,
-            );
-            await choose(scope + ' [role="combobox"]', 'H-1');
-            await until(
-                `document.querySelector('${scope}')?.innerText.includes('2 tugas dari 3')`,
-            );
-            await choose(scope + ' [role="combobox"]', 'Semua jadwal');
-        }
-        await evaluate(
-            `document.querySelectorAll('${scope} details').forEach(el=>el.open=true)`,
-        );
-        if (
-            role === 'admin' &&
-            !(await evaluate(
-                `document.querySelector('${scope}').innerText.includes('Kerusakan alat · Sedang') && document.querySelector('${scope}').innerText.includes('Hama · Ringan')`,
-            ))
-        )
-            throw new Error('Incident categories missing.');
-        for (const width of [320, 375, 390, 430, 768, 1280]) {
-            await command('Emulation.setDeviceMetricsOverride', {
-                width,
-                height: 900,
-                deviceScaleFactor: 1,
-                mobile: width < 768,
-            });
-            for (const theme of ['light', 'dark']) {
-                await evaluate(
-                    `document.documentElement.classList.toggle('dark', ${theme === 'dark'}); document.querySelector('details[data-rich-inbox][open]').scrollIntoView({block:'start'})`,
-                );
-                await delay(100);
-                if (
-                    await evaluate(
-                        `document.documentElement.scrollWidth > innerWidth`,
-                    )
-                )
-                    throw new Error(
-                        `Rich card overflow ${role}/${width}/${theme}`,
-                    );
-                if (
-                    await evaluate(
-                        `document.querySelector('details[data-rich-inbox][open]').scrollWidth > document.querySelector('details[data-rich-inbox][open]').clientWidth`,
-                    )
-                )
-                    throw new Error('Content overflows its card.');
-                const shot = await command('Page.captureScreenshot', {
-                    format: 'png',
-                    captureBeyondViewport: false,
-                });
-                await writeFile(
-                    path.join(output, `${role}-rich-${width}-${theme}.png`),
-                    Buffer.from(shot.data, 'base64'),
-                );
-                results.push({ role, tab: 'rich', width, theme });
-            }
-        }
-        if (role === 'admin') {
-            await evaluate(
-                `document.querySelector('[data-rich-inbox="sop_deviation"] > summary').click()`,
-            );
-            await until(
-                `document.querySelector('[data-notification-content="sop_deviation"]')?.innerText.includes('Melewati toleransi')`,
-            );
-        }
-        if (role === 'owner') {
-            await evaluate(
-                `document.querySelector('${scope} details:last-child').scrollIntoView({block:'center'})`,
-            );
-            const shot = await command('Page.captureScreenshot', {
-                format: 'png',
-            });
-            await writeFile(
-                path.join(output, 'owner-county-detail.png'),
-                Buffer.from(shot.data, 'base64'),
-            );
-        }
-        const noticeId = await evaluate(
-            `document.querySelector('[data-notification-id]').dataset.notificationId`,
-        );
-        await evaluate(
-            `Array.from(document.querySelectorAll('details[open] button')).find(button=>button.innerText.includes('Tandai dibaca')).click()`,
+        await click(
+            '[data-notification-id] button[aria-label="Tandai dibaca"]',
         );
         await until(
-            `!document.querySelector('[aria-busy="true"]') && !document.querySelector('[data-notification-id="${noticeId}"]')`,
+            `!document.querySelector('[aria-busy="true"]') && document.body.innerText.includes('Notifikasi ditandai sudah dibaca.')`,
         );
         await evaluate(
-            `Array.from(document.querySelectorAll('button')).find(button=>button.innerText.trim()==='Semua').click()`,
+            `Array.from(document.querySelectorAll('[aria-label="Filter status notifikasi"] button')).find(b=>b.innerText.trim()==='Sudah dibaca').click()`,
         );
         await until(
-            `Boolean(document.getElementById('notification-date-from')) && !document.querySelector('[aria-busy="true"]')`,
-        );
-        if (
-            await evaluate(
-                `document.getElementById('notification-date-from').value !== '${fixture.today}' || Boolean(document.getElementById('notification-tenant')) !== ${role === 'owner'}`,
-            )
-        )
-            throw new Error('Incorrect all-tab filters.');
-        // Date changes apply automatically, without submitting a form.
-        await evaluate(
-            `(() => {const input=document.getElementById('notification-date-from'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'${fixture.date_from}'); input.dispatchEvent(new Event('input',{bubbles:true}));})()`,
-        );
-        await until(
-            `!document.querySelector('[aria-busy="true"]') && Boolean(document.querySelector('nav[aria-label="Halaman notifikasi"]'))`,
-        );
-        await evaluate(
-            `Array.from(document.querySelectorAll('button')).find(button=>button.innerText==='Berikutnya').click()`,
-        );
-        await until(
-            `!document.querySelector('[aria-busy="true"]') && document.querySelector('nav[aria-label="Halaman notifikasi"] [aria-current="page"]')?.innerText.startsWith('2')`,
-        );
-        if (
-            await evaluate(
-                `document.getElementById('notification-date-from').value !== '${fixture.date_from}' || location.search !== ''`,
-            )
-        )
-            throw new Error('Pagination lost active filters or URL persisted.');
-        if (role === 'owner') {
-            await choose('#notification-tenant', 'Tenant Kebun Bandung');
-            await until(
-                `!document.querySelector('[aria-busy="true"]') && document.querySelectorAll('[data-notification-id]').length===2`,
-            );
-        }
-        for (const width of [320, 1280]) {
-            await command('Emulation.setDeviceMetricsOverride', {
-                width,
-                height: 900,
-                deviceScaleFactor: 1,
-                mobile: width < 768,
-            });
-            for (const theme of ['light', 'dark']) {
-                await evaluate(
-                    `document.documentElement.classList.toggle('dark', ${theme === 'dark'})`,
-                );
-                await delay(100);
-                if (
-                    await evaluate(
-                        `document.documentElement.scrollWidth > innerWidth`,
-                    )
-                )
-                    throw new Error(
-                        `All tab overflow ${role}/${width}/${theme}`,
-                    );
-                const shot = await command('Page.captureScreenshot', {
-                    format: 'png',
-                });
-                await writeFile(
-                    path.join(output, `${role}-all-${width}-${theme}.png`),
-                    Buffer.from(shot.data, 'base64'),
-                );
-                results.push({ role, tab: 'all', width, theme });
-            }
-        }
-        await command('Page.reload');
-        await until(
-            `Boolean(document.querySelector('details')) && !document.querySelector('form[aria-label="Filter notifikasi"]') && !document.querySelector('[aria-busy="true"]')`,
+            `Array.from(document.querySelectorAll('[aria-label="Filter status notifikasi"] button')).some(b=>b.innerText.trim()==='Sudah dibaca' && b.getAttribute('aria-pressed')==='true') && Boolean(document.querySelector('[data-rich-inbox]'))`,
         );
     }
     await writeFile(

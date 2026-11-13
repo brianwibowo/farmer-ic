@@ -1239,3 +1239,13 @@ ponsel agar identitas, HST, dan tombol Ubah tetap terbaca.
 Judul Ringkasan kebun, Peta lokasi, Blok kebun, Sub blok & progres, serta judul
 timeline memakai text-primary sebagai aksen hijau yang konsisten di kedua tema.
 Identitas sub blok dan angka utama memakai text-foreground untuk menjaga hierarki.
+
+## Notification inbox
+
+The inbox is a personal chronological card feed with pagination and status tabs for unread and read. Parent card
+headers expand and collapse; detail cards remain links without dropdowns. Owner weekly cards show totals across all
+farms only. Admin weekly farm cards link to the farm logbook; SOP deviation cards
+link to overdue tasks scoped to the farm and block. Petugas reminders show one
+activity summary link per task group, leading to the task index with that block
+selected. Use Inertia links with visible focus and at least 44px targets. Preserve
+read indicators, mark-read feedback, empty/loading states, and role-specific shells.

@@ -49,6 +49,7 @@ export type PetugasTask = {
 };
 
 export type PetugasTaskFilters = {
+    block_id?: string | null;
     status: 'all' | PetugasTaskUrgency;
 };
 

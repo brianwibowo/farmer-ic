@@ -22,9 +22,11 @@ class NotificationContentTest extends TestCase
         $this->assertStringContainsString('Jumlah tugas: 2', $message);
         $this->assertStringContainsString('H-1', $message);
         $this->assertStringContainsString('Blok: Blok Utara', $message);
+        $this->assertStringContainsString('Lahan: Kebun Cianjur', $reminder->toWhatsAppText());
         $this->assertStringContainsString('16 November 2026', $message);
         $this->assertStringNotContainsString('Subblok', $message);
         $deviation = new SopDeviationNotification(['tasks' => [$task]]);
+        $this->assertStringContainsString('Lahan: Kebun Cianjur', $deviation->toWhatsAppText());
         $this->assertSame('Laporan Ketidaksesuaian SOP', $deviation->toInApp()['title']);
         $this->assertStringContainsString('Belum selesai melewati toleransi', $deviation->toWhatsAppText());
         $this->assertStringNotContainsString('H-1', $deviation->toWhatsAppText());

@@ -132,28 +132,37 @@ bertumpuk, bukan pengulangan command manual setelah pekerjaan sebelumnya selesai
 
 ## Inbox dan kompatibilitas
 
-Notifikasi baru menyimpan kolom content JSONB versi 1 sebagai snapshot ringkasan
-pada saat pengiriman. Inbox membuka rincian langsung di dalam kartu:
-Owner melihat total target/panen serta rincian kabupaten, Admin melihat aktivitas,
-hambatan dan semua kategori insiden per kebun/blok. Reminder dan ketidaksesuaian
-memakai kartu terpisah dengan jadwal serta batas toleransi. Dropdown membantu
-menyaring kabupaten, kebun atau H-0/H-1/H-3 di dalam laporan.
+Notifikasi menyimpan content JSONB versi 1 sebagai snapshot saat pengiriman.
+Inbox menyediakan tab Belum dibaca (default) dan Sudah dibaca,
+dengan pagination. Header kartu induk dapat dibuka dan ditutup; kartu detail
+langsung berupa tautan. Tidak ada filter tanggal, tenant, kabupaten, kebun,
+atau jadwal di inbox.
 
-Tabel pada kartu lebar berubah menjadi rincian berlabel pada kartu sempit.
-Membuka kartu tidak otomatis menandainya dibaca. Rincian berasal dari snapshot
-tersimpan, tanpa query tambahan untuk setiap kebun/blok ketika inbox dibuka.
-Pesan WhatsApp tetap menggunakan template teks.
+Owner hanya melihat total target dan panen seluruh kebun. Weekly Admin menampilkan
+ringkasan per kebun/blok, hambatan dan seluruh kategori insiden; kartu kebun
+menuju /admin/logbook/{farm}. Ketidaksesuaian SOP menautkan kebun/blok ke
+/admin/tasks?view=overdue&farm_id={farm}&block_id={block}.
+Reminder Petugas menampilkan kartu per aktivitas (tugas identik pada subblok
+dirangkum ke blok), menuju /petugas/aktivitas?status=all&block_id={block}.
+Filter blok eksplisit mengesampingkan preferensi filter lokal yang tersimpan,
+sehingga tugas mendatang tetap terlihat. Halaman tujuan tetap menerapkan
+Gate dan visibleTo sesuai penerima.
+
+Snapshot tugas baru menyimpan farm_id dan block_id; snapshot versi 1 sebelumnya
+memakai identitas gabungan key yang sama untuk membentuk tautan. Rincian berasal
+dari snapshot tanpa query tambahan per kebun/blok saat inbox dibuka. Tabel target
+Owner berubah menjadi rincian berlabel pada kartu sempit. Tombol di header
+menandai notifikasi dibaca dan memindahkannya ke tab Sudah dibaca.
+Pesan WhatsApp memakai template
+teks dan tetap mempertahankan pengelompokan kabupaten Owner.
 
 Halaman /notifications menampilkan jenis baru weekly_report, task_reminder dan
 sop_deviation. Riwayat daily_report dan harvest_reminder tetap bisa dibaca;
 kelas lamanya dipertahankan untuk deserialisasi antrean lama. Payload jenis lama
 ditolak saat diproses, sehingga tidak menghasilkan pengiriman dengan aturan lama.
 
-Tab Belum dibaca menampilkan seluruh notifikasi pribadi belum dibaca. Tab Semua
-menyediakan rentang tanggal diterima (inklusif dalam WIB), serta filter tenant
-khusus Owner. Semua filter diterapkan setelah scope penerima. Tenant ditampilkan
-pada badge Owner; pesan mingguan tidak mengulang header tenant ketika badge ada.
-Admin/Petugas tidak memperoleh nama tenant dari template reminder/ketidaksesuaian.
+Identitas tenant pada badge hanya ditampilkan kepada Owner. Admin/Petugas
+tidak memperoleh nama tenant dari template reminder/ketidaksesuaian.
 
 ## Menjalankan dan menguji
 

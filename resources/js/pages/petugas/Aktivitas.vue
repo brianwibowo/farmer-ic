@@ -8,7 +8,7 @@ import {
     Search,
     Sprout,
 } from '@lucide/vue';
-import { computed, reactive, unref } from 'vue';
+import { computed, reactive, unref, watch } from 'vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import type {
@@ -44,6 +44,22 @@ if (filter.status === 'overdue' || filter.status === 'today') {
     filter.status = 'active';
 }
 filter.subblok ??= '';
+// Explicit navigation from the inbox overrides remembered local filters.
+watch(
+    () => props.filters.block_id,
+    (block) => {
+        if (!block) return;
+        Object.assign(filter, {
+            q: '',
+            status: 'all',
+            category: '',
+            block,
+            subblok: '',
+        });
+    },
+    { immediate: true },
+);
+
 const options = [
     { key: 'active', label: 'Perlu tindakan' },
     { key: 'upcoming', label: 'Mendatang' },

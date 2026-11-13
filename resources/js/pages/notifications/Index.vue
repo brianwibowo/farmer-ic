@@ -1,27 +1,16 @@
 <script setup lang="ts">
-import AppSelect from '@/components/selects/AppSelect.vue';
+import { computed, ref } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Bell, X } from '@lucide/vue';
 import NotificationCard from '@/components/notifications/NotificationCard.vue';
-import type { InboxNotice as Notice } from '@/types/notifications';
-import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Head, router, usePage, Link } from '@inertiajs/vue3';
-import { Bell, RotateCcw, SlidersHorizontal, X } from '@lucide/vue';
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-import PetugasLayout from '@/layouts/PetugasLayout.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-
+import PetugasLayout from '@/layouts/PetugasLayout.vue';
+import type { InboxNotice } from '@/types/notifications';
 defineOptions({ layout: [], inheritAttrs: false });
-type Status = 'unread' | 'all';
-type Filters = {
-    status: Status;
-    date_from: string;
-    date_to: string;
-    team_id: number | null;
-};
-
 const props = defineProps<{
     notifications: {
-        data: Notice[];
+        data: InboxNotice[];
         current_page: number;
         last_page: number;
         total: number;
@@ -29,200 +18,71 @@ const props = defineProps<{
     unreadCount: number;
     hasPhoneNumber: boolean;
     fonnteEnabled: boolean;
-    filters: Filters;
-    defaultFilters: Filters;
-    tenantOptions: { id: number; name: string }[];
     canFilterTenant: boolean;
+    status: 'all' | 'unread' | 'read';
 }>();
 const page = usePage();
 const usesAdminShell = computed(
     () => page.props.navigation?.admin || page.props.navigation?.owner,
 );
-const layout = computed(() => usesAdminShell.value ? AppLayout : PetugasLayout);
-const filters = reactive<Filters>({ ...props.filters });
+const layout = computed(() =>
+    usesAdminShell.value ? AppLayout : PetugasLayout,
+);
 const loading = ref(false);
 const pending = ref<string | null>(null);
 const feedback = ref('');
 const error = ref('');
 const showPhoneWarning = ref(true);
-const fieldErrors = ref<Record<string, string>>({});
-let filterTimer: ReturnType<typeof setTimeout> | undefined;
-const statuses = [
-    { value: 'unread' as const, label: 'Belum dibaca' },
-    { value: 'all' as const, label: 'Semua' },
-];
-const groups = computed(() => {
-    const result = new Map<
-        string,
-        { key: string; label: string; notices: Notice[] }
-    >();
-    for (const notice of props.notifications.data) {
-        const key = notice.date_key;
-        if (!result.has(key)) {
-            result.set(key, {
-                key,
-                label:
-                    key === props.defaultFilters.date_from
-                        ? 'Hari ini'
-                        : notice.date_label,
-                notices: [],
-            });
-        }
-        result.get(key)!.notices.push(notice);
-    }
-    return [...result.values()];
-});
-const fieldClass = computed(() =>
-    usesAdminShell.value
-        ? 'admin-field w-full min-w-0 [color-scheme:light] dark:[color-scheme:dark]'
-        : 'w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring [color-scheme:light] dark:[color-scheme:dark]',
-);
-const appliedLabel = computed(() => {
-    if (props.filters.status === 'unread') return 'Semua tanggal';
-    const format = (value: string) =>
-        new Intl.DateTimeFormat('id-ID', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            timeZone: 'Asia/Jakarta',
-        }).format(new Date(`${value}T00:00:00+07:00`));
-    const range =
-        props.filters.date_from === props.filters.date_to
-            ? format(props.filters.date_from)
-            : `${format(props.filters.date_from)} – ${format(props.filters.date_to)}`;
-    const status =
-        statuses.find((item) => item.value === props.filters.status)?.label ??
-        '';
-    return `${status} · ${range}`;
-});
-
-watch(
-    () => props.filters,
-    (value) => Object.assign(filters, value),
-);
-
-watch(
-    () => [filters.date_from, filters.date_to, filters.team_id] as const,
-    () => {
-        if (filterTimer) clearTimeout(filterTimer);
-        if (filters.status !== 'all' || loading.value || pending.value) return;
-        error.value = '';
-        feedback.value = '';
-        filterTimer = setTimeout(() => {
-            if (!validFilters()) return;
-            if (
-                filters.date_from === props.filters.date_from &&
-                filters.date_to === props.filters.date_to &&
-                filters.team_id === props.filters.team_id
-            )
-                return;
-            load({ ...filters });
-        }, 300);
-    },
-);
-
-function saveErrors(errors: Record<string, unknown>): void {
-    fieldErrors.value = Object.fromEntries(
-        Object.entries(errors).map(([key, value]) => [key, String(value)]),
-    );
-    error.value =
-        'Filter atau perubahan belum dapat diproses. Periksa isian dan coba lagi.';
-}
-function validFilters(): boolean {
-    fieldErrors.value = {};
-    if (!filters.date_from) fieldErrors.value.date_from = 'Pilih tanggal awal.';
-    if (!filters.date_to) fieldErrors.value.date_to = 'Pilih tanggal akhir.';
-    if (
-        filters.date_from &&
-        filters.date_to &&
-        filters.date_from > filters.date_to
-    ) {
-        fieldErrors.value.date_to =
-            'Tanggal akhir tidak boleh sebelum tanggal awal.';
-    }
-    return Object.keys(fieldErrors.value).length === 0;
-}
-function load(values: Filters, pageNumber = 1, reset = false): void {
-    if (loading.value || pending.value) return;
+function load(pageNumber: number, status = props.status): void {
     loading.value = true;
     error.value = '';
-    fieldErrors.value = {};
-    router.get('/notifications', reset ? {} : { ...values, page: pageNumber }, {
-        preserveState: true,
-        preserveScroll: true,
-        preserveUrl: !reset,
-        replace: true,
-        onError: saveErrors,
-        onFinish: () => {
-            loading.value = false;
+    router.get(
+        '/notifications',
+        { page: pageNumber, status },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: () => {
+                error.value = 'Notifikasi belum dapat dimuat. Coba lagi.';
+            },
+            onFinish: () => {
+                loading.value = false;
+            },
         },
-    });
+    );
 }
-function selectStatus(status: Status): void {
-    if (status === props.filters.status || loading.value || pending.value)
-        return;
-    if (filterTimer) clearTimeout(filterTimer);
-    error.value = '';
-    feedback.value = '';
-    Object.assign(filters, { ...props.defaultFilters, status });
-    load({ ...filters });
-}
-function reset(): void {
-    if (filterTimer) clearTimeout(filterTimer);
-    feedback.value = '';
-    Object.assign(filters, { ...props.defaultFilters, status: filters.status });
-    load({ ...filters });
-}
-function read(notice: Notice): void {
+function read(notice: InboxNotice): void {
     pending.value = notice.id;
     error.value = '';
     router.patch(
-        `/notifications/${notice.id}/read`,
-        { ...props.filters, page: props.notifications.current_page },
+        '/notifications/' + notice.id + '/read',
+        { page: props.notifications.current_page, status: props.status },
         {
             preserveScroll: true,
-            preserveUrl: true,
             onSuccess: () => {
                 feedback.value = 'Notifikasi ditandai sudah dibaca.';
             },
-            onError: saveErrors,
+            onError: () => {
+                error.value = 'Perubahan belum dapat disimpan. Coba lagi.';
+            },
             onFinish: () => {
                 pending.value = null;
                 if (
                     props.notifications.current_page >
                     props.notifications.last_page
                 ) {
-                    load({ ...props.filters }, props.notifications.last_page);
+                    load(props.notifications.last_page);
                 }
             },
         },
     );
 }
-
-onMounted(() => {
-    // New entries and full reloads start with all unread notifications.
-    if (
-        props.filters.status !== 'unread' ||
-        props.filters.date_from !== props.defaultFilters.date_from ||
-        props.filters.date_to !== props.defaultFilters.date_to ||
-        props.filters.team_id !== null ||
-        props.notifications.current_page !== 1 ||
-        window.location.search
-    ) {
-        Object.assign(filters, props.defaultFilters);
-        load({ ...props.defaultFilters }, 1, true);
-    }
-});
-onUnmounted(() => {
-    if (filterTimer) clearTimeout(filterTimer);
-});
 </script>
-
 <template>
     <Head title="Notifikasi" />
     <component :is="layout">
         <div
-            class="space-y-[18px] text-foreground"
+            class="space-y-4 text-foreground"
             :class="
                 usesAdminShell
                     ? 'admin-dashboard-theme admin-page-content'
@@ -230,201 +90,77 @@ onUnmounted(() => {
             "
             :aria-busy="loading || pending !== null"
         >
-            <header
-                v-if="!usesAdminShell"
-                class="flex flex-wrap items-center justify-between gap-3"
-            >
-                <div>
-                    <h1 class="text-2xl font-semibold">Notifikasi</h1>
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        {{ props.unreadCount }} belum dibaca (total)
-                    </p>
-                </div>
+            <header v-if="!usesAdminShell">
+                <h1 class="text-2xl font-semibold">Notifikasi</h1>
             </header>
-
+            <p class="text-xs text-muted-foreground">
+                {{ unreadCount }} belum dibaca ·
+                {{ notifications.total }} notifikasi
+            </p>
             <div
                 class="grid grid-cols-2 border-b border-border"
                 role="group"
                 aria-label="Filter status notifikasi"
-                :aria-busy="loading"
             >
                 <button
-                    v-for="item in statuses"
+                    v-for="item in [
+                        { value: 'unread', label: 'Belum dibaca' },
+                        { value: 'read', label: 'Sudah dibaca' },
+                    ]"
                     :key="item.value"
                     type="button"
-                    :aria-pressed="props.filters.status === item.value"
+                    :aria-pressed="status === item.value"
                     :disabled="loading || pending !== null"
-                    class="min-h-11 border-b-2 px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+                    class="min-h-11 border-b-2 px-2 py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
                     :class="
-                        props.filters.status === item.value
+                        status === item.value
                             ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                            : 'border-transparent text-muted-foreground'
                     "
-                    @click="selectStatus(item.value)"
+                    @click="load(1, item.value as 'all' | 'unread' | 'read')"
                 >
                     {{ item.label }}
-                    <span
-                        v-if="item.value === 'unread' && props.unreadCount"
-                        class="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-xs"
-                        >{{ props.unreadCount }}</span
-                    >
                 </button>
             </div>
-
-            <form
-                v-if="props.filters.status === 'all'"
-                class="@container rounded-xl border border-border bg-card p-4 md:p-5"
-                aria-label="Filter notifikasi"
-                @submit.prevent
-            >
-                <div
-                    class="align-center mb-4 flex flex-row justify-between gap-3"
-                >
-                    <h2 class="flex items-center gap-2 font-semibold">
-                        <SlidersHorizontal
-                            class="size-4 text-primary"
-                            aria-hidden="true"
-                        />Filter notifikasi
-                    </h2>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        :disabled="loading || pending !== null"
-                        @click="reset"
-                        ><RotateCcw
-                            class="size-4"
-                            aria-hidden="true"
-                        />Reset</Button
-                    >
-                </div>
-                <fieldset
-                    :disabled="loading || pending !== null"
-                    class="space-y-4"
-                >
-                    <div
-                        class="grid min-w-0 gap-4 @md:grid-cols-2"
-                        :class="{ '@xl:grid-cols-3': props.canFilterTenant }"
-                    >
-                        <div class="min-w-0 space-y-1.5">
-                            <label
-                                for="notification-date-from"
-                                class="block text-sm font-medium"
-                                >Dari tanggal</label
-                            >
-                            <input
-                                id="notification-date-from"
-                                v-model="filters.date_from"
-                                type="date"
-                                required
-                                :class="fieldClass"
-                                :aria-invalid="Boolean(fieldErrors.date_from)"
-                                aria-describedby="notification-date-from-error"
-                            />
-                            <p
-                                v-if="fieldErrors.date_from"
-                                id="notification-date-from-error"
-                                class="text-xs text-error"
-                            >
-                                {{ fieldErrors.date_from }}
-                            </p>
-                        </div>
-                        <div class="min-w-0 space-y-1.5">
-                            <label
-                                for="notification-date-to"
-                                class="block text-sm font-medium"
-                                >Sampai tanggal</label
-                            >
-                            <input
-                                id="notification-date-to"
-                                v-model="filters.date_to"
-                                type="date"
-                                required
-                                :min="filters.date_from || undefined"
-                                :class="fieldClass"
-                                :aria-invalid="Boolean(fieldErrors.date_to)"
-                                aria-describedby="notification-date-to-error"
-                            />
-                            <p
-                                v-if="fieldErrors.date_to"
-                                id="notification-date-to-error"
-                                class="text-xs text-error"
-                            >
-                                {{ fieldErrors.date_to }}
-                            </p>
-                        </div>
-                        <div
-                            v-if="props.canFilterTenant"
-                            class="min-w-0 space-y-1.5 md:col-span-2 xl:col-span-1"
-                        >
-                            <label
-                                for="notification-tenant"
-                                class="block text-sm font-medium"
-                                >Tenant</label
-                            >
-                            <AppSelect
-                                id="notification-tenant"
-                                v-model="filters.team_id"
-                                :class="fieldClass"
-                            >
-                                <AppSelectOption :value="null"
-                                    >Semua tenant</AppSelectOption
-                                >
-                                <AppSelectOption
-                                    v-for="tenant in props.tenantOptions"
-                                    :key="tenant.id"
-                                    :value="tenant.id"
-                                >
-                                    {{ tenant.name }}
-                                </AppSelectOption>
-                            </AppSelect>
-                        </div>
-                    </div>
-                </fieldset>
-            </form>
-
             <div
-                v-if="
-                    showPhoneWarning &&
-                    props.fonnteEnabled &&
-                    !props.hasPhoneNumber
-                "
-                class="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted p-4 text-sm leading-6"
+                v-if="showPhoneWarning && fonnteEnabled && !hasPhoneNumber"
+                class="flex items-center gap-3 rounded-xl border border-border bg-muted p-3 text-sm"
                 role="status"
             >
-                <p>
-                    Agar notifikasi lewat WhatsApp dapat terkirim, mohon untuk
+                <p class="flex-1">
+                    Lengkapi
                     <Link
                         href="/settings/profile"
-                        class="font-medium text-primary underline underline-offset-2"
-                        >isi nomor di profil</Link
-                    >.
+                        class="text-primary underline"
+                        >nomor WhatsApp di profil</Link
+                    >
+                    untuk menerima pesan WhatsApp.
                 </p>
                 <button
                     type="button"
-                    class="inline-flex shrink-0 items-center justify-center self-stretch rounded-lg text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                    class="flex size-11 shrink-0 items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-ring"
                     aria-label="Tutup pemberitahuan nomor WhatsApp"
                     @click="showPhoneWarning = false"
                 >
-                    <X class="size-6" aria-hidden="true" />
+                    <X class="size-5" />
                 </button>
             </div>
+            <p
+                v-if="loading"
+                role="status"
+                class="text-sm text-muted-foreground"
+            >
+                Memuat notifikasi…
+            </p>
             <p v-if="feedback" role="status" class="text-sm text-success">
                 {{ feedback }}
             </p>
             <p v-if="error" role="alert" class="text-sm text-error">
                 {{ error }}
             </p>
-            <div
-                class="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
-                aria-live="polite"
-            >
-                <p v-if="props.filters.status === 'all'">{{ appliedLabel }}</p>
-                <p>Menampilkan {{ props.notifications.total }} notifikasi</p>
-            </div>
             <section
-                v-if="!props.notifications.data.length"
-                class="rounded-xl border border-dashed border-border bg-card px-5 py-10 text-center"
+                v-if="!notifications.data.length"
+                class="rounded-xl border border-dashed border-border bg-card p-8 text-center"
             >
                 <Bell
                     class="mx-auto mb-3 size-8 text-muted-foreground"
@@ -432,108 +168,61 @@ onUnmounted(() => {
                 />
                 <h2 class="font-semibold">
                     {{
-                        props.filters.status === 'unread'
+                        status === 'unread'
                             ? 'Semua notifikasi sudah dibaca'
-                            : 'Tidak ada notifikasi sesuai filter'
+                            : status === 'read'
+                              ? 'Belum ada notifikasi yang dibaca'
+                              : 'Belum ada notifikasi'
                     }}
                 </h2>
-                <p
-                    class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground"
-                >
-                    {{
-                        props.filters.status === 'unread'
-                            ? 'Notifikasi baru akan muncul di sini. Buka tab Semua untuk melihat riwayat notifikasi.'
-                            : 'Coba rentang tanggal atau tenant lain untuk melihat notifikasi.'
-                    }}
+                <p class="mt-2 text-sm text-muted-foreground">
+                    Notifikasi dari sistem akan muncul di sini.
                 </p>
-                <Button
-                    v-if="
-                        props.filters.status === 'all' &&
-                        (props.filters.date_from !==
-                            props.defaultFilters.date_from ||
-                            props.filters.date_to !==
-                                props.defaultFilters.date_to)
-                    "
-                    type="button"
-                    variant="outline"
-                    class="mt-4"
-                    :disabled="loading"
-                    @click="reset"
-                    >Kembali ke hari ini</Button
-                >
             </section>
-            <div
-                v-else
-                class="space-y-8 md:space-y-10"
-                aria-label="Daftar notifikasi berdasarkan tanggal"
-                :class="{ 'opacity-60': loading }"
-            >
-                <section
-                    v-for="group in groups"
-                    :key="group.key"
-                    :aria-labelledby="`date-${group.key}`"
+            <div v-else class="space-y-3" aria-label="Daftar notifikasi">
+                <div
+                    v-for="notice in notifications.data"
+                    :key="notice.id"
+                    :data-notification-id="notice.id"
                 >
-                    <h2
-                        :id="`date-${group.key}`"
-                        class="mb-3 text-sm font-semibold text-muted-foreground"
-                    >
-                        <time :datetime="group.key">{{ group.label }}</time>
-                    </h2>
-                    <ol class="space-y-2">
-                        <li
-                            v-for="notice in group.notices"
-                            :key="notice.id"
-                            :data-notification-id="notice.id"
-                        >
-                            <NotificationCard
-                                :notice="notice"
-                                :loading="loading"
-                                :pending="pending"
-                                :show-tenant="props.canFilterTenant"
-                                @read="read"
-                            />
-                        </li>
-                    </ol>
-                </section>
+                    <NotificationCard
+                        :notice="notice"
+                        :loading="loading"
+                        :pending="pending"
+                        :show-tenant="canFilterTenant"
+                        @read="read"
+                    />
+                </div>
             </div>
             <nav
-                v-if="props.notifications.last_page > 1"
-                class="flex flex-wrap items-center justify-between gap-3 text-sm"
+                v-if="notifications.last_page > 1"
+                class="flex items-center justify-between gap-3"
                 aria-label="Halaman notifikasi"
             >
                 <Button
                     variant="outline"
+                    class="min-h-11"
                     :disabled="
-                        props.notifications.current_page === 1 ||
                         loading ||
-                        pending !== null
+                        pending !== null ||
+                        notifications.current_page === 1
                     "
-                    @click="
-                        load(
-                            { ...props.filters },
-                            props.notifications.current_page - 1,
-                        )
-                    "
+                    @click="load(notifications.current_page - 1)"
                     >Sebelumnya</Button
                 >
-                <span aria-current="page"
-                    >{{ props.notifications.current_page }} /
-                    {{ props.notifications.last_page }}</span
+                <span class="text-xs text-muted-foreground" aria-current="page"
+                    >{{ notifications.current_page }} /
+                    {{ notifications.last_page }}</span
                 >
                 <Button
                     variant="outline"
+                    class="min-h-11"
                     :disabled="
-                        props.notifications.current_page >=
-                            props.notifications.last_page ||
                         loading ||
-                        pending !== null
+                        pending !== null ||
+                        notifications.current_page === notifications.last_page
                     "
-                    @click="
-                        load(
-                            { ...props.filters },
-                            props.notifications.current_page + 1,
-                        )
-                    "
+                    @click="load(notifications.current_page + 1)"
                     >Berikutnya</Button
                 >
             </nav>

@@ -7,7 +7,6 @@ use App\Models\Team;
 use App\Models\User;
 use App\Policies\NotificationPolicy;
 use App\Support\RolePermissions;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -20,16 +19,10 @@ final class NotificationInboxService
     public function paginate(User $actor, array $filters): LengthAwarePaginator
     {
         $query = $this->query($actor);
-        if ($filters['status'] === 'unread') {
+        if (($filters['status'] ?? 'unread') === 'unread') {
             $query->where('is_read', false);
-        } else {
-            $from = CarbonImmutable::parse($filters['date_from'], config('app.timezone'))->startOfDay();
-            $until = CarbonImmutable::parse($filters['date_to'], config('app.timezone'))->addDay()->startOfDay();
-            $query->where('created_at', '>=', $from->toIso8601String())->where('created_at', '<', $until->toIso8601String());
-            if (! empty($filters['team_id'])) {
-                $query->where(fn ($tenants) => $tenants->where('team_id', $filters['team_id'])
-                    ->orWhereJsonContains('team_ids', (int) $filters['team_id']));
-            }
+        } elseif (($filters['status'] ?? null) === 'read') {
+            $query->where('is_read', true);
         }
 
         return $query->orderByDesc('created_at')->orderByDesc('id')->paginate(15)->appends($filters);

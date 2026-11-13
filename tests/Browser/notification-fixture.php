@@ -26,30 +26,37 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
     $team->members()->attach($user, ['role' => 'member']);
     $ids[$role] = $user->id;
     $user->forceFill(['current_team_id' => $team->id])->save();
-    $title = $role === 'petugas' ? 'Panen Reminder H-7' : 'Report Harian Kebun dari Petugas';
-    $message = $role === 'petugas'
-            ? "Panen Reminder H-7\nKebun: Kebun Browser Cianjur\nTanggal panen: 06-11-2026\nPeriksa kesiapan panen sesuai jadwal kebun."
-            : "Report Harian Kebun dari Petugas\nTenant: Tenant Browser Notifikasi\nJumlah kebun: 1\n\n1. Kebun: Kebun Browser Cianjur\nPetugas belum mengisi aktivitas hari ini";
-    $notification = new App\Models\Notification;
-    $notification->forceFill([
-        'user_id' => $user->id, 'team_id' => $team->id, 'type' => $role === 'petugas' ? 'harvest_reminder' : 'daily_report',
-        'title' => $title, 'message' => $message, 'created_at' => now(),
-    ])->save();
-    for ($day = 1; $day <= 17; $day++) {
-        $history = new App\Models\Notification;
-        $history->forceFill([
-            'user_id' => $user->id, 'team_id' => $team->id, 'type' => $role === 'petugas' ? 'harvest_reminder' : 'daily_report',
-            'title' => $title, 'message' => $message, 'is_read' => $day === 1,
-            'created_at' => now()->subDays($day)->setTime(20, 0),
-        ])->save();
+    if ($role === 'admin') {
+        $demoFarm = new App\Models\Farm(['name' => 'Kebun Cianjur', 'land_tenure' => 'owned', 'total_area_ha' => 10]);
+        $demoFarm->forceFill(['team_id' => $team->id, 'created_by' => $user->id])->save();
+        $demoBlocks = [];
+        $commodity = App\Models\Commodity::create(['name' => 'Jagung']);
+        $variety = App\Models\CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
+        foreach (['A', 'B'] as $code) {
+            $block = app(App\Services\FarmBlockService::class)->create($demoFarm, $user, $team, ['code' => $code, 'name' => 'Blok '.$code, 'area_ha' => 5]);
+            $cycle = app(App\Services\FarmBlockService::class)->createBatch($block, $user, $team, ['reserved_area_ha' => 2, 'planned_planting_at' => today()->subDays(20)->toDateString()]);
+            $cycle->forceFill(['variety_id' => $variety->id, 'planted_at' => today()->subDays(20), 'planted_area_ha' => 2, 'status' => 'active'])->save();
+            App\Models\PlantingCycleTask::create([
+                'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
+                'name' => $code === 'A' ? 'Pemupukan susulan' : 'Pemeriksaan hama dan kondisi tanaman',
+                'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
+                'offset_days' => 1, 'tolerance_days' => 2, 'scheduled_date' => today()->addDays(1), 'due_date' => today()->addDays(3), 'status' => 'pending', 'is_required' => true,
+            ]);
+            if ($code === 'A') {
+                App\Models\PlantingCycleTask::create([
+                    'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
+                    'name' => 'Pemupukan dasar', 'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
+                    'offset_days' => 0, 'tolerance_days' => 2, 'scheduled_date' => today()->subDays(4), 'due_date' => today()->subDays(2), 'status' => 'pending', 'is_required' => true,
+                ]);
+            }
+            $demoBlocks[$code] = $block->id;
+        }
+    }
+    if ($role === 'petugas') {
+        $user->forceFill(['assigned_farm_id' => $demoFarm->id])->save();
     }
     if ($role === 'owner') {
         $secondTeam->members()->attach($user, ['role' => 'member']);
-        $extra = new App\Models\Notification;
-        $extra->forceFill([
-            'user_id' => $user->id, 'team_id' => $secondTeam->id, 'type' => 'daily_report',
-            'title' => $title, 'message' => "Tenant: Tenant Kebun Bandung\nJumlah kebun: 1\n\n1. Kebun: Kebun Bandung\nPetugas belum mengisi aktivitas hari ini", 'created_at' => now(),
-        ])->save();
     }
     $period = ['period_start' => now()->startOfWeek()->toIso8601String(), 'period_end' => now()->toIso8601String()];
     if ($role === 'owner') {
@@ -68,20 +75,19 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
         $template = new App\Notifications\WeeklyReportNotification([...$period, 'audience' => 'owner', 'farms' => $farms]);
     } elseif ($role === 'admin') {
         $template = new App\Notifications\WeeklyReportNotification([...$period, 'audience' => 'admin', 'farms' => [
-            ['id' => 'cianjur', 'name' => 'Kebun Cianjur', 'activity_count' => 9, 'blocks' => [
+            ['id' => $demoFarm->id, 'name' => 'Kebun Cianjur', 'activity_count' => 9, 'blocks' => [
                 ['id' => 'a', 'name' => 'Blok A', 'activity_counts' => ['Penyiraman' => 3, 'Pemupukan' => 1, 'Laporan insiden' => 2],
                     'obstacle_count' => 1, 'obstacle_summary' => 'Pengairan terkendala pompa; perbaikan telah dijadwalkan.',
                     'incidents' => ['Hama · Ringan' => 1, 'Kerusakan alat · Sedang' => 1]],
                 ['id' => 'b', 'name' => 'Blok B', 'activity_counts' => ['Penyiangan' => 3],
                     'obstacle_count' => 0, 'obstacle_summary' => null, 'incidents' => []],
             ]],
-            ['id' => 'jonggol', 'name' => 'Kebun Jonggol', 'activity_count' => 0, 'blocks' => []],
         ]]);
     } else {
         $tasks = [];
         foreach ([1, 1, 3] as $index => $days) {
-            $tasks[] = ['farm_id' => 'cianjur', 'farm_name' => 'Kebun Cianjur',
-                'block_id' => $days === 1 ? 'a' : 'b', 'block_name' => $days === 1 ? 'Blok A' : 'Blok B',
+            $tasks[] = ['farm_id' => $demoFarm->id, 'farm_name' => 'Kebun Cianjur',
+                'block_id' => $demoBlocks[$days === 1 ? 'A' : 'B'], 'block_name' => $days === 1 ? 'Blok A' : 'Blok B',
                 'name' => $days === 1 ? 'Pemupukan susulan' : 'Pemeriksaan hama dan kondisi tanaman',
                 'scheduled_date' => now()->addDays($days)->toDateString(),
                 'due_date' => now()->addDays($days + 2)->toDateString(), 'days_before' => $days];
@@ -98,7 +104,7 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
     ])->save();
     if ($role === 'admin') {
         $deviation = (new App\Notifications\SopDeviationNotification(['tasks' => [[
-            'farm_id' => 'cianjur', 'farm_name' => 'Kebun Cianjur', 'block_id' => 'a', 'block_name' => 'Blok A',
+            'farm_id' => $demoFarm->id, 'farm_name' => 'Kebun Cianjur', 'block_id' => $demoBlocks['A'], 'block_name' => 'Blok A',
             'name' => 'Pemupukan dasar', 'scheduled_date' => now()->subDays(4)->toDateString(),
             'due_date' => now()->subDays(2)->toDateString(), 'days_before' => -4,
         ]]]))->toInApp();

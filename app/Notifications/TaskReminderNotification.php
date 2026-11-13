@@ -55,7 +55,7 @@ class TaskReminderNotification extends Notification implements ShouldQueue
         $groups = [];
         foreach ($this->groupedTasks() as $task) {
             $key = $task['farm_id'].':'.($task['block_id'] ?? 'unassigned');
-            $groups[$key] ??= ['key' => $key, 'farm_name' => $task['farm_name'], 'block_name' => $task['block_name'], 'items' => []];
+            $groups[$key] ??= ['key' => $key, 'farm_id' => $task['farm_id'], 'block_id' => $task['block_id'], 'farm_name' => $task['farm_name'], 'block_name' => $task['block_name'], 'items' => []];
             $groups[$key]['items'][] = [
                 'name' => $task['name'], 'count' => $task['count'], 'scheduled_date' => $task['scheduled_date'],
                 'due_date' => $task['due_date'], 'days_before' => $task['days_before'],
@@ -79,7 +79,7 @@ class TaskReminderNotification extends Notification implements ShouldQueue
             if ($lines !== []) {
                 $lines[] = '';
             }
-            array_push($lines, 'Kebun: '.$task['farm_name'], 'Blok: '.$task['block_name'],
+            array_push($lines, 'Lahan: '.$task['farm_name'], 'Blok: '.$task['block_name'],
                 'Tugas: '.$task['name'].' — '.$label, 'Jumlah tugas: '.$task['count'],
                 'Jadwal: '.$date, 'Batas toleransi: '.$due);
         }

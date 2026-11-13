@@ -69,7 +69,7 @@ class NotificationCommitTest extends TestCase
         Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'notifications', '--once' => true, '--sleep' => 0]);
         $this->assertDatabaseCount('notifications', 1);
         $message = DB::table('notifications')->value('message');
-        $this->assertStringContainsString('Total seluruh kebun', $message);
+        $this->assertStringContainsString('Total seluruh lahan', $message);
         $this->assertStringContainsString('Kabupaten Bogor', $message);
         $this->assertStringContainsString('Kabupaten Cianjur', $message);
         $this->assertStringContainsString('Kabupaten Sukabumi', $message);

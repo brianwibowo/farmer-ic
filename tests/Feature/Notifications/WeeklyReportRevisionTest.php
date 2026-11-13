@@ -120,7 +120,7 @@ class WeeklyReportRevisionTest extends TestCase
         $this->assertNull($queued->data['team_id']);
         $this->assertEqualsCanonicalizing([$this->team->id, $second->id], $queued->data['team_ids']);
         $message = $queued->toInApp()['message'];
-        $this->assertStringContainsString('Total seluruh kebun', $message);
+        $this->assertStringContainsString('Total seluruh lahan', $message);
         $this->assertStringContainsString('target per cycle: 1.400 ton; panen minggu ini: 4 ton', $message);
         $this->assertStringNotContainsString('Kebun Satu', $message);
         $this->assertStringNotContainsString('Kebun Rahasia', $message);
@@ -134,7 +134,7 @@ class WeeklyReportRevisionTest extends TestCase
         foreach ($jobs as $job) {
             $text = $job->notification->toWhatsAppText();
             $this->assertSame(1, substr_count($text, 'Kabupaten/kota:'));
-            $this->assertStringNotContainsString('Total seluruh kebun', $text);
+            $this->assertStringNotContainsString('Total seluruh lahan', $text);
             $this->assertStringNotContainsString('Kebun Satu', $text);
             $this->assertStringNotContainsString('Tenant:', $text);
         }
@@ -163,6 +163,7 @@ class WeeklyReportRevisionTest extends TestCase
         $this->assertSame(5, $notification->data['farms'][0]['activity_count']);
         $this->assertCount(1, $notification->data['farms'][0]['blocks']);
         $message = $notification->toInApp()['message'];
+        $this->assertStringContainsString('Lahan: Kebun Aktivitas', $notification->toWhatsAppText());
         $this->assertStringContainsString('Pengairan 2 kali', $message);
         $this->assertStringContainsString('Cuaca (Berat) 2 kejadian', $message);
         $this->assertStringContainsString('Alat rusak (Ringan) 1 kejadian', $message);
@@ -197,7 +198,7 @@ class WeeklyReportRevisionTest extends TestCase
         $this->assertStringNotContainsString('999', $notification->toWhatsAppText());
     }
 
-    public function test_owner_combined_report_is_findable_by_each_authorized_tenant_filter(): void
+    public function test_owner_combined_report_stays_personal_when_obsolete_tenant_filters_are_supplied(): void
     {
         $second = Team::factory()->create(['is_personal' => false]);
         $second->members()->attach($this->owner, ['role' => 'member']);
@@ -213,7 +214,7 @@ class WeeklyReportRevisionTest extends TestCase
                     ->where('notifications.data.0.tenant_name', null));
         }
         $foreign = Team::factory()->create(['is_personal' => false]);
-        $this->get('/notifications?status=all&team_id='.$foreign->id)->assertForbidden();
+        $this->get('/notifications?team_id='.$foreign->id)->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page->where('notifications.total', 1));
     }
 
     public function test_rich_owner_content_is_persisted_and_remains_a_historical_snapshot(): void

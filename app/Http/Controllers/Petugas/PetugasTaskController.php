@@ -24,6 +24,7 @@ class PetugasTaskController extends Controller
 
     public function index(Request $request): Response
     {
+        $filters = $request->validate(['block_id' => ['nullable', 'uuid']]);
         $farm = $request->user()->assignedFarm;
         $status = $request->query('status', 'all');
         if (! is_string($status) || ! in_array($status, ['all', 'overdue', 'today', 'upcoming', 'completed'], true)) {
@@ -31,7 +32,7 @@ class PetugasTaskController extends Controller
         }
         if (! $farm instanceof Farm) {
             return Inertia::render('petugas/Aktivitas', [
-                'tasks' => [], 'filters' => ['status' => $status], 'farm' => null,
+                'tasks' => [], 'filters' => ['status' => $status, 'block_id' => $filters['block_id'] ?? null], 'farm' => null,
                 'summary' => ['overdue' => 0, 'today' => 0, 'upcoming' => 0, 'completed' => 0], 'defaultSopMissing' => true,
             ]);
         }
@@ -50,7 +51,7 @@ class PetugasTaskController extends Controller
         }, $data['tasks']);
 
         return Inertia::render('petugas/Aktivitas', [
-            ...$data, 'filters' => ['status' => $status], 'farm' => $farm->only(['id', 'name']),
+            ...$data, 'filters' => ['status' => $status, 'block_id' => $filters['block_id'] ?? null], 'farm' => $farm->only(['id', 'name']),
             'defaultSopMissing' => $farm->getAttribute('default_sop_template_id') === null,
         ]);
     }

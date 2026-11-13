@@ -43,6 +43,8 @@ export type TaskContent = {
     kind: 'task_reminder' | 'sop_deviation';
     groups: {
         key: string;
+        farm_id?: string;
+        block_id?: string | null;
         farm_name: string;
         block_name: string;
         items: {
