@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 /** Workflow prerequisites, separate from authorization; callers supply a scoped cycle. */
 class ActivitySequenceService
 {
-    private const BLOCK_ACTIVITIES = ['land_cleaning', 'loosening', 'beds', 'liming', 'base_fertilization'];
+    private const BLOCK_ACTIVITIES = ['land_cleaning', 'soil_preparation', 'base_fertilization'];
 
     public static function isBlockPreparation(string $code): bool
     {
@@ -26,7 +26,7 @@ class ActivitySequenceService
             return null;
         }
         $team = $cycle->farm->team;
-        if ($cycle->planted_at === null && in_array($code, ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control', 'harvest'], true)) {
+        if ($cycle->planted_at === null && in_array($code, ['maintenance', 'harvest'], true)) {
             return 'Catat penanaman pada subblok ini terlebih dahulu.';
         }
         if ($code === 'harvest') {

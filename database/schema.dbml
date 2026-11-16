@@ -152,13 +152,13 @@ Table planting_cycles {
   variety_id uuid [ref: > crop_varieties.id, note: 'Nullable only for a zero-area preparation batch']
   planted_at date [note: 'Nullable only for a zero-area preparation batch']
   estimated_harvest_at date
-  planted_area_ha decimal(12,4) [not null, note: 'Positive, or zero for planned preparation batches; never exceeds reserved area']
+  planted_area_ha decimal(12,4) [not null, note: 'Positive, or zero for planned preparation batches; dynamically defines subblock area from planting activities within remaining block/farm capacity']
   estimated_weight_ton decimal(14,3)
   status varchar(30) [not null, note: 'planned | active | harvested | cancelled']
   created_at timestamptz [not null]
   batch_number int
   subblock_label varchar(30)
-  reserved_area_ha decimal(12,4)
+  reserved_area_ha decimal(12,4) [note: 'Legacy allocation field (null only when block_id is null; >= 0 and synced to planted_area_ha for subblocks); active subblock area is derived dynamically from planted_area_ha']
   created_by uuid [ref: > users.id]
   planned_planting_at date [note: 'Rencana tanggal tanam; acuan HST untuk jadwal tugas sebelum realisasi tanam']
   sop_template_version_id uuid [ref: > sop_template_versions.id, note: 'Snapshot versi SOP yang dipakai subblok ini']
@@ -168,7 +168,7 @@ Table planting_cycles {
   indexes {
     (farm_id, batch_number) [unique]
   }
-  Note: 'Satu kebun dapat memiliki banyak siklus tanam.'
+  Note: 'Satu kebun dapat memiliki banyak siklus tanam/subblok; luas subblok diturunkan dinamis dari realisasi tanam dalam kapasitas blok/kebun.'
 }
 
 Table farm_blocks {
@@ -219,7 +219,7 @@ Table planting_cycle_tasks {
   planting_cycle_stage_id uuid [not null, note: 'Composite FK to a stage of the same subblok']
   sop_template_task_id uuid [ref: > sop_template_tasks.id]
   activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not a task']
-  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance']
+  activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP memakai kategori maintenance atau harvest']
   name varchar(200) [not null]
   instructions text
   offset_days int [not null, default: 0]
@@ -296,7 +296,7 @@ Table sop_template_tasks {
   created_at timestamptz
   updated_at timestamptz
   activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not an SOP step']
-  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
+  activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP tidak lagi menggunakan subkategori']
   indexes {
     (sop_template_version_id, offset_days)
     (sop_template_version_id, activity_category)
@@ -307,18 +307,18 @@ Table sop_template_tasks {
 
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'kategori dan subkategori aktivitas']
+  code varchar(50) [not null, unique, note: 'land_cleaning | soil_preparation | base_fertilization | planting | maintenance | harvest | incident | other | block_mapping']
   name varchar(100) [not null]
   description text
-  parent_id uuid [ref: > activity_types.id, note: 'Null untuk kategori root; parent untuk subkategori']
-  detail_key varchar(50) [note: 'Menentukan detail table; null jika detail belum tersedia']
-  is_selectable boolean [not null, default: true, note: 'False untuk parent kategori dan block_mapping']
+  parent_id uuid [ref: > activity_types.id, note: 'Null untuk kategori root']
+  detail_key varchar(50) [note: 'Menentukan detail table; null jika memakai task_details / catatan']
+  is_selectable boolean [not null, default: true, note: 'False untuk block_mapping']
   sort_order smallint [not null, default: 0]
   is_active boolean [not null, default: true]
   indexes {
     parent_id
   }
-  Note: 'Self-referencing taxonomy. Category = root, subcategory = child. Farm activities point to the most specific selectable row.'
+  Note: 'Kategori utama aktivitas (pembersihan lahan, pengolahan tanah, pemupukan kandang, penanaman, perawatan, panen, pelaporan insiden, lainnya) plus block_mapping.'
 }
 
 Table farm_activities {
@@ -339,10 +339,10 @@ Table farm_activities {
   proposed_solution text
   action_taken text
   planting_cycle_task_id uuid [note: 'Composite FK with planting_cycle_id; nullable for non-task activities']
-  task_details jsonb [note: 'Validated task-specific measurements; required for task-linked reports. Weeding uses these details; other types also retain their existing typed detail.']
+  task_details jsonb [note: 'Validated task and root-category area details (JSONB); soil_preparation and maintenance store area_ha here without typed child detail rows']
   worker_count int [note: 'Jumlah pekerja untuk aktivitas ini; nullable untuk data lama']
   block_id uuid [note: 'Nullable for farm-wide or unidentifiable legacy activities; derived from the cycle when present']
-  Note: 'Block belongs to farm; when both block and cycle are present they must agree. Tipe aktivitas menentukan satu detail yang tepat; task-linked weeding uses task_details instead.'
+  Note: 'Block belongs to farm; when both block and cycle are present they must agree. Typed activity codes require a 1:1 child detail row; soil_preparation and maintenance allow zero detail rows (preserving legacy rows) and store area_ha in task_details.'
 }
 
 Table daily_activity_logs {
@@ -394,6 +394,7 @@ Table planting_details {
   quantity_kg decimal(12,3)
   planting_pattern varchar(150)
   area_ha decimal(12,4)
+  Note: 'Input aktif mencatat area_ha, seed_name, dan quantity_kg (atau jumlah/satuan benih pada farm_activities.task_details); planting_pattern dipertahankan untuk histori.'
 }
 
 Table fertilization_details {
@@ -407,7 +408,7 @@ Table fertilization_details {
   area_ha decimal(12,4)
   quantity_unit varchar(20)
   sack_size_kg decimal(10,3)
-  Note: 'Dipakai untuk pemupukan susulan dan pemupukan dasar; fertilization_stage membedakan dasar/susulan.'
+  Note: 'Dipakai untuk pemupukan kandang (base_fertilization, fertilization_stage = kandang) serta histori pemupukan dasar/susulan lama.'
 }
 
 Table irrigation_details {
@@ -416,6 +417,7 @@ Table irrigation_details {
   irrigation_method varchar(150)
   machine_type varchar(150)
   duration_hours decimal(8,2)
+  Note: 'Dipertahankan untuk histori laporan sebelum penyederhanaan kategori aktivitas.'
 }
 
 Table pesticide_details {
@@ -427,6 +429,7 @@ Table pesticide_details {
   dosage_per_tank varchar(100) [note: 'Text mempertahankan satuan dosis dari data demo']
   tank_size_liters decimal(8,2)
   tank_count int
+  Note: 'Dipertahankan untuk histori laporan sebelum penyederhanaan kategori aktivitas.'
 }
 
 Table incident_details {
@@ -445,6 +448,7 @@ Table harvest_details {
   color varchar(100)
   ripeness varchar(150)
   cleanliness varchar(150)
+  Note: 'Input aktif mencatat harvested_area_ha dan gross_weight_ton; moisture_percentage, color, ripeness, dan cleanliness dipertahankan untuk histori.'
 }
 
 Table land_cleaning_details {
@@ -455,6 +459,7 @@ Table land_cleaning_details {
   dosage_per_tank varchar(100)
   water_liters decimal(8,2)
   tank_count int
+  Note: 'Input aktif mencatat area_ha; method, product_name, dosage_per_tank, water_liters, dan tank_count dipertahankan untuk histori.'
 }
 
 Table loosening_details {
@@ -462,6 +467,7 @@ Table loosening_details {
   area_ha decimal(12,4)
   method varchar(50)
   depth_cm decimal(8,2)
+  Note: 'Dipertahankan untuk histori laporan sebelum penyederhanaan kategori aktivitas.'
 }
 
 Table weeding_details {
@@ -469,6 +475,7 @@ Table weeding_details {
   area_ha decimal(12,4)
   method varchar(50)
   depth_cm decimal(8,2)
+  Note: 'Dipertahankan untuk histori laporan sebelum penyederhanaan kategori aktivitas.'
 }
 
 Table bed_preparation_details {
@@ -479,6 +486,7 @@ Table bed_preparation_details {
   height_cm decimal(8,2)
   bed_spacing_cm decimal(8,2)
   area_ha decimal(12,4)
+  Note: 'Dipertahankan untuk histori laporan sebelum penyederhanaan kategori aktivitas.'
 }
 
 Table liming_details {
@@ -490,6 +498,7 @@ Table liming_details {
   quantity_unit varchar(20)
   sack_size_kg decimal(10,3)
   application_method varchar(150)
+  Note: 'Dipertahankan untuk histori laporan sebelum penyederhanaan kategori aktivitas.'
 }
 
 Table other_details {
@@ -501,7 +510,7 @@ Table other_details {
 Table plant_observations {
   id uuid [pk]
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
-  activity_id uuid [unique, ref: > farm_activities.id, note: 'Opsional: pengamatan tercatat sebagai kegiatan growth_check; menggantikan growth_check_details']
+  activity_id uuid [unique, ref: > farm_activities.id, note: 'Opsional: pengamatan tercatat pada aktivitas maintenance (histori growth_check); menggantikan growth_check_details']
   observed_by uuid [not null, ref: > users.id]
   observed_at timestamptz [not null]
   growth_phase varchar(100)

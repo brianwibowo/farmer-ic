@@ -34,10 +34,10 @@ Illuminate\Support\Facades\Gate::forUser($admin)->authorize('create', [App\Model
 $task = App\Models\PlantingCycleTask::create([
     'planting_cycle_id' => $cycle->id,
     'planting_cycle_stage_id' => $cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
-    'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan sesuai SOP',
+    'activity_category' => 'maintenance', 'activity_subcategory' => null, 'name' => 'Pengairan sesuai SOP',
     'instructions' => 'Pastikan air merata dan hindari genangan di sekitar batang.',
     'offset_days' => 21, 'tolerance_days' => 2, 'scheduled_date' => today(), 'due_date' => today()->addDays(2),
     'status' => 'pending', 'is_required' => true,
 ]);
-App\Models\ActivityType::firstOrCreate(['code' => 'irrigation'], ['name' => 'Irigasi']);
+App\Models\ActivityType::firstOrCreate(['code' => 'maintenance'], ['name' => 'Perawatan']);
 echo json_encode(['task' => $task->id, 'email' => $petugas->email], JSON_THROW_ON_ERROR).PHP_EOL;

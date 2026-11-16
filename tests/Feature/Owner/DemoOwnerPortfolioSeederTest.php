@@ -159,21 +159,25 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             }
         }
         $detailTypes = [
-            'planting' => 'plantingDetail', 'follow_up_fertilization' => 'fertilizationDetail',
-            'irrigation' => 'irrigationDetail', 'pest_control' => 'pesticideDetail',
-            'harvest' => 'harvestDetail', 'growth_check' => 'observation',
-            'land_cleaning' => 'landCleaningDetail', 'loosening' => 'looseningDetail',
+            'planting' => 'plantingDetail',
+            'harvest' => 'harvestDetail',
+            'land_cleaning' => 'landCleaningDetail',
             'base_fertilization' => 'fertilizationDetail',
         ];
         $activities = FarmActivity::query()->whereIn('farm_id', $farmIds)
-            ->with(['activityType', ...array_values($detailTypes)])->get();
+            ->with(['activityType', 'observation', ...array_values($detailTypes)])->get();
         $this->assertNotEmpty($activities);
         foreach ($activities as $activity) {
-            $relation = $detailTypes[$activity->activityType->code];
-            $this->assertNotNull($activity->getRelation($relation));
-            $this->assertSame(1, collect(array_values($detailTypes))->unique()
-                ->filter(fn (string $detail) => $activity->getRelation($detail) !== null)->count());
-            if ($activity->activityType->code === 'harvest') {
+            $code = $activity->activityType->code;
+            $relation = $detailTypes[$code] ?? null;
+            if ($relation !== null) {
+                $this->assertNotNull($activity->getRelation($relation));
+            } elseif (str_starts_with($activity->description, 'Observasi ')) {
+                $this->assertNotNull($activity->observation);
+            } else {
+                $this->assertNotNull($activity->task_details);
+            }
+            if ($code === 'harvest') {
                 $task = $activity->task()->firstOrFail();
                 $this->assertSame('harvest', $task->activity_category);
                 $this->assertSame('completed', $task->status);

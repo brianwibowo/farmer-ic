@@ -68,8 +68,11 @@ class CariuBaruSeederTest extends TestCase
         $this->assertTrue($derived->every(fn ($a) => $a->worker_count === null && $a->obstacle_status === 'not_recorded'));
         foreach ($reports as $activity) {
             $table = ActivityDetailMap::table($activity->activityType->detail_key);
-            $this->assertNotNull($table);
-            $this->assertSame(1, DB::table($table)->where('activity_id', $activity->id)->count());
+            if ($table !== null) {
+                $this->assertSame(1, DB::table($table)->where('activity_id', $activity->id)->count());
+            } else {
+                $this->assertNotNull($activity->task_details);
+            }
             $this->assertSame($petugas->id, $activity->performed_by);
         }
 

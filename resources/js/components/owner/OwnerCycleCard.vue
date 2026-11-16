@@ -35,18 +35,8 @@ defineProps<{ cycle: OwnerCycle }>();
             >
         </div>
         <dl class="grid grid-cols-2 gap-3 text-sm">
-            <div>
-                <dt class="text-xs text-muted-foreground">Alokasi batch</dt>
-                <dd class="mt-1 font-medium">
-                    {{
-                        cycle.reserved_area_ha === null
-                            ? 'Tanpa alokasi batch'
-                            : `${ownerArea(cycle.reserved_area_ha)} ha`
-                    }}
-                </dd>
-            </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Realisasi tanam</dt>
+            <div class="col-span-2">
+                <dt class="text-xs text-muted-foreground">Luas tanam</dt>
                 <dd class="mt-1 font-medium">
                     {{ ownerArea(cycle.planted_area_ha) }} ha
                 </dd>

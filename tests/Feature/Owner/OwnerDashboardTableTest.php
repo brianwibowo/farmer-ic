@@ -72,7 +72,7 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.rows.0.progress.current_stages', ['Penanaman'])
             ->where('landTable.rows.0.progress.running_batches', 2)
             ->where('landTable.rows.0.resume.id', $latest->id)
-            ->where('landTable.rows.0.resume.title', 'Pengecekan pertumbuhan')
+            ->where('landTable.rows.0.resume.title', 'Perawatan')
             ->where('landTable.rows.0.resume.description', 'Penanaman terbaru Cibogo')
             ->where('landTable.rows.0.resume.detail_url', '/aktivitas/'.$latest->id)
             ->where('dashboard.metrics.0.value', 1));
@@ -328,7 +328,7 @@ class OwnerDashboardTableTest extends TestCase
 
     private function activity(Farm $farm, string $description, string $date): FarmActivity
     {
-        $type = ActivityType::firstOrCreate(['code' => 'growth_check'], ['name' => 'Pengamatan pertumbuhan']);
+        $type = ActivityType::firstOrCreate(['code' => 'maintenance'], ['name' => 'Perawatan']);
 
         return FarmActivity::create([
             'farm_id' => $farm->id, 'activity_type_id' => $type->id, 'performed_by' => $this->admin->id,

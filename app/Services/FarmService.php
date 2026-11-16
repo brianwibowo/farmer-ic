@@ -78,7 +78,7 @@ class FarmService
     {
         $blocks = (string) \App\Models\FarmBlock::visibleTo($user, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha');
         $usage = PlantingCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->toBase()
-            ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NULL AND status = 'active' THEN planted_area_ha WHEN block_id IS NOT NULL AND status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS reserved")
+            ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NULL AND status = 'active' THEN planted_area_ha WHEN block_id IS NOT NULL AND status IN ('planned', 'active') THEN planted_area_ha ELSE 0 END), 0) AS reserved")
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'active' THEN planted_area_ha ELSE 0 END), 0) AS planted")->first();
 
         return ['block_area_ha' => $blocks, 'reserved_area_ha' => (string) $usage->reserved,
@@ -214,9 +214,9 @@ class FarmService
                 $reservationCapacity = DB::table('planting_cycles')->where('farm_id', $locked->id)
                     ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('block_id')->where('status', 'active'))
                         ->orWhere(fn ($batch) => $batch->whereNotNull('block_id')->whereIn('status', ['planned', 'active'])))
-                    ->selectRaw('COALESCE(SUM(CASE WHEN block_id IS NULL THEN planted_area_ha ELSE reserved_area_ha END), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
+                    ->selectRaw('COALESCE(SUM(planted_area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
                 if ($reservationCapacity) {
-                    throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total alokasi tanam berjalan.']);
+                    throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total luas tanam berjalan.']);
                 }
                 $exceedsArea = DB::table('planting_cycles')->where('farm_id', $locked->id)
                     ->where('status', 'active')

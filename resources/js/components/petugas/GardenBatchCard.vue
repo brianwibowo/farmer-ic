@@ -66,18 +66,9 @@ const stageStatuses = {
                 >{{ status.label }}</span
             >
         </header>
-        <dl class="grid grid-cols-2 gap-3">
+        <dl class="grid grid-cols-1 gap-3">
             <div>
-                <dt class="text-xs text-muted-foreground">Alokasi</dt>
-                <dd class="mt-1 text-xl font-bold tabular-nums">
-                    {{ gardenArea(batch.reserved_area_ha) }}
-                    <span class="text-xs font-normal text-muted-foreground"
-                        >ha</span
-                    >
-                </dd>
-            </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Tertanam</dt>
+                <dt class="text-xs text-muted-foreground">Luas tertanam</dt>
                 <dd class="mt-1 text-xl font-bold tabular-nums">
                     {{ gardenArea(batch.planted_area_ha) }}
                     <span class="text-xs font-normal text-muted-foreground"

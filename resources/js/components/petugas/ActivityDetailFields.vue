@@ -37,13 +37,6 @@ const visible = computed(() =>
         (f) => !f.when || values.value[f.when[0]] === f.when[1],
     ),
 );
-const bedAreaError = computed(
-    () =>
-        props.errors['details.bed_area'] ??
-        (props.fields.some((field) => field.key === 'bed_count')
-            ? props.errors['details.area']
-            : undefined),
-);
 const fieldClass =
     'block min-h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-error';
 function fieldMaximum(field: ActivityField): number | undefined {
@@ -125,9 +118,7 @@ function fieldMaximum(field: ActivityField): number | undefined {
                                 ? values.area_unit === 'Ha'
                                     ? 0.0001
                                     : 1
-                                : field.key === 'moisture'
-                                  ? 0
-                                  : field.step
+                                : field.step
                         "
                         :step="
                             field.key === 'area'
@@ -139,13 +130,7 @@ function fieldMaximum(field: ActivityField): number | undefined {
                         :max="fieldMaximum(field)"
                         :maxlength="field.type === 'text' ? 100 : undefined"
                         :class="fieldClass"
-                        :aria-invalid="
-                            !!errors[`details.${field.key}`] ||
-                            (!!bedAreaError &&
-                                ['bed_count', 'length_m', 'width_m'].includes(
-                                    field.key,
-                                ))
-                        "
+                        :aria-invalid="!!errors[`details.${field.key}`]"
                         :aria-describedby="
                             [
                                 field.type === 'number' &&
@@ -154,12 +139,6 @@ function fieldMaximum(field: ActivityField): number | undefined {
                                     : null,
                                 errors[`details.${field.key}`]
                                     ? `detail-error-${field.key}`
-                                    : null,
-                                bedAreaError &&
-                                ['bed_count', 'length_m', 'width_m'].includes(
-                                    field.key,
-                                )
-                                    ? 'detail-bed-area-error'
                                     : null,
                             ]
                                 .filter(Boolean)
@@ -190,25 +169,5 @@ function fieldMaximum(field: ActivityField): number | undefined {
                 </div>
             </component>
         </template>
-        <p
-            v-if="values.bed_count && values.length_m && values.width_m"
-            class="rounded-xl bg-primary/10 p-3 text-sm"
-        >
-            Luas bedengan:
-            {{
-                Number(values.bed_count) *
-                Number(values.length_m) *
-                Number(values.width_m)
-            }}
-            m²
-        </p>
-        <p
-            v-if="bedAreaError"
-            id="detail-bed-area-error"
-            class="text-xs text-error"
-            aria-live="polite"
-        >
-            {{ bedAreaError }}
-        </p>
     </div>
 </template>

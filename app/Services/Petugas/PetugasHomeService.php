@@ -56,7 +56,7 @@ class PetugasHomeService
                 $cycle = $task->plantingCycle;
 
                 return [
-                    ...$task->only(['id', 'name', 'instructions', 'status', 'is_required', 'offset_days', 'activity_category', 'activity_subcategory']),
+                    ...$task->only(['id', 'name', 'instructions', 'status', 'is_required', 'offset_days', 'activity_category']),
                     'scheduled_date' => $task->effectiveScheduledDate()?->toDateString(),
                     'due_date' => $task->due_date?->toDateString(),
                     'stage' => $task->stage?->code,

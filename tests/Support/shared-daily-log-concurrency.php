@@ -21,7 +21,7 @@ if (($argv[1] ?? '') === 'worker') {
     $activity = app(App\Services\Activity\TaskActivityService::class)->create($actor, $task, [
         'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'end_time' => '16:00', 'worker_count' => (int) $argv[4],
         'daily_notes' => 'Tim harian bersama.', 'notes' => 'Pengairan dari worker paralel.',
-        'details' => ['area_ha' => '1', 'water_source' => 'Sumur', 'method' => 'Pompa', 'duration_hours' => '1'],
+        'details' => ['area_ha' => '1'],
         'photos' => [new Illuminate\Http\UploadedFile(public_path('images/logo.png'), 'bukti.png', 'image/png', null, true)],
     ]);
     echo $activity->id.PHP_EOL;
@@ -52,10 +52,10 @@ foreach (App\Models\PlantingCycleStage::CODES as $position => $code) {
 $stage = $cycle->stages()->where('code', 'maintenance')->firstOrFail();
 $task = App\Models\PlantingCycleTask::create([
     'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $stage->id,
-    'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan paralel',
+    'activity_category' => 'maintenance', 'activity_subcategory' => null, 'name' => 'Pengairan paralel',
     'offset_days' => 2, 'tolerance_days' => 2, 'status' => 'pending', 'is_required' => true,
 ]);
-App\Models\ActivityType::firstOrCreate(['code' => 'irrigation'], ['name' => 'Pengairan']);
+App\Models\ActivityType::firstOrCreate(['code' => 'maintenance'], ['name' => 'Perawatan']);
 $secondTask = $task->replicate();
 $secondTask->save();
 $tasks = [$task, $secondTask];

@@ -11,7 +11,6 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\FarmRisk;
 use App\Models\FinancialProjection;
-use App\Models\IrrigationDetail;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
@@ -62,9 +61,8 @@ class DashboardSummaryTest extends TestCase
 
     private function irrigation(Farm $farm, string $date): void
     {
-        $type = ActivityType::firstOrCreate(['code' => 'irrigation'], ['name' => 'Penyiraman']);
-        $activity = FarmActivity::create(['farm_id' => $farm->id, 'activity_type_id' => $type->id, 'performed_by' => $this->admin->id, 'activity_date' => $date, 'description' => 'Penyiraman bedeng pagi', 'status' => 'completed']);
-        IrrigationDetail::create(['activity_id' => $activity->id, 'water_source' => 'Sumur kebun', 'duration_hours' => 1]);
+        $type = ActivityType::firstOrCreate(['code' => 'maintenance'], ['name' => 'Perawatan']);
+        FarmActivity::create(['farm_id' => $farm->id, 'activity_type_id' => $type->id, 'performed_by' => $this->admin->id, 'activity_date' => $date, 'description' => 'Penyiraman bedeng pagi', 'status' => 'completed']);
     }
 
     public function test_global_and_selected_farm_summaries_do_not_leak_other_farms_or_tenants(): void

@@ -66,19 +66,19 @@ class DemoPetugasTodoSeeder extends Seeder
             ]);
             $version = SopTemplateVersion::visibleTo($actor, $team)->where('sop_template_id', $template->id)->firstOrFail();
             $definitions = [
-                ['name' => 'Pengairan pagi', 'subcategory' => 'irrigation', 'status' => 'in_progress',
+                ['name' => 'Pengairan pagi', 'status' => 'in_progress',
                     'instructions' => 'Periksa kelembapan tanah. Siram di sekitar pangkal tanaman tanpa menimbulkan genangan.'],
-                ['name' => 'Pemupukan susulan pertama', 'subcategory' => 'follow_up_fertilization', 'status' => 'pending',
+                ['name' => 'Pemupukan susulan pertama', 'status' => 'pending',
                     'instructions' => 'Gunakan NPK sesuai dosis SOP kebun dan hindari kontak langsung dengan batang.'],
-                ['name' => 'Penyiangan gulma', 'subcategory' => 'weeding', 'status' => 'pending',
+                ['name' => 'Penyiangan gulma', 'status' => 'pending',
                     'instructions' => 'Bersihkan gulma di antara barisan tanpa melukai akar dan pangkal tanaman.'],
-                ['name' => 'Pengamatan hama', 'subcategory' => 'pest_control', 'status' => 'completed',
+                ['name' => 'Pengamatan hama', 'status' => 'completed',
                     'instructions' => 'Periksa daun dan pucuk di beberapa titik. Catat gejala serangan dan dokumentasikan tanaman terdampak.'],
             ];
             foreach ($definitions as $definition) {
                 $gate->authorize('create', [SopTemplateTask::class, $version]);
                 $sops->createTask($version, [
-                    'activity_category' => 'maintenance', 'activity_subcategory' => $definition['subcategory'],
+                    'activity_category' => 'maintenance', 'activity_subcategory' => null,
                     'name' => $definition['name'], 'instructions' => $definition['instructions'],
                     'offset_days' => 14, 'tolerance_days' => 0, 'is_required' => true,
                 ]);
@@ -91,7 +91,7 @@ class DemoPetugasTodoSeeder extends Seeder
             ]);
             $gate->authorize('update', $batch);
             $batch->forceFill(['status' => 'active', 'variety_id' => $variety->id, 'planted_at' => $planted->toDateString(),
-                'planted_area_ha' => '0.2500', 'sop_template_version_id' => $version->id,
+                'reserved_area_ha' => '0.2500', 'planted_area_ha' => '0.2500', 'sop_template_version_id' => $version->id,
                 'estimated_harvest_at' => $planted->addDays(90)->toDateString()])->save();
 
             $gate->authorize('create', [PlantingCycleTask::class, $batch]);
@@ -102,7 +102,7 @@ class DemoPetugasTodoSeeder extends Seeder
                 $status = $statuses[$task->name];
                 $task->forceFill(['status' => $status, 'completed_at' => $status === 'completed' ? now() : null])->save();
             }
-            foreach (['planting', 'pest_control'] as $code) {
+            foreach (['planting', 'maintenance'] as $code) {
                 $type = ActivityType::visibleTo($actor, $team)->where('code', $code)->firstOrFail();
                 $gate->authorize('create', [FarmActivity::class, $farm]);
                 $activity = new FarmActivity([
@@ -111,11 +111,12 @@ class DemoPetugasTodoSeeder extends Seeder
                     'description' => $code === 'planting' ? 'Penanaman contoh tugas SOP.' : 'Pemantauan hama contoh tugas SOP.',
                     'status' => 'completed',
                 ]);
-                $activity->forceFill(['block_id' => $block->id])->save();
+                $activity->forceFill([
+                    'block_id' => $block->id,
+                    ...($code === 'maintenance' ? ['task_details' => json_encode(['area_ha' => '0.2500'], JSON_THROW_ON_ERROR)] : []),
+                ])->save();
                 if ($code === 'planting') {
                     $activity->plantingDetail()->create(['seed_name' => 'Benih jagung Bisi 18', 'quantity_kg' => 5, 'area_ha' => '0.2500']);
-                } else {
-                    $activity->pesticideDetail()->create(['pesticide_category' => 'Biologis', 'purpose' => 'Pemantauan hama']);
                 }
                 app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
             }

@@ -27,7 +27,6 @@ import {
     hstLabel,
     sopDate,
     sopTaskCategoryLabel,
-    sopTaskSubcategoryLabel,
     type SopCan,
     type SopTask,
     type SopTemplateDetail,
@@ -392,9 +391,6 @@ function statusClass(status: SopVersion['status']): string {
                                     Kategori
                                 </th>
                                 <th scope="col" class="px-5 py-3 font-semibold">
-                                    Subkategori
-                                </th>
-                                <th scope="col" class="px-5 py-3 font-semibold">
                                     Wajib
                                 </th>
                                 <th
@@ -439,9 +435,6 @@ function statusClass(status: SopVersion['status']): string {
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
                                     {{ sopTaskCategoryLabel(task) }}
-                                </td>
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    {{ sopTaskSubcategoryLabel(task) }}
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
                                     <span
@@ -516,12 +509,6 @@ function statusClass(status: SopVersion['status']): string {
                                 class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
                             >
                                 {{ sopTaskCategoryLabel(task) }}
-                            </span>
-                            <span
-                                v-if="task.activity_subcategory"
-                                class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-                            >
-                                {{ sopTaskSubcategoryLabel(task) }}
                             </span>
                             <span
                                 class="rounded-full px-2.5 py-0.5 text-xs font-medium"

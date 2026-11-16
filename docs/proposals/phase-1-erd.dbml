@@ -1,12 +1,12 @@
-// USULAN phase 1; lapisan definisi SOP sudah diimplementasikan, eksekusi task batch dan approval belum; RBAC mengikuti remote e994d7c.
-// HISTORIS: tabel planting_rounds sudah dihapus; schema aktif memakai planting_cycles.block_id. Lihat database/schema.dbml.
-// Seluruh tabel existing termasuk soft delete users dipertahankan; Admin dibatasi tenant.
-// PK/FK dan nullability merupakan target akhir setelah backfill data lama.
-// Lihat phase-1-erd.md untuk aturan, keputusan terbuka, dan transisi.
+// USULAN phase 1; definisi SOP, subblok dinamis (2026_11_16_000001), dan 6 kategori aktivitas utama (2026_11_16_000002) sudah diimplementasikan; approval task submission belum.
+// HISTORIS: planting_rounds sudah dihapus (2026_11_09_000001) -> planting_cycles.block_id; soil_preparation & maintenance memakai farm_activities.task_details JSONB tanpa detail anak baru.
+// ATURAN AKTIF: luas subblok diturunkan dinamis dari planting_cycles.planted_area_ha (penanaman); pembuatan subblok baru dicegah bila kapasitas blok penuh dan dapat dilakukan Admin maupun Petugas.
+// SOP AKTIF: sop_template_tasks & planting_cycle_tasks memakai activity_category IN ('maintenance', 'harvest') dengan activity_subcategory = null; kategori pemupukan utama memakai Pemupukan Kandang (base_fertilization).
+// Lihat database/schema.dbml untuk schema PostgreSQL aktif dan phase-1-erd.md untuk aturan serta transisi.
 
 Project FarmerICPhase1Proposal {
   database_type: 'PostgreSQL'
-  Note: 'DRAFT DISKUSI phase 1, diselaraskan dengan RBAC 29 Oktober 2026. Admin satu tenant tanpa pivot PIC; SOP per tenant dan varietas; task selesai setelah approval. Bukan schema aktif atau migration. Penomoran per lahan dan batch sebelum tanam masih asumsi.'
+  Note: 'Dokumen usulan phase 1 yang diselaraskan dengan implementasi November 2026. Schema PostgreSQL aktif ada di database/schema.dbml; approval task submission pada planting_cycle_task_submissions masih berupa rancangan lanjutan.'
 }
 
 Table roles {
@@ -115,8 +115,8 @@ Table planting_cycles {
   sop_template_version_id uuid [ref: > sop_template_versions.id]
   batch_number bigint [not null, note: 'ASUMSI: urut per lahan, tidak reset antarperiode; cakupan belum diputuskan']
   sub_block_code varchar(30) [note: 'Label opsional A/B/C dalam periode ini; bukan lokasi permanen']
-  reserved_area_ha decimal(12,4) [not null, note: 'Alokasi luas batch; CHECK > 0']
-  planted_area_ha decimal(12,4) [not null, default: 0, note: 'Luas kumulatif realisasi; 0 sampai reserved_area_ha; agregat dijaga dalam transaksi']
+  reserved_area_ha decimal(12,4) [note: 'Kolom alokasi legacy (>= 0 dan disinkronkan dengan planted_area_ha pada subblok; null bila block_id null); bukan batas pra-tanam > 0']
+  planted_area_ha decimal(12,4) [not null, default: 0, note: 'Luas realisasi tanam dinamis (>= 0; 0 saat persiapan); mendefinisikan luas subblok dalam sisa kapasitas blok dan kebun']
   planned_planting_at date
   planted_at date [note: 'Tanggal realisasi tanam pertama; nullable selama persiapan']
   estimated_harvest_at date
@@ -133,14 +133,15 @@ Table planting_cycles {
     (planting_round_id, sub_block_code) [unique]
     (farm_id, status)
   }
-  Note: 'Satu record = satu batch/subblok. round.block.farm harus sama dengan farm_id; versi SOP harus milik tenant yang sama dan varietas batch. Stage berjalan diturunkan dari planting_cycle_stages.'
+  Note: 'Satu record = satu batch/subblok. Schema aktif menghubungkan planting_cycles.block_id langsung (tanpa planting_rounds). Luas subblok diturunkan dinamis dari realisasi penanaman; pembuatan subblok baru oleh Admin atau Petugas dicegah bila sisa kapasitas blok/kebun penuh.'
 }
 
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'planting, fertilization, irrigation, growth_check, pesticide, incident, harvest, block_mapping, land_cleaning, soil_preparation']
+  code varchar(50) [not null, unique, note: 'land_cleaning, soil_preparation, base_fertilization, planting, maintenance, harvest, incident, other, block_mapping']
   name varchar(100) [not null]
   description text
+  Note: 'Enam kategori utama budidaya (Pembersihan Lahan, Pengolahan Tanah, Pemupukan Kandang, Penanaman, Perawatan, Panen) plus incident, other, dan internal block_mapping. Lihat database/schema.dbml untuk kolom taxonomy aktif (parent_id, detail_key, is_selectable, sort_order, is_active).'
 }
 
 Table farm_activities {
@@ -160,7 +161,8 @@ Table farm_activities {
   obstacles text
   proposed_solution text
   action_taken text
-  Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Tipe aktivitas menentukan satu detail yang tepat.'
+  task_details jsonb [note: 'Detail area/input JSONB bersama; soil_preparation dan maintenance menyimpan area_ha di sini tanpa baris detail anak baru']
+  Note: 'Pastikan planting_cycle_id (jika diisi) berasal dari farm_id yang sama. Kategori bertipe detail memakai tabel anak 1:1; soil_preparation dan maintenance menyimpan area_ha pada task_details + catatan opsional (description) dan mengizinkan 0 baris detail agar histori lama tetap utuh.'
   planting_cycle_task_id uuid [note: 'Opsional: realisasi suatu jadwal batch; FK komposit didefinisikan di bawah']
   indexes {
     (id, planting_cycle_id) [unique]
@@ -211,11 +213,11 @@ Table activity_photos {
 Table planting_details {
   activity_id uuid [pk, ref: > farm_activities.id]
   seed_name varchar(150) [note: 'Nama bibit saat pelaporan; snapshot historis']
-  seedling_count int [note: 'Jumlah bibit realisasi; nullable untuk data lama/penanaman berbasis berat; jika diisi CHECK > 0']
+  seedling_count int [note: 'Kolom historis usulan/data lama; input aktif mencatat area, seed_name, serta quantity/satuan benih yang dinormalisasi ke quantity_kg']
   quantity_kg decimal(12,3)
-  planting_pattern varchar(150)
+  planting_pattern varchar(150) [note: 'Dipertahankan untuk histori sebelum penyederhanaan input']
   area_ha decimal(12,4) [note: 'Luas realisasi laporan, CHECK > 0 untuk laporan baru']
-  Note: 'Laporan baru wajib terkait batch melalui farm_activities.planting_cycle_id. Catat jumlah bibit atau berat benih sesuai metode; aturan rinci validasi form.'
+  Note: 'Laporan baru wajib terkait subblok melalui farm_activities.planting_cycle_id dan menambah planted_area_ha secara dinamis dalam batas kapasitas blok/kebun.'
 }
 
 Table fertilization_details {
@@ -226,6 +228,7 @@ Table fertilization_details {
   subsidy_status varchar(30)
   application_method varchar(150)
   quantity_kg decimal(12,3)
+  Note: 'Dipakai untuk kategori aktif Pemupukan Kandang (base_fertilization, fertilization_stage = kandang) serta histori pemupukan dasar/susulan lama.'
 }
 
 Table irrigation_details {
@@ -234,6 +237,7 @@ Table irrigation_details {
   irrigation_method varchar(150)
   machine_type varchar(150)
   duration_hours decimal(8,2)
+  Note: 'Dipertahankan untuk histori laporan sebelum penyederhanaan 6 kategori aktivitas.'
 }
 
 Table pesticide_details {
@@ -245,6 +249,7 @@ Table pesticide_details {
   dosage_per_tank varchar(100) [note: 'Text mempertahankan satuan dosis dari data demo']
   tank_size_liters decimal(8,2)
   tank_count int
+  Note: 'Dipertahankan untuk histori laporan sebelum penyederhanaan 6 kategori aktivitas.'
 }
 
 Table incident_details {
@@ -263,12 +268,13 @@ Table harvest_details {
   color varchar(100)
   ripeness varchar(150)
   cleanliness varchar(150)
+  Note: 'Input aktif mencatat harvested_area_ha dan gross_weight_ton; moisture_percentage, color, ripeness, dan cleanliness dipertahankan untuk histori.'
 }
 
 Table plant_observations {
   id uuid [pk]
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
-  activity_id uuid [unique, ref: > farm_activities.id, note: 'Opsional: pengamatan tercatat sebagai kegiatan growth_check; menggantikan growth_check_details']
+  activity_id uuid [unique, ref: > farm_activities.id, note: 'Opsional: pengamatan tercatat pada aktivitas maintenance (histori growth_check); menggantikan growth_check_details']
   observed_by uuid [not null, ref: > users.id]
   observed_at timestamptz [not null]
   growth_phase varchar(100)
@@ -604,21 +610,21 @@ Table sop_template_tasks {
   is_required boolean [not null, default: true]
   created_at timestamptz [not null]
   updated_at timestamptz
-  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; SOP dimulai pada penanaman']
-  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
+  activity_category varchar(30) [not null, note: 'maintenance | harvest; penanaman menjadi jangkar HST (H+0), bukan langkah SOP']
+  activity_subcategory varchar(50) [note: 'Dinonaktifkan dan dipertahankan null (2026_11_16_000002); langkah SOP memakai kategori maintenance atau harvest']
 
   indexes {
     (sop_template_version_id, offset_days)
     (sop_template_version_id, activity_category)
     (sop_template_version_id, activity_subcategory)
   }
-  Note: 'Satu baris = satu pekerjaan pada satu hari relatif. Diurutkan berdasarkan offset_days, lalu kategori, waktu pembuatan, dan id. Kategori/subkategori mengikuti form aktivitas; stage diturunkan dari kategori saat task batch dibuat.'
+  Note: 'Satu baris = satu pekerjaan lanjutan pada satu hari relatif. Diurutkan berdasarkan offset_days, lalu kategori, waktu pembuatan, dan id. Kategori memakai maintenance atau harvest tanpa subkategori; stage diturunkan dari kategori saat task subblok dibuat.'
 }
 
 Table planting_cycle_stages {
   id uuid [pk]
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
-  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer | planting | maintenance | harvest']
+  stage_code varchar(30) [not null, note: 'land_cleaning | soil_preparation | basic_fertilizer (tampilan: Pemupukan Kandang) | planting | maintenance | harvest']
   position int [not null]
   planned_start_at date
   planned_end_at date
@@ -642,9 +648,9 @@ Table planting_cycle_tasks {
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
   planting_cycle_stage_id uuid [not null, note: 'FK komposit ke stage milik batch yang sama']
   sop_template_task_id uuid [ref: > sop_template_tasks.id]
-  activity_category varchar(30) [not null, note: 'planting | maintenance | harvest; disalin dari SOP']
-  activity_subcategory varchar(50) [note: 'Disalin dari SOP; wajib untuk maintenance']
-  activity_type_id uuid [not null, ref: > activity_types.id, note: 'Turunan kategori/subkategori untuk activity log']
+  activity_category varchar(30) [not null, note: 'maintenance | harvest; disalin dari SOP']
+  activity_subcategory varchar(50) [note: 'Dipertahankan null (2026_11_16_000002); langkah SOP tidak lagi memakai subkategori']
+  activity_type_id uuid [not null, ref: > activity_types.id, note: 'Turunan kategori (maintenance atau harvest) untuk activity log']
   name varchar(200) [not null]
   instructions text
   offset_days int [not null, default: 0, note: 'Disalin dari SOP; HST non-negatif dari tanggal tanam batch']
@@ -653,8 +659,8 @@ Table planting_cycle_tasks {
   due_date date
   position int [not null]
   is_required boolean [not null, default: true]
-  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | submitted | completed | skipped | cancelled; completed hanya setelah approval']
-  completed_at timestamptz [note: 'Waktu approval, sama dengan reviewed_at pengajuan approved; bukan waktu pengajuan Petugas']
+  status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | submitted | completed | skipped | cancelled; completed hanya setelah approval pada usulan penuh (implementasi aktif memperbarui langsung tanpa tabel submission)']
+  completed_at timestamptz [note: 'Waktu penyelesaian/approval']
   skip_reason text
   created_at timestamptz [not null]
   updated_at timestamptz
@@ -665,7 +671,7 @@ Table planting_cycle_tasks {
     (planting_cycle_id, position) [unique]
     (planting_cycle_id, scheduled_date, status)
   }
-  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage diturunkan dari kategori; activity_type_id juga diturunkan dari kategori/subkategori agar konsisten dengan activity log. Histori realisasi ada pada farm_activities; pengajuan dan keputusan ada pada planting_cycle_task_submissions. Status task dan keputusan review diperbarui atomik; satu pengajuan submitted aktif dan maksimal satu approved per task. Task rejected kembali in_progress; riwayat penolakan tidak ditimpa.'
+  Note: 'Salinan pekerjaan versi SOP saat diterapkan. Source task opsional untuk pekerjaan tambahan manual. Stage dan activity_type_id diturunkan dari activity_category (maintenance | harvest; tanpa subkategori). Histori realisasi ada pada farm_activities; pengajuan/approval pada planting_cycle_task_submissions masih rancangan lanjutan.'
 }
 
 Table planting_cycle_task_submissions {
@@ -693,12 +699,12 @@ Table planting_cycle_task_submissions {
   Note: 'Satu baris = satu pengajuan selesai. Petugas aktif hanya submit task kebun tugasnya; Admin tenant atau SuperAdmin mereview. submitted belum berarti task selesai. submitted memerlukan reviewer/waktu review kosong; approved/rejected memerlukan keduanya dan reviewed_at >= submitted_at. Isi pengajuan dan snapshot dibekukan setelah submit; keputusan final tidak ditimpa. Pengajuan ulang setelah rejected membuat baris baru. Partial unique index untuk satu submitted dan satu approved per task serta check status/aktor dirinci di dokumen; tidak dapat dibuktikan oleh FK saja. Histori dijaga restrict/arsip.'
 }
 
-// DETAIL AKTIVITAS BARU UNTUK DUA STAGE PERSIAPAN
+// DETAIL PERSIAPAN LAHAN (USULAN PHASE 1 VS IMPLEMENTASI AKTIF)
 Table land_cleaning_details {
   activity_id uuid [pk, ref: > farm_activities.id]
   area_ha decimal(12,4) [not null, note: 'CHECK > 0']
-  clearing_method varchar(150)
-  equipment varchar(150)
+  clearing_method varchar(150) [note: 'Kolom historis usulan; implementasi aktif mencatat area_ha + catatan opsional (farm_activities.description)']
+  equipment varchar(150) [note: 'Kolom historis usulan; schema aktif menyimpan method/product_name/dosage_per_tank/water_liters/tank_count untuk histori']
 }
 
 Table soil_preparation_details {
@@ -706,6 +712,7 @@ Table soil_preparation_details {
   area_ha decimal(12,4) [not null, note: 'CHECK > 0']
   preparation_method varchar(150)
   tillage_depth_cm decimal(8,2) [note: 'Jika diisi CHECK > 0']
+  Note: 'HISTORIS USULAN: tidak dimigrasikan pada schema aktif. Sejak 2026_11_16_000002, soil_preparation mencatat area_ha pada farm_activities.task_details (jsonb) dan catatan opsional tanpa baris detail anak baru (tabel detail lama dipertahankan untuk histori).'
 }
 
 // FOREIGN KEY KOMPOSIT EXISTING DAN TAMBAHAN USULAN

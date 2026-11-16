@@ -35,12 +35,12 @@ class DemoActivitySeeder extends Seeder
 
         $tasks = PlantingCycleTask::query()->where('planting_cycle_id', $cycle->id)
             ->orderBy('scheduled_date')->orderBy('offset_days')->orderBy('id')->get();
-        $sopTask = fn (string $category, ?string $subcategory): ?PlantingCycleTask => $tasks->first(
+        $sopTask = fn (string $category, ?string $nameContains = null): ?PlantingCycleTask => $tasks->first(
             fn (PlantingCycleTask $task): bool => $task->activity_category === $category
-                && $task->activity_subcategory === $subcategory,
+                && ($nameContains === null || str_contains($task->name, $nameContains)),
         );
-        $scheduled = function (string $category, ?string $subcategory, int $fallbackOffset) use ($sopTask, $plantedAt): string {
-            return $sopTask($category, $subcategory)?->effectiveScheduledDate()?->toDateString()
+        $scheduled = function (string $category, ?string $nameContains, int $fallbackOffset) use ($sopTask, $plantedAt): string {
+            return $sopTask($category, $nameContains)?->effectiveScheduledDate()?->toDateString()
                 ?? $plantedAt->addDays($fallbackOffset)->toDateString();
         };
         $mappingDate = $plantedAt->subDays(12)->toDateString();
@@ -81,32 +81,17 @@ class DemoActivitySeeder extends Seeder
         $this->seedActivityWithDetail($farm, $cycle, $petugas, 'planting', 'Penanaman Blok 1', [
             'seed_name' => 'Benih jagung Bisi 18',
             'quantity_kg' => 18.500,
-            'planting_pattern' => 'Jarak tanam 20 x 40 cm',
             'area_ha' => 4.2500,
         ], $plantedAt->toDateString());
-        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'follow_up_fertilization', 'Pemupukan susulan pertama Blok 1', [
-            'fertilization_stage' => 'Pemupukan susulan',
-            'fertilizer_type' => 'NPK 15-15-15',
-            'brand_name' => 'NPK',
-            'subsidy_status' => 'non_subsidized',
-            'application_method' => 'Tabur di sisi bedeng',
-            'quantity_kg' => 125.000,
-        ], $scheduled('maintenance', 'follow_up_fertilization', 14), $sopTask('maintenance', 'follow_up_fertilization'));
-        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'irrigation', 'Irigasi sore Blok 1', [
-            'water_source' => 'Embung kebun',
-            'irrigation_method' => 'Selang portable',
-            'machine_type' => 'Pompa listrik',
-            'duration_hours' => 2.50,
-        ], $scheduled('maintenance', 'irrigation', 7), $sopTask('maintenance', 'irrigation'));
-        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'pest_control', 'Pengendalian ulat Blok 1', [
-            'pesticide_category' => 'Biologis',
-            'purpose' => 'Pengendalian ulat daun',
-            'brand_name' => 'Bt',
-            'active_ingredient' => 'Bacillus thuringiensis',
-            'dosage_per_tank' => '25 ml / 14 liter',
-            'tank_size_liters' => 14.00,
-            'tank_count' => 6,
-        ], $scheduled('maintenance', 'pest_control', 30), $sopTask('maintenance', 'pest_control'));
+        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'maintenance', 'Pemupukan susulan pertama Blok 1', [
+            'area_ha' => 4.2500,
+        ], $scheduled('maintenance', 'Pemupukan susulan pertama', 14), $sopTask('maintenance', 'Pemupukan susulan pertama'));
+        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'maintenance', 'Irigasi sore Blok 1', [
+            'area_ha' => 4.2500,
+        ], $scheduled('maintenance', 'Pengairan awal', 7), $sopTask('maintenance', 'Pengairan awal'));
+        $this->seedActivityWithDetail($farm, $cycle, $petugas, 'maintenance', 'Pengendalian ulat Blok 1', [
+            'area_ha' => 4.2500,
+        ], $scheduled('maintenance', 'Pengendalian hama', 30), $sopTask('maintenance', 'Pengendalian hama'));
         $this->seedActivityWithDetail($farm, $cycle, $petugas, 'incident', 'Batas bedeng longsor ringan', [
             'incident_category' => 'Erosi lahan',
             'severity' => 'low',
@@ -127,7 +112,7 @@ class DemoActivitySeeder extends Seeder
             }
             $this->seedActivityWithDetail($farm, $previous, $petugas, 'planting', 'Penanaman Blok Utara sebelumnya', [
                 'seed_name' => 'Benih jagung Bisi 18', 'quantity_kg' => 18.500,
-                'planting_pattern' => 'Jarak tanam 20 x 40 cm', 'area_ha' => 4.2500,
+                'area_ha' => 4.2500,
             ], $previous->planted_at->toDateString());
             $this->seedPreviousHarvest($farm, $previous, $petugas);
             if ($previous->fresh()->status === 'active') {
@@ -192,14 +177,18 @@ class DemoActivitySeeder extends Seeder
             }
             $relation = match ($typeCode) {
                 'planting' => 'plantingDetail',
-                'follow_up_fertilization' => 'fertilizationDetail',
-                'irrigation' => 'irrigationDetail',
-                'pest_control' => 'pesticideDetail',
+                'maintenance' => null,
                 'incident' => 'incidentDetail',
                 'harvest' => 'harvestDetail',
                 default => throw new \LogicException("Unsupported seeded activity type {$typeCode}"),
             };
-            $activity->{$relation}()->create($detail);
+            if ($relation !== null) {
+                $activity->{$relation}()->create($detail);
+            } elseif ($task === null) {
+                $activity->forceFill([
+                    'task_details' => json_encode($detail, JSON_THROW_ON_ERROR),
+                ])->save();
+            }
             app(PlantingCycleStageService::class)->record($user, $farm->team, $activity, $type);
         });
     }
@@ -234,7 +223,6 @@ class DemoActivitySeeder extends Seeder
         $this->seedActivityWithDetail($farm, $cycle, $user, 'harvest', $description, [
             'harvested_area_ha' => 4.2500,
             'gross_weight_ton' => 21.000,
-            'moisture_percentage' => 17.50,
             'color' => 'Kuning keemasan',
             'ripeness' => 'Matang panen',
             'cleanliness' => 'Bersih setelah sortasi',
@@ -243,7 +231,7 @@ class DemoActivitySeeder extends Seeder
 
     private function seedGrowthObservation(Farm $farm, PlantingCycle $cycle, User $user, string $activityDate): void
     {
-        $type = ActivityType::query()->where('code', 'growth_check')->firstOrFail();
+        $type = ActivityType::query()->where('code', 'maintenance')->firstOrFail();
         if (FarmActivity::query()->where('farm_id', $farm->id)->where('description', 'Observasi pertumbuhan minggu ke-4')->exists()) {
             return;
         }
@@ -260,7 +248,10 @@ class DemoActivitySeeder extends Seeder
                 'status' => 'completed',
                 'daily_activity_log_id' => $log->id, 'position' => $position, 'worker_count' => 6,
             ]);
-            $activity->forceFill(['block_id' => $cycle->block_id])->save();
+            $activity->forceFill([
+                'block_id' => $cycle->block_id,
+                'task_details' => json_encode(['area_ha' => '4.2500'], JSON_THROW_ON_ERROR),
+            ])->save();
             $activity->observation()->create([
                 'planting_cycle_id' => $cycle->id,
                 'observed_by' => $user->id,
@@ -287,13 +278,12 @@ class DemoActivitySeeder extends Seeder
             $cleaningDate = $block->code === 'B01' ? '2026-05-17' : '2026-09-20';
             $soilDate = $block->code === 'B01' ? '2026-05-20' : '2026-09-23';
             $reports = [
-                ['land_cleaning', 'Pembersihan lahan percontohan '.$block->code, $cleaningDate, 'landCleaningDetail', ['area_ha' => '1.0000', 'method' => 'Pembersihan manual']],
-                ['loosening', 'Penggemburan tanah percontohan '.$block->code, $soilDate, 'looseningDetail', ['area_ha' => '1.0000', 'method' => 'Cultivator', 'depth_cm' => 20]],
+                ['land_cleaning', 'Pembersihan lahan percontohan '.$block->code, $cleaningDate, 'landCleaningDetail', ['area_ha' => '1.0000']],
+                ['soil_preparation', 'Pengolahan tanah percontohan '.$block->code, $soilDate, null, ['area_ha' => '1.0000']],
             ];
             if ($block->code === 'B01') {
-                $reports[] = ['base_fertilization', 'Pemupukan dasar percontohan '.$block->code, '2026-05-25', 'fertilizationDetail', [
-                    'fertilization_stage' => 'dasar', 'fertilizer_type' => 'Kandang', 'quantity_kg' => '2000.000',
-                    'quantity_unit' => 'kg', 'area_ha' => '1.0000', 'application_method' => 'Tabur',
+                $reports[] = ['base_fertilization', 'Pemupukan kandang percontohan '.$block->code, '2026-05-25', 'fertilizationDetail', [
+                    'fertilization_stage' => 'kandang', 'area_ha' => '1.0000',
                 ]];
             }
             foreach ($reports as [$code, $description, $date, $relation, $detail]) {
@@ -310,8 +300,13 @@ class DemoActivitySeeder extends Seeder
                         'description' => $description, 'status' => 'completed', 'daily_activity_log_id' => $log->id,
                         'position' => $position, 'worker_count' => 6,
                     ]);
-                    $activity->forceFill(['block_id' => $block->id])->save();
-                    $activity->{$relation}()->create($detail);
+                    $activity->forceFill([
+                        'block_id' => $block->id,
+                        ...($relation === null ? ['task_details' => json_encode($detail, JSON_THROW_ON_ERROR)] : []),
+                    ])->save();
+                    if ($relation !== null) {
+                        $activity->{$relation}()->create($detail);
+                    }
                     app(PlantingCycleStageService::class)->record($actor, $farm->team, $activity, $type);
                 });
             }

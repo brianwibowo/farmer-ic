@@ -84,7 +84,10 @@ class PresentationNamesSeederTest extends TestCase
         FinancialTransaction::query()->where('farm_id', $base->id)->where('description', 'Pembelian benih jagung Bisi 18 untuk siklus')
             ->update(['description' => 'Pembelian benih jagung Bisi 18 untuk siklus demo']);
         $fertilization = FarmActivity::query()->where('farm_id', $base->id)->where('description', 'Pemupukan susulan pertama Blok 1')->firstOrFail();
-        FertilizationDetail::query()->where('activity_id', $fertilization->id)->update(['brand_name' => 'NPK Demo']);
+        FertilizationDetail::query()->updateOrCreate(
+            ['activity_id' => $fertilization->id],
+            ['fertilization_stage' => 'susulan', 'brand_name' => 'NPK Demo'],
+        );
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $farmId = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
             Farm::query()->whereKey($farmId)->update([

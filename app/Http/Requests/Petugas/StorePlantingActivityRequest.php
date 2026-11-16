@@ -41,7 +41,6 @@ class StorePlantingActivityRequest extends FormRequest
             'area_ha' => ['required', 'numeric', 'decimal:0,4', 'between:0.0001,99999999.9999'],
             'seed_name' => ['required', 'string', 'max:150'],
             'quantity_kg' => ['required', 'numeric', 'decimal:0,3', 'between:0.001,999999999.999'],
-            'planting_pattern' => ['nullable', 'string', 'max:150'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'photos' => ['required', 'array', 'list', 'min:1', 'max:5'],
             'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
@@ -55,7 +54,6 @@ class StorePlantingActivityRequest extends FormRequest
             $rules['quantity'] = ['required', 'numeric', 'min:0.001', 'max:'.ActivityInputLimits::PLANTING_QUANTITY];
             $rules['quantity_unit'] = ['required', 'in:kg,sak,butir'];
             $rules['bag_size'] = ['exclude_unless:quantity_unit,sak', 'required', 'numeric', 'min:0.001', 'max:'.ActivityInputLimits::PLANTING_BAG_SIZE];
-            $rules['depth_cm'] = ['nullable', 'numeric', 'min:0.01', 'max:'.ActivityInputLimits::PLANTING_DEPTH];
         }
         foreach (['daily_activity_log_id', 'farm_id', 'team_id', 'planting_cycle_id', 'task_id', 'activity_type_id', 'performed_by', 'recorded_by', 'status', 'planted_at', 'planned_planting_at', 'sop_template_version_id', 'activity_category', 'activity_subcategory'] as $key) {
             $rules[$key] = ['prohibited'];

@@ -8,10 +8,7 @@ import type {
     PetugasTaskPageProps,
     PetugasTaskUrgency,
 } from '@/types/petugas-task';
-import {
-    sopActivityCategoryLabels,
-    sopActivitySubcategoryLabels,
-} from '@/types/sop';
+import { sopActivityCategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
@@ -56,13 +53,6 @@ function categoryLabel(task: PetugasTask): string {
         sopActivityCategoryLabels[task.activity_category] ??
         task.activity_category
     );
-}
-
-function subcategoryLabel(task: PetugasTask): string {
-    return task.activity_subcategory
-        ? (sopActivitySubcategoryLabels[task.activity_subcategory] ??
-              task.activity_subcategory)
-        : '-';
 }
 
 function tasksFor(section: PetugasTaskUrgency): PetugasTask[] {
@@ -283,7 +273,7 @@ function statusClass(status: PetugasTask['status']): string {
                 <div
                     class="mt-3 border-t border-border pt-3 text-xs text-muted-foreground"
                 >
-                    {{ categoryLabel(task) }} · {{ subcategoryLabel(task) }} ·
+                    {{ categoryLabel(task) }} ·
                     {{ task.linked_activities_count }} aktivitas terkait
                 </div>
                 <div class="mt-4 flex flex-wrap gap-2">

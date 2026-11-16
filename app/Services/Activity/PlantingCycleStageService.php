@@ -15,13 +15,14 @@ class PlantingCycleStageService
 {
     private const CODES = [
         'land_cleaning' => 'land_clearing',
-        'loosening' => 'soil_preparation', 'beds' => 'soil_preparation', 'liming' => 'soil_preparation',
-        'base_fertilization' => 'basic_fertilizer', 'planting' => 'planting',
-        'irrigation' => 'maintenance', 'weeding' => 'maintenance', 'follow_up_fertilization' => 'maintenance',
-        'growth_check' => 'maintenance', 'pest_control' => 'maintenance', 'harvest' => 'harvest',
+        'soil_preparation' => 'soil_preparation',
+        'base_fertilization' => 'basic_fertilizer',
+        'planting' => 'planting',
+        'maintenance' => 'maintenance',
+        'harvest' => 'harvest',
     ];
 
-    private const BLOCK_CODES = ['land_cleaning', 'loosening', 'beds', 'liming', 'base_fertilization'];
+    private const BLOCK_CODES = ['land_cleaning', 'soil_preparation', 'base_fertilization'];
 
     public static function tracks(string $activityCode): bool
     {

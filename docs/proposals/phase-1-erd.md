@@ -1,22 +1,40 @@
 # Usulan ERD lengkap phase 1 pertanian
 
-> **Catatan historis:** dokumen ini adalah usulan awal. Sejak
-> `2026_11_09_000001_remove_planting_rounds.php`, tabel `planting_rounds`
-> dihapus dan `planting_cycles.block_id` menjadi relasi langsung ke blok.
-> Schema aktif ada di `database/schema.dbml`; referensi periode di bawah tidak
-> lagi menggambarkan implementasi saat ini.
+> **Catatan historis & status implementasi (pembaruan 16 November 2026):**
+> dokumen ini berawal sebagai usulan awal phase 1 dan telah diselaraskan dengan
+> implementasi aktif:
+> - `2026_11_09_000001_remove_planting_rounds.php`: tabel `planting_rounds`
+>   dihapus dan `planting_cycles.block_id` menjadi relasi langsung ke blok.
+> - `2026_11_16_000001_make_subblock_area_dynamic_from_planting.php`: luas
+>   subblok didefinisikan secara dinamis oleh `planting_cycles.planted_area_ha`
+>   dari realisasi aktivitas penanaman (menggantikan alokasi tetap
+>   `reserved_area_ha > 0`); pembuatan subblok baru dicegah ketika sisa kapasitas
+>   blok atau kebun penuh, dan dapat dilakukan oleh Admin maupun Petugas pada
+>   kebun tugasnya.
+> - `2026_11_16_000002_simplify_activity_categories_and_sops.php`: kategori
+>   aktivitas budidaya disederhanakan menjadi enam kategori utama (**Pembersihan
+>   Lahan**, **Pengolahan Tanah**, **Pemupukan Kandang**, **Penanaman**,
+>   **Perawatan**, dan **Panen**) ditambah **Pelaporan Insiden**, **Lainnya**,
+>   serta internal **Pemetaan Blok**. `activity_subcategory` pada SOP dan task
+>   dinonaktifkan (selalu `null`), sedangkan `soil_preparation` dan `maintenance`
+>   menyimpan luas area di `farm_activities.task_details` (`jsonb`) dan catatan
+>   opsional tanpa membuat baris detail anak (`soil_preparation_details` usulan
+>   tidak dipakai di schema aktif).
+> - Schema aktif PostgreSQL sepenuhnya tercatat di
+>   [database/schema.dbml](../../database/schema.dbml).
 
-Tanggal rancangan dan penyelarasan RBAC: 29 Oktober 2026. Status: **draft
-implementasi phase 1**. Subset master blok dan batch persiapan telah dibuat pada
-30 Oktober 2026; lihat [backend blok](../farm-block-backend.md) untuk cakupan,
-aturan transisi tanpa approval, dan perbedaannya dari rancangan penuh ini.
-Lapisan definisi SOP (template, versi, dan langkah) sebagai resource tenant
-telah diimplementasikan pada 1 November 2026. Eksekusi task batch, approval, dan
-flow realisasi tahap lanjutan belum diimplementasikan.
-DBML proposal tetap rancangan target; schema aktif ada di database/schema.dbml.
-Batas akses mengikuti
-versi remote `e994d7c` yang dipilih sebagai acuan: Admin mengelola satu tenant
-tanpa penugasan PIC per kebun. Asumsi yang masih terbuka ditandai terpisah.
+Tanggal rancangan awal dan penyelarasan RBAC: 29 Oktober 2026; diperbarui
+mengikuti perubahan November 2026. Status: **bagian blok, subblok dinamis,
+penyederhanaan 6 kategori aktivitas, dan definisi SOP sudah diimplementasikan;
+flow pengajuan/approval `planting_cycle_task_submissions` masih usulan phase 1**.
+Lihat [backend blok](../farm-block-backend.md) untuk rincian modul blok dan
+subblok. DBML proposal mempertahankan struktur usulan (termasuk tabel
+`planting_cycle_task_submissions` serta catatan historis `planting_rounds` dan
+`soil_preparation_details`) agar jejak desain awal tetap utuh, sedangkan kontrak
+schema aktif PostgreSQL ada di [database/schema.dbml](../../database/schema.dbml).
+Batas akses mengikuti versi remote `e994d7c` yang diperluas dengan izin
+pembuatan subblok bagi Petugas pada kebun tugasnya selama kapasitas blok masih
+tersedia. Asumsi yang masih terbuka ditandai terpisah.
 
 Dokumen ini menjelaskan usulan tanpa diagram gambar. File
 [phase-1-erd.dbml](phase-1-erd.dbml) memuat seluruh tabel, tipe kolom, PK, FK,
@@ -31,15 +49,19 @@ nullability, serta unique key. Schema aktif tetap ada di
 - Penanaman pertama dapat menghasilkan Batch 1, 2, 3; penanaman berikutnya
   menghasilkan Batch 4, 5. Histori batch sebelumnya tetap ada.
 - Stage dan jadwal setiap batch berbeda sesuai tanggal dan realisasinya.
-- Stage tetap: land cleaning, soil preparation, basic fertilizer, planting,
-  maintenance, harvest.
+- Stage tetap: pembersihan lahan (`land_cleaning`), pengolahan tanah
+  (`soil_preparation`), pemupukan kandang (`basic_fertilizer` /
+  `base_fertilization`), penanaman (`planting`), perawatan (`maintenance`),
+  panen (`harvest`).
 - Fokus phase 1: data lahan, aktivitas harian, transaksi penanaman, transaksi
   panen, template SOP. Transaksi di sini merupakan laporan operasional.
-- Memakai kembali `planting_cycles` untuk identitas batch, bukan menambah tabel
-  batch lain dengan fungsi yang sama. Tidak ada master subblok permanen.
+- Memakai kembali `planting_cycles` untuk identitas batch/subblok, bukan
+  menambah tabel batch lain dengan fungsi yang sama. Tidak ada master subblok
+  permanen.
 - Tabel Finance, AI/RAG, autentikasi, serta histori yang sudah ada dipertahankan.
-- Admin mengelola kebun dan akun Admin/Petugas dalam satu tenant; tidak memakai
-  pivot PIC. Penugasan Petugas tetap satu kebun melalui `users.assigned_farm_id`.
+- Admin mengelola kebun dan akun Admin/Petugas dalam satu tenant; penugasan
+  Petugas tetap satu kebun melalui `users.assigned_farm_id` (Admin maupun
+  Petugas dapat membuat subblok pada blok aktif selama kapasitas masih tersedia).
 - SOP dimiliki satu tenant dan wajib untuk satu komoditas tanaman. Varietas tidak
   memilih SOP. Setiap kebun menunjuk satu SOP default; Petugas tidak memilih SOP
   saat mencatat penanaman. Distribusi lintas tenant berada di luar draft ini.
@@ -55,14 +77,14 @@ User Management dalam mode baca. Dokumen ini tidak mengubah matriks izin aktif.
 
 ## Asumsi draft yang belum disepakati
 
-| Hal | Pilihan sementara dalam draft | Dampak jika berubah |
+| Hal | Pilihan dalam rancangan & pembaruan | Dampak jika berubah |
 | --- | --- | --- |
 | Cakupan nomor batch | Berurutan per lahan: unique `farm_id, batch_number` | Bila per blok atau global, ubah aturan nomor dan unique key |
-| Pengelompokan periode | `planting_rounds` berlaku untuk satu blok | Periode lintas blok memerlukan rancangan pengelompokan berbeda |
-| Kapan batch dibuat | Bisa dibuat saat persiapan, sebelum realisasi tanam | Jika hanya dibuat saat tanam, histori persiapan perlu dimasukkan atau dikaitkan kemudian |
-| Laporan penanaman baru | Default membuat batch baru; realisasi ke batch existing hanya melalui pilihan eksplisit | Aturan satu laporan vs beberapa laporan per batch belum diputuskan |
+| Pengelompokan periode | Historis proposal memakai `planting_rounds`; schema aktif memakai `planting_cycles.block_id` langsung | Bila pengelompokan periode diaktifkan kembali, tambah relasi di atas `planting_cycles` |
+| Kapan subblok dibuat | Dapat dibuat saat persiapan dengan `planted_area_ha = 0` oleh Admin atau Petugas selama sisa kapasitas blok/kebun > 0; pembuatan ditolak jika blok sudah penuh | Jika hanya boleh dibuat saat tanam, histori persiapan perlu dikaitkan kemudian |
+| Laporan penanaman baru | Luas subblok diturunkan dinamis dari akumulasi realisasi `planted_area_ha` aktivitas penanaman dalam batas sisa kapasitas blok/kebun | Bila kembali ke alokasi tetap di depan, aktifkan lagi `reserved_area_ha > 0` sebelum tanam |
 | Acuan hari SOP | H+0 adalah tanggal acuan, H+7 tujuh hari sesudahnya | Bila istilah bisnis memakai Hari 1 untuk tanggal awal, tampilan menyesuaikan tanpa menggeser tanggal |
-| Lokasi fisik subblok | Dicatat sebagai alokasi luas dan label per batch | Penentuan batas/peta subblok belum diminta; pemeriksaan luas tidak membuktikan tidak ada tumpang tindih geografis |
+| Lokasi fisik subblok | Dicatat sebagai luas realisasi dinamis (`planted_area_ha`) dan label per subblok (`subblock_label`) | Penentuan batas/peta subblok belum diminta; pemeriksaan luas tidak membuktikan tidak ada tumpang tindih geografis |
 | Persiapan bersama | Draft mendukung timeline persiapan per batch | Pembagian pekerjaan yang sekaligus mencakup satu blok penuh perlu dibahas bila diperlukan |
 | Penolakan dan pengajuan ulang | Pengajuan rejected tetap disimpan; task kembali in_progress dan percobaan berikutnya membuat baris baru | Rincian teknis ini masih draft untuk memenuhi flow approval yang telah disepakati |
 | Pembukaan kembali task approved | Tidak otomatis; alur koreksi terpisah belum ditetapkan | Jangan menimpa keputusan atau membuka task completed hanya karena laporan diedit |
@@ -74,8 +96,8 @@ User Management dalam mode baca. Dokumen ini tidak mengubah matriks izin aktif.
 | `teams` | 1 ke banyak | `farms` | `farms.team_id` |
 | `farms` | 1 ke banyak Petugas | `users` | `users.assigned_farm_id`; satu Petugas maksimal satu kebun |
 | `farms` | 1 ke banyak | `farm_blocks` | `farm_blocks.farm_id` |
-| `farm_blocks` | 1 ke banyak | `planting_rounds` | `planting_rounds.block_id` |
-| `planting_rounds` | 1 ke banyak | `planting_cycles` | `planting_cycles.planting_round_id` |
+| `farm_blocks` | 1 ke banyak *(historis usulan; schema aktif langsung ke `planting_cycles.block_id`)* | `planting_rounds` | `planting_rounds.block_id` |
+| `planting_rounds` | 1 ke banyak *(historis usulan)* | `planting_cycles` | `planting_cycles.planting_round_id` |
 | `crop_varieties` | 1 ke banyak | `planting_cycles` | `planting_cycles.variety_id` |
 | `teams` dan `commodities` | masing-masing 1 ke banyak | `sop_templates` | `team_id` dan `commodity_id` wajib |
 | `sop_templates` | 1 ke banyak | `farms` | `farms.default_sop_template_id`, opsional; dipakai otomatis untuk penanaman |
@@ -91,7 +113,7 @@ User Management dalam mode baca. Dokumen ini tidak mengubah matriks izin aktif.
 | `planting_cycle_tasks` | 1 ke banyak percobaan pengajuan | `planting_cycle_task_submissions` | `planting_cycle_task_id`; urutan unik per task |
 | `users` | 1 ke banyak pengajuan dan review | `planting_cycle_task_submissions` | `submitted_by` wajib; `reviewed_by` terisi setelah review |
 | `daily_activity_logs` | 1 ke banyak | `farm_activities` | `daily_activity_log_id`, wajib satu lahan jika terisi |
-| `farm_activities` | 1 ke tepat 1 detail yang sesuai jenis | Tabel detail aktivitas atau `plant_observations` | `activity_id`; jenis detail saling eksklusif |
+| `farm_activities` | 1 ke 1 detail (kategori bertipe) atau `task_details` JSONB (`soil_preparation`, `maintenance`) | Tabel detail aktivitas / `plant_observations` | `activity_id`; kategori bertipe saling eksklusif, sementara `soil_preparation` & `maintenance` mengizinkan 0 baris detail |
 | `farm_activities` | 1 ke banyak | `activity_photos` | `activity_photos.activity_id` |
 
 Relasi `farm_activities.planting_cycle_id` tetap opsional untuk histori lama dan
@@ -104,60 +126,75 @@ oleh draft ini. Akses laporan tidak memberikan hak approval kepada Petugas.
 
 ## Penambahan dan perubahan
 
-Draft memiliki **48 tabel aplikasi**: 38 existing dan 10 baru. Dengan 7 tabel
-pendukung Laravel serta `migrations`, file DBML berisi **56 tabel**. Kolom
-`users.deleted_at` mengikuti soft delete dari versi remote.
-Lima tabel existing disesuaikan. Sisanya mempertahankan kolom yang sudah ada.
+Draft awal memiliki **48 tabel aplikasi** (38 baseline dan 10 usulan; **56 tabel**
+termasuk 7 tabel pendukung Laravel serta `migrations`), sedangkan struktur
+PostgreSQL aktif setelah migrasi tambahan tercatat pada `database/schema.dbml`.
+Kolom `users.deleted_at` mengikuti soft delete dari versi remote.
+Lima tabel existing disesuaikan pada rancangan awal. Sisanya mempertahankan kolom yang sudah ada.
 
 | Tabel baru | Tujuan |
 | --- | --- |
 | `farm_blocks` | Master blok permanen beserta luasnya |
-| `planting_rounds` | Kelompok batch dalam satu periode penanaman di blok |
+| `planting_rounds` | Kelompok batch dalam satu periode penanaman di blok *(historis usulan; dihapus pada schema aktif)* |
 | `sop_templates` | Identitas template SOP per tenant dan komoditas beserta asal salinan |
 | `sop_template_versions` | Versi SOP yang dapat dipublikasikan dan dibekukan |
-| `sop_template_tasks` | Daftar pekerjaan berdasarkan kategori/subkategori dan hari HST relatif |
+| `sop_template_tasks` | Daftar pekerjaan berdasarkan kategori (`maintenance` \| `harvest`, tanpa subkategori) dan hari HST relatif |
 | `planting_cycle_stages` | Timeline enam stage masing-masing batch |
 | `planting_cycle_tasks` | Salinan pekerjaan dan jadwal per batch |
 | `planting_cycle_task_submissions` | Riwayat pengajuan selesai, snapshot bukti, dan keputusan approval setiap percobaan |
-| `land_cleaning_details` | Detail realisasi pembersihan lahan |
-| `soil_preparation_details` | Detail realisasi pengolahan tanah |
+| `land_cleaning_details` | Detail realisasi pembersihan lahan (input aktif memakai `area_ha` + catatan opsional) |
+| `soil_preparation_details` | Historis usulan detail pengolahan tanah *(tidak dipakai di schema aktif; digantikan `farm_activities.task_details` JSONB)* |
 
-Dua tabel detail terakhir melengkapi rancangan awal tujuh tabel struktur/SOP.
-Keduanya diperlukan karena schema existing mewajibkan setiap aktivitas memiliki
-tepat satu detail sesuai jenisnya. `basic_fertilizer` menggunakan jenis
-`fertilization` dan `fertilization_details` yang sudah ada.
+Pada implementasi aktif November 2026 (`2026_11_16_000002`), hanya kategori
+tertentu yang membuat baris pada tabel detail anak: pembersihan lahan
+(`land_cleaning_details`), pemupukan kandang (`base_fertilization` ->
+`fertilization_details` dengan `fertilization_stage = 'kandang'`), penanaman
+(`planting_details`), panen (`harvest_details`), insiden (`incident_details`),
+dan lainnya (`other_details`). Pengolahan tanah (`soil_preparation`) dan
+perawatan (`maintenance`) menyimpan `area_ha` pada `farm_activities.task_details`
+(`jsonb`) serta catatan opsional (`description`) tanpa mewajibkan baris detail
+anak baru, sementara baris detail lama (`loosening_details`, `weeding_details`,
+`bed_preparation_details`, `liming_details`, `irrigation_details`,
+`pesticide_details`) tetap dipertahankan untuk histori.
 
 | Tabel existing | Penyesuaian |
 | --- | --- |
-| `planting_cycles` | Tambah periode, nomor batch, label subblok, alokasi luas, tanggal rencana, versi SOP, pembuat, waktu penutupan dan pembaruan. `planted_at` menjadi nullable selama persiapan; luas tertanam dapat 0 sebelum tanam |
-| `farm_activities` | Tambah tautan opsional ke jadwal batch dan jaga kecocokan batch serta jenis aktivitas |
-| `planting_details` | Tambah `seedling_count`; pertahankan berat benih untuk metode tanam berbasis berat |
+| `planting_cycles` | Tambah relasi blok (`block_id` pada schema aktif; `planting_rounds` di proposal historis), nomor batch, label subblok, `reserved_area_ha` (legacy `>= 0` disinkronkan ke `planted_area_ha`), `planted_area_ha` sebagai luas subblok dinamis, tanggal rencana, versi SOP, pembuat, waktu penutupan dan pembaruan. `planted_at` nullable selama persiapan; `planted_area_ha` bernilai 0 sebelum penanaman |
+| `farm_activities` | Tambah tautan opsional ke jadwal batch dan `task_details` (`jsonb`) untuk input area/detail bersama (termasuk `soil_preparation` dan `maintenance` tanpa baris detail anak) |
+| `planting_details` | Input aktif mencatat luas area, nama bibit, dan jumlah/berat benih; `seedling_count` dan `planting_pattern` dipertahankan untuk histori |
 | `block_mapping_details` | Tambah referensi opsional master blok; nama dan ukuran hasil pengukuran tetap menjadi snapshot historis |
-| `activity_types` | Tambah kode tetap `land_cleaning` dan `soil_preparation`; sesuaikan constraint daftar jenis |
+| `activity_types` | Sediakan 6 kategori budidaya utama (`land_cleaning`, `soil_preparation`, `base_fertilization`, `planting`, `maintenance`, `harvest`) beserta `incident`, `other`, dan `block_mapping` (`is_selectable = false`); kode sub-aktivitas lama dimigrasikan ke kategori akar (`2026_11_16_000002`) |
 
 `planting_cycles.farm_id` dipertahankan untuk hubungan existing dan batas akses.
-Nilainya wajib sama dengan lahan dari `planting_rounds.block_id`.
+Pada schema aktif, `planting_cycles.block_id` terhubung langsung ke blok pada
+kebun yang sama (tanpa `planting_rounds`).
 `current_stage` tidak ditambahkan pada batch: nilainya diperoleh dari timeline
 agar tidak menyimpan dua status tahap yang dapat berbeda.
 
-## Kategori, subkategori, dan stage batch
+## Kategori, subkategori historis, dan stage batch
 
-Form aktivitas memakai kategori dan subkategori. Stage adalah konsep internal
-batch yang diturunkan dari kategori task saat task batch dibuat.
+Sejak pembaruan `2026_11_16_000002`, form aktivitas harian memakai **6 kategori
+budidaya utama** (**Pembersihan Lahan**, **Pengolahan Tanah**, **Pemupukan
+Kandang**, **Penanaman**, **Perawatan**, dan **Panen**) ditambah **Pelaporan
+Insiden** dan **Lainnya**, dengan field input area (`area` + `area_unit`) dan
+**Catatan opsional** (`farm_activities.description`) yang seragam. Di level SOP
+(`sop_template_tasks` dan `planting_cycle_tasks`), `activity_subcategory`
+dinonaktifkan (selalu `null`) dan langkah SOP hanya memakai `maintenance` atau
+`harvest` (penanaman menjadi jangkar H+0 HST).
 
-| Kategori | Subkategori | Stage batch |
+| Kategori | Subkategori SOP (aktif) | Stage batch |
 | --- | --- | --- |
-| `planting` | - | `planting` |
-| `maintenance` | `irrigation` | `maintenance` |
-| `maintenance` | `weeding` | `maintenance` |
-| `maintenance` | `follow_up_fertilization` | `maintenance` |
-| `maintenance` | `growth_check` | `maintenance` |
-| `maintenance` | `pest_control` | `maintenance` |
+| `land_cleaning` *(non-SOP)* | - | `land_cleaning` |
+| `soil_preparation` *(non-SOP)* | - | `soil_preparation` |
+| `base_fertilization` *(Pemupukan Kandang, non-SOP)* | - | `basic_fertilizer` |
+| `planting` *(jangkar H+0 SOP)* | - | `planting` |
+| `maintenance` | - *(dinonaktifkan; sebelumnya `irrigation`, `weeding`, `follow_up_fertilization`, `growth_check`, `pest_control`)* | `maintenance` |
 | `harvest` | - | `harvest` |
 
-Pembersihan lahan dan pengolahan tanah bukan bagian SOP; keduanya dikelola
-sebagai persiapan batch/blok. Detail realisasi tetap ditentukan saat activity
-log dibuat berdasarkan subkategori.
+Pembersihan lahan, pengolahan tanah, dan pemupukan kandang dikelola sebagai
+persiapan subblok/blok dan bukan langkah SOP. Pembuatan aktivitas pada kategori
+`soil_preparation` dan `maintenance` tidak lagi mewajibkan tabel detail anak
+khusus karena luas realisasi tersimpan pada `farm_activities.task_details`.
 
 ## Jadwal SOP dan histori
 
@@ -176,11 +213,13 @@ log dibuat berdasarkan subkategori.
   teks template yang bisa berubah.
 - Perubahan template atau versi terbaru hanya digunakan batch berikutnya.
   Jadwal dan isi pekerjaan batch berjalan tetap memakai snapshot versi semula.
-- Setiap pekerjaan memiliki kategori/subkategori; stage batch diturunkan dari
-  kategori tersebut saat task batch dibuat.
-- Semua offset pekerjaan SOP memakai HST dari tanggal tanam batch. `H+0`
-  adalah tanggal tanam. SOP dimulai pada penanaman; pekerjaan persiapan tidak
-  menjadi langkah SOP.
+- Setiap pekerjaan SOP memiliki `activity_category` (`maintenance` atau
+  `harvest`, sedangkan `activity_subcategory` selalu `null` sejak
+  `2026_11_16_000002`); stage subblok diturunkan dari kategori tersebut saat
+  task subblok dibuat.
+- Semua offset pekerjaan SOP memakai HST dari tanggal tanam subblok. `H+0`
+  adalah tanggal tanam (`planting` menjadi jangkar HST, bukan langkah SOP);
+  pekerjaan persiapan tidak menjadi langkah SOP.
 - Tanggal acuan memakai `planting_cycles.planted_at` jika sudah ada. Sebelum
   realisasi tanam, `planned_planting_at` dipakai sebagai acuan rencana agar
   pekerjaan persiapan tetap memiliki tanggal. Perhitungan hari mengikuti
@@ -281,41 +320,55 @@ Petugas mengajukan dan hanya Admin tenant atau SuperAdmin yang memberi approval.
 
 ## Luas, jumlah bibit, dan siklus hidup
 
-- Luas blok positif; jumlah luas blok yang digunakan tidak boleh melebihi luas
-  lahan.
-- `reserved_area_ha` adalah alokasi batch, sedangkan `planted_area_ha` adalah
-  realisasi kumulatif dari laporan. Sebelum tanam, realisasi boleh 0.
-- Jumlah alokasi batch yang masih menggunakan blok harus muat di luas blok,
-  termasuk jika batch berada pada periode yang berbeda. Validasi harus mengunci
-  blok saat membuat/mengubah alokasi agar permintaan bersamaan tidak melampaui
-  kapasitas.
-- Luas tertanam tidak boleh negatif atau melebihi alokasi. Perubahan laporan
-  harus memperbarui agregat pada transaksi database yang sama.
-- Jumlah bibit realisasi berada pada `planting_details.seedling_count`.
-  Total per batch diperoleh dari laporan; tidak ditambah kolom total bibit
-  kedua pada batch.
-- `seedling_count` dan `quantity_kg` adalah dua ukuran berbeda. Form memilih
-  sesuai metode penanaman; keduanya boleh diisi jika memang dicatat.
-- Koreksi laporan bukan batch baru dan tidak boleh menggandakan luas atau bibit.
-  Tombol laporan penanaman baru membuat identitas batch baru sesuai kebutuhan
-  yang telah dijelaskan pengguna.
-- Nomor batch tidak didaur ulang setelah pembatalan dan tidak reset saat panen.
-  Urutan boleh memiliki celah; penerbitan nomor harus aman terhadap konkurensi.
-- Panen dapat bertahap dan memiliki beberapa aktivitas/detail panen pada batch
+- Luas blok positif; jumlah luas blok aktif yang digunakan tidak boleh melebihi
+  luas lahan.
+- Sejak `2026_11_16_000001`, subblok baru tidak lagi meminta alokasi tetap
+  `reserved_area_ha > 0` di awal. `planted_area_ha` dimulai dari `0` selama
+  persiapan dan bertambah dinamis dari akumulasi realisasi aktivitas
+  penanaman (`planting`), sedangkan `reserved_area_ha` dipertahankan sebagai
+  kolom legacy yang disinkronkan ke `planted_area_ha` untuk subblok (`>= 0`).
+- Kapasitas blok aktif dan kebun dihitung dari total `planted_area_ha` subblok
+  berstatus `planned` / `active` (ditambah siklus legacy aktif tanpa blok).
+  Validasi mengunci blok dan kebun saat membuat subblok atau mencatat penanaman
+  agar permintaan bersamaan tidak melampaui kapasitas blok maupun kebun.
+- Pembuatan subblok baru (dapat dilakukan oleh Admin maupun Petugas pada kebun
+  tugasnya) dicegah apabila sisa kapasitas blok atau kebun sudah habis (`<= 0`).
+- Luas tertanam tidak boleh negatif dan penambahannya saat penanaman tidak
+  boleh melebihi sisa kapasitas blok maupun kebun yang tersedia. Perubahan
+  agregat diperbarui pada transaksi database yang sama.
+- Input penanaman aktif mencatat luas area (`area` + `area_unit`), nama bibit
+  (`seed_name`), serta jumlah/berat benih (`quantity` + `quantity_unit`), lalu
+  menyimpan hasil normalisasinya pada `planting_details.area_ha` dan
+  `quantity_kg` (dengan payload mentah pada `farm_activities.task_details`).
+  Kolom historis `seedling_count` / `planting_pattern` dipertahankan untuk data
+  lama.
+- Input panen aktif mencatat luas panen (`harvested_area_ha`) dan berat kotor
+  (`gross_weight_ton`); kolom kualitas lama (`moisture_percentage`, `color`,
+  `ripeness`, `cleanliness`) dipertahankan untuk histori.
+- Koreksi laporan bukan subblok baru dan tidak boleh menggandakan luas atau
+  benih. Penanaman baru pada area terpisah membuat subblok baru selama sisa
+  kapasitas blok masih tersedia.
+- Nomor subblok/batch tidak didaur ulang setelah pembatalan dan tidak reset saat
+  panen. Urutan boleh memiliki celah; penerbitan nomor aman terhadap
+  konkurensi.
+- Panen dapat bertahap dan memiliki beberapa aktivitas/detail panen pada subblok
   yang sama. Luas panen per laporan tidak otomatis dijumlahkan menjadi luas unik,
   karena panen berulang dapat terjadi pada area yang sama.
-- Batch berstatus harvested dan melepas alokasi setelah dinyatakan selesai,
-  bukan otomatis pada laporan panen pertama. Pembatalan harus mempertahankan
-  histori dan menentukan pelepasan alokasi secara eksplisit.
-- Ukuran blok yang berubah tidak boleh membuat alokasi aktif tidak valid.
-  Total luas saja belum dapat memvalidasi tumpang tindih lokasi tanpa data batas.
+- Subblok berstatus `harvested` dan melepas pemakaian kapasitas blok/kebun
+  setelah ditutup/dinyatakan selesai, bukan otomatis pada laporan panen
+  pertama. Pembatalan mempertahankan histori dan melepas pemakaian kapasitas.
+- Ukuran blok yang berubah tidak boleh membuat total `planted_area_ha` subblok
+  berjalan menjadi melebihi kapasitas blok. Total luas saja belum dapat
+  memvalidasi tumpang tindih lokasi tanpa data batas geografis.
 
 ## Integritas dan batas akses
 
 File DBML memperlihatkan struktur relasi; tidak menggantikan implementasi
 constraint/check/trigger. Ketika diimplementasikan, hal berikut wajib dijaga:
 
-1. Blok dan periode benar-benar berasal dari lahan batch yang sama.
+1. Blok (dan periode pada rancangan historis `planting_rounds`) harus berasal dari
+   lahan batch/subblok yang sama (`planting_cycles.block_id` langsung pada
+   schema aktif).
 2. Versi SOP berasal dari tenant batch yang sama, memiliki komoditas yang sama
    dengan batch, dan sudah published saat diterapkan. Komoditas template wajib
    terisi; varietas dan kebun tidak menentukan.
@@ -323,20 +376,29 @@ constraint/check/trigger. Ketika diimplementasikan, hal berikut wajib dijaga:
 4. Stage jadwal adalah milik batch yang sama. Relasi ini didokumentasikan
    dengan FK komposit.
 5. Aktivitas yang menunjuk jadwal harus mengisi batch dan memiliki jenis
-   aktivitas yang sama; nullability tidak boleh melewati pemeriksaan FK.
+   aktivitas yang cocok dengan `activity_category` task (`maintenance` atau
+   `harvest`, dengan `activity_subcategory = null`); nullability tidak boleh
+   melewati pemeriksaan FK.
 6. Mapping detail yang menunjuk blok harus satu lahan dengan aktivitas.
 7. Urutan tanggal stage, jadwal, penutupan batch, dan panen konsisten. Panen
    memerlukan realisasi tanam. Maksimal satu stage in_progress per batch;
    perpindahan stage memerlukan penyelesaian atau alasan skip tahap sebelumnya.
-8. Constraint trigger detail aktivitas existing diperluas untuk dua jenis
-   persiapan. Aturan satu detail sesuai jenis dan trigger luas existing juga
-   disesuaikan dengan batch planned yang luas realisasinya masih 0.
+8. Constraint trigger detail aktivitas mewajibkan 1:1 baris detail untuk
+   kategori bertipe (`land_cleaning`, `base_fertilization`, `planting`,
+   `harvest`, `incident`, `other`, `block_mapping`), sedangkan
+   `soil_preparation` dan `maintenance` mengizinkan 0 baris detail anak dengan
+   luas tersimpan di `farm_activities.task_details` (`jsonb`) sambil tetap
+   menjaga baris detail lama (`loosening_details`, `weeding_details`,
+   `bed_preparation_details`, `liming_details`, `irrigation_details`,
+   `pesticide_details`). Trigger kapasitas (`farmer_ic_check_block_capacity`)
+   menjumlahkan `planted_area_ha` untuk subblok `planned` / `active` (dan siklus
+   legacy aktif tanpa blok).
 9. Data jadwal dan realisasi tidak boleh hilang akibat penghapusan template,
    versi, blok, periode atau batch. Histori dilindungi dengan restrict/arsip.
    Aksi ON DELETE existing, seperti detail milik aktivitas dan FK nullable,
    harus ditinjau dan dipertahankan sesuai arti histori, bukan disalin membabi buta.
 10. Membership tim dan penugasan kebun tetap berasal dari relasi persisten.
-    Admin memerlukan membership pada satu tenant nonpersonal, tanpa pivot PIC;
+    Admin memerlukan membership pada satu tenant nonpersonal;
     Petugas memerlukan membership dan satu `assigned_farm_id`. Keberadaan
     membership tidak menggantikan grant tindakan atau mengizinkan lintas tenant.
 11. SOP merupakan resource milik tenant. Scope `any` Admin dibatasi tenant melalui
@@ -353,11 +415,11 @@ constraint/check/trigger. Ketika diimplementasikan, hal berikut wajib dijaga:
     keterkaitan task, waktu review, dan transisi perlu check/trigger serta
     transaksi service; relasi FK sendiri belum membuktikan semuanya.
 
-Hak fitur baru mengikuti batas RBAC yang telah disepakati:
+Hak fitur mengikuti batas RBAC yang diperbarui:
 
 | Resource atau tindakan | Owner | Admin | Petugas | SuperAdmin |
 | --- | --- | --- | --- | --- |
-| Blok, periode, batch, stage dan jadwal task | Baca dalam tenant | Kelola kebun dalam tenant | Baca hanya kebun tugas; tidak mengonfigurasi | Semua |
+| Blok, subblok/batch, stage dan jadwal task | Baca dalam tenant | Kelola kebun, blok, subblok, dan jadwal dalam tenant (pembuatan subblok dicegah bila blok penuh) | Baca kebun tugas dan dapat membuat subblok pada blok aktif kebun tugas selama kapasitas blok/kebun > 0; tidak mengelola master blok/jadwal SOP | Semua |
 | Template, versi, dan task SOP | Baca dalam tenant | Kelola SOP dalam tenant, versi published tidak diedit | Baca petunjuk/versi yang diterapkan ke task kebunnya; tidak mengelola katalog | Semua, tetap menjaga histori versi |
 | Pengajuan penyelesaian | Baca dalam tenant | Baca pengajuan dalam tenant | Membuat pengajuan pada kebun tugas; tidak mengubah pengajuan yang sudah dikirim | Semua |
 | Approval atau penolakan | Tidak | Hanya dalam tenant | Tidak | Semua |
@@ -449,8 +511,8 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | `farm_blocks` | Baru | `id`, `farm_id`, `code`, `name`, `area_ha`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `commodities` | Tetap | `id`, `name`, `description`, `image_url` |
 | `crop_varieties` | Tetap | `id`, `commodity_id`, `name`, `description` |
-| `planting_rounds` | Baru | `id`, `block_id`, `round_number`, `name`, `started_at`, `finished_at`, `status`, `notes`, `created_by`, `created_at`, `updated_at` |
-| `planting_cycles` | Disesuaikan | `id`, `farm_id`, `planting_round_id`, `variety_id`, `sop_template_version_id`, `batch_number`, `sub_block_code`, `reserved_area_ha`, `planted_area_ha`, `planned_planting_at`, `planted_at`, `estimated_harvest_at`, `estimated_weight_ton`, `closed_at`, `status`, `created_by`, `created_at`, `updated_at` |
+| `planting_rounds` | Baru *(Historis usulan; dihapus pada schema aktif)* | `id`, `block_id`, `round_number`, `name`, `started_at`, `finished_at`, `status`, `notes`, `created_by`, `created_at`, `updated_at` |
+| `planting_cycles` | Disesuaikan | `id`, `farm_id`, `planting_round_id`, `variety_id`, `sop_template_version_id`, `batch_number`, `sub_block_code`, `reserved_area_ha` *(legacy `>= 0`/nullable)*, `planted_area_ha` *(dinamis)*, `planned_planting_at`, `planted_at`, `estimated_harvest_at`, `estimated_weight_ton`, `closed_at`, `status`, `created_by`, `created_at`, `updated_at` |
 
 ### Template SOP dan timeline batch
 
@@ -458,28 +520,28 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | --- | --- | --- |
 | `sop_templates` | Baru | `id`, `team_id`, `commodity_id`, `copied_from_version_id`, `name`, `description`, `is_active`, `created_by`, `created_at`, `updated_at` |
 | `sop_template_versions` | Baru | `id`, `sop_template_id`, `version`, `notes`, `status`, `created_by`, `published_by`, `published_at`, `created_at`, `updated_at` |
-| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at`, `activity_category`, `activity_subcategory` |
+| `sop_template_tasks` | Baru | `id`, `sop_template_version_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `is_required`, `created_at`, `updated_at`, `activity_category` *(`maintenance` \| `harvest`)*, `activity_subcategory` *(selalu `null`)* |
 | `planting_cycle_stages` | Baru | `id`, `planting_cycle_id`, `stage_code`, `position`, `planned_start_at`, `planned_end_at`, `started_at`, `completed_at`, `status`, `skip_reason`, `created_at`, `updated_at` |
-| `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_category`, `activity_subcategory`, `activity_type_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
-| `planting_cycle_task_submissions` | Baru | `id`, `planting_cycle_task_id`, `attempt_number`, `submitted_by`, `submitted_at`, `reported_completed_at`, `submission_note`, `evidence_snapshot`, `status`, `reviewed_by`, `reviewed_at`, `review_note`, `created_at`, `updated_at` |
+| `planting_cycle_tasks` | Baru | `id`, `planting_cycle_id`, `planting_cycle_stage_id`, `sop_template_task_id`, `activity_category` *(`maintenance` \| `harvest`)*, `activity_subcategory` *(selalu `null`)*, `activity_type_id`, `name`, `instructions`, `offset_days`, `tolerance_days`, `scheduled_date`, `due_date`, `position`, `is_required`, `status`, `completed_at`, `skip_reason`, `created_at`, `updated_at` |
+| `planting_cycle_task_submissions` | Baru *(Belum dimigrasikan)* | `id`, `planting_cycle_task_id`, `attempt_number`, `submitted_by`, `submitted_at`, `reported_completed_at`, `submission_note`, `evidence_snapshot`, `status`, `reviewed_by`, `reviewed_at`, `review_note`, `created_at`, `updated_at` |
 
 ### Aktivitas dan laporan penanaman/panen
 
 | Tabel | Status | Kolom lengkap |
 | --- | --- | --- |
-| `activity_types` | Disesuaikan | `id`, `code`, `name`, `description` |
+| `activity_types` | Disesuaikan | `id`, `code`, `name`, `description` *(6 kategori utama + `incident`, `other`, internal `block_mapping`; kolom taxonomy aktif ada di `database/schema.dbml`)* |
 | `daily_activity_logs` | Tetap | `id`, `farm_id`, `recorded_by`, `work_date`, `start_time`, `end_time`, `worker_count`, `notes`, `created_at`, `updated_at` |
-| `farm_activities` | Disesuaikan | `id`, `farm_id`, `planting_cycle_id`, `activity_type_id`, `performed_by`, `activity_date`, `description`, `status`, `created_at`, `updated_at`, `daily_activity_log_id`, `position`, `obstacle_status`, `obstacles`, `proposed_solution`, `action_taken`, `planting_cycle_task_id` |
+| `farm_activities` | Disesuaikan | `id`, `farm_id`, `planting_cycle_id`, `activity_type_id`, `performed_by`, `activity_date`, `description`, `status`, `created_at`, `updated_at`, `daily_activity_log_id`, `position`, `obstacle_status`, `obstacles`, `proposed_solution`, `action_taken`, `task_details`, `planting_cycle_task_id` |
 | `activity_photos` | Tetap | `id`, `activity_id`, `label`, `caption`, `image_url`, `uploaded_at` |
 | `block_mapping_details` | Disesuaikan | `activity_id`, `form_version`, `block_name`, `length_m`, `width_m`, `row_spacing_cm`, `plant_spacing_cm`, `rows_per_bed`, `block_id` |
-| `land_cleaning_details` | Baru | `activity_id`, `area_ha`, `clearing_method`, `equipment` |
-| `soil_preparation_details` | Baru | `activity_id`, `area_ha`, `preparation_method`, `tillage_depth_cm` |
-| `planting_details` | Disesuaikan | `activity_id`, `seed_name`, `seedling_count`, `quantity_kg`, `planting_pattern`, `area_ha` |
-| `fertilization_details` | Tetap | `activity_id`, `fertilization_stage`, `fertilizer_type`, `brand_name`, `subsidy_status`, `application_method`, `quantity_kg` |
-| `irrigation_details` | Tetap | `activity_id`, `water_source`, `irrigation_method`, `machine_type`, `duration_hours` |
-| `pesticide_details` | Tetap | `activity_id`, `pesticide_category`, `purpose`, `brand_name`, `active_ingredient`, `dosage_per_tank`, `tank_size_liters`, `tank_count` |
+| `land_cleaning_details` | Baru | `activity_id`, `area_ha`, `clearing_method`, `equipment` *(schema aktif memakai `area_ha` + kolom legacy)* |
+| `soil_preparation_details` | Baru *(Historis usulan; tidak dipakai di schema aktif)* | `activity_id`, `area_ha`, `preparation_method`, `tillage_depth_cm` |
+| `planting_details` | Disesuaikan | `activity_id`, `seed_name`, `seedling_count` *(histori)*, `quantity_kg`, `planting_pattern` *(histori)*, `area_ha` |
+| `fertilization_details` | Tetap *(Pemupukan Kandang & histori)* | `activity_id`, `fertilization_stage`, `fertilizer_type`, `brand_name`, `subsidy_status`, `application_method`, `quantity_kg` |
+| `irrigation_details` | Tetap *(Histori sebelum penyederhanaan)* | `activity_id`, `water_source`, `irrigation_method`, `machine_type`, `duration_hours` |
+| `pesticide_details` | Tetap *(Histori sebelum penyederhanaan)* | `activity_id`, `pesticide_category`, `purpose`, `brand_name`, `active_ingredient`, `dosage_per_tank`, `tank_size_liters`, `tank_count` |
 | `incident_details` | Tetap | `activity_id`, `incident_category`, `severity`, `affected_area_ha`, `proposed_solution` |
-| `harvest_details` | Tetap | `activity_id`, `harvested_area_ha`, `gross_weight_ton`, `moisture_percentage`, `color`, `ripeness`, `cleanliness` |
+| `harvest_details` | Tetap | `activity_id`, `harvested_area_ha`, `gross_weight_ton`, `moisture_percentage` *(histori)*, `color` *(histori)*, `ripeness` *(histori)*, `cleanliness` *(histori)* |
 
 ### Monitoring dan target operasional
 
@@ -534,19 +596,27 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 
 ## Validasi dokumen
 
-Validasi dokumen memeriksa jumlah/nama tabel, kolom target FK, keberadaan unique
-key parent untuk FK komposit, serta ketercakupan semua tabel schema existing.
+Pemeriksaan struktur pada rancangan awal memeriksa jumlah/nama tabel, kolom target
+FK, keberadaan unique key parent untuk FK komposit, serta ketercakupan seluruh
+tabel baseline saat dokumen disusun (**56 tabel**, **93 referensi FK inline**,
+dan **11 referensi FK komposit**, mencakup 38 tabel dan 345 kolom saat itu).
 Pemeriksaan tersebut bukan pengujian migration atau simulasi aturan bisnis.
-Hasil pemeriksaan struktur revisi: **56 tabel**, **93 referensi FK inline**, dan
-**11 referensi FK komposit**. Seluruh **38 tabel dan 345 kolom** schema aktif
-tercakup, termasuk `users.deleted_at` dari remote. Nama dan urutan kolom pada inventaris Markdown
-cocok dengan DBML; seluruh target FK, tipe kolom relasi, serta unique key parent
-untuk FK komposit ditemukan. Pemeriksaan ini memvalidasi struktur dan konsistensi
-dokumen, bukan menjalankan constraint pada database.
-Parser DBML khusus tidak tersedia di dependency proyek, sehingga file belum
-diuji melalui parser atau layanan visualisasi DBML. Pemeriksaan struktur tidak
-membuktikan perilaku partial unique index, lock, approval, atau otorisasi runtime.
-Fitur phase 1 dalam kedua draft ini belum diimplementasikan atau dimigrasikan.
-Migration soft delete akun pada schema aktif merupakan bagian integrasi remote,
-bukan implementasi blok, SOP, atau approval yang diusulkan di sini.
+
+Pada pembaruan 16 November 2026:
+- Implementasi aktif pada PostgreSQL diverifikasi melalui
+  [database/schema.dbml](../../database/schema.dbml) dan suite pengujian
+  migration (`FarmerIcMigrationsTest`), termasuk perubahan `2026_11_09_000001`
+  (penghapusan `planting_rounds`), `2026_11_16_000001` (luas subblok dinamis
+  dari `planted_area_ha` dan batas kapasitas blok/kebun), serta
+  `2026_11_16_000002` (penyederhanaan 6 kategori budidaya utama, `Pemupukan
+  Kandang`, penonaktifan `activity_subcategory`, serta penyimpanan
+  `task_details` JSONB).
+- Dokumen usulan `phase-1-erd.dbml` dan `phase-1-erd.md` ini diperbarui pada
+  kolom, constraint, aturan bisnis, RBAC subblok Petugas, dan catatan historis
+  agar selaras dengan perubahan tersebut sambil mempertahankan struktur target
+  approval (`planting_cycle_task_submissions`) serta tabel historis usulan
+  (`planting_rounds`, `soil_preparation_details`) yang diberi label eksplisit.
+Parser DBML khusus tidak tersedia di dependency proyek, sehingga file proposal
+belum diuji melalui layanan visualisasi DBML eksternal; kontrak schema aktif
+tetap diuji langsung pada PostgreSQL melalui `FarmerIcMigrationsTest`.
 

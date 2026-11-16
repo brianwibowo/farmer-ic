@@ -287,7 +287,6 @@ class TaskManagementController extends Controller
             'urgency' => $this->urgency($task),
             'overdue_days' => $overdueDays,
             'activity_category' => $task->activity_category,
-            'activity_subcategory' => $task->activity_subcategory,
             'offset_days' => $task->offset_days,
             'scheduled_date' => $task->scheduled_date?->toDateString(),
             'due_date' => $task->due_date?->toDateString(),

@@ -15,8 +15,6 @@ final class ActivityInputLimits
 
     public const PLANTING_BAG_SIZE = 99999;
 
-    public const PLANTING_DEPTH = 1000;
-
     public const MAPPING_LENGTH = 9999999.999;
 
     public const MAPPING_SPACING = 999999.99;
@@ -40,7 +38,6 @@ final class ActivityInputLimits
             'area' => self::PLANTING_AREA,
             'quantity' => self::PLANTING_QUANTITY,
             'bagSize' => self::PLANTING_BAG_SIZE,
-            'depth' => self::PLANTING_DEPTH,
         ];
     }
 

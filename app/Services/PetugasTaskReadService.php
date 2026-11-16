@@ -53,7 +53,7 @@ class PetugasTaskReadService
         };
 
         return [
-            ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'activity_subcategory', 'offset_days', 'is_required']),
+            ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'offset_days', 'is_required']),
             'scheduled_date' => $effective,
             'reporting_window' => $window,
             'due_date' => $window['end'] ?? null, 'urgency' => $urgency,

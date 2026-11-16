@@ -41,7 +41,7 @@ class PetugasVoluntaryActivityController extends Controller
             'matchingTasks' => PlantingCycleTask::visibleTo($request->user(), $farm->team)
                 ->whereHas('plantingCycle', fn ($q) => $q->visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id))
                 ->whereIn('status', ['pending', 'in_progress'])
-                ->where(fn ($q) => $type->code === 'harvest' ? $q->where('activity_category', 'harvest') : $q->where('activity_subcategory', $type->code))
+                ->where('activity_category', $type->code)
                 ->get(['id', 'planting_cycle_id', 'name', 'scheduled_date']),
             'today' => now('Asia/Jakarta')->toDateString(),
         ]);

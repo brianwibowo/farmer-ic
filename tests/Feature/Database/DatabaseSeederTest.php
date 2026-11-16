@@ -66,18 +66,18 @@ class DatabaseSeederTest extends TestCase
             ->where('a.farm_id', $demoFarm->id)->exists());
         foreach (['B01', 'B02'] as $code) {
             $blockId = DB::table('farm_blocks')->where('farm_id', $demoFarm->id)->where('code', $code)->value('id');
-            foreach (['land_cleaning', 'loosening'] as $type) {
-                $detail = $type === 'land_cleaning' ? 'land_cleaning_details' : 'loosening_details';
-                $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
-                    ->join($detail.' as d', 'd.activity_id', '=', 'a.id')
-                    ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')->where('t.code', $type)->exists());
-            }
+            $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
+                ->join('land_cleaning_details as d', 'd.activity_id', '=', 'a.id')
+                ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')->where('t.code', 'land_cleaning')->exists());
+            $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
+                ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')
+                ->where('t.code', 'soil_preparation')->whereNotNull('a.task_details')->exists());
         }
-        $this->assertDatabaseHas('activity_types', ['code' => 'base_fertilization', 'parent_id' => null, 'is_selectable' => true, 'detail_key' => 'fertilization']);
+        $this->assertDatabaseHas('activity_types', ['code' => 'base_fertilization', 'name' => 'Pemupukan Kandang', 'parent_id' => null, 'is_selectable' => true, 'detail_key' => 'fertilization']);
         $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
             ->join('farm_blocks as b', 'b.id', '=', 'a.block_id')->join('fertilization_details as d', 'd.activity_id', '=', 'a.id')
             ->where('a.farm_id', $demoFarm->id)->where('b.code', 'B01')->whereNull('a.planting_cycle_id')
-            ->where('t.code', 'base_fertilization')->where('d.fertilization_stage', 'dasar')->exists());
+            ->where('t.code', 'base_fertilization')->where('d.fertilization_stage', 'kandang')->exists());
         $this->assertGreaterThan(0, DB::table('farm_activities')->where('farm_id', $demoFarm->id)->whereNotNull('planting_cycle_id')->whereNotNull('block_id')->count());
         $this->assertSame(0, DB::table('farm_activities as a')->join('planting_cycles as c', 'c.id', '=', 'a.planting_cycle_id')
             ->whereNotNull('c.block_id')
@@ -135,12 +135,11 @@ class DatabaseSeederTest extends TestCase
             ->setTimezone('Asia/Jakarta')
             ->toDateString();
 
-        $scheduled = fn (string $category, ?string $subcategory): string => $cycle->tasks()
+        $scheduled = fn (string $category, ?string $namePart = null): string => $cycle->tasks()
             ->where('activity_category', $category)
             ->when(
-                $subcategory === null,
-                fn ($query) => $query->whereNull('activity_subcategory'),
-                fn ($query) => $query->where('activity_subcategory', $subcategory),
+                $namePart !== null,
+                fn ($query) => $query->where('name', 'like', '%'.$namePart.'%'),
             )
             ->firstOrFail()
             ->effectiveScheduledDate()
@@ -149,9 +148,9 @@ class DatabaseSeederTest extends TestCase
         $planted = $cycle->planted_at->toDateString();
 
         $this->assertSame($planted, $activityDate('Penanaman Blok 1'));
-        $this->assertSame($scheduled('maintenance', 'irrigation'), $activityDate('Irigasi sore Blok 1'));
-        $this->assertSame($scheduled('maintenance', 'follow_up_fertilization'), $activityDate('Pemupukan susulan pertama Blok 1'));
-        $this->assertSame($scheduled('maintenance', 'pest_control'), $activityDate('Pengendalian ulat Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'Pengairan awal'), $activityDate('Irigasi sore Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'Pemupukan susulan pertama'), $activityDate('Pemupukan susulan pertama Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'Pengendalian hama'), $activityDate('Pengendalian ulat Blok 1'));
         $this->assertDatabaseMissing('farm_activities', [
             'farm_id' => $farm->id,
             'description' => 'Panen percobaan Blok 2',
@@ -167,13 +166,15 @@ class DatabaseSeederTest extends TestCase
         };
 
         foreach ([
-            'Irigasi sore Blok 1' => 'irrigation',
-            'Pemupukan susulan pertama Blok 1' => 'follow_up_fertilization',
-            'Pengendalian ulat Blok 1' => 'pest_control',
-        ] as $description => $subcategory) {
+            'Irigasi sore Blok 1' => 'Pengairan awal',
+            'Pemupukan susulan pertama Blok 1' => 'Pemupukan susulan pertama',
+            'Pengendalian ulat Blok 1' => 'Pengendalian hama dan penyakit',
+        ] as $description => $taskName) {
             $task = $linkedTask($description);
             $this->assertSame('completed', $task->status);
-            $this->assertSame($subcategory, $task->activity_subcategory);
+            $this->assertSame('maintenance', $task->activity_category);
+            $this->assertNull($task->activity_subcategory);
+            $this->assertSame($taskName, $task->name);
             $this->assertSame(
                 $activityDate($description),
                 $task->completed_at->setTimezone('Asia/Jakarta')->toDateString(),
@@ -216,10 +217,10 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $codes = [
             'land_clearing' => ['land_cleaning'],
-            'soil_preparation' => ['loosening', 'beds', 'liming'],
+            'soil_preparation' => ['soil_preparation'],
             'basic_fertilizer' => ['base_fertilization'],
             'planting' => ['planting'],
-            'maintenance' => ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control'],
+            'maintenance' => ['maintenance'],
             'harvest' => ['harvest'],
         ];
         foreach (PlantingCycle::query()->with('stages')->whereNotNull('block_id')->get() as $cycle) {

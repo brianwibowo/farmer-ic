@@ -55,10 +55,10 @@ class ActivityInputLimitsTest extends TestCase
         $this->petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $blocks = app(FarmBlockService::class);
         $this->block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5', 'commodity_id' => $commodity->id]);
-        $this->cycle = $blocks->createBatch($this->block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
-        $this->cycle->forceFill(['planted_at' => today()->subDays(21), 'planted_area_ha' => '2', 'variety_id' => $variety->id, 'status' => 'active'])->save();
+        $this->cycle = $blocks->createBatch($this->block, $this->admin, $this->team);
+        $this->cycle->forceFill(['planted_at' => today()->subDays(21), 'reserved_area_ha' => '2', 'planted_area_ha' => '2', 'variety_id' => $variety->id, 'status' => 'active'])->save();
         ActivityType::firstOrCreate(['code' => 'harvest'], ['name' => 'Panen']);
-        ActivityType::firstOrCreate(['code' => 'irrigation'], ['name' => 'Pengairan']);
+        ActivityType::firstOrCreate(['code' => 'maintenance'], ['name' => 'Perawatan']);
     }
 
     public function test_task_limit_uses_current_harvests_and_stale_writes_are_still_rejected(): void
@@ -68,7 +68,7 @@ class ActivityInputLimitsTest extends TestCase
         $this->actingAs($this->petugas)->get($url.'/buat')->assertInertia(fn (Assert $page) => $page
             ->component('petugas/ActivityCreate')->where('areaLimitM2', 20000)
             ->where('numericLimits.workerCount', ActivityInputLimits::WORKER_COUNT)
-            ->where('fields', fn ($fields) => collect($fields)->firstWhere('key', 'moisture')['max'] === 100));
+            ->where('fields', fn ($fields) => collect($fields)->firstWhere('key', 'weight')['max'] === 999999));
 
         $second = User::factory()->create(['role' => 'petugas']);
         $this->team->members()->attach($second, ['role' => 'member']);
@@ -88,11 +88,11 @@ class ActivityInputLimitsTest extends TestCase
     public function test_task_form_uses_planted_area_and_server_attaches_errors_to_taxonomy_field(): void
     {
         $this->cycle->forceFill(['planted_area_ha' => '1.2500'])->save();
-        $task = $this->task('maintenance', 'irrigation');
+        $task = $this->task('maintenance', null);
         $url = '/petugas/tasks/'.$task->id.'/aktivitas';
         $this->actingAs($this->petugas)->get($url.'/buat')->assertInertia(fn (Assert $page) => $page->where('areaLimitM2', 12500));
         $this->post($url, ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'worker_count' => 2,
-            'details' => ['area' => 12501, 'area_unit' => 'm²', 'water_source' => 'Sumur bor', 'method' => 'Irigasi parit', 'duration_hours' => 1],
+            'details' => ['area' => 12501, 'area_unit' => 'm²'],
             'photos' => [UploadedFile::fake()->image('irigasi.jpg')]])->assertSessionHasErrors('details.area');
     }
 
@@ -110,8 +110,8 @@ class ActivityInputLimitsTest extends TestCase
         $this->cycle->forceFill(['planted_area_ha' => '1.2500'])->save();
         $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';
         $this->get($plantingUrl)->assertInertia(fn (Assert $page) => $page->component('petugas/PlantingCreate')
-            ->where('areaLimitM2', 7500)->where('numericLimits.area', ActivityInputLimits::PLANTING_AREA));
-        $this->cycle->forceFill(['planted_area_ha' => '2.0000'])->save();
+            ->where('areaLimitM2', 37500)->where('numericLimits.area', ActivityInputLimits::PLANTING_AREA));
+        $this->cycle->forceFill(['planted_area_ha' => '5.0000'])->save();
         $this->get($plantingUrl)->assertInertia(fn (Assert $page) => $page->where('areaLimitM2', 0));
         $this->petugas->forceFill(['assigned_farm_id' => $other->id])->save();
         $this->get($plantingUrl)->assertForbidden();
@@ -134,7 +134,7 @@ class ActivityInputLimitsTest extends TestCase
                 ->where('numericLimits.offsetDays', ActivityInputLimits::SOP_OFFSET)
                 ->where('numericLimits.toleranceDays', ActivityInputLimits::SOP_TOLERANCE));
         $url = '/admin/sops/'.$sop->id.'/versions/'.$version->id.'/tasks';
-        $payload = ['activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan',
+        $payload = ['activity_category' => 'maintenance', 'name' => 'Perawatan rutin',
             'offset_days' => ActivityInputLimits::SOP_OFFSET + 1, 'tolerance_days' => ActivityInputLimits::SOP_TOLERANCE + 1];
         $this->post($url, $payload)->assertSessionHasErrors(['offset_days', 'tolerance_days']);
         $payload['offset_days'] = ActivityInputLimits::SOP_OFFSET;
