@@ -56,7 +56,7 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
                 if ($subblock === 'A1') {
                     App\Models\PlantingCycleTask::create([
                         'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
-                        'name' => 'Pemupukan dasar', 'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
+                        'name' => 'Pemupukan dasar', 'activity_category' => 'maintenance', 'activity_subcategory' => null,
                         'offset_days' => 0, 'tolerance_days' => 2, 'scheduled_date' => today()->subDays(4), 'due_date' => today()->subDays(2), 'status' => 'pending', 'is_required' => true,
                     ]);
                 }

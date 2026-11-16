@@ -17,9 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import {
     sopActivityCategoryLabels,
-    sopActivitySubcategoryLabels,
     type SopActivityCategory,
-    type SopActivitySubcategory,
     type SopTask,
     type SopVersion,
 } from '@/types/sop';
@@ -36,14 +34,9 @@ const categoryOptions = Object.entries(sopActivityCategoryLabels) as [
     SopActivityCategory,
     string,
 ][];
-const subcategoryOptions = Object.entries(sopActivitySubcategoryLabels) as [
-    SopActivitySubcategory,
-    string,
-][];
 
 const form = useForm({
     activity_category: 'maintenance' as SopActivityCategory,
-    activity_subcategory: '' as SopActivitySubcategory | '',
     name: '',
     instructions: '',
     offset_days: 0,
@@ -51,9 +44,6 @@ const form = useForm({
     is_required: true,
 });
 
-const needsSubcategory = computed(
-    () => form.activity_category === 'maintenance',
-);
 const offsetError = computed(() =>
     maximumError(
         form.offset_days,
@@ -82,7 +72,6 @@ watch(
 function reset(): void {
     form.clearErrors();
     form.activity_category = props.task?.activity_category ?? 'maintenance';
-    form.activity_subcategory = props.task?.activity_subcategory ?? '';
     form.name = props.task?.name ?? '';
     form.instructions = props.task?.instructions ?? '';
     form.offset_days = props.task?.offset_days ?? 0;
@@ -94,15 +83,6 @@ watch(
     () => props.open,
     (open) => {
         if (open) reset();
-    },
-);
-
-watch(
-    () => form.activity_category,
-    (category) => {
-        if (category !== 'maintenance') {
-            form.activity_subcategory = '';
-        }
     },
 );
 
@@ -175,6 +155,7 @@ function submit(): void {
                             label="Kategori aktivitas"
                             required
                             :error="form.errors.activity_category"
+                            class="sm:col-span-2"
                             v-slot="field"
                         >
                             <AppSelect
@@ -187,34 +168,6 @@ function submit(): void {
                             >
                                 <AppSelectOption
                                     v-for="[value, label] in categoryOptions"
-                                    :key="value"
-                                    :value="value"
-                                >
-                                    {{ label }}
-                                </AppSelectOption>
-                            </AppSelect>
-                        </FarmField>
-                        <FarmField
-                            v-if="needsSubcategory"
-                            id="task-subcategory"
-                            label="Subkategori aktivitas"
-                            required
-                            :error="form.errors.activity_subcategory"
-                            v-slot="field"
-                        >
-                            <AppSelect
-                                :id="field.id"
-                                v-model="form.activity_subcategory"
-                                class="admin-field"
-                                required
-                                :aria-invalid="field.invalid"
-                                :aria-describedby="field.description"
-                            >
-                                <AppSelectOption value="" disabled
-                                    >Pilih subkategori</AppSelectOption
-                                >
-                                <AppSelectOption
-                                    v-for="[value, label] in subcategoryOptions"
                                     :key="value"
                                     :value="value"
                                 >

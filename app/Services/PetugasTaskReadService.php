@@ -11,6 +11,7 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
+use App\Services\Activity\TaskReportingWindow;
 use Carbon\CarbonImmutable;
 
 class PetugasTaskReadService
@@ -41,19 +42,21 @@ class PetugasTaskReadService
         $block = FarmBlock::visibleTo($actor, $team)->findOrFail($cycle->block_id);
         $variety = CropVariety::visibleTo($actor, $team)->find($cycle->variety_id);
         $today = CarbonImmutable::today('Asia/Jakarta');
-        $effective = $task->effectiveScheduledDate();
+        $window = app(TaskReportingWindow::class)->range($task, $cycle);
+        $effective = $window['start'] ?? null;
         $urgency = match (true) {
             in_array($task->status, ['completed', 'skipped'], true) => 'completed',
             $effective === null => 'upcoming',
-            $task->due_date !== null && $task->due_date->toDateString() < $today->toDateString() => 'overdue',
-            $effective->toDateString() <= $today->toDateString() => 'today',
+            $window['end'] < $today->toDateString() => 'overdue',
+            $effective <= $today->toDateString() => 'today',
             default => 'upcoming',
         };
 
         return [
-            ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'activity_subcategory', 'offset_days', 'is_required']),
-            'scheduled_date' => $effective?->toDateString(),
-            'due_date' => $task->due_date?->toDateString(), 'urgency' => $urgency,
+            ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'offset_days', 'is_required']),
+            'scheduled_date' => $effective,
+            'reporting_window' => $window,
+            'due_date' => $window['end'] ?? null, 'urgency' => $urgency,
             'completed_at' => $task->completed_at?->toISOString(),
             'completed_by' => $task->getAttribute('completed_by'),
             'completion_note' => $task->getAttribute('completion_note'),

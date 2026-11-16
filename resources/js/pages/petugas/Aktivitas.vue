@@ -16,7 +16,7 @@ import type {
     PetugasTaskPageProps,
     PetugasTaskUrgency,
 } from '@/types/petugas-task';
-import { sopActivitySubcategoryLabels } from '@/types/sop';
+import { sopActivityCategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
@@ -106,9 +106,7 @@ const tasks = computed(() =>
     props.tasks.filter(
         (t) =>
             matchesStatus(t) &&
-            (!filter.category ||
-                (t.activity_subcategory ?? t.activity_category) ===
-                    filter.category) &&
+            (!filter.category || t.activity_category === filter.category) &&
             (!filter.block || t.subblok.block.id === filter.block) &&
             (!filter.subblok || t.subblok.id === filter.subblok) &&
             `${t.name} ${t.subblok.block.name} ${t.subblok.label}`
@@ -117,14 +115,11 @@ const tasks = computed(() =>
     ),
 );
 const categoryOptions = computed(() => [
-    ...new Set(
-        props.tasks.map((t) => t.activity_subcategory ?? t.activity_category),
-    ),
+    ...new Set(props.tasks.map((t) => t.activity_category)),
 ]);
 function label(code: string): string {
     return (
-        (sopActivitySubcategoryLabels as Record<string, string>)[code] ??
-        (code === 'harvest' ? 'Panen' : code)
+        (sopActivityCategoryLabels as Record<string, string>)[code] ?? code
     );
 }
 function changeBlock(): void {
@@ -257,7 +252,7 @@ function reset(): void {
             v-if="defaultSopMissing && farm"
             class="rounded-xl bg-muted p-3 text-xs leading-5"
         >
-            SOP default belum diatur. Hubungi Admin; aktivitas mandiri tetap
+            SOP default pada salah satu blok belum diatur. Hubungi Admin; aktivitas mandiri tetap
             dapat dicatat.
         </p>
         <div
@@ -310,12 +305,7 @@ function reset(): void {
                     <div class="min-w-0 flex-1">
                         <span
                             class="text-[10px] font-semibold text-secondary"
-                            >{{
-                                label(
-                                    task.activity_subcategory ??
-                                        task.activity_category,
-                                )
-                            }}</span
+                            >{{ label(task.activity_category) }}</span
                         >
                         <h2 class="mt-1 text-base leading-5 font-semibold">
                             {{ task.name }}

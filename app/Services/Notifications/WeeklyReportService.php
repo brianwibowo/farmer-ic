@@ -101,13 +101,14 @@ final class WeeklyReportService
         $cycles = PlantingCycle::visibleTo($actor, $team)->whereIn('farm_id', $farms->modelKeys())
             ->with(['variety' => fn ($varieties) => $varieties->visibleTo($actor, $team)
                 ->with(['commodity' => fn ($commodities) => $commodities->visibleTo($actor, $team)])])->get()->keyBy('id');
-        $farmCommodities = Commodity::visibleTo($actor, $team)->whereKey($farms->pluck('commodity_id')->filter())->get()->keyBy('id');
+        $blocks = FarmBlock::visibleTo($actor, $team)->whereIn('farm_id', $farms->modelKeys())->get()->keyBy('id');
+        $blockCommodities = Commodity::visibleTo($actor, $team)->whereKey($blocks->pluck('commodity_id')->filter())->get()->keyBy('id');
         $activities = FarmActivity::visibleTo($actor, $team)->whereIn('farm_id', $farms->modelKeys())
             ->whereBetween('activity_date', [$start->toIso8601String(), $end->toIso8601String()])
             ->whereHas('activityType', fn ($types) => $types->visibleTo($actor, $team)->where('code', 'harvest'))->get();
         $harvests = HarvestDetail::visibleTo($actor, $team)->whereIn('activity_id', $activities->modelKeys())->get()->keyBy('activity_id');
 
-        return array_values($farms->map(function (Farm $farm) use ($team, $rows, $defaults, $cycles, $farmCommodities, $activities, $harvests): array {
+        return array_values($farms->map(function (Farm $farm) use ($team, $rows, $defaults, $cycles, $blocks, $blockCommodities, $activities, $harvests): array {
             $crops = [];
             foreach ($defaults as $name) {
                 $crops[$name] = $this->crop($name);
@@ -122,7 +123,7 @@ final class WeeklyReportService
             foreach ($activities->where('farm_id', $farm->id) as $activity) {
                 $detail = $harvests->get($activity->id);
                 $name = $cycles->get($activity->planting_cycle_id)?->variety?->commodity->name
-                    ?? $farmCommodities->get($farm->getAttribute('commodity_id'))->name ?? 'Komoditas belum diisi';
+                    ?? $blockCommodities->get($blocks->get($activity->block_id)?->getAttribute('commodity_id'))->name ?? 'Komoditas belum diisi';
                 $name = $this->cropName($name, $defaults);
                 $crops[$name] ??= [...$this->crop($name), 'target_ton' => null, 'target_missing' => 1];
                 $crops[$name]['harvest_count']++;

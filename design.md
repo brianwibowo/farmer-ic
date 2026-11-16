@@ -218,8 +218,13 @@ Every input needs a visible `<label>`, a helpful value or placeholder, and inlin
 
 ### Shared selects and searchable choices
 
-- Use `components/selects/AppSelect.vue` with `AppSelectOption.vue` for ordinary
-  single choices. Use `AppCombobox.vue` for choices that need text search; keep
+- Every select/option dropdown must use the project's shadcn-vue Select
+  components from `components/ui/select`, through the shared
+  `components/selects/AppSelect.vue` and `AppSelectOption.vue` wrappers for
+  ordinary single choices. Do not introduce visible native `<select>`/`<option>`
+  menus or a separate custom select implementation. The wrapper's hidden native
+  control may remain for form submission and validation.
+- Use `AppCombobox.vue` for choices that need text search; keep
   region loading, retries, and parent/child resets in `FarmRegionFields` and
   `RegionCombobox`, rather than the generic control.
 - Preserve option value types (including empty strings, numbers, booleans and
@@ -415,6 +420,41 @@ separate from operational records. Keep the period controls visible; collapse
 partner, region, farm, and commodity filters behind a Filter button with an
 active count and removable selections.
 
+Ringkasan Eksekutif is the Owner landing page, including login without an
+intended destination and the brand/home link. The former Owner Dashboard is
+**Monitoring Lahan** at `/monitoring-lahan`, retaining its live, scoped tenant
+data. Order the Owner navigation as Ringkasan Eksekutif, Monitoring Lahan,
+Proyeksi, and Lahan. Admin and Petugas keep their existing landing destinations.
+Keep the illustrative data label visible near the executive page header.
+
+The Cycle selector includes **Semua cycle**, covering 1 January–31 December
+of the selected year (Asia/Jakarta). Sum actual production by harvest date and
+projections by scheduled harvest date, with one result per farm. Land area,
+active planted hectares, stock balances, agreements, and monthly sales must not
+be multiplied by the number of cycles. Active planted hectares count actual
+planting with active status; preparation and closed/harvested planting are
+excluded. Show the selected year's snapshot date beside active land and stock.
+Stock remains a position after dispatch and adjustments, not annual harvest
+minus dispatch with an assumed zero opening balance. Sales retain the explicitly
+labelled reference month. If a numbered cycle is absent after changing year,
+select Semua cycle. Default to Semua cycle on first load and after Reset;
+numbered cycles remain available for a specific cycle's production.
+The illustrative executive adapter keeps separate dated production records and
+land/stock positions; database-backed pages retain their existing data sources.
+
+Use three summary cards in a four-column desktop grid with spans **1 + 1 + 2**.
+Stack total land area, planted area and utilization in Ringkasan lahan, including
+a compact utilization bar and unused hectares. Combine active agreements/partner
+count and monthly sales-contract tonnage in Kerja sama & penjualan. Give Stok
+panen tersedia two columns with a prominent total and commodity stock breakdown
+using the same globally filtered snapshot. Remove revenue and gross-profit KPI
+cards from this top row. Align card heights without forcing fixed widths. On
+tablets, place the two compact cards side by side and stock full width below;
+stack all three on phones. Loading skeletons follow the same three-card grid.
+The Kerja sama & luas lahan section has a Lihat detail Inertia link to Monitoring
+Lahan; Panen aktual vs proyeksi per kebun links to Proyeksi. These page-level
+links do not send illustrative farm IDs into database-backed routes.
+
 Client selection in the sales panel is local to that panel. Clicking a client
 name or its chart bars shows only that client's contract/reality comparison,
 while the complete client selector remains visible. Mark the active client and
@@ -601,8 +641,9 @@ Subblok cards distinguish reserved area from actual planted area and show batch
 number, subblok label, planting round, status, actual/planned planting date, HST,
 and estimated harvest. Draw stage progress only from persisted stages; it is a
 count of completed stages, never a crop-growth percentage. Missing schedules,
-stages, assignments, blocks, or batches have explicit empty states. This page is
-a read-only overview; loading and navigation errors use the shared Petugas shell.
+stages, assignments, blocks, or batches have explicit empty states. Petugas can
+create a new subblok on an active block when permitted and remaining capacity
+allows; loading and navigation errors use the shared Petugas shell.
 
 The Figma page includes both full-color and LoFi variants. Use the active state for the current route, provide an accessible label for every icon, and keep the bar usable on standard, Plus, and Pro Max phone widths.
 
@@ -890,17 +931,42 @@ for maintenance and other activities. Do not display fabricated trend deltas.
 
 ### Farm Management pages
 
-On farm detail, retain one continuous batch timeline. Insert a compact
-`Perkembangan tanaman` disclosure between Penanaman and Pemeliharaan, without
-adding a persisted operational stage. Show its detailed panel below the complete
-timeline, never between two separated groups of operational stages. The marker
-toggles the initially collapsed panel with an accessible expanded state and
-preserves the current HST-based reference view. Keep all operational stages visible together.
+Batch timeline status labels differ by text color only: Selesai uses
+`text-stage-completed` (`#4ADD82`), Sekarang uses `text-stage-current`
+(`#425B9A`), and Belum dimulai uses `text-stage-upcoming` (`#C5C1C1`).
+Keep these specified status colors in both themes. Do not add a pill, card, or background to these
+labels. Retain distinct icons and text so status does not depend on color
+alone, in both light and dark themes.
+
+Apply `bg-stage-preparation` (warm off-white `#F5F4F2`) to the shared preparation
+section (Pembersihan lahan through Pemupukan kandang) and `bg-stage-cultivation`
+(cool off-white `#F1F4F7`) to the shared Penanaman-through-Panen section. Their
+dark values are `#29323B` and `#253442`. Display the existing `basic_fertilizer`
+stage as Pemupukan kandang without changing its stored code.
+Individual stages stay transparent, without cards. Keep both
+sections beside each other in one timeline on desktop and stack on phones,
+with 12px section corners and consistent inner spacing.
+Keep only the six operational stages in the timeline. Place a full-width green
+`Pengamatan Perkembangan tanaman` button below both sections, with white text
+and icons, `bg-stage-action` (`#047857` in both themes) and visible focus.
+Do not display HST beside the button. Earlier/cancelled batches show a disabled
+button and a concise unavailable note. Omit the introductory description below
+Tahap & tanggal progres.
+
+Open the existing HST-based growth content in an accessible dialog instead of
+an inline expansion. Hide the extra popup header visually; retain the title
+and subblok/batch context for screen readers. Use the growth content's heading,
+inherit the originating theme, constrain width/height to the viewport, and scroll
+the body independently. Avoid stacked popup/body padding: use the growth panel's
+own spacing and reserve horizontal space beside its header for the close action.
+Support Escape/X, focus trapping and returning focus to
+the trigger; keep image enlargement working as a nested dialog. Do not add a
+persisted operational stage or duplicate the growth panel on the page.
 Use a
 20px white/dark card, emerald accents, and shared admin typography and spacing.
 Growth is available only for active/harvested batches with a real, non-future
 planting date, completed Penanaman, and started/completed Pemeliharaan. Earlier
-or cancelled batches have a disabled marker, no detail panel, and no observation
+or cancelled batches have a disabled button, no popup content, and no observation
 payload. Eligibility is enforced by the backend using scoped persisted stages.
 HST is the calendar-day difference between actual planting and today in Asia/Jakarta;
 day of planting is 0 HST. Reload block props when the Jakarta date changes or
@@ -908,6 +974,9 @@ the tab resumes after midnight. Current visual phase follows the commodity and
 variety's HST boundaries automatically, never a manually selected phase or old
 observation label. Keep the last phase beyond the reference's final age, without
 claiming that the operational harvest stage has completed.
+The HST phase summary uses `bg-growth-summary` (deep green `#143D32`) in both
+themes, white values/phase text and white/75 labels. Use a white/20 progress
+track with a `bg-stage-completed` fill so the recorded percentage stays visible.
 Percentage comes from the latest visible observation and is labeled separately;
 harvest projection comes from the saved batch estimate. Missing data has concise empty
 states. Do not invent AI confidence, photo analysis, or growth/harvest values.

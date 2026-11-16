@@ -102,7 +102,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $projection = app(HarvestProjectionService::class)->summary($this->owner(), $team);
         $this->assertEquals(2500, collect($projection['rows'])->firstWhere('farm_name', 'Lahan Megamendung')['projection_ton']);
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Dashboard')->where('landTable.total', 7)
             ->where('landTable.total_area_ha', '597.0000')->has('landTable.rows', 7)
             ->has('dashboard.landMap.farms', 7)->has('dashboard.commodities', 3)
@@ -121,7 +121,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             $farm = Farm::query()->findOrFail(DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']));
             $this->get('/kebun/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component('farms/Show')->where('farm.id', $farm->id)
-                ->where('farm.default_sop.is_active', true)->has('blocks', 2)
+                ->missing('farm.default_sop')->has('blocks', 2)
                 ->where('can.update', false)->where('can.createBlock', false));
 
             $cycle = PlantingCycle::query()->where('farm_id', $farm->id)->with('block')->firstOrFail();
@@ -159,21 +159,25 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             }
         }
         $detailTypes = [
-            'planting' => 'plantingDetail', 'follow_up_fertilization' => 'fertilizationDetail',
-            'irrigation' => 'irrigationDetail', 'pest_control' => 'pesticideDetail',
-            'harvest' => 'harvestDetail', 'growth_check' => 'observation',
-            'land_cleaning' => 'landCleaningDetail', 'loosening' => 'looseningDetail',
+            'planting' => 'plantingDetail',
+            'harvest' => 'harvestDetail',
+            'land_cleaning' => 'landCleaningDetail',
             'base_fertilization' => 'fertilizationDetail',
         ];
         $activities = FarmActivity::query()->whereIn('farm_id', $farmIds)
-            ->with(['activityType', ...array_values($detailTypes)])->get();
+            ->with(['activityType', 'observation', ...array_values($detailTypes)])->get();
         $this->assertNotEmpty($activities);
         foreach ($activities as $activity) {
-            $relation = $detailTypes[$activity->activityType->code];
-            $this->assertNotNull($activity->getRelation($relation));
-            $this->assertSame(1, collect(array_values($detailTypes))->unique()
-                ->filter(fn (string $detail) => $activity->getRelation($detail) !== null)->count());
-            if ($activity->activityType->code === 'harvest') {
+            $code = $activity->activityType->code;
+            $relation = $detailTypes[$code] ?? null;
+            if ($relation !== null) {
+                $this->assertNotNull($activity->getRelation($relation));
+            } elseif (str_starts_with($activity->description, 'Observasi ')) {
+                $this->assertNotNull($activity->observation);
+            } else {
+                $this->assertNotNull($activity->task_details);
+            }
+            if ($code === 'harvest') {
                 $task = $activity->task()->firstOrFail();
                 $this->assertSame('harvest', $task->activity_category);
                 $this->assertSame('completed', $task->status);
@@ -221,13 +225,13 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->seed(DemoOwnerPortfolioSeeder::class);
         $this->assertSame($before, $foreign->refresh()->getRawOriginal());
         $farmId = DemoOwnerPortfolioData::id($this->demoTeam(), 'farm:sukamaju');
-        $this->actingAs($this->owner())->get('/?farm_id='.$farmId)->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($this->owner())->get('/monitoring-lahan?farm_id='.$farmId)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 7)->where('landTable.total_area_ha', '597.0000')
             ->has('landTable.rows', 7)->has('dashboard.landMap.farms', 7)
             ->has('dashboard.commodities', 3)
             ->where('landTable.rows', fn ($rows) => ! collect($rows)->pluck('id')->contains($foreign->id))
             ->where('dashboard.landMap.farms', fn ($rows) => ! collect($rows)->pluck('id')->contains($foreign->id)));
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 7)->where('landTable.total_area_ha', '597.0000'));
         $this->get('/kebun/'.$foreign->id)->assertForbidden();
     }

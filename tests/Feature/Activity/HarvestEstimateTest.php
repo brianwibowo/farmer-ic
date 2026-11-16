@@ -61,7 +61,7 @@ class HarvestEstimateTest extends TestCase
         $block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Estimasi', 'area_ha' => '5']);
         $this->cycle = $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
         $commodity = Commodity::create(['name' => 'Jagung Estimasi']);
-        $this->farm->forceFill(['commodity_id' => $commodity->id])->save();
+        $block->forceFill(['commodity_id' => $commodity->id])->save();
         $this->variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi Estimasi']);
         ActivityType::firstOrCreate(['code' => 'planting'], ['name' => 'Penanaman']);
         ActivityType::firstOrCreate(['code' => 'harvest'], ['name' => 'Panen']);
@@ -82,8 +82,7 @@ class HarvestEstimateTest extends TestCase
             ]);
         }
         $service->publish($version, $this->admin);
-        $this->farm->forceFill(['default_sop_template_id' => $template->id])->save();
-        $this->farm->unsetRelation('defaultSopTemplate');
+        $this->cycle->block->forceFill(['default_sop_template_id' => $template->id])->save();
     }
 
     private function plant(string $date = '2026-11-12'): void
@@ -460,18 +459,19 @@ class HarvestEstimateTest extends TestCase
         $task = $this->harvest();
         config(['operational_notifications.enabled' => true]);
         Bus::fake();
-        $this->travelTo(CarbonImmutable::parse('2027-02-03 10:00', 'Asia/Jakarta'));
+        $this->travelTo(CarbonImmutable::parse('2027-02-07 06:00', 'Asia/Jakarta'));
         $notifications = app(NotificationService::class);
-        $data = ['kind' => 'harvest_reminder', 'user_id' => $this->petugas->id, 'team_id' => $this->team->id,
-            'farm_id' => $this->farm->id, 'cycle_id' => $this->cycle->id, 'harvest_date' => '2027-02-10', 'event_date' => '2027-02-03'];
-        $this->assertNotNull($notifications->validRecipient($data));
+        $this->assertSame(2, $notifications->taskReminders());
+        $data = Bus::dispatched(\App\Jobs\SendWhatsAppNotification::class)
+            ->first(fn ($job) => $job->notification->data['user_id'] === $this->petugas->id)->notification->data;
+        $this->assertNotNull($notifications->dataForDelivery($this->petugas, $data));
         $this->actingAs($this->admin)->post('/admin/tasks/'.$task->id.'/reschedule', [
             'rescheduled_date' => '2027-02-15', 'reschedule_reason' => 'Menyesuaikan kondisi kebun.',
         ])->assertSessionHasNoErrors();
-        $this->assertNull($notifications->validRecipient($data));
-        $this->assertSame(0, $notifications->harvestReminders());
-        $this->travelTo(CarbonImmutable::parse('2027-02-08 10:00', 'Asia/Jakarta'));
-        $this->assertSame(1, $notifications->harvestReminders());
+        $this->assertNull($notifications->dataForDelivery($this->petugas, $data));
+        $this->assertSame(0, $notifications->taskReminders());
+        $this->travelTo(CarbonImmutable::parse('2027-02-14 06:00', 'Asia/Jakarta'));
+        $this->assertSame(2, $notifications->taskReminders());
     }
 
     public function test_closing_harvest_preserves_the_last_estimate_as_history(): void
@@ -479,9 +479,10 @@ class HarvestEstimateTest extends TestCase
         $this->sop([90]);
         $this->plant();
         $task = $this->harvest();
+        $this->travelTo(CarbonImmutable::parse('2027-02-10 10:00', 'Asia/Jakarta'));
         $this->actingAs($this->petugas)->post('/petugas/tasks/'.$task->id.'/aktivitas', [
-            'work_date' => '2026-11-13', 'start_time' => '07:00', 'worker_count' => 2,
-            'details' => ['area_ha' => '0.1', 'weight_ton' => '0.1', 'method' => 'Manual'],
+            'work_date' => '2027-02-10', 'start_time' => '07:00', 'worker_count' => 2,
+            'details' => ['area_ha' => '0.1', 'weight_ton' => '0.1'],
             'photos' => [UploadedFile::fake()->image('panen.jpg')],
         ])->assertSessionHasNoErrors();
         $this->actingAs($this->admin)->post('/kebun/'.$this->farm->id.'/blocks/'.$this->cycle->block_id.'/batches/'.$this->cycle->id.'/close-harvest')

@@ -47,6 +47,8 @@ class SaveFarmBlockRequest extends FormRequest
             'area_unit' => [Rule::requiredIf($unitInput), Rule::in(['ha', 'm2'])],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'is_active' => ['sometimes', 'required', 'boolean'],
+            'commodity_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('commodities', 'id')],
+            'default_sop_template_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('sop_templates', 'id')],
             ...array_fill_keys(['id', 'farm_id', 'team_id', 'created_by', 'created_at', 'updated_at', 'status', 'current_stage', 'land_clearing_started_at', 'land_clearing_completed_at'], ['prohibited']),
         ];
     }

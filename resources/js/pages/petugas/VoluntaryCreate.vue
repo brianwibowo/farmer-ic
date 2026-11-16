@@ -66,13 +66,9 @@ const ready = ref(false);
 const existing = ref(false);
 const clientError = ref('');
 const blockOnly = computed(() =>
-    [
-        'land_cleaning',
-        'loosening',
-        'beds',
-        'liming',
-        'base_fertilization',
-    ].includes(props.type.code),
+    ['land_cleaning', 'soil_preparation', 'base_fertilization'].includes(
+        props.type.code,
+    ),
 );
 const optionalLocation = computed(() =>
     ['incident', 'other'].includes(props.type.code),
@@ -423,11 +419,12 @@ function submit(): void {
                         </li>
                     </ul>
                     <label class="block space-y-2 text-sm"
-                        ><span>Catatan aktivitas (opsional)</span
+                        ><span>Catatan (opsional)</span
                         ><textarea
                             v-model="form.notes"
                             rows="3"
                             maxlength="5000"
+                            placeholder="Metode, bahan/pupuk/pestisida, dosis, kondisi lapangan, atau observasi tambahan..."
                             :class="fieldClass"
                         />
                     </label>

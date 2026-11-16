@@ -29,13 +29,7 @@ class SaveSopTemplateTaskRequest extends FormRequest
     {
         return [
             'activity_category' => ['required', Rule::in(SopTemplateTask::categoryCodes())],
-            'activity_subcategory' => [
-                'nullable',
-                'string',
-                Rule::requiredIf(fn (): bool => $this->input('activity_category') === 'maintenance'),
-                Rule::in(SopTemplateTask::subcategoryCodes()),
-                'prohibited_unless:activity_category,maintenance',
-            ],
+            'activity_subcategory' => ['prohibited'],
             'name' => ['required', 'string', 'max:200'],
             'instructions' => ['nullable', 'string', 'max:5000'],
             'offset_days' => ['required', 'integer', 'between:0,'.ActivityInputLimits::SOP_OFFSET],

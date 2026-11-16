@@ -3,7 +3,6 @@ import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
 import FarmerBottomNav, {
     type FarmerNavKey,
 } from '@/components/farmer/FarmerBottomNav.vue';
-import { Toaster } from '@/components/ui/sonner';
 
 type Props = {
     activeKey?: FarmerNavKey;
@@ -97,11 +96,6 @@ function select(key: FarmerNavKey): void {
                     />
                 </slot>
             </div>
-            <Toaster
-                :class="
-                    props.dashboardTheme ? 'admin-dashboard-theme' : undefined
-                "
-            />
         </section>
     </div>
 </template>

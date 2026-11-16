@@ -6,6 +6,7 @@ import {
     ref,
     watch,
 } from 'vue';
+import { toast } from '@/lib/toast';
 import {
     executiveMoney as money,
     executiveNumber as number,
@@ -13,6 +14,9 @@ import {
     executiveClients,
     executiveLandCategories,
     executiveRows,
+    executiveYears,
+    executiveCycleForYear,
+    executiveSnapshotDate,
     executiveTotals,
     loadExecutiveDemo,
 } from '@/services/ownerExecutiveDemoService';
@@ -28,12 +32,19 @@ export function useExecutiveSummary() {
     const feedback = ref('');
     const filters = reactive<ExecutiveFilters>({
         year: 2026,
-        cycle: 1,
+        cycle: 'all',
         partner: '',
         region: '',
         farm: '',
         commodity: '',
     });
+    watch(
+        filters,
+        () => {
+            feedback.value = '';
+        },
+        { flush: 'sync' },
+    );
     let disposed = false;
     async function load(refresh = false) {
         loading.value = true;
@@ -45,15 +56,19 @@ export function useExecutiveSummary() {
             data.value = result;
             if (!refresh) {
                 filters.year = result.defaultYear;
-                filters.cycle = result.defaultCycle;
+                filters.cycle = 'all';
             }
             if (refresh)
-                feedback.value =
-                    'Data contoh berhasil dimuat ulang. Filter tetap diterapkan.';
+                void toast.success(
+                    'Data contoh berhasil dimuat ulang. Filter tetap diterapkan.',
+                );
         } catch {
-            if (!disposed)
-                error.value =
+            if (!disposed) {
+                const message =
                     'Data contoh belum berhasil dimuat. Periksa koneksi lalu coba lagi.';
+                error.value = message;
+                void toast.error(message);
+            }
         } finally {
             if (!disposed) loading.value = false;
         }
@@ -67,9 +82,7 @@ export function useExecutiveSummary() {
     );
     const totals = computed(() => executiveTotals(rows.value));
     const years = computed(() =>
-        [...new Set(data.value?.operations.map((row) => row.year))].sort(
-            (a, b) => b - a,
-        ),
+        data.value ? executiveYears(data.value) : [],
     );
     const cycles = computed(() =>
         [
@@ -85,6 +98,10 @@ export function useExecutiveSummary() {
             (a, b) => a.localeCompare(b, 'id'),
         ),
     );
+    watch(cycles, (available) => {
+        if (data.value)
+            filters.cycle = executiveCycleForYear(filters.cycle, available);
+    });
     const farmOptions = computed(
         () =>
             data.value?.farms.filter(
@@ -132,17 +149,29 @@ export function useExecutiveSummary() {
     function reset() {
         Object.assign(filters, {
             year: data.value?.defaultYear ?? 2026,
-            cycle: data.value?.defaultCycle ?? 1,
+            cycle: 'all',
             partner: '',
             region: '',
             farm: '',
             commodity: '',
         });
-        feedback.value = 'Filter dikembalikan ke pilihan awal.';
+        void toast.info('Filter dikembalikan ke pilihan awal.');
     }
-    const periodLabel = computed(
-        () => `Cycle ${filters.cycle} · ${filters.year}`,
+    const periodLabel = computed(() =>
+        filters.cycle === 'all'
+            ? `1 Januari–31 Desember ${filters.year}`
+            : `Cycle ${filters.cycle} · ${filters.year}`,
     );
+    const snapshotLabel = computed(() => {
+        const date =
+            data.value && executiveSnapshotDate(data.value, filters.year);
+        return date
+            ? new Intl.DateTimeFormat('id-ID', {
+                  dateStyle: 'medium',
+                  timeZone: 'Asia/Jakarta',
+              }).format(new Date(date))
+            : 'belum tersedia';
+    });
     const monthlyLabel = computed(() =>
         new Intl.DateTimeFormat('id-ID', {
             month: 'long',
@@ -180,6 +209,7 @@ export function useExecutiveSummary() {
         reset,
         load,
         periodLabel,
+        snapshotLabel,
         monthlyLabel,
         updatedLabel,
         number,

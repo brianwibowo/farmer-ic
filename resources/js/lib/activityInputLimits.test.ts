@@ -7,7 +7,7 @@ import {
 
 const fields = [
     { key: 'area', label: 'Luas area', type: 'number', max: 999999 },
-    { key: 'moisture', label: 'Kadar air (%)', type: 'number', max: 100 },
+    { key: 'weight', label: 'Berat hasil panen', type: 'number', max: 100 },
     {
         key: 'bag_size',
         label: 'Berat per sak',
@@ -24,8 +24,8 @@ describe('activity numeric maximums', () => {
             'Luas maksimal 7 ha.',
         );
         expect(maximumError('', 7, 'Luas')).toBeUndefined();
-        expect(maximumError('100.01', 100, 'Kadar air')).toBe(
-            'Kadar air maksimal 100.',
+        expect(maximumError('100.01', 100, 'Berat hasil panen')).toBe(
+            'Berat hasil panen maksimal 100.',
         );
     });
 

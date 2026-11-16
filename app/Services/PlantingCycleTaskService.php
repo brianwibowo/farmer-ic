@@ -66,7 +66,9 @@ class PlantingCycleTaskService
                     return $this->result('already_generated', 0, $rescheduled, $version->id);
                 }
             } else {
-                $linked = $farm->defaultSopTemplate;
+                $block = $cycle->block_id === null ? null : \App\Models\FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->first();
+                $sopId = $block?->getAttribute('default_sop_template_id');
+                $linked = $sopId === null ? null : SopTemplate::visibleTo($actor, $team)->whereKey($sopId)->first();
                 if ($linked === null) {
                     return $this->result('missing_sop');
                 }
@@ -105,7 +107,7 @@ class PlantingCycleTaskService
                 PlantingCycleTask::create([
                     'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $stages->get($source->activity_category)->id,
                     'sop_template_task_id' => $source->id, 'activity_category' => $source->activity_category,
-                    'activity_subcategory' => $source->activity_subcategory, 'name' => $source->name, 'instructions' => $source->instructions,
+                    'activity_subcategory' => null, 'name' => $source->name, 'instructions' => $source->instructions,
                     'offset_days' => $source->offset_days, 'tolerance_days' => $source->tolerance_days,
                     'scheduled_date' => $date->toDateString(), 'due_date' => $date->addDays($source->tolerance_days)->toDateString(),
                     'is_required' => $source->is_required, 'status' => 'pending',

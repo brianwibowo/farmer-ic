@@ -35,6 +35,28 @@ class FarmInfographicComposer
         $this->boldFont = $boldFontPath ?? resource_path('fonts/NotoSans-Bold.ttf');
     }
 
+    private function decodeModelArt(string $binary): GdImage
+    {
+        // A malformed provider image is a validation error, rather than a PHP warning.
+        set_error_handler(static function (): never {
+            throw new InvalidArgumentException('Ilustrasi model harus berupa gambar raster yang valid.');
+        }, E_WARNING);
+        try {
+            if (getimagesizefromstring($binary) === false) {
+                throw new InvalidArgumentException('Ilustrasi model harus berupa gambar raster yang valid.');
+            }
+            $art = imagecreatefromstring($binary);
+        } finally {
+            restore_error_handler();
+        }
+
+        if (! $art instanceof GdImage) {
+            throw new InvalidArgumentException('Ilustrasi model harus berupa gambar raster yang valid.');
+        }
+
+        return $art;
+    }
+
     /**
      * @param  Plan  $plan
      * @return array{binary: string, manifest: array<string, mixed>}
@@ -53,10 +75,7 @@ class FarmInfographicComposer
         if (($plan['status'] ?? null) !== 'ready') {
             throw new InvalidArgumentException('Hanya rencana infografis berstatus ready yang dapat digambar.');
         }
-        $art = @imagecreatefromstring($modelArtBinary);
-        if (! $art instanceof GdImage) {
-            throw new InvalidArgumentException('Ilustrasi model harus berupa gambar raster yang valid.');
-        }
+        $art = $this->decodeModelArt($modelArtBinary);
 
         $orientation = ($plan['orientation'] ?? '') === 'landscape' ? 'landscape' : 'portrait';
         $width = $orientation === 'landscape' ? 1440 : 1080;

@@ -25,11 +25,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $latitude
  * @property string|null $longitude
  * @property string|null $image_url
- * @property string|null $default_sop_template_id
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['owner_id', 'name', 'land_tenure', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id'])]
+#[Fillable(['owner_id', 'name', 'land_tenure', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url'])]
 class Farm extends FarmerModel
 {
     /** @return BelongsTo<Team, $this> */
@@ -124,11 +123,5 @@ class Farm extends FarmerModel
     public function operationalTargets(): HasMany
     {
         return $this->hasMany(OperationalTarget::class, 'farm_id');
-    }
-
-    /** @return BelongsTo<SopTemplate, $this> */
-    public function defaultSopTemplate(): BelongsTo
-    {
-        return $this->belongsTo(SopTemplate::class, 'default_sop_template_id');
     }
 }

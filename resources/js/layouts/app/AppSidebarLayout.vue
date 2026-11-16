@@ -7,7 +7,6 @@ import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
-import { Toaster } from '@/components/ui/sonner';
 import type { BreadcrumbItem } from '@/types';
 
 type Props = {
@@ -61,7 +60,6 @@ const adminSection = computed(() => {
                 <AppSidebarHeader v-if="!isAdmin" :breadcrumbs="breadcrumbs" />
                 <slot />
             </AppContent>
-            <Toaster :class="isAdmin ? 'admin-dashboard-theme' : undefined" />
         </AppShell>
     </div>
 </template>

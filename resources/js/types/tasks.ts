@@ -1,8 +1,4 @@
-import {
-    sopActivityCategoryLabels,
-    sopActivitySubcategoryLabels,
-    type SopActivitySubcategory,
-} from '@/types/sop';
+import { sopActivityCategoryLabels } from '@/types/sop';
 
 export type AdminTaskStatus =
     | 'pending'
@@ -30,7 +26,6 @@ export type AdminTask = {
     urgency: AdminTaskUrgency;
     overdue_days: number | null;
     activity_category: AdminTaskCategory;
-    activity_subcategory: SopActivitySubcategory | null;
     offset_days: number;
     scheduled_date: string | null;
     due_date: string | null;
@@ -147,15 +142,6 @@ export function adminTaskCategoryLabel(
         sopActivityCategoryLabels[task.activity_category] ??
         task.activity_category
     );
-}
-
-export function adminTaskSubcategoryLabel(
-    task: Pick<AdminTask, 'activity_subcategory'>,
-): string {
-    return task.activity_subcategory
-        ? (sopActivitySubcategoryLabels[task.activity_subcategory] ??
-              task.activity_subcategory)
-        : '-';
 }
 
 export function adminTaskStatusClass(status: AdminTaskStatus): string {

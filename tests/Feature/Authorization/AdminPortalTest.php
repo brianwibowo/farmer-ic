@@ -115,7 +115,10 @@ class AdminPortalTest extends TestCase
             if ($role === 'petugas') {
                 $this->get('/')->assertRedirect('/petugas');
             } else {
-                $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+                $this->get('/')->assertRedirect('/ringkasan-eksekutif');
+                $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
+                    ->component('owner/ExecutiveSummary')->where('navigation.admin', false)->where('navigation.farms', true));
+                $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
                     ->component('owner/Dashboard')->where('navigation.admin', false)->where('navigation.farms', true));
             }
         }
@@ -161,7 +164,7 @@ class AdminPortalTest extends TestCase
         foreach (['owner', 'petugas', 'admin', 'superadmin'] as $role) {
             auth()->logout();
             $user = $this->actor($role);
-            $destination = in_array($role, ['admin', 'superadmin'], true) ? '/admin/dashboard' : ($role === 'petugas' ? '/petugas' : '/');
+            $destination = in_array($role, ['admin', 'superadmin'], true) ? '/admin/dashboard' : ($role === 'petugas' ? '/petugas' : '/ringkasan-eksekutif');
             $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect($destination);
             $this->get('/login')->assertRedirect($destination);
         }
@@ -171,7 +174,7 @@ class AdminPortalTest extends TestCase
     {
         $owner = User::factory()->create(['role' => 'owner']);
         $this->withSession(['url.intended' => url('/admin/farm-management')])
-            ->post('/login', ['email' => $owner->email, 'password' => 'password'])->assertRedirect('/');
+            ->post('/login', ['email' => $owner->email, 'password' => 'password'])->assertRedirect('/ringkasan-eksekutif');
         auth()->logout();
         $this->withSession(['url.intended' => url('/kebun')])
             ->post('/login', ['email' => $owner->email, 'password' => 'password'])->assertRedirect('/kebun');

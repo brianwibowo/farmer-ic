@@ -38,7 +38,7 @@ def main():
             )
             return subprocess.run(
                 ["docker", "compose", "--env-file", ".env.production", "-f", "compose.production.yaml",
-                 "--profile", "rag", "config", "--format", "json"],
+                 "--profile", "rag", "--profile", "blue-green", "config", "--format", "json"],
                 cwd=path, env=env, capture_output=True, text=True, check=False,
             )
 
@@ -60,12 +60,20 @@ def main():
             if len(mounts) != 1 or mounts[0]["source"] != "app_release_storage":
                 raise SystemExit(f"{service} does not use the new application storage volume.")
 
+        for service, views in (("web-blue", "blue_views"), ("web-green", "green_views")):
+            definition = config["services"][service]
+            mounts = {mount["target"]: mount["source"] for mount in definition["volumes"]}
+            if mounts.get("/var/www/html/storage") != "app_release_storage":
+                raise SystemExit(f"{service} does not share application storage.")
+            if mounts.get("/var/www/html/storage/framework/views") != views:
+                raise SystemExit(f"{service} does not isolate compiled views.")
+
         image_ref = "ghcr.io/example/farmer-ic@sha256:" + "a" * 64
         digest_config = configure({**SETTINGS, "APP_IMAGE_REF": image_ref, "APP_IMAGE": "old-image", "APP_TAG": "old-tag"})
         if digest_config.returncode:
             raise SystemExit("Compose rejected the immutable image reference.")
         digest_services = json.loads(digest_config.stdout)["services"]
-        for service in ("app", "worker", "notifications", "scheduler"):
+        for service in ("app", "web-blue", "web-green", "worker", "notifications", "scheduler"):
             if digest_services[service]["image"] != image_ref:
                 raise SystemExit(f"{service} does not use the tested image digest.")
 

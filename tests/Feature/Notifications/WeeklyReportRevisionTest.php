@@ -81,7 +81,7 @@ class WeeklyReportRevisionTest extends TestCase
 
     private function activity(PlantingCycle $cycle, string $code, ?string $at = null, ?User $performer = null, array $extra = []): FarmActivity
     {
-        $name = ['harvest' => 'Panen', 'incident' => 'Insiden', 'irrigation' => 'Penyiraman'][$code];
+        $name = ['harvest' => 'Panen', 'incident' => 'Insiden', 'maintenance' => 'Perawatan'][$code];
         $type = ActivityType::firstOrCreate(['code' => $code], ['name' => $name]);
         $activity = new FarmActivity(['farm_id' => $cycle->farm_id, 'planting_cycle_id' => $cycle->id,
             'activity_type_id' => $type->id, 'performed_by' => ($performer ?? $this->officer)->id,
@@ -152,7 +152,7 @@ class WeeklyReportRevisionTest extends TestCase
         $cycle = $this->cycle($farm);
         $otherCycle = $this->cycle($farm, FarmBlock::findOrFail($cycle->block_id));
         foreach ([$cycle, $otherCycle] as $subblock) {
-            $this->activity($subblock, 'irrigation', extra: ['obstacles' => str_repeat('Catatan panjang ', 30), 'obstacle_status' => 'reported']);
+            $this->activity($subblock, 'maintenance', extra: ['obstacles' => str_repeat('Catatan panjang ', 30), 'obstacle_status' => 'reported']);
             $this->activity($subblock, 'incident')->incidentDetail()->create(['incident_category' => 'Cuaca', 'severity' => 'heavy', 'affected_area_ha' => '0.0100']);
         }
         $this->activity($cycle, 'incident')->incidentDetail()->create(['incident_category' => 'Alat rusak', 'severity' => 'light']);
@@ -165,7 +165,7 @@ class WeeklyReportRevisionTest extends TestCase
         $this->assertCount(1, $notification->data['farms'][0]['blocks']);
         $message = $notification->toInApp()['message'];
         $this->assertStringNotContainsString('Kebun Aktivitas', $notification->toWhatsAppText());
-        $this->assertStringContainsString('Pengairan 2 kali', $message);
+        $this->assertStringContainsString('Perawatan 2 kali', $message);
         $this->assertStringContainsString('Cuaca (Berat) 2 kejadian', $message);
         $this->assertStringContainsString('Alat rusak (Ringan) 1 kejadian', $message);
         $this->assertStringContainsString('Hambatan: 2 laporan.', $message);

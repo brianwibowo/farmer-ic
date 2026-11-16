@@ -30,6 +30,7 @@ use App\Http\Controllers\Petugas\PetugasActivityController;
 use App\Http\Controllers\Petugas\PetugasGardenController;
 use App\Http\Controllers\Petugas\PetugasHomeController;
 use App\Http\Controllers\Petugas\PetugasPlantingController;
+use App\Http\Controllers\Petugas\PetugasSubblokController;
 use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
@@ -51,6 +52,7 @@ Route::get('/', HomeController::class)->middleware(['auth', 'verified'])->name('
 
 Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): void {
     Route::get('ringkasan-eksekutif', [OwnerController::class, 'executiveSummary'])->name('owner.executive-summary');
+    Route::get('monitoring-lahan', [OwnerController::class, 'dashboard'])->name('owner.monitoring');
     Route::get('kebun', [FarmManagementController::class, 'index'])->name('kebun');
     Route::get('kebun/detail', function (Request $request) {
         $id = (string) $request->query('id', '');
@@ -85,6 +87,7 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::get('weather/{farm}', DashboardWeatherController::class)
         ->whereUuid('farm')->middleware('throttle:30,1')->name('weather');
     Route::get('kebun', PetugasGardenController::class)->name('kebun');
+    Route::post('blocks/{block}/subbloks', PetugasSubblokController::class)->whereUuid('block')->name('subbloks.store');
     Route::get('penanaman', [PetugasPlantingController::class, 'index'])->name('planting.index');
     Route::get('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'show'])->whereUuid('cycle')->name('planting.show');
     Route::post('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'store'])->whereUuid('cycle')->name('planting.store');
@@ -177,6 +180,10 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::post('tasks/{task}/reschedule', [TaskManagementController::class, 'reschedule'])->whereUuid('task')->name('tasks.reschedule');
 
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');
+    Route::post('farm-management/geocode', \App\Http\Controllers\FarmGeocodingController::class)
+        ->middleware('throttle:20,1')->name('farm-management.geocode');
+    Route::post('farm-management/{farm}/geocode', \App\Http\Controllers\FarmGeocodingController::class)
+        ->whereUuid('farm')->middleware('throttle:20,1')->name('farm-management.geocode-update');
     Route::get('farm-management/{farm}/legalitas', [FarmLegalityController::class, 'show'])
         ->whereUuid('farm')->name('farm-management.legality.show');
     Route::post('farm-management/{farm}/legality', [FarmLegalityController::class, 'store'])

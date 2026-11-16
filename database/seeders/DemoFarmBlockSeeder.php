@@ -29,7 +29,8 @@ class DemoFarmBlockSeeder extends Seeder
             ] as [$code, $name, $area, $clearingStarted, $clearingCompleted]) {
                 if (! FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $code)->exists()) {
                     $created = app(FarmBlockService::class)->create($farm, $actor, $team, ['code' => $code, 'name' => $name,
-                        'area_ha' => $area, 'description' => 'Blok permanen lahan percontohan Cileuksa.']);
+                        'area_ha' => $area, 'description' => 'Blok permanen lahan percontohan Cileuksa.',
+                        'commodity_id' => CropVariety::visibleTo($actor, $team)->where('name', 'Bisi 18')->value('commodity_id')]);
                     $created->forceFill(['land_clearing_started_at' => $clearingStarted, 'land_clearing_completed_at' => $clearingCompleted])->save();
                 }
             }
@@ -59,7 +60,7 @@ class DemoFarmBlockSeeder extends Seeder
             Gate::forUser($actor)->authorize('update', $previous);
             $previous->forceFill([
                 'status' => 'active', 'variety_id' => $variety->id, 'planted_at' => '2026-06-01',
-                'planted_area_ha' => '4.2500', 'estimated_harvest_at' => '2026-08-30', 'estimated_weight_ton' => '21.000',
+                'reserved_area_ha' => '4.2500', 'planted_area_ha' => '4.2500', 'estimated_harvest_at' => '2026-08-30', 'estimated_weight_ton' => '21.000',
             ])->save();
             // DemoActivitySeeder records the evidence before closing harvest.
 
@@ -70,7 +71,7 @@ class DemoFarmBlockSeeder extends Seeder
             ]);
             Gate::forUser($actor)->authorize('update', $batch);
             $batch->forceFill(['status' => 'active', 'variety_id' => $variety->id, 'planted_at' => '2026-10-01',
-                'planted_area_ha' => '4.2500', 'estimated_harvest_at' => '2027-01-15', 'estimated_weight_ton' => '21.000'])->save();
+                'reserved_area_ha' => '4.2500', 'planted_area_ha' => '4.2500', 'estimated_harvest_at' => '2027-01-15', 'estimated_weight_ton' => '21.000'])->save();
 
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $b02]);
             app(FarmBlockService::class)->createBatch($b02, $actor, $team, [

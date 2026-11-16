@@ -60,10 +60,11 @@ class FarmBlockConcurrencyTest extends TestCase
                 $results[] = trim($worker->getOutput());
             }
             $this->assertSame(2, $waiting, 'Both requests must actually contend for the farm lock.');
-            $this->assertEqualsCanonicalizing(['created', 'capacity'], $results);
-            $this->assertSame(1, PlantingCycle::where('farm_id', $farm->id)->count());
-            $this->assertSame(1, PlantingCycle::where('farm_id', $farm->id)->value('batch_number'));
-            $this->assertSame('2.0000', PlantingCycle::where('farm_id', $farm->id)->value('reserved_area_ha'));
+            $this->assertSame(['created', 'created'], $results);
+            $this->assertSame(2, PlantingCycle::where('farm_id', $farm->id)->count());
+            $this->assertSame([1, 2], PlantingCycle::where('farm_id', $farm->id)->orderBy('batch_number')->pluck('batch_number')->all());
+            $this->assertSame(['A', 'B'], PlantingCycle::where('farm_id', $farm->id)->orderBy('batch_number')->pluck('subblock_label')->all());
+            $this->assertSame(['0.0000', '0.0000'], PlantingCycle::where('farm_id', $farm->id)->orderBy('batch_number')->pluck('planted_area_ha')->all());
         } finally {
             foreach ($workers as $worker) {
                 if ($worker->isRunning()) {

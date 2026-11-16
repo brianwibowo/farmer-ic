@@ -59,7 +59,7 @@ class FarmLegalityTest extends TestCase
             ->where('legality.summary', 'Kerja sama pengelolaan lahan dan pemeliharaan jaringan irigasi.')
             ->where('legality.status', 'active')
             ->where('urls.farm', '/kebun/'.$farm->id)
-            ->where('urls.home', '/')
+            ->where('urls.home', '/monitoring-lahan')
             ->where('urls.farms', '/kebun'));
 
         $record->update(['summary' => 'Addendum pembagian tanggung jawab pemeliharaan telah dicatat.']);
@@ -95,7 +95,7 @@ class FarmLegalityTest extends TestCase
         $this->actingAs($this->admin)->get('/admin/farm-management/'.$farm->id)
             ->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('farms/Show')->missing('ownerSummary')
-            ->has('farm.default_sop')->has('farm.progress_overview.stages'));
+            ->missing('farm.default_sop')->has('farm.progress_overview.stages'));
     }
 
     public function test_owner_contract_summary_distinguishes_missing_dates_from_owned_land_without_a_contract(): void

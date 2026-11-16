@@ -3,6 +3,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import { toast } from '@/lib/toast';
 
 const page = usePage();
 const teams = computed(() =>
@@ -17,6 +18,7 @@ const switching = ref(false);
 const error = ref('');
 function switchTeam(value: string | number | boolean | null | undefined): void {
     if (typeof value !== 'string' || !value || value === selected.value) return;
+    toast.dismiss();
     switching.value = true;
     error.value = '';
     router.post(

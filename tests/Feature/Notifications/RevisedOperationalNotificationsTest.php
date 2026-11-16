@@ -50,7 +50,7 @@ class RevisedOperationalNotificationsTest extends TestCase
     public function test_only_harvest_is_reminded_to_both_roles_once_per_milestone_despite_rescheduling(): void
     {
         $task = $this->notificationTask($this->farm, 3, ['activity_category' => 'harvest', 'activity_subcategory' => null, 'name' => 'Panen']);
-        $this->notificationTask($this->farm, 3, ['activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation']);
+        $this->notificationTask($this->farm, 3, ['activity_category' => 'maintenance', 'activity_subcategory' => null]);
         $service = app(NotificationService::class);
         $this->assertSame(2, $service->taskReminders());
         $this->assertSame(0, $service->taskReminders());

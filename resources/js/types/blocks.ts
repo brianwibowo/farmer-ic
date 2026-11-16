@@ -17,8 +17,14 @@ export type FarmBlock = {
     area_ha: string;
     description: string | null;
     is_active: boolean;
+    commodity_id: string | null;
+    default_sop_template_id: string | null;
     land_clearing_started_at: string | null;
     land_clearing_completed_at: string | null;
+};
+export type BlockOptions = {
+    commodities: { id: string; name: string }[];
+    sops: { id: string; name: string; commodity_id: string; is_active: boolean }[];
 };
 export type BatchStage = {
     code: string;
@@ -62,9 +68,9 @@ export type BatchGrowth = {
 export const stageLabels: Record<string, string> = {
     land_clearing: 'Land Clearing',
     soil_preparation: 'Pengolahan tanah',
-    basic_fertilizer: 'Pemupukan dasar',
+    basic_fertilizer: 'Pemupukan kandang',
     planting: 'Penanaman',
-    maintenance: 'Pemeliharaan',
+    maintenance: 'Perawatan',
     harvest: 'Panen',
 };
 export function blockDate(value: string | null): string {

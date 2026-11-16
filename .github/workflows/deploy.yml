@@ -141,19 +141,10 @@ jobs:
                         exit 1
                       fi
 
-                      # Keep all unrelated services, containers, files and volumes.
-                      docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --wait --wait-timeout 120 --no-build --no-deps app worker notifications scheduler https-portal
+                      # Fails closed unless the one-time proxy cutover has been
+                      # completed and public traffic matches the router state.
+                      sh docker/blue-green/deploy.sh deploy
 
-                      for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-                        if curl -fsSk -o /dev/null --max-time 5 \
-                          --resolve farmer.icdigital.io:443:127.0.0.1 \
-                          https://farmer.icdigital.io/up; then
-                          exit 0
-                        fi
-                        if [ "$attempt" = 15 ]; then
-                          echo 'Public endpoint did not become healthy after deploy' >&2
-                          docker logs --tail 50 farmer-ic-https-portal-1 >&2
-                          exit 1
-                        fi
-                        sleep 2
-                      done
+                      # Only replace consumers once web traffic is responding.
+                      # Jobs and payloads must remain compatible across versions.
+                      docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --wait --wait-timeout 120 --no-build --no-deps worker notifications scheduler

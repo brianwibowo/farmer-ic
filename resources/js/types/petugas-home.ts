@@ -1,5 +1,5 @@
 import type { PetugasTaskStatus } from '@/types/petugas-task';
-import type { SopActivityCategory, SopActivitySubcategory } from '@/types/sop';
+import type { SopActivityCategory } from '@/types/sop';
 
 export type PetugasHomeTask = {
     id: string;
@@ -9,7 +9,6 @@ export type PetugasHomeTask = {
     is_required: boolean;
     offset_days: number;
     activity_category: SopActivityCategory;
-    activity_subcategory: SopActivitySubcategory | null;
     scheduled_date: string;
     due_date: string | null;
     stage: string | null;

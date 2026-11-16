@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ownerFarmOrigin } from '@/lib/ownerFarmNavigation';
 import {
     ArrowLeft,
     ClipboardList,
@@ -25,6 +26,17 @@ import {
 import type { ManagedBlock, BlockFormCapacity } from '@/types/blocks';
 defineOptions({ inheritAttrs: false });
 const { indexUrl } = useFarmManagementNavigation();
+const page = usePage();
+const fromMonitoring = computed(
+    () =>
+        !!page.props.navigation?.owner && ownerFarmOrigin(page.url) === 'home',
+);
+const backUrl = computed(() =>
+    fromMonitoring.value ? '/monitoring-lahan' : indexUrl.value,
+);
+const backLabel = computed(() =>
+    fromMonitoring.value ? 'Kembali ke Monitoring Lahan' : 'Daftar kebun',
+);
 const props = defineProps<{
     farm: ManagedFarm;
     blocks: ManagedBlock[];
@@ -113,9 +125,9 @@ const coordinates = computed<[number, number] | null>(() =>
             <div class="flex min-w-0 items-center gap-2">
                 <Button as-child variant="ghost" size="icon" class="shrink-0"
                     ><Link
-                        :href="indexUrl"
-                        aria-label="Daftar kebun"
-                        title="Daftar kebun"
+                        :href="backUrl"
+                        :aria-label="backLabel"
+                        :title="backLabel"
                         ><ArrowLeft class="size-5" /></Link
                 ></Button>
                 <h1 class="admin-page-title min-w-0 break-words">
@@ -256,18 +268,6 @@ const coordinates = computed<[number, number] | null>(() =>
                 </div>
                 <div>
                     <dt class="text-xs text-muted-foreground">
-                        Komoditas yang ditanam
-                    </dt>
-                    <dd class="mt-1 text-sm font-semibold">
-                        {{
-                            farm.commodity?.name ??
-                            farm.default_sop?.commodity?.name ??
-                            'Belum dipilih'
-                        }}
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">
                         Legalitas / Kontrak
                     </dt>
                     <dd class="mt-1 text-sm font-semibold">
@@ -305,20 +305,6 @@ const coordinates = computed<[number, number] | null>(() =>
                     <dd class="mt-1 text-sm font-semibold">
                         {{ contractLabel }}
                     </dd>
-                </div>
-                <div v-else>
-                    <dt class="text-xs text-muted-foreground">
-                        Panduan budidaya (SOP)
-                    </dt>
-                    <dd class="mt-1 text-sm font-semibold">
-                        {{ farm.default_sop?.name ?? 'Belum dipilih' }}
-                    </dd>
-                    <p
-                        v-if="farm.default_sop && !farm.default_sop.is_usable"
-                        class="mt-1 text-xs text-warning"
-                    >
-                        SOP belum siap digunakan.
-                    </p>
                 </div>
             </dl>
             <div class="border-t border-border p-4 sm:p-5">

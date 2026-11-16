@@ -11,11 +11,13 @@ use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Owner\HarvestProjectionService;
+use Database\Seeders\CariuBaruSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoFarmSeeder;
 use Database\Seeders\DemoOwnerPortfolioData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -33,6 +35,8 @@ class DatabaseSeederTest extends TestCase
             $this->assertDatabaseHas('teams', ['slug' => 'farm-ic-demo']);
             $this->assertDatabaseCount('farms', 7);
             $this->assertDatabaseCount('farm_legalities', 7);
+            $this->assertDatabaseMissing('users', ['email' => CariuBaruSeeder::EMAIL]);
+            $this->assertDatabaseMissing('farms', ['name' => 'Kebun Cariu Baru']);
         } finally {
             $this->app->instance('env', 'testing');
         }
@@ -43,26 +47,37 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $team = Team::query()->where('slug', 'farm-ic-demo')->firstOrFail();
-        $this->assertDatabaseCount('farms', 7);
+        $this->assertDatabaseCount('farms', 8);
         $this->assertDatabaseCount('financial_transactions', 24);
         $this->assertSame(['Jagung', 'Rumput', 'Sorgum'], Commodity::query()->orderBy('name')->pluck('name')->all());
+        $cariu = Farm::query()->findOrFail(CariuBaruSeeder::farmId($team));
+        $cariuWorker = User::query()->where('email', CariuBaruSeeder::EMAIL)->firstOrFail();
+        $this->assertTrue(Hash::check(CariuBaruSeeder::PASSWORD, $cariuWorker->password));
+        $this->assertSame($cariu->id, $cariuWorker->assignedFarmId());
+        $this->assertSame('petugas', $cariuWorker->role->name);
+        $this->assertNotNull($cariuWorker->email_verified_at);
+        $this->assertSame(70, FarmActivity::query()->where('farm_id', $cariu->id)->count());
+        $this->assertSame(4, PlantingCycle::query()->where('farm_id', $cariu->id)->count());
+        $this->post('/login', ['email' => CariuBaruSeeder::EMAIL, 'password' => CariuBaruSeeder::PASSWORD])->assertRedirect();
+        $this->assertAuthenticatedAs($cariuWorker);
+        $this->post('/logout')->assertRedirect();
         $demoFarm = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $this->assertTrue(DB::table('block_mapping_details as d')->join('farm_activities as a', 'a.id', '=', 'd.activity_id')
             ->where('a.farm_id', $demoFarm->id)->exists());
         foreach (['B01', 'B02'] as $code) {
             $blockId = DB::table('farm_blocks')->where('farm_id', $demoFarm->id)->where('code', $code)->value('id');
-            foreach (['land_cleaning', 'loosening'] as $type) {
-                $detail = $type === 'land_cleaning' ? 'land_cleaning_details' : 'loosening_details';
-                $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
-                    ->join($detail.' as d', 'd.activity_id', '=', 'a.id')
-                    ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')->where('t.code', $type)->exists());
-            }
+            $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
+                ->join('land_cleaning_details as d', 'd.activity_id', '=', 'a.id')
+                ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')->where('t.code', 'land_cleaning')->exists());
+            $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
+                ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')
+                ->where('t.code', 'soil_preparation')->whereNotNull('a.task_details')->exists());
         }
-        $this->assertDatabaseHas('activity_types', ['code' => 'base_fertilization', 'parent_id' => null, 'is_selectable' => true, 'detail_key' => 'fertilization']);
+        $this->assertDatabaseHas('activity_types', ['code' => 'base_fertilization', 'name' => 'Pemupukan Kandang', 'parent_id' => null, 'is_selectable' => true, 'detail_key' => 'fertilization']);
         $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
             ->join('farm_blocks as b', 'b.id', '=', 'a.block_id')->join('fertilization_details as d', 'd.activity_id', '=', 'a.id')
             ->where('a.farm_id', $demoFarm->id)->where('b.code', 'B01')->whereNull('a.planting_cycle_id')
-            ->where('t.code', 'base_fertilization')->where('d.fertilization_stage', 'dasar')->exists());
+            ->where('t.code', 'base_fertilization')->where('d.fertilization_stage', 'kandang')->exists());
         $this->assertGreaterThan(0, DB::table('farm_activities')->where('farm_id', $demoFarm->id)->whereNotNull('planting_cycle_id')->whereNotNull('block_id')->count());
         $this->assertSame(0, DB::table('farm_activities as a')->join('planting_cycles as c', 'c.id', '=', 'a.planting_cycle_id')
             ->whereNotNull('c.block_id')
@@ -74,8 +89,8 @@ class DatabaseSeederTest extends TestCase
             $this->assertSame(count($site['batches']), PlantingCycle::query()->where('farm_id', $farmId)->count());
             $this->assertTrue(FarmActivity::query()->where('farm_id', $farmId)->exists());
             $this->assertDatabaseHas('weather_records', ['farm_id' => $farmId]);
-            $this->assertDatabaseHas('farms', [
-                'id' => $farmId, 'commodity_id' => Commodity::query()->where('name', $site['commodity'])->value('id'),
+            $this->assertDatabaseHas('farm_blocks', [
+                'farm_id' => $farmId, 'commodity_id' => Commodity::query()->where('name', $site['commodity'])->value('id'),
             ]);
             foreach (PlantingCycle::query()->where('farm_id', $farmId)->whereNotNull('variety_id')->with('variety.commodity')->get() as $cycle) {
                 $this->assertSame($site['commodity'], $cycle->variety->commodity->name);
@@ -96,6 +111,7 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertSame('Lahan Cariu', $farm->refresh()->name);
+        $this->assertSame($cariu->id, $cariuWorker->refresh()->assignedFarmId());
         $this->assertSame(['Jagung', 'Rumput', 'Sorgum'], Commodity::query()->orderBy('name')->pluck('name')->all());
         foreach ($counts as $table => $count) {
             $this->assertDatabaseCount($table, $count);
@@ -119,12 +135,11 @@ class DatabaseSeederTest extends TestCase
             ->setTimezone('Asia/Jakarta')
             ->toDateString();
 
-        $scheduled = fn (string $category, ?string $subcategory): string => $cycle->tasks()
+        $scheduled = fn (string $category, ?string $namePart = null): string => $cycle->tasks()
             ->where('activity_category', $category)
             ->when(
-                $subcategory === null,
-                fn ($query) => $query->whereNull('activity_subcategory'),
-                fn ($query) => $query->where('activity_subcategory', $subcategory),
+                $namePart !== null,
+                fn ($query) => $query->where('name', 'like', '%'.$namePart.'%'),
             )
             ->firstOrFail()
             ->effectiveScheduledDate()
@@ -133,9 +148,9 @@ class DatabaseSeederTest extends TestCase
         $planted = $cycle->planted_at->toDateString();
 
         $this->assertSame($planted, $activityDate('Penanaman Blok 1'));
-        $this->assertSame($scheduled('maintenance', 'irrigation'), $activityDate('Irigasi sore Blok 1'));
-        $this->assertSame($scheduled('maintenance', 'follow_up_fertilization'), $activityDate('Pemupukan susulan pertama Blok 1'));
-        $this->assertSame($scheduled('maintenance', 'pest_control'), $activityDate('Pengendalian ulat Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'Pengairan awal'), $activityDate('Irigasi sore Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'Pemupukan susulan pertama'), $activityDate('Pemupukan susulan pertama Blok 1'));
+        $this->assertSame($scheduled('maintenance', 'Pengendalian hama'), $activityDate('Pengendalian ulat Blok 1'));
         $this->assertDatabaseMissing('farm_activities', [
             'farm_id' => $farm->id,
             'description' => 'Panen percobaan Blok 2',
@@ -151,13 +166,15 @@ class DatabaseSeederTest extends TestCase
         };
 
         foreach ([
-            'Irigasi sore Blok 1' => 'irrigation',
-            'Pemupukan susulan pertama Blok 1' => 'follow_up_fertilization',
-            'Pengendalian ulat Blok 1' => 'pest_control',
-        ] as $description => $subcategory) {
+            'Irigasi sore Blok 1' => 'Pengairan awal',
+            'Pemupukan susulan pertama Blok 1' => 'Pemupukan susulan pertama',
+            'Pengendalian ulat Blok 1' => 'Pengendalian hama dan penyakit',
+        ] as $description => $taskName) {
             $task = $linkedTask($description);
             $this->assertSame('completed', $task->status);
-            $this->assertSame($subcategory, $task->activity_subcategory);
+            $this->assertSame('maintenance', $task->activity_category);
+            $this->assertNull($task->activity_subcategory);
+            $this->assertSame($taskName, $task->name);
             $this->assertSame(
                 $activityDate($description),
                 $task->completed_at->setTimezone('Asia/Jakarta')->toDateString(),
@@ -200,10 +217,10 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $codes = [
             'land_clearing' => ['land_cleaning'],
-            'soil_preparation' => ['loosening', 'beds', 'liming'],
+            'soil_preparation' => ['soil_preparation'],
             'basic_fertilizer' => ['base_fertilization'],
             'planting' => ['planting'],
-            'maintenance' => ['irrigation', 'weeding', 'follow_up_fertilization', 'growth_check', 'pest_control'],
+            'maintenance' => ['maintenance'],
             'harvest' => ['harvest'],
         ];
         foreach (PlantingCycle::query()->with('stages')->whereNotNull('block_id')->get() as $cycle) {
@@ -257,25 +274,27 @@ class DatabaseSeederTest extends TestCase
 
         $this->assertDatabaseMissing('farms', ['id' => $extra->id]);
         $this->assertDatabaseMissing('financial_transactions', ['farm_id' => $extra->id]);
-        $this->assertSame(7, Farm::query()->where('team_id', $team->id)->count());
+        $this->assertSame(8, Farm::query()->where('team_id', $team->id)->count());
         foreach (DemoOwnerPortfolioData::sites() as $site) {
             $this->assertDatabaseHas('farms', ['id' => DemoOwnerPortfolioData::id($team, 'farm:'.$site['key'])]);
         }
         $this->assertDatabaseHas('farms', ['name' => DemoFarmSeeder::FARM_NAME, 'team_id' => $team->id]);
+        $this->assertDatabaseHas('farms', ['id' => CariuBaruSeeder::farmId($team), 'team_id' => $team->id]);
+        $this->assertDatabaseHas('users', ['email' => CariuBaruSeeder::EMAIL, 'assigned_farm_id' => CariuBaruSeeder::farmId($team)]);
         $owner = User::query()->where('email', 'owner@farmer-ic.test')->firstOrFail();
         $projection = app(HarvestProjectionService::class)->summary($owner, $team);
-        $this->assertSame(7, $projection['farm_count']);
+        $this->assertSame(8, $projection['farm_count']);
         $this->assertEqualsCanonicalizing([
-            'Lahan Cariu', 'Lahan Cileuksa', 'Lahan Cipanengah', 'Lahan Jonggol',
+            'Kebun Cariu Baru', 'Lahan Cariu', 'Lahan Cileuksa', 'Lahan Cipanengah', 'Lahan Jonggol',
             'Lahan Megamendung', 'Lahan Pamijahan', 'Lahan Sirnasari',
         ], array_column($projection['rows'], 'farm_name'));
 
         $this->actingAs($owner)
-            ->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('landTable.total', 7)
-            ->where('landTable.rows', fn ($rows) => collect($rows)->count() === 7
+            ->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('landTable.total', 8)
+            ->where('landTable.rows', fn ($rows) => collect($rows)->count() === 8
                 && collect($rows)->pluck('name')->sort()->values()->all() === [
-                    'Lahan Cariu', 'Lahan Cileuksa', 'Lahan Cipanengah', 'Lahan Jonggol',
+                    'Kebun Cariu Baru', 'Lahan Cariu', 'Lahan Cileuksa', 'Lahan Cipanengah', 'Lahan Jonggol',
                     'Lahan Megamendung', 'Lahan Pamijahan', 'Lahan Sirnasari',
                 ])
             ->where('landTable.groups', fn ($groups) => collect($groups)->count() === 2

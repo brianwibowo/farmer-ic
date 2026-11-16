@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Farm;
 use App\Models\Team;
 use App\Models\User;
+use Database\Seeders\CariuBaruSeeder;
 use Database\Seeders\DemoFarmSeeder;
 use Database\Seeders\DemoIdentitySeeder;
 use Database\Seeders\DemoOwnerPortfolioData;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Gate;
 
 class PruneOwnerDemoFarms extends Command
 {
-    protected $signature = 'demo:prune-owner-farms {--apply : Permanently delete farms outside the seven approved demo locations} {--force : Skip the interactive confirmation}';
+    protected $signature = 'demo:prune-owner-farms {--apply : Permanently delete farms outside the approved demo locations} {--force : Skip the interactive confirmation}';
 
     protected $description = 'Preview or remove non-approved farms and their records from the local Owner demo tenant';
 
@@ -46,7 +47,7 @@ class PruneOwnerDemoFarms extends Command
         $farmsToDelete = Farm::visibleTo($actor, $team)->where('team_id', $team->id)
             ->whereNotIn('id', $keepIds)->orderBy('name')->get();
         if ($farmsToDelete->isEmpty()) {
-            $this->info('Tidak ada kebun tambahan di tenant demo. Tujuh kebun yang disetujui tetap tersimpan.');
+            $this->info('Tidak ada kebun tambahan di tenant demo. Kebun yang disetujui tetap tersimpan.');
 
             return self::SUCCESS;
         }
@@ -126,6 +127,13 @@ class PruneOwnerDemoFarms extends Command
             $this->error('Daftar kebun yang disetujui tidak menghasilkan tepat tujuh ID berbeda; tidak ada data yang dihapus.');
 
             return null;
+        }
+
+        // The local-only Cariu fixture is also an approved demo farm when present.
+        // Keep its stable tenant-bound ID even if a user has edited its name.
+        $cariuId = CariuBaruSeeder::farmId($team);
+        if (Farm::visibleTo($actor, $team)->where('team_id', $team->id)->whereKey($cariuId)->exists()) {
+            $ids[] = $cariuId;
         }
 
         return array_values(array_unique($ids));

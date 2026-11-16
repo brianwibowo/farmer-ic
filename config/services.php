@@ -2,6 +2,12 @@
 
 return [
 
+    'nominatim' => [
+        'url' => env('NOMINATIM_URL', 'https://nominatim.openstreetmap.org'),
+        'user_agent' => env('NOMINATIM_USER_AGENT', env('APP_NAME', 'Bumi Hijauan').'/1.0 ('.env('APP_URL', 'http://localhost').')'),
+        'cache_store' => env('NOMINATIM_CACHE_STORE', env('CACHE_STORE', 'database')),
+    ],
+
     'open_meteo' => [
         'url' => env('OPEN_METEO_URL', 'https://api.open-meteo.com/v1/forecast'),
         'key' => env('OPEN_METEO_API_KEY'),

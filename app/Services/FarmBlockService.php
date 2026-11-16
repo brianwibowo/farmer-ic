@@ -22,6 +22,15 @@ use Illuminate\Validation\ValidationException;
 
 class FarmBlockService
 {
+    /** @return array{commodities: mixed, sops: mixed} */
+    public function configurationOptions(User $actor, Team $team): array
+    {
+        return [
+            'commodities' => Commodity::visibleTo($actor, $team)->orderBy('name')->get(['id', 'name']),
+            'sops' => \App\Models\SopTemplate::visibleTo($actor, $team)->where('team_id', $team->id)->orderBy('name')->get(['id', 'name', 'commodity_id', 'is_active']),
+        ];
+    }
+
     /** @return LengthAwarePaginator<int, Farm> */
     public function farms(User $actor, Team $team): LengthAwarePaginator
     {
@@ -74,7 +83,7 @@ class FarmBlockService
             $block->setAttribute('land_clearing_completed_at', $clearing[$block->id]['completed_at'] ?? null);
             $blockBatches = $batches->where('block_id', $block->id);
             $running = $blockBatches->whereIn('status', ['planned', 'active']);
-            $reserved = $running->sum(fn (PlantingCycle $batch): int => LandArea::squareMetres($batch->getAttribute('reserved_area_ha')) ?? 0);
+            $reserved = $running->sum(fn (PlantingCycle $batch): int => LandArea::squareMetres($batch->planted_area_ha) ?? 0);
             $area = LandArea::squareMetres($block->area_ha) ?? 0;
             $remaining = max(0, $area - $reserved);
             $block->setRelation('farm', $farm)->makeHidden('farm');
@@ -139,10 +148,11 @@ class FarmBlockService
             ->unique('planting_cycle_id')->keyBy('planting_cycle_id');
         $varieties = CropVariety::visibleTo($actor, $team)->whereIn('id', $eligible->pluck('variety_id')->filter())
             ->get(['id', 'commodity_id', 'name'])->keyBy('id');
-        $commodities = Commodity::visibleTo($actor, $team)->whereIn('id', $varieties->pluck('commodity_id')->push($farm->getAttribute('commodity_id'))->filter())
+        $blockCommodities = FarmBlock::visibleTo($actor, $team)->whereIn('id', $batches->pluck('block_id')->filter())->pluck('commodity_id', 'id');
+        $commodities = Commodity::visibleTo($actor, $team)->whereIn('id', $varieties->pluck('commodity_id')->merge($blockCommodities->values())->filter())
             ->pluck('name', 'id');
 
-        return $batches->mapWithKeys(function (PlantingCycle $batch) use ($farm, $observations, $varieties, $commodities, $eligible, $today): array {
+        return $batches->mapWithKeys(function (PlantingCycle $batch) use ($blockCommodities, $observations, $varieties, $commodities, $eligible, $today): array {
             if (! $eligible->has($batch->id)) {
                 return [$batch->id => ['available' => false, 'as_of' => $today->toDateString(), 'hst' => null,
                     'commodity' => null, 'variety' => null, 'estimated_harvest_at' => null, 'observation' => null]];
@@ -154,7 +164,7 @@ class FarmBlockService
                 'available' => true,
                 'as_of' => $today->toDateString(),
                 'hst' => (int) CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today),
-                'commodity' => $commodities->get($variety->commodity_id ?? $farm->getAttribute('commodity_id')),
+                'commodity' => $commodities->get($variety->commodity_id ?? $blockCommodities->get($batch->block_id)),
                 'variety' => $variety?->name,
                 'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
                 'observation' => $observation === null ? null : [
@@ -207,8 +217,9 @@ class FarmBlockService
         return DB::transaction(function () use ($farm, $actor, $team, $data): FarmBlock {
             $lockedFarm = Farm::visibleTo($actor, $team)->whereKey($farm->id)->lockForUpdate()->firstOrFail();
             $this->validateBlock($lockedFarm, $data);
+            $this->validateBlockSop($actor, $team, $data);
             $block = new FarmBlock($data);
-            $block->forceFill(['farm_id' => $lockedFarm->id, 'created_by' => $actor->id, 'land_clearing_started_at' => now()])->save();
+            $block->forceFill([...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])), 'farm_id' => $lockedFarm->id, 'created_by' => $actor->id, 'land_clearing_started_at' => now()])->save();
 
             return $block->refresh();
         });
@@ -221,10 +232,25 @@ class FarmBlockService
             $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
             $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
             $this->validateBlock($farm, array_replace($locked->only(['code', 'area_ha', 'is_active']), $data), $locked);
+            $this->validateBlockSop($actor, $team, array_replace($locked->only(['commodity_id', 'default_sop_template_id']), $data));
             $locked->fill($data)->save();
+            $locked->forceFill(array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])))->save();
 
             return $locked->refresh();
         });
+    }
+
+    /** @param array<string, mixed> $data */
+    private function validateBlockSop(User $actor, Team $team, array $data): void
+    {
+        $commodity = $data['commodity_id'] ?? null;
+        $sop = $data['default_sop_template_id'] ?? null;
+        if ($commodity && ! Commodity::visibleTo($actor, $team)->whereKey($commodity)->exists()) {
+            throw ValidationException::withMessages(['commodity_id' => 'Komoditas tidak tersedia.']);
+        }
+        if ($sop && (! $commodity || ! \App\Models\SopTemplate::visibleTo($actor, $team)->where('team_id', $team->id)->where('commodity_id', $commodity)->whereKey($sop)->exists())) {
+            throw ValidationException::withMessages(['default_sop_template_id' => 'Pilih SOP yang sesuai dengan komoditas blok.']);
+        }
     }
 
     /** @param array<string, mixed> $data */
@@ -246,8 +272,8 @@ class FarmBlockService
             if (! ($data['is_active'] ?? true) && (clone $running)->exists()) {
                 throw ValidationException::withMessages(['is_active' => 'Blok masih memiliki batch berjalan dan belum dapat dinonaktifkan.']);
             }
-            if ((clone $running)->selectRaw('COALESCE(SUM(c.reserved_area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['area_ha']])->value('exceeds')) {
-                throw ValidationException::withMessages(['area_ha' => 'Luas blok tidak boleh kurang dari total alokasi batch berjalan.']);
+            if ((clone $running)->selectRaw('COALESCE(SUM(c.planted_area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['area_ha']])->value('exceeds')) {
+                throw ValidationException::withMessages(['area_ha' => 'Luas blok tidak boleh kurang dari total luas tanam subblok berjalan.']);
             }
         }
     }
@@ -262,7 +288,7 @@ class FarmBlockService
             ->whereIn('status', ['planned', 'active']);
 
         return ['maximum_area_ha' => LandArea::hectares(max(0, LandArea::squareMetres($farm->total_area_ha) - LandArea::squareMetres($others))),
-            'minimum_area_ha' => LandArea::hectares(max(1, LandArea::squareMetres((clone $running)->sum('reserved_area_ha')))),
+            'minimum_area_ha' => LandArea::hectares(max(1, LandArea::squareMetres((clone $running)->sum('planted_area_ha')))),
             'running_batches' => (clone $running)->count()];
     }
 
@@ -292,30 +318,17 @@ class FarmBlockService
     }
 
     /** @param array<string, mixed> $data */
-    public function createBatch(FarmBlock $block, User $actor, Team $team, array $data): PlantingCycle
+    public function createBatch(FarmBlock $block, User $actor, Team $team, array $data = []): PlantingCycle
     {
         return DB::transaction(function () use ($block, $actor, $team, $data): PlantingCycle {
             $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
             $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
             if (! $locked->is_active) {
-                throw ValidationException::withMessages(['reserved_area_ha' => 'Aktifkan blok sebelum membuat subblok/batch.']);
+                throw ValidationException::withMessages(['subblock_label' => 'Aktifkan blok sebelum membuat subblok/batch.']);
             }
-            // Integrity checks include all running reservations, even when a
-            // caller's read permissions cannot expose every related record.
             $capacity = $this->batchCapacity($farm, $locked, DB::table('planting_cycles'));
-            $requested = LandArea::squareMetres($data['reserved_area_ha']);
-            if ($requested === null || $requested < 1) {
-                throw ValidationException::withMessages(['reserved_area_ha' => 'Masukkan luas batch minimal 0,0001 ha atau 1 m².']);
-            }
-            if ($requested > LandArea::squareMetres($capacity['available_ha'])) {
-                $blockLimited = LandArea::squareMetres($capacity['block_remaining_ha']) <= LandArea::squareMetres($capacity['farm_remaining_ha']);
-                $remaining = LandArea::squareMetres($capacity[$blockLimited ? 'block_remaining_ha' : 'farm_remaining_ha']);
-                $message = 'Luas batch '.LandArea::label($requested).' melebihi sisa kapasitas '.($blockLimited ? 'blok' : 'kebun').' '.LandArea::label($remaining).'.';
-                if (! $blockLimited && LandArea::squareMetres($capacity['legacy_active_ha']) > 0) {
-                    $message .= ' '.LandArea::label(LandArea::squareMetres($capacity['legacy_active_ha'])).' masih digunakan tanam aktif di luar batch.';
-                }
-                $message .= ' Maksimal batch baru '.LandArea::label(LandArea::squareMetres($capacity['available_ha'])).'.';
-                throw ValidationException::withMessages(['reserved_area_ha' => $message]);
+            if ((LandArea::squareMetres($capacity['available_ha']) ?? 0) < 1) {
+                throw ValidationException::withMessages(['subblock_label' => 'Kapasitas lahan pada blok atau kebun sudah penuh. Subblok baru dapat dibuat setelah siklus berjalan selesai.']);
             }
             $labels = PlantingCycle::visibleTo($actor, $team)->where('block_id', $locked->id)->pluck('subblock_label')->all();
             $label = $data['subblock_label'] ?? null;
@@ -333,7 +346,7 @@ class FarmBlockService
             $batch = new PlantingCycle;
             $batch->forceFill(['farm_id' => $farm->id, 'block_id' => $locked->id,
                 'batch_number' => 1 + (int) PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->max('batch_number'),
-                'subblock_label' => $label, 'reserved_area_ha' => $data['reserved_area_ha'], 'planted_area_ha' => '0.0000',
+                'subblock_label' => $label, 'reserved_area_ha' => '0.0000', 'planted_area_ha' => '0.0000',
                 'planned_planting_at' => $data['planned_planting_at'] ?? null,
                 'planted_at' => null, 'variety_id' => null, 'status' => 'planned', 'created_by' => $actor->id])->save();
             foreach (PlantingCycleStage::CODES as $position => $code) {
@@ -357,24 +370,53 @@ class FarmBlockService
     public function updateBatch(FarmBlock $block, PlantingCycle $batch, User $actor, Team $team, array $data): void
     {
         DB::transaction(function () use ($block, $batch, $actor, $team, $data): void {
-            $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
+            Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
             $lockedBlock = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
             $locked = PlantingCycle::visibleTo($actor, $team)->whereKey($batch->id)->lockForUpdate()->firstOrFail();
             if (! $this->isBatchEditable($lockedBlock, $locked)) {
                 throw ValidationException::withMessages(['subblock_label' => 'Sub blok hanya dapat diubah sebelum penanaman dan penjadwalan SOP.']);
             }
-            $capacity = $this->batchCapacity($farm, $lockedBlock, DB::table('planting_cycles')->where('planting_cycles.id', '<>', $locked->id));
-            $requested = LandArea::squareMetres($data['reserved_area_ha']);
-            if ($requested === null || $requested < 1 || $requested > LandArea::squareMetres($capacity['available_ha'])) {
-                throw ValidationException::withMessages(['reserved_area_ha' => 'Luas sub blok maksimal '.LandArea::label(LandArea::squareMetres($capacity['available_ha'])).'.']);
-            }
             $label = $data['subblock_label'] ?? $locked->getAttribute('subblock_label');
             if (DB::table('planting_cycles')->where('block_id', $locked->block_id)->where('id', '<>', $locked->id)->where('subblock_label', $label)->exists()) {
                 throw ValidationException::withMessages(['subblock_label' => 'Label sub blok sudah dipakai pada blok ini.']);
             }
-            $locked->forceFill(['subblock_label' => $label, 'reserved_area_ha' => $data['reserved_area_ha'],
+            $locked->forceFill(['subblock_label' => $label,
                 'planned_planting_at' => $data['planned_planting_at'] ?? null])->save();
         });
+    }
+
+    /**
+     * @param  EloquentCollection<int, FarmBlock>  $blocks
+     * @return array<string, array{available_ha: string, block_remaining_ha: string, farm_remaining_ha: string}>
+     */
+    public function capacitiesForBlocks(Farm $farm, User $actor, Team $team, EloquentCollection $blocks): array
+    {
+        if ($blocks->isEmpty()) {
+            return [];
+        }
+        $first = $blocks->firstOrFail();
+        $farmCapacity = $this->batchCapacity($farm, $first, PlantingCycle::visibleTo($actor, $team)->toBase());
+        $farmRemaining = LandArea::squareMetres($farmCapacity['farm_remaining_ha']) ?? 0;
+        $blockUsed = PlantingCycle::visibleTo($actor, $team)
+            ->whereIn('block_id', $blocks->modelKeys())
+            ->whereIn('status', ['planned', 'active'])
+            ->selectRaw('block_id, COALESCE(SUM(planted_area_ha), 0) AS used_ha')
+            ->groupBy('block_id')
+            ->pluck('used_ha', 'block_id');
+
+        return $blocks->mapWithKeys(function (FarmBlock $block) use ($blockUsed, $farmRemaining, $farmCapacity): array {
+            $area = LandArea::squareMetres($block->area_ha) ?? 0;
+            $used = LandArea::squareMetres($blockUsed[$block->id] ?? 0) ?? 0;
+            $blockRemaining = max(0, $area - $used);
+
+            return [
+                $block->id => [
+                    'available_ha' => LandArea::hectares(min($blockRemaining, $farmRemaining)),
+                    'block_remaining_ha' => LandArea::hectares($blockRemaining),
+                    'farm_remaining_ha' => $farmCapacity['farm_remaining_ha'],
+                ],
+            ];
+        })->all();
     }
 
     /** @return array<string, string> */
@@ -382,8 +424,8 @@ class FarmBlockService
     {
         $usage = $cycles->where('planting_cycles.farm_id', $farm->id)
             ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NULL AND planting_cycles.status = 'active' THEN planted_area_ha ELSE 0 END), 0) AS legacy_active_ha")
-            ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NOT NULL AND planting_cycles.status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS farm_batches_ha")
-            ->selectRaw("COALESCE(SUM(CASE WHEN block_id = ? AND planting_cycles.status IN ('planned', 'active') THEN reserved_area_ha ELSE 0 END), 0) AS block_batches_ha", [$block->id])
+            ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NOT NULL AND planting_cycles.status IN ('planned', 'active') THEN planted_area_ha ELSE 0 END), 0) AS farm_batches_ha")
+            ->selectRaw("COALESCE(SUM(CASE WHEN block_id = ? AND planting_cycles.status IN ('planned', 'active') THEN planted_area_ha ELSE 0 END), 0) AS block_batches_ha", [$block->id])
             ->first();
         $legacy = LandArea::squareMetres(data_get($usage, 'legacy_active_ha', 0));
         $farmBatches = LandArea::squareMetres(data_get($usage, 'farm_batches_ha', 0));

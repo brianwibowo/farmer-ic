@@ -193,7 +193,7 @@ class AdminDashboardService
         $runningCount = $runningBatches->count();
         $stageCounts = $runningBatches->flatMap(fn (PlantingCycle $batch) => $batch->stages->where('status', 'in_progress'))
             ->countBy('code');
-        $stageNames = ['soil_preparation' => 'Persiapan tanah', 'basic_fertilizer' => 'Pupuk dasar', 'planting' => 'Penanaman', 'maintenance' => 'Pemeliharaan', 'harvest' => 'Panen'];
+        $stageNames = ['soil_preparation' => 'Pengolahan tanah', 'basic_fertilizer' => 'Pemupukan kandang', 'planting' => 'Penanaman', 'maintenance' => 'Perawatan', 'harvest' => 'Panen'];
         $stages = collect($stageNames)->map(fn (string $label, string $code): array => ['code' => $code, 'label' => $label, 'count' => (int) ($stageCounts[$code] ?? 0)])->values()->all();
         $timelineUnknown = max(0, $runningCount - $stageCounts->sum());
         $trend = $this->activityTrend($trendActivities, $weekStart, $period);

@@ -52,7 +52,7 @@ class PetugasTaskListTest extends TestCase
             'commodity_id' => $commodity->id,
             'name' => 'Bisi 18',
         ]);
-        $this->subblok->forceFill(['variety_id' => $this->variety->id])->save();
+        $this->subblok->forceFill(['variety_id' => $this->variety->id, 'planted_at' => CarbonImmutable::today()->subDays(12), 'planted_area_ha' => '2', 'status' => 'active'])->save();
     }
 
     private function join(User $user, Team $team): void
@@ -113,7 +113,7 @@ class PetugasTaskListTest extends TestCase
             'planting_cycle_id' => $subblok->id,
             'planting_cycle_stage_id' => $stage->id,
             'activity_category' => 'maintenance',
-            'activity_subcategory' => 'irrigation',
+            'activity_subcategory' => null,
             'name' => $name,
             'instructions' => 'Ikuti instruksi SOP.',
             'offset_days' => 7,
@@ -133,12 +133,13 @@ class PetugasTaskListTest extends TestCase
 
         $overdue = $this->task($this->subblok, 'Pengairan', [
             'offset_days' => 7,
+            'tolerance_days' => 1,
             'scheduled_date' => $today->subDays(5)->toDateString(),
             'due_date' => $today->subDays(4)->toDateString(),
         ]);
         $this->task($this->subblok, 'Pemupukan susulan pertama', [
-            'activity_subcategory' => 'follow_up_fertilization',
-            'offset_days' => 21,
+            'offset_days' => 11,
+            'tolerance_days' => 3,
             'scheduled_date' => $today->subDays(1)->toDateString(),
             'due_date' => $today->addDays(2)->toDateString(),
         ]);
@@ -174,7 +175,6 @@ class PetugasTaskListTest extends TestCase
                 ->where('tasks.0.name', 'Pengairan')
                 ->where('tasks.0.urgency', 'overdue')
                 ->where('tasks.0.activity_category', 'maintenance')
-                ->where('tasks.0.activity_subcategory', 'irrigation')
                 ->where('tasks.0.scheduled_date', $today->subDays(5)->toDateString())
                 ->where('tasks.0.due_date', $today->subDays(4)->toDateString())
                 ->where('tasks.0.linked_activities_count', 0)
@@ -183,7 +183,7 @@ class PetugasTaskListTest extends TestCase
                 ->where('tasks.0.subblok.id', $this->subblok->id)
                 ->where('tasks.0.subblok.number', 1)
                 ->where('tasks.0.subblok.label', 'A')
-                ->where('tasks.0.subblok.hst', null)
+                ->where('tasks.0.subblok.hst', 12)
                 ->where('tasks.0.subblok.farm.id', $this->farm->id)
                 ->where('tasks.0.subblok.farm.name', 'Kebun Petugas')
                 ->where('tasks.0.subblok.block.name', 'Blok B01')

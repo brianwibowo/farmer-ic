@@ -2,6 +2,8 @@
 import { SlidersHorizontal, X } from '@lucide/vue';
 import { computed, ref, useId } from 'vue';
 import { Button } from '@/components/ui/button';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import type {
     ExecutiveDemoData,
     ExecutiveFilters,
@@ -47,13 +49,15 @@ const changed = computed(
     () =>
         chips.value.length > 0 ||
         props.filters.year !== props.data.defaultYear ||
-        props.filters.cycle !== props.data.defaultCycle,
+        props.filters.cycle !== 'all',
 );
-function set(key: keyof ExecutiveFilters, event: Event) {
-    const value = (event.target as HTMLSelectElement).value;
+function set<K extends keyof ExecutiveFilters>(
+    key: K,
+    value: ExecutiveFilters[K],
+) {
     emit('change', {
         ...props.filters,
-        [key]: key === 'year' || key === 'cycle' ? Number(value) : value,
+        [key]: value,
     });
 }
 function clear(key: string) {
@@ -69,38 +73,51 @@ function clear(key: string) {
         <div class="flex flex-wrap items-center justify-between gap-3">
             <fieldset
                 :disabled="loading"
-                class="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-2 sm:w-auto sm:grid-cols-[7rem_8rem_auto]"
+                class="grid w-full grid-cols-2 items-end gap-2 sm:w-auto sm:grid-cols-[7rem_10rem_auto]"
             >
                 <legend class="sr-only">Periode ringkasan</legend>
-                <label class="exec-label"
-                    >Tahun<select
-                        :value="filters.year"
-                        class="exec-field"
-                        @change="set('year', $event)"
+                <div class="exec-label">
+                    <label :for="`${panelId}-year`">Tahun</label>
+                    <AppSelect
+                        :id="`${panelId}-year`"
+                        :model-value="filters.year"
+                        :disabled="loading"
+                        class="admin-field min-h-11!"
+                        @update:model-value="set('year', $event)"
                     >
-                        <option v-for="year in years" :key="year" :value="year">
+                        <AppSelectOption
+                            v-for="year in years"
+                            :key="year"
+                            :value="year"
+                        >
                             {{ year }}
-                        </option>
-                    </select></label
-                >
-                <label class="exec-label"
-                    >Cycle<select
-                        :value="filters.cycle"
-                        class="exec-field"
-                        @change="set('cycle', $event)"
+                        </AppSelectOption>
+                    </AppSelect>
+                </div>
+                <div class="exec-label">
+                    <label :for="`${panelId}-cycle`">Cycle</label>
+                    <AppSelect
+                        :id="`${panelId}-cycle`"
+                        :model-value="filters.cycle"
+                        :disabled="loading"
+                        class="admin-field min-h-11!"
+                        @update:model-value="set('cycle', $event)"
                     >
-                        <option
+                        <AppSelectOption value="all"
+                            >Semua cycle</AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="cycle in cycles"
                             :key="cycle"
                             :value="cycle"
                         >
                             Cycle {{ cycle }}
-                        </option>
-                    </select></label
-                >
+                        </AppSelectOption>
+                    </AppSelect>
+                </div>
                 <Button
                     variant="outline"
-                    class="min-h-11"
+                    class="col-span-2 min-h-11 justify-self-start sm:col-span-1"
                     :aria-expanded="expanded"
                     :aria-controls="panelId"
                     @click="expanded = !expanded"
@@ -133,66 +150,82 @@ function clear(key: string) {
             class="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-2 xl:grid-cols-4"
         >
             <legend class="sr-only">Filter tambahan</legend>
-            <label class="exec-label"
-                >Mitra kerja sama<select
-                    :value="filters.partner"
-                    class="exec-field"
-                    @change="set('partner', $event)"
+            <div class="exec-label">
+                <label :for="`${panelId}-partner`">Mitra kerja sama</label>
+                <AppSelect
+                    :id="`${panelId}-partner`"
+                    :model-value="filters.partner"
+                    :disabled="loading"
+                    class="admin-field min-h-11!"
+                    @update:model-value="set('partner', $event)"
                 >
-                    <option value="">Semua mitra</option>
-                    <option
+                    <AppSelectOption value="">Semua mitra</AppSelectOption>
+                    <AppSelectOption
                         v-for="partner in data.partners"
                         :key="partner.id"
                         :value="partner.id"
                     >
                         {{ partner.name }}
-                    </option>
-                </select></label
-            >
-            <label class="exec-label"
-                >Wilayah<select
-                    :value="filters.region"
-                    class="exec-field"
-                    @change="set('region', $event)"
+                    </AppSelectOption>
+                </AppSelect>
+            </div>
+            <div class="exec-label">
+                <label :for="`${panelId}-region`">Wilayah</label>
+                <AppSelect
+                    :id="`${panelId}-region`"
+                    :model-value="filters.region"
+                    :disabled="loading"
+                    class="admin-field min-h-11!"
+                    @update:model-value="set('region', $event)"
                 >
-                    <option value="">Seluruh wilayah</option>
-                    <option v-for="region in regions" :key="region">
+                    <AppSelectOption value="">Seluruh wilayah</AppSelectOption>
+                    <AppSelectOption
+                        v-for="region in regions"
+                        :key="region"
+                        :value="region"
+                    >
                         {{ region }}
-                    </option>
-                </select></label
-            >
-            <label class="exec-label"
-                >Kebun<select
-                    :value="filters.farm"
-                    class="exec-field"
-                    @change="set('farm', $event)"
+                    </AppSelectOption>
+                </AppSelect>
+            </div>
+            <div class="exec-label">
+                <label :for="`${panelId}-farm`">Kebun</label>
+                <AppSelect
+                    :id="`${panelId}-farm`"
+                    :model-value="filters.farm"
+                    :disabled="loading"
+                    class="admin-field min-h-11!"
+                    @update:model-value="set('farm', $event)"
                 >
-                    <option value="">Semua kebun</option>
-                    <option
+                    <AppSelectOption value="">Semua kebun</AppSelectOption>
+                    <AppSelectOption
                         v-for="farm in farmOptions"
                         :key="farm.id"
                         :value="farm.id"
                     >
                         {{ farm.name }}
-                    </option>
-                </select></label
-            >
-            <label class="exec-label"
-                >Komoditas<select
-                    :value="filters.commodity"
-                    class="exec-field"
-                    @change="set('commodity', $event)"
+                    </AppSelectOption>
+                </AppSelect>
+            </div>
+            <div class="exec-label">
+                <label :for="`${panelId}-commodity`">Komoditas</label>
+                <AppSelect
+                    :id="`${panelId}-commodity`"
+                    :model-value="filters.commodity"
+                    :disabled="loading"
+                    class="admin-field min-h-11!"
+                    @update:model-value="set('commodity', $event)"
                 >
-                    <option value="">Semua komoditas</option>
-                    <option
+                    <AppSelectOption value="">Semua komoditas</AppSelectOption>
+                    <AppSelectOption
                         v-for="crop in data.commodities"
                         :key="crop.id"
                         :value="crop.id"
                     >
                         {{ crop.name }}
-                    </option>
-                </select></label
-            >
+                    </AppSelectOption>
+                </AppSelect>
+            </div>
         </fieldset>
         <div
             v-if="chips.length"

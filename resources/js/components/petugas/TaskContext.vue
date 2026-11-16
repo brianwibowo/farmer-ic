@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { MapPin } from '@lucide/vue';
 import type { PetugasTask } from '@/types/petugas-task';
-import { sopTaskCategoryLabel, sopTaskSubcategoryLabel } from '@/types/sop';
+import { sopTaskCategoryLabel } from '@/types/sop';
 defineProps<{ task: PetugasTask }>();
 </script>
 
@@ -11,10 +11,7 @@ defineProps<{ task: PetugasTask }>();
         aria-label="Konteks tugas dari SOP"
     >
         <p class="text-xs font-medium">
-            {{ sopTaskCategoryLabel(task)
-            }}<template v-if="task.activity_subcategory">
-                · {{ sopTaskSubcategoryLabel(task) }}</template
-            >
+            {{ sopTaskCategoryLabel(task) }}
         </p>
         <h2 class="text-lg leading-7 font-semibold">{{ task.name }}</h2>
         <p class="flex items-start gap-2 text-sm leading-6">
@@ -32,6 +29,10 @@ defineProps<{ task: PetugasTask }>();
                     ? 'Belum ditanam'
                     : `${task.subblok.hst} HST`
             }}
+        </p>
+        <p v-if="task.reporting_window" class="text-sm leading-6">
+            Jendela pelaporan: {{ task.reporting_window.start }} sampai
+            {{ task.reporting_window.end }} (WIB), termasuk kedua tanggal.
         </p>
         <p
             v-if="task.instructions"

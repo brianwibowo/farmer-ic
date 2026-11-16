@@ -1,19 +1,10 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import {
-    ArrowDownToLine,
-    ChartNoAxesCombined,
-    Handshake,
-    LandPlot,
-    Package,
-    RefreshCw,
-    Sprout,
-    TrendingUp,
-    Wallet,
-} from '@lucide/vue';
+import { RefreshCw, Sprout } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
 import OwnerDashboardFarmPreview from '@/components/owner/dashboard/OwnerDashboardFarmPreview.vue';
+import ExecutiveSummaryCards from '@/components/owner/executive/ExecutiveSummaryCards.vue';
 import ExecutiveSales from '@/components/owner/executive/ExecutiveSales.vue';
 import ExecutiveCommoditySummary from '@/components/owner/executive/ExecutiveCommoditySummary.vue';
 import ExecutiveFilters from '@/components/owner/executive/ExecutiveFilters.vue';
@@ -24,6 +15,8 @@ import ExecutivePanel from '@/components/owner/executive/ExecutivePanel.vue';
 import { Button } from '@/components/ui/button';
 import { useExecutiveSummary } from '@/composables/useExecutiveSummary';
 import type { OwnerDashboardMapFarm } from '@/types/owner-dashboard';
+
+defineOptions({ inheritAttrs: false });
 
 const {
     data,
@@ -45,10 +38,10 @@ const {
     reset,
     load,
     periodLabel,
+    snapshotLabel,
     monthlyLabel,
     updatedLabel,
     number,
-    money,
 } = useExecutiveSummary();
 const selectedMapId = ref<string | null>(null);
 const selectedMapRow = computed(() =>
@@ -77,64 +70,6 @@ const mapPreviewOpen = computed({
 watch(rows, () => {
     if (!selectedMapRow.value) selectedMapId.value = null;
 });
-const metrics = computed(() => [
-    {
-        label: 'Kerja sama aktif',
-        value: number(totals.value.agreements, 0),
-        unit: 'perjanjian',
-        note: `${partnerSummary.value.length} mitra · per kebun`,
-        icon: Handshake,
-    },
-    {
-        label: 'Total luas lahan',
-        value: number(totals.value.area),
-        unit: 'Ha',
-        note: 'Lahan kerja sama terpilih',
-        icon: LandPlot,
-    },
-    {
-        label: 'Total luas tanam',
-        value: number(totals.value.planted),
-        unit: 'Ha',
-        note: 'Area tertanam pada cycle ini',
-        icon: Sprout,
-    },
-    {
-        label: 'Utilisasi lahan',
-        value: number(totals.value.utilization),
-        unit: '%',
-        note: `${number(totals.value.unused)} Ha belum ditanam`,
-        icon: ChartNoAxesCombined,
-    },
-    {
-        label: 'Kontrak penjualan',
-        value: number(totals.value.contracts),
-        unit: 'ton/bulan',
-        note: monthlyLabel.value,
-        icon: ArrowDownToLine,
-    },
-    {
-        label: 'Stok panen tersedia',
-        value: number(totals.value.stock),
-        unit: 'ton',
-        note: 'Setelah pengiriman & penyesuaian',
-        icon: Package,
-    },
-    {
-        label: 'Proyeksi omzet',
-        value: money(totals.value.revenue, true),
-        unit: '/ cycle',
-        note: 'Harga jual per komoditas',
-        icon: Wallet,
-    },
-    {
-        label: 'Proyeksi laba kotor',
-        value: money(totals.value.grossProfit, true),
-        unit: '/ cycle',
-        note: `${number(totals.value.grossMarginPercent)}% margin kotor`,
-        icon: TrendingUp,
-    },
-]);
 function focusFarm(id: string) {
     filters.farm = id;
     selectedMapId.value = null;
@@ -163,9 +98,9 @@ function focusFarm(id: string) {
                 <p class="mt-2 text-sm leading-6 text-muted-foreground">
                     Gambaran lahan, penjualan, dan potensi hasil usaha.
                 </p>
-                <p class="mt-1 text-xs text-muted-foreground">
-                    Data per {{ updatedLabel }}
-                </p>
+                <!-- <p class="mt-1 text-xs text-muted-foreground">
+                    Data contoh · Data per {{ updatedLabel }}
+                </p> -->
             </div>
             <Button :disabled="loading" @click="load(true)"
                 ><RefreshCw
@@ -209,55 +144,33 @@ function focusFarm(id: string) {
             @change="Object.assign(filters, $event)"
             @reset="reset"
         />
-        <div v-if="loading" role="status" class="space-y-4">
-            <span class="sr-only">Memuat ringkasan eksekutif…</span>
-            <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                <div
-                    v-for="i in 8"
-                    :key="i"
-                    class="h-28 rounded-xl bg-muted motion-safe:animate-pulse"
-                />
-            </div>
+        <p
+            v-if="data"
+            class="text-xs leading-5 text-muted-foreground"
+            role="status"
+        >
+            <!-- {{ periodLabel }}. Luas tanam aktif dan stok mengikuti posisi
+            {{ snapshotLabel }}; penjualan tetap bulanan ({{ monthlyLabel }}). -->
+        </p>
+        <div v-if="loading" class="space-y-4">
+            <ExecutiveSummaryCards
+                :totals="totals"
+                :commodities="commodities"
+                :partner-count="partnerSummary.length"
+                :month="monthlyLabel"
+                :snapshot-label="snapshotLabel"
+                loading
+            />
             <div class="h-72 rounded-xl bg-muted motion-safe:animate-pulse" />
         </div>
         <template v-else-if="data">
-            <div
-                id="ringkasan-kpi"
-                class="grid grid-cols-2 gap-3 xl:grid-cols-4"
-                aria-label="Indikator utama"
-            >
-                <article
-                    v-for="metric in metrics"
-                    :key="metric.label"
-                    class="min-w-0 rounded-xl border border-border bg-card p-4"
-                >
-                    <div class="flex items-start justify-between gap-2">
-                        <h2
-                            class="text-xs leading-5 font-medium text-muted-foreground sm:text-sm"
-                        >
-                            {{ metric.label }}
-                        </h2>
-                        <component
-                            :is="metric.icon"
-                            class="size-4 shrink-0 text-secondary dark:text-primary"
-                            aria-hidden="true"
-                        />
-                    </div>
-                    <p
-                        class="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1"
-                    >
-                        <span
-                            class="text-xl leading-tight font-semibold break-words tabular-nums sm:text-2xl 2xl:text-3xl"
-                            >{{ metric.value }}</span
-                        ><span class="text-xs text-muted-foreground">{{
-                            metric.unit
-                        }}</span>
-                    </p>
-                    <p class="mt-1.5 text-xs leading-5 text-muted-foreground">
-                        {{ metric.note }}
-                    </p>
-                </article>
-            </div>
+            <ExecutiveSummaryCards
+                :totals="totals"
+                :commodities="commodities"
+                :partner-count="partnerSummary.length"
+                :month="monthlyLabel"
+                :snapshot-label="snapshotLabel"
+            />
             <div
                 v-if="!rows.length"
                 role="status"
@@ -295,7 +208,10 @@ function focusFarm(id: string) {
                     :period="periodLabel"
                     @select="focusFarm"
                 />
-                <ExecutiveFinance :rows="rows" />
+                <ExecutiveFinance
+                    :rows="rows"
+                    :annual="filters.cycle === 'all'"
+                />
                 <ExecutivePanel
                     id="peta-kebun"
                     title="Sebaran lokasi kebun"
@@ -311,9 +227,10 @@ function focusFarm(id: string) {
             <footer
                 class="border-t border-border pt-3 text-xs leading-5 text-muted-foreground"
             >
-                Data contoh · {{ updatedLabel }} · {{ periodLabel }}. Stok
-                merupakan saldo setelah pengiriman dan penyesuaian pada snapshot
-                cycle terpilih.
+                Data contoh · {{ updatedLabel }} · {{ periodLabel }}. Panen
+                tahunan mengikuti tanggal panen; proyeksi mengikuti jadwal
+                panen. Luas tanam aktif dan stok merupakan posisi
+                {{ snapshotLabel }}, bukan akumulasi antar-cycle.
             </footer>
         </template>
         <OwnerDashboardFarmPreview
@@ -369,27 +286,6 @@ function focusFarm(id: string) {
     font-weight: 500;
     color: var(--muted-foreground);
 }
-.executive-summary .exec-field {
-    box-sizing: border-box;
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    background: var(--card);
-    padding: 0.625rem 0.75rem;
-    font-size: 1rem;
-    line-height: 1.4;
-    color: var(--foreground);
-}
-.executive-summary .exec-field:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-}
-.executive-summary .exec-field:disabled {
-    opacity: 0.6;
-    cursor: wait;
-}
 .executive-summary section,
 .executive-summary [id] {
     scroll-margin-top: 1rem;
@@ -400,10 +296,5 @@ function focusFarm(id: string) {
 }
 .executive-summary summary::-webkit-details-marker {
     display: none;
-}
-@media (min-width: 640px) {
-    .executive-summary .exec-field {
-        font-size: 0.875rem;
-    }
 }
 </style>

@@ -28,17 +28,6 @@ class SopTemplateTask extends FarmerModel
         'harvest' => 'Panen',
     ];
 
-    /** @var array<string, array<string, string>> */
-    public const SUBCATEGORIES = [
-        'maintenance' => [
-            'irrigation' => 'Pengairan',
-            'weeding' => 'Pendangiran',
-            'follow_up_fertilization' => 'Pemupukan susulan',
-            'growth_check' => 'Pengecekan pertumbuhan',
-            'pest_control' => 'Pengendalian hama dan penyakit',
-        ],
-    ];
-
     protected $table = 'sop_template_tasks';
 
     public $timestamps = true;
@@ -59,12 +48,6 @@ class SopTemplateTask extends FarmerModel
     public static function categoryCodes(): array
     {
         return array_keys(self::CATEGORIES);
-    }
-
-    /** @return array<int, string> */
-    public static function subcategoryCodes(): array
-    {
-        return array_keys(self::SUBCATEGORIES['maintenance']);
     }
 
     /** @return BelongsTo<SopTemplateVersion, $this> */

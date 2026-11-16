@@ -55,6 +55,55 @@ services:
                 limits:
                     memory: 512M
 
+    web-blue:
+        <<: *app-service
+        profiles: ['blue-green']
+        environment:
+            <<: *app-environment
+            VIEW_COMPILED_PATH: /var/www/html/storage/framework/views
+        volumes:
+            - app_release_storage:/var/www/html/storage
+            - blue_views:/var/www/html/storage/framework/views
+        deploy:
+            resources:
+                limits:
+                    memory: 512M
+
+    web-green:
+        <<: *app-service
+        profiles: ['blue-green']
+        environment:
+            <<: *app-environment
+            VIEW_COMPILED_PATH: /var/www/html/storage/framework/views
+        volumes:
+            - app_release_storage:/var/www/html/storage
+            - green_views:/var/www/html/storage/framework/views
+        deploy:
+            resources:
+                limits:
+                    memory: 512M
+
+    release-router:
+        image: nginx:1.27-alpine
+        profiles: ['blue-green']
+        restart: unless-stopped
+        volumes:
+            - ./docker/blue-green/router.conf:/etc/nginx/conf.d/default.conf:ro
+            - blue_green_route:/etc/nginx/release-route
+        entrypoint:
+            - /bin/sh
+            - -ec
+            - |
+                if [ ! -f /etc/nginx/release-route/active.conf ]; then
+                    printf '%s\n' 'set $$release_backend http://farmer-ic-app-1:80;' 'set $$release_previous http://farmer-ic-app-1:80;' 'set $$release_slot legacy;' > /etc/nginx/release-route/active.conf
+                fi
+                exec nginx -g 'daemon off;'
+        healthcheck:
+            test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1/router-health']
+            interval: 5s
+            timeout: 3s
+            retries: 6
+
     worker:
         <<: *app-service
         command: php artisan queue:work ${QUEUE_CONNECTION:-redis} --queue=ai-index,default --sleep=2 --tries=3 --timeout=180
@@ -204,6 +253,9 @@ volumes:
     # The old app_storage is retained for rollback, not shared by the new app.
     app_storage:
     app_release_storage:
+    blue_views:
+    green_views:
+    blue_green_route:
     # Retain the legacy volume declaration; do not delete or migrate its data.
     app_database:
     postgres_data:

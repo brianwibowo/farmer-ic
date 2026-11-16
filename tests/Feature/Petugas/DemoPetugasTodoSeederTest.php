@@ -37,14 +37,15 @@ class DemoPetugasTodoSeederTest extends TestCase
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoSopSeeder::class]);
         $farm = Farm::where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $farm->forceFill(['name' => $farmName])->save();
-        $defaultSop = $farm->default_sop_template_id;
+        $block = \App\Models\FarmBlock::where('farm_id', $farm->id)->where('code', 'B01')->firstOrFail();
+        $defaultSop = $block->getAttribute('default_sop_template_id');
         $cycles = PlantingCycle::count();
         $originals = PlantingCycleTask::orderBy('id')->get()->keyBy('id');
         $this->seed(DemoPetugasTodoSeeder::class);
         $this->seed(DemoPetugasTodoSeeder::class);
         $this->assertSame($cycles + 1, PlantingCycle::count());
         $this->assertSame($originals->count() + 4, PlantingCycleTask::count());
-        $this->assertSame($defaultSop, $farm->refresh()->default_sop_template_id);
+        $this->assertSame($defaultSop, $block->fresh()->getAttribute('default_sop_template_id'));
         foreach ($originals as $id => $task) {
             $persisted = PlantingCycleTask::findOrFail($id);
             $this->assertSame($task->scheduled_date?->toDateString(), $persisted->scheduled_date?->toDateString());

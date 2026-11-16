@@ -52,7 +52,7 @@ class StoreTaskActivityRequest extends FormRequest
         foreach ($fields as $field) {
             $checks = [empty($field['optional']) ? 'required' : 'nullable'];
             if ($field['type'] === 'number') {
-                $checks = [...$checks, $field['step'] === '1' ? 'integer' : 'numeric', 'min:'.($field['key'] === 'moisture' || $field['key'] === 'height_cm' || $field['key'] === 'depth_cm' ? '0' : $field['step']), 'max:'.$field['max']];
+                $checks = [...$checks, $field['step'] === '1' ? 'integer' : 'numeric', 'min:'.$field['step'], 'max:'.$field['max']];
                 if ($field['step'] !== '1') {
                     $checks[] = 'decimal:0,'.strlen(explode('.', $field['step'])[1]);
                 }

@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Petugas\StorePlantingActivityRequest;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Services\Activity\ActivityFormLimits;
 use App\Services\Activity\ActivitySequenceService;
 use App\Services\Activity\PlantingActivityService;
+use App\Services\FarmBlockService;
 use App\Services\PlantingCycleTaskService;
 use App\Support\ActivityInputLimits;
 use App\Support\TaskGenerationFeedback;
@@ -22,15 +24,27 @@ use Inertia\Response;
 
 class PetugasPlantingController extends Controller
 {
-    public function index(Request $request, PlantingActivityService $planting, ActivitySequenceService $sequence): Response
+    public function index(Request $request, PlantingActivityService $planting, ActivitySequenceService $sequence, FarmBlockService $blockService): Response
     {
         $farm = $request->user()->assignedFarm;
         abort_unless($farm instanceof Farm, 403, 'Anda belum memiliki penugasan kebun.');
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [PlantingCycle::class, $farm->team]);
+        $blocks = FarmBlock::visibleTo($request->user(), $farm->team)
+            ->where('farm_id', $farm->id)
+            ->orderByDesc('is_active')
+            ->orderBy('code')
+            ->orderBy('id')
+            ->get();
+        $capacities = $blockService->capacitiesForBlocks($farm, $request->user(), $farm->team, $blocks);
 
         return Inertia::render('petugas/PlantingIndex', [
             'farm' => $farm->only(['id', 'name']),
+            'blocks' => $blocks->map(fn (FarmBlock $block): array => [
+                ...$block->only(['id', 'code', 'name', 'area_ha', 'is_active']),
+                'available_ha' => $capacities[$block->id]['available_ha'] ?? '0.0000',
+                'can_create_batch' => Gate::allows('create', [PlantingCycle::class, $block]),
+            ])->values()->all(),
             'cycles' => $planting->cycles($request->user(), $farm)->map(fn (PlantingCycle $cycle) => [
                 ...$planting->context($request->user(), $cycle),
                 'canRecord' => in_array($cycle->status, ['planned', 'active'], true) && Gate::allows('recordPlanting', [FarmActivity::class, $cycle]),

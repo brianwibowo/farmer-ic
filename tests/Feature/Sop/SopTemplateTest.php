@@ -61,11 +61,10 @@ class SopTemplateTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function taskPayload(int $sequence = 1, string $category = 'maintenance', ?string $subcategory = 'irrigation'): array
+    private function taskPayload(int $sequence = 1, string $category = 'maintenance'): array
     {
         return [
             'activity_category' => $category,
-            'activity_subcategory' => $subcategory,
             'name' => 'Langkah '.$sequence,
             'instructions' => 'Instruksi langkah '.$sequence.'.',
             'offset_days' => ($sequence - 1) * 7,
@@ -122,10 +121,10 @@ class SopTemplateTest extends TestCase
         $this->assertNotNull($version->published_at);
 
         $this->expectException(ValidationException::class);
-        $service->createTask($version, $this->taskPayload(2, 'harvest', null));
+        $service->createTask($version, $this->taskPayload(2, 'harvest'));
     }
 
-    public function test_task_requires_a_supported_category_and_maintenance_subcategory(): void
+    public function test_task_requires_a_supported_category_and_rejects_subcategories(): void
     {
         $template = $this->createTemplate();
         $version = $template->versions()->firstOrFail();
@@ -133,16 +132,16 @@ class SopTemplateTest extends TestCase
 
         $this->post($url, [
             ...$this->taskPayload(1, 'maintenance'),
-            'activity_subcategory' => '',
+            'activity_subcategory' => 'irrigation',
         ])->assertSessionHasErrors('activity_subcategory');
 
         $this->post($url, [
             ...$this->taskPayload(1, 'planting'),
-            'activity_subcategory' => 'irrigation',
         ])->assertSessionHasErrors('activity_category');
 
         $this->post($url, [
-            ...$this->taskPayload(1, 'harvest', 'irrigation'),
+            ...$this->taskPayload(1, 'harvest'),
+            'activity_subcategory' => 'irrigation',
         ])->assertSessionHasErrors('activity_subcategory');
 
         $this->post($url, [
@@ -169,7 +168,7 @@ class SopTemplateTest extends TestCase
         $this->assertSame(1, $second->tasks()->count());
         $this->assertSame('draft', $second->status);
 
-        $service->createTask($second, $this->taskPayload(2, 'harvest', null));
+        $service->createTask($second, $this->taskPayload(2, 'harvest'));
         $service->publish($second, $this->admin);
 
         $this->assertSame('retired', $first->refresh()->status);
@@ -204,9 +203,9 @@ class SopTemplateTest extends TestCase
         $version = $template->versions()->firstOrFail();
         $service = app(SopTemplateService::class);
 
-        $service->createTask($version, $this->taskPayload(3, 'harvest', null));
-        $service->createTask($version, $this->taskPayload(1, 'maintenance', 'irrigation'));
-        $service->createTask($version, $this->taskPayload(2, 'harvest', null));
+        $service->createTask($version, $this->taskPayload(3, 'harvest'));
+        $service->createTask($version, $this->taskPayload(1, 'maintenance'));
+        $service->createTask($version, $this->taskPayload(2, 'harvest'));
 
         $this->assertSame([0, 7, 14], $version->tasks()->pluck('offset_days')->all());
     }

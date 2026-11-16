@@ -54,7 +54,7 @@ class OwnerDashboardTableTest extends TestCase
         $latest = $this->activity($farm, 'Penanaman terbaru Cibogo', '2026-11-04 09:00:00+07');
         $this->activity($farm, 'Laporan lebih lama', '2026-10-30 09:00:00+07');
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Dashboard')
             ->where('landTable.total', 1)
             ->where('landTable.total_area_ha', '10.1250')
@@ -72,7 +72,7 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.rows.0.progress.current_stages', ['Penanaman'])
             ->where('landTable.rows.0.progress.running_batches', 2)
             ->where('landTable.rows.0.resume.id', $latest->id)
-            ->where('landTable.rows.0.resume.title', 'Pengecekan pertumbuhan')
+            ->where('landTable.rows.0.resume.title', 'Perawatan')
             ->where('landTable.rows.0.resume.description', 'Penanaman terbaru Cibogo')
             ->where('landTable.rows.0.resume.detail_url', '/aktivitas/'.$latest->id)
             ->where('dashboard.metrics.0.value', 1));
@@ -96,7 +96,7 @@ class OwnerDashboardTableTest extends TestCase
         $this->stage($jagung, 'soil_preparation', 2, 'completed');
         $this->stage($jagung, 'planting', 4, 'in_progress');
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('landTable.groups', 2)
             ->where('landTable.groups.0.name', 'Kabupaten Bogor')
             ->where('landTable.groups.0.farm_count', 2)
@@ -116,7 +116,7 @@ class OwnerDashboardTableTest extends TestCase
         $grouped = $this->farm('Kebun Bogor', '2.0000', 'owned', null, 'Kabupaten Bogor');
         $ungrouped = $this->farm('Kebun Tanpa Kabupaten', '3.0000', 'rented');
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 2)
             ->where('landTable.total_area_ha', '5.0000')
             ->has('landTable.rows', 2)
@@ -128,7 +128,7 @@ class OwnerDashboardTableTest extends TestCase
     public function test_admin_database_changes_appear_on_the_next_owner_request(): void
     {
         $farm = $this->farm('Kebun Awal', '10.0000', 'owned');
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.rows.0.name', 'Kebun Awal')
             ->where('landTable.total_area_ha', '10.0000'));
 
@@ -137,7 +137,7 @@ class OwnerDashboardTableTest extends TestCase
             'land_tenure_party' => 'PT Lahan Sejahtera',
         ])->assertRedirect();
         $report = $this->activity($farm, 'Resume baru dari database', '2026-11-05 10:15:00+07');
-        $this->actingAs($this->owner)->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($this->owner)->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.rows.0.name', 'Kebun Diperbarui Admin')
             ->where('landTable.rows.0.area_ha', '12.3750')
             ->where('landTable.rows.0.legality', 'Sewa')
@@ -159,7 +159,7 @@ class OwnerDashboardTableTest extends TestCase
             'team_id' => Team::factory()->create(['is_personal' => false])->id,
             'land_tenure_party' => 'Mitra tenant lain',
         ])->save();
-        $this->get('/')->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertInertia(fn (Assert $page) => $page
             ->has('landTable.rows', 3)
             ->where('landTable.rows.0.land_tenure_party', 'Koperasi Mitra Hijau')
             ->where('landTable.rows.0.requires_land_tenure_party', true)
@@ -180,12 +180,12 @@ class OwnerDashboardTableTest extends TestCase
         $second = $this->farm('Kebun B', '2.8750', 'rented');
         $firstReport = $this->activity($first, 'Laporan A', '2026-11-04 07:00:00+07');
         $secondReport = $this->activity($second, 'Laporan B', '2026-11-05 08:00:00+07');
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('landTable.rows', 2)->where('landTable.total_area_ha', '13.0000')
             ->where('landTable.rows.0.resume.id', $firstReport->id)
             ->where('landTable.rows.1.resume.id', $secondReport->id));
         foreach ([$first, $second] as $previous) {
-            $this->get('/?farm_id='.$previous->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            $this->get('/monitoring-lahan?farm_id='.$previous->id)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->has('landTable.rows', 2)->where('landTable.total', 2)
                 ->where('landTable.rows.0.id', $first->id)->where('landTable.rows.1.id', $second->id)
                 ->where('landTable.total_area_ha', '13.0000')->has('dashboard.landMap.farms', 2)
@@ -214,7 +214,7 @@ class OwnerDashboardTableTest extends TestCase
             $this->cycle($farm, $commodity, $variety, $status)->update(['planted_area_ha' => $area]);
         }
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('dashboard.commodities', 5)
             ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('areaValue', 'name')->all() === [
                 'Jagung' => 5, 'Kedelai' => 3, 'Padi' => 2.5, 'Kacang' => 1, 'Ubi' => 0.25,
@@ -224,7 +224,7 @@ class OwnerDashboardTableTest extends TestCase
             ->where('dashboard.commodities.2.plantedArea', '2,5')
             ->where('dashboard.commodities.2.cycleCount', 2));
 
-        $this->get('/?farm_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan?farm_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('dashboard.commodities', 5)
             ->where('dashboard.commodities', fn ($rows) => collect($rows)->pluck('areaValue', 'name')->all() === [
                 'Jagung' => 5, 'Kedelai' => 3, 'Padi' => 2.5, 'Kacang' => 1, 'Ubi' => 0.25,
@@ -242,11 +242,11 @@ class OwnerDashboardTableTest extends TestCase
         $foreign = $this->farm('Kebun Rahasia', '999.0000', null, $foreignTeam);
         $this->cycle($foreign, 'Komoditas rahasia', 'Varietas rahasia');
         $this->activity($foreign, 'Resume rahasia', '2026-11-05 09:00:00+07');
-        $this->get('/?team_id='.$foreignTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan?team_id='.$foreignTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 1)->where('landTable.total_area_ha', '3.2500')
             ->where('landTable.rows.0.id', $own->id)
             ->has('landTable.rows.0.crops', 0)->where('landTable.rows.0.resume', null));
-        $this->get('/?farm_id='.$foreign->id)->assertForbidden();
+        $this->get('/monitoring-lahan?farm_id='.$foreign->id)->assertForbidden();
         $this->get('/kebun/'.$foreign->id)->assertForbidden();
     }
 
@@ -256,25 +256,25 @@ class OwnerDashboardTableTest extends TestCase
         $second = Team::factory()->create(['is_personal' => false]);
         $second->members()->attach($this->owner, ['role' => TeamRole::Member->value]);
         $other = $this->farm('Kebun Tim Kedua', '8.5000', null, $second);
-        $this->get('/?farm_id='.$other->id)->assertNotFound();
-        $this->get('/?team_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan?farm_id='.$other->id)->assertNotFound();
+        $this->get('/monitoring-lahan?team_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.rows.0.id', $own->id)->where('landTable.total_area_ha', '5.0000'));
         $this->owner->refresh()->switchTeam($second);
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.rows.0.id', $other->id)->where('landTable.total_area_ha', '8.5000'));
     }
 
     public function test_missing_information_and_empty_farms_do_not_fabricate_values(): void
     {
         $farm = $this->farm('Kebun Belum Diisi', '7.6250');
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.rows.0.id', $farm->id)->where('landTable.rows.0.legality', null)
             ->has('landTable.rows.0.crops', 0)->where('landTable.rows.0.resume', null)
             ->where('landTable.rows.0.progress', [
                 'completed_stages' => 0, 'total_stages' => 0, 'current_stages' => [], 'running_batches' => 0,
             ]));
         $farm->delete();
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 0)->has('landTable.rows', 0)->where('landTable.total_area_ha', '0'));
     }
 
@@ -283,7 +283,7 @@ class OwnerDashboardTableTest extends TestCase
         $farm = $this->farm('Kebun Riwayat', '2.0000');
         $report = $this->activity($farm, 'Catatan historis terakhir', '2026-09-01 08:30:00+07');
         foreach ([7, 30] as $period) {
-            $this->get('/?period='.$period)->assertOk()->assertInertia(fn (Assert $page) => $page
+            $this->get('/monitoring-lahan?period='.$period)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->where('landTable.rows.0.resume.id', $report->id)
                 ->where('landTable.rows.0.resume.date', '2026-09-01T08:30:00+07:00')
                 ->where('dashboard.trend.total', 0));
@@ -299,7 +299,7 @@ class OwnerDashboardTableTest extends TestCase
         $roles = app(RolePermissions::class)->roles();
         unset($roles['owner']['crop_varieties.view'], $roles['owner']['planting_cycle_stages.view'], $roles['owner']['farm_activities.view']);
         config(['access.roles' => $roles]);
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('landTable.rows.0.crops', 0)
             ->where('landTable.rows.0.progress.total_stages', 0)
             ->where('landTable.rows.0.progress.current_stages', [])
@@ -328,7 +328,7 @@ class OwnerDashboardTableTest extends TestCase
 
     private function activity(Farm $farm, string $description, string $date): FarmActivity
     {
-        $type = ActivityType::firstOrCreate(['code' => 'growth_check'], ['name' => 'Pengamatan pertumbuhan']);
+        $type = ActivityType::firstOrCreate(['code' => 'maintenance'], ['name' => 'Perawatan']);
 
         return FarmActivity::create([
             'farm_id' => $farm->id, 'activity_type_id' => $type->id, 'performed_by' => $this->admin->id,
