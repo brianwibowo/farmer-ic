@@ -24,7 +24,6 @@ import {
     adminTaskHst,
     adminTaskStatusClass,
     adminTaskStatusLabels,
-    adminTaskSubcategoryLabel,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
     type AdminTask,
@@ -96,7 +95,7 @@ function submitReschedule(): void {
                 </p>
                 <h1 class="admin-page-title tracking-tight">{{ task.name }}</h1>
                 <p class="mt-2 text-sm text-muted-foreground">
-                    {{ adminTaskCategoryLabel(task) }} · {{ adminTaskSubcategoryLabel(task) }}
+                    {{ adminTaskCategoryLabel(task) }}
                     · {{ adminTaskHst(task.offset_days) }}
                 </p>
             </div>

@@ -11,11 +11,11 @@ const stageDescriptions: Record<string, string> = {
     soil_preparation:
         'Membersihkan dan mengolah lahan agar siap untuk penanaman.',
     basic_fertilizer:
-        'Memberikan pupuk awal sebelum atau saat tanam untuk mendukung pertumbuhan awal tanaman.',
+        'Memberikan pupuk kandang sebelum tanam untuk mendukung kesuburan tanah dan pertumbuhan awal.',
     planting:
         'Menanam benih atau bibit pada lahan sesuai komoditas dan rencana tanam.',
     maintenance:
-        'Merawat tanaman setelah tanam, misalnya melalui pengairan, penyiangan, pemupukan susulan, dan pemantauan gangguan.',
+        'Merawat tanaman setelah tanam melalui catatan perawatan dan pemantauan lapangan.',
     harvest: 'Mengambil hasil tanaman saat mencapai waktu atau kriteria panen.',
 };
 const total = computed(() => props.cycles.running + props.cycles.harvested);

@@ -12,18 +12,12 @@ import {
 import {
     hstLabel,
     sopActivityCategoryLabels,
-    sopActivitySubcategoryLabels,
 } from '@/types/sop';
 
 defineProps<{ template: OwnerSopDetail }>();
 const categoryLabels: Record<string, string> = sopActivityCategoryLabels;
-const subcategoryLabels: Record<string, string> = sopActivitySubcategoryLabels;
 function category(task: OwnerSopTask): string {
-    return task.activity_subcategory
-        ? (subcategoryLabels[task.activity_subcategory] ??
-              categoryLabels[task.activity_category] ??
-              task.activity_category)
-        : (categoryLabels[task.activity_category] ?? task.activity_category);
+    return categoryLabels[task.activity_category] ?? task.activity_category;
 }
 </script>
 

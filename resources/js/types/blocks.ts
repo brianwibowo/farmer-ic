@@ -62,9 +62,9 @@ export type BatchGrowth = {
 export const stageLabels: Record<string, string> = {
     land_clearing: 'Land Clearing',
     soil_preparation: 'Pengolahan tanah',
-    basic_fertilizer: 'Pemupukan dasar',
+    basic_fertilizer: 'Pemupukan kandang',
     planting: 'Penanaman',
-    maintenance: 'Pemeliharaan',
+    maintenance: 'Perawatan',
     harvest: 'Panen',
 };
 export function blockDate(value: string | null): string {

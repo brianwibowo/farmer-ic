@@ -23,7 +23,6 @@ const props = defineProps<{
     canRecord: boolean;
     today: string;
     workDate: string;
-    plantingPattern: string;
     blockedReason: string | null;
     areaLimitM2: number;
     numericLimits: {
@@ -32,7 +31,6 @@ const props = defineProps<{
         area: number;
         quantity: number;
         bagSize: number;
-        depth: number;
     };
 }>();
 const form = useForm({
@@ -53,8 +51,6 @@ const form = useForm({
     quantity: '',
     quantity_unit: 'kg',
     bag_size: '',
-    depth_cm: '',
-    planting_pattern: props.plantingPattern,
     notes: '',
     photos: [] as File[],
 });
@@ -66,9 +62,7 @@ type FieldKey =
     | 'area'
     | 'seed_name'
     | 'quantity'
-    | 'bag_size'
-    | 'depth_cm'
-    | 'planting_pattern';
+    | 'bag_size';
 const fields = computed<
     {
         key: FieldKey;
@@ -96,21 +90,6 @@ const fields = computed<
         max: String(props.numericLimits.quantity),
         step: '0.001',
     },
-    {
-        key: 'depth_cm',
-        label: 'Kedalaman tanam (cm, opsional)',
-        type: 'number',
-        min: '0.01',
-        max: String(props.numericLimits.depth),
-        step: '0.01',
-        optional: true,
-    },
-    {
-        key: 'planting_pattern',
-        label: 'Pola tanam (opsional)',
-        type: 'text',
-        optional: true,
-    },
 ]);
 const clientErrors = ref<Record<string, string>>({});
 const headerReady = ref(false);
@@ -137,7 +116,6 @@ const numericErrors = computed<Record<string, string>>(() => {
         ['worker_count', maximumError(form.worker_count, props.numericLimits.workerCount, 'Jumlah pekerja')],
         ['area', maximumError(form.area, maximumArea.value, 'Luas tambahan', form.area_unit)],
         ['quantity', maximumError(form.quantity, props.numericLimits.quantity, 'Jumlah benih')],
-        ['depth_cm', maximumError(form.depth_cm, props.numericLimits.depth, 'Kedalaman tanam', 'cm')],
         [
             'bag_size',
             form.quantity_unit === 'sak'
@@ -162,9 +140,9 @@ const errors = computed<Record<string, string>>(() => ({
     ...numericErrors.value,
 }));
 watch(
-    () => [form.area, form.area_unit, form.worker_count, form.quantity, form.quantity_unit, form.bag_size, form.depth_cm],
+    () => [form.area, form.area_unit, form.worker_count, form.quantity, form.quantity_unit, form.bag_size],
     (current, previous) => {
-        const keys = ['area', 'area', 'worker_count', 'quantity', 'quantity', 'bag_size', 'depth_cm'] as const;
+        const keys = ['area', 'area', 'worker_count', 'quantity', 'quantity', 'bag_size'] as const;
         current.forEach((value, index) => {
             if (value !== previous[index]) form.clearErrors(keys[index]);
         });
@@ -445,10 +423,6 @@ function submit(): void {
                         >{{ errors.bag_size }}</span
                     ></label
                 >
-                <p v-if="plantingPattern" class="text-xs text-muted-foreground">
-                    Pola tanam terisi dari pemetaan. Koreksi di bawah jika
-                    pelaksanaan berbeda.
-                </p>
                 <label
                     v-for="field in fields"
                     :key="field.key"
@@ -547,6 +521,7 @@ function submit(): void {
                         v-model="form.notes"
                         rows="3"
                         maxlength="5000"
+                        placeholder="Pola tanam, kedalaman tanam, jarak tanam, atau catatan kondisi benih/lahan..."
                         :class="fieldClass"
                         :aria-invalid="!!errors.notes"
                     /><span
@@ -628,11 +603,7 @@ function submit(): void {
                             ? `${report.input.quantity} ${report.input.quantity_unit}`
                             : `${report.detail.quantity_kg ?? '—'} kg`
                     }}
-                    · {{ report.detail.area_ha }} ha<template
-                        v-if="report.detail.planting_pattern"
-                    >
-                        · {{ report.detail.planting_pattern }}</template
-                    >
+                    · {{ report.detail.area_ha }} ha
                 </p>
                 <p
                     v-if="report.notes"

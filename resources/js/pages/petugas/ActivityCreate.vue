@@ -322,6 +322,7 @@ function submit(): void {
                             v-model="form.notes"
                             rows="3"
                             maxlength="5000"
+                            placeholder="Metode, bahan/pupuk/pestisida, dosis, kondisi lapangan, atau observasi tambahan..."
                             class="task-activity-field"
                             :aria-invalid="!!errors.notes"
                             aria-describedby="error-notes"

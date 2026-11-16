@@ -8,13 +8,6 @@ export type PetugasTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
 export type PetugasTaskCategory = 'maintenance' | 'harvest';
 
-export type PetugasTaskSubcategory =
-    | 'irrigation'
-    | 'weeding'
-    | 'follow_up_fertilization'
-    | 'growth_check'
-    | 'pest_control';
-
 export type PetugasTask = {
     id: string;
     name: string;
@@ -22,7 +15,6 @@ export type PetugasTask = {
     status: PetugasTaskStatus;
     urgency: PetugasTaskUrgency;
     activity_category: PetugasTaskCategory;
-    activity_subcategory: PetugasTaskSubcategory | null;
     offset_days: number;
     scheduled_date: string | null;
     due_date: string | null;

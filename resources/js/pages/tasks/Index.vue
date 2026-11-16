@@ -19,7 +19,6 @@ import {
     adminTaskStatusClass,
     adminTaskStatusLabels,
     adminTaskStatusOptions,
-    adminTaskSubcategoryLabel,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
     adminTaskViewOptions,
@@ -529,8 +528,7 @@ function reset(): void {
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ adminTaskCategoryLabel(task) }} ·
-                                        {{ adminTaskSubcategoryLabel(task) }}
+                                        {{ adminTaskCategoryLabel(task) }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">

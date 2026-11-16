@@ -2,18 +2,11 @@ export type SopTeam = { id: number; name: string };
 export type SopCommodity = { id: string; name: string };
 
 export type SopActivityCategory = 'maintenance' | 'harvest';
-export type SopActivitySubcategory =
-    | 'irrigation'
-    | 'weeding'
-    | 'follow_up_fertilization'
-    | 'growth_check'
-    | 'pest_control';
 
 export type SopTask = {
     id: string;
     sop_template_version_id: string;
     activity_category: SopActivityCategory;
-    activity_subcategory: SopActivitySubcategory | null;
     name: string;
     instructions: string | null;
     offset_days: number;
@@ -94,25 +87,8 @@ export const sopActivityCategoryLabels: Record<SopActivityCategory, string> = {
     harvest: 'Panen',
 };
 
-export const sopActivitySubcategoryLabels: Record<SopActivitySubcategory, string> = {
-    irrigation: 'Pengairan',
-    weeding: 'Pendangiran',
-    follow_up_fertilization: 'Pemupukan susulan',
-    growth_check: 'Pengecekan pertumbuhan',
-    pest_control: 'Pengendalian hama dan penyakit',
-};
-
 export function sopTaskCategoryLabel(task: Pick<SopTask, 'activity_category'>): string {
     return sopActivityCategoryLabels[task.activity_category] ?? task.activity_category;
-}
-
-export function sopTaskSubcategoryLabel(
-    task: Pick<SopTask, 'activity_subcategory'>,
-): string {
-    return task.activity_subcategory
-        ? (sopActivitySubcategoryLabels[task.activity_subcategory] ??
-              task.activity_subcategory)
-        : '-';
 }
 
 export function hstLabel(task: Pick<SopTask, 'offset_days'>): string {

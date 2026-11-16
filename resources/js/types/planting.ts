@@ -19,7 +19,6 @@ export type PlantingReport = {
     detail: {
         seed_name: string;
         quantity_kg: string | null;
-        planting_pattern: string | null;
         area_ha: string;
     } | null;
     photos: { id: string; url: string }[];
