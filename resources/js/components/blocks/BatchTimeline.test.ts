@@ -1,7 +1,7 @@
 import { renderToString } from '@vue/server-renderer';
 import { h } from 'vue';
 import { describe, expect, it } from 'vitest';
-import type { BatchStage } from '@/types/blocks';
+import type { BatchGrowth, BatchStage } from '@/types/blocks';
 import BatchTimeline from './BatchTimeline.vue';
 
 const first = '2026-11-07T17:00:00Z';
@@ -32,6 +32,33 @@ async function render(stages: BatchStage[]): Promise<string> {
 }
 
 describe('batch stage timeline', () => {
+    const growth: BatchGrowth = {
+        available: true, as_of: '2026-11-16', hst: 46,
+        commodity: 'Jagung', variety: 'Bisi 18', estimated_harvest_at: null, observation: null,
+    };
+
+    it('places a dialog trigger below the operational stages and keeps details closed initially', async () => {
+        const html = await renderToString(h(BatchTimeline, {
+            stages: [stage('planting', 'completed', first, last)], growth,
+        }, { growth: () => h('p', 'Detail pengamatan dalam popup') }));
+
+        expect(html).toContain('Pengamatan Perkembangan tanaman');
+        expect(html).toContain('aria-haspopup="dialog"');
+        expect(html.lastIndexOf('</ol>')).toBeLessThan(html.indexOf('Pengamatan Perkembangan tanaman'));
+        expect(html).not.toContain('Detail pengamatan dalam popup');
+    });
+
+    it('disables observation before eligibility and never renders protected growth details', async () => {
+        let rendered = false;
+        const html = await renderToString(h(BatchTimeline, {
+            stages: [stage('planting', 'upcoming', null, null)], growth: { ...growth, available: false, hst: null },
+        }, { growth: () => { rendered = true; return h('p', 'Detail belum tersedia'); } }));
+
+        expect(html).toContain('disabled');
+        expect(html).toContain('Belum memasuki pengamatan');
+        expect(rendered).toBe(false);
+    });
+
     it('labels report dates for an in-progress stage in Jakarta time', async () => {
         const html = await render([
             stage('planting', 'in_progress', first, last),

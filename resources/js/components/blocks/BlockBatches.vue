@@ -255,12 +255,6 @@ const progressSummary = computed(() => {
                             {{ hectares(batch.reserved_area_ha) }}
                             <span class="text-sm font-medium">ha</span>
                         </dd>
-                        <p
-                            v-if="Number(batch.planted_area_ha) > 0"
-                            class="mt-1 text-xs text-muted-foreground"
-                        >
-                            Ditanam {{ hectares(batch.planted_area_ha) }} ha
-                        </p>
                     </div>
                     <div>
                         <dt class="text-xs text-muted-foreground">
@@ -297,6 +291,8 @@ const progressSummary = computed(() => {
                     <BatchTimeline
                         :stages="batch.stages"
                         :growth="batch.growth"
+                        :theme="theme"
+                        :growth-context="`Sub blok ${block.code}${batch.subblock_label} · Batch ${batch.batch_number}`"
                     >
                         <template
                             v-if="

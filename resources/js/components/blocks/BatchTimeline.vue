@@ -1,8 +1,25 @@
 <script setup lang="ts">
-import { Check, ChevronDown, Circle, LoaderCircle } from "@lucide/vue";
-import { computed, ref, useId, useSlots } from "vue";
+import { ArrowUpRight, Check, Circle, LoaderCircle, Sprout } from "@lucide/vue";
+import { computed, ref, useSlots } from "vue";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { blockDate, stageLabels, type BatchGrowth, type BatchStage } from "@/types/blocks";
-const props = defineProps<{ stages: BatchStage[]; growth?: BatchGrowth }>();
+const props = withDefaults(
+    defineProps<{
+        stages: BatchStage[];
+        growth?: BatchGrowth;
+        theme?: string;
+        growthContext?: string;
+    }>(),
+    { theme: "admin-dashboard-theme" },
+);
 const preparationCodes = ["land_clearing", "soil_preparation", "basic_fertilizer"];
 const stageGroups = computed(() => [
     {
@@ -17,17 +34,11 @@ const stageGroups = computed(() => [
     },
 ]);
 const slots = useSlots();
-const growthExpanded = ref(false);
-const growthId = useId();
+const growthOpen = ref(false);
 </script>
 <template>
     <div class="space-y-5">
-        <div
-            role="group"
-            aria-label="Tahap dan tanggal progres"
-            class="grid gap-3"
-            :class="growth ? 'xl:grid-cols-[minmax(0,3fr)_minmax(0,4fr)]' : 'xl:grid-cols-2'"
-        >
+        <div role="group" aria-label="Tahap dan tanggal progres" class="grid gap-3 xl:grid-cols-2">
             <ol
                 v-for="group in stageGroups"
                 :key="group.key"
@@ -36,7 +47,7 @@ const growthId = useId();
                 :class="
                     group.key === 'preparation'
                         ? 'bg-stage-preparation sm:grid-cols-3'
-                        : ['bg-stage-cultivation', growth ? 'xl:grid-cols-4' : 'sm:grid-cols-3']
+                        : 'bg-stage-cultivation sm:grid-cols-3'
                 "
             >
                 <template v-for="stage in group.stages" :key="stage.code">
@@ -115,42 +126,46 @@ const growthId = useId();
                             </p>
                         </div>
                     </li>
-                    <li
-                        v-if="stage.code === 'planting' && growth"
-                        class="min-w-0 border-t-2 pt-3"
-                        :class="growth.available ? 'border-primary' : 'border-border'"
-                    >
-                        <button
-                            type="button"
-                            class="flex min-h-11 w-full flex-col items-start rounded-lg bg-transparent text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed"
-                            :aria-expanded="growthExpanded"
-                            :aria-controls="growth.available ? growthId : undefined"
-                            :disabled="!growth.available"
-                            @click="growthExpanded = !growthExpanded"
-                        >
-                            <span
-                                class="mb-2 flex w-full items-center justify-between gap-1 text-xs font-semibold"
-                                :class="growth.available ? 'text-info' : 'text-muted-foreground'"
-                                ><span class="min-w-0 break-words">Pengamatan</span><ChevronDown
-                                    v-if="growth.available"
-                                    class="hidden size-3.5 shrink-0 text-stage-growth transition-transform sm:block"
-                                    :class="{ 'rotate-180': growthExpanded }"
-                                    aria-hidden="true"
-                            /></span>
-                            <span
-                                class="max-w-full text-sm font-semibold break-words text-stage-growth"
-                                >Perkembangan tanaman</span
-                            >
-                            <span class="mt-1 text-xs leading-relaxed text-muted-foreground">{{
-                                growth.available ? `${growth.hst} HST` : "Belum memasuki pengamatan"
-                            }}</span>
-                        </button>
-                    </li>
                 </template>
             </ol>
         </div>
-        <div v-if="slots.growth" v-show="growthExpanded" :id="growthId">
-            <slot name="growth" />
-        </div>
+        <Dialog v-if="growth" v-model:open="growthOpen">
+            <div class="space-y-2">
+                <DialogTrigger as-child>
+                    <Button
+                        type="button"
+                        class="min-h-12 w-full gap-2 rounded-xl bg-stage-action px-4 whitespace-normal text-white hover:bg-stage-action/90 active:bg-stage-action/80"
+                        :disabled="!growth.available || !slots.growth"
+                    >
+                        <Sprout class="size-4 shrink-0" aria-hidden="true" />
+                        Pengamatan Perkembangan tanaman
+                        <ArrowUpRight class="size-4 shrink-0" aria-hidden="true" />
+                    </Button>
+                </DialogTrigger>
+                <p v-if="!growth.available" class="text-xs text-muted-foreground">
+                    Belum memasuki pengamatan
+                </p>
+            </div>
+            <DialogContent
+                v-if="growth.available && slots.growth"
+                :class="theme"
+                class="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden rounded-[20px] bg-card p-0 text-foreground sm:max-w-5xl"
+            >
+                <DialogHeader class="sr-only">
+                    <DialogTitle class="text-xl leading-7 font-semibold"
+                        >Pengamatan Perkembangan tanaman</DialogTitle
+                    >
+                    <DialogDescription class="text-sm text-muted-foreground"
+                        >{{ growthContext || growth.commodity || "Perkembangan subblok"
+                        }}<template v-if="growth.hst !== null">
+                            · {{ growth.hst }} HST</template
+                        ></DialogDescription
+                    >
+                </DialogHeader>
+                <div class="min-h-0 overflow-y-auto overscroll-contain [&>section>header]:pr-8">
+                    <slot name="growth" />
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

@@ -57,6 +57,8 @@
     --color-stage-preparation: var(--stage-preparation);
     --color-stage-cultivation: var(--stage-cultivation);
     --color-stage-growth: var(--stage-growth);
+    --color-stage-action: var(--stage-action);
+    --color-growth-summary: var(--growth-summary);
     --color-success-foreground: var(--success-foreground);
 
     --color-warning: var(--warning);
@@ -163,6 +165,8 @@
     --stage-preparation: #f5f4f2;
     --stage-cultivation: #f1f4f7;
     --stage-growth: #000000;
+    --stage-action: #047857;
+    --growth-summary: #143d32;
     --success-foreground: #ffffff;
 
     --warning: #edc92c;
@@ -243,6 +247,7 @@
     --stage-preparation: #29323b;
     --stage-cultivation: #253442;
     --stage-growth: #f8fafc;
+    --stage-action: #047857;
     --success-foreground: #ffffff;
 
     --warning: #edc92c;

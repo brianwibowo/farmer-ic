@@ -905,25 +905,27 @@ stage as Pemupukan kandang without changing its stored code.
 Individual stages stay transparent, without cards. Keep both
 sections beside each other in one timeline on desktop and stack on phones,
 with 12px section corners and consistent inner spacing.
-The Pengamatan disclosure stays transparent within its section. Its top line
-is primary green when available and neutral when unavailable. Keep the dropdown
-chevron and Perkembangan tanaman title black (`text-stage-growth`, light text in dark mode)
-and its Pengamatan label info-blue,
-with visible keyboard focus and muted disabled text. Do not give it a colored
-card or separate background. Keep status labels as colored text only. Omit
-the introductory description below Tahap & tanggal progres.
+Keep only the six operational stages in the timeline. Place a full-width green
+`Pengamatan Perkembangan tanaman` button below both sections, with white text
+and icons, `bg-stage-action` (`#047857` in both themes) and visible focus.
+Do not display HST beside the button. Earlier/cancelled batches show a disabled
+button and a concise unavailable note. Omit the introductory description below
+Tahap & tanggal progres.
 
-On farm detail, retain one continuous batch timeline. Insert a compact
-`Perkembangan tanaman` disclosure between Penanaman and Pemeliharaan, without
-adding a persisted operational stage. Show its detailed panel below the complete
-timeline, never between two separated groups of operational stages. The marker
-toggles the initially collapsed panel with an accessible expanded state and
-preserves the current HST-based reference view. Keep all operational stages visible together.
+Open the existing HST-based growth content in an accessible dialog instead of
+an inline expansion. Hide the extra popup header visually; retain the title
+and subblok/batch context for screen readers. Use the growth content's heading,
+inherit the originating theme, constrain width/height to the viewport, and scroll
+the body independently. Avoid stacked popup/body padding: use the growth panel's
+own spacing and reserve horizontal space beside its header for the close action.
+Support Escape/X, focus trapping and returning focus to
+the trigger; keep image enlargement working as a nested dialog. Do not add a
+persisted operational stage or duplicate the growth panel on the page.
 Use a
 20px white/dark card, emerald accents, and shared admin typography and spacing.
 Growth is available only for active/harvested batches with a real, non-future
 planting date, completed Penanaman, and started/completed Pemeliharaan. Earlier
-or cancelled batches have a disabled marker, no detail panel, and no observation
+or cancelled batches have a disabled button, no popup content, and no observation
 payload. Eligibility is enforced by the backend using scoped persisted stages.
 HST is the calendar-day difference between actual planting and today in Asia/Jakarta;
 day of planting is 0 HST. Reload block props when the Jakarta date changes or
@@ -931,6 +933,9 @@ the tab resumes after midnight. Current visual phase follows the commodity and
 variety's HST boundaries automatically, never a manually selected phase or old
 observation label. Keep the last phase beyond the reference's final age, without
 claiming that the operational harvest stage has completed.
+The HST phase summary uses `bg-growth-summary` (deep green `#143D32`) in both
+themes, white values/phase text and white/75 labels. Use a white/20 progress
+track with a `bg-stage-completed` fill so the recorded percentage stays visible.
 Percentage comes from the latest visible observation and is labeled separately;
 harvest projection comes from the saved batch estimate. Missing data has concise empty
 states. Do not invent AI confidence, photo analysis, or growth/harvest values.

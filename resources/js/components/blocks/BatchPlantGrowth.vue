@@ -74,15 +74,15 @@ const percentage = computed(() =>
                 }}</span
             >
         </header>
-        <div class="space-y-3 rounded-xl bg-primary/5 p-4">
+        <div class="space-y-3 rounded-xl bg-growth-summary p-4 text-white">
             <div
                 class="flex flex-wrap items-center justify-between gap-2 text-sm"
             >
-                <span class="flex items-center gap-2 text-muted-foreground"
+                <span class="flex items-center gap-2 text-white/75"
                     ><Activity class="size-4" aria-hidden="true" />Fase
                     berdasarkan HST</span
                 >
-                <strong class="font-semibold text-primary">{{
+                <strong class="font-semibold text-white">{{
                     selectedStage?.label || 'Referensi fase belum tersedia'
                 }}</strong>
             </div>
@@ -93,22 +93,22 @@ const percentage = computed(() =>
                 :aria-valuenow="percentage"
                 :aria-valuemin="0"
                 :aria-valuemax="100"
-                class="h-2 overflow-hidden rounded-full bg-border"
+                class="h-2 overflow-hidden rounded-full bg-white/20"
             >
                 <div
-                    class="h-full rounded-full bg-primary"
+                    class="h-full rounded-full bg-stage-completed"
                     :style="{ width: `${percentage}%` }"
                 />
             </div>
             <dl class="flex flex-wrap gap-x-8 gap-y-2 text-xs">
                 <div>
-                    <dt class="inline text-muted-foreground">Umur hari ini:</dt>
+                    <dt class="inline text-white/75">Umur hari ini:</dt>
                     <dd class="inline font-semibold">
                         {{ growth.hst }} HST · {{ blockDate(growth.as_of) }}
                     </dd>
                 </div>
                 <div>
-                    <dt class="inline text-muted-foreground">
+                    <dt class="inline text-white/75">
                         Estimasi awal panen:
                     </dt>
                     <dd class="inline font-semibold">
@@ -120,7 +120,7 @@ const percentage = computed(() =>
                     </dd>
                 </div>
                 <div v-if="growth.observation">
-                    <dt class="inline text-muted-foreground">
+                    <dt class="inline text-white/75">
                         Pengamatan terakhir:
                     </dt>
                     <dd class="inline font-semibold">
@@ -133,10 +133,6 @@ const percentage = computed(() =>
             <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
                     <h4 class="text-sm font-semibold">Kategori pertumbuhan</h4>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                        Panduan visual {{ profile.commodity }} ·
-                        {{ profile.variety }}
-                    </p>
                 </div>
                 <span
                     class="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground"
