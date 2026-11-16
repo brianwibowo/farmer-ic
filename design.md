@@ -437,7 +437,8 @@ excluded. Show the selected year's snapshot date beside active land and stock.
 Stock remains a position after dispatch and adjustments, not annual harvest
 minus dispatch with an assumed zero opening balance. Sales retain the explicitly
 labelled reference month. If a numbered cycle is absent after changing year,
-select Semua cycle. Existing numbered-cycle defaults and Reset are retained.
+select Semua cycle. Default to Semua cycle on first load and after Reset;
+numbered cycles remain available for a specific cycle's production.
 The illustrative executive adapter keeps separate dated production records and
 land/stock positions; database-backed pages retain their existing data sources.
 

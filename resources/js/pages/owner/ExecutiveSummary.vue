@@ -98,9 +98,9 @@ function focusFarm(id: string) {
                 <p class="mt-2 text-sm leading-6 text-muted-foreground">
                     Gambaran lahan, penjualan, dan potensi hasil usaha.
                 </p>
-                <p class="mt-1 text-xs text-muted-foreground">
+                <!-- <p class="mt-1 text-xs text-muted-foreground">
                     Data contoh · Data per {{ updatedLabel }}
-                </p>
+                </p> -->
             </div>
             <Button :disabled="loading" @click="load(true)"
                 ><RefreshCw
@@ -149,8 +149,8 @@ function focusFarm(id: string) {
             class="text-xs leading-5 text-muted-foreground"
             role="status"
         >
-            {{ periodLabel }}. Luas tanam aktif dan stok mengikuti posisi
-            {{ snapshotLabel }}; penjualan tetap bulanan ({{ monthlyLabel }}).
+            <!-- {{ periodLabel }}. Luas tanam aktif dan stok mengikuti posisi
+            {{ snapshotLabel }}; penjualan tetap bulanan ({{ monthlyLabel }}). -->
         </p>
         <div v-if="loading" class="space-y-4">
             <ExecutiveSummaryCards
