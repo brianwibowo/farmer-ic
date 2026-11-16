@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Link, useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Pencil, Plus } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
-import type { DailyReport } from '@/types/daily-activity';
+import type { DailyReport, DailyReportActivity } from '@/types/daily-activity';
 
 const props = defineProps<{
     farm: { id: string; name: string };
@@ -11,7 +11,11 @@ const props = defineProps<{
     log: DailyReport | null;
     canUpdate: boolean;
     canRecord: boolean;
+    legacyActivity?: DailyReportActivity | null;
 }>();
+const activities = computed(() =>
+    props.legacyActivity ? [props.legacyActivity] : (props.log?.activities ?? []),
+);
 const editing = ref(false);
 const adding = ref(false);
 const header = useForm({
@@ -150,6 +154,13 @@ function save(): void {
             </form>
         </section>
         <p
+            v-else-if="legacyActivity"
+            role="status"
+            class="rounded-xl border border-border bg-card p-5 text-sm leading-6 text-muted-foreground"
+        >
+            Informasi harian dan jam kerja tidak tersedia untuk aktivitas ini.
+        </p>
+        <p
             v-else
             class="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground"
         >
@@ -159,16 +170,19 @@ function save(): void {
 
         <section class="space-y-3">
             <h2 class="text-lg font-semibold">
-                {{ log?.activities.length ?? 0 }} aktivitas tercatat
+                {{ activities.length }} aktivitas tercatat
             </h2>
             <article
-                v-for="activity in log?.activities ?? []"
+                v-for="activity in activities"
                 :key="activity.id"
                 class="space-y-3 rounded-xl border border-border bg-card p-4"
             >
                 <div>
                     <h3 class="text-base font-semibold">
-                        {{ activity.position }}. {{ activity.name }}
+                        <template v-if="activity.position !== null"
+                            >{{ activity.position }}.
+                        </template>
+                        {{ activity.name }}
                     </h3>
                     <p class="mt-1 text-xs leading-5 text-muted-foreground">
                         {{ activity.performer_name ?? 'Petugas kebun'

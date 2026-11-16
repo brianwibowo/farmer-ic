@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Owner;
 
+use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
@@ -10,10 +11,12 @@ use App\Models\Team;
 use App\Models\User;
 use App\Models\WeatherRecord;
 use App\Services\Owner\HarvestProjectionService;
+use Carbon\CarbonImmutable;
 use Database\Seeders\DemoActivitySeeder;
 use Database\Seeders\DemoFarmSeeder;
 use Database\Seeders\DemoIdentitySeeder;
 use Database\Seeders\DemoMonitoringSeeder;
+use Database\Seeders\DemoOwnerPortfolioActivitySeeder;
 use Database\Seeders\DemoOwnerPortfolioData;
 use Database\Seeders\DemoOwnerPortfolioSeeder;
 use Database\Seeders\DemoSopSeeder;
@@ -59,8 +62,8 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $snapshot = [];
         foreach (['farms', 'farm_blocks', 'planting_cycles', 'planting_cycle_stages',
             'sop_templates', 'sop_template_versions', 'sop_template_tasks', 'planting_cycle_tasks',
-            'farm_activities', 'planting_details', 'fertilization_details', 'irrigation_details',
-            'pesticide_details', 'harvest_details', 'plant_observations', 'farm_risks',
+            'daily_activity_logs', 'farm_activities', 'planting_details', 'fertilization_details', 'irrigation_details',
+            'pesticide_details', 'harvest_details', 'land_cleaning_details', 'loosening_details', 'plant_observations', 'farm_risks',
             'weather_records', 'activity_photos', 'commodities', 'crop_varieties', 'activity_types'] as $table) {
             $key = str_ends_with($table, '_details') ? 'activity_id' : 'id';
             $snapshot[$table] = DB::table($table)->orderBy($key)->pluck($key)->all();
@@ -207,6 +210,128 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->assertSame($accounts, User::query()->orderBy('id')->get()->map(fn (User $user) => $user->getRawOriginal())->all());
     }
 
+    public function test_portfolio_reports_have_daily_logs_and_are_visible_to_the_assigned_petugas(): void
+    {
+        $this->prerequisites();
+        $this->seed(DemoOwnerPortfolioSeeder::class);
+        $team = $this->demoTeam();
+        $petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
+        $firstActivity = null;
+
+        foreach (DemoOwnerPortfolioData::sites() as $site) {
+            $farmId = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
+            $activities = FarmActivity::query()->where('farm_id', $farmId)->with('dailyActivityLog')->get();
+            $this->assertNotEmpty($activities);
+
+            $petugas->forceFill(['assigned_farm_id' => $farmId])->save();
+            $petugas->unsetRelation('assignedFarm');
+            $this->actingAs($petugas)->get('/petugas/laporan')->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->component('petugas/Laporan')->where('reports.total', $activities->count()));
+
+            foreach ($activities as $activity) {
+                $firstActivity ??= $activity;
+                $log = $activity->dailyActivityLog;
+                $this->assertNotNull($log);
+                $this->assertSame($farmId, $log->farm_id);
+                $this->assertSame($activity->activity_date->setTimezone('Asia/Jakarta')->toDateString(), $log->work_date->toDateString());
+                $this->assertGreaterThan(0, $activity->position);
+                $this->get('/petugas/laporan/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+                    ->component('petugas/ReportShow')->where('log.activities.0.id', $activity->id));
+            }
+
+            foreach ($activities->groupBy('daily_activity_log_id') as $sameDay) {
+                $this->assertCount($sameDay->count(), $sameDay->pluck('position')->unique());
+            }
+        }
+
+        $this->get('/petugas/laporan/'.$firstActivity->id)->assertForbidden();
+    }
+
+    public function test_existing_portfolio_reports_without_headers_remain_readable_without_inventing_hours(): void
+    {
+        $this->prerequisites();
+        $this->seed(DemoOwnerPortfolioSeeder::class);
+        $team = $this->demoTeam();
+        $farmIds = collect(DemoOwnerPortfolioData::sites())
+            ->map(fn (array $site) => DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']));
+        $activities = FarmActivity::query()->whereIn('farm_id', $farmIds)->get();
+        $activityIds = $activities->pluck('id');
+        $logIds = $activities->pluck('daily_activity_log_id')->unique();
+        $descriptions = $activities->pluck('description', 'id')->all();
+
+        // Reproduce the old portfolio fixture, which created no daily headers.
+        DB::table('farm_activities')->whereIn('id', $activityIds)->update(['daily_activity_log_id' => null, 'position' => null]);
+        DailyActivityLog::query()->whereIn('id', $logIds)->delete();
+
+        $this->seed(DemoOwnerPortfolioActivitySeeder::class);
+
+        $linked = FarmActivity::query()->whereIn('id', $activityIds)->with('dailyActivityLog')->get();
+        $this->assertCount($activityIds->count(), $linked);
+        foreach ($linked as $activity) {
+            $this->assertNull($activity->dailyActivityLog);
+            $this->assertSame($descriptions[$activity->id], $activity->description);
+            $this->assertNull($activity->position);
+        }
+        $petugas = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
+        foreach ($linked->groupBy('farm_id') as $farmId => $farmActivities) {
+            $petugas->forceFill(['assigned_farm_id' => $farmId])->save();
+            $petugas->unsetRelation('assignedFarm');
+            $activity = $farmActivities->first();
+            $this->actingAs($petugas)->get('/petugas/laporan/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->component('petugas/ReportShow')->where('log', null)->where('legacyActivity.id', $activity->id));
+        }
+
+        $ids = $this->recordIds();
+        $links = FarmActivity::query()->whereIn('id', $activityIds)->orderBy('id')->get(['id', 'daily_activity_log_id', 'position'])->toArray();
+        $this->seed(DemoOwnerPortfolioActivitySeeder::class);
+        $this->assertSame($ids, $this->recordIds());
+        $this->assertSame($links, FarmActivity::query()->whereIn('id', $activityIds)->orderBy('id')->get(['id', 'daily_activity_log_id', 'position'])->toArray());
+    }
+
+    public function test_relink_preserves_existing_header_and_unrelated_activity(): void
+    {
+        $this->prerequisites();
+        $this->seed(DemoOwnerPortfolioSeeder::class);
+        $team = $this->demoTeam();
+        $farmId = DemoOwnerPortfolioData::id($team, 'farm:cibogo');
+        $legacy = FarmActivity::query()->where('farm_id', $farmId)
+            ->whereHas('activityType', fn ($query) => $query->where('code', 'irrigation'))->firstOrFail();
+        $log = $legacy->dailyActivityLog;
+        $this->assertNotNull($log);
+        $companion = FarmActivity::query()->where('daily_activity_log_id', $log->id)->where('id', '!=', $legacy->id)->firstOrFail();
+        $companion->forceFill(['position' => 50])->save();
+        $log->forceFill(['start_time' => '07:15', 'end_time' => '15:45', 'notes' => 'Catatan harian yang sudah disesuaikan.'])->save();
+        $headerBefore = $log->refresh()->getRawOriginal();
+        $legacy->forceFill(['description' => 'Catatan irigasi yang sudah disesuaikan.', 'daily_activity_log_id' => null, 'position' => null])->save();
+
+        $otherFarmId = DemoOwnerPortfolioData::id($team, 'farm:sukamaju');
+        $shifted = FarmActivity::query()->where('farm_id', $otherFarmId)
+            ->whereHas('activityType', fn ($query) => $query->where('code', 'irrigation'))->firstOrFail();
+        $this->assertFalse(DailyActivityLog::query()->where('farm_id', $otherFarmId)->whereDate('work_date', '2026-11-02')->exists());
+        $shifted->forceFill([
+            'activity_date' => CarbonImmutable::parse('2026-11-02 00:30', 'Asia/Jakarta'),
+            'daily_activity_log_id' => null, 'position' => null,
+        ])->save();
+
+        // A non-fixture activity in the same portfolio farm is not a backfill target.
+        $unrelated = $shifted->replicate();
+        $unrelated->forceFill(['description' => 'Pemeriksaan saluran oleh petugas kebun.'])->save();
+        $unrelated->irrigationDetail()->save($shifted->irrigationDetail()->firstOrFail()->replicate());
+        $unrelatedBefore = $unrelated->refresh()->getRawOriginal();
+
+        $this->seed(DemoOwnerPortfolioActivitySeeder::class);
+
+        $this->assertSame($headerBefore, $log->refresh()->getRawOriginal());
+        $this->assertSame($log->id, $legacy->refresh()->daily_activity_log_id);
+        $this->assertSame(51, $legacy->position);
+        $this->assertSame('Catatan irigasi yang sudah disesuaikan.', $legacy->description);
+        $this->assertSame(50, $companion->refresh()->position);
+        $this->assertNull($shifted->refresh()->daily_activity_log_id);
+        $this->assertFalse(DailyActivityLog::query()->where('farm_id', $otherFarmId)->whereDate('work_date', '2026-11-02')->exists());
+        $this->assertSame($unrelatedBefore, $unrelated->refresh()->getRawOriginal());
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
     public function test_same_named_foreign_farm_is_untouched_and_owner_dashboard_stays_tenant_scoped(): void
     {
         $this->prerequisites();
@@ -259,6 +384,29 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->assertSame($before, $this->recordIds());
     }
 
+    public function test_activity_only_seeder_rejects_a_tampered_actor_before_linking_reports(): void
+    {
+        $this->prerequisites();
+        $this->seed(DemoOwnerPortfolioSeeder::class);
+        $farmId = DemoOwnerPortfolioData::id($this->demoTeam(), 'farm:sukamaju');
+        $activity = FarmActivity::query()->where('farm_id', $farmId)->firstOrFail();
+        $activity->forceFill(['daily_activity_log_id' => null, 'position' => null])->save();
+        $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])->firstOrFail();
+        $actor->forceFill(['role_id' => Role::query()->where('name', 'admin')->firstOrFail()->id])->save();
+        $before = $this->recordIds();
+        $activityBefore = $activity->refresh()->getRawOriginal();
+
+        try {
+            $this->seed(DemoOwnerPortfolioActivitySeeder::class);
+            $this->fail('The activity seeder must require the trusted demo Superadmin.');
+        } catch (RuntimeException $exception) {
+            $this->assertNotSame('', $exception->getMessage());
+        }
+
+        $this->assertSame($before, $this->recordIds());
+        $this->assertSame($activityBefore, $activity->refresh()->getRawOriginal());
+    }
+
     public function test_a_failure_rolls_back_the_entire_portfolio_scenario(): void
     {
         $this->prerequisites();
@@ -275,6 +423,29 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         } finally {
             Event::forget($event);
         }
+        $this->assertSame($before, $this->recordIds());
+    }
+
+    public function test_daily_log_failure_rolls_back_portfolio_records_and_previously_created_logs(): void
+    {
+        $this->prerequisites();
+        $before = $this->recordIds();
+        $event = 'eloquent.creating: '.DailyActivityLog::class;
+        $attempts = 0;
+        Event::listen($event, function () use (&$attempts): void {
+            if (++$attempts === 2) {
+                throw new RuntimeException('Simulated daily header failure.');
+            }
+        });
+        try {
+            $this->seed(DemoOwnerPortfolioSeeder::class);
+            $this->fail('Expected the simulated daily header failure.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Simulated daily header failure.', $exception->getMessage());
+        } finally {
+            Event::forget($event);
+        }
+        $this->assertSame(2, $attempts);
         $this->assertSame($before, $this->recordIds());
     }
 }

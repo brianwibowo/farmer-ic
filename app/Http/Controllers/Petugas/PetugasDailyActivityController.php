@@ -41,6 +41,13 @@ class PetugasDailyActivityController extends Controller
         Gate::authorize('view', $activity);
         abort_unless($activity->farm_id === $request->user()->assigned_farm_id, 403);
         $farm = $activity->farm;
+        if ($activity->daily_activity_log_id === null) {
+            return Inertia::render('petugas/ReportShow', [
+                'farm' => $farm->only(['id', 'name']), 'log' => null,
+                'legacyActivity' => $reports->activity($request->user(), $farm, $activity),
+                'canUpdate' => false, 'date' => $activity->activity_date->setTimezone('Asia/Jakarta')->toDateString(),
+            ]);
+        }
         $log = DailyActivityLog::visibleTo($request->user(), $farm->team)->findOrFail($activity->daily_activity_log_id);
         Gate::authorize('view', $log);
         $data = $reports->report($request->user(), $farm, $log);
