@@ -11,6 +11,7 @@ class GeocodeFarmRequest extends FormRequest
         return true; // The controller authorizes against the trusted team or farm.
     }
 
+    /** @return array<string, list<string>> */
     public function rules(): array
     {
         return [

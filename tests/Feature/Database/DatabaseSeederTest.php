@@ -271,7 +271,7 @@ class DatabaseSeederTest extends TestCase
         ], array_column($projection['rows'], 'farm_name'));
 
         $this->actingAs($owner)
-            ->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 7)
             ->where('landTable.rows', fn ($rows) => collect($rows)->count() === 7
                 && collect($rows)->pluck('name')->sort()->values()->all() === [

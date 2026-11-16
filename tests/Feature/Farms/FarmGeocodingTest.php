@@ -6,12 +6,18 @@ use App\Models\Farm;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmService;
+use Illuminate\Cache\Repository;
+use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Contracts\Cache\Repository as CacheStore;
+use Illuminate\Contracts\Cache\Store;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
+use Mockery;
 use Tests\TestCase;
 
 // Runs against the integrated, dedicated PostgreSQL test schema.
@@ -98,6 +104,41 @@ class FarmGeocodingTest extends TestCase
         $this->postJson('/admin/farm-management/geocode', $this->payload())->assertStatus(429)->assertHeader('Retry-After', '60');
         $this->postJson('/admin/farm-management/geocode', $this->payload())->assertStatus(429);
         Http::assertSentCount(1);
+    }
+
+    public function test_a_cache_without_lock_support_stops_before_contacting_nominatim(): void
+    {
+        $store = Mockery::mock(Store::class);
+        $store->shouldReceive('get')->once()->andReturnNull();
+        Cache::partialMock()->shouldReceive('store')->with('array')
+            ->once()->andReturn(new Repository($store));
+
+        $this->postJson('/admin/farm-management/geocode', $this->payload())->assertStatus(503);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_results_cached_by_another_worker_are_read_again_after_locking(): void
+    {
+        $result = [
+            'label' => 'Jalan Raya Sukamakmur', 'latitude' => -6.5791234, 'longitude' => 107.0023456,
+            'approximate' => false, 'matches_region' => true, 'can_auto_select' => true, 'search_stage' => 'address',
+        ];
+        $lock = Mockery::mock(Lock::class);
+        $lock->shouldReceive('get')->once()->andReturnTrue();
+        $lock->shouldReceive('release')->once()->andReturnTrue();
+        $store = Mockery::mock(Store::class, LockProvider::class);
+        $store->shouldReceive('lock')->with('farm-geocoding:nominatim:lock', 40)->once()->andReturn($lock);
+        $cache = Mockery::mock(CacheStore::class);
+        $cache->shouldReceive('get')->with(Mockery::pattern('/^farm-geocoding:v3:/'))
+            ->twice()->andReturn(null, [$result]);
+        $cache->shouldReceive('getStore')->once()->andReturn($store);
+        Cache::partialMock()->shouldReceive('store')->with('array')->once()->andReturn($cache);
+
+        $this->postJson('/admin/farm-management/geocode', $this->payload())->assertOk()
+            ->assertExactJson(['data' => [$result]]);
+
+        Http::assertNothingSent();
     }
 
     public function test_guests_owners_workers_and_missing_membership_cannot_search(): void

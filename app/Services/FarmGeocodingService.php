@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Cache\Repository as CacheStore;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
@@ -13,11 +14,12 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/** @phpstan-type GeocodingResult array{label: string, latitude: float, longitude: float, approximate: bool, matches_region: bool, can_auto_select: bool, search_stage: string} */
 class FarmGeocodingService
 {
     public function __construct(private readonly AdministrativeRegionService $regions) {}
 
-    /** @return list<array{label: string, latitude: float, longitude: float, approximate: bool, matches_region: bool, can_auto_select: bool, search_stage: string}> */
+    /** @return list<GeocodingResult> */
     public function search(string $address, string $districtCode, User $actor, Team $team): array
     {
         $region = $this->regions->district($districtCode, $actor, $team);
@@ -29,18 +31,22 @@ class FarmGeocodingService
         $endpoint = rtrim(config('services.nominatim.url'), '/').'/search';
         $cache = Cache::store(config('services.nominatim.cache_store'));
         // A new strategy must not reuse cached misses from the old single-query search.
-        $key = 'farm-geocoding:v3:'.hash('sha256', $endpoint.'|'.$districtCode.'|'.Str::lower(json_encode($queries)));
-        if (($cached = $cache->get($key)) !== null) {
+        $key = 'farm-geocoding:v3:'.hash('sha256', $endpoint.'|'.$districtCode.'|'.Str::lower(json_encode($queries, JSON_THROW_ON_ERROR)));
+        if (($cached = $this->cachedResults($cache, $key)) !== null) {
             return $cached;
         }
 
         // Covers up to three six-second requests and two cooldowns across all workers.
-        $lock = $cache->lock('farm-geocoding:nominatim:lock', 40);
+        $store = $cache->getStore();
+        if (! $store instanceof LockProvider) {
+            throw new HttpException(503, 'Pencarian lokasi sedang tidak tersedia. Coba lagi atau pilih pin secara manual.');
+        }
+        $lock = $store->lock('farm-geocoding:nominatim:lock', 40);
         if (! $lock->get()) {
             throw $this->busy();
         }
         try {
-            if (($cached = $cache->get($key)) !== null) {
+            if (($cached = $this->cachedResults($cache, $key)) !== null) {
                 return $cached;
             }
             $requested = false;
@@ -60,7 +66,22 @@ class FarmGeocodingService
         }
     }
 
-    /** @return array<string, string> */
+    /**
+     * Another worker can populate the cache between the reads before and after locking.
+     *
+     * @phpstan-impure
+     *
+     * @return list<GeocodingResult>|null
+     */
+    private function cachedResults(CacheStore $cache, string $key): ?array
+    {
+        return $cache->get($key);
+    }
+
+    /**
+     * @param  array{district: string, city: string, province: string}  $region
+     * @return array<string, string>
+     */
     private function queries(string $address, array $region): array
     {
         $place = Str::squish(explode(',', $address)[0]);
@@ -83,6 +104,7 @@ class FarmGeocodingService
         });
     }
 
+    /** @param list<string> $context */
     private function withContext(string $address, array $context): string
     {
         $parts = [Str::squish($address)];
@@ -96,7 +118,11 @@ class FarmGeocodingService
         return implode(', ', $parts);
     }
 
-    /** Fetch each distinct query at most once; empty results advance the strategy, errors do not. */
+    /**
+     * Fetch each distinct query at most once; empty results advance the strategy, errors do not.
+     *
+     * @return list<mixed>
+     */
     private function lookup(string $query, string $endpoint, CacheStore $cache, bool &$requested): array
     {
         $key = 'farm-geocoding:query:v2:'.hash('sha256', $endpoint.'|'.Str::lower($query));
@@ -143,6 +169,11 @@ class FarmGeocodingService
         return new HttpException(429, 'Pencarian lokasi sedang sibuk. Tunggu sebentar lalu pilih Cari ulang dari alamat, atau tentukan pin secara manual.', headers: ['Retry-After' => (string) $seconds]);
     }
 
+    /**
+     * @param  list<mixed>  $rows
+     * @param  array{district: string, city: string, province: string}  $region
+     * @return list<GeocodingResult>
+     */
     private function normalize(array $rows, array $region, string $stage): array
     {
         $results = [];
@@ -179,6 +210,10 @@ class FarmGeocodingService
         return array_values($results);
     }
 
+    /**
+     * @param  array<array-key, mixed>  $address
+     * @param  list<string>  $keys
+     */
     private function matches(array $address, array $keys, string $expected): bool
     {
         $normalize = fn (string $value): string => trim(preg_replace('/\b(kabupaten|kab|kota|kecamatan|kec|provinsi)\b\.?/u', '', Str::lower(Str::squish($value))));

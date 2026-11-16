@@ -105,7 +105,7 @@ class PetugasPortalTest extends TestCase
     {
         $actor = User::factory()->create(['role' => 'owner']);
         $this->withSession(['url.intended' => url('/petugas/kebun')])->post('/login', ['email' => $actor->email, 'password' => 'password'])
-            ->assertRedirect('/');
+            ->assertRedirect('/ringkasan-eksekutif');
     }
 
     public function test_missing_or_changed_application_role_denies_access(): void
