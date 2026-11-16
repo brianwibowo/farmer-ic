@@ -61,7 +61,9 @@ const status = computed(() =>
     <OwnerPageHeader
         title="Detail legalitas"
         :back-href="backHref"
-        :back-label="returnToHome ? 'Kembali ke Beranda' : 'Kembali ke kebun'"
+        :back-label="
+            returnToHome ? 'Kembali ke Monitoring Lahan' : 'Kembali ke kebun'
+        "
     />
     <section
         class="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6"

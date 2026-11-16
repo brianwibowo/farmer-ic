@@ -48,6 +48,7 @@ class FarmBlockController extends Controller
                 ->with('farm.team')->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('configure', $batch)]),
             'summary' => $this->blocks->summary($farm, $request->user(), $team),
             'blockCapacity' => $this->blocks->formCapacity($farm, $request->user(), $team),
+            'blockOptions' => $this->blocks->configurationOptions($request->user(), $team),
             'filters' => array_replace(['search' => '', 'status' => 'all', 'per_page' => 15], $request->validated()),
             'can' => ['create' => Gate::allows('create', [FarmBlock::class, $farm])],
         ]);
@@ -58,7 +59,8 @@ class FarmBlockController extends Controller
         Gate::authorize('create', [FarmBlock::class, $farm]);
 
         return Inertia::render('farmer/blocks/Form', ['farm' => $farm->only(['id', 'name', 'total_area_ha']), 'block' => null,
-            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm))]);
+            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm)),
+            'blockOptions' => $this->blocks->configurationOptions($request->user(), $this->team($farm))]);
     }
 
     public function store(SaveFarmBlockRequest $request, Farm $farm): RedirectResponse
@@ -87,6 +89,7 @@ class FarmBlockController extends Controller
             'farm' => $farm->only(['id', 'name', 'total_area_ha']),
             'block' => $this->blocks->detail($block, $request->user(), $this->team($farm))['block'],
             'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm), $block),
+            'blockOptions' => $this->blocks->configurationOptions($request->user(), $this->team($farm)),
         ]);
     }
 

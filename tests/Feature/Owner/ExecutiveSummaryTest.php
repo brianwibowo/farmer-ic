@@ -44,4 +44,26 @@ class ExecutiveSummaryTest extends TestCase
         $this->assertSame(FarmManagementController::class.'@index', app('router')->getRoutes()->getByName('kebun')->getActionName());
         $this->assertSame(FarmManagementController::class.'@show', app('router')->getRoutes()->getByName('owner.farms.show')->getActionName());
     }
+
+    public function test_monitoring_uses_the_existing_owner_data_boundary(): void
+    {
+        $route = app('router')->getRoutes()->getByName('owner.monitoring');
+        $this->assertSame('monitoring-lahan', $route->uri());
+        foreach (['auth', 'verified', 'can:owner.access'] as $middleware) {
+            $this->assertContains($middleware, $route->gatherMiddleware());
+        }
+        $this->get('/monitoring-lahan')->assertRedirect('/login');
+        foreach (['admin', 'petugas'] as $role) {
+            $this->actingAs(User::factory()->create(['role' => $role]))->get('/monitoring-lahan')->assertForbidden();
+        }
+    }
+
+    public function test_login_defaults_to_executive_summary_but_keeps_an_intended_monitoring_page(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner']);
+        $credentials = ['email' => $owner->email, 'password' => 'password'];
+        $this->post('/login', $credentials)->assertRedirect('/ringkasan-eksekutif');
+        $this->post('/logout');
+        $this->withSession(['url.intended' => url('/monitoring-lahan')])->post('/login', $credentials)->assertRedirect('/monitoring-lahan');
+    }
 }

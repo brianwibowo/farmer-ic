@@ -269,21 +269,6 @@ const severity: Record<string, string> = {
             />
         </div>
     </section>
-    <section class="rounded-xl border border-border p-4">
-        <h2 class="text-base font-semibold">SOP default kebun</h2>
-        <Link
-            v-if="farm.default_sop"
-            :href="`/lainnya/sop/${farm.default_sop.id}`"
-            class="mt-3 flex min-h-11 items-center justify-between gap-2 rounded-xl bg-muted p-3 text-sm font-medium hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-            >{{ farm.default_sop.name }}<ArrowUpRight class="size-4 shrink-0"
-        /></Link>
-        <p v-else class="mt-3 text-sm text-muted-foreground">
-            SOP default belum ditetapkan.
-        </p>
-        <p class="mt-3 text-xs leading-5 text-muted-foreground">
-            Setiap batch mengikuti versi SOP yang tersimpan pada batch tersebut.
-        </p>
-    </section>
     <section aria-labelledby="farm-observations">
         <h2 id="farm-observations" class="text-base font-semibold">
             Pengamatan tanaman

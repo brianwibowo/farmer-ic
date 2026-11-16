@@ -63,8 +63,6 @@ export type ManagedFarm = Omit<FarmRow, 'can'> & {
         total: number;
         stages: { code: string; count: number }[];
     };
-    commodity_id: string | null;
-    commodity: FarmSopCommodity | null;
     district_code: string | null;
     region: RegionOption | null;
     owner_restricted: boolean;
@@ -83,8 +81,6 @@ export type ManagedFarm = Omit<FarmRow, 'can'> & {
     latitude: string | null;
     longitude: string | null;
     image_url: string | null;
-    default_sop_template_id: string | null;
-    default_sop: FarmDefaultSop | null;
     active_cycles: number;
     active_area_ha: string;
     created_at: string | null;

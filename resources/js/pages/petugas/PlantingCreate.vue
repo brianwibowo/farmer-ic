@@ -294,7 +294,7 @@ function submit(): void {
                 role="status"
                 class="text-sm leading-6 text-muted-foreground"
             >
-                Komoditas kebun belum diatur. Hubungi admin untuk mengaturnya.
+                Komoditas blok belum diatur. Hubungi admin untuk mengaturnya.
             </p>
             <p
                 v-else-if="varietyMismatch"
@@ -302,7 +302,7 @@ function submit(): void {
                 class="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm leading-6"
             >
                 Varietas yang sudah tercatat tidak sesuai dengan komoditas
-                kebun. Hubungi admin untuk meninjau data sebelum menambah
+                penanaman. Hubungi admin untuk meninjau data sebelum menambah
                 laporan penanaman.
             </p>
             <p
@@ -310,7 +310,7 @@ function submit(): void {
                 role="status"
                 class="text-sm leading-6 text-muted-foreground"
             >
-                Belum ada varietas untuk komoditas kebun ini. Hubungi admin
+                Belum ada varietas untuk komoditas blok ini. Hubungi admin
                 untuk menyiapkan data varietas.
             </p>
             <fieldset

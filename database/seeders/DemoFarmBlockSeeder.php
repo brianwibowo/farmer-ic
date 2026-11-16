@@ -29,7 +29,8 @@ class DemoFarmBlockSeeder extends Seeder
             ] as [$code, $name, $area, $clearingStarted, $clearingCompleted]) {
                 if (! FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $code)->exists()) {
                     $created = app(FarmBlockService::class)->create($farm, $actor, $team, ['code' => $code, 'name' => $name,
-                        'area_ha' => $area, 'description' => 'Blok permanen lahan percontohan Cileuksa.']);
+                        'area_ha' => $area, 'description' => 'Blok permanen lahan percontohan Cileuksa.',
+                        'commodity_id' => CropVariety::visibleTo($actor, $team)->where('name', 'Bisi 18')->value('commodity_id')]);
                     $created->forceFill(['land_clearing_started_at' => $clearingStarted, 'land_clearing_completed_at' => $clearingCompleted])->save();
                 }
             }

@@ -96,13 +96,10 @@ Table farms {
   team_id bigint [ref: > teams.id, note: 'Tenant boundary; nullable during staged data migration, but authorization denies farms without a team']
   land_tenure varchar(20) [note: 'owned | rented | partnership; null for legacy farms until confirmed']
   district_code varchar(8) [ref: > administrative_regions.code]
-  default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default kebun; dipakai otomatis saat Petugas mencatat penanaman']
-  commodity_id uuid [ref: > commodities.id, note: 'Komoditas kebun; dapat dipilih sebelum SOP tersedia']
   pic_user_id uuid [ref: > users.id, note: 'PIC opsional dari Admin tenant yang sama; ON DELETE SET NULL']
   target_volume_ton decimal(12,3) [note: 'Target volume opsional dalam ton; CHECK > 0']
   land_tenure_party varchar(255) [note: 'Nama pihak penyewa atau mitra untuk lahan sewa atau kerja sama']
   indexes {
-    commodity_id
     pic_user_id
   }
   Note: 'Tanpa farm_plots. Jika semua owner memantau semua kebun, owner_id boleh dihilangkan.'
@@ -187,9 +184,13 @@ Table farm_blocks {
   land_clearing_completed_at timestamptz
   created_at timestamptz
   updated_at timestamptz
+  commodity_id uuid [ref: > commodities.id, note: 'Komoditas blok']
+  default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default blok untuk penanaman baru']
   indexes {
     (farm_id, code) [unique]
     (id, farm_id) [unique]
+    commodity_id
+    default_sop_template_id
   }
   Note: 'Active block areas fit within the farm. Block clearing reports are shared by all subblocks. Historical blocks are deactivated rather than deleted.'
 }

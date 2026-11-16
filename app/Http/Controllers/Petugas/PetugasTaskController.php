@@ -52,7 +52,7 @@ class PetugasTaskController extends Controller
 
         return Inertia::render('petugas/Aktivitas', [
             ...$data, 'filters' => ['status' => $status], 'farm' => $farm->only(['id', 'name']),
-            'defaultSopMissing' => $farm->getAttribute('default_sop_template_id') === null,
+            'defaultSopMissing' => \App\Models\FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->whereNull('default_sop_template_id')->exists(),
         ]);
     }
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Pencil, Plus, Search, Trash2 } from '@lucide/vue';
 import BlockDialog from './BlockDialog.vue';
 import BlockBatches from './BlockBatches.vue';
@@ -17,6 +17,7 @@ import type {
     BlockFarm,
     BlockFormCapacity,
     ManagedBlock,
+    BlockOptions,
 } from '@/types/blocks';
 import { hectares } from '@/types/farms';
 const props = withDefaults(
@@ -35,6 +36,7 @@ const props = withDefaults(
     }>(),
     { clientPagination: true, searchable: true },
 );
+const options = computed(() => usePage().props.blockOptions as BlockOptions);
 const editing = ref(false);
 const selected = ref<ManagedBlock | null>(null);
 const deleting = ref<ManagedBlock | null>(null);
@@ -158,6 +160,10 @@ function remove(): void {
                                         block.is_active ? 'Aktif' : 'Nonaktif'
                                     }}</span
                                 >
+                            </p>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                {{ options.commodities.find((item) => item.id === block.commodity_id)?.name ?? 'Komoditas belum diatur' }}
+                                · {{ options.sops.find((item) => item.id === block.default_sop_template_id)?.name ?? 'SOP belum diatur' }}
                             </p>
                         </td>
                         <td

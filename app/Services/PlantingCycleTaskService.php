@@ -66,7 +66,9 @@ class PlantingCycleTaskService
                     return $this->result('already_generated', 0, $rescheduled, $version->id);
                 }
             } else {
-                $linked = $farm->defaultSopTemplate;
+                $block = $cycle->block_id === null ? null : \App\Models\FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->first();
+                $sopId = $block?->getAttribute('default_sop_template_id');
+                $linked = $sopId === null ? null : SopTemplate::visibleTo($actor, $team)->whereKey($sopId)->first();
                 if ($linked === null) {
                     return $this->result('missing_sop');
                 }

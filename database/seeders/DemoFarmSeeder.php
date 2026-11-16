@@ -58,7 +58,7 @@ class DemoFarmSeeder extends Seeder
         if ($isNewFarm) {
             $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
             \Illuminate\Support\Facades\Gate::forUser($admin)->authorize('update', $farm);
-            $farm->forceFill(['commodity_id' => $jagung->id, 'target_volume_ton' => '80.000'])->save();
+            $farm->forceFill(['target_volume_ton' => '80.000'])->save();
         }
         CropVariety::query()->firstOrCreate([
             'commodity_id' => $jagung->id,

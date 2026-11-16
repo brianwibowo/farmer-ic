@@ -82,6 +82,39 @@ class FarmBlockTest extends TestCase
         DB::statement('SET CONSTRAINTS ALL DEFERRED');
     }
 
+    public function test_block_configuration_is_independent_and_rejects_mismatched_sop(): void
+    {
+        $corn = Commodity::create(['name' => 'Jagung']);
+        $soy = Commodity::create(['name' => 'Kedelai']);
+        $sop = app(\App\Services\SopTemplateService::class)->create($this->admin, $this->team, [
+            'commodity_id' => $corn->id, 'name' => 'SOP Jagung', 'is_active' => true,
+        ]);
+        $first = $this->block('B01', '4');
+        $second = $this->block('B02', '4');
+        $this->patch($this->url($first), ['commodity_id' => $corn->id, 'default_sop_template_id' => $sop->id])->assertSessionHasNoErrors();
+        $this->patch($this->url($second), ['commodity_id' => $soy->id, 'default_sop_template_id' => $sop->id])->assertSessionHasErrors('default_sop_template_id');
+        $this->patch($this->url($second), ['commodity_id' => $soy->id, 'default_sop_template_id' => null])->assertSessionHasNoErrors();
+        $this->assertSame($corn->id, $first->fresh()->getAttribute('commodity_id'));
+        $this->assertSame($sop->id, $first->fresh()->getAttribute('default_sop_template_id'));
+        $this->assertSame($soy->id, $second->fresh()->getAttribute('commodity_id'));
+    }
+
+    public function test_inconsistent_migrated_block_must_be_corrected_before_saving(): void
+    {
+        $corn = Commodity::create(['name' => 'Jagung']);
+        $soy = Commodity::create(['name' => 'Kedelai']);
+        $sop = app(\App\Services\SopTemplateService::class)->create($this->admin, $this->team, [
+            'commodity_id' => $soy->id, 'name' => 'SOP Kedelai', 'is_active' => true,
+        ]);
+        $block = $this->block();
+        $block->forceFill(['commodity_id' => $corn->id, 'default_sop_template_id' => $sop->id])->save();
+
+        $this->patch($this->url($block), ['name' => 'Nama baru'])->assertSessionHasErrors('default_sop_template_id');
+        $this->assertSame('Blok Utara', $block->fresh()->name);
+        $this->patch($this->url($block), ['commodity_id' => $soy->id])->assertSessionHasNoErrors();
+        $this->assertSame($sop->id, $block->fresh()->getAttribute('default_sop_template_id'));
+    }
+
     public function test_farm_detail_growth_uses_latest_visible_observation_for_each_batch(): void
     {
         $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-08 17:05:00', 'UTC'));
@@ -410,97 +443,28 @@ class FarmBlockTest extends TestCase
         return ['owner' => ['owner', false], 'admin' => ['admin', true], 'petugas' => ['petugas', false], 'superadmin' => ['superadmin', true]];
     }
 
-    public function test_pic_petugas_can_crud_blocks_only_in_their_assigned_farm(): void
+    public function test_petugas_cannot_manage_blocks_regardless_of_pic_designation(): void
     {
         $block = $this->block();
-        $otherFarm = $this->farm();
-        $otherBlock = $this->block('OTHER', '1', $otherFarm);
-        $foreignFarm = $this->farm(Team::factory()->create());
-        $foreignBlock = $this->block('FOREIGN', '1', $foreignFarm);
         $actor = User::factory()->create(['role' => 'petugas']);
         $this->join($actor);
         $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
-        $this->farm->forceFill(['pic_user_id' => $actor->id])->save();
         $this->actingAs($actor);
 
-        $this->get($this->url())->assertInertia(fn (Assert $page) => $page
-            ->where('can.create', true)->where('blocks.total', 1)->where('summary.total', 1)
-            ->where('blocks.data.0.id', $block->id)
-            ->where('blocks.data.0.can.update', true)->where('blocks.data.0.can.delete', true));
-        $this->get($this->url($block))->assertRedirect($this->url());
-        $this->get($this->url().'/create')->assertOk();
-        $this->get($this->url($block).'/edit')->assertOk();
-        $this->post($this->url(), ['code' => 'PIC01', 'name' => 'Blok Kelola PIC', 'area_ha' => '1'])->assertSessionHasNoErrors()->assertRedirect();
-        $created = FarmBlock::where('code', 'PIC01')->firstOrFail();
-        $this->assertSame($this->farm->id, $created->farm_id);
-        $this->assertSame($actor->id, $created->created_by);
-        $this->patch($this->url($created), ['name' => 'Blok PIC Diperbarui'])->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertSame('Blok PIC Diperbarui', $created->fresh()->name);
-        $this->delete($this->url($created))->assertRedirect();
-        $this->assertDatabaseMissing('farm_blocks', ['id' => $created->id]);
-
-        foreach ([[$otherFarm, $otherBlock], [$foreignFarm, $foreignBlock]] as [$farm, $target]) {
-            $this->get($this->url(null, $farm))->assertForbidden();
-            $this->get($this->url($target, $farm))->assertForbidden();
-            $this->get($this->url(null, $farm).'/create')->assertForbidden();
-            $this->post($this->url(null, $farm), ['code' => 'DENIED', 'name' => 'Blok Terlarang', 'area_ha' => '1'])->assertForbidden();
-            $this->patch($this->url($target, $farm), ['name' => 'Tidak Boleh'])->assertForbidden();
-            $this->delete($this->url($target, $farm))->assertForbidden();
+        foreach ([$actor->id, null] as $picId) {
+            $this->farm->forceFill(['pic_user_id' => $picId])->save();
+            $this->get($this->url())->assertInertia(fn (Assert $page) => $page
+                ->where('can.create', false)->where('blocks.total', 1)
+                ->where('blocks.data.0.can.update', false)->where('blocks.data.0.can.delete', false));
+            $this->get($this->url().'/create')->assertForbidden();
+            $this->get($this->url($block).'/edit')->assertForbidden();
+            $this->post($this->url(), ['code' => 'DENIED', 'name' => 'Blok Terlarang', 'area_ha' => '1'])->assertForbidden();
+            $this->patch($this->url($block), ['name' => 'Tidak Boleh'])->assertForbidden();
+            $this->delete($this->url($block))->assertForbidden();
+            $this->assertTrue(Gate::forUser($actor)->allows('view', $block));
+            $this->assertTrue(Gate::forUser($actor)->allows('create', [PlantingCycle::class, $block]));
         }
-
-        $this->post($this->url(), ['code' => 'FORGED', 'name' => 'Blok Input Palsu', 'area_ha' => '1',
-            'farm_id' => $otherFarm->id, 'team_id' => $foreignFarm->team_id])->assertSessionHasErrors(['farm_id', 'team_id']);
-        $this->assertSame([$block->id], FarmBlock::visibleTo($actor, $this->team)->pluck('id')->all());
-        $this->constraints();
-    }
-
-    public function test_pic_status_does_not_replace_grants_membership_or_assignment_and_is_refreshed(): void
-    {
-        $block = $this->block();
-        $actor = User::factory()->create(['role' => 'petugas']);
-        $this->join($actor);
-        $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
-        $this->farm->forceFill(['pic_user_id' => $actor->id])->save();
-        $actor->load('assignedFarm');
-        $this->assertTrue($actor->isPic());
-
-        $roles = app(RolePermissions::class)->roles();
-        foreach (['create', 'update', 'delete'] as $ability) {
-            $subject = $ability === 'create' ? [FarmBlock::class, $this->farm] : $block;
-            $this->assertTrue(Gate::forUser($actor)->allows($ability, $subject));
-            unset($roles['petugas']["farm_blocks.$ability"]);
-            config(['access.roles' => $roles]);
-            $this->assertFalse(Gate::forUser($actor)->allows($ability, $subject));
-            $roles['petugas']["farm_blocks.$ability"] = 'invalid';
-            config(['access.roles' => $roles]);
-            $this->assertFalse(Gate::forUser($actor)->allows($ability, $subject));
-            $roles['petugas']["farm_blocks.$ability"] = 'own';
-            config(['access.roles' => $roles]);
-        }
-        unset($roles['petugas']['farm_blocks.view']);
-        config(['access.roles' => $roles]);
-        $this->assertFalse(Gate::forUser($actor)->allows('update', $block));
-        $this->assertFalse(Gate::forUser($actor)->allows('delete', $block));
-        $this->assertSame(0, FarmBlock::visibleTo($actor, $this->team)->count());
-        $roles['petugas']['farm_blocks.view'] = 'own';
-        config(['access.roles' => $roles]);
-
-        // Revocation must be observed even with the old farm relation in memory.
-        Farm::whereKey($this->farm->id)->update(['pic_user_id' => null]);
-        $this->assertFalse(Gate::forUser($actor)->allows('update', $block));
-        $this->assertFalse(Gate::forUser($actor)->allows('delete', $block));
-        $this->assertFalse(Gate::forUser($actor)->allows('create', [FarmBlock::class, $this->farm]));
-        $this->assertTrue(Gate::forUser($actor)->allows('view', $block));
-        Farm::whereKey($this->farm->id)->update(['pic_user_id' => $actor->id]);
-
-        $actor->forceFill(['assigned_farm_id' => null])->save();
-        $this->assertFalse(Gate::forUser($actor)->allows('update', $block));
-        $this->assertSame(0, FarmBlock::visibleTo($actor, $this->team)->count());
-        $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
-        $this->team->members()->detach($actor);
-        $actor->unsetRelation('teams');
-        $this->assertFalse(Gate::forUser($actor)->allows('update', $block));
-        $this->assertSame(0, FarmBlock::visibleTo($actor, $this->team)->count());
+        $this->assertDatabaseHas('farm_blocks', ['id' => $block->id, 'name' => $block->name]);
         $this->constraints();
     }
 
@@ -739,7 +703,7 @@ class FarmBlockTest extends TestCase
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoFarmBlockSeeder::class]);
         $demo = Farm::where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $this->assertSame('80.000', $demo->getAttribute('target_volume_ton'));
-        $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), $demo->getAttribute('commodity_id'));
+        $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), FarmBlock::where('farm_id', $demo->id)->where('code', 'B01')->value('commodity_id'));
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();
         $batchIds = PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all();
         $this->assertCount(3, $batchIds);

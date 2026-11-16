@@ -55,7 +55,9 @@ class PlantingActivityService
     public function formData(User $actor, PlantingCycle $cycle): array
     {
         $team = $cycle->farm->team;
-        $commodityId = $cycle->farm->getAttribute('commodity_id');
+        $commodityId = $cycle->planted_at !== null && $cycle->variety_id !== null
+            ? CropVariety::visibleTo($actor, $team)->whereKey($cycle->variety_id)->value('commodity_id')
+            : FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->value('commodity_id');
         $context = $this->context($actor, $cycle);
         $varieties = $commodityId === null ? [] : CropVariety::visibleTo($actor, $team)
             ->where('commodity_id', $commodityId)->orderBy('name')->get(['id', 'name'])->toArray();
@@ -138,15 +140,17 @@ class PlantingActivityService
                 if ($variety === null) {
                     throw ValidationException::withMessages(['variety_id' => 'Varietas tidak tersedia atau tidak dapat diakses.']);
                 }
-                $commodityId = $farm->getAttribute('commodity_id');
+                $commodityId = $cycle->planted_at !== null && $cycle->variety_id !== null
+                    ? CropVariety::visibleTo($actor, $team)->whereKey($cycle->variety_id)->value('commodity_id')
+                    : $block->getAttribute('commodity_id');
                 if ($commodityId === null) {
-                    throw ValidationException::withMessages(['variety_id' => 'Komoditas kebun belum diatur. Hubungi admin.']);
-                }
-                if ($variety->commodity_id !== $commodityId) {
-                    throw ValidationException::withMessages(['variety_id' => 'Varietas harus sesuai dengan komoditas kebun.']);
+                    throw ValidationException::withMessages(['variety_id' => 'Komoditas blok belum diatur. Hubungi admin.']);
                 }
                 if ($cycle->planted_at !== null && $cycle->variety_id !== $variety->id) {
                     throw ValidationException::withMessages(['variety_id' => 'Penanaman lanjutan harus memakai varietas yang sama pada subblok ini.']);
+                }
+                if ($variety->commodity_id !== $commodityId) {
+                    throw ValidationException::withMessages(['variety_id' => 'Varietas harus sesuai dengan komoditas penanaman.']);
                 }
                 if ($cycle->sop_template_version_id !== null && $cycle->sopTemplateVersion?->sopTemplate->commodity_id !== $variety->commodity_id) {
                     throw ValidationException::withMessages(['variety_id' => 'Komoditas varietas harus sesuai versi SOP yang sudah terikat pada subblok.']);

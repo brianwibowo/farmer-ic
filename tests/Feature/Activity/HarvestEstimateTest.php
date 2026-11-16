@@ -61,7 +61,7 @@ class HarvestEstimateTest extends TestCase
         $block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Estimasi', 'area_ha' => '5']);
         $this->cycle = $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
         $commodity = Commodity::create(['name' => 'Jagung Estimasi']);
-        $this->farm->forceFill(['commodity_id' => $commodity->id])->save();
+        $block->forceFill(['commodity_id' => $commodity->id])->save();
         $this->variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi Estimasi']);
         ActivityType::firstOrCreate(['code' => 'planting'], ['name' => 'Penanaman']);
         ActivityType::firstOrCreate(['code' => 'harvest'], ['name' => 'Panen']);
@@ -82,8 +82,7 @@ class HarvestEstimateTest extends TestCase
             ]);
         }
         $service->publish($version, $this->admin);
-        $this->farm->forceFill(['default_sop_template_id' => $template->id])->save();
-        $this->farm->unsetRelation('defaultSopTemplate');
+        $this->cycle->block->forceFill(['default_sop_template_id' => $template->id])->save();
     }
 
     private function plant(string $date = '2026-11-12'): void
@@ -479,8 +478,9 @@ class HarvestEstimateTest extends TestCase
         $this->sop([90]);
         $this->plant();
         $task = $this->harvest();
+        $this->travelTo(CarbonImmutable::parse('2027-02-10 10:00', 'Asia/Jakarta'));
         $this->actingAs($this->petugas)->post('/petugas/tasks/'.$task->id.'/aktivitas', [
-            'work_date' => '2026-11-13', 'start_time' => '07:00', 'worker_count' => 2,
+            'work_date' => '2027-02-10', 'start_time' => '07:00', 'worker_count' => 2,
             'details' => ['area_ha' => '0.1', 'weight_ton' => '0.1', 'method' => 'Manual'],
             'photos' => [UploadedFile::fake()->image('panen.jpg')],
         ])->assertSessionHasNoErrors();

@@ -6,7 +6,7 @@ minimal disediakan agar backend dapat digunakan langsung melalui form Inertia.
 
 ## Alur yang tersedia
 
-1. Admin atau Petugas PIC membuat master blok dalam kebunnya. `land_clearing_started_at` diisi
+1. Admin membuat master blok dalam kebunnya. `land_clearing_started_at` diisi
    server sebagai penanda awal; tanggal Land Clearing yang ditampilkan tetap
    diproyeksikan dari laporan aktivitas bila laporan sudah ada.
 2. Petugas pada kebun tugasnya atau Admin membuat subblok/batch dengan alokasi
@@ -128,10 +128,9 @@ ditolak jika ada reschedule lebih awal yang tidak memenuhi constraint lama.
 ## Route dan halaman
 
 Petugas membaca blok pada farm penugasannya dengan `farm_blocks.view = own`.
-Grant `farm_blocks.create/update/delete = own` juga mensyaratkan `isPic()` pada
-farm penugasan melalui FarmBlockPolicy. Farm target tetap harus sesuai penugasan
-dan keanggotaan tenant. Petugas non-PIC tetap hanya membaca master blok; aturan
-batch terpisah tidak berubah. Admin tetap CRUD dalam tenant, Owner hanya baca,
+Petugas tidak mendapat grant membuat, mengubah, atau menghapus master blok,
+terlepas dari penunjukan PIC. Aturan batch terpisah tidak berubah.
+Admin tetap CRUD dalam tenant, Owner hanya baca,
 dan Superadmin memakai bypass yang sudah ada.
 
 Seluruh route memakai `auth` dan `verified`. Semua aksi controller memeriksa
@@ -161,7 +160,7 @@ membuka `/blocks`; halaman demo kebun publik belum diganti dengan direktori ini.
 
 | Resource | Owner | Admin | Petugas | Superadmin |
 | --- | --- | --- | --- | --- |
-| Master blok | Baca dalam tenant terkait | CRUD dalam tenant | Baca kebun tugas; CRUD hanya PIC kebun tugas | Semua |
+| Master blok | Baca dalam tenant terkait | CRUD dalam tenant | Baca kebun tugas | Semua |
 | Batch persiapan | Baca | Buat dan tutup panen dalam tenant | Buat pada kebun tugas; tidak dapat menutup panen | Semua |
 | Timeline | Baca | Baca | Baca kebun tugas | Semua |
 

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Commodity;
-use App\Models\Farm;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
@@ -99,84 +98,6 @@ class SopTemplateService
                 'commodity' => $template->commodity?->only(['id', 'name']),
             ])
             ->all();
-    }
-
-    /** @return array<string, mixed>|null */
-    public function defaultForFarm(Farm $farm): ?array
-    {
-        if ($farm->default_sop_template_id === null) {
-            return null;
-        }
-
-        $team = $farm->team;
-        if (! $team instanceof Team) {
-            return null;
-        }
-
-        $template = SopTemplate::query()
-            ->where('team_id', $farm->team_id)
-            ->with('commodity:id,name')
-            ->find($farm->default_sop_template_id);
-
-        if (! $template instanceof SopTemplate) {
-            return null;
-        }
-
-        $version = $template->versions()
-            ->where('status', 'published')
-            ->orderByDesc('version')
-            ->first();
-        $tasksCount = $version === null ? 0 : $version->tasks()->count();
-
-        return [
-            'id' => $template->id,
-            'name' => $template->name,
-            'is_active' => $template->is_active,
-            'commodity' => $template->commodity?->only(['id', 'name']),
-            'published_version' => $version?->only(['id', 'version', 'published_at']),
-            'tasks_count' => $tasksCount,
-            'is_usable' => $template->is_active && $version !== null && $tasksCount > 0,
-        ];
-    }
-
-    /** @return array<string, mixed>|null */
-    public function visibleDefaultForFarm(Farm $farm, User $actor): ?array
-    {
-        if ($farm->default_sop_template_id === null) {
-            return null;
-        }
-
-        $team = $farm->team;
-        if (! $team instanceof Team) {
-            return null;
-        }
-
-        $template = SopTemplate::query()
-            ->visibleTo($actor, $team)
-            ->where('team_id', $farm->team_id)
-            ->with(['commodity' => fn ($query) => $query->visibleTo($actor, $team)->select(['id', 'name'])])
-            ->find($farm->default_sop_template_id);
-
-        if (! $template instanceof SopTemplate) {
-            return null;
-        }
-
-        $version = $template->versions()
-            ->visibleTo($actor, $team)
-            ->where('status', 'published')
-            ->orderByDesc('version')
-            ->first();
-        $tasksCount = $version === null ? 0 : $version->tasks()->visibleTo($actor, $team)->count();
-
-        return [
-            'id' => $template->id,
-            'name' => $template->name,
-            'is_active' => $template->is_active,
-            'commodity' => $template->commodity?->only(['id', 'name']),
-            'published_version' => $version?->only(['id', 'version', 'published_at']),
-            'tasks_count' => $tasksCount,
-            'is_usable' => $template->is_active && $version !== null && $tasksCount > 0,
-        ];
     }
 
     /** @param array<string, mixed> $data */

@@ -51,10 +51,10 @@ class ActivityInputLimitsTest extends TestCase
         $commodity = Commodity::create(['name' => 'Jagung']);
         $variety = CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
         $this->farm = new Farm(['name' => 'Kebun Batas Aktivitas', 'land_tenure' => 'owned', 'total_area_ha' => '10']);
-        $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id, 'commodity_id' => $commodity->id])->save();
+        $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
         $this->petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $blocks = app(FarmBlockService::class);
-        $this->block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+        $this->block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5', 'commodity_id' => $commodity->id]);
         $this->cycle = $blocks->createBatch($this->block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
         $this->cycle->forceFill(['planted_at' => today()->subDays(21), 'planted_area_ha' => '2', 'variety_id' => $variety->id, 'status' => 'active'])->save();
         ActivityType::firstOrCreate(['code' => 'harvest'], ['name' => 'Panen']);
@@ -126,7 +126,7 @@ class ActivityInputLimitsTest extends TestCase
                 ->where('numericLimits.rows', ActivityInputLimits::MAPPING_ROWS));
 
         $sop = app(SopTemplateService::class)->create($this->admin, $this->team, [
-            'commodity_id' => $this->farm->commodity_id, 'name' => 'SOP Jagung', 'is_active' => true,
+            'commodity_id' => $this->block->getAttribute('commodity_id'), 'name' => 'SOP Jagung', 'is_active' => true,
         ]);
         $version = $sop->versions()->firstOrFail();
         $this->actingAs($this->admin)->get('/admin/sops/'.$sop->id)
@@ -148,7 +148,7 @@ class ActivityInputLimitsTest extends TestCase
             'planting_cycle_id' => $this->cycle->id,
             'planting_cycle_stage_id' => $this->cycle->stages()->where('code', $category === 'harvest' ? 'harvest' : 'maintenance')->firstOrFail()->id,
             'activity_category' => $category, 'activity_subcategory' => $subcategory, 'name' => 'Aktivitas kebun',
-            'offset_days' => 7, 'tolerance_days' => 2, 'scheduled_date' => today(), 'due_date' => today()->addDays(2),
+            'offset_days' => 21, 'tolerance_days' => 2, 'scheduled_date' => today(), 'due_date' => today()->addDays(2),
             'status' => 'pending', 'is_required' => true,
         ]);
     }

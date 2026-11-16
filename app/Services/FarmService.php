@@ -14,8 +14,6 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class FarmService
 {
-    public function __construct(private readonly SopTemplateService $sops) {}
-
     /**
      * @param  array<string, mixed>  $filters  Validated list parameters.
      * @return LengthAwarePaginator<int, Farm>
@@ -131,8 +129,7 @@ class FarmService
             ->whereHas('teams', fn ($q) => $q->whereKey($team->id))->first(['id', 'name', 'phone_number']);
 
         return [
-            ...$visible->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'default_sop_template_id', 'commodity_id', 'target_volume_ton']),
-            'commodity' => \App\Models\Commodity::visibleTo($user, $team)->find($visible->getAttribute('commodity_id'))?->only(['id', 'name']),
+            ...$visible->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'target_volume_ton']),
             'region' => $visible->getAttribute('district_code') ? app(AdministrativeRegionService::class)->district($visible->getAttribute('district_code'), $user, $team) : null,
             'owner_restricted' => $visible->owner_id !== null && $owner === null,
             'capacity' => $this->capacity($visible, $user, $team),
@@ -144,7 +141,6 @@ class FarmService
             'progress_overview' => $this->progressOverview($visible, $user, $team),
             'active_cycles' => (clone $cycles)->count(),
             'active_area_ha' => (string) (clone $cycles)->sum('planted_area_ha'),
-            'default_sop' => $this->sops->visibleDefaultForFarm($visible, $user),
             'created_at' => $visible->created_at?->toISOString(),
         ];
     }
@@ -182,7 +178,7 @@ class FarmService
 
         return DB::transaction(function () use ($data, $actor, $team): Farm {
             $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'pic_user_id', 'land_tenure_party']));
-            $farm->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
+            $farm->forceFill(\Illuminate\Support\Arr::only($data, ['target_volume_ton']));
             if (array_key_exists('district_code', $data)) {
                 $farm->forceFill(['district_code' => $data['district_code']]);
             }
@@ -231,7 +227,7 @@ class FarmService
                 }
             }
             $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'land_tenure_party']));
-            $locked->forceFill(\Illuminate\Support\Arr::only($data, ['commodity_id', 'target_volume_ton']));
+            $locked->forceFill(\Illuminate\Support\Arr::only($data, ['target_volume_ton']));
             if (array_key_exists('district_code', $data)) {
                 $locked->forceFill(['district_code' => $data['district_code']]);
             }

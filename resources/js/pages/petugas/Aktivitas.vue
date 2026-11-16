@@ -241,7 +241,7 @@ function reset(): void {
             v-if="defaultSopMissing && farm"
             class="rounded-xl bg-muted p-3 text-xs leading-5"
         >
-            SOP default belum diatur. Hubungi Admin; aktivitas mandiri tetap
+            SOP default pada salah satu blok belum diatur. Hubungi Admin; aktivitas mandiri tetap
             dapat dicatat.
         </p>
         <div

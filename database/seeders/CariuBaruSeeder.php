@@ -89,8 +89,7 @@ class CariuBaruSeeder extends Seeder
             $farm = new Farm;
             $farm->forceFill([
                 'id' => $id, 'team_id' => $team->id, 'owner_id' => $owner->id, 'created_by' => $actor->id,
-                'name' => 'Kebun Cariu Baru', 'total_area_ha' => '1.3900', 'commodity_id' => $commodity->id,
-                'default_sop_template_id' => $template->id, 'city' => 'Kabupaten Bogor', 'district' => 'Cariu',
+                'name' => 'Kebun Cariu Baru', 'total_area_ha' => '1.3900', 'city' => 'Kabupaten Bogor', 'district' => 'Cariu',
                 'province' => 'Jawa Barat', 'address' => 'Lahan PM, Cariu — luas poligon sementara; subblok dan riwayat lanjutan SIMULASI.',
                 'image_url' => '/images/kebun-placeholder.svg',
             ])->save();
@@ -98,6 +97,7 @@ class CariuBaruSeeder extends Seeder
             Gate::forUser($actor)->authorize('create', [FarmBlock::class, $farm]);
             $block = app(FarmBlockService::class)->create($farm, $actor, $team, [
                 'code' => 'PM-DEMO', 'name' => 'Lahan PM — blok agregat SIMULASI', 'area_ha' => '1.3900',
+                'commodity_id' => $commodity->id, 'default_sop_template_id' => $template->id,
                 'description' => 'Blok agregat untuk skenario; bukan batas 13 atau 6 blok asli yang disebutkan pada logbook.', 'is_active' => true,
             ]);
             $cycles = $this->cycles($actor, $team, $block);
@@ -347,10 +347,14 @@ class CariuBaruSeeder extends Seeder
                 };
                 $note = self::MARKER.' — kegiatan, Petugas, hasil, luas dan angka lanjutan adalah skenario, bukan laporan spreadsheet atau kejadian terverifikasi. '.$cycle->subblock_label.'.';
                 Gate::forUser($performer)->authorize('recordTask', [FarmActivity::class, $task]);
-                app(TaskActivityService::class)->create($performer, $task, [
-                    'work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 2,
-                    'daily_notes' => 'SIMULASI Cariu Baru — bukan laporan aktual.', 'notes' => $note, 'details' => $details, 'photos' => [],
-                ]);
+                // This guarded local/test fixture simulates the report being written
+                // on its historical work date, without bypassing reporting rules.
+                CarbonImmutable::withTestNow(CarbonImmutable::parse($date.' 16:00', 'Asia/Jakarta'), function () use ($performer, $task, $date, $note, $details): void {
+                    app(TaskActivityService::class)->create($performer, $task, [
+                        'work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 2,
+                        'daily_notes' => 'SIMULASI Cariu Baru — bukan laporan aktual.', 'notes' => $note, 'details' => $details, 'photos' => [],
+                    ]);
+                });
                 if ($task->activity_category === 'harvest') {
                     Gate::forUser($actor)->authorize('configure', $cycle);
                     app(HarvestClosureService::class)->close($actor, $team, $cycle);

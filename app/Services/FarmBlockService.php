@@ -22,6 +22,15 @@ use Illuminate\Validation\ValidationException;
 
 class FarmBlockService
 {
+    /** @return array{commodities: mixed, sops: mixed} */
+    public function configurationOptions(User $actor, Team $team): array
+    {
+        return [
+            'commodities' => Commodity::visibleTo($actor, $team)->orderBy('name')->get(['id', 'name']),
+            'sops' => \App\Models\SopTemplate::visibleTo($actor, $team)->where('team_id', $team->id)->orderBy('name')->get(['id', 'name', 'commodity_id', 'is_active']),
+        ];
+    }
+
     /** @return LengthAwarePaginator<int, Farm> */
     public function farms(User $actor, Team $team): LengthAwarePaginator
     {
@@ -139,10 +148,11 @@ class FarmBlockService
             ->unique('planting_cycle_id')->keyBy('planting_cycle_id');
         $varieties = CropVariety::visibleTo($actor, $team)->whereIn('id', $eligible->pluck('variety_id')->filter())
             ->get(['id', 'commodity_id', 'name'])->keyBy('id');
-        $commodities = Commodity::visibleTo($actor, $team)->whereIn('id', $varieties->pluck('commodity_id')->push($farm->getAttribute('commodity_id'))->filter())
+        $blockCommodities = FarmBlock::visibleTo($actor, $team)->whereIn('id', $batches->pluck('block_id')->filter())->pluck('commodity_id', 'id');
+        $commodities = Commodity::visibleTo($actor, $team)->whereIn('id', $varieties->pluck('commodity_id')->merge($blockCommodities->values())->filter())
             ->pluck('name', 'id');
 
-        return $batches->mapWithKeys(function (PlantingCycle $batch) use ($farm, $observations, $varieties, $commodities, $eligible, $today): array {
+        return $batches->mapWithKeys(function (PlantingCycle $batch) use ($blockCommodities, $observations, $varieties, $commodities, $eligible, $today): array {
             if (! $eligible->has($batch->id)) {
                 return [$batch->id => ['available' => false, 'as_of' => $today->toDateString(), 'hst' => null,
                     'commodity' => null, 'variety' => null, 'estimated_harvest_at' => null, 'observation' => null]];
@@ -154,7 +164,7 @@ class FarmBlockService
                 'available' => true,
                 'as_of' => $today->toDateString(),
                 'hst' => (int) CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today),
-                'commodity' => $commodities->get($variety->commodity_id ?? $farm->getAttribute('commodity_id')),
+                'commodity' => $commodities->get($variety->commodity_id ?? $blockCommodities->get($batch->block_id)),
                 'variety' => $variety?->name,
                 'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
                 'observation' => $observation === null ? null : [
@@ -207,8 +217,9 @@ class FarmBlockService
         return DB::transaction(function () use ($farm, $actor, $team, $data): FarmBlock {
             $lockedFarm = Farm::visibleTo($actor, $team)->whereKey($farm->id)->lockForUpdate()->firstOrFail();
             $this->validateBlock($lockedFarm, $data);
+            $this->validateBlockSop($actor, $team, $data);
             $block = new FarmBlock($data);
-            $block->forceFill(['farm_id' => $lockedFarm->id, 'created_by' => $actor->id, 'land_clearing_started_at' => now()])->save();
+            $block->forceFill([...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])), 'farm_id' => $lockedFarm->id, 'created_by' => $actor->id, 'land_clearing_started_at' => now()])->save();
 
             return $block->refresh();
         });
@@ -221,10 +232,25 @@ class FarmBlockService
             $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
             $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
             $this->validateBlock($farm, array_replace($locked->only(['code', 'area_ha', 'is_active']), $data), $locked);
+            $this->validateBlockSop($actor, $team, array_replace($locked->only(['commodity_id', 'default_sop_template_id']), $data));
             $locked->fill($data)->save();
+            $locked->forceFill(array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])))->save();
 
             return $locked->refresh();
         });
+    }
+
+    /** @param array<string, mixed> $data */
+    private function validateBlockSop(User $actor, Team $team, array $data): void
+    {
+        $commodity = $data['commodity_id'] ?? null;
+        $sop = $data['default_sop_template_id'] ?? null;
+        if ($commodity && ! Commodity::visibleTo($actor, $team)->whereKey($commodity)->exists()) {
+            throw ValidationException::withMessages(['commodity_id' => 'Komoditas tidak tersedia.']);
+        }
+        if ($sop && (! $commodity || ! \App\Models\SopTemplate::visibleTo($actor, $team)->where('team_id', $team->id)->where('commodity_id', $commodity)->whereKey($sop)->exists())) {
+            throw ValidationException::withMessages(['default_sop_template_id' => 'Pilih SOP yang sesuai dengan komoditas blok.']);
+        }
     }
 
     /** @param array<string, mixed> $data */

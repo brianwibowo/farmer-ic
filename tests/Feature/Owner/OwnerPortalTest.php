@@ -66,7 +66,7 @@ class OwnerPortalTest extends TestCase
             ->has('projection.cards', 3)
             ->where('projection.period', 'cycle')
             ->where('urls.index', '/proyeksi')
-            ->where('urls.home', '/'));
+            ->where('urls.home', '/ringkasan-eksekutif'));
 
         foreach ([$this->admin, $this->petugas] as $actor) {
             $this->actingAs($actor)->get('/proyeksi')->assertForbidden();
@@ -78,7 +78,7 @@ class OwnerPortalTest extends TestCase
 
     public function test_owner_workspace_shares_admin_farm_pages_without_admin_access_or_write_permissions(): void
     {
-        foreach (['/' => 'owner/Dashboard', '/proyeksi' => 'owner/Projection', '/kebun' => 'farms/Index', '/kebun/'.$this->farm->id => 'farms/Show'] as $url => $component) {
+        foreach (['/monitoring-lahan' => 'owner/Dashboard', '/proyeksi' => 'owner/Projection', '/kebun' => 'farms/Index', '/kebun/'.$this->farm->id => 'farms/Show'] as $url => $component) {
             $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component($component)->where('navigation.owner', true)
                 ->where('navigation.admin', false)->where('navigation.farms', true));
@@ -87,7 +87,7 @@ class OwnerPortalTest extends TestCase
             ->where('can.create', false)->where('farms.data.0.can.update', false)
             ->where('farms.data.0.can.delete', false)->where('farms.data.0.can.forceDelete', false));
 
-        $detailUrl = $this->get('/')->viewData('page')['props']['dashboard']['landMap']['farms'][0]['detail_url'];
+        $detailUrl = $this->get('/monitoring-lahan')->viewData('page')['props']['dashboard']['landMap']['farms'][0]['detail_url'];
         $this->get($detailUrl)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('farms/Show')->where('farm.id', $this->farm->id)
             ->where('legalityUrl', '/kebun/'.$this->farm->id.'/legalitas')
@@ -118,19 +118,17 @@ class OwnerPortalTest extends TestCase
         $this->get($response->viewData('page')['props']['farms']['next_page_url'])
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('farms.data.0.name', 'Kebun Selatan A'));
 
-        $sop = SopTemplate::query()->where('team_id', $this->team->id)->firstOrFail();
-        $this->farm->forceFill(['default_sop_template_id' => $sop->id])->save();
         $this->revoke(['sop_template_versions.view']);
         $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('farm.default_sop.published_version', null)->where('farm.default_sop.tasks_count', 0));
+            ->missing('farm.default_sop'));
         $this->revoke(['sop_templates.view']);
         $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('farm.default_sop', null));
+            ->missing('farm.default_sop'));
     }
 
     public function test_owner_reads_database_dashboard_farms_blocks_and_monitoring(): void
     {
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Dashboard')
             ->where('auth.user.id', $this->owner->id)
             ->where('currentTeam.id', $this->team->id)
@@ -222,7 +220,7 @@ class OwnerPortalTest extends TestCase
 
         $this->actingAs($this->owner)->get('/kebun/'.$this->farm->id)
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('farm.name', 'Kebun Cileuksa Utara'));
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.farmOptions.0.name', 'Kebun Cileuksa Utara'));
     }
 
@@ -270,7 +268,7 @@ class OwnerPortalTest extends TestCase
         $this->get('/kebun/'.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('farm.latitude', null)->where('farm.longitude', null)
             ->has('blocks', 0)->where('can.createBlock', false));
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.metrics.0.value', 2));
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.metrics.0.value', 2));
     }
 
     public function test_unrelated_tenant_data_never_enters_lists_options_or_counts(): void
@@ -284,11 +282,11 @@ class OwnerPortalTest extends TestCase
         $this->get('/aktivitas?team_id='.$otherTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('activities.total', 14)->has('farms', 1)
             ->where('activities.data', fn ($rows) => ! collect($rows)->contains('id', $activity->id)));
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.0.value', 1)->has('dashboard.farmOptions', 1));
         $this->assertDenied('/kebun/'.$foreign->id);
         $this->assertDenied('/aktivitas/'.$activity->id);
-        $this->get('/?farm_id='.$foreign->id)->assertForbidden();
+        $this->get('/monitoring-lahan?farm_id='.$foreign->id)->assertForbidden();
         $this->get('/aktivitas?farm_id='.$foreign->id)->assertForbidden();
     }
 
@@ -301,7 +299,7 @@ class OwnerPortalTest extends TestCase
         $this->get('/kebun?team_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('farms.total', 1)->where('farms.data.0.id', $this->farm->id));
         $this->assertDenied('/kebun/'.$farm->id);
-        $this->get('/?farm_id='.$farm->id)->assertNotFound();
+        $this->get('/monitoring-lahan?farm_id='.$farm->id)->assertNotFound();
         $this->get('/aktivitas?farm_id='.$farm->id)->assertNotFound();
 
         $this->owner->refresh()->switchTeam($second);
@@ -309,7 +307,7 @@ class OwnerPortalTest extends TestCase
             ->where('currentTeam.id', $second->id)->where('farms.total', 1)->where('farms.data.0.id', $farm->id));
         $this->get('/kebun/'.$farm->id)->assertOk();
         $this->assertDenied('/kebun/'.$this->farm->id);
-        $this->get('/?farm_id='.$this->farm->id)->assertNotFound();
+        $this->get('/monitoring-lahan?farm_id='.$this->farm->id)->assertNotFound();
         $this->get('/aktivitas?farm_id='.$this->farm->id)->assertNotFound();
     }
 
@@ -343,7 +341,7 @@ class OwnerPortalTest extends TestCase
         $empty->members()->attach($this->owner, ['role' => TeamRole::Member->value]);
         $this->owner->refresh()->switchTeam($empty);
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.0.value', 0)->has('dashboard.farmOptions', 0)->has('dashboard.activities', 0));
         $this->get('/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('farms.total', 0)->where('summary.count', 0));
@@ -357,7 +355,7 @@ class OwnerPortalTest extends TestCase
         $this->team->members()->detach($this->owner->id);
         $this->owner->unsetRelation('teams')->unsetRelation('currentTeam');
 
-        foreach (['/', '/kebun', '/aktivitas', '/lainnya/sop', '/lainnya/pengguna'] as $url) {
+        foreach (['/monitoring-lahan', '/kebun', '/aktivitas', '/lainnya/sop', '/lainnya/pengguna'] as $url) {
             $this->get($url)->assertForbidden();
         }
         $this->get('/lainnya')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -437,7 +435,7 @@ class OwnerPortalTest extends TestCase
     {
         $this->revoke(['farm_activities.view', 'sop_templates.view', 'users.view']);
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('ownerNavigation.activities', false)
             ->where('ownerNavigation.sops', false)
             ->where('ownerNavigation.users', false));
@@ -455,7 +453,7 @@ class OwnerPortalTest extends TestCase
         $this->revoke(['crop_varieties.view']);
         $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page->has('dashboard.commodities', 0));
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page->has('dashboard.commodities', 0));
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('cycles.0.variety', null));
         $this->get('/kebun/'.$this->farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -467,7 +465,7 @@ class OwnerPortalTest extends TestCase
         $this->getJson('/aktivitas?from_date=2026-12-31&to_date=2026-12-01')->assertUnprocessable()->assertJsonValidationErrors('to_date');
         $this->getJson('/aktivitas?farm_id=not-a-uuid')->assertUnprocessable()->assertJsonValidationErrors('farm_id');
         $this->getJson('/kebun?per_page=999')->assertUnprocessable()->assertJsonValidationErrors('per_page');
-        $this->getJson('/?period=365')->assertUnprocessable()->assertJsonValidationErrors('period');
+        $this->getJson('/monitoring-lahan?period=365')->assertUnprocessable()->assertJsonValidationErrors('period');
     }
 
     public function test_finance_uses_the_same_database_records_and_preserves_owner_read_only_actions(): void

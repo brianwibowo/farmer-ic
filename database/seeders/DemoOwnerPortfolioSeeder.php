@@ -72,10 +72,9 @@ class DemoOwnerPortfolioSeeder extends Seeder
                     'name' => $site['name'], 'land_tenure' => $site['land_tenure'], 'address' => $site['address'],
                     'city' => $site['city'], 'district' => $site['district'], 'province' => $site['province'],
                     'total_area_ha' => $site['area_ha'], 'latitude' => $site['latitude'], 'longitude' => $site['longitude'],
-                    'commodity_id' => $commodity->id, 'target_volume_ton' => $site['target_volume_ton'],
-                    'default_sop_template_id' => $template->id, 'image_url' => '/images/kebun-placeholder.svg',
+                    'target_volume_ton' => $site['target_volume_ton'], 'image_url' => '/images/kebun-placeholder.svg',
                 ])->save();
-                $this->blocksAndBatches($actor, $team, $farm, $variety, $site);
+                $this->blocksAndBatches($actor, $team, $farm, $variety, $template, $site);
             }
             $this->call(DemoOwnerPortfolioActivitySeeder::class);
         });
@@ -206,13 +205,14 @@ class DemoOwnerPortfolioSeeder extends Seeder
     }
 
     /** @param array<string, mixed> $site */
-    private function blocksAndBatches(User $actor, Team $team, Farm $farm, CropVariety $variety, array $site): void
+    private function blocksAndBatches(User $actor, Team $team, Farm $farm, CropVariety $variety, SopTemplate $template, array $site): void
     {
         $blocks = [];
         foreach ($site['blocks'] as $data) {
             Gate::forUser($actor)->authorize('create', [FarmBlock::class, $farm]);
             $block = app(FarmBlockService::class)->create($farm, $actor, $team, [
                 ...$data, 'description' => 'Blok fisik pada skenario portofolio '.$site['name'].', snapshot 5 November 2026.', 'is_active' => true,
+                'commodity_id' => $variety->commodity_id, 'default_sop_template_id' => $template->id,
             ]);
             $blocks[$data['code']] = $block;
         }

@@ -37,8 +37,12 @@ class DemoSopSeeder extends Seeder
             'created_by' => $admin->id,
         ]);
 
-        if ($farm instanceof Farm && $farm->default_sop_template_id === null) {
-            $farm->forceFill(['default_sop_template_id' => $template->id])->save();
+        if ($farm instanceof Farm && $template->wasRecentlyCreated) {
+            Gate::forUser($admin)->authorize('viewAny', [FarmBlock::class, $team]);
+            foreach (FarmBlock::visibleTo($admin, $team)->where('farm_id', $farm->id)->whereNull('default_sop_template_id')->get() as $block) {
+                Gate::forUser($admin)->authorize('update', $block);
+                $block->forceFill(['commodity_id' => $commodity->id, 'default_sop_template_id' => $template->id])->save();
+            }
         }
 
         if (! $template->versions()->exists()) {

@@ -19,7 +19,7 @@ if (($argv[1] ?? '') === 'worker') {
     Illuminate\Support\Facades\Gate::forUser($actor)->authorize('recordTask', [App\Models\FarmActivity::class, $task]);
     config(['filesystems.disks.local.root' => storage_path('framework/testing/disks/daily-log-concurrency')]);
     $activity = app(App\Services\Activity\TaskActivityService::class)->create($actor, $task, [
-        'work_date' => '2026-11-03', 'start_time' => '07:00', 'end_time' => '16:00', 'worker_count' => (int) $argv[4],
+        'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'end_time' => '16:00', 'worker_count' => (int) $argv[4],
         'daily_notes' => 'Tim harian bersama.', 'notes' => 'Pengairan dari worker paralel.',
         'details' => ['area_ha' => '1', 'water_source' => 'Sumur', 'method' => 'Pompa', 'duration_hours' => '1'],
         'photos' => [new Illuminate\Http\UploadedFile(public_path('images/logo.png'), 'bukti.png', 'image/png', null, true)],
@@ -44,7 +44,7 @@ foreach ($actors as $actor) {
 }
 $commodity = App\Models\Commodity::create(['name' => 'Jagung']);
 $variety = App\Models\CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
-$cycle = App\Models\PlantingCycle::create(['farm_id' => $farm->id, 'variety_id' => $variety->id, 'planted_at' => '2026-11-01', 'planted_area_ha' => '2', 'status' => 'active']);
+$cycle = App\Models\PlantingCycle::create(['farm_id' => $farm->id, 'variety_id' => $variety->id, 'planted_at' => now('Asia/Jakarta')->subDays(2)->toDateString(), 'planted_area_ha' => '2', 'status' => 'active']);
 foreach (App\Models\PlantingCycleStage::CODES as $position => $code) {
     $stage = new App\Models\PlantingCycleStage;
     $stage->forceFill(['planting_cycle_id' => $cycle->id, 'code' => $code, 'position' => $position + 1, 'status' => 'upcoming'])->save();

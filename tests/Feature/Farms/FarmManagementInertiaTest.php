@@ -136,26 +136,18 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertNull($other->fresh()->getAttribute('pic_user_id'));
     }
 
-    public function test_commodity_persists_without_a_sop_and_mismatched_sop_is_rejected(): void
+    public function test_farm_rejects_legacy_commodity_and_sop_inputs(): void
     {
         $corn = Commodity::create(['name' => 'Jagung']);
-        $chili = Commodity::create(['name' => 'Cabai']);
         $sop = app(SopTemplateService::class)->create($this->admin, $this->team, [
             'commodity_id' => $corn->id, 'name' => 'SOP Jagung', 'is_active' => true,
         ]);
-        $this->post('/admin/farm-management', $this->payload(['commodity_id' => $chili->id]))->assertSessionHasNoErrors();
-        $farm = Farm::firstOrFail();
-        $this->patch('/admin/farm-management/'.$farm->id, ['commodity_id' => 'invalid-id'])->assertSessionHasErrors('commodity_id');
-        $this->patch('/admin/farm-management/'.$farm->id, ['commodity_id' => $corn->id, 'default_sop_template_id' => 'invalid-id'])->assertSessionHasErrors('default_sop_template_id');
-        $this->assertSame($chili->id, $farm->getAttribute('commodity_id'));
+        $this->post('/admin/farm-management', $this->payload())->assertSessionHasNoErrors();
+        $farm = Farm::query()->firstOrFail();
         $url = '/admin/farm-management/'.$farm->id;
-        $this->patch($url, ['default_sop_template_id' => $sop->id])->assertSessionHasErrors('default_sop_template_id');
-        $this->patch($url, ['commodity_id' => $corn->id, 'default_sop_template_id' => $sop->id])->assertSessionHasNoErrors();
-        $this->patch($url, ['commodity_id' => $chili->id])->assertSessionHasErrors('default_sop_template_id');
-        $this->assertSame($corn->id, $farm->fresh()->getAttribute('commodity_id'));
-        $this->get($url.'/edit')->assertInertia(fn (Assert $page) => $page->where('farm.commodity.id', $corn->id)->has('commodities', 2)->missing('owners'));
-        $this->patch($url, ['commodity_id' => $chili->id, 'default_sop_template_id' => null])->assertSessionHasNoErrors();
-        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.commodity.id', $chili->id)->where('farm.default_sop', null));
+        $this->patch($url, ['commodity_id' => $corn->id, 'default_sop_template_id' => $sop->id])
+            ->assertSessionHasErrors(['commodity_id', 'default_sop_template_id']);
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->missing('farm.commodity_id')->missing('farm.default_sop'));
     }
 
     public function test_farm_detail_has_scoped_blocks_and_dialog_mutations_return_to_the_farm(): void
@@ -231,7 +223,7 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertDatabaseMissing('farms', ['id' => $farm->id]);
     }
 
-    public function test_admin_can_set_a_team_sop_as_the_farm_default(): void
+    public function test_farm_default_sop_is_no_longer_accepted(): void
     {
         $commodity = Commodity::query()->create(['name' => 'Jagung']);
         $sop = app(SopTemplateService::class)->create($this->admin, $this->team, [
@@ -242,33 +234,13 @@ class FarmManagementInertiaTest extends TestCase
         ]);
 
         $this->post('/admin/farm-management', $this->payload(['default_sop_template_id' => $sop->id]))
-            ->assertRedirect();
-        $farm = Farm::query()->firstOrFail();
-        $this->assertSame($sop->id, $farm->default_sop_template_id);
+            ->assertSessionHasErrors('default_sop_template_id');
         $this->get('/admin/farm-management/create')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('farms/Form')
                 ->where('sops.0.id', $sop->id)
                 ->where('sops.0.commodity.name', 'Jagung'));
-        $this->get('/admin/farm-management/'.$farm->id)
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('farms/Show')
-                ->where('farm.default_sop.id', $sop->id)
-                ->where('farm.default_sop.commodity.name', 'Jagung'));
-
-        $otherTeam = Team::query()->create(['name' => 'Tim lain']);
-        $foreign = app(SopTemplateService::class)->create($this->admin, $otherTeam, [
-            'commodity_id' => $commodity->id,
-            'name' => 'SOP Tim Lain',
-            'description' => null,
-            'is_active' => true,
-        ]);
-        $this->from('/admin/farm-management/'.$farm->id.'/edit')
-            ->put('/admin/farm-management/'.$farm->id, $this->payload(['default_sop_template_id' => $foreign->id]))
-            ->assertSessionHasErrors('default_sop_template_id');
-        $this->assertSame($sop->id, $farm->fresh()->default_sop_template_id);
     }
 
     public function test_lists_summary_filters_and_pagination_are_scoped_to_the_team(): void

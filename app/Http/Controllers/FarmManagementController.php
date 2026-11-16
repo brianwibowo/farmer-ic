@@ -114,6 +114,7 @@ class FarmManagementController extends Controller
             'harvestPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
                 ->with('farm.team')->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('configure', $batch)]),
             'blockCapacity' => Gate::allows('create', [FarmBlock::class, $farm]) ? $this->blocks->formCapacity($farm, $request->user(), $farm->team) : null,
+            'blockOptions' => $this->blocks->configurationOptions($request->user(), $farm->team),
             'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [
                 'update' => Gate::allows('update', $farm),

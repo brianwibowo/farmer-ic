@@ -306,7 +306,6 @@ class OwnerReadService
         $farm = Farm::visibleTo($actor, $team)->findOrFail($farm->id);
         $cycles = $this->cycleQuery($actor, $team)->where('farm_id', $farm->id);
         $active = (clone $cycles)->where('status', 'active');
-        $defaultSop = SopTemplate::visibleTo($actor, $team)->whereKey($farm->default_sop_template_id)->first();
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
             ->orderBy('code')->get();
         $cycleCounts = PlantingCycle::visibleTo($actor, $team)
@@ -341,7 +340,6 @@ class OwnerReadService
                 'active_cycles' => (clone $active)->count(),
                 'active_area_ha' => (string) (clone $active)->sum('planted_area_ha'),
                 'harvest_weight_ton' => (string) $harvest,
-                'default_sop' => $defaultSop?->only(['id', 'name', 'is_active']),
             ],
             'blocks' => $blocks->map(fn (FarmBlock $block): array => [
                 ...$block->only(['id', 'code', 'name', 'area_ha', 'is_active', 'description']),
@@ -382,7 +380,7 @@ class OwnerReadService
             'legality' => $this->legalities->payload($actor, $team, $farm),
             'urls' => [
                 'farm' => route('owner.farms.show', $farm, false),
-                'home' => route('home', [], false),
+                'home' => route('owner.monitoring', [], false),
                 'farms' => route('kebun', [], false),
             ],
         ];

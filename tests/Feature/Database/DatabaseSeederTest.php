@@ -89,8 +89,8 @@ class DatabaseSeederTest extends TestCase
             $this->assertSame(count($site['batches']), PlantingCycle::query()->where('farm_id', $farmId)->count());
             $this->assertTrue(FarmActivity::query()->where('farm_id', $farmId)->exists());
             $this->assertDatabaseHas('weather_records', ['farm_id' => $farmId]);
-            $this->assertDatabaseHas('farms', [
-                'id' => $farmId, 'commodity_id' => Commodity::query()->where('name', $site['commodity'])->value('id'),
+            $this->assertDatabaseHas('farm_blocks', [
+                'farm_id' => $farmId, 'commodity_id' => Commodity::query()->where('name', $site['commodity'])->value('id'),
             ]);
             foreach (PlantingCycle::query()->where('farm_id', $farmId)->whereNotNull('variety_id')->with('variety.commodity')->get() as $cycle) {
                 $this->assertSame($site['commodity'], $cycle->variety->commodity->name);
@@ -289,7 +289,7 @@ class DatabaseSeederTest extends TestCase
         ], array_column($projection['rows'], 'farm_name'));
 
         $this->actingAs($owner)
-            ->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 8)
             ->where('landTable.rows', fn ($rows) => collect($rows)->count() === 8
                 && collect($rows)->pluck('name')->sort()->values()->all() === [

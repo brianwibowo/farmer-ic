@@ -242,6 +242,7 @@ return [
         'petugas' => [
             'administrative_regions.view' => 'any',
             'activity_types.view' => 'any',
+            'commodities.view' => 'any',
             'crop_varieties.view' => 'any',
             'notifications.view' => 'own',
             'sop_templates.view' => 'any',
@@ -249,10 +250,6 @@ return [
             'sop_template_tasks.view' => 'any',
             'notifications.update' => 'own',
             'farm_blocks.view' => 'own',
-            // Own-farm writes additionally require PIC status in FarmBlockPolicy.
-            'farm_blocks.create' => 'own',
-            'farm_blocks.update' => 'own',
-            'farm_blocks.delete' => 'own',
             'planting_cycle_stages.view' => 'own',
             'planting_cycle_tasks.view' => 'own',
             'farms.view' => 'own',

@@ -99,7 +99,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
 
     private function useDefaultSop(SopTemplate $template): void
     {
-        $this->farm->forceFill(['default_sop_template_id' => $template->id])->save();
+        $this->block->forceFill(['commodity_id' => $template->commodity_id, 'default_sop_template_id' => $template->id])->save();
     }
 
     public function test_generates_dated_tasks_for_a_subblok_from_the_farm_default_sop(): void
@@ -239,13 +239,13 @@ class PlantingCycleTaskGenerationTest extends TestCase
     {
         $otherTeam = Team::factory()->create();
         $foreign = $this->publishedSop($otherTeam);
-        $this->farm->forceFill(['default_sop_template_id' => $foreign->id])->save();
+        $this->block->forceFill(['default_sop_template_id' => $foreign->id])->save();
         $subblok = $this->subblok();
         $subblok->forceFill(['planted_at' => '2026-11-05'])->save();
 
         $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
 
-        $this->assertSame('invalid_sop_tenant', $result['status']);
+        $this->assertSame('missing_sop', $result['status']);
         $this->assertSame(0, PlantingCycleTask::query()->count());
     }
 
