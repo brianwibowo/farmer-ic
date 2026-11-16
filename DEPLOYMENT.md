@@ -1,5 +1,11 @@
 # Docker and VPS deployment
 
+For the blue-green rollout implementation, one-time proxy cutover, rollback,
+live test results and current limitations, see
+[`docs/deployment-502-investigation.md`](docs/deployment-502-investigation.md).
+The historical observations below must not be treated as the current proxy or
+workflow status without checking the running server.
+
 The current application uses PHP 8.5, PostgreSQL and UUID domain/user IDs. The
 image builds PHP dependencies and Wayfinder helpers with PHP 8.5, builds Vue
 with Node 22, and runs Apache, workers and the scheduler from the same image.

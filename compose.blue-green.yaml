@@ -1,0 +1,6 @@
+# Explicit, one-time proxy cutover. Never use without a running, verified
+# release-router and a tested rollback to compose.production.yaml alone.
+services:
+    https-portal:
+        environment:
+            DOMAINS: 'farmer.icdigital.io -> http://farmer-ic-release-router-1:80'
