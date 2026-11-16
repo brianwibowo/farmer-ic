@@ -26,6 +26,7 @@ export type PetugasTask = {
     offset_days: number;
     scheduled_date: string | null;
     due_date: string | null;
+    reporting_window: { start: string; end: string } | null;
     is_required: boolean;
     linked_activities_count: number;
     completed_at: string | null;

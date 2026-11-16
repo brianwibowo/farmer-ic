@@ -24,6 +24,7 @@ class TaskActivityService
         private readonly DailyActivityHeaderService $headers,
         private readonly ActivitySequenceService $sequence,
         private readonly HarvestGuard $harvest,
+        private readonly TaskReportingWindow $window,
     ) {}
 
     /** @param array<string, mixed> $data Validated task-specific fields and files. */
@@ -49,6 +50,7 @@ class TaskActivityService
                 if (! in_array($cycle->status, ['planned', 'active'], true)) {
                     throw ValidationException::withMessages(['task' => 'Subblok sudah ditutup.']);
                 }
+                $this->window->ensureAllowed($task, $cycle, $data['work_date']);
                 if ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString()) {
                     throw ValidationException::withMessages(['work_date' => 'Laporan tugas lanjutan harus pada atau setelah tanggal tanam aktual.']);
                 }

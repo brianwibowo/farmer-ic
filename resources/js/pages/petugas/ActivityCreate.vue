@@ -188,8 +188,8 @@ function submit(): void {
                             v-model="form.work_date"
                             type="date"
                             required
-                            :max="today"
-                            :min="task.subblok.planted_at ?? undefined"
+                            :max="task.reporting_window && task.reporting_window.end < today ? task.reporting_window.end : today"
+                            :min="task.reporting_window?.start ?? task.subblok.planted_at ?? undefined"
                             class="task-activity-field [color-scheme:light] dark:[color-scheme:dark]"
                             :aria-invalid="!!errors.work_date"
                             aria-describedby="error-work_date"
@@ -200,6 +200,9 @@ function submit(): void {
                             >{{ errors.work_date }}</span
                         ></label
                     >
+                    <p v-if="task.reporting_window" class="text-xs text-muted-foreground">
+                        Jendela pelaporan: {{ task.reporting_window.start }} sampai {{ task.reporting_window.end }} (WIB).
+                    </p>
                 </section>
                 <DailyHeaderContext
                     v-model:start="form.start_time"

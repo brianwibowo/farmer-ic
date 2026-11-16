@@ -33,6 +33,10 @@ defineProps<{ task: PetugasTask }>();
                     : `${task.subblok.hst} HST`
             }}
         </p>
+        <p v-if="task.reporting_window" class="text-sm leading-6">
+            Jendela pelaporan: {{ task.reporting_window.start }} sampai
+            {{ task.reporting_window.end }} (WIB), termasuk kedua tanggal.
+        </p>
         <p
             v-if="task.instructions"
             class="text-sm leading-6 whitespace-pre-line"

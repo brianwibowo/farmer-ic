@@ -84,6 +84,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertNull($reason);
         $this->assertNull(app(\App\Services\Activity\ActivitySequenceService::class)->blockedReason($this->actor, $this->cycle->refresh(), 'planting'));
         $harvest = $this->newHarvestTask();
+        $harvest->update(['offset_days' => 0, 'tolerance_days' => 2]);
         $harvestData = [...$this->payload(), 'details' => ['area_ha' => '0.01', 'weight_ton' => '0.5', 'method' => 'Manual']];
         $harvestUrl = '/petugas/tasks/'.$harvest->id.'/aktivitas';
         $this->post($harvestUrl, $harvestData)->assertSessionHasErrors('task');
@@ -482,7 +483,7 @@ class PetugasTaskActivityTest extends TestCase
             'details' => ['area_ha' => '0.2500', 'weight_ton' => '0.500', 'method' => 'Manual']])->assertSessionHasNoErrors();
         $this->get('/petugas/tasks/'.$harvest->id)->assertInertia(fn (Assert $page) => $page
             ->where('canRecord', true)->where('task.can.complete', false)
-            ->where('completionGuidance', 'Laporan panen dapat ditambahkan selama tugas dan subblok masih terbuka. Admin menyelesaikan tugas saat menutup panen.'));
+            ->where('completionGuidance', 'Laporan panen dapat ditambahkan dalam jendela pelaporan selama tugas dan subblok masih terbuka. Admin menyelesaikan tugas saat menutup panen.'));
         $this->post('/petugas/tasks/'.$harvest->id.'/selesai')->assertForbidden();
         $superadmin = User::factory()->create(['role' => 'superadmin']);
         $superadmin->forceFill(['assigned_farm_id' => $this->farm->id])->save();
@@ -715,7 +716,7 @@ class PetugasTaskActivityTest extends TestCase
             'planting_cycle_id' => $this->cycle->id,
             'planting_cycle_stage_id' => $this->cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
             'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan awal',
-            'offset_days' => 7, 'tolerance_days' => 2, 'scheduled_date' => today(), 'due_date' => today()->addDays(2),
+            'offset_days' => 18, 'tolerance_days' => 5, 'scheduled_date' => today()->subDays(3), 'due_date' => today()->addDays(2),
             'status' => 'pending', 'is_required' => true, ...$data,
         ]);
     }
@@ -749,6 +750,24 @@ class PetugasTaskActivityTest extends TestCase
         $this->get('/petugas/tasks/'.$this->task->id.'/aktivitas/buat')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('petugas/ActivityCreate')->where('task.id', $this->task->id)->has('fields', 6));
         $this->get('/petugas/aktivitas/buat')->assertRedirect('/petugas/aktivitas');
+    }
+
+    public function test_task_window_is_enforced_for_direct_posts_and_rescheduling(): void
+    {
+        $this->actingAs($this->actor);
+        $url = '/petugas/tasks/'.$this->task->id.'/aktivitas';
+        $this->task->update(['rescheduled_date' => today()->addDay(), 'tolerance_days' => 2]);
+        $this->get('/petugas/tasks/'.$this->task->id)->assertInertia(fn (Assert $page) => $page
+            ->where('canRecord', false)->where('task.reporting_window.start', today()->addDay()->toDateString()));
+        $this->post($url, $this->payload())->assertSessionHasErrors('task');
+        $this->task->update(['rescheduled_date' => today()->subDays(3), 'tolerance_days' => 2]);
+        $this->post($url, [...$this->payload(), 'work_date' => today()->subDays(2)->toDateString()])->assertSessionHasErrors('task');
+        $this->task->update(['rescheduled_date' => today()->subDays(2), 'tolerance_days' => 2]);
+        $this->post($url, [...$this->payload(), 'work_date' => today()->subDays(3)->toDateString()])->assertSessionHasErrors('work_date');
+        $this->assertDatabaseCount('farm_activities', 0);
+        $this->post($url, [...$this->payload(), 'work_date' => today()->subDays(2)->toDateString()])->assertSessionHasNoErrors();
+        $this->post($url, $this->payload())->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('farm_activities', 2);
     }
 
     public function test_report_persists_log_details_private_photo_and_link_without_completing_task(): void
@@ -947,7 +966,7 @@ class PetugasTaskActivityTest extends TestCase
 
     public function test_filters_have_unfiltered_scoped_counts_and_closed_tasks_cannot_receive_reports(): void
     {
-        $this->task->update(['scheduled_date' => today()->subDays(3), 'due_date' => today()->subDay()]);
+        $this->task->update(['offset_days' => 18, 'tolerance_days' => 2, 'scheduled_date' => today()->subDays(3), 'due_date' => today()->subDay()]);
         $this->newTask(['status' => 'skipped', 'skip_reason' => 'Tidak relevan.']);
         $this->actingAs($this->actor)->get('/petugas/tasks?status=completed')->assertInertia(fn (Assert $page) => $page
             ->has('tasks', 1)->where('summary.overdue', 1)->where('summary.completed', 1));
