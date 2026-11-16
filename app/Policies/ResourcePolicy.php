@@ -34,7 +34,6 @@ abstract class ResourcePolicy
 
     protected bool $ai = false;
 
-
     /** @var list<class-string<Model>> */
     protected array $parents = [Team::class];
 
