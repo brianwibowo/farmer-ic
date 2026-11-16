@@ -25,7 +25,9 @@ trait RedirectsToCurrentTeam
                 $request->session()->forget('url.intended');
             }
 
-            return route($adminAccess ? 'admin.dashboard' : ($petugasAccess ? 'petugas.home' : 'home'), absolute: false);
+            $ownerAccess = ! $adminAccess && ! $petugasAccess && Gate::forUser($request->user())->allows('owner.access');
+
+            return route($adminAccess ? 'admin.dashboard' : ($petugasAccess ? 'petugas.home' : ($ownerAccess ? 'owner.executive-summary' : 'home')), absolute: false);
         }
 
         $team = $this->currentTeam($request);

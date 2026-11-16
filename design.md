@@ -218,8 +218,13 @@ Every input needs a visible `<label>`, a helpful value or placeholder, and inlin
 
 ### Shared selects and searchable choices
 
-- Use `components/selects/AppSelect.vue` with `AppSelectOption.vue` for ordinary
-  single choices. Use `AppCombobox.vue` for choices that need text search; keep
+- Every select/option dropdown must use the project's shadcn-vue Select
+  components from `components/ui/select`, through the shared
+  `components/selects/AppSelect.vue` and `AppSelectOption.vue` wrappers for
+  ordinary single choices. Do not introduce visible native `<select>`/`<option>`
+  menus or a separate custom select implementation. The wrapper's hidden native
+  control may remain for form submission and validation.
+- Use `AppCombobox.vue` for choices that need text search; keep
   region loading, retries, and parent/child resets in `FarmRegionFields` and
   `RegionCombobox`, rather than the generic control.
 - Preserve option value types (including empty strings, numbers, booleans and
@@ -414,6 +419,40 @@ the existing Owner profile. Its current JSON dataset is illustrative and stays
 separate from operational records. Keep the period controls visible; collapse
 partner, region, farm, and commodity filters behind a Filter button with an
 active count and removable selections.
+
+Ringkasan Eksekutif is the Owner landing page, including login without an
+intended destination and the brand/home link. The former Owner Dashboard is
+**Monitoring Lahan** at `/monitoring-lahan`, retaining its live, scoped tenant
+data. Order the Owner navigation as Ringkasan Eksekutif, Monitoring Lahan,
+Proyeksi, and Lahan. Admin and Petugas keep their existing landing destinations.
+Keep the illustrative data label visible near the executive page header.
+
+The Cycle selector includes **Semua cycle**, covering 1 January–31 December
+of the selected year (Asia/Jakarta). Sum actual production by harvest date and
+projections by scheduled harvest date, with one result per farm. Land area,
+active planted hectares, stock balances, agreements, and monthly sales must not
+be multiplied by the number of cycles. Active planted hectares count actual
+planting with active status; preparation and closed/harvested planting are
+excluded. Show the selected year's snapshot date beside active land and stock.
+Stock remains a position after dispatch and adjustments, not annual harvest
+minus dispatch with an assumed zero opening balance. Sales retain the explicitly
+labelled reference month. If a numbered cycle is absent after changing year,
+select Semua cycle. Existing numbered-cycle defaults and Reset are retained.
+The illustrative executive adapter keeps separate dated production records and
+land/stock positions; database-backed pages retain their existing data sources.
+
+Use three summary cards in a four-column desktop grid with spans **1 + 1 + 2**.
+Stack total land area, planted area and utilization in Ringkasan lahan, including
+a compact utilization bar and unused hectares. Combine active agreements/partner
+count and monthly sales-contract tonnage in Kerja sama & penjualan. Give Stok
+panen tersedia two columns with a prominent total and commodity stock breakdown
+using the same globally filtered snapshot. Remove revenue and gross-profit KPI
+cards from this top row. Align card heights without forcing fixed widths. On
+tablets, place the two compact cards side by side and stock full width below;
+stack all three on phones. Loading skeletons follow the same three-card grid.
+The Kerja sama & luas lahan section has a Lihat detail Inertia link to Monitoring
+Lahan; Panen aktual vs proyeksi per kebun links to Proyeksi. These page-level
+links do not send illustrative farm IDs into database-backed routes.
 
 Client selection in the sales panel is local to that panel. Clicking a client
 name or its chart bars shows only that client's contract/reality comparison,

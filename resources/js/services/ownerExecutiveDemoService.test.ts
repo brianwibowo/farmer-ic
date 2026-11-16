@@ -5,6 +5,8 @@ import {
     executiveClients,
     executiveLandCategories,
     executiveRows,
+    executiveYears,
+    executiveCycleForYear,
     executiveTotals,
 } from './ownerExecutiveDemoService';
 import type { ExecutiveFilters } from '@/types/owner-executive';
@@ -19,6 +21,26 @@ const filters: ExecutiveFilters = {
 };
 
 describe('Executive JSON summary', () => {
+    it('reconciles commodity stock with the displayed total across all global filters', () => {
+        for (const selection of [
+            {},
+            { commodity: data.commodities[0].id },
+            { partner: data.partners[0].id },
+            { region: data.farms[0].region },
+            { farm: data.farms[0].id },
+            { farm: 'no-matching-farm' },
+        ]) {
+            const rows = executiveRows(data, { ...filters, ...selection });
+            const stock = executiveCommodities(rows).reduce(
+                (sum, crop) => sum + crop.stock,
+                0,
+            );
+            expect(stock).toBeCloseTo(executiveTotals(rows).stock);
+            expect(
+                executiveCommodities(rows).every((crop) => crop.stock >= 0),
+            ).toBe(true);
+        }
+    });
     it('calculates land and stock once for the selected snapshot', () => {
         const rows = executiveRows(data, filters);
         const totals = executiveTotals(rows);
@@ -28,14 +50,9 @@ describe('Executive JSON summary', () => {
         expect(totals.unused).toBe(35);
         expect(totals.projected).toBe(7620);
         expect(totals.stock).toBeCloseTo(
-            rows.reduce(
-                (sum, row) =>
-                    sum +
-                    row.harvestedTon -
-                    row.dispatchedTon +
-                    row.adjustmentTon,
-                0,
-            ),
+            data.snapshots
+                .filter((snapshot) => snapshot.year === filters.year)
+                .reduce((sum, snapshot) => sum + snapshot.stockTon, 0),
         );
     });
     it('applies each commodity price before aggregating revenue, costs, and profit', () => {
@@ -91,8 +108,149 @@ describe('Executive JSON summary', () => {
         );
         expect(first.area).toBe(second.area);
         expect(first.area).toBe(previous.area);
-        expect(second.planted).toBeCloseTo(first.planted * 0.95);
+        expect(second.planted).toBe(first.planted);
         expect(previous.planted).toBeCloseTo(first.planted * 0.9);
+    });
+    it('accumulates annual production while keeping land, stock and monthly sales as positions', () => {
+        const single = executiveRows(data, filters);
+        const annual = executiveRows(data, { ...filters, cycle: 'all' });
+        const totals = executiveTotals(annual);
+        const snapshot = executiveTotals(single);
+        expect(annual).toHaveLength(9);
+        expect(new Set(annual.map((row) => row.farm.id)).size).toBe(9);
+        for (const key of [
+            'area',
+            'planted',
+            'unused',
+            'utilization',
+            'stock',
+            'contracts',
+            'agreements',
+        ] as const)
+            expect(totals[key]).toBeCloseTo(snapshot[key]);
+        expect(totals.harvested).toBeCloseTo(
+            data.operations
+                .filter((operation) => operation.year === filters.year)
+                .reduce((sum, operation) => sum + operation.harvestedTon, 0),
+        );
+        expect(totals.projected).toBeCloseTo(snapshot.projected * 2.8);
+        expect(executiveClients(annual, data.clients)).toEqual(
+            executiveClients(single, data.clients),
+        );
+        expect(
+            executiveCommodities(annual).reduce(
+                (sum, crop) => sum + crop.stock,
+                0,
+            ),
+        ).toBeCloseTo(totals.stock);
+        expect(totals.revenue).toBeCloseTo(snapshot.revenue * 2.8);
+    });
+    it('counts only active planted areas, retaining unplanted land and past harvests', () => {
+        const fixture = structuredClone(data);
+        fixture.snapshots.find(
+            (snapshot) =>
+                snapshot.year === filters.year && snapshot.farmId === 'cariu',
+        )!.plantings = [
+            { status: 'active', plantedHa: 3 },
+            { status: 'active', plantedHa: 2 },
+            { status: 'planned', plantedHa: 4 },
+            { status: 'harvested', plantedHa: 10 },
+        ];
+        const selected = { ...filters, farm: 'cariu', cycle: 'all' as const };
+        const rows = executiveRows(fixture, selected);
+        expect(executiveTotals(rows).planted).toBe(5);
+        expect(executiveTotals(rows).area).toBe(14);
+        expect(executiveTotals(rows).harvested).toBeGreaterThan(0);
+        fixture.snapshots.find(
+            (snapshot) =>
+                snapshot.year === filters.year && snapshot.farmId === 'cariu',
+        )!.plantings = [];
+        fixture.operations = fixture.operations.filter(
+            (operation) => operation.farmId !== 'cariu',
+        );
+        const unplanted = executiveTotals(executiveRows(fixture, selected));
+        expect(unplanted.area).toBe(14);
+        expect(unplanted.planted).toBe(0);
+        expect(unplanted.utilization).toBe(0);
+        expect(unplanted.harvested).toBe(0);
+    });
+    it('uses the latest position once even when older snapshots exist', () => {
+        const fixture = structuredClone(data);
+        const snapshot = fixture.snapshots.find(
+            (item) => item.year === filters.year && item.farmId === 'cariu',
+        )!;
+        fixture.snapshots.unshift({
+            ...snapshot,
+            capturedAt: '2026-01-01T00:00:00+07:00',
+            stockTon: 999,
+            plantings: [{ status: 'active', plantedHa: 1 }],
+        });
+        const totals = executiveTotals(
+            executiveRows(fixture, { ...filters, farm: 'cariu', cycle: 'all' }),
+        );
+        expect(totals.stock).toBe(snapshot.stockTon);
+        expect(totals.planted).toBe(10);
+    });
+    it('reports January–December by actual harvest date, separately from the projection schedule and planting year', () => {
+        const fixture = structuredClone(data);
+        const dates = [
+            '2025-12-31T16:59:59Z',
+            '2025-12-31T17:00:00Z',
+            '2026-12-31T16:59:59Z',
+            '2026-12-31T17:00:00Z',
+        ];
+        const operation = fixture.operations[0];
+        fixture.operations = dates.map((date, i) => ({
+            ...operation,
+            id: `boundary-${i}`,
+            year: 2025,
+            harvestedAt: date,
+            projectedHarvestAt: dates[3 - i],
+            harvestedTon: (i + 1) * 10,
+            plantedHa: i + 1,
+        }));
+        const annual = executiveTotals(
+            executiveRows(fixture, { ...filters, farm: 'cariu', cycle: 'all' }),
+        );
+        expect(annual.harvested).toBe(50);
+        expect(annual.projected).toBe((2 + 3) * 40);
+        expect(executiveYears(fixture)).toEqual([2027, 2026, 2025]);
+    });
+    it('intersects all annual filters without multiplying farms or stocks', () => {
+        for (const selection of [
+            { commodity: 'jagung' },
+            { partner: 'bumi' },
+            { region: 'Jawa Barat' },
+            { farm: 'cariu' },
+            { partner: 'bumi', region: 'DI Yogyakarta' },
+        ]) {
+            const annual = executiveRows(data, {
+                ...filters,
+                ...selection,
+                cycle: 'all',
+            });
+            const single = executiveRows(data, { ...filters, ...selection });
+            expect(annual.map((row) => row.farm.id)).toEqual(
+                single.map((row) => row.farm.id),
+            );
+            const totals = executiveTotals(annual);
+            expect(totals.area).toBe(executiveTotals(single).area);
+            expect(
+                executiveCommodities(annual).reduce(
+                    (sum, crop) => sum + crop.harvested,
+                    0,
+                ),
+            ).toBeCloseTo(totals.harvested);
+        }
+        expect(
+            executiveRows(data, { ...filters, year: 2030, cycle: 'all' }),
+        ).toEqual([]);
+    });
+    it('retains all across years and falls back to all when a numbered cycle is unavailable', () => {
+        expect(executiveCycleForYear('all', [1, 2])).toBe('all');
+        expect(executiveCycleForYear(2, [1, 2])).toBe(2);
+        expect(executiveCycleForYear(3, [1, 2])).toBe('all');
+        expect(executiveCycleForYear(1, [])).toBe('all');
     });
     it('handles missing periods and loss-making commodity prices honestly', () => {
         const empty = executiveTotals(

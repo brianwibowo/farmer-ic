@@ -1,6 +1,6 @@
 export type ExecutiveFilters = {
     year: number;
-    cycle: number;
+    cycle: number | 'all';
     partner: string;
     region: string;
     farm: string;
@@ -46,11 +46,22 @@ export type ExecutiveDemoData = {
         startYear: number;
         endYear: number;
     }[];
+    // Illustrative positions, separate from production accumulated over cycles.
+    snapshots: {
+        farmId: string;
+        year: number;
+        capturedAt: string;
+        plantings: { status: string; plantedHa: number }[];
+        stockTon: number;
+        monthlyDeliveredTon: number;
+    }[];
     operations: {
         id: string;
         farmId: string;
         year: number;
         cycle: number;
+        harvestedAt: string;
+        projectedHarvestAt: string;
         plantedHa: number;
         harvestedTon: number;
         dispatchedTon: number;
@@ -60,7 +71,15 @@ export type ExecutiveDemoData = {
     }[];
 };
 
-export type ExecutiveRow = ExecutiveDemoData['operations'][number] & {
+export type ExecutiveRow = Omit<
+    ExecutiveDemoData['operations'][number],
+    | 'cycle'
+    | 'harvestedAt'
+    | 'projectedHarvestAt'
+    | 'dispatchedTon'
+    | 'adjustmentTon'
+> & {
+    cycle: ExecutiveFilters['cycle'];
     farm: ExecutiveDemoData['farms'][number];
     partner: ExecutiveDemoData['partners'][number];
     commodity: ExecutiveDemoData['commodities'][number];

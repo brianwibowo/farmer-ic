@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import {
-    ChartNoAxesCombined,
-    LandPlot,
-    LayoutDashboard,
-    LayoutGrid,
-} from '@lucide/vue';
+import { ChartNoAxesCombined, LandPlot, LayoutDashboard } from '@lucide/vue';
 import AdminWorkspaceLayout from '@/layouts/AdminWorkspaceLayout.vue';
 
 const page = usePage();
 const section = computed(() => {
     const path = page.url.split('?')[0];
+    if (path === '/monitoring-lahan')
+        return {
+            title: 'Monitoring Lahan',
+            href: '/monitoring-lahan',
+            icon: LandPlot,
+        };
     if (path === '/ringkasan-eksekutif')
         return {
             title: 'Ringkasan Eksekutif',
@@ -26,7 +27,11 @@ const section = computed(() => {
         };
     if (path === '/kebun' || path.startsWith('/kebun/'))
         return { title: 'Lahan', href: '/kebun', icon: LandPlot };
-    return { title: 'Dashboard', href: '/', icon: LayoutGrid };
+    return {
+        title: 'Ringkasan Eksekutif',
+        href: '/ringkasan-eksekutif',
+        icon: LayoutDashboard,
+    };
 });
 const loading = ref(false);
 const feedback = ref('');

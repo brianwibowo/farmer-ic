@@ -382,7 +382,7 @@ class OwnerReadService
             'legality' => $this->legalities->payload($actor, $team, $farm),
             'urls' => [
                 'farm' => route('owner.farms.show', $farm, false),
-                'home' => route('home', [], false),
+                'home' => route('owner.monitoring', [], false),
                 'farms' => route('kebun', [], false),
             ],
         ];

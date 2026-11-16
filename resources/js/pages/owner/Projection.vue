@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Head } from "@inertiajs/vue3";
-import { watch } from "vue";
-import OwnerPageHeader from "@/components/owner/OwnerPageHeader.vue";
-import OwnerHarvestProjectionTable from "@/components/owner/dashboard/OwnerHarvestProjectionTable.vue";
-import { Button } from "@/components/ui/button";
-import { useOwnerReadFilters } from "@/composables/useOwnerReadFilters";
-import type { HarvestProjection } from "@/types/harvest-projection";
-import { projectionNumber } from "@/types/harvest-projection";
+import { Head } from '@inertiajs/vue3';
+import { watch } from 'vue';
+import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
+import OwnerHarvestProjectionTable from '@/components/owner/dashboard/OwnerHarvestProjectionTable.vue';
+import { Button } from '@/components/ui/button';
+import { useOwnerReadFilters } from '@/composables/useOwnerReadFilters';
+import type { HarvestProjection } from '@/types/harvest-projection';
+import { projectionNumber } from '@/types/harvest-projection';
 
 const props = defineProps<{
     projection: HarvestProjection;
@@ -14,7 +14,7 @@ const props = defineProps<{
 }>();
 const values = () => ({
     period: props.projection.period,
-    farm_id: props.projection.farm_id ?? "",
+    farm_id: props.projection.farm_id ?? '',
 });
 const { filters, loading, error, feedback, submit, sync } = useOwnerReadFilters(
     props.urls.index,
@@ -25,7 +25,7 @@ watch(
     () => sync(values()),
 );
 
-function setPeriod(period: "cycle" | "year"): void {
+function setPeriod(period: 'cycle' | 'year'): void {
     if (loading.value || period === props.projection.period) return;
     filters.value.period = period;
     submit();
@@ -37,7 +37,7 @@ function setPeriod(period: "cycle" | "year"): void {
     <OwnerPageHeader
         title="Total Proyeksi Panen"
         :back-href="urls.home"
-        back-label="Kembali ke Dashboard"
+        back-label="Kembali ke Ringkasan Eksekutif"
     >
         <template #heading>
             <div class="flex min-w-0 items-center justify-between gap-3">
@@ -83,7 +83,7 @@ function setPeriod(period: "cycle" | "year"): void {
                 class="text-sm"
                 :class="error ? 'text-error' : 'text-muted-foreground'"
             >
-                {{ loading ? "Memuat proyeksi panen…" : error || feedback }}
+                {{ loading ? 'Memuat proyeksi panen…' : error || feedback }}
                 <Button
                     v-if="error"
                     variant="outline"
