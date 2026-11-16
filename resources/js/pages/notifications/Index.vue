@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Bell, X } from '@lucide/vue';
+import { Bell, ChevronDown, CheckCheck, X } from '@lucide/vue';
 import NotificationCard from '@/components/notifications/NotificationCard.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -20,6 +20,7 @@ const props = defineProps<{
     fonnteEnabled: boolean;
     canFilterTenant: boolean;
     status: 'all' | 'unread' | 'read';
+    category: string;
 }>();
 const page = usePage();
 const usesAdminShell = computed(
@@ -31,14 +32,20 @@ const layout = computed(() =>
 const loading = ref(false);
 const pending = ref<string | null>(null);
 const feedback = ref('');
+let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+onBeforeUnmount(() => clearTimeout(feedbackTimer));
 const error = ref('');
 const showPhoneWarning = ref(true);
-function load(pageNumber: number, status = props.status): void {
+function load(
+    pageNumber: number,
+    status = props.status,
+    category = props.category,
+): void {
     loading.value = true;
     error.value = '';
     router.get(
         '/notifications',
-        { page: pageNumber, status },
+        { page: pageNumber, status, category },
         {
             preserveScroll: true,
             preserveState: true,
@@ -51,15 +58,44 @@ function load(pageNumber: number, status = props.status): void {
         },
     );
 }
+function readAll(): void {
+    loading.value = true;
+    error.value = '';
+    router.patch(
+        '/notifications/read-all',
+        { status: props.status, category: props.category, page: 1 },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                clearTimeout(feedbackTimer);
+                feedback.value = 'Semua notifikasi ditandai sudah dibaca.';
+                feedbackTimer = setTimeout(() => {
+                    feedback.value = '';
+                }, 5000);
+            },
+            onError: () => {
+                error.value = 'Perubahan belum dapat disimpan. Coba lagi.';
+            },
+            onFinish: () => {
+                loading.value = false;
+            },
+        },
+    );
+}
 function read(notice: InboxNotice): void {
     pending.value = notice.id;
     error.value = '';
     router.patch(
         '/notifications/' + notice.id + '/read',
-        { page: props.notifications.current_page, status: props.status },
+        {
+            page: props.notifications.current_page,
+            status: props.status,
+            category: props.category,
+        },
         {
             preserveScroll: true,
             onSuccess: () => {
+                clearTimeout(feedbackTimer);
                 feedback.value = 'Notifikasi ditandai sudah dibaca.';
             },
             onError: () => {
@@ -130,6 +166,47 @@ function read(notice: InboxNotice): void {
                 </button>
             </div>
             <div
+                class="flex flex-col items-end justify-end gap-2 sm:flex-row sm:items-center"
+            >
+                <Button
+                    v-if="status !== 'read'"
+                    variant="outline"
+                    class="min-h-11 gap-2"
+                    :disabled="loading || pending !== null || unreadCount === 0"
+                    @click="readAll"
+                >
+                    <CheckCheck class="size-4" aria-hidden="true" /> Tandai
+                    semua telah dibaca
+                </Button>
+                <div class="relative w-fit">
+                    <select
+                        aria-label="Jenis kategori notifikasi"
+                        :value="category"
+                        :disabled="loading || pending !== null"
+                        class="min-h-11 w-full appearance-none rounded-lg border border-border bg-card py-2 pr-9 pl-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                        @change="
+                            load(
+                                1,
+                                status,
+                                ($event.target as HTMLSelectElement).value,
+                            )
+                        "
+                    >
+                        <option value="all">Semua</option>
+                        <option value="weekly_report">Laporan Mingguan</option>
+                        <option value="task_reminder">Reminder Panen</option>
+                        <option value="sop_deviation">
+                            Ketidaksesuaian SOP
+                        </option>
+                        <option value="incident_report">Laporan Insiden</option>
+                    </select>
+                    <ChevronDown
+                        class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                        aria-hidden="true"
+                    />
+                </div>
+            </div>
+            <div
                 v-if="showPhoneWarning && fonnteEnabled && !hasPhoneNumber"
                 class="flex items-center gap-3 rounded-xl border border-border bg-muted p-3 text-sm"
                 role="status"
@@ -175,11 +252,13 @@ function read(notice: InboxNotice): void {
                 />
                 <h2 class="font-semibold">
                     {{
-                        status === 'unread'
-                            ? 'Semua notifikasi sudah dibaca'
-                            : status === 'read'
-                              ? 'Belum ada notifikasi yang dibaca'
-                              : 'Belum ada notifikasi'
+                        category !== 'all'
+                            ? 'Tidak ada notifikasi pada kategori ini'
+                            : status === 'unread'
+                              ? 'Semua notifikasi sudah dibaca'
+                              : status === 'read'
+                                ? 'Belum ada notifikasi yang dibaca'
+                                : 'Belum ada notifikasi'
                     }}
                 </h2>
                 <p class="mt-2 text-sm text-muted-foreground">

@@ -313,12 +313,12 @@ class NotificationWorkflowTest extends TestCase
 
     public function test_new_types_are_visible_in_inbox_and_cannot_be_read_by_other_users(): void
     {
-        foreach (['weekly_report', 'task_reminder', 'sop_deviation', 'daily_report', 'harvest_reminder'] as $type) {
+        foreach (['weekly_report', 'task_reminder', 'sop_deviation', 'incident_report'] as $type) {
             $notice = new \App\Models\Notification;
             $notice->forceFill(['user_id' => $this->admin->id, 'team_id' => $this->team->id, 'type' => $type, 'title' => 'Judul bebas'])->save();
         }
-        $this->actingAs($this->admin)->getJson('/notifications/unread')->assertOk()->assertJson(['count' => 5]);
-        $this->get('/notifications')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page->has('notifications.data', 5));
+        $this->actingAs($this->admin)->getJson('/notifications/unread')->assertOk()->assertJson(['count' => 4]);
+        $this->get('/notifications')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page->has('notifications.data', 4));
         $notice = $this->admin->notifications()->firstOrFail();
         $this->actingAs($this->owner)->patch('/notifications/'.$notice->id.'/read')->assertForbidden();
     }

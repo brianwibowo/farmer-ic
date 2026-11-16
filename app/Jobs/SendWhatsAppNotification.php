@@ -3,8 +3,6 @@
 namespace App\Jobs;
 
 use App\Notifications\Channels\InAppChannel;
-use App\Notifications\DailyReportNotification;
-use App\Notifications\HarvestReminderNotification;
 use App\Notifications\TaskReminderNotification;
 use App\Notifications\WeeklyReportNotification;
 use App\Services\Notifications\FonnteClient;
@@ -26,7 +24,7 @@ final class SendWhatsAppNotification implements ShouldQueue
 
     public bool $failOnTimeout = true;
 
-    public function __construct(public readonly WeeklyReportNotification|TaskReminderNotification|DailyReportNotification|HarvestReminderNotification $notification)
+    public function __construct(public readonly WeeklyReportNotification|TaskReminderNotification $notification)
     {
         $this->onConnection(config('operational_notifications.connection'));
         $this->onQueue(config('operational_notifications.whatsapp_queue'));

@@ -326,6 +326,12 @@ try {
                 )
                     throw new Error('Inbox overflows');
                 if (role === 'petugas' && width === 390 && theme === 'light') {
+                    await click('[data-rich-inbox="task_reminder"] button[aria-label="Opsi notifikasi"]');
+                    await until(`Boolean(Array.from(document.querySelectorAll('[role="menuitem"]')).find(el => el.innerText.includes('Tandai dibaca')))`);
+                    await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+                    await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+                    await until(`!document.querySelector('[role="menu"][data-state="open"]')`);
+                    await delay(350);
                     const metadata =
                         '[data-rich-inbox="task_reminder"] header > div:last-child time';
                     await click(metadata);

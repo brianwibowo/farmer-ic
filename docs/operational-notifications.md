@@ -48,7 +48,10 @@ Maksimal 500 insiden baru per pemeriksaan; sisanya diproses pada pemeriksaan
 berikutnya. Saat pertama kali diaktifkan, insiden historis yang belum tercatat
 di ledger juga termasuk backlog ini. Tidak ada pengiriman situasional jika kosong.
 
-Inbox memiliki tab Belum dibaca dan Sudah dibaca. Header membuka/menutup detail;
+Inbox memiliki tab Belum dibaca dan Sudah dibaca serta filter kategori yang default ke Semua.
+Tandai semua dibaca berlaku untuk seluruh notifikasi pribadi yang tampil di inbox,
+termasuk kategori dan halaman lain. Pada viewport di bawah 640px, aksi tandai
+dibaca per kartu berada pada menu titik tiga. Header membuka/menutup detail;
 tombol Tandai dibaca terpisah dari tombol expand. Weekly Admin dan insiden
 menautkan lahan ke /admin/logbook/{farm}. Temuan tugas menuju /admin/tasks
 dengan filter lahan/blok: overdue untuk tugas terlambat, all untuk jadwal ulang
@@ -92,8 +95,7 @@ oleh pengujian. Setelah deployment, rebuild cache konfigurasi dan restart worker
 notifications,whatsapp serta scheduler. APP_URL harus mengarah ke web aplikasi
 production, bukan localhost.
 
-Riwayat inbox lama tetap terbaca. Payload lama daily_report/harvest_reminder
-ditolak dispatcher. Ledger baru mulai mengingat kejadian setelah migrasi ini;
+Ledger baru mulai mengingat kejadian setelah migrasi ini;
 riwayat sebelum ledger tidak dianggap sebagai bukti pengiriman sekali.
 
 Command berikut benar-benar mengantrekan notifikasi sesuai konfigurasi:

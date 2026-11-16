@@ -35,6 +35,35 @@ class NotificationFiltersTest extends TestCase
         );
     }
 
+    public function test_category_filters_before_pagination_and_bulk_read_is_personal(): void
+    {
+        $team = Team::factory()->create(['is_personal' => false]);
+        $actor = $this->actor('admin', $team);
+        $foreign = $this->notice($this->actor('admin', $team), $team);
+        $daily = $this->notice($actor, $team);
+        $weekly = $this->notice($actor, $team);
+        $daily->forceFill(['type' => 'incident_report'])->save();
+        $this->actingAs($actor)->get('/notifications?category=weekly_report')->assertInertia(fn (Assert $page) => $page
+            ->where('category', 'weekly_report')->where('notifications.total', 1)->where('notifications.data.0.id', $weekly->id)->where('unreadCount', 2));
+        $this->getJson('/notifications?category=invalid')->assertUnprocessable();
+        $this->patch('/notifications/read-all', ['status' => 'unread', 'category' => 'weekly_report'])->assertRedirect();
+        $this->assertTrue($daily->fresh()->is_read);
+        $this->assertTrue($weekly->fresh()->is_read);
+        $this->assertFalse($foreign->fresh()->is_read);
+    }
+
+    public function test_bulk_read_requires_update_permission(): void
+    {
+        $team = Team::factory()->create(['is_personal' => false]);
+        $actor = $this->actor('admin', $team);
+        $notification = $this->notice($actor, $team);
+        $grants = config('access.roles.admin');
+        unset($grants['notifications.update']);
+        config(['access.roles.admin' => $grants]);
+        $this->actingAs($actor)->patch('/notifications/read-all')->assertForbidden();
+        $this->assertFalse($notification->fresh()->is_read);
+    }
+
     private function actor(string $role, Team $team): User
     {
         $user = User::factory()->create(['role' => $role]);
@@ -47,7 +76,7 @@ class NotificationFiltersTest extends TestCase
     {
         $notification = new Notification;
         $notification->forceFill([
-            'user_id' => $user->id, 'team_id' => $team?->id, 'type' => 'daily_report',
+            'user_id' => $user->id, 'team_id' => $team?->id, 'type' => 'weekly_report',
             'title' => 'Report Harian Kebun dari Petugas', 'message' => 'Tenant: '.($team?->name ?? 'Histori lama')."\nJumlah kebun: 1\nCatatan kebun.",
             'is_read' => $read, 'created_at' => CarbonImmutable::parse($at),
         ])->save();

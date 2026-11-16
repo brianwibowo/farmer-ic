@@ -81,7 +81,7 @@ class NotificationQueryPerformanceTest extends TestCase
     private function notice(User $user, Team $team): void
     {
         $notice = new Notification;
-        $notice->forceFill(['user_id' => $user->id, 'team_id' => $team->id, 'type' => 'daily_report',
+        $notice->forceFill(['user_id' => $user->id, 'team_id' => $team->id, 'type' => 'weekly_report',
             'title' => 'Report Harian Kebun dari Petugas', 'message' => "Tenant: Kebun Uji Query\nJumlah kebun: 1", 'created_at' => now()])->save();
     }
 

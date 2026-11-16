@@ -109,6 +109,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->whereUuid('document')->name('farm-legality-documents.download');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
+    Route::patch('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('notifications.read');
     Route::get('blocks', [FarmBlockController::class, 'farms'])->name('blocks.farms');
     Route::post('kebun/{farm}/blocks/{block}/batches', [FarmBlockController::class, 'storeBatch'])

@@ -3,8 +3,6 @@
 namespace App\Notifications\Channels;
 
 use App\Models\User;
-use App\Notifications\DailyReportNotification;
-use App\Notifications\HarvestReminderNotification;
 use App\Notifications\TaskReminderNotification;
 use App\Notifications\WeeklyReportNotification;
 use App\Services\Notifications\NotificationService;
@@ -12,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 final class InAppChannel
 {
-    public function send(User $notifiable, WeeklyReportNotification|TaskReminderNotification|DailyReportNotification|HarvestReminderNotification $notification): void
+    public function send(User $notifiable, WeeklyReportNotification|TaskReminderNotification $notification): void
     {
         $data = $notification->data;
         $recipient = app(NotificationService::class)->validRecipient($data);

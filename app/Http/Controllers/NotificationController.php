@@ -36,7 +36,7 @@ class NotificationController extends Controller
             $tenantNames = array_column($context['options'], 'name', 'id');
 
             return Inertia::render('notifications/Index', [
-                'notifications' => $inbox->paginate($actor, ['status' => $filters['status'] ?? 'unread'])->through(fn (Notification $notification): array => [
+                'notifications' => $inbox->paginate($actor, ['status' => $filters['status'] ?? 'unread', 'category' => $filters['category'] ?? 'all'])->through(fn (Notification $notification): array => [
                     'id' => $notification->id, 'title' => $notification->title,
                     'type' => $notification->type,
                     'content' => $notification->content,
@@ -52,9 +52,18 @@ class NotificationController extends Controller
                 'hasPhoneNumber' => filled($request->user()->phone_number),
                 'fonnteEnabled' => (bool) config('operational_notifications.fonnte.enabled', false),
                 'status' => $filters['status'] ?? 'unread',
+                'category' => $filters['category'] ?? 'all',
                 'canFilterTenant' => $context['show'],
             ]);
         });
+    }
+
+    public function readAll(FilterNotificationsRequest $request, NotificationInboxService $inbox): RedirectResponse
+    {
+        Gate::authorize('updateAny', Notification::class);
+        $inbox->markAllRead($request->user());
+
+        return to_route('notifications.index', $request->validated());
     }
 
     public function read(FilterNotificationsRequest $request, Notification $notification, NotificationInboxService $inbox): RedirectResponse

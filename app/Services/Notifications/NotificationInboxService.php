@@ -25,6 +25,10 @@ final class NotificationInboxService
             $query->where('is_read', true);
         }
 
+        if (($filters['category'] ?? 'all') !== 'all') {
+            $query->where('type', $filters['category']);
+        }
+
         return $query->orderByDesc('created_at')->orderByDesc('id')->paginate(15)->appends($filters);
     }
 
@@ -53,18 +57,6 @@ final class NotificationInboxService
                 ? preg_replace('/\ATenant:[^\r\n]*(?:\r?\n|$)/u', '', $message) ?? $message
                 : $message;
         }
-        if ($notification->type !== 'daily_report') {
-            return $message;
-        }
-        $showTenant = app(NotificationPolicy::class)->showsTenantContext($actor);
-        if (! $showTenant || $tenantBadge) {
-            // Only remove the known header, never a tenant-like line inside an activity note.
-            $message = preg_replace('/\A((?:Report Harian Kebun dari Petugas[^\r\n]*\r?\n)?)Tenant:[^\r\n]*(?:\r?\n|$)/u', '$1', $message) ?? $message;
-        }
-        if (! $showTenant) {
-            $message = str_replace('Satu rekap seluruh kebun dalam tenant, per penerima dan tanggal.',
-                'Satu rekap seluruh kebun, per penerima dan tanggal.', $message);
-        }
 
         return $message;
     }
@@ -78,7 +70,12 @@ final class NotificationInboxService
     private function query(User $actor): Builder
     {
         return Notification::visibleTo($actor)->where('user_id', $actor->id)
-            ->whereIn('type', ['weekly_report', 'task_reminder', 'sop_deviation', 'incident_report', 'daily_report', 'harvest_reminder']);
+            ->whereIn('type', ['weekly_report', 'task_reminder', 'sop_deviation', 'incident_report']);
+    }
+
+    public function markAllRead(User $actor): void
+    {
+        $this->query($actor)->where('is_read', false)->update(['is_read' => true, 'read_at' => now()]);
     }
 
     public function markRead(Notification $notification): void

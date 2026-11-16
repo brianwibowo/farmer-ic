@@ -7,11 +7,18 @@ import {
     ChevronDown,
     ClipboardList,
     LoaderCircle,
+    MoreVertical,
     Sprout,
     TriangleAlert,
     Wheat,
 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { InboxNotice } from '@/types/notifications';
 import { date } from './format';
 import WeeklyHarvestReport from './WeeklyHarvestReport.vue';
@@ -200,9 +207,10 @@ const period = computed(() => {
                 </button>
                 <div
                     class="ml-auto inline-flex items-center gap-0.5 @md:gap-1"
+                    @click.stop
                     :class="
                         notice.can_read && !notice.is_read
-                            ? 'min-w-[5.875rem] shrink-10'
+                            ? 'shrink-0 sm:min-w-[5.875rem] sm:shrink-10'
                             : 'shrink-0'
                     "
                 >
@@ -211,7 +219,7 @@ const period = computed(() => {
                         type="button"
                         variant="outline"
                         size="sm"
-                        class="h-auto min-h-9! min-w-16 shrink gap-1 px-1 py-1 text-xs leading-4 whitespace-normal has-[>svg]:px-1 @md:min-h-11! @md:gap-1.5 @md:px-2 @md:text-sm @md:has-[>svg]:px-2"
+                        class="hidden h-auto min-h-9! min-w-16 shrink gap-1 px-1 py-1 text-xs leading-4 whitespace-normal has-[>svg]:px-1 sm:inline-flex @md:min-h-11! @md:gap-1.5 @md:px-2 @md:text-sm @md:has-[>svg]:px-2"
                         aria-label="Tandai dibaca"
                         title="Tandai dibaca"
                         :disabled="pending !== null || loading"
@@ -229,6 +237,31 @@ const period = computed(() => {
                         />
                         <span class="min-w-0">Tandai dibaca</span>
                     </Button>
+                    <DropdownMenu v-if="notice.can_read && !notice.is_read">
+                        <DropdownMenuTrigger as-child>
+                            <button
+                                type="button"
+                                class="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring sm:hidden"
+                                aria-label="Opsi notifikasi"
+                                :disabled="pending !== null || loading"
+                                @click.stop
+                            >
+                                <MoreVertical
+                                    class="size-5"
+                                    aria-hidden="true"
+                                />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" @click.stop>
+                            <DropdownMenuItem
+                                class="min-h-11 cursor-pointer gap-2"
+                                @select="$emit('read', notice)"
+                            >
+                                <Check class="size-4" aria-hidden="true" />
+                                Tandai dibaca
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     <button
                         type="button"
                         class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring @md:size-11"
