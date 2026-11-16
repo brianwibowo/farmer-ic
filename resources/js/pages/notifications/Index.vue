@@ -93,10 +93,6 @@ function read(notice: InboxNotice): void {
             <header v-if="!usesAdminShell">
                 <h1 class="text-2xl font-semibold">Notifikasi</h1>
             </header>
-            <p class="text-xs text-muted-foreground">
-                {{ unreadCount }} belum dibaca ·
-                {{ notifications.total }} notifikasi
-            </p>
             <div
                 class="grid grid-cols-2 border-b border-border"
                 role="group"
@@ -110,6 +106,11 @@ function read(notice: InboxNotice): void {
                     :key="item.value"
                     type="button"
                     :aria-pressed="status === item.value"
+                    :aria-label="
+                        item.value === 'unread'
+                            ? `Belum dibaca, ${unreadCount} notifikasi`
+                            : item.label
+                    "
                     :disabled="loading || pending !== null"
                     class="min-h-11 border-b-2 px-2 py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
                     :class="
@@ -120,6 +121,12 @@ function read(notice: InboxNotice): void {
                     @click="load(1, item.value as 'all' | 'unread' | 'read')"
                 >
                     {{ item.label }}
+                    <span
+                        v-if="item.value === 'unread'"
+                        aria-hidden="true"
+                        class="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground tabular-nums"
+                        >{{ unreadCount }}</span
+                    >
                 </button>
             </div>
             <div

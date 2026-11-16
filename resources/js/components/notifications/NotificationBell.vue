@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import { Bell } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const page = usePage();
 const visible = computed(() => page.props.navigation?.notifications === true);
@@ -9,9 +9,26 @@ const count = ref(0);
 const failed = ref(false);
 let timer: ReturnType<typeof setInterval> | undefined;
 let request: AbortController | undefined;
+let version = 0;
+
+watch(
+    () => [page.component, page.props.unreadCount] as const,
+    ([component, unreadCount]) => {
+        if (
+            component !== 'notifications/Index' ||
+            typeof unreadCount !== 'number'
+        )
+            return;
+        version++;
+        count.value = unreadCount;
+        failed.value = false;
+    },
+    { immediate: true },
+);
 
 async function refresh(): Promise<void> {
     if (!visible.value || document.hidden || request) return;
+    const requestVersion = version;
     request = new AbortController();
     const timeout = setTimeout(() => request?.abort(), 10000);
     try {
@@ -23,10 +40,12 @@ async function refresh(): Promise<void> {
         });
         if (!response.ok) throw new Error('Notification count unavailable');
         const payload: { count: number } = await response.json();
-        count.value = Number.isInteger(payload.count) ? payload.count : 0;
-        failed.value = false;
+        if (version === requestVersion) {
+            count.value = Number.isInteger(payload.count) ? payload.count : 0;
+            failed.value = false;
+        }
     } catch {
-        failed.value = true;
+        if (version === requestVersion) failed.value = true;
     } finally {
         clearTimeout(timeout);
         request = undefined;

@@ -364,6 +364,14 @@ try {
         await until(
             `!document.querySelector('[aria-busy="true"]') && document.body.innerText.includes('Notifikasi ditandai sudah dibaca.')`,
         );
+        await until(`(() => {
+            const tab = document.querySelector('[aria-label="Filter status notifikasi"] button');
+            const match = tab?.getAttribute('aria-label')?.match(/([0-9]+) notifikasi/);
+            const bell = document.querySelector('a[aria-label^="Buka notifikasi"]');
+            if (!match || !bell) return false;
+            const count = Number(match[1]);
+            return bell.getAttribute('aria-label') === (count ? 'Buka notifikasi, ' + count + ' belum dibaca' : 'Buka notifikasi');
+        })()`);
         await evaluate(
             `Array.from(document.querySelectorAll('[aria-label="Filter status notifikasi"] button')).find(b=>b.innerText.trim()==='Sudah dibaca').click()`,
         );

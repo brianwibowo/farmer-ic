@@ -34,33 +34,29 @@ const contentId = useId();
 const category = computed(() => {
     switch (report.value?.kind) {
         case 'weekly_owner':
-            return { label: 'Panen mingguan', icon: Wheat, warning: false };
+            return { icon: Wheat, warning: false };
         case 'weekly_admin':
             return {
-                label: 'Aktivitas mingguan',
                 icon: Sprout,
                 warning: false,
             };
         case 'task_reminder':
             return {
-                label: 'Pengingat panen',
                 icon: ClipboardList,
                 warning: false,
             };
         case 'incident_report':
             return {
-                label: 'Insiden baru',
                 icon: TriangleAlert,
                 warning: true,
             };
         case 'sop_deviation':
             return {
-                label: 'Perlu perhatian',
                 icon: TriangleAlert,
                 warning: true,
             };
         default:
-            return { label: 'Notifikasi', icon: Bell, warning: false };
+            return { icon: Bell, warning: false };
     }
 });
 const preview = computed(() => {
@@ -144,13 +140,13 @@ const period = computed(() => {
         :data-rich-inbox="report?.kind ?? 'text'"
     >
         <header
-            class="cursor-pointer space-y-2 p-3 @md:p-4"
+            class="cursor-pointer space-y-0 p-3 @md:space-y-2 @md:p-4"
             @click="expanded = !expanded"
         >
             <div class="mb-0 flex min-w-0 items-start gap-2 @md:items-center">
                 <button
                     type="button"
-                    class="flex min-h-11 min-w-0 flex-auto cursor-pointer items-start gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-ring @md:items-center @md:gap-3"
+                    class="flex min-h-11 min-w-0 flex-auto cursor-pointer items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-ring @md:gap-3"
                     :aria-expanded="expanded"
                     :aria-controls="contentId"
                     @click.stop="expanded = !expanded"
@@ -168,40 +164,23 @@ const period = computed(() => {
                             class="size-4 @md:size-5"
                     /></span>
                     <span class="block min-w-0 flex-1 text-left">
-                        <span
-                            v-if="
-                                report?.kind !== 'weekly_owner' ||
-                                (showTenant && notice.tenant_name)
-                            "
-                            class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1"
-                        >
-                            <span
-                                v-if="report?.kind !== 'weekly_owner'"
-                                class="text-xs font-medium"
-                                :class="
-                                    category.warning
-                                        ? 'text-warning'
-                                        : 'text-primary'
-                                "
-                                >{{ category.label }}</span
-                            >
-                            <span
-                                v-if="showTenant && notice.tenant_name"
-                                class="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground"
-                            >
-                                <Building2
-                                    class="size-3 shrink-0"
-                                    aria-hidden="true"
-                                /><span class="truncate">{{
-                                    notice.tenant_name
-                                }}</span>
-                            </span>
-                        </span>
                         <span class="block text-sm leading-5 font-semibold">{{
                             report?.kind === 'weekly_owner'
                                 ? 'Laporan Mingguan Panen'
                                 : notice.title
                         }}</span>
+                        <span
+                            v-if="showTenant && notice.tenant_name"
+                            class="mt-1 inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground"
+                        >
+                            <Building2
+                                class="size-3 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span class="truncate">{{
+                                notice.tenant_name
+                            }}</span>
+                        </span>
                         <span
                             v-if="preview"
                             class="mt-1 hidden text-xs leading-5 text-muted-foreground @md:line-clamp-2"
