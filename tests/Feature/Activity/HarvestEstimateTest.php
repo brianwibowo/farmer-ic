@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /** HTTP, policy and transaction coverage on the guarded PostgreSQL test schema. */
@@ -452,18 +453,29 @@ class HarvestEstimateTest extends TestCase
         $this->assertSame('2027-02-10', $this->cycle->fresh()->estimated_harvest_at->toDateString());
     }
 
-    public function test_notification_uses_the_updated_estimate_and_rejects_the_old_schedule(): void
+    public static function notificationChannels(): array
+    {
+        return ['WhatsApp disabled' => [false], 'WhatsApp enabled' => [true]];
+    }
+
+    #[DataProvider('notificationChannels')]
+    public function test_notification_uses_the_updated_estimate_and_rejects_the_old_schedule(bool $whatsAppEnabled): void
     {
         $this->sop([90]);
         $this->plant();
         $task = $this->harvest();
-        config(['operational_notifications.enabled' => true]);
+        config(['operational_notifications.enabled' => true, 'operational_notifications.fonnte.enabled' => $whatsAppEnabled]);
         Bus::fake();
         $this->travelTo(CarbonImmutable::parse('2027-02-07 06:00', 'Asia/Jakarta'));
         $notifications = app(NotificationService::class);
         $this->assertSame(2, $notifications->taskReminders());
-        $data = Bus::dispatched(\App\Jobs\SendWhatsAppNotification::class)
-            ->first(fn ($job) => $job->notification->data['user_id'] === $this->petugas->id)->notification->data;
+        $payload = DB::table('operational_notification_deliveries')->where('user_id', $this->petugas->id)->value('payload');
+        $this->assertIsString($payload);
+        $data = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame([$task->id], array_column($data['tasks'], 'id'));
+        if (! $whatsAppEnabled) {
+            Bus::assertNotDispatched(\App\Jobs\SendWhatsAppNotification::class);
+        }
         $this->assertNotNull($notifications->dataForDelivery($this->petugas, $data));
         $this->actingAs($this->admin)->post('/admin/tasks/'.$task->id.'/reschedule', [
             'rescheduled_date' => '2027-02-15', 'reschedule_reason' => 'Menyesuaikan kondisi kebun.',
