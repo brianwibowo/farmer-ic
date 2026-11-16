@@ -56,6 +56,8 @@ export type TaskContent = {
             scheduled_date: string;
             due_date: string;
             days_before: number;
+            commodity_id?: string | null;
+            commodity_name?: string | null;
             subblocks?: { id: string; name: string }[];
             reason?: string | null;
         }[];

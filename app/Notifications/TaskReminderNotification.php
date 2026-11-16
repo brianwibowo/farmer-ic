@@ -64,6 +64,7 @@ class TaskReminderNotification extends Notification implements ShouldQueue
                 'name' => $task['name'], 'count' => $task['count'], 'scheduled_date' => $task['scheduled_date'],
                 'due_date' => $task['due_date'], 'days_before' => $task['days_before'], 'reason' => $task['reason'] ?? null,
                 'subblocks' => $task['subblocks'],
+                'commodity_id' => $task['commodity_id'] ?? null, 'commodity_name' => $task['commodity_name'] ?? null,
             ];
         }
 

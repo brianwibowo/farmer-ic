@@ -38,9 +38,13 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
         foreach (['A', 'B'] as $code) {
             $block = app(App\Services\FarmBlockService::class)->create($demoFarm, $user, $team, ['code' => $code, 'name' => 'Blok '.$code, 'area_ha' => 5]);
             foreach ($code === 'A' ? ['A1', 'A2'] : ['B1'] as $subblock) {
-                $days = $code === 'A' ? 1 : 3;
+                $days = match ($subblock) {
+                    'A1' => 0,
+                    'A2' => 1,
+                    default => 3,
+                };
                 $cycle = app(App\Services\FarmBlockService::class)->createBatch($block, $user, $team, ['subblock_label' => $subblock, 'reserved_area_ha' => 2, 'planned_planting_at' => today()->subDays(20)->toDateString()]);
-                $cycle->forceFill(['variety_id' => ($code === 'A' ? $variety : $sorghumVariety)->id, 'planted_at' => today()->subDays(20), 'planted_area_ha' => 2, 'status' => 'active'])->save();
+                $cycle->forceFill(['variety_id' => ($code === 'A' ? $variety : $sorghumVariety)->id, 'planted_at' => today()->subDays(20), 'estimated_harvest_at' => today()->addDays($days), 'planted_area_ha' => 2, 'status' => 'active'])->save();
                 $harvestTask = App\Models\PlantingCycleTask::create([
                     'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $cycle->stages()->where('code', 'harvest')->firstOrFail()->id,
                     'name' => $code === 'A' ? 'Panen Jagung' : 'Panen Sorgum',
@@ -49,6 +53,8 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
                 ]);
                 $reminderTasks[] = ['id' => $harvestTask->id, 'cycle_id' => $cycle->id,
                     'subblock_name' => 'Subblok '.$cycle->subblock_label,
+                    'commodity_id' => ($code === 'A' ? $commodity : $sorghum)->id,
+                    'commodity_name' => ($code === 'A' ? $commodity : $sorghum)->name,
                     'farm_id' => $demoFarm->id, 'farm_name' => $demoFarm->name,
                     'block_id' => $block->id, 'block_name' => $block->name, 'name' => $harvestTask->name,
                     'scheduled_date' => $harvestTask->scheduled_date->toDateString(),

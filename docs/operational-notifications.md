@@ -55,8 +55,11 @@ dibaca per kartu berada pada menu titik tiga. Header membuka/menutup detail;
 tombol Tandai dibaca terpisah dari tombol expand. Weekly Admin dan insiden
 menautkan lahan ke /admin/logbook/{farm}. Temuan tugas menuju /admin/tasks
 dengan filter lahan/blok: overdue untuk tugas terlambat, all untuk jadwal ulang
-yang masih mendatang. Reminder Petugas menuju /petugas/aktivitas?status=all&block_id=...
-agar tugas mendatang tetap terlihat. Halaman tujuan mempertahankan otorisasi.
+yang masih mendatang. Reminder Panen Admin dan Petugas dikelompokkan per lahan, blok, dan komoditas.
+Setiap subblok menampilkan tanggal dan label waktu pada saat reminder dikirim,
+diurutkan dari tanggal terdekat. Satu tombol Lihat tugas panen membuka filter
+blok dan category=harvest dengan status/view Semua, mencakup H-0, H-1, dan H-3.
+Halaman tujuan mempertahankan otorisasi.
 
 ## WhatsApp dan deduplikasi
 

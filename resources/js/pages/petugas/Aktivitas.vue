@@ -23,7 +23,13 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps<PetugasTaskPageProps>();
 const filter = reactive(
     unref(
-        useRemember(
+        useRemember<{
+            q: string;
+            status: PetugasTaskPageProps['filters']['status'];
+            category: string;
+            block: string;
+            subblok: string;
+        }>(
             {
                 q: '',
                 status:
@@ -46,13 +52,19 @@ if (filter.status === 'overdue' || filter.status === 'today') {
 filter.subblok ??= '';
 // Explicit navigation from the inbox overrides remembered local filters.
 watch(
-    () => props.filters.block_id,
-    (block) => {
+    () =>
+        [
+            props.filters.block_id,
+            props.filters.status,
+            props.filters.category,
+        ] as const,
+    ([block, status, category]) => {
         if (!block) return;
         Object.assign(filter, {
             q: '',
-            status: 'all',
-            category: '',
+            status:
+                status === 'today' || status === 'overdue' ? 'active' : status,
+            category: category ?? '',
             block,
             subblok: '',
         });
@@ -118,9 +130,7 @@ const categoryOptions = computed(() => [
     ...new Set(props.tasks.map((t) => t.activity_category)),
 ]);
 function label(code: string): string {
-    return (
-        (sopActivityCategoryLabels as Record<string, string>)[code] ?? code
-    );
+    return (sopActivityCategoryLabels as Record<string, string>)[code] ?? code;
 }
 function changeBlock(): void {
     filter.subblok = '';
@@ -252,8 +262,8 @@ function reset(): void {
             v-if="defaultSopMissing && farm"
             class="rounded-xl bg-muted p-3 text-xs leading-5"
         >
-            SOP default pada salah satu blok belum diatur. Hubungi Admin; aktivitas mandiri tetap
-            dapat dicatat.
+            SOP default pada salah satu blok belum diatur. Hubungi Admin;
+            aktivitas mandiri tetap dapat dicatat.
         </p>
         <div
             class="flex items-center justify-between text-xs text-muted-foreground"

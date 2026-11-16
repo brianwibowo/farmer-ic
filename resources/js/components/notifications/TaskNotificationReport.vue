@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { ChevronRight, ClipboardList, TriangleAlert } from '@lucide/vue';
+import { ClipboardList, TriangleAlert } from '@lucide/vue';
 import type { TaskContent } from '@/types/notifications';
 import { date } from './format';
 const props = defineProps<{ content: TaskContent }>();
@@ -21,10 +21,76 @@ function href(group: TaskContent['groups'][number]): string {
                 : 'all',
         );
         query.set('farm_id', farm);
+        if (!deviation.value) query.set('category', 'harvest');
         return '/admin/tasks?' + query.toString();
     }
     query.set('status', 'all');
+    query.set('category', 'harvest');
     return '/petugas/aktivitas?' + query.toString();
+}
+type ReminderRow = { id: string; name: string; date: string; days: number };
+const reminders = computed(() =>
+    props.content.groups.flatMap((group) => {
+        const sections = new Map<
+            string,
+            {
+                key: string;
+                title: string;
+                group: typeof group;
+                rows: ReminderRow[];
+            }
+        >();
+        for (const item of group.items) {
+            const key = item.commodity_id ?? item.commodity_name ?? item.name;
+            let section = sections.get(key);
+            if (!section) {
+                section = {
+                    key: group.key + ':' + key,
+                    title: item.commodity_name
+                        ? 'Panen ' + item.commodity_name
+                        : item.name,
+                    group,
+                    rows: [],
+                };
+                sections.set(key, section);
+            }
+            for (const subblock of item.subblocks ?? []) {
+                if (
+                    !section.rows.some(
+                        (row) =>
+                            row.id === subblock.id &&
+                            row.date === item.scheduled_date,
+                    )
+                ) {
+                    section.rows.push({
+                        ...subblock,
+                        date: item.scheduled_date,
+                        days: item.days_before,
+                    });
+                }
+            }
+        }
+        return [...sections.values()].map((section) => ({
+            ...section,
+            rows: section.rows.sort(
+                (a, b) =>
+                    a.date.localeCompare(b.date) ||
+                    a.name.localeCompare(b.name),
+            ),
+        }));
+    }),
+);
+function timing(days: number): string {
+    return days === 0
+        ? 'Hari ini'
+        : days === 1
+          ? 'Besok'
+          : days > 1
+            ? days + ' hari lagi'
+            : 'Jadwal terlewat';
+}
+function subblockLabel(name: string): string {
+    return /^subblok\b/i.test(name) ? name : 'Subblok ' + name;
 }
 </script>
 <template>
@@ -62,51 +128,57 @@ function href(group: TaskContent['groups'][number]): string {
                     >Lihat tugas</span
                 >
             </Link>
-            <template v-else>
-                <Link
-                    v-for="(item, index) in group.items"
-                    :key="index"
-                    :href="href(group)"
-                    class="flex min-h-11 items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"
-                >
+        </template>
+        <template v-if="!deviation">
+            <section
+                v-for="section in reminders"
+                :key="section.key"
+                class="rounded-xl border border-border p-3"
+            >
+                <div class="flex items-start gap-3">
                     <ClipboardList
-                        class="mt-1 size-4 shrink-0 text-primary"
+                        class="mt-0.5 size-5 shrink-0 text-primary"
                         aria-hidden="true"
                     />
-                    <div class="min-w-0 flex-1">
-                        <h3 class="text-sm font-semibold">{{ item.name }}</h3>
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold">
+                            {{ section.title }}
+                        </h3>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            {{ group.farm_name }} · {{ group.block_name }}
-                        </p>
-                        <ul
-                            v-if="item.subblocks?.length"
-                            class="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 marker:text-primary"
-                        >
-                            <li
-                                v-for="subblock in item.subblocks"
-                                :key="subblock.id"
-                                :data-subblock-id="subblock.id"
-                            >
-                                <span class="font-medium">{{
-                                    subblock.name
-                                }}</span>
-                                <span class="text-muted-foreground">
-                                    · H-{{ item.days_before }} ·
-                                    {{ date(item.scheduled_date) }}</span
-                                >
-                            </li>
-                        </ul>
-                        <p v-else class="mt-3 text-xs text-muted-foreground">
-                            Rincian subblok tidak tersedia pada notifikasi lama
-                            ini.
+                            {{ section.group.farm_name }} ·
+                            {{ section.group.block_name }}
                         </p>
                     </div>
-                    <ChevronRight
-                        class="mt-1 size-4 shrink-0 text-muted-foreground"
-                        aria-hidden="true"
-                    />
-                </Link>
-            </template>
+                </div>
+                <ul
+                    v-if="section.rows.length"
+                    class="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 marker:text-primary"
+                >
+                    <li
+                        v-for="row in section.rows"
+                        :key="row.id + ':' + row.date"
+                        :data-subblock-id="row.id"
+                    >
+                        <span class="font-medium"
+                            >{{ subblockLabel(row.name) }} —
+                            {{ timing(row.days) }}</span
+                        >
+                        <span class="block text-xs text-muted-foreground">{{
+                            date(row.date)
+                        }}</span>
+                    </li>
+                </ul>
+                <p v-else class="mt-3 text-xs text-muted-foreground">
+                    Rincian subblok tidak tersedia pada notifikasi ini.
+                </p>
+                <div class="mt-3 flex justify-end">
+                    <Link
+                        :href="href(section.group)"
+                        class="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                        >Lihat tugas panen</Link
+                    >
+                </div>
+            </section>
         </template>
     </div>
 </template>

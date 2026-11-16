@@ -157,7 +157,9 @@ final class NotificationService
         $farms = Farm::visibleTo($recipient, $team)->get()->keyBy('id');
         $blocks = FarmBlock::visibleTo($recipient, $team)->whereIn('farm_id', $farms->modelKeys())->get()->keyBy('id');
         $cycles = PlantingCycle::visibleTo($recipient, $team)->whereIn('farm_id', $farms->modelKeys())
-            ->where('status', 'active')->whereNotNull('planted_at')->where('planted_at', '<=', $now->toDateString())->get()->keyBy('id');
+            ->where('status', 'active')->whereNotNull('planted_at')->where('planted_at', '<=', $now->toDateString())
+            ->with(['variety' => fn ($query) => $query->visibleTo($recipient, $team)
+                ->with(['commodity' => fn ($commodities) => $commodities->visibleTo($recipient, $team)])])->get()->keyBy('id');
         $query = PlantingCycleTask::visibleTo($recipient, $team)->whereIn('planting_cycle_id', $cycles->modelKeys())
             ->whereIn('status', ['pending', 'in_progress']);
         if ($ids !== null) {
@@ -186,6 +188,8 @@ final class NotificationService
             $base = [
                 'id' => $task->id, 'cycle_id' => $cycle->id, 'farm_id' => $farm->id,
                 'subblock_name' => $cycle->subblock_label ?? 'Subblok '.$cycle->batch_number,
+                'commodity_id' => $cycle->variety?->commodity?->id,
+                'commodity_name' => $cycle->variety?->commodity?->name,
                 'farm_name' => $farm->name, 'block_id' => $cycle->block_id,
                 'block_name' => $block?->getAttribute('name') ?? 'Tanpa blok', 'name' => $task->name,
                 'scheduled_date' => $date->toDateString(), 'due_date' => $due->toDateString(),

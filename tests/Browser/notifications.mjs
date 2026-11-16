@@ -229,6 +229,8 @@ try {
                 if (
                     role === 'petugas' &&
                     (!href.includes('block_id=') ||
+                        !href.includes('status=all') ||
+                        !href.includes('category=harvest') ||
                         !href.startsWith('/petugas/aktivitas?'))
                 )
                     throw new Error('Invalid task link');
@@ -302,7 +304,7 @@ try {
             );
             if (
                 !(await evaluate(
-                    `document.querySelector('[data-notification-content="task_reminder"]').innerText.includes('Subblok A1') && document.querySelectorAll('[data-notification-content="task_reminder"] li').length === 3 && !document.querySelector('[data-notification-content="task_reminder"]').innerText.includes('Batas toleransi')`,
+                    `document.querySelector('[data-notification-content="task_reminder"]').innerText.includes('Subblok A1') && document.querySelectorAll('[data-notification-content="task_reminder"] li').length === 3 && document.querySelectorAll('[data-notification-content="task_reminder"] section').length === 2 && !document.querySelector('[data-notification-content="task_reminder"]').innerText.includes('Batas toleransi')`,
                 ))
             )
                 throw new Error('Harvest subblock details are incorrect');
@@ -326,11 +328,27 @@ try {
                 )
                     throw new Error('Inbox overflows');
                 if (role === 'petugas' && width === 390 && theme === 'light') {
-                    await click('[data-rich-inbox="task_reminder"] button[aria-label="Opsi notifikasi"]');
-                    await until(`Boolean(Array.from(document.querySelectorAll('[role="menuitem"]')).find(el => el.innerText.includes('Tandai dibaca')))`);
-                    await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-                    await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-                    await until(`!document.querySelector('[role="menu"][data-state="open"]')`);
+                    await click(
+                        '[data-rich-inbox="task_reminder"] button[aria-label="Opsi notifikasi"]',
+                    );
+                    await until(
+                        `Boolean(Array.from(document.querySelectorAll('[role="menuitem"]')).find(el => el.innerText.includes('Tandai dibaca')))`,
+                    );
+                    await command('Input.dispatchKeyEvent', {
+                        type: 'keyDown',
+                        key: 'Escape',
+                        code: 'Escape',
+                        windowsVirtualKeyCode: 27,
+                    });
+                    await command('Input.dispatchKeyEvent', {
+                        type: 'keyUp',
+                        key: 'Escape',
+                        code: 'Escape',
+                        windowsVirtualKeyCode: 27,
+                    });
+                    await until(
+                        `!document.querySelector('[role="menu"][data-state="open"]')`,
+                    );
                     await delay(350);
                     const metadata =
                         '[data-rich-inbox="task_reminder"] header > div:last-child time';
