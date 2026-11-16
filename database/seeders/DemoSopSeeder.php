@@ -51,17 +51,17 @@ class DemoSopSeeder extends Seeder
 
             $tasks = [
                 // Planting is the HST anchor and planting activity, not a follow-up SOP task.
-                ['category' => 'maintenance', 'subcategory' => 'irrigation', 'name' => 'Pengairan awal', 'offset' => 7, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
-                ['category' => 'maintenance', 'subcategory' => 'follow_up_fertilization', 'name' => 'Pemupukan susulan pertama', 'offset' => 14, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
-                ['category' => 'maintenance', 'subcategory' => 'pest_control', 'name' => 'Pengendalian hama dan penyakit', 'offset' => 30, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
-                ['category' => 'maintenance', 'subcategory' => 'follow_up_fertilization', 'name' => 'Pemupukan lanjutan', 'offset' => 45, 'instructions' => 'Berikan pupuk susulan sesuai fase pertumbuhan dan hasil pengamatan.'],
-                ['category' => 'harvest', 'subcategory' => null, 'name' => 'Panen', 'offset' => 90, 'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.'],
+                ['category' => 'maintenance', 'name' => 'Pengairan awal', 'offset' => 7, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
+                ['category' => 'maintenance', 'name' => 'Pemupukan susulan pertama', 'offset' => 14, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
+                ['category' => 'maintenance', 'name' => 'Pengendalian hama dan penyakit', 'offset' => 30, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
+                ['category' => 'maintenance', 'name' => 'Pemupukan lanjutan', 'offset' => 45, 'instructions' => 'Berikan pupuk susulan sesuai fase pertumbuhan dan hasil pengamatan.'],
+                ['category' => 'harvest', 'name' => 'Panen', 'offset' => 90, 'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.'],
             ];
 
             foreach ($tasks as $task) {
                 $version->tasks()->create([
                     'activity_category' => $task['category'],
-                    'activity_subcategory' => $task['subcategory'],
+                    'activity_subcategory' => null,
                     'name' => $task['name'],
                     'instructions' => $task['instructions'],
                     'offset_days' => $task['offset'],

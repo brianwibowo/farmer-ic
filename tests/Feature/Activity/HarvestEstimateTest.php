@@ -481,7 +481,7 @@ class HarvestEstimateTest extends TestCase
         $task = $this->harvest();
         $this->actingAs($this->petugas)->post('/petugas/tasks/'.$task->id.'/aktivitas', [
             'work_date' => '2026-11-13', 'start_time' => '07:00', 'worker_count' => 2,
-            'details' => ['area_ha' => '0.1', 'weight_ton' => '0.1', 'method' => 'Manual'],
+            'details' => ['area_ha' => '0.1', 'weight_ton' => '0.1'],
             'photos' => [UploadedFile::fake()->image('panen.jpg')],
         ])->assertSessionHasNoErrors();
         $this->actingAs($this->admin)->post('/kebun/'.$this->farm->id.'/blocks/'.$this->cycle->block_id.'/batches/'.$this->cycle->id.'/close-harvest')

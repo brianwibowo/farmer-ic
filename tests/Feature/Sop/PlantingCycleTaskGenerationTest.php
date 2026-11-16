@@ -74,8 +74,8 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $version = $template->versions()->firstOrFail();
 
         foreach ([
-            ['activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan awal', 'offset_days' => 7, 'tolerance_days' => 2],
-            ['activity_category' => 'harvest', 'activity_subcategory' => null, 'name' => 'Panen', 'offset_days' => 90, 'tolerance_days' => 5],
+            ['activity_category' => 'maintenance', 'name' => 'Pengairan awal', 'offset_days' => 7, 'tolerance_days' => 2],
+            ['activity_category' => 'harvest', 'name' => 'Panen', 'offset_days' => 90, 'tolerance_days' => 5],
         ] as $task) {
             $service->createTask($version, [
                 ...$task,
@@ -124,12 +124,13 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertCount(2, $tasks);
         $this->assertFalse($tasks->contains('activity_category', 'planting'));
 
-        $irrigation = $tasks->firstWhere('activity_subcategory', 'irrigation');
+        $maintenance = $tasks->firstWhere('activity_category', 'maintenance');
         $harvest = $tasks->firstWhere('activity_category', 'harvest');
 
-        $this->assertSame('2026-11-12', $irrigation->scheduled_date->toDateString());
-        $this->assertSame('2026-11-14', $irrigation->due_date->toDateString());
-        $this->assertSame('maintenance', $irrigation->stage->code);
+        $this->assertSame('2026-11-12', $maintenance->scheduled_date->toDateString());
+        $this->assertSame('2026-11-14', $maintenance->due_date->toDateString());
+        $this->assertSame('maintenance', $maintenance->stage->code);
+        $this->assertNull($maintenance->activity_subcategory);
         $this->assertSame('2027-02-03', $harvest->scheduled_date->toDateString());
         $this->assertSame('2027-02-08', $harvest->due_date->toDateString());
         $this->assertSame('harvest', $harvest->stage->code);
@@ -172,11 +173,11 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertSame(0, $second['created']);
         $this->assertSame(2, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->count());
 
-        $irrigation = PlantingCycleTask::query()
+        $maintenance = PlantingCycleTask::query()
             ->where('planting_cycle_id', $subblok->id)
-            ->where('activity_subcategory', 'irrigation')
+            ->where('activity_category', 'maintenance')
             ->firstOrFail();
-        $irrigation->forceFill([
+        $maintenance->forceFill([
             'status' => 'completed',
             'completed_at' => now(),
         ])->save();
@@ -186,7 +187,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
 
         $this->assertSame('already_generated', $third['status']);
         $this->assertSame(1, $third['rescheduled']);
-        $this->assertSame('2026-11-12', $irrigation->refresh()->scheduled_date->toDateString());
+        $this->assertSame('2026-11-12', $maintenance->refresh()->scheduled_date->toDateString());
 
         $harvest = PlantingCycleTask::query()
             ->where('planting_cycle_id', $subblok->id)
@@ -211,7 +212,7 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertNull($subblok->fresh()->sop_template_version_id);
         $subblok->forceFill(['planted_at' => '2026-11-08'])->save();
         $this->assertSame('generated', app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin)['status']);
-        $this->assertSame('2026-11-15', $subblok->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail()->scheduled_date->toDateString());
+        $this->assertSame('2026-11-15', $subblok->tasks()->where('activity_category', 'maintenance')->firstOrFail()->scheduled_date->toDateString());
     }
 
     public function test_reports_missing_or_unpublished_default_sop(): void

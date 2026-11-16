@@ -185,17 +185,17 @@ class DemoOwnerPortfolioSeeder extends Seeder
         $tasks = [
             // Planting is recorded through the planting activity, not authored
             // as an SOP step (see 2026_11_03_000014).
-            ['maintenance', 'irrigation', 'Pemeriksaan pengairan '.$site['commodity'], 7, 'Periksa saluran dan kelembapan tanah; catat kondisi pengairan pada laporan lapangan.'],
-            ['maintenance', 'weeding', 'Penyiangan area tanam '.$site['commodity'], 14, 'Bersihkan gulma pada area tanam tanpa merusak perakaran; dokumentasikan area yang ditangani.'],
-            ['maintenance', 'growth_check', 'Pengamatan pertumbuhan '.$site['commodity'], 21, 'Catat fase tumbuh, tinggi sampel dan kondisi kesehatan tanaman.'],
-            ['maintenance', 'follow_up_fertilization', 'Pemupukan susulan '.$site['commodity'], 28, 'Ikuti dosis yang disetujui pengelola kebun; catat jenis, jumlah dan metode aplikasi.'],
-            ['maintenance', 'pest_control', 'Pemantauan hama '.$site['commodity'], 35, 'Lakukan pengamatan hama dan penyakit, lalu catat hasil serta tindak lanjut yang disetujui.'],
-            ['harvest', null, 'Pencatatan panen '.$site['commodity'], $site['harvest_offset'], 'Periksa kesiapan panen dan catat luas, berat serta kualitas hasil panen.'],
+            ['maintenance', 'Pemeriksaan pengairan '.$site['commodity'], 7, 'Periksa saluran dan kelembapan tanah; catat kondisi pengairan pada laporan lapangan.'],
+            ['maintenance', 'Penyiangan area tanam '.$site['commodity'], 14, 'Bersihkan gulma pada area tanam tanpa merusak perakaran; dokumentasikan area yang ditangani.'],
+            ['maintenance', 'Pengamatan pertumbuhan '.$site['commodity'], 21, 'Catat fase tumbuh, tinggi sampel dan kondisi kesehatan tanaman.'],
+            ['maintenance', 'Pemupukan susulan '.$site['commodity'], 28, 'Ikuti dosis yang disetujui pengelola kebun; catat jenis, jumlah dan metode aplikasi.'],
+            ['maintenance', 'Pemantauan hama '.$site['commodity'], 35, 'Lakukan pengamatan hama dan penyakit, lalu catat hasil serta tindak lanjut yang disetujui.'],
+            ['harvest', 'Pencatatan panen '.$site['commodity'], $site['harvest_offset'], 'Periksa kesiapan panen dan catat luas, berat serta kualitas hasil panen.'],
         ];
-        foreach ($tasks as [$category, $subcategory, $name, $offset, $instructions]) {
+        foreach ($tasks as [$category, $name, $offset, $instructions]) {
             Gate::forUser($actor)->authorize('create', [SopTemplateTask::class, $version]);
             app(SopTemplateService::class)->createTask($version, [
-                'activity_category' => $category, 'activity_subcategory' => $subcategory, 'name' => $name,
+                'activity_category' => $category, 'activity_subcategory' => null, 'name' => $name,
                 'offset_days' => $offset, 'tolerance_days' => 2, 'is_required' => true, 'instructions' => $instructions,
             ]);
         }

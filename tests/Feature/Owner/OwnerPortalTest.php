@@ -506,7 +506,7 @@ class OwnerPortalTest extends TestCase
     private function makeActivity(Farm $farm, string $description): FarmActivity
     {
         return FarmActivity::create([
-            'farm_id' => $farm->id, 'activity_type_id' => ActivityType::query()->where('code', 'irrigation')->firstOrFail()->id,
+            'farm_id' => $farm->id, 'activity_type_id' => ActivityType::query()->where('code', 'maintenance')->firstOrFail()->id,
             'performed_by' => $this->petugas->id, 'activity_date' => '2026-11-04 09:00:00+07',
             'description' => $description, 'status' => 'completed',
         ]);

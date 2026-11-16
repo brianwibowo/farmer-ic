@@ -11,47 +11,32 @@ class FertilizationActivityTypeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_migration_and_seeder_make_base_fertilization_selectable_without_changing_its_identity(): void
+    public function test_seeder_keeps_base_fertilization_as_pemupukan_kandang_root_activity(): void
     {
         $type = ActivityType::query()->where('code', 'base_fertilization')->firstOrFail();
         $id = $type->id;
-        $parent = ActivityType::query()->where('code', 'soil_preparation')->firstOrFail();
-        $type->update(['parent_id' => $parent->id, 'is_selectable' => false, 'sort_order' => 24]);
+        $this->assertSame('Pemupukan Kandang', $type->name);
+        $this->assertNull($type->parent_id);
+        $this->assertTrue($type->is_selectable);
+        $this->assertSame('fertilization', $type->detail_key);
+        $this->assertSame(24, $type->sort_order);
 
-        $migration = require database_path('migrations/2026_11_11_000001_make_base_fertilization_a_root_activity.php');
-        $migration->up();
-        $this->assertDatabaseHas('activity_types', [
-            'id' => $id, 'code' => 'base_fertilization', 'parent_id' => null,
-            'is_selectable' => true, 'detail_key' => 'fertilization', 'sort_order' => 15,
-        ]);
         $this->seed(SopActivityTypeSeeder::class);
         $this->assertDatabaseHas('activity_types', [
-            'id' => $id, 'code' => 'base_fertilization', 'parent_id' => null,
-            'is_selectable' => true, 'detail_key' => 'fertilization', 'sort_order' => 24,
+            'id' => $id, 'code' => 'base_fertilization', 'name' => 'Pemupukan Kandang',
+            'parent_id' => null, 'is_selectable' => true, 'detail_key' => 'fertilization', 'sort_order' => 24,
         ]);
-        $followUp = ActivityType::query()->where('code', 'follow_up_fertilization')->firstOrFail();
-        $this->assertSame('maintenance', $followUp->parent->code);
-        $this->assertTrue($followUp->is_selectable);
+        $this->assertDatabaseMissing('activity_types', ['code' => 'follow_up_fertilization']);
     }
 
-    public function test_order_migration_moves_only_base_fertilization_and_seeding_preserves_the_order(): void
+    public function test_simplified_root_categories_order_is_preserved_after_seeding(): void
     {
-        $type = ActivityType::query()->where('code', 'base_fertilization')->firstOrFail();
-        $type->update(['sort_order' => 15]);
-        $before = $type->fresh()->getRawOriginal();
         $otherTypes = ActivityType::query()->where('code', '!=', 'base_fertilization')
             ->orderBy('code')->get()->map(fn (ActivityType $other) => $other->getRawOriginal())->all();
 
-        $migration = require database_path('migrations/2026_11_12_000002_order_base_fertilization_after_soil_preparation.php');
-        $migration->up();
-        $this->assertSame([...$before, 'sort_order' => 24], $type->fresh()->getRawOriginal());
+        $this->seed(SopActivityTypeSeeder::class);
+        $this->assertSame(24, ActivityType::query()->where('code', 'base_fertilization')->value('sort_order'));
         $this->assertSame($otherTypes, ActivityType::query()->where('code', '!=', 'base_fertilization')
             ->orderBy('code')->get()->map(fn (ActivityType $other) => $other->getRawOriginal())->all());
-
-        $migration->down();
-        $this->assertSame(15, $type->fresh()->sort_order);
-        $migration->up();
-        $this->seed(SopActivityTypeSeeder::class);
-        $this->assertSame(24, $type->fresh()->sort_order);
     }
 }

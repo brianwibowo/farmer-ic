@@ -16,7 +16,7 @@ $template = $sops->create($admin, $team, [
 $version = $template->versions()->firstOrFail();
 Illuminate\Support\Facades\Gate::forUser($admin)->authorize('create', [App\Models\SopTemplateTask::class, $version]);
 $sops->createTask($version, [
-    'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
+    'activity_category' => 'maintenance', 'activity_subcategory' => null,
     'name' => 'Pengairan awal jagung', 'offset_days' => 7,
     'tolerance_days' => 2, 'is_required' => true,
 ]);

@@ -9,10 +9,7 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\FarmerModel;
 use App\Models\FarmRisk;
-use App\Models\FertilizationDetail;
 use App\Models\HarvestDetail;
-use App\Models\IrrigationDetail;
-use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\PlantingDetail;
@@ -77,33 +74,27 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             'Jagung' => 20, 'Sorgum' => 10, 'Rumput' => null,
             default => throw new LogicException('Komoditas portofolio tidak didukung.'),
         };
-        $this->activity($farm, $cycle, $key, 'planting', $planted->toDateString(),
+        $this->activity($farm, $cycle, $key, 'planting', 'planting', $planted->toDateString(),
             'Penanaman '.$site['commodity'].' '.$batch['subblock_label'], [
                 'seed_name' => ($site['commodity'] === 'Rumput' ? 'Stek rumput ' : $site['commodity'].' ').$site['variety'],
                 'quantity_kg' => $seedRate === null ? null : $area * $seedRate,
-                'planting_pattern' => $site['commodity'] === 'Rumput' ? 'Barisan stek mengikuti petak tanam' : 'Barisan teratur mengikuti bedengan', 'area_ha' => $area,
+                'area_ha' => $area,
             ], $actor, $performer, $team);
         $fertilized = $site['key'] === 'cibogo' ? '2026-11-04' : $planted->addDays(14)->toDateString();
-        $this->activity($farm, $cycle, $key, 'follow_up_fertilization', $fertilized,
+        $this->activity($farm, $cycle, $key, 'maintenance', 'follow_up_fertilization', $fertilized,
             'Pemupukan susulan '.$site['commodity'].' '.$batch['subblock_label'], [
-                'fertilization_stage' => 'Susulan vegetatif', 'fertilizer_type' => 'NPK 15-15-15',
-                'brand_name' => 'NPK contoh portofolio', 'subsidy_status' => 'non_subsidized',
-                'application_method' => 'Aplikasi larikan di sisi barisan', 'quantity_kg' => $area * 150,
+                'area_ha' => $area,
             ], $actor, $performer, $team);
         if ($batch['status'] === 'active') {
-            $this->activity($farm, $cycle, $key, 'irrigation', '2026-11-03',
+            $this->activity($farm, $cycle, $key, 'maintenance', 'irrigation', '2026-11-03',
                 'Pengairan '.$site['commodity'].' '.$batch['subblock_label'], [
-                    'water_source' => $site['key'] === 'sukamaju' ? 'Saluran irigasi kebun' : 'Embung kebun',
-                    'irrigation_method' => $site['key'] === 'mekarsari' ? 'Irigasi tetes' : 'Pengairan saluran terkontrol',
-                    'machine_type' => 'Pompa listrik', 'duration_hours' => $site['key'] === 'sukamaju' ? 3 : 1.5,
+                    'area_ha' => $area,
                 ], $actor, $performer, $team);
         }
         if ($site['key'] === 'mekarsari') {
-            $this->activity($farm, $cycle, $key, 'pest_control', '2026-11-04',
+            $this->activity($farm, $cycle, $key, 'maintenance', 'pest_control', '2026-11-04',
                 'Pengendalian kutu daun jagung '.$batch['subblock_label'], [
-                    'pesticide_category' => 'Biologis', 'purpose' => 'Pengendalian kutu daun',
-                    'brand_name' => 'Agens hayati contoh', 'active_ingredient' => 'Beauveria bassiana',
-                    'dosage_per_tank' => 'Catatan aplikasi contoh, bukan rekomendasi dosis', 'tank_size_liters' => 16, 'tank_count' => 4,
+                    'area_ha' => $area,
                 ], $actor, $performer, $team);
         }
         $observed = $batch['status'] === 'harvested'
@@ -111,7 +102,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             : match ($site['key']) {
                 'cibogo' => '2026-11-03', 'cikeas' => '2026-11-04', default => '2026-11-05'
             };
-        $observation = $this->activity($farm, $cycle, $key, 'growth_check', $observed,
+        $observation = $this->activity($farm, $cycle, $key, 'maintenance', 'growth_check', $observed,
             'Observasi '.$site['commodity'].' '.$batch['subblock_label'], [
                 'growth_phase' => $batch['status'] === 'harvested' ? 'Pematangan' : ($site['key'] === 'mekarsari' ? 'Pembungaan' : 'Vegetatif'),
                 'average_height_cm' => match ($site['key']) {
@@ -141,10 +132,9 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             'image_url' => '/images/kebun-placeholder.svg', 'uploaded_at' => $this->at($observed),
         ], $observation, $actor, $team);
         if ($batch['status'] === 'harvested') {
-            $this->activity($farm, $cycle, $key, 'harvest', $batch['harvested_at'],
+            $this->activity($farm, $cycle, $key, 'harvest', 'harvest', $batch['harvested_at'],
                 'Panen '.$site['commodity'].' '.$batch['subblock_label'], [
                     'harvested_area_ha' => $area, 'gross_weight_ton' => $batch['estimated_weight_ton'],
-                    'moisture_percentage' => null,
                     'color' => $site['commodity'] === 'Rumput' ? 'Hijau segar' : 'Kuning keemasan',
                     'ripeness' => $site['commodity'] === 'Rumput' ? 'Siap potong' : 'Matang panen', 'cleanliness' => 'Bersih setelah sortasi',
                 ], $actor, $performer, $team);
@@ -167,44 +157,54 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             $reference = $batches->sortBy('planned_planting_at')->first();
             $date = CarbonImmutable::parse($reference['planned_planting_at'], 'Asia/Jakarta');
             $reports = [
-                ['land_cleaning', $date->subDays(15), 'landCleaningDetail', ['area_ha' => $block->area_ha, 'method' => 'Pembersihan manual']],
-                ['loosening', $date->subDays(12), 'looseningDetail', ['area_ha' => $block->area_ha, 'method' => 'Cultivator', 'depth_cm' => 20]],
+                ['land_cleaning', $date->subDays(15), 'landCleaningDetail', ['area_ha' => $block->area_ha]],
+                ['soil_preparation', $date->subDays(12), null, ['area_ha' => $block->area_ha]],
             ];
             if ($batches->contains(fn ($batch) => $batch['status'] !== 'planned' || $batch['current_stage'] === 'basic_fertilizer')) {
                 $reports[] = ['base_fertilization', $date->subDays(7), 'fertilizationDetail', [
-                    'fertilization_stage' => 'dasar', 'fertilizer_type' => 'Pupuk kandang', 'quantity_kg' => 500,
-                    'quantity_unit' => 'kg', 'area_ha' => $block->area_ha, 'application_method' => 'Tabur',
+                    'fertilization_stage' => 'kandang', 'area_ha' => $block->area_ha,
                 ]];
             }
             foreach ($reports as [$code, $when, $relation, $detail]) {
-                $type = ActivityType::visibleTo($actor, $team)->where('code', $code)->firstOrFail();
-                $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'block-activity:'.$site['key'].':'.$blockCode.':'.$code), [
-                    'farm_id' => $farm->id, 'block_id' => $block->id, 'activity_type_id' => $type->id,
-                    'performed_by' => $performer->id, 'activity_date' => $this->at($when->toDateString()),
-                    'description' => $type->name.' '.$blockCode, 'status' => 'completed',
-                ], $farm, $actor, $team);
-                if ($activity->wasRecentlyCreated) {
-                    $activity->{$relation}()->create($detail);
-                    app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
-                }
+                $this->blockActivity($farm, $site['key'], $block, $code, $when, $relation, $detail, $actor, $performer, $team);
             }
         }
     }
 
     /** @param array<string, mixed> $detail */
-    private function activity(Farm $farm, PlantingCycle $cycle, string $key, string $code, string $date, string $description, array $detail, User $actor, User $performer, Team $team): FarmActivity
+    private function blockActivity(Farm $farm, string $siteKey, FarmBlock $block, string $code, CarbonImmutable $when, ?string $relation, array $detail, User $actor, User $performer, Team $team): void
+    {
+        $type = ActivityType::visibleTo($actor, $team)->where('code', $code)->firstOrFail();
+        $attributes = [
+            'farm_id' => $farm->id, 'block_id' => $block->id, 'activity_type_id' => $type->id,
+            'performed_by' => $performer->id, 'activity_date' => $this->at($when->toDateString()),
+            'description' => $type->name.' '.$block->code, 'status' => 'completed',
+        ];
+        if ($relation === null) {
+            $attributes['task_details'] = json_encode($detail, JSON_THROW_ON_ERROR);
+        }
+        $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'block-activity:'.$siteKey.':'.$block->code.':'.$code), $attributes, $farm, $actor, $team);
+        if ($activity->wasRecentlyCreated) {
+            if ($relation !== null) {
+                $activity->{$relation}()->create($detail);
+            }
+            app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
+        }
+    }
+
+    /** @param array<string, mixed> $detail */
+    private function activity(Farm $farm, PlantingCycle $cycle, string $key, string $code, string $identity, string $date, string $description, array $detail, User $actor, User $performer, Team $team): FarmActivity
     {
         Gate::forUser($actor)->authorize('viewAny', [ActivityType::class, $team]);
         $type = ActivityType::visibleTo($actor, $team)->where('code', $code)->first();
         if ($type === null) {
             Gate::forUser($actor)->authorize('create', [ActivityType::class, $team]);
             $type = ActivityType::create(['code' => $code, 'name' => match ($code) {
-                'planting' => 'Penanaman', 'follow_up_fertilization' => 'Pemupukan susulan', 'irrigation' => 'Irigasi',
-                'growth_check' => 'Pengecekan Pertumbuhan', 'pest_control' => 'Pengendalian hama dan penyakit', 'harvest' => 'Panen',
+                'planting' => 'Penanaman', 'maintenance' => 'Perawatan', 'harvest' => 'Panen',
                 default => throw new LogicException('Jenis aktivitas portofolio tidak didukung: '.$code),
             }]);
         }
-        $activityId = DemoOwnerPortfolioData::id($team, 'activity:'.$key.':'.$code);
+        $activityId = DemoOwnerPortfolioData::id($team, 'activity:'.$key.':'.$identity);
         $taskData = [];
         Gate::forUser($actor)->authorize('viewAny', [FarmActivity::class, $team]);
         if ($code === 'harvest' && ! FarmActivity::visibleTo($actor, $team)->whereKey($activityId)->exists()) {
@@ -215,8 +215,11 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                 'planting_cycle_task_id' => $task->id,
                 'task_details' => json_encode([
                     'area_ha' => $detail['harvested_area_ha'], 'weight_ton' => $detail['gross_weight_ton'],
-                    'moisture' => $detail['moisture_percentage'],
                 ], JSON_THROW_ON_ERROR),
+            ];
+        } elseif ($code === 'maintenance' && $identity !== 'growth_check') {
+            $taskData = [
+                'task_details' => json_encode($detail, JSON_THROW_ON_ERROR),
             ];
         }
         $activity = $this->record(FarmActivity::class, $activityId, [
@@ -225,15 +228,20 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             'description' => $description, 'status' => 'completed', 'created_at' => $this->at($date), 'updated_at' => $this->at($date), ...$taskData,
         ], $farm, $actor, $team);
         if ($activity->wasRecentlyCreated) {
-            $model = match ($code) {
-                'planting' => PlantingDetail::class, 'follow_up_fertilization' => FertilizationDetail::class,
-                'irrigation' => IrrigationDetail::class, 'pest_control' => PesticideDetail::class,
-                'harvest' => HarvestDetail::class, 'growth_check' => PlantObservation::class,
+            if ($code === 'maintenance' && $identity !== 'growth_check') {
+                app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
+
+                return $activity;
+            }
+            $model = match (true) {
+                $code === 'planting' => PlantingDetail::class,
+                $code === 'harvest' => HarvestDetail::class,
+                $identity === 'growth_check' => PlantObservation::class,
                 default => throw new LogicException('Jenis detail portofolio tidak didukung: '.$code),
             };
-            Gate::forUser($actor)->authorize('create', [$model, $code === 'growth_check' ? $cycle : $activity]);
+            Gate::forUser($actor)->authorize('create', [$model, $identity === 'growth_check' ? $cycle : $activity]);
             $payload = ['activity_id' => $activity->id, ...$detail];
-            if ($code === 'growth_check') {
+            if ($identity === 'growth_check') {
                 $payload += ['id' => DemoOwnerPortfolioData::id($team, 'observation:'.$key),
                     'planting_cycle_id' => $cycle->id, 'observed_by' => $performer->id, 'observed_at' => $this->at($date)];
             }

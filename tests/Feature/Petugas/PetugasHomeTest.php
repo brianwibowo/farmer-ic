@@ -90,7 +90,7 @@ class PetugasHomeTest extends TestCase
         return PlantingCycleTask::create([
             'planting_cycle_id' => $batch->id,
             'planting_cycle_stage_id' => $batch->stages()->where('code', 'maintenance')->value('id'),
-            'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
+            'activity_category' => 'maintenance', 'activity_subcategory' => null,
             'name' => $name, 'instructions' => 'Siram merata di sekitar pangkal tanaman sebelum pukul 09.00.',
             'offset_days' => 7, 'tolerance_days' => 0, 'scheduled_date' => $date, 'due_date' => $date,
             'is_required' => true, 'status' => $status,

@@ -32,7 +32,7 @@ class PetugasDailyActivityController extends Controller
 
         return Inertia::render('petugas/Laporan', ['farm' => $farm->only(['id', 'name']), 'filters' => $filters,
             'reports' => $reports->listing($request->user(), $farm, $filters),
-            'types' => ActivityType::visibleTo($request->user(), $farm->team)->where('is_selectable', true)->orderBy('sort_order')->get(['code', 'name']),
+            'types' => ActivityType::visibleTo($request->user(), $farm->team)->where('is_active', true)->where('is_selectable', true)->orderBy('sort_order')->get(['code', 'name']),
             'categories' => $categories->forFarm($request->user(), $farm)]);
     }
 

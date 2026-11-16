@@ -323,7 +323,7 @@ class SopTemplateService
 
         return [
             'activity_category' => $data['activity_category'],
-            'activity_subcategory' => $data['activity_subcategory'] ?? null,
+            'activity_subcategory' => null,
             'name' => $data['name'],
             'instructions' => $data['instructions'] ?? null,
             'offset_days' => (int) ($data['offset_days'] ?? 0),

@@ -113,7 +113,7 @@ class PetugasTaskListTest extends TestCase
             'planting_cycle_id' => $subblok->id,
             'planting_cycle_stage_id' => $stage->id,
             'activity_category' => 'maintenance',
-            'activity_subcategory' => 'irrigation',
+            'activity_subcategory' => null,
             'name' => $name,
             'instructions' => 'Ikuti instruksi SOP.',
             'offset_days' => 7,
@@ -137,7 +137,6 @@ class PetugasTaskListTest extends TestCase
             'due_date' => $today->subDays(4)->toDateString(),
         ]);
         $this->task($this->subblok, 'Pemupukan susulan pertama', [
-            'activity_subcategory' => 'follow_up_fertilization',
             'offset_days' => 21,
             'scheduled_date' => $today->subDays(1)->toDateString(),
             'due_date' => $today->addDays(2)->toDateString(),
@@ -174,7 +173,6 @@ class PetugasTaskListTest extends TestCase
                 ->where('tasks.0.name', 'Pengairan')
                 ->where('tasks.0.urgency', 'overdue')
                 ->where('tasks.0.activity_category', 'maintenance')
-                ->where('tasks.0.activity_subcategory', 'irrigation')
                 ->where('tasks.0.scheduled_date', $today->subDays(5)->toDateString())
                 ->where('tasks.0.due_date', $today->subDays(4)->toDateString())
                 ->where('tasks.0.linked_activities_count', 0)

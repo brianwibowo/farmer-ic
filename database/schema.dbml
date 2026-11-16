@@ -218,7 +218,7 @@ Table planting_cycle_tasks {
   planting_cycle_stage_id uuid [not null, note: 'Composite FK to a stage of the same subblok']
   sop_template_task_id uuid [ref: > sop_template_tasks.id]
   activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not a task']
-  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance']
+  activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP memakai kategori maintenance atau harvest']
   name varchar(200) [not null]
   instructions text
   offset_days int [not null, default: 0]
@@ -295,7 +295,7 @@ Table sop_template_tasks {
   created_at timestamptz
   updated_at timestamptz
   activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not an SOP step']
-  activity_subcategory varchar(50) [note: 'Wajib untuk maintenance: irrigation | weeding | follow_up_fertilization | growth_check | pest_control']
+  activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP tidak lagi menggunakan subkategori']
   indexes {
     (sop_template_version_id, offset_days)
     (sop_template_version_id, activity_category)
@@ -306,18 +306,18 @@ Table sop_template_tasks {
 
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'kategori dan subkategori aktivitas']
+  code varchar(50) [not null, unique, note: 'kategori aktivitas utama dan internal block_mapping']
   name varchar(100) [not null]
   description text
-  parent_id uuid [ref: > activity_types.id, note: 'Null untuk kategori root; parent untuk subkategori']
-  detail_key varchar(50) [note: 'Menentukan detail table; null jika detail belum tersedia']
-  is_selectable boolean [not null, default: true, note: 'False untuk parent kategori dan block_mapping']
+  parent_id uuid [ref: > activity_types.id, note: 'Null untuk kategori root']
+  detail_key varchar(50) [note: 'Menentukan detail table; null jika memakai task_details / catatan']
+  is_selectable boolean [not null, default: true, note: 'False untuk block_mapping']
   sort_order smallint [not null, default: 0]
   is_active boolean [not null, default: true]
   indexes {
     parent_id
   }
-  Note: 'Self-referencing taxonomy. Category = root, subcategory = child. Farm activities point to the most specific selectable row.'
+  Note: 'Kategori utama aktivitas (pembersihan lahan, pengolahan tanah, pemupukan kandang, penanaman, perawatan, panen, pelaporan insiden, lainnya) plus block_mapping.'
 }
 
 Table farm_activities {

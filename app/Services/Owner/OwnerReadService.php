@@ -265,10 +265,10 @@ class OwnerReadService
     {
         return match ($code) {
             'land_clearing' => 'Pembersihan lahan',
-            'soil_preparation' => 'Persiapan tanah',
-            'basic_fertilizer' => 'Pupuk dasar',
+            'soil_preparation' => 'Pengolahan tanah',
+            'basic_fertilizer' => 'Pemupukan kandang',
             'planting' => 'Penanaman',
-            'maintenance' => 'Pemeliharaan',
+            'maintenance' => 'Perawatan',
             'harvest' => 'Panen',
             default => 'Tahap lainnya',
         };
@@ -436,7 +436,7 @@ class OwnerReadService
                 ->through(fn (FarmActivity $activity): array => $this->activityPayload($activity)),
             'filters' => $filters,
             'farms' => Farm::visibleTo($actor, $team)->orderBy('name')->get(['id', 'name']),
-            'activityTypes' => ActivityType::visibleTo($actor, $team)->orderBy('name')->get(['id', 'code', 'name']),
+            'activityTypes' => ActivityType::visibleTo($actor, $team)->where('is_active', true)->where('is_selectable', true)->orderBy('sort_order')->get(['id', 'code', 'name']),
             'officers' => User::visibleTo($actor, $team)
                 ->whereHas('activities', fn ($activities) => $activities->visibleTo($actor, $team))
                 ->orderBy('name')->get(['id', 'name']),
@@ -481,6 +481,13 @@ class OwnerReadService
                 if ($value !== null && $value !== '') {
                     $details[] = ['label' => $label, 'value' => $this->detailValue($record, $field, $value)];
                 }
+            }
+        }
+        if ($details === []) {
+            $taskDetails = json_decode((string) $activity->getAttribute('task_details'), true);
+            if (is_array($taskDetails) && isset($taskDetails['area_ha']) && is_numeric($taskDetails['area_ha'])) {
+                $formatted = number_format((float) $taskDetails['area_ha'], 4, ',', '.');
+                $details[] = ['label' => 'Luas (ha)', 'value' => rtrim(rtrim($formatted, '0'), ',')];
             }
         }
         $log = $activity->dailyActivityLog;
@@ -533,7 +540,6 @@ class OwnerReadService
                     'name',
                     'instructions',
                     'activity_category',
-                    'activity_subcategory',
                     'offset_days',
                     'tolerance_days',
                     'is_required',
@@ -602,10 +608,10 @@ class OwnerReadService
                 ...$stage->only(['id', 'code', 'position', 'status']),
                 'name' => match ($stage->getAttribute('code')) {
                     'land_clearing' => 'Pembersihan lahan',
-                    'soil_preparation' => 'Persiapan tanah',
-                    'basic_fertilizer' => 'Pupuk dasar',
+                    'soil_preparation' => 'Pengolahan tanah',
+                    'basic_fertilizer' => 'Pemupukan kandang',
                     'planting' => 'Penanaman',
-                    'maintenance' => 'Pemeliharaan',
+                    'maintenance' => 'Perawatan',
                     'harvest' => 'Panen',
                     default => 'Tahap lainnya',
                 },
@@ -613,7 +619,7 @@ class OwnerReadService
                 'completed_at' => $this->timestamp($stage->getAttribute('completed_at')),
             ])->all(),
             'tasks' => $cycle->tasks->map(fn ($task): array => [
-                ...$task->only(['id', 'name', 'status', 'instructions', 'offset_days', 'tolerance_days', 'is_required', 'activity_category', 'activity_subcategory']),
+                ...$task->only(['id', 'name', 'status', 'instructions', 'offset_days', 'tolerance_days', 'is_required', 'activity_category']),
                 'scheduled_date' => $task->scheduled_date?->toDateString(),
                 'effective_scheduled_date' => $task->effectiveScheduledDate()?->toDateString(),
                 'due_date' => $task->due_date?->toDateString(),

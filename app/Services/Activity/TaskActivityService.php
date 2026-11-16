@@ -92,22 +92,7 @@ class TaskActivityService
                 $block = $blockId === null ? null : \App\Models\FarmBlock::visibleTo($actor, $farm->team)->where('farm_id', $farm->id)->whereKey($blockId)->firstOrFail();
                 $activity->forceFill(['block_id' => $block?->id, 'planting_cycle_task_id' => $task->id, 'task_details' => json_encode($details, JSON_THROW_ON_ERROR)])->save();
                 match ($type->detail_key) {
-                    'irrigation' => $activity->irrigationDetail()->create(['water_source' => $details['water_source'], 'irrigation_method' => $details['method'], 'machine_type' => $details['pump'] ?? null, 'duration_hours' => $details['duration_hours']]),
-                    'fertilization' => $activity->fertilizationDetail()->create([
-                        'fertilization_stage' => $code === 'base_fertilization' ? 'dasar' : 'susulan',
-                        'fertilizer_type' => $details['fertilizer'] ?? $details['fertilizer_type'] ?? null,
-                        'brand_name' => $details['brand'] ?? $details['brand_name'] ?? null,
-                        'quantity_kg' => $details['quantity_kg'],
-                        'quantity_unit' => $details['quantity_unit'] ?? null,
-                        'sack_size_kg' => $details['bag_size'] ?? $details['sack_size_kg'] ?? null,
-                        'application_method' => $details['method'] ?? $details['application_method'] ?? null,
-                        'area_ha' => $details['area_ha'],
-                    ]),
-                    'weeding' => $activity->weedingDetail()->create(['area_ha' => $details['area_ha'], 'method' => $details['method'], 'depth_cm' => $details['depth_cm'] ?? null]),
-                    'other' => $activity->otherDetail()->create(['description' => $details['description'] ?? $data['notes'] ?? null, 'area_ha' => $details['area_ha'] ?? null]),
-                    'pesticide' => $activity->pesticideDetail()->create(['pesticide_category' => $details['control_type'], 'purpose' => $details['target'], 'brand_name' => $details['product'], 'dosage_per_tank' => $details['dosage'], 'tank_size_liters' => $details['water_liters'], 'tank_count' => $details['tank_count']]),
-                    'harvest' => $activity->harvestDetail()->create(['harvested_area_ha' => $details['area_ha'], 'gross_weight_ton' => $details['weight_ton'], 'moisture_percentage' => $details['moisture'] ?? null]),
-                    'growth_check' => $activity->observation()->create(['planting_cycle_id' => $cycle->id, 'observed_by' => $actor->id, 'observed_at' => $date, 'growth_phase' => $details['phase'], 'average_height_cm' => $details['height_cm'], 'pest_indication' => $details['pest'], 'disease_indication' => $details['disease']]),
+                    'harvest' => $activity->harvestDetail()->create(['harvested_area_ha' => $details['area_ha'], 'gross_weight_ton' => $details['weight_ton']]),
                     default => null,
                 };
                 foreach ($data['photos'] as $photo) {

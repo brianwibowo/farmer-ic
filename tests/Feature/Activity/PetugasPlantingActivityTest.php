@@ -78,7 +78,7 @@ class PetugasPlantingActivityTest extends TestCase
         foreach (['2026-10-26', '2026-10-28'] as $date) {
             $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.4', 'work_date' => $date, 'end_time' => null])->assertSessionHasNoErrors();
         }
-        $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
+        $task = $this->cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail();
         $this->assertSame('2026-10-28', $this->cycle->refresh()->planted_at->toDateString());
         $this->assertSame('2026-11-04', $task->scheduled_date->toDateString());
         $this->artisan('planting:reconcile-windows')->assertSuccessful();
@@ -115,7 +115,7 @@ class PetugasPlantingActivityTest extends TestCase
             $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.3'])->assertSessionHasNoErrors();
         }
         $this->assertSame($date, $this->cycle->refresh()->planted_at->toDateString());
-        $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
+        $task = $this->cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail();
         $override = now('Asia/Jakarta')->addDays(10)->toDateString();
         $task->update(['rescheduled_date' => $override, 'reschedule_reason' => 'Ketersediaan air', 'rescheduled_by' => $this->admin->id, 'rescheduled_at' => now()]);
         $closed = $this->cycle->tasks()->where('activity_category', 'harvest')->firstOrFail();
@@ -134,7 +134,7 @@ class PetugasPlantingActivityTest extends TestCase
         $data = $this->payload();
         unset($data['area_ha'], $data['quantity_kg']);
         $data = [...$data, 'schema' => 'taxonomy', 'area' => 1000, 'area_unit' => 'm²',
-            'quantity' => 2, 'quantity_unit' => 'sak', 'bag_size' => 5, 'depth_cm' => 3, 'end_time' => null];
+            'quantity' => 2, 'quantity_unit' => 'sak', 'bag_size' => 5, 'end_time' => null];
         $this->post($this->url(), $data)->assertSessionHasNoErrors();
         $this->assertDatabaseHas('planting_details', ['area_ha' => '0.1000', 'quantity_kg' => '10.000']);
         $date = \Carbon\CarbonImmutable::parse($data['work_date'])->subDay()->toDateString();
@@ -154,8 +154,8 @@ class PetugasPlantingActivityTest extends TestCase
         $service = app(SopTemplateService::class);
         $sop = $service->create($this->admin, $this->team, ['commodity_id' => $this->variety->commodity_id, 'name' => 'SOP Jagung Pengujian', 'is_active' => true]);
         $version = $sop->versions()->firstOrFail();
-        foreach ([['maintenance', 'irrigation', 7], ['harvest', null, 90]] as [$category, $subcategory, $days]) {
-            $service->createTask($version, ['activity_category' => $category, 'activity_subcategory' => $subcategory, 'name' => 'Pekerjaan '.$category, 'offset_days' => $days, 'tolerance_days' => 2, 'is_required' => true]);
+        foreach ([['maintenance', 7], ['harvest', 90]] as [$category, $days]) {
+            $service->createTask($version, ['activity_category' => $category, 'activity_subcategory' => null, 'name' => 'Pekerjaan '.$category, 'offset_days' => $days, 'tolerance_days' => 2, 'is_required' => true]);
         }
         $service->publish($version, $this->admin);
         $this->farm->forceFill(['default_sop_template_id' => $sop->id])->save();
@@ -167,7 +167,7 @@ class PetugasPlantingActivityTest extends TestCase
     {
         return ['work_date' => now('Asia/Jakarta')->subDays(2)->toDateString(), 'start_time' => '07:00', 'end_time' => '11:00', 'worker_count' => 4,
             'variety_id' => $this->variety->id, 'area_ha' => '1.5000', 'seed_name' => 'Benih Jagung Bisi 18', 'quantity_kg' => '12.500',
-            'planting_pattern' => '20 x 40 cm', 'notes' => 'Penanaman selesai dengan tanah cukup lembap.', 'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
+            'notes' => 'Penanaman selesai dengan tanah cukup lembap.', 'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
     }
 
     private function url(): string
@@ -287,7 +287,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertDatabaseHas('planting_details', ['activity_id' => $activity->id, 'seed_name' => $data['seed_name']]);
         $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $cycle->id, 'code' => 'planting', 'status' => 'in_progress']);
         $this->assertSame(2, $cycle->tasks()->count());
-        $this->assertSame(now('Asia/Jakarta')->subDays(2)->addDays(7)->toDateString(), $cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail()->scheduled_date->toDateString());
+        $this->assertSame(now('Asia/Jakarta')->subDays(2)->addDays(7)->toDateString(), $cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail()->scheduled_date->toDateString());
         $photo = ActivityPhoto::firstOrFail();
         Storage::disk('local')->assertExists($photo->image_url);
         $this->get('/petugas/aktivitas/'.$activity->id.'/foto/'.$photo->id)->assertOk();
@@ -313,11 +313,11 @@ class PetugasPlantingActivityTest extends TestCase
         $this->sop();
         $data = $this->payload();
         $this->actingAs($this->actor)->post($this->url(), $data)->assertSessionHasNoErrors();
-        ActivityType::firstOrCreate(['code' => 'irrigation'], ['name' => 'Pengairan']);
-        $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
+        ActivityType::firstOrCreate(['code' => 'maintenance'], ['name' => 'Perawatan']);
+        $task = $this->cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail();
         $this->post('/petugas/tasks/'.$task->id.'/aktivitas', [
             'work_date' => $data['work_date'], 'worker_count' => 4, 'notes' => 'Pengairan setelah tanam.',
-            'details' => ['area_ha' => '1', 'water_source' => 'Sumur', 'method' => 'Pompa', 'duration_hours' => '1'],
+            'details' => ['area_ha' => '1'],
             'photos' => [UploadedFile::fake()->image('pengairan.jpg')],
         ])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $this->cycle->id, 'code' => 'planting', 'status' => 'completed']);
@@ -326,7 +326,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame([1, 2], FarmActivity::orderBy('position')->pluck('position')->all());
         $this->assertSame(1, FarmActivity::distinct()->count('daily_activity_log_id'));
         $this->assertDatabaseCount('planting_details', 1);
-        $this->assertDatabaseCount('irrigation_details', 1);
+        $this->assertNotNull($task->activities()->firstOrFail()->task_details);
         $this->get('/petugas/laporan/harian?work_date='.$data['work_date'])->assertInertia(fn (Assert $page) => $page->has('log.activities', 2)->where('log.activities.0.worker_count', 4)->where('log.activities.1.worker_count', 4));
     }
 
@@ -343,7 +343,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame($originalDate, $completed->refresh()->scheduled_date->toDateString());
         $this->assertSame($versionId, $this->cycle->refresh()->sop_template_version_id);
         $this->assertDatabaseCount('planting_cycle_tasks', 2);
-        $this->assertSame(now('Asia/Jakarta')->subDays(2)->addDays(7)->toDateString(), $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail()->scheduled_date->toDateString());
+        $this->assertSame(now('Asia/Jakarta')->subDays(2)->addDays(7)->toDateString(), $this->cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail()->scheduled_date->toDateString());
     }
 
     public function test_no_anchor_or_inactive_sop_defers_tasks_without_creating_undated_rows(): void
@@ -367,7 +367,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->sop();
         $this->cycle->forceFill(['planted_at' => now('Asia/Jakarta')->subDays(3)->toDateString(), 'variety_id' => $this->variety->id])->save();
         $this->actingAs($this->actor)->post('/petugas/subbloks/'.$this->cycle->id.'/tasks/sync')->assertRedirect();
-        $task = $this->cycle->tasks()->where('activity_subcategory', 'irrigation')->firstOrFail();
+        $task = $this->cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail();
         $override = now('Asia/Jakarta')->addDays(10)->toDateString();
         $due = now('Asia/Jakarta')->addDays(12)->toDateString();
         $task->update([

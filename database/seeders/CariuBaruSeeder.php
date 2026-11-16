@@ -133,13 +133,13 @@ class CariuBaruSeeder extends Seeder
         Gate::forUser($actor)->authorize('create', [SopTemplateVersion::class, $template]);
         $version = $template->versions()->create(['version' => 1, 'status' => 'draft', 'notes' => 'SIMULASI; spreadsheet tidak memuat rincian SOP.', 'created_by' => $actor->id]);
         foreach ([
-            ['irrigation', 'Pengairan', 7], ['weeding', 'Penyiangan', 14], ['growth_check', 'Pengamatan vegetatif', 21],
-            ['follow_up_fertilization', 'Pemupukan susulan', 30], ['growth_check', 'Pengamatan pemasakan', 60],
-            [null, 'Panen', 90],
-        ] as [$subcategory, $name, $offset]) {
+            ['maintenance', 'Pengairan', 7], ['maintenance', 'Penyiangan', 14], ['maintenance', 'Pengamatan vegetatif', 21],
+            ['maintenance', 'Pemupukan susulan', 30], ['maintenance', 'Pengamatan pemasakan', 60],
+            ['harvest', 'Panen', 90],
+        ] as [$category, $name, $offset]) {
             Gate::forUser($actor)->authorize('create', [SopTemplateTask::class, $version]);
             app(SopTemplateService::class)->createTask($version, [
-                'activity_category' => $subcategory === null ? 'harvest' : 'maintenance', 'activity_subcategory' => $subcategory,
+                'activity_category' => $category, 'activity_subcategory' => null,
                 'name' => 'SIMULASI — '.$name, 'offset_days' => $offset, 'tolerance_days' => 2, 'is_required' => true,
                 'instructions' => 'Skenario demonstrasi; bukan catatan atau rekomendasi budidaya aktual.',
             ]);
@@ -221,8 +221,7 @@ class CariuBaruSeeder extends Seeder
                     $result = app(PlantingActivityService::class)->record($performer, $cycle, [
                         'work_date' => $date, 'start_time' => $row['start'], 'end_time' => $row['end'],
                         'worker_count' => $row['workers'], 'notes' => $notes, 'variety_id' => $variety->id,
-                        'area_ha' => $spec['area'], 'seed_name' => null, 'quantity_kg' => null,
-                        'planting_pattern' => in_array($date, ['2026-10-29', '2026-10-31'], true) ? '70 x 20 cm' : null, 'photos' => [],
+                        'area_ha' => $spec['area'], 'seed_name' => null, 'quantity_kg' => null, 'photos' => [],
                     ]);
                     if (! in_array($result['status'], ['generated', 'already_generated'], true)) {
                         throw new RuntimeException('Tugas SOP gagal dibentuk untuk '.$row['source'].': '.$result['status']);
@@ -268,9 +267,9 @@ class CariuBaruSeeder extends Seeder
             '2026-10-14' => ['0.2167', null], '2026-10-15' => ['0.3000', '0.3000'],
         ];
         if (str_contains(mb_strtolower($row['activity']), 'pengolahan tanah') && isset($soil[$date])) {
-            $spec = ['code' => 'loosening', 'detail' => ['area_ha' => $soil[$date][0], 'method' => 'Rotary']];
+            $spec = ['code' => 'soil_preparation', 'detail' => ['area_ha' => $soil[$date][0]]];
             if ($soil[$date][1] !== null) {
-                $spec['secondary'] = ['code' => 'base_fertilization', 'detail' => ['area_ha' => $soil[$date][1], 'fertilization_stage' => 'dasar']];
+                $spec['secondary'] = ['code' => 'base_fertilization', 'detail' => ['area_ha' => $soil[$date][1], 'fertilization_stage' => 'kandang']];
             }
 
             return $spec;
@@ -288,20 +287,20 @@ class CariuBaruSeeder extends Seeder
         $type = ActivityType::visibleTo($actor, $team)->where('code', $spec['code'])->where('is_active', true)->firstOrFail();
         Gate::forUser($actor)->authorize('create', [FarmActivity::class, $farm]);
         $position = (int) FarmActivity::visibleTo($actor, $team)->where('daily_activity_log_id', $log->id)->max('position') + 1;
+        $model = \App\Support\ActivityDetailMap::model($type->detail_key);
         $activity = new FarmActivity;
         $activity->forceFill([
             'farm_id' => $farm->id, 'block_id' => $spec['code'] === 'other' ? null : $block->id,
             'activity_type_id' => $type->id, 'performed_by' => $performer->id, 'daily_activity_log_id' => $log->id,
             'position' => $position, 'description' => $notes.($spec['code'] === 'other' ? '' : "\nSIMULASI: asosiasi ke blok agregat adalah asumsi."),
+            ...($model === null ? ['task_details' => json_encode($spec['detail'], JSON_THROW_ON_ERROR)] : []),
             ...$this->sourceFields($row),
             ...($secondary ? ['worker_count' => null, 'obstacle_status' => 'not_recorded', 'obstacles' => null, 'proposed_solution' => null, 'action_taken' => null] : []),
         ])->save();
-        $model = \App\Support\ActivityDetailMap::model($type->detail_key);
-        if ($model === null) {
-            throw new RuntimeException('Tipe aktivitas tidak memiliki detail yang sesuai: '.$type->code);
+        if ($model !== null) {
+            Gate::forUser($actor)->authorize('create', [$model, $activity]);
+            (new $model)->forceFill(['activity_id' => $activity->id, ...$spec['detail']])->save();
         }
-        Gate::forUser($actor)->authorize('create', [$model, $activity]);
-        (new $model)->forceFill(['activity_id' => $activity->id, ...$spec['detail']])->save();
         app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
     }
 
@@ -337,12 +336,9 @@ class CariuBaruSeeder extends Seeder
                     throw new RuntimeException('Tanggal tugas simulasi tidak tersedia.');
                 }
                 $area = $cycle->planted_area_ha;
-                $details = match ($task->activity_subcategory ?? $task->activity_category) {
-                    'irrigation' => ['area_ha' => $area, 'water_source' => 'Irigasi (simulasi)', 'method' => 'Irigasi parit', 'duration_hours' => 1],
-                    'weeding' => ['area_ha' => $area, 'method' => 'Manual'],
-                    'growth_check' => ['phase' => $task->offset_days === 21 ? 'Vegetatif' : 'Pemasakan', 'height_cm' => $task->offset_days === 21 ? 35 : 180, 'sample_count' => 10, 'pest' => 'Aman', 'disease' => 'Aman'],
-                    'follow_up_fertilization' => ['area_ha' => $area, 'fertilizer' => 'NPK (simulasi)', 'quantity_kg' => round((float) $area * 100, 3), 'method' => 'Tabur'],
-                    'harvest' => ['area_ha' => $area, 'weight_ton' => round((float) $area * 5, 3), 'moisture' => null, 'method' => 'Manual'],
+                $details = match ($task->activity_category) {
+                    'maintenance' => ['area_ha' => $area],
+                    'harvest' => ['area_ha' => $area, 'weight_ton' => round((float) $area * 5, 3)],
                     default => throw new RuntimeException('Tugas simulasi tidak didukung.'),
                 };
                 $note = self::MARKER.' — kegiatan, Petugas, hasil, luas dan angka lanjutan adalah skenario, bukan laporan spreadsheet atau kejadian terverifikasi. '.$cycle->subblock_label.'.';

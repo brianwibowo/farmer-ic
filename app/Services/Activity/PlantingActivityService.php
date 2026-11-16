@@ -62,15 +62,7 @@ class PlantingActivityService
         $reports = FarmActivity::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)
             ->whereHas('activityType', fn ($query) => $query->visibleTo($actor, $team)->where('code', 'planting'))->orderBy('activity_date')->get();
 
-        $mapping = \App\Models\BlockMappingDetail::visibleTo($actor, $team)
-            ->whereHas('activity', fn ($q) => $q->visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id))->first();
-
         return [
-            'plantingPattern' => $mapping === null ? '' : implode(' · ', array_filter([
-                $mapping->getAttribute('plant_spacing_cm') ? 'Jarak tanam '.$mapping->getAttribute('plant_spacing_cm').' cm' : null,
-                $mapping->getAttribute('row_spacing_cm') ? 'Jarak baris '.$mapping->getAttribute('row_spacing_cm').' cm' : null,
-                $mapping->getAttribute('rows_per_bed') ? $mapping->getAttribute('rows_per_bed').' baris per bedeng' : null,
-            ])),
             'cycle' => $context,
             'varieties' => $varieties,
             'commodityConfigured' => $commodityId !== null,
@@ -81,7 +73,7 @@ class PlantingActivityService
 
                 return [
                     'id' => $activity->id, 'date' => $activity->activity_date->setTimezone('Asia/Jakarta')->toDateString(),
-                    'notes' => $activity->description, 'detail' => $detail?->only(['seed_name', 'quantity_kg', 'planting_pattern', 'area_ha']),
+                    'notes' => $activity->description, 'detail' => $detail?->only(['seed_name', 'quantity_kg', 'area_ha']),
                     'input' => json_decode((string) $activity->getAttribute('task_details'), true),
                     'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn ($photo) => [
                         'id' => $photo->id, 'url' => route('petugas.aktivitas.photos', ['activity' => $activity->id, 'photo' => $photo->id]),
@@ -182,9 +174,9 @@ class PlantingActivityService
                 ]);
                 $activity->forceFill(['block_id' => $block->id])->save();
                 if (($data['schema'] ?? null) === 'taxonomy') {
-                    $activity->forceFill(['task_details' => json_encode(array_intersect_key($data, array_flip(['area', 'area_unit', 'quantity', 'quantity_unit', 'bag_size', 'depth_cm'])), JSON_THROW_ON_ERROR)])->save();
+                    $activity->forceFill(['task_details' => json_encode(array_intersect_key($data, array_flip(['area', 'area_unit', 'quantity', 'quantity_unit', 'bag_size'])), JSON_THROW_ON_ERROR)])->save();
                 }
-                $activity->plantingDetail()->create(['seed_name' => $data['seed_name'], 'quantity_kg' => $data['quantity_kg'], 'planting_pattern' => $data['planting_pattern'] ?? null, 'area_ha' => $data['area_ha']]);
+                $activity->plantingDetail()->create(['seed_name' => $data['seed_name'], 'quantity_kg' => $data['quantity_kg'], 'area_ha' => $data['area_ha']]);
                 foreach ($data['photos'] as $photo) {
                     $path = $photo->store('task-activities/'.$activity->id, 'local');
                     if ($path === false) {
