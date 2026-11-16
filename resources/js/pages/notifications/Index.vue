@@ -197,9 +197,6 @@ function read(notice: Notice): void {
         {
             preserveScroll: true,
             preserveUrl: true,
-            onSuccess: () => {
-                feedback.value = 'Notifikasi ditandai sudah dibaca.';
-            },
             onError: saveErrors,
             onFinish: () => {
                 pending.value = null;

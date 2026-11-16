@@ -4,6 +4,7 @@ namespace Tests\Unit\AI;
 
 use App\AI\Services\FarmInfographicComposer;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -207,11 +208,32 @@ class FarmInfographicComposerTest extends TestCase
         $this->assertStringNotContainsString('143', implode(' ', array_column($result['manifest']['text_runs'], 'text')));
     }
 
-    public function test_rejects_invalid_model_art_instead_of_using_a_placeholder(): void
+    /** @return array<string, array{string}> */
+    public static function invalidModelArt(): array
     {
+        return [
+            'svg' => ['<svg></svg>'],
+            'empty' => [''],
+            'text' => ['This is not an image.'],
+            'truncated png' => ["\x89PNG\r\n\x1a\n"],
+        ];
+    }
+
+    #[DataProvider('invalidModelArt')]
+    public function test_rejects_invalid_model_art_instead_of_using_a_placeholder(string $binary): void
+    {
+        $probe = static fn (): bool => false;
+        $originalHandler = set_error_handler($probe);
+        restore_error_handler();
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('gambar raster');
-        $this->composer()->render($this->plan(), '<svg></svg>');
+        try {
+            $this->composer()->render($this->plan(), $binary);
+        } finally {
+            $restoredHandler = set_error_handler($probe);
+            restore_error_handler();
+            $this->assertSame($originalHandler, $restoredHandler);
+        }
     }
 
     public function test_reports_missing_font_instead_of_rendering_tiny_bitmap_text(): void

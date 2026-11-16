@@ -63,17 +63,27 @@ const toggleLabel = computed(() =>
 );
 
 const dashboardUrl = computed(() =>
-    page.props.navigation?.admin ? admin.home().url : '/',
+    page.props.navigation?.admin
+        ? admin.home().url
+        : page.props.navigation?.owner
+          ? '/ringkasan-eksekutif'
+          : '/',
 );
 
 const mainNavItems = computed<NavItem[]>(() => {
     if (page.props.navigation?.owner)
         return [
-            { title: 'Dashboard', href: '/', icon: LayoutGrid, exact: true },
             {
                 title: 'Ringkasan Eksekutif',
                 href: '/ringkasan-eksekutif',
                 icon: LayoutDashboard,
+                exact: true,
+            },
+            {
+                title: 'Monitoring Lahan',
+                href: '/monitoring-lahan',
+                icon: LandPlot,
+                exact: true,
             },
             {
                 title: 'Proyeksi',

@@ -50,7 +50,7 @@ class OwnerMapPreviewTest extends TestCase
         $farm->forceFill(['pic_user_id' => $pic->id])->save();
         $before = $pic->refresh()->getRawOriginal();
 
-        $response = $this->get('/')->assertOk();
+        $response = $this->get('/monitoring-lahan')->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.landMap.farms.0.id', $farm->id)
             ->where('dashboard.landMap.farms.0.detail_url', '/kebun/'.$farm->id)
@@ -70,12 +70,12 @@ class OwnerMapPreviewTest extends TestCase
         $farm = $this->farm('Kebun A');
         $other = $this->farm('Kebun B');
         $assignedOnly = $this->user('Petugas hanya ditugaskan', $farm);
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.landMap.farms.0.pic', null));
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.landMap.farms.0.pic', null));
 
         $otherPic = $this->user('PIC kebun B', $other);
         $other->forceFill(['pic_user_id' => $otherPic->id])->save();
         $farm->forceFill(['pic_user_id' => $otherPic->id])->save();
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.landMap.farms.0.pic', null)
             ->where('dashboard.landMap.farms.1.pic.name', $otherPic->name));
 
@@ -85,12 +85,12 @@ class OwnerMapPreviewTest extends TestCase
             $this->user('Petugas tanpa assignment', null),
         ] as $invalid) {
             $farm->forceFill(['pic_user_id' => $invalid->id])->save();
-            $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.landMap.farms.0.pic', null));
+            $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.landMap.farms.0.pic', null));
         }
 
         $farm->forceFill(['pic_user_id' => $assignedOnly->id])->save();
         $assignedOnly->delete();
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.landMap.farms.0.pic', null));
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.landMap.farms.0.pic', null));
     }
 
     public function test_foreign_membership_and_other_tenant_records_never_enter_the_map_preview(): void
@@ -102,12 +102,12 @@ class OwnerMapPreviewTest extends TestCase
         $farm->forceFill(['pic_user_id' => $foreignPic->id])->save();
         $this->cycle($foreignFarm, 'Komoditas rahasia', 'Varietas rahasia');
 
-        $this->get('/?team_id='.$foreignTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan?team_id='.$foreignTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('dashboard.landMap.farms', 1)
             ->where('dashboard.landMap.farms.0.id', $farm->id)
             ->where('dashboard.landMap.farms.0.pic', null)
             ->has('dashboard.landMap.farms.0.crops', 0));
-        $this->get('/?farm_id='.$foreignFarm->id)->assertForbidden();
+        $this->get('/monitoring-lahan?farm_id='.$foreignFarm->id)->assertForbidden();
     }
 
     public function test_related_resource_grants_are_applied_before_serializing_pic_and_crops(): void
@@ -120,7 +120,7 @@ class OwnerMapPreviewTest extends TestCase
         unset($roles['owner']['users.view'], $roles['owner']['crop_varieties.view']);
         config(['access.roles' => $roles]);
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.landMap.farms.0.pic', null)
             ->has('dashboard.landMap.farms.0.crops', 0));
     }
@@ -132,7 +132,7 @@ class OwnerMapPreviewTest extends TestCase
         $pic = $this->user('PIC Kebun B', $second);
         $second->forceFill(['pic_user_id' => $pic->id])->save();
         $this->cycle($second, 'Padi', 'Ciherang');
-        $this->get('/?farm_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan?farm_id='.$second->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.filters.farm_id', null)
             ->has('dashboard.landMap.farms', 2)
             ->where('dashboard.landMap.farms.0.id', $first->id)

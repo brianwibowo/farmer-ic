@@ -9,7 +9,8 @@ import {
     LoaderCircle,
     Save,
 } from '@lucide/vue';
-import { computed, useTemplateRef, watch } from 'vue';
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import FarmField from '@/components/farms/FarmField.vue';
 import FormErrorSummary from '@/components/farms/FormErrorSummary.vue';
@@ -19,6 +20,8 @@ import {
     useUnsavedChanges,
 } from '@/composables/useFormRecovery';
 import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
+import FarmGeocodingFeedback from '@/components/farms/FarmGeocodingFeedback.vue';
+import { useFarmGeocoding } from '@/composables/useFarmGeocoding';
 import {
     hectares,
     type FarmSopOption,
@@ -70,7 +73,10 @@ const errorFields = computed<Record<string, { id: string; label: string }>>(
             label: 'Target volume panen',
         },
         land_tenure: { id: 'farm-tenure', label: 'Status lahan' },
-        land_tenure_party: { id: 'farm-tenure-party', label: 'Nama pihak terkait' },
+        land_tenure_party: {
+            id: 'farm-tenure-party',
+            label: 'Nama pihak terkait',
+        },
         commodity_id: { id: 'farm-commodity', label: 'Komoditas' },
         default_sop_template_id: { id: 'farm-default-sop', label: 'SOP' },
         district_code: {
@@ -122,12 +128,42 @@ const location = computed<[number, number] | null>({
         form.clearErrors('latitude', 'longitude');
     },
 });
+const {
+    loading: geocodingLoading,
+    message: geocodingMessage,
+    candidates: geocodingCandidates,
+    selected: geocodingSelected,
+    focus: geocodingFocus,
+    ready: geocodingReady,
+    completeAddress,
+    retry: retryGeocoding,
+    choose: chooseLocation,
+    beginManual: beginManualLocation,
+    setManual: setManualLocation,
+} = useFarmGeocoding({
+    address: () => form.address,
+    districtCode: () => form.district_code,
+    regionValid: () => regionFields.value?.valid() ?? false,
+    disabled: () => form.processing,
+    location,
+    farmId: props.farm?.id,
+    notify: (message) => toast.warning(message),
+});
+const waitingForLocation = ref(false);
+async function finishAddress(): Promise<void> {
+    await nextTick();
+    await completeAddress();
+}
 const backUrl = props.farm
     ? `/admin/farm-management/${props.farm.id}`
     : '/admin/farm-management';
-function submit(): void {
+async function submit(): Promise<void> {
+    if (form.processing || waitingForLocation.value) return;
     if (requiresLandTenureParty.value && !form.land_tenure_party.trim()) {
-        form.setError('land_tenure_party', 'Isi nama pemilik lahan atau mitra kerja sama.');
+        form.setError(
+            'land_tenure_party',
+            'Isi nama pemilik lahan atau mitra kerja sama.',
+        );
         void focusFormErrors();
         return;
     }
@@ -146,6 +182,12 @@ function submit(): void {
         );
         void focusFormErrors();
         return;
+    }
+    waitingForLocation.value = true;
+    try {
+        await finishAddress();
+    } finally {
+        waitingForLocation.value = false;
     }
     const options = {
         preserveScroll: true,
@@ -183,9 +225,7 @@ function submit(): void {
                 :disabled="form.processing"
                 class="min-w-0 space-y-5 disabled:opacity-75"
             >
-                <section
-                    class="admin-card rounded-xl bg-card p-5 md:p-6"
-                >
+                <section class="admin-card rounded-xl bg-card p-5 md:p-6">
                     <div class="mb-6 flex items-start gap-3">
                         <div class="rounded-xl bg-accent p-2.5 text-primary">
                             <LandPlot class="size-5" />
@@ -319,17 +359,33 @@ function submit(): void {
                                 :aria-describedby="field.description"
                             />
                         </FarmField>
-                        <FarmField id="farm-pic" label="PIC kebun (opsional)" :error="form.errors.pic_user_id" v-slot="field">
-                            <AppSelect :id="field.id" v-model="form.pic_user_id" class="admin-field" :aria-invalid="field.invalid" :aria-describedby="field.description">
-                                <AppSelectOption value="">Belum ditentukan</AppSelectOption>
-                                <AppSelectOption v-for="pic in picOptions" :key="pic.id" :value="pic.id">{{ pic.name }}</AppSelectOption>
+                        <FarmField
+                            id="farm-pic"
+                            label="PIC kebun (opsional)"
+                            :error="form.errors.pic_user_id"
+                            v-slot="field"
+                        >
+                            <AppSelect
+                                :id="field.id"
+                                v-model="form.pic_user_id"
+                                class="admin-field"
+                                :aria-invalid="field.invalid"
+                                :aria-describedby="field.description"
+                            >
+                                <AppSelectOption value=""
+                                    >Belum ditentukan</AppSelectOption
+                                >
+                                <AppSelectOption
+                                    v-for="pic in picOptions"
+                                    :key="pic.id"
+                                    :value="pic.id"
+                                    >{{ pic.name }}</AppSelectOption
+                                >
                             </AppSelect>
                         </FarmField>
                     </div>
                 </section>
-                <section
-                    class="admin-card rounded-xl bg-card p-5 md:p-6"
-                >
+                <section class="admin-card rounded-xl bg-card p-5 md:p-6">
                     <div class="mb-6 flex items-start gap-3">
                         <div class="rounded-xl bg-accent p-2.5 text-primary">
                             <ClipboardList class="size-5" />
@@ -409,9 +465,7 @@ function submit(): void {
                         menu SOP.
                     </p>
                 </section>
-                <section
-                    class="admin-card rounded-xl bg-card p-5 md:p-6"
-                >
+                <section class="admin-card rounded-xl bg-card p-5 md:p-6">
                     <h2 class="admin-section-title">Lokasi kebun</h2>
                     <p class="mt-1 mb-6 text-xs text-muted-foreground">
                         Detail alamat membantu petugas mengenali lokasi kebun.
@@ -420,6 +474,7 @@ function submit(): void {
                         <FarmField
                             id="farm-address"
                             label="Alamat lengkap"
+                            hint="Gunakan alamat lokasi lahan. Hindari nama pribadi, nomor telepon, atau informasi rahasia karena alamat dikirim ke layanan pencarian peta."
                             :error="form.errors.address"
                             class="sm:col-span-2"
                             v-slot="field"
@@ -433,6 +488,7 @@ function submit(): void {
                                 placeholder="Desa, jalan, atau petunjuk menuju lahan"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
+                                @blur="finishAddress"
                             />
                         </FarmField>
                         <FarmRegionFields
@@ -450,6 +506,7 @@ function submit(): void {
                                 form.errors.province
                             "
                             :disabled="form.processing"
+                            @complete="finishAddress"
                         />
                     </div>
                     <div class="mt-6 space-y-3">
@@ -459,8 +516,22 @@ function submit(): void {
                                 >(opsional)</span
                             >
                         </h3>
+                        <FarmGeocodingFeedback
+                            :loading="geocodingLoading"
+                            :message="geocodingMessage"
+                            :candidates="geocodingCandidates"
+                            :selected="geocodingSelected"
+                            :ready="geocodingReady"
+                            :disabled="form.processing"
+                            @retry="retryGeocoding"
+                            @choose="chooseLocation"
+                        />
                         <FarmLocationMap
-                            v-model="location"
+                            :model-value="location"
+                            :focus="geocodingFocus"
+                            geocoding
+                            @update:model-value="setManualLocation"
+                            @manual-start="beginManualLocation"
                             editable
                             :disabled="form.processing"
                             :error="
@@ -473,9 +544,7 @@ function submit(): void {
                         </p>
                     </div>
                 </section>
-                <section
-                    class="admin-card rounded-xl bg-card p-5 md:p-6"
-                >
+                <section class="admin-card rounded-xl bg-card p-5 md:p-6">
                     <h2 class="admin-section-title mb-5">Dokumentasi kebun</h2>
                     <FarmField
                         id="farm-image"
@@ -505,12 +574,16 @@ function submit(): void {
                 ><Button
                     type="submit"
                     class="h-10 rounded-xl"
-                    :disabled="form.processing"
+                    :disabled="form.processing || waitingForLocation"
                     ><LoaderCircle
-                        v-if="form.processing"
+                        v-if="form.processing || waitingForLocation"
                         class="animate-spin"
                     /><Save v-else />{{
-                        form.processing ? 'Menyimpan…' : 'Simpan kebun'
+                        waitingForLocation
+                            ? 'Menentukan lokasi…'
+                            : form.processing
+                              ? 'Menyimpan…'
+                              : 'Simpan kebun'
                     }}</Button
                 >
             </div>

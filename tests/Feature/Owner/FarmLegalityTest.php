@@ -59,7 +59,7 @@ class FarmLegalityTest extends TestCase
             ->where('legality.summary', 'Kerja sama pengelolaan lahan dan pemeliharaan jaringan irigasi.')
             ->where('legality.status', 'active')
             ->where('urls.farm', '/kebun/'.$farm->id)
-            ->where('urls.home', '/')
+            ->where('urls.home', '/monitoring-lahan')
             ->where('urls.farms', '/kebun'));
 
         $record->update(['summary' => 'Addendum pembagian tanggung jawab pemeliharaan telah dicatat.']);

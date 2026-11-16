@@ -29,7 +29,7 @@ class OwnerController extends Controller
         Gate::authorize('viewAny', [Farm::class, $team]);
         $this->authorizeFarmFilter($request);
 
-        // The Owner dashboard temporarily always shows every visible farm in the active tenant.
+        // Monitoring always shows every visible farm in the active tenant.
         return Inertia::render('owner/Dashboard', $this->reads->dashboard($request->user(), $team, $request->safe()->except(['farm_id'])));
     }
 
@@ -134,7 +134,7 @@ class OwnerController extends Controller
             'projection' => $projections->summary($request->user(), $team, $request->validated('period', 'cycle'), $request->validated('farm_id')),
             'urls' => [
                 'index' => route('owner.projection', [], false),
-                'home' => route('home', [], false),
+                'home' => route('owner.executive-summary', [], false),
             ],
         ]);
     }

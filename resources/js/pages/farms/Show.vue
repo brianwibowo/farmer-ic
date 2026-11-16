@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ownerFarmOrigin } from '@/lib/ownerFarmNavigation';
 import {
     ArrowLeft,
     ClipboardList,
@@ -25,6 +26,17 @@ import {
 import type { ManagedBlock, BlockFormCapacity } from '@/types/blocks';
 defineOptions({ inheritAttrs: false });
 const { indexUrl } = useFarmManagementNavigation();
+const page = usePage();
+const fromMonitoring = computed(
+    () =>
+        !!page.props.navigation?.owner && ownerFarmOrigin(page.url) === 'home',
+);
+const backUrl = computed(() =>
+    fromMonitoring.value ? '/monitoring-lahan' : indexUrl.value,
+);
+const backLabel = computed(() =>
+    fromMonitoring.value ? 'Kembali ke Monitoring Lahan' : 'Daftar kebun',
+);
 const props = defineProps<{
     farm: ManagedFarm;
     blocks: ManagedBlock[];
@@ -113,9 +125,9 @@ const coordinates = computed<[number, number] | null>(() =>
             <div class="flex min-w-0 items-center gap-2">
                 <Button as-child variant="ghost" size="icon" class="shrink-0"
                     ><Link
-                        :href="indexUrl"
-                        aria-label="Daftar kebun"
-                        title="Daftar kebun"
+                        :href="backUrl"
+                        :aria-label="backLabel"
+                        :title="backLabel"
                         ><ArrowLeft class="size-5" /></Link
                 ></Button>
                 <h1 class="admin-page-title min-w-0 break-words">

@@ -28,8 +28,8 @@ class ProfileAndForbiddenTest extends TestCase
     public function test_logout_ends_the_real_owner_session_and_clears_profile_identity(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
-        $this->post('/login', ['email' => $owner->email, 'password' => 'password'])->assertRedirect('/');
-        $this->get('/')->assertInertia(fn (Assert $page) => $page->where('account.email', $owner->email));
+        $this->post('/login', ['email' => $owner->email, 'password' => 'password'])->assertRedirect('/ringkasan-eksekutif');
+        $this->get('/ringkasan-eksekutif')->assertInertia(fn (Assert $page) => $page->where('account.email', $owner->email));
         $this->post('/logout', [], ['X-Inertia' => 'true'])->assertRedirect('/');
         $this->assertGuest();
         $this->get('/')->assertRedirect('/login');

@@ -4,7 +4,6 @@ import { computed } from 'vue';
 import { Moon, Sun } from '@lucide/vue';
 import BrandLogo from '@/components/BrandLogo.vue';
 import { Button } from '@/components/ui/button';
-import { Toaster } from '@/components/ui/sonner';
 import { useAppearance } from '@/composables/useAppearance';
 import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
@@ -84,6 +83,5 @@ const farm = computed(
         <main class="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
             <slot />
         </main>
-        <Toaster />
     </div>
 </template>

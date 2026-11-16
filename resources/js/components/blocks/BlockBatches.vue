@@ -290,13 +290,15 @@ const progressSummary = computed(() => {
                         </dd>
                     </div>
                 </dl>
-                <div class="mt-5 bg-muted/40 p-4 sm:p-5">
-                    <h6 class="mb-1 text-sm font-semibold text-primary">
+                <div class="mt-5">
+                    <h6 class="mb-3 text-sm font-semibold text-primary">
                         Tahap &amp; tanggal progres
                     </h6>
                     <BatchTimeline
                         :stages="batch.stages"
                         :growth="batch.growth"
+                        :theme="theme"
+                        :growth-context="`Sub blok ${block.code}${batch.subblock_label} · Batch ${batch.batch_number}`"
                     >
                         <template
                             v-if="

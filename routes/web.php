@@ -52,6 +52,7 @@ Route::get('/', HomeController::class)->middleware(['auth', 'verified'])->name('
 
 Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): void {
     Route::get('ringkasan-eksekutif', [OwnerController::class, 'executiveSummary'])->name('owner.executive-summary');
+    Route::get('monitoring-lahan', [OwnerController::class, 'dashboard'])->name('owner.monitoring');
     Route::get('kebun', [FarmManagementController::class, 'index'])->name('kebun');
     Route::get('kebun/detail', function (Request $request) {
         $id = (string) $request->query('id', '');
@@ -178,6 +179,10 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::post('tasks/{task}/reschedule', [TaskManagementController::class, 'reschedule'])->whereUuid('task')->name('tasks.reschedule');
 
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');
+    Route::post('farm-management/geocode', \App\Http\Controllers\FarmGeocodingController::class)
+        ->middleware('throttle:20,1')->name('farm-management.geocode');
+    Route::post('farm-management/{farm}/geocode', \App\Http\Controllers\FarmGeocodingController::class)
+        ->whereUuid('farm')->middleware('throttle:20,1')->name('farm-management.geocode-update');
     Route::get('farm-management/{farm}/legalitas', [FarmLegalityController::class, 'show'])
         ->whereUuid('farm')->name('farm-management.legality.show');
     Route::post('farm-management/{farm}/legality', [FarmLegalityController::class, 'store'])

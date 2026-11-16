@@ -102,7 +102,7 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $projection = app(HarvestProjectionService::class)->summary($this->owner(), $team);
         $this->assertEquals(2500, collect($projection['rows'])->firstWhere('farm_name', 'Lahan Megamendung')['projection_ton']);
 
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Dashboard')->where('landTable.total', 7)
             ->where('landTable.total_area_ha', '597.0000')->has('landTable.rows', 7)
             ->has('dashboard.landMap.farms', 7)->has('dashboard.commodities', 3)
@@ -225,13 +225,13 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->seed(DemoOwnerPortfolioSeeder::class);
         $this->assertSame($before, $foreign->refresh()->getRawOriginal());
         $farmId = DemoOwnerPortfolioData::id($this->demoTeam(), 'farm:sukamaju');
-        $this->actingAs($this->owner())->get('/?farm_id='.$farmId)->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($this->owner())->get('/monitoring-lahan?farm_id='.$farmId)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 7)->where('landTable.total_area_ha', '597.0000')
             ->has('landTable.rows', 7)->has('dashboard.landMap.farms', 7)
             ->has('dashboard.commodities', 3)
             ->where('landTable.rows', fn ($rows) => ! collect($rows)->pluck('id')->contains($foreign->id))
             ->where('dashboard.landMap.farms', fn ($rows) => ! collect($rows)->pluck('id')->contains($foreign->id)));
-        $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.total', 7)->where('landTable.total_area_ha', '597.0000'));
         $this->get('/kebun/'.$foreign->id)->assertForbidden();
     }

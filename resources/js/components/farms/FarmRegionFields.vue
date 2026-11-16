@@ -9,6 +9,7 @@ const props = defineProps<{
     error?: string;
     disabled?: boolean;
 }>();
+const emit = defineEmits<{ complete: [] }>();
 const districtCode = defineModel<string>('districtCode', { required: true });
 const district = defineModel<string>('district', { required: true });
 const city = defineModel<string>('city', { required: true });
@@ -171,6 +172,7 @@ function choose(level: Level, code: string): void {
     districtCode.value = codes.district;
     const next = fields[index + 1];
     if (code && next) void load(next.key);
+    if (code && level === 'district') emit('complete');
 }
 function clear(): void {
     touched.value = true;
@@ -207,6 +209,16 @@ onBeforeUnmount(() => {
             {{ [province, city, district].filter(Boolean).join(' · ') }}. Pilih
             provinsi untuk menggantinya.
         </p>
+        <div class="flex items-center justify-end">
+            <button
+                type="button"
+                class="min-h-11 rounded-lg text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="disabled('province') || !hasAddress"
+                @click="clear"
+            >
+                Kosongkan wilayah
+            </button>
+        </div>
         <div class="grid items-start gap-5 sm:grid-cols-3">
             <RegionCombobox
                 v-for="field in fields"
@@ -227,13 +239,5 @@ onBeforeUnmount(() => {
                 @retry="load(field.key)"
             />
         </div>
-        <button
-            type="button"
-            class="min-h-11 rounded-lg text-sm font-medium text-muted-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="disabled('province') || !hasAddress"
-            @click="clear"
-        >
-            Kosongkan wilayah
-        </button>
     </div>
 </template>

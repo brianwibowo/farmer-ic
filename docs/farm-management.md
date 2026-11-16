@@ -164,9 +164,82 @@ initial Indonesia view is not saved as a location. Coordinates remain optional
 and validated as a pair, at seven decimal places. The same component displays
 the saved pin and a Google Maps link in farm details. A pin does not define land
 boundaries or calculate area. Map loading/retry states handle tile failures;
-the existing Leaflet dependency and OpenStreetMap tiles are used, with visible
-attribution. Maps require an internet connection; there is no geocoding/search
-service or new package in this change.
+the existing Leaflet dependency and Esri satellite tiles are used, with visible
+attribution. Maps require an internet connection.
+
+### Address geocoding
+
+The create/edit form uses Nominatim to find a pin after the full address loses
+focus or the final district choice is committed. It searches only when an
+address (at least three characters) and a valid district selection are present.
+Typing alone never sends external searches. Repeated completion of the same
+address does not search again; **Cari ulang dari alamat** explicitly retries.
+Saving waits for an in-flight search before submitting the optional coordinates.
+
+`POST /admin/farm-management/geocode` authorizes Farm `create` against the
+authenticated user's persisted active Team. The edit endpoint,
+`POST /admin/farm-management/{farm}/geocode`, authorizes Farm `update` against
+the bound Farm. Both use auth/verified/admin admission, request validation,
+CSRF protection and per-user throttling. The service resolves district, city
+and province with `AdministrativeRegionService::district()` and its existing
+`visibleTo` query. Input cannot select an arbitrary team, farm or upstream URL.
+No new permissions or unrestricted farm queries are introduced.
+
+`FarmGeocodingService` searches Indonesia in at most three stages: the full
+address with trusted region context; the first comma-separated street/place
+name with city/province context (leading Jl./Jln./Jalan is removed); and the
+selected district, city and province. Region components already present as
+address segments are not appended twice, and identical queries are deduplicated.
+Only empty results advance to the next stage; service failures stop the search.
+A single result with matching city/province places the pin and focuses the map
+when its district matches or the upstream district is absent. `can_auto_select`
+is computed by the service; `matches_region` remains false when the district is
+unverified. Missing city/province or an explicit conflicting district never
+qualifies for automatic placement. An unverified district forces the result to
+be approximate, even for an upstream street/house, and is labeled accordingly. Coarse
+results and all final-stage regional results show a persistent **Perkiraan
+lokasi** label with the returned place name and a manual-correction instruction;
+moving/removing the pin clears that suggestion label. The JSON `search_stage`
+records `address`, `place` or `region` for this temporary result only. Ambiguous
+or explicitly conflicting results require a user choice. Region matching is
+conservative name matching, not a spatial boundary guarantee. Clicking,
+dragging, using the map center or deleting a pin cancels automatic placement;
+late responses cannot replace a manual point. Saved pins are preserved on edit,
+and manual pins require an explicit search retry to replace them. Geocoding
+does not change the dropdown region, parcel area or parcel boundaries.
+
+Search results are temporary suggestions. Only **Simpan kebun** persists the
+selected coordinates through the existing Farm service and pair validation.
+Empty results and upstream failures leave the current pin available, with
+manual selection and retry controls. Each changed address invalidates earlier
+results; leaving the form or submitting cancels superseded requests.
+
+The public service's [usage policy](https://operations.osmfoundation.org/policies/nominatim/)
+prohibits autocomplete, requires application identification and attribution,
+and limits the entire application to at most one request per second. The form
+displays OpenStreetMap attribution and advises against including personal or
+confidential information. Only the address and trusted public region names go
+to Nominatim; no actor, team, farm, contact or authentication data is forwarded.
+
+Configuration lives in `config/services.php` under `nominatim`: `NOMINATIM_URL`
+(base URL), `NOMINATIM_USER_AGENT` (identifies the application and its URL), and
+`NOMINATIM_CACHE_STORE` (defaults to the configured application cache store).
+When deploying, identify the application with a real public contact URL and
+use one shared, persistent cache store across all application workers/servers
+(for example database or Redis). Array/per-process stores are only for tests.
+The shared 40-second lock covers at most three six-second HTTP calls and the
+cooldowns between them. A 1.1-second cooldown after each upstream call keeps
+requests below the public limit; later stages of the same search wait for this
+cooldown while holding the shared lock. Other uncached searches return 429
+while a search is running. Cached results remain available without waiting.
+Concurrent or too-early calls return 429 with Retry-After; upstream 429 starts
+a 60-second cooldown. There are no automatic upstream retries. Positive results
+are cached for seven days and empty results for five minutes, under hashed keys.
+Both individual queries and the completed search strategy are cached. Strategy
+version 3 ignores older normalized results, while reusing version 2 raw query
+cache entries to avoid repeating upstream requests.
+The provider can be switched via configuration without changing frontend code.
+No new packages, operational tables or migrations are required.
 
 Farm pages explicitly disable attribute fallthrough for shared Inertia props.
 The shared SidebarProvider defers its viewport-dependent drawer until after
