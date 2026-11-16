@@ -890,6 +890,29 @@ for maintenance and other activities. Do not display fabricated trend deltas.
 
 ### Farm Management pages
 
+Batch timeline status labels differ by text color only: Selesai uses
+`text-stage-completed` (`#4ADD82`), Sekarang uses `text-stage-current`
+(`#425B9A`), and Belum dimulai uses `text-stage-upcoming` (`#C5C1C1`).
+Keep these specified status colors in both themes. Do not add a pill, card, or background to these
+labels. Retain distinct icons and text so status does not depend on color
+alone, in both light and dark themes.
+
+Apply `bg-stage-preparation` (warm off-white `#F5F4F2`) to the shared preparation
+section (Pembersihan lahan through Pemupukan kandang) and `bg-stage-cultivation`
+(cool off-white `#F1F4F7`) to the shared Penanaman-through-Panen section. Their
+dark values are `#29323B` and `#253442`. Display the existing `basic_fertilizer`
+stage as Pemupukan kandang without changing its stored code.
+Individual stages stay transparent, without cards. Keep both
+sections beside each other in one timeline on desktop and stack on phones,
+with 12px section corners and consistent inner spacing.
+The Pengamatan disclosure stays transparent within its section. Its top line
+is primary green when available and neutral when unavailable. Keep the dropdown
+chevron and Perkembangan tanaman title black (`text-stage-growth`, light text in dark mode)
+and its Pengamatan label info-blue,
+with visible keyboard focus and muted disabled text. Do not give it a colored
+card or separate background. Keep status labels as colored text only. Omit
+the introductory description below Tahap & tanggal progres.
+
 On farm detail, retain one continuous batch timeline. Insert a compact
 `Perkembangan tanaman` disclosure between Penanaman and Pemeliharaan, without
 adding a persisted operational stage. Show its detailed panel below the complete

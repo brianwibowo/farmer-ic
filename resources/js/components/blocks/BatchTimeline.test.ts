@@ -56,14 +56,13 @@ describe('batch stage timeline', () => {
         expect(html).not.toContain('Laporan Terakhir 10 Nov 2026');
     });
 
-    it('shows one explanation for the timeline and handles stages without reports', async () => {
+    it('omits the introductory description and handles stages without reports', async () => {
         const html = await render([
             stage('land_clearing', 'completed', null, null),
             stage('soil_preparation', 'upcoming', null, null),
         ]);
 
-        expect(html.match(new RegExp(note, 'g'))).toHaveLength(1);
-        expect(html.indexOf(note)).toBeLessThan(html.indexOf('<ol'));
+        expect(html).not.toContain(note);
         expect(html).toContain('Tidak ada laporan pada tahap ini');
         expect(html).toContain('Belum dimulai');
         expect(html).not.toContain('Tanggal belum tersedia');
