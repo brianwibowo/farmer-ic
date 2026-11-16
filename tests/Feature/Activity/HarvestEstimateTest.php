@@ -459,18 +459,19 @@ class HarvestEstimateTest extends TestCase
         $task = $this->harvest();
         config(['operational_notifications.enabled' => true]);
         Bus::fake();
-        $this->travelTo(CarbonImmutable::parse('2027-02-03 10:00', 'Asia/Jakarta'));
+        $this->travelTo(CarbonImmutable::parse('2027-02-07 06:00', 'Asia/Jakarta'));
         $notifications = app(NotificationService::class);
-        $data = ['kind' => 'harvest_reminder', 'user_id' => $this->petugas->id, 'team_id' => $this->team->id,
-            'farm_id' => $this->farm->id, 'cycle_id' => $this->cycle->id, 'harvest_date' => '2027-02-10', 'event_date' => '2027-02-03'];
-        $this->assertNotNull($notifications->validRecipient($data));
+        $this->assertSame(2, $notifications->taskReminders());
+        $data = Bus::dispatched(\App\Jobs\SendWhatsAppNotification::class)
+            ->first(fn ($job) => $job->notification->data['user_id'] === $this->petugas->id)->notification->data;
+        $this->assertNotNull($notifications->dataForDelivery($this->petugas, $data));
         $this->actingAs($this->admin)->post('/admin/tasks/'.$task->id.'/reschedule', [
             'rescheduled_date' => '2027-02-15', 'reschedule_reason' => 'Menyesuaikan kondisi kebun.',
         ])->assertSessionHasNoErrors();
-        $this->assertNull($notifications->validRecipient($data));
-        $this->assertSame(0, $notifications->harvestReminders());
-        $this->travelTo(CarbonImmutable::parse('2027-02-08 10:00', 'Asia/Jakarta'));
-        $this->assertSame(1, $notifications->harvestReminders());
+        $this->assertNull($notifications->dataForDelivery($this->petugas, $data));
+        $this->assertSame(0, $notifications->taskReminders());
+        $this->travelTo(CarbonImmutable::parse('2027-02-14 06:00', 'Asia/Jakarta'));
+        $this->assertSame(2, $notifications->taskReminders());
     }
 
     public function test_closing_harvest_preserves_the_last_estimate_as_history(): void

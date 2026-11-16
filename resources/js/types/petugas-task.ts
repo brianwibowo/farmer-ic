@@ -42,7 +42,9 @@ export type PetugasTask = {
 };
 
 export type PetugasTaskFilters = {
-    status: 'all' | PetugasTaskUrgency;
+    block_id?: string | null;
+    status: 'all' | 'active' | PetugasTaskUrgency;
+    category?: 'maintenance' | 'harvest' | null;
 };
 
 export type PetugasDefaultSop = {

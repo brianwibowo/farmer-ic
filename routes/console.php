@@ -12,7 +12,12 @@ Schedule::call(function () {
         ->delete();
 })->daily()->description('Delete expired team invitations');
 
-Schedule::command('notifications:dispatch daily-report')->dailyAt('20:00')
+Schedule::command('notifications:dispatch weekly-report')->weeklyOn(0, '20:00')
     ->timezone(config('app.timezone'))->withoutOverlapping(10);
-Schedule::command('notifications:dispatch harvest-reminder')->dailyAt('06:00')
+Schedule::command('notifications:dispatch task-reminder')->dailyAt('06:00')
+    ->timezone(config('app.timezone'))->withoutOverlapping(10);
+Schedule::command('notifications:dispatch sop-deviation')->everyThirtyMinutes()
+    ->timezone(config('app.timezone'))->withoutOverlapping(10);
+
+Schedule::command('notifications:dispatch incident-report')->everyThirtyMinutes()
     ->timezone(config('app.timezone'))->withoutOverlapping(10);

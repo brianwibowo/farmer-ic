@@ -702,8 +702,10 @@ Table notifications {
   is_read boolean [not null, default: false]
   created_at timestamptz [not null]
   read_at timestamptz
-  type varchar(32) [note: 'daily_report or harvest_reminder; nullable for legacy non-operational entries']
+  type varchar(32) [note: 'weekly_report, task_reminder (harvest only), sop_deviation, incident_report']
   team_id bigint [ref: > teams.id, note: 'Nullable for legacy inbox entries whose tenant cannot be proven']
+  team_ids jsonb [note: 'Persisted tenant IDs for a combined Owner weekly report; null for single-tenant and legacy notifications']
+  content jsonb [note: 'Versioned presentation snapshot for the interactive inbox']
 }
 
 Table audit_logs {
@@ -754,4 +756,21 @@ Table ai_usage_events {
   metadata jsonb
   created_at timestamptz
   updated_at timestamptz
+}
+
+Table operational_notification_deliveries {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  payload jsonb [not null]
+  queued_at timestamptz
+  whatsapp_state varchar(20) [not null, default: 'pending']
+  created_at timestamptz [not null]
+  indexes {
+    (queued_at, id) [name: 'operational_delivery_pending_index']
+  }
+}
+
+Table operational_notification_events {
+  event_key varchar(64) [pk]
+  delivery_id uuid [not null, ref: > operational_notification_deliveries.id]
 }

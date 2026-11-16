@@ -63,6 +63,22 @@ class PetugasTaskActivityTest extends TestCase
         }
     }
 
+    public function test_inbox_block_navigation_reaches_task_index_with_a_validated_filter(): void
+    {
+        $block = $this->cycle->block_id;
+        $this->actingAs($this->actor)->get('/petugas/aktivitas?status=all&block_id='.$block)
+            ->assertInertia(fn (Assert $page) => $page->component('petugas/Aktivitas')
+                ->where('filters.block_id', $block)->where('filters.status', 'all'));
+        $this->getJson('/petugas/aktivitas?block_id=invalid')->assertUnprocessable();
+        $this->get('/petugas/aktivitas?status=upcoming&category=harvest&block_id='.$block)
+            ->assertInertia(fn (Assert $page) => $page->where('filters.block_id', $block)
+                ->where('filters.status', 'upcoming')->where('filters.category', 'harvest'));
+        $this->get('/petugas/aktivitas?status=active&category=harvest&block_id='.$block)
+            ->assertInertia(fn (Assert $page) => $page->where('filters.status', 'active')
+                ->where('filters.category', 'harvest')->where('tasks', fn ($tasks) => collect($tasks)->every(fn ($task) => in_array($task['urgency'], ['overdue', 'today'], true))));
+        $this->getJson('/petugas/aktivitas?category=invalid')->assertUnprocessable();
+    }
+
     public function test_activity_sequence_enforces_prerequisites_and_allows_exceptions(): void
     {
         $this->actingAs($this->actor);
