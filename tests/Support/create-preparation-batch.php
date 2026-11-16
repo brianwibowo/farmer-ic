@@ -23,11 +23,11 @@ $actor = User::findOrFail($argv[1]);
 $block = FarmBlock::visibleTo($actor, $actor->currentTeam)->findOrFail($argv[2]);
 Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
 try {
-    app(FarmBlockService::class)->createBatch($block, $actor, $block->farm->team, ['reserved_area_ha' => '2.0000']);
+    app(FarmBlockService::class)->createBatch($block, $actor, $block->farm->team, []);
     echo 'created';
 } catch (ValidationException $exception) {
-    if (! isset($exception->errors()['reserved_area_ha'])) {
+    if (! isset($exception->errors()['subblock_label'])) {
         throw $exception;
     }
-    echo 'capacity';
+    echo 'rejected';
 }

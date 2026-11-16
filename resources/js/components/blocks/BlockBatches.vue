@@ -112,7 +112,7 @@ const progressSummary = computed(() => {
                 <div
                     class="mt-1 flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground"
                 >
-                    Sisa lahan untuk sub blok baru
+                    Sisa lahan untuk penanaman
                     <strong class="font-semibold text-foreground tabular-nums"
                         >{{
                             hectares(block.batch_capacity.available_ha)
@@ -120,9 +120,9 @@ const progressSummary = computed(() => {
                         ha</strong
                     >
                     <MetricInfoTooltip
-                        label="Sisa alokasi sub blok"
-                        :description="`Sisa blok ${hectares(block.batch_capacity.block_remaining_ha)} ha. Sisa kebun ${hectares(block.batch_capacity.farm_remaining_ha)} ha. Alokasi baru mengikuti nilai terkecil dari keduanya.`"
-                        example="Sisa blok 6 ha dan sisa kebun 4 ha berarti sub blok baru maksimal 4 ha."
+                        label="Sisa kapasitas penanaman"
+                        :description="`Sisa blok ${hectares(block.batch_capacity.block_remaining_ha)} ha. Sisa kebun ${hectares(block.batch_capacity.farm_remaining_ha)} ha. Penanaman baru mengikuti nilai terkecil dari keduanya.`"
+                        example="Sisa blok 6 ha dan sisa kebun 4 ha berarti laporan tanam baru maksimal 4 ha."
                         :content-class="theme"
                         touch-target
                     />
@@ -188,8 +188,8 @@ const progressSummary = computed(() => {
             "
             class="text-xs text-muted-foreground"
         >
-            Lahan sudah teralokasi. Sub blok baru dapat ditambahkan setelah
-            alokasi berjalan selesai.
+            Kapasitas blok sudah penuh. Sub blok baru dapat ditambahkan setelah
+            siklus tanam berjalan selesai.
         </p>
         <div :id="contentId" v-show="expanded" class="space-y-8">
             <article
@@ -252,14 +252,14 @@ const progressSummary = computed(() => {
                             Luas sub blok
                         </dt>
                         <dd class="mt-1 text-lg font-bold tabular-nums">
-                            {{ hectares(batch.reserved_area_ha) }}
+                            {{ hectares(batch.planted_area_ha) }}
                             <span class="text-sm font-medium">ha</span>
                         </dd>
                         <p
-                            v-if="Number(batch.planted_area_ha) > 0"
+                            v-if="Number(batch.planted_area_ha) === 0"
                             class="mt-1 text-xs text-muted-foreground"
                         >
-                            Ditanam {{ hectares(batch.planted_area_ha) }} ha
+                            Belum ditanam
                         </p>
                     </div>
                     <div>

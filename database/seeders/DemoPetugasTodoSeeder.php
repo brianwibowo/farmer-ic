@@ -91,7 +91,7 @@ class DemoPetugasTodoSeeder extends Seeder
             ]);
             $gate->authorize('update', $batch);
             $batch->forceFill(['status' => 'active', 'variety_id' => $variety->id, 'planted_at' => $planted->toDateString(),
-                'planted_area_ha' => '0.2500', 'sop_template_version_id' => $version->id,
+                'reserved_area_ha' => '0.2500', 'planted_area_ha' => '0.2500', 'sop_template_version_id' => $version->id,
                 'estimated_harvest_at' => $planted->addDays(90)->toDateString()])->save();
 
             $gate->authorize('create', [PlantingCycleTask::class, $batch]);

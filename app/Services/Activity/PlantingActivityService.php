@@ -126,14 +126,26 @@ class PlantingActivityService
                 if (CarbonImmutable::parse($dates[0])->diffInDays(CarbonImmutable::parse(end($dates))) > 2) {
                     throw ValidationException::withMessages(['work_date' => 'Penanaman dibatasi tiga hari kalender sejak tanam pertama. Pilih subblok lain yang telah disiapkan Admin.']);
                 }
-                $block = FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->sharedLock()->firstOrFail();
+                $block = FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->lockForUpdate()->firstOrFail();
                 if (! $block->is_active) {
                     throw ValidationException::withMessages(['cycle' => 'Blok harus aktif untuk mencatat penanaman.']);
                 }
-                $totalArea = LandArea::squareMetres($data['area_ha']) + LandArea::squareMetres($cycle->planted_area_ha ?? 0);
-                if ($totalArea > LandArea::squareMetres($cycle->getAttribute('reserved_area_ha'))) {
-                    throw ValidationException::withMessages([($data['schema'] ?? null) === 'taxonomy' ? 'area' : 'area_ha' => 'Akumulasi luas penanaman tidak boleh melebihi alokasi subblok. Isi luas tambahan untuk laporan ini.']);
+                $usage = DB::table('planting_cycles')->where('farm_id', $farm->id)
+                    ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NULL AND status = 'active' THEN planted_area_ha ELSE 0 END), 0) AS legacy_active_ha")
+                    ->selectRaw("COALESCE(SUM(CASE WHEN block_id IS NOT NULL AND status IN ('planned', 'active') THEN planted_area_ha ELSE 0 END), 0) AS farm_batches_ha")
+                    ->selectRaw("COALESCE(SUM(CASE WHEN block_id = ? AND status IN ('planned', 'active') THEN planted_area_ha ELSE 0 END), 0) AS block_batches_ha", [$block->id])
+                    ->first();
+                $farmRemaining = max(0, (LandArea::squareMetres($farm->total_area_ha) ?? 0)
+                    - (LandArea::squareMetres(data_get($usage, 'legacy_active_ha', 0)) ?? 0)
+                    - (LandArea::squareMetres(data_get($usage, 'farm_batches_ha', 0)) ?? 0));
+                $blockRemaining = max(0, (LandArea::squareMetres($block->area_ha) ?? 0)
+                    - (LandArea::squareMetres(data_get($usage, 'block_batches_ha', 0)) ?? 0));
+                $availableM2 = min($farmRemaining, $blockRemaining);
+                $addedArea = LandArea::squareMetres(is_float($data['area_ha']) ? number_format($data['area_ha'], 4, '.', '') : $data['area_ha']);
+                if ($addedArea === null || $addedArea < 1 || $addedArea > $availableM2) {
+                    throw ValidationException::withMessages([($data['schema'] ?? null) === 'taxonomy' ? 'area' : 'area_ha' => 'Akumulasi luas penanaman tidak boleh melebihi sisa kapasitas blok atau kebun.']);
                 }
+                $totalArea = $addedArea + (LandArea::squareMetres($cycle->planted_area_ha ?? 0) ?? 0);
                 $variety = CropVariety::visibleTo($actor, $team)->whereKey($data['variety_id'])->first();
                 if ($variety === null) {
                     throw ValidationException::withMessages(['variety_id' => 'Varietas tidak tersedia atau tidak dapat diakses.']);
@@ -159,7 +171,7 @@ class PlantingActivityService
                 $anchorChanged = $cycle->planted_at?->toDateString() !== $anchor->toDateString();
                 $estimate = $this->estimates->forPlantingDate($actor, $team, $cycle, $anchor);
                 $cycle->forceFill(['planting_started_on' => $dates[0], 'planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate, 'planting_window_checked_at' => null,
-                    'variety_id' => $variety->id, 'planted_area_ha' => $totalArea / 10000, 'status' => 'active'])->save();
+                    'variety_id' => $variety->id, 'planted_area_ha' => LandArea::hectares($totalArea), 'reserved_area_ha' => LandArea::hectares($totalArea), 'status' => 'active'])->save();
                 $log = $this->headers->resolve($farm, $actor, $data);
                 $started = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
                 $activity = FarmActivity::create([

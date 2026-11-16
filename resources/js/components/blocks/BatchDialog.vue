@@ -59,8 +59,8 @@ function close(open: boolean): void {
                     </p>
                     <DialogDescription class="text-xs leading-5">{{
                         batch
-                            ? 'Perbarui alokasi dan rencana tanam.'
-                            : 'Alokasikan lahan untuk memulai pengolahan tanah.'
+                            ? 'Perbarui label dan rencana tanam sub blok.'
+                            : 'Tambahkan sub blok untuk memulai pengolahan tanah dan penanaman.'
                     }}</DialogDescription>
                 </div>
             </DialogHeader>

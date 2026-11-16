@@ -265,7 +265,7 @@ function submit(): void {
             </p>
             <p class="text-xs leading-5">
                 Rencana: {{ cycle.planned_planting_at ?? 'Belum ditentukan' }} ·
-                Alokasi {{ cycle.reserved_area_ha }} ha
+                Luas tertanam {{ cycle.planted_area_ha }} ha
             </p>
             <p v-if="cycle.planted_at" class="text-sm font-semibold">
                 Acuan HST: {{ cycle.planted_at }} · Total ditanam

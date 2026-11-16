@@ -55,8 +55,8 @@ class ActivityInputLimitsTest extends TestCase
         $this->petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $blocks = app(FarmBlockService::class);
         $this->block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
-        $this->cycle = $blocks->createBatch($this->block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
-        $this->cycle->forceFill(['planted_at' => today()->subDays(21), 'planted_area_ha' => '2', 'variety_id' => $variety->id, 'status' => 'active'])->save();
+        $this->cycle = $blocks->createBatch($this->block, $this->admin, $this->team);
+        $this->cycle->forceFill(['planted_at' => today()->subDays(21), 'reserved_area_ha' => '2', 'planted_area_ha' => '2', 'variety_id' => $variety->id, 'status' => 'active'])->save();
         ActivityType::firstOrCreate(['code' => 'harvest'], ['name' => 'Panen']);
         ActivityType::firstOrCreate(['code' => 'irrigation'], ['name' => 'Pengairan']);
     }
@@ -110,8 +110,8 @@ class ActivityInputLimitsTest extends TestCase
         $this->cycle->forceFill(['planted_area_ha' => '1.2500'])->save();
         $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';
         $this->get($plantingUrl)->assertInertia(fn (Assert $page) => $page->component('petugas/PlantingCreate')
-            ->where('areaLimitM2', 7500)->where('numericLimits.area', ActivityInputLimits::PLANTING_AREA));
-        $this->cycle->forceFill(['planted_area_ha' => '2.0000'])->save();
+            ->where('areaLimitM2', 37500)->where('numericLimits.area', ActivityInputLimits::PLANTING_AREA));
+        $this->cycle->forceFill(['planted_area_ha' => '5.0000'])->save();
         $this->get($plantingUrl)->assertInertia(fn (Assert $page) => $page->where('areaLimitM2', 0));
         $this->petugas->forceFill(['assigned_farm_id' => $other->id])->save();
         $this->get($plantingUrl)->assertForbidden();

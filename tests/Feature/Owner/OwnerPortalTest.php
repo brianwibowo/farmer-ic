@@ -231,7 +231,7 @@ class OwnerPortalTest extends TestCase
         $batch = PlantingCycle::query()->where('farm_id', $this->farm->id)->where('status', 'planned')->firstOrFail();
         $block = $batch->block;
         $url = '/kebun/'.$this->farm->id.'/blocks/'.$block->id.'/batches/'.$batch->id;
-        $data = ['reserved_area_ha' => $batch->reserved_area_ha, 'subblock_label' => 'SELATAN-02'];
+        $data = ['subblock_label' => 'SELATAN-02'];
 
         $this->actingAs($this->admin)->put($url, $data)->assertRedirect();
         $this->actingAs($this->owner)->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)
@@ -399,7 +399,7 @@ class OwnerPortalTest extends TestCase
     {
         $block = FarmBlock::query()->where('farm_id', $this->farm->id)->firstOrFail();
         $sop = SopTemplate::query()->where('team_id', $this->team->id)->firstOrFail();
-        $this->post('/kebun/'.$this->farm->id.'/blocks/'.$block->id.'/batches', ['reserved_area_ha' => '0.1000'])->assertForbidden();
+        $this->post('/kebun/'.$this->farm->id.'/blocks/'.$block->id.'/batches', ['subblock_label' => 'X'])->assertForbidden();
         $this->patch('/kebun/'.$this->farm->id.'/blocks/'.$block->id, ['name' => 'Tidak boleh berubah'])->assertForbidden();
         $this->delete('/kebun/'.$this->farm->id.'/blocks/'.$block->id)->assertForbidden();
         $this->patch('/admin/farm-management/'.$this->farm->id, ['name' => 'Tidak boleh berubah'])->assertForbidden();

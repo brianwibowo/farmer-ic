@@ -384,6 +384,7 @@ class PetugasPlantingActivityTest extends TestCase
 
     public function test_duplicate_planting_and_invalid_area_do_not_overwrite_or_create_partial_reports(): void
     {
+        $this->block->update(['area_ha' => '2']);
         $data = $this->payload();
         $data['area_ha'] = '3';
         $this->actingAs($this->actor)->post($this->url(), $data)->assertSessionHasErrors('area_ha');
@@ -447,10 +448,34 @@ class PetugasPlantingActivityTest extends TestCase
     public function test_creating_a_subblok_does_not_generate_tasks_before_actual_planting(): void
     {
         $this->sop();
-        $this->actingAs($this->actor)->post('/kebun/'.$this->farm->id.'/blocks/'.$this->block->id.'/batches', ['subblock_label' => 'B', 'reserved_area_ha' => '1', 'planned_planting_at' => today()->toDateString()])->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($this->actor)->post('/kebun/'.$this->farm->id.'/blocks/'.$this->block->id.'/batches', ['subblock_label' => 'B', 'planned_planting_at' => today()->toDateString()])->assertSessionHasNoErrors()->assertRedirect();
         $cycle = PlantingCycle::where('subblock_label', 'B')->firstOrFail();
         $this->assertSame(0, $cycle->tasks()->count());
         $this->assertNull($cycle->planted_at);
+        $this->assertSame('0.0000', $cycle->planted_area_ha);
+    }
+
+    public function test_planting_activities_dynamically_define_subblock_area_and_consume_block_capacity(): void
+    {
+        $this->sop();
+        $this->assertSame('0.0000', $this->cycle->planted_area_ha);
+
+        $this->actingAs($this->actor)->post($this->url(), [...$this->payload(), 'area_ha' => '0.4000'])->assertSessionHasNoErrors();
+        $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.6000', 'work_date' => now('Asia/Jakarta')->subDay()->toDateString()])->assertSessionHasNoErrors();
+
+        $this->cycle->refresh();
+        $this->assertSame('1.0000', $this->cycle->planted_area_ha);
+        $this->assertSame('1.0000', $this->cycle->getAttribute('reserved_area_ha'));
+
+        $second = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team, ['subblock_label' => 'B']);
+        $this->assertSame('0.0000', $second->planted_area_ha);
+        $secondUrl = '/petugas/subbloks/'.$second->id.'/penanaman';
+
+        $this->get($secondUrl)->assertInertia(fn (Assert $page) => $page->where('areaLimitM2', 40000));
+        $this->post($secondUrl, [...$this->payload(), 'area_ha' => '4.0001'])->assertSessionHasErrors('area_ha');
+        $this->post($secondUrl, [...$this->payload(), 'area_ha' => '4.0000'])->assertSessionHasNoErrors();
+        $this->assertSame('4.0000', $second->refresh()->planted_area_ha);
+        $this->get($secondUrl)->assertInertia(fn (Assert $page) => $page->where('areaLimitM2', 0));
     }
 
     public function test_a_generation_failure_rolls_back_planting_details_and_uploaded_files(): void

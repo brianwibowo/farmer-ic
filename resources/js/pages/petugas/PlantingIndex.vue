@@ -118,8 +118,7 @@ function synchronize(id: string): void {
                     <div>
                         <dt class="text-xs text-muted-foreground">Luas</dt>
                         <dd>
-                            Alokasi {{ cycle.reserved_area_ha }} ha · Realisasi
-                            {{ cycle.planted_area_ha }} ha
+                            Tertanam {{ cycle.planted_area_ha }} ha
                         </dd>
                     </div>
                 </dl>

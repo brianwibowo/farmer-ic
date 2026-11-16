@@ -53,7 +53,7 @@ class VoluntaryActivityService
                     }
                 }
                 $d = VoluntaryActivityFields::normalized($data['details']);
-                if (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->getAttribute('reserved_area_ha')) || (! $cycle && $block && $d['area_ha'] > (float) $block->area_ha))) {
+                if (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->planted_area_ha) || (! $cycle && $block && $d['area_ha'] > (float) $block->area_ha))) {
                     throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi luas lokasi yang dipilih.']);
                 }
                 if (($d['quantity_kg'] ?? 0) > ActivityInputLimits::NORMALIZED_QUANTITY_KG) {

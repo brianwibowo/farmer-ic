@@ -119,7 +119,7 @@ class DemoOwnerPortfolioSeeder extends Seeder
         Gate::forUser($actor)->authorize('update', $batch);
         $batch->forceFill([
             'status' => 'active', 'variety_id' => $variety->id,
-            'planted_at' => $batchData['planted_at'], 'planted_area_ha' => $batchData['planted_area_ha'],
+            'planted_at' => $batchData['planted_at'], 'reserved_area_ha' => $batchData['planted_area_ha'], 'planted_area_ha' => $batchData['planted_area_ha'],
             'estimated_harvest_at' => $batchData['estimated_harvest_at'],
             'estimated_weight_ton' => $batchData['estimated_weight_ton'],
         ])->save();
@@ -229,7 +229,7 @@ class DemoOwnerPortfolioSeeder extends Seeder
             $generationStatus = $data['status'] === 'harvested' ? 'active' : $data['status'];
             $batch->forceFill([
                 'status' => $generationStatus, 'variety_id' => $data['status'] === 'planned' ? null : $variety->id,
-                'planted_at' => $data['planted_at'], 'planted_area_ha' => $data['planted_area_ha'],
+                'planted_at' => $data['planted_at'], 'reserved_area_ha' => $data['planted_area_ha'], 'planted_area_ha' => $data['planted_area_ha'],
                 'estimated_harvest_at' => $data['estimated_harvest_at'], 'estimated_weight_ton' => $data['estimated_weight_ton'],
             ])->save();
             Gate::forUser($actor)->authorize('create', [PlantingCycleTask::class, $batch]);
