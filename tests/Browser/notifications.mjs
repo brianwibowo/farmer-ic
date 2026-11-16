@@ -188,15 +188,15 @@ try {
         )
             throw new Error('Missing status tabs');
         if (role !== 'empty') {
-            await click('[data-rich-inbox] header > button');
+            await click('[data-rich-inbox] header button[aria-expanded]');
             await until(
-                `document.querySelector('[data-rich-inbox] header > button')?.getAttribute('aria-expanded')==='true'`,
+                `document.querySelector('[data-rich-inbox] header button[aria-expanded]')?.getAttribute('aria-expanded')==='true'`,
             );
-            await click('[data-rich-inbox] header > button');
+            await click('[data-rich-inbox] header button[aria-expanded]');
             await until(
-                `document.querySelector('[data-rich-inbox] header > button')?.getAttribute('aria-expanded')==='false'`,
+                `document.querySelector('[data-rich-inbox] header button[aria-expanded]')?.getAttribute('aria-expanded')==='false'`,
             );
-            await click('[data-rich-inbox] header > button');
+            await click('[data-rich-inbox] header button[aria-expanded]');
         }
         if (
             role === 'owner' &&
@@ -208,7 +208,7 @@ try {
         if (
             role === 'owner' &&
             !(await evaluate(
-                `(() => {const header=document.querySelector('[data-rich-inbox="weekly_owner"] header > button'); return header.innerText.includes('Laporan Mingguan Panen') && header.innerText.includes('Periode ') && !header.innerText.includes('Panen mingguan') && !header.innerText.includes('Total seluruh lahan') && !header.querySelector('time');})()`,
+                `(() => {const header=document.querySelector('[data-rich-inbox="weekly_owner"] header'); return header.innerText.includes('Laporan Mingguan Panen') && header.innerText.includes('Periode ') && !header.innerText.includes('Panen mingguan') && !header.innerText.includes('Total seluruh lahan') && !header.querySelector('time');})()`,
             ))
         )
             throw new Error('Owner header is not compact');
@@ -218,6 +218,11 @@ try {
                     ? '[data-notification-content="task_reminder"] a'
                     : '[data-notification-content="weekly_admin"] a';
             if (role === 'admin' || role === 'petugas') {
+                if (role === 'admin') {
+                    await click(
+                        '[data-rich-inbox="weekly_admin"] header button[aria-expanded]',
+                    );
+                }
                 const href = await evaluate(
                     `document.querySelector('${selector}').getAttribute('href')`,
                 );
@@ -238,7 +243,7 @@ try {
                 if (
                     role === 'petugas' &&
                     !(await evaluate(
-                        `document.body.innerText.includes('Pemupukan susulan') && !document.body.innerText.includes('Pemeriksaan hama dan kondisi tanaman')`,
+                        `document.body.innerText.includes('Panen Jagung') && !document.body.innerText.includes('Panen Sorgum')`,
                     ))
                 )
                     throw new Error('Block filter did not apply');
@@ -251,7 +256,7 @@ try {
             }
             if (role === 'admin') {
                 await click(
-                    '[data-rich-inbox="sop_deviation"] header > button',
+                    '[data-rich-inbox="sop_deviation"] header button[aria-expanded]',
                 );
                 await click('[data-notification-content="sop_deviation"] a');
                 await until(
@@ -259,7 +264,7 @@ try {
                 );
                 if (
                     !(await evaluate(
-                        `document.body.innerText.includes('Pemupukan dasar') && !document.body.innerText.includes('Pemupukan susulan')`,
+                        `document.body.innerText.includes('Pemupukan dasar') && !document.body.innerText.includes('Panen Jagung')`,
                     ))
                 )
                     throw new Error('Overdue view did not apply');
@@ -274,6 +279,34 @@ try {
         await until(
             `!document.getElementById('startup-screen') && !document.getElementById('app')?.hasAttribute('inert')`,
         );
+        if (role === 'admin') {
+            await click(
+                '[data-rich-inbox="weekly_admin"] header button[aria-expanded]',
+            );
+            await click(
+                '[data-rich-inbox="sop_deviation"] header button[aria-expanded]',
+            );
+            await click(
+                '[data-rich-inbox="incident_report"] header button[aria-expanded]',
+            );
+            if (
+                !(await evaluate(
+                    `document.querySelector('[data-notification-content="incident_report"]').innerText.includes('Pompa pengairan')`,
+                ))
+            )
+                throw new Error('Incident report is missing');
+        }
+        if (role === 'petugas') {
+            await click(
+                '[data-rich-inbox="task_reminder"] header button[aria-expanded]',
+            );
+            if (
+                !(await evaluate(
+                    `document.querySelector('[data-notification-content="task_reminder"]').innerText.includes('Subblok A1') && document.querySelectorAll('[data-notification-content="task_reminder"] li').length === 3 && !document.querySelector('[data-notification-content="task_reminder"]').innerText.includes('Batas toleransi')`,
+                ))
+            )
+                throw new Error('Harvest subblock details are incorrect');
+        }
         for (const width of [320, 390, 430, 768, 1280]) {
             await command('Emulation.setDeviceMetricsOverride', {
                 width,
@@ -292,6 +325,28 @@ try {
                     )
                 )
                     throw new Error('Inbox overflows');
+                if (role === 'petugas' && width === 390 && theme === 'light') {
+                    const metadata =
+                        '[data-rich-inbox="task_reminder"] header > div:last-child time';
+                    await click(metadata);
+                    if (
+                        !(await evaluate(
+                            `document.querySelector('[data-rich-inbox="task_reminder"] header button[aria-expanded]').getAttribute('aria-expanded') === 'false'`,
+                        ))
+                    )
+                        throw new Error(
+                            'Mobile header metadata did not collapse details',
+                        );
+                    await click(metadata);
+                    if (
+                        !(await evaluate(
+                            `document.querySelector('[data-rich-inbox="task_reminder"] header button[aria-expanded]').getAttribute('aria-expanded') === 'true'`,
+                        ))
+                    )
+                        throw new Error(
+                            'Mobile header metadata did not expand details',
+                        );
+                }
                 const shot = await command('Page.captureScreenshot', {
                     format: 'png',
                 });
@@ -314,6 +369,40 @@ try {
         );
         await until(
             `Array.from(document.querySelectorAll('[aria-label="Filter status notifikasi"] button')).some(b=>b.innerText.trim()==='Sudah dibaca' && b.getAttribute('aria-pressed')==='true') && Boolean(document.querySelector('[data-rich-inbox]'))`,
+        );
+        await command('Emulation.setDeviceMetricsOverride', {
+            width: 390,
+            height: 900,
+            deviceScaleFactor: 1,
+            mobile: true,
+        });
+        if (
+            !(await evaluate(`(() => {
+            const header = document.querySelector('[data-rich-inbox] header');
+            const chevron = header.querySelector('button[aria-label="Buka detail notifikasi"], button[aria-label="Tutup detail notifikasi"]');
+            return !header.querySelector('.lucide-check-check') && !header.querySelector('[aria-label="Tandai dibaca"]') && header.getBoundingClientRect().right - chevron.getBoundingClientRect().right <= 20;
+        })()`))
+        )
+            throw new Error(
+                'Read card has an ambiguous indicator or misaligned chevron',
+            );
+        const toggle = '[data-rich-inbox] header button[aria-expanded]';
+        const before = await evaluate(
+            `document.querySelector('${toggle}').getAttribute('aria-expanded')`,
+        );
+        await click(toggle);
+        if (
+            (await evaluate(
+                `document.querySelector('${toggle}').getAttribute('aria-expanded')`,
+            )) === before
+        )
+            throw new Error('Read card did not toggle');
+        const readShot = await command('Page.captureScreenshot', {
+            format: 'png',
+        });
+        await writeFile(
+            path.join(output, `${role}-read-390-dark.png`),
+            Buffer.from(readShot.data, 'base64'),
         );
     }
     await writeFile(

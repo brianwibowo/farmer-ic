@@ -78,7 +78,7 @@ final class NotificationInboxService
     private function query(User $actor): Builder
     {
         return Notification::visibleTo($actor)->where('user_id', $actor->id)
-            ->whereIn('type', ['weekly_report', 'task_reminder', 'sop_deviation', 'daily_report', 'harvest_reminder']);
+            ->whereIn('type', ['weekly_report', 'task_reminder', 'sop_deviation', 'incident_report', 'daily_report', 'harvest_reminder']);
     }
 
     public function markRead(Notification $notification): void

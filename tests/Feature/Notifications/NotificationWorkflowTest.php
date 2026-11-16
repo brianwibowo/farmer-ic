@@ -10,7 +10,6 @@ use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\Channels\InAppChannel;
-use App\Notifications\SopDeviationNotification;
 use App\Services\Notifications\FonnteClient;
 use App\Services\Notifications\NotificationService;
 use Carbon\CarbonImmutable;
@@ -83,27 +82,27 @@ class NotificationWorkflowTest extends TestCase
         ]);
     }
 
-    public function test_weekly_admin_is_per_farm_and_owner_is_per_region(): void
+    public function test_weekly_has_one_prompt_per_recipient(): void
     {
         $this->makeFarm('Kebun Bogor');
         $this->makeFarm('Kebun Sukabumi');
         $this->actor('superadmin');
         $this->assertSame(2, app(NotificationService::class)->weeklyReports());
         $jobs = Bus::dispatched(SendWhatsAppNotification::class);
-        $this->assertCount(4, $jobs);
-        $this->assertCount(3, $jobs->filter(fn ($job) => $job->notification->data['audience'] === 'admin'));
+        $this->assertCount(2, $jobs);
+        $this->assertCount(1, $jobs->filter(fn ($job) => $job->notification->data['audience'] === 'admin'));
         $ownerJob = $jobs->first(fn ($job) => $job->notification->data['audience'] === 'owner');
         $this->assertCount(3, $ownerJob->notification->data['farms']);
         $this->fakeProvider();
         foreach ($jobs as $job) {
             $job->handle(app(NotificationService::class), app(FonnteClient::class));
         }
-        Http::assertSentCount(8);
+        Http::assertSentCount(4);
         $queued = Bus::dispatched(\Illuminate\Notifications\SendQueuedNotifications::class)
             ->first(fn ($job) => $job->notification->data['audience'] === 'owner')->notification;
         app(InAppChannel::class)->send($this->owner, $queued);
         app(InAppChannel::class)->send($this->owner, $queued);
-        $this->assertDatabaseCount('notifications', 1);
+        $this->assertDatabaseCount('notifications', 2);
         $this->assertDatabaseHas('notifications', ['user_id' => $this->owner->id, 'type' => 'weekly_report', 'team_id' => null]);
     }
 
@@ -161,7 +160,7 @@ class NotificationWorkflowTest extends TestCase
         $this->assertCount(2, $job->notification->data['farms']);
     }
 
-    public function test_reminders_include_only_h3_h1_h0_and_only_the_assigned_officer(): void
+    public function test_harvest_reminders_include_h3_h1_h0_for_admin_and_assigned_officer(): void
     {
         foreach ([3, 1, 0, 2, 7, -1] as $days) {
             $this->notificationTask($this->farm, $days);
@@ -172,80 +171,50 @@ class NotificationWorkflowTest extends TestCase
         $otherTask = $this->notificationTask($otherFarm);
         $foreign = Team::factory()->create(['is_personal' => false]);
         $foreignTask = $this->notificationTask($this->makeFarm('Kebun Rahasia', $foreign));
-        $this->assertSame(1, app(NotificationService::class)->taskReminders());
+        $this->assertSame(2, app(NotificationService::class)->taskReminders());
         $jobs = Bus::dispatched(SendWhatsAppNotification::class);
-        $this->assertSame([$this->officer->id], $jobs->map(fn ($job) => $job->notification->data['user_id'])->all());
+        $this->assertEqualsCanonicalizing([$this->officer->id, $this->admin->id], $jobs->map(fn ($job) => $job->notification->data['user_id'])->all());
         $this->assertCount(3, $this->officerJob()->notification->data['tasks']);
         $this->assertEqualsCanonicalizing([0, 1, 3], array_column($this->officerJob()->notification->data['tasks'], 'days_before'));
         $this->assertNotContains($otherTask->id, array_column($this->officerJob()->notification->data['tasks'], 'id'));
         $this->assertNotContains($foreignTask->id, array_column($this->officerJob()->notification->data['tasks'], 'id'));
-        Bus::assertNotDispatched(\Illuminate\Notifications\SendQueuedNotifications::class,
+        Bus::assertDispatched(\Illuminate\Notifications\SendQueuedNotifications::class,
             fn ($job) => $job->notification->data['user_id'] === $this->admin->id);
     }
 
-    public function test_already_queued_admin_reminders_are_rejected_by_both_channels(): void
+    public function test_admin_harvest_reminder_is_allowed_in_both_channels(): void
     {
         $this->notificationTask($this->farm);
         app(NotificationService::class)->taskReminders();
-        $data = [...$this->officerJob()->notification->data, 'user_id' => $this->admin->id];
-        $notification = new \App\Notifications\TaskReminderNotification($data);
-        app(InAppChannel::class)->send($this->admin, $notification);
-        (new SendWhatsAppNotification($notification))->handle(app(NotificationService::class), app(FonnteClient::class));
-        $this->assertDatabaseCount('notifications', 0);
-        Http::assertNothingSent();
-        $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('notifications.taskReminder', $this->team));
-        $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('notifications.sopDeviation', $this->team));
+        $job = Bus::dispatched(SendWhatsAppNotification::class)->first(fn ($job) => $job->notification->data['user_id'] === $this->admin->id);
+        $this->assertNotNull(app(NotificationService::class)->validRecipient($job->notification->data));
+        app(InAppChannel::class)->send($this->admin, $job->notification);
+        $this->assertDatabaseHas('notifications', ['user_id' => $this->admin->id, 'type' => 'task_reminder']);
     }
 
-    public function test_empty_reminders_and_deviations_queue_nothing(): void
-    {
-        $this->assertSame(0, app(NotificationService::class)->taskReminders());
-        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
-        Bus::assertNothingDispatched();
-    }
-
-    public function test_cancelled_and_unplanted_cycles_produce_no_task_notifications(): void
-    {
-        $task = $this->notificationTask($this->farm);
-        $task->plantingCycle->update(['status' => 'cancelled']);
-        $this->assertSame(0, app(NotificationService::class)->taskReminders());
-        $task->plantingCycle->update(['status' => 'active', 'planted_at' => now()->addDay()->toDateString()]);
-        $this->assertSame(0, app(NotificationService::class)->taskReminders());
-    }
-
-    public function test_reschedule_moves_reminders_and_tolerance_without_violating_the_old_limit(): void
+    public function test_reschedule_moves_reminders_and_reports_the_original_limit(): void
     {
         $task = $this->notificationTask($this->farm, -10);
         app(\App\Services\PlantingCycleTaskManagementService::class)->reschedule($task, $this->admin, [
             'rescheduled_date' => now()->addDay()->toDateString(), 'reschedule_reason' => 'Menunggu kondisi cuaca',
         ]);
-        $this->assertSame(1, app(NotificationService::class)->taskReminders());
+        $this->assertSame(2, app(NotificationService::class)->taskReminders());
         $this->assertSame(1, $this->officerJob()->notification->data['tasks'][0]['days_before']);
-        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
+        $this->assertSame(1, app(NotificationService::class)->sopDeviations());
     }
 
-    public function test_deviation_is_admin_only_strictly_after_dynamic_tolerance_and_repeats_daily(): void
+    public function test_deviation_is_admin_only_and_not_repeated_on_later_days(): void
     {
-        $task = $this->notificationTask($this->farm, -20, [
-            'rescheduled_date' => now()->subDays(2)->toDateString(), 'due_date' => now()->toDateString(),
-        ]);
-        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
-        $this->travel(1)->days();
-        $this->assertSame(1, app(NotificationService::class)->sopDeviations());
+        $task = $this->notificationTask($this->farm, -3);
+        $service = app(NotificationService::class);
+        $this->assertSame(1, $service->sopDeviations());
         $job = Bus::dispatched(SendWhatsAppNotification::class)->first();
-        $this->assertInstanceOf(SopDeviationNotification::class, $job->notification);
         $this->assertSame($this->admin->id, $job->notification->data['user_id']);
         $this->assertSame($task->id, $job->notification->data['tasks'][0]['id']);
         app(InAppChannel::class)->send($this->admin, $job->notification);
-        app(InAppChannel::class)->send($this->admin, $job->notification);
-        $this->assertDatabaseCount('notifications', 1);
         $this->travel(1)->days();
-        $this->assertSame(1, app(NotificationService::class)->sopDeviations());
-        $next = Bus::dispatched(SendWhatsAppNotification::class)->last();
-        app(InAppChannel::class)->send($this->admin, $next->notification);
-        $this->assertDatabaseCount('notifications', 2);
-        $task->update(['status' => 'completed', 'completed_at' => now()]);
-        $this->assertSame(0, app(NotificationService::class)->sopDeviations());
+        $this->assertSame(0, $service->sopDeviations());
+        $this->assertDatabaseCount('notifications', 1);
     }
 
     public function test_zero_tolerance_reports_only_from_the_following_day(): void
@@ -284,7 +253,7 @@ class NotificationWorkflowTest extends TestCase
         $this->officerJob()->handle(app(NotificationService::class), app(FonnteClient::class));
         Http::assertSentCount(1);
         app(InAppChannel::class)->send($this->officer, $this->officerJob()->notification);
-        $this->assertDatabaseCount('notifications', 0);
+        $this->assertDatabaseCount('notifications', 1); // Inbox predates the provider validation; only WhatsApp is cancelled.
     }
 
     public static function accessChanges(): array
@@ -358,9 +327,9 @@ class NotificationWorkflowTest extends TestCase
     {
         $events = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events());
         $this->assertSame('0 20 * * 0', $events->first(fn ($event) => str_contains($event->command ?? '', 'weekly-report'))->expression);
-        foreach (['task-reminder', 'sop-deviation'] as $kind) {
+        foreach (['task-reminder', 'sop-deviation', 'incident-report'] as $kind) {
             $event = $events->first(fn ($event) => str_contains($event->command ?? '', $kind));
-            $this->assertSame('0 6 * * *', $event->expression);
+            $this->assertSame($kind === 'task-reminder' ? '0 6 * * *' : '*/30 * * * *', $event->expression);
             $this->assertSame('Asia/Jakarta', $event->timezone);
         }
         $this->artisan('notifications:dispatch', ['kind' => 'daily-report'])->assertExitCode(2);

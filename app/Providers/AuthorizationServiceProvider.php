@@ -111,7 +111,7 @@ class AuthorizationServiceProvider extends ServiceProvider
             $models = [Notification::class, Farm::class, FarmActivity::class, PlantingCycle::class];
             array_push($models, ...($role === 'owner'
                 ? [HarvestDetail::class, Commodity::class, CropVariety::class]
-                : [FarmBlock::class, ActivityType::class, IncidentDetail::class]));
+                : [FarmBlock::class, ActivityType::class, IncidentDetail::class, HarvestDetail::class]));
             foreach ($models as $model) {
                 if (! Gate::forUser($user)->allows('viewAny', [$model, $team])) {
                     return false;
@@ -131,7 +131,8 @@ class AuthorizationServiceProvider extends ServiceProvider
                 && Gate::forUser($user)->allows('viewAny', [PlantingCycle::class, $team])
                 && Gate::forUser($user)->allows('viewAny', [PlantingCycleTask::class, $team]);
         };
-        Gate::define('notifications.taskReminder', fn (User $user, Team $team): bool => $canReceiveTaskNotification($user, $team, 'petugas'));
+        Gate::define('notifications.taskReminder', fn (User $user, Team $team): bool => $canReceiveTaskNotification($user, $team, 'petugas') || $canReceiveTaskNotification($user, $team, 'admin'));
         Gate::define('notifications.sopDeviation', fn (User $user, Team $team): bool => $canReceiveTaskNotification($user, $team, 'admin'));
+        Gate::define('notifications.incidentReport', fn (User $user, Team $team): bool => $canReceiveTaskNotification($user, $team, 'admin') && Gate::forUser($user)->allows('viewAny', [FarmActivity::class, $team]) && Gate::forUser($user)->allows('viewAny', [IncidentDetail::class, $team]));
     }
 }

@@ -40,7 +40,7 @@ trait CreatesNotificationTasks
 
             return PlantingCycleTask::create([
                 'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $stage->id,
-                'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
+                'activity_category' => 'harvest', 'activity_subcategory' => null,
                 'name' => 'Pengairan awal', 'offset_days' => 7, 'tolerance_days' => 2,
                 'scheduled_date' => $scheduled->toDateString(), 'due_date' => $scheduled->addDays(2)->toDateString(),
                 'is_required' => true, 'status' => 'pending', ...$attributes,

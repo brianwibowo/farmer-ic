@@ -130,19 +130,20 @@ class WeeklyReportRevisionTest extends TestCase
         $actual = collect($queued->data['farms'])->sum(fn ($farm) => collect($farm['crops'])->firstWhere('name', 'Jagung')['target_ton']);
         $this->assertEquals($expected, $actual);
         $jobs = Bus::dispatched(SendWhatsAppNotification::class)->filter(fn ($job) => $job->notification->data['audience'] === 'owner');
-        $this->assertCount(2, $jobs);
+        $this->assertCount(1, $jobs);
         foreach ($jobs as $job) {
             $text = $job->notification->toWhatsAppText();
-            $this->assertSame(1, substr_count($text, 'Kabupaten/kota:'));
+            $this->assertSame(0, substr_count($text, 'Kabupaten/kota:'));
+            $this->assertStringContainsString('/notifications', $text);
             $this->assertStringNotContainsString('Total seluruh lahan', $text);
             $this->assertStringNotContainsString('Kebun Satu', $text);
             $this->assertStringNotContainsString('Tenant:', $text);
         }
-        $bogorJob = $jobs->first(fn ($job) => $job->notification->data['farms'][0]['region_name'] === 'Kabupaten Bogor');
-        $this->assertStringContainsString('target per cycle: 1.200 ton; panen minggu ini: 4 ton', $bogorJob->notification->toWhatsAppText());
-        $cianjurJob = $jobs->first(fn ($job) => $job->notification->data['farms'][0]['region_name'] === 'Kabupaten Cianjur');
-        $this->assertStringContainsString('target per cycle: 200 ton', $cianjurJob->notification->toWhatsAppText());
-        $this->assertStringContainsString('Tidak ada panen yang terjadi minggu ini.', $cianjurJob->notification->toWhatsAppText());
+        $inboxText = $jobs->first()->notification->toInApp()['message'];
+        $this->assertStringContainsString('target per cycle: 1.200 ton; panen minggu ini: 4 ton', $inboxText);
+        $this->assertStringContainsString('target per cycle: 200 ton', $inboxText);
+        $this->assertStringContainsString('Tidak ada panen yang terjadi minggu ini.', $inboxText);
+
     }
 
     public function test_admin_counts_all_incidents_and_obstacles_without_copying_long_reports(): void
@@ -163,7 +164,7 @@ class WeeklyReportRevisionTest extends TestCase
         $this->assertSame(5, $notification->data['farms'][0]['activity_count']);
         $this->assertCount(1, $notification->data['farms'][0]['blocks']);
         $message = $notification->toInApp()['message'];
-        $this->assertStringContainsString('Lahan: Kebun Aktivitas', $notification->toWhatsAppText());
+        $this->assertStringNotContainsString('Kebun Aktivitas', $notification->toWhatsAppText());
         $this->assertStringContainsString('Pengairan 2 kali', $message);
         $this->assertStringContainsString('Cuaca (Berat) 2 kejadian', $message);
         $this->assertStringContainsString('Alat rusak (Ringan) 1 kejadian', $message);
@@ -194,8 +195,8 @@ class WeeklyReportRevisionTest extends TestCase
         app(NotificationService::class)->weeklyReports();
         $notification = Bus::dispatched(SendWhatsAppNotification::class)
             ->first(fn ($job) => $job->notification->data['audience'] === 'owner')->notification;
-        $this->assertStringContainsString('panen minggu ini: 3 ton', $notification->toWhatsAppText());
-        $this->assertStringNotContainsString('999', $notification->toWhatsAppText());
+        $this->assertStringContainsString('panen minggu ini: 3 ton', $notification->toInApp()['message']);
+        $this->assertStringNotContainsString('999', $notification->toInApp()['message']);
     }
 
     public function test_owner_combined_report_stays_personal_when_obsolete_tenant_filters_are_supplied(): void
@@ -261,7 +262,7 @@ class WeeklyReportRevisionTest extends TestCase
         $job->handle(app(NotificationService::class), app(FonnteClient::class));
         Http::assertSentCount(1);
         app(InAppChannel::class)->send($this->owner, $job->notification);
-        $this->assertDatabaseCount('notifications', 0);
+        $this->assertDatabaseCount('notifications', 1); // Existing inbox snapshot is independent of the cancelled WhatsApp prompt.
     }
 
     public function test_missing_harvest_weight_is_reported_as_missing_instead_of_no_harvest(): void
@@ -269,8 +270,8 @@ class WeeklyReportRevisionTest extends TestCase
         $this->harvest($this->cycle($this->farm('Kebun Data Panen')), null);
         app(NotificationService::class)->weeklyReports();
         $notification = Bus::dispatched(SendWhatsAppNotification::class)->first(fn ($job) => $job->notification->data['audience'] === 'owner')->notification;
-        $this->assertStringContainsString('berat belum tercatat', $notification->toWhatsAppText());
-        $this->assertStringNotContainsString('Tidak ada panen yang terjadi minggu ini.', $notification->toWhatsAppText());
+        $this->assertStringContainsString('berat belum tercatat', $notification->toInApp()['message']);
+        $this->assertStringNotContainsString('Tidak ada panen yang terjadi minggu ini.', $notification->toInApp()['message']);
     }
 
     public function test_equal_city_names_in_different_provinces_do_not_merge(): void
@@ -280,7 +281,8 @@ class WeeklyReportRevisionTest extends TestCase
         $other->update(['province' => 'Provinsi Lain']);
         app(NotificationService::class)->weeklyReports();
         $jobs = Bus::dispatched(SendWhatsAppNotification::class)->filter(fn ($job) => $job->notification->data['audience'] === 'owner');
-        $this->assertCount(2, $jobs);
+        $this->assertCount(1, $jobs);
+        $this->assertCount(2, array_unique(array_column($jobs->first()->notification->data['farms'], 'region_key')));
     }
 
     public function test_coded_and_legacy_farms_use_the_same_regional_identity(): void

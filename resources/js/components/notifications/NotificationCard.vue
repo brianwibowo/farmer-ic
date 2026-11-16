@@ -4,7 +4,6 @@ import {
     Bell,
     Building2,
     Check,
-    CheckCheck,
     ChevronDown,
     ClipboardList,
     LoaderCircle,
@@ -17,6 +16,7 @@ import type { InboxNotice } from '@/types/notifications';
 import { date } from './format';
 import WeeklyHarvestReport from './WeeklyHarvestReport.vue';
 import WeeklyActivityReport from './WeeklyActivityReport.vue';
+import IncidentNotificationReport from './IncidentNotificationReport.vue';
 import TaskNotificationReport from './TaskNotificationReport.vue';
 
 const props = defineProps<{
@@ -43,9 +43,15 @@ const category = computed(() => {
             };
         case 'task_reminder':
             return {
-                label: 'Pengingat tugas',
+                label: 'Pengingat panen',
                 icon: ClipboardList,
                 warning: false,
+            };
+        case 'incident_report':
+            return {
+                label: 'Insiden baru',
+                icon: TriangleAlert,
+                warning: true,
             };
         case 'sop_deviation':
             return {
@@ -59,6 +65,8 @@ const category = computed(() => {
 });
 const preview = computed(() => {
     const content = report.value;
+    if (content?.kind === 'incident_report')
+        return content.incidents.length + ' laporan insiden baru';
     if (content?.kind === 'weekly_owner') return '';
     if (content?.kind === 'weekly_admin') {
         const activities = content.farms.reduce(
@@ -97,7 +105,28 @@ const preview = computed(() => {
                 group.items.reduce((total, item) => total + item.count, 0),
             0,
         );
-        return count + ' tugas · ' + content.groups.length + ' blok';
+        if (content.kind === 'task_reminder') {
+            const subblocks = new Set(
+                content.groups.flatMap((group) =>
+                    group.items.flatMap(
+                        (item) =>
+                            item.subblocks?.map((block) => block.id) ?? [],
+                    ),
+                ),
+            );
+            return (
+                content.groups.length +
+                ' blok · ' +
+                (subblocks.size || count) +
+                ' subblok'
+            );
+        }
+        return (
+            count +
+            (content.kind === 'sop_deviation' ? ' temuan · ' : ' tugas · ') +
+            content.groups.length +
+            ' blok'
+        );
     }
     return props.notice.message.replace(/\s+/g, ' ').slice(0, 160);
 });
@@ -115,120 +144,143 @@ const period = computed(() => {
         :data-rich-inbox="report?.kind ?? 'text'"
     >
         <header
-            class="flex flex-wrap items-center gap-2 p-3 @md:flex-nowrap @md:p-4"
+            class="cursor-pointer space-y-2 p-3 @md:p-4"
+            @click="expanded = !expanded"
         >
-            <button
-                type="button"
-                class="flex min-h-11 min-w-0 flex-1 basis-full items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-ring @md:basis-auto"
-                :aria-expanded="expanded"
-                :aria-controls="contentId"
-                @click="expanded = !expanded"
-            >
-                <span
-                    class="flex size-10 shrink-0 items-center justify-center rounded-xl"
-                    :class="
-                        category.warning
-                            ? 'bg-warning/10 text-warning'
-                            : 'bg-primary/10 text-primary'
-                    "
-                    aria-hidden="true"
-                    ><component :is="category.icon" class="size-5"
-                /></span>
-                <span class="block min-w-0 flex-1 text-left">
-                    <span
-                        v-if="
-                            report?.kind !== 'weekly_owner' ||
-                            (showTenant && notice.tenant_name)
-                        "
-                        class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1"
-                    >
-                        <span
-                            v-if="report?.kind !== 'weekly_owner'"
-                            class="text-xs font-medium"
-                            :class="
-                                category.warning
-                                    ? 'text-warning'
-                                    : 'text-primary'
-                            "
-                            >{{ category.label }}</span
-                        >
-                        <span
-                            v-if="showTenant && notice.tenant_name"
-                            class="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground"
-                        >
-                            <Building2
-                                class="size-3 shrink-0"
-                                aria-hidden="true"
-                            /><span class="truncate">{{
-                                notice.tenant_name
-                            }}</span>
-                        </span>
-                    </span>
-                    <span class="block text-sm leading-5 font-semibold">{{
-                        report?.kind === 'weekly_owner'
-                            ? 'Laporan Mingguan Panen'
-                            : notice.title
-                    }}</span>
-                    <span
-                        v-if="preview"
-                        class="mt-1 line-clamp-2 block text-xs leading-5 text-muted-foreground"
-                        >{{ preview }}</span
-                    >
-                    <span
-                        v-if="report?.kind === 'weekly_owner' && period"
-                        class="mt-2 inline-flex rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
-                        >Periode {{ period }}</span
-                    >
-                    <time
-                        v-else
-                        class="mt-1.5 block text-xs text-muted-foreground"
-                        >{{ notice.created_at }}</time
-                    >
-                </span>
-            </button>
-            <div class="ml-auto flex items-center gap-1">
-                <Button
-                    v-if="notice.can_read && !notice.is_read"
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    class="min-h-11 shrink-0 gap-1.5 px-2 text-sm"
-                    aria-label="Tandai dibaca"
-                    title="Tandai dibaca"
-                    :disabled="pending !== null || loading"
-                    @click="$emit('read', notice)"
-                >
-                    <LoaderCircle
-                        v-if="pending === notice.id"
-                        class="size-4 animate-spin"
-                        aria-hidden="true"
-                    />
-                    <Check v-else class="size-4" aria-hidden="true" />
-                    Tandai dibaca
-                </Button>
+            <div class="mb-0 flex min-w-0 items-start gap-2 @md:items-center">
                 <button
                     type="button"
-                    class="flex size-11 items-center justify-center rounded-lg text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                    class="flex min-h-11 min-w-0 flex-auto cursor-pointer items-start gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-ring @md:items-center @md:gap-3"
                     :aria-expanded="expanded"
                     :aria-controls="contentId"
-                    :aria-label="
-                        expanded
-                            ? 'Tutup detail notifikasi'
-                            : 'Buka detail notifikasi'
-                    "
-                    @click="expanded = !expanded"
+                    @click.stop="expanded = !expanded"
                 >
-                    <CheckCheck
-                        v-if="notice.is_read"
-                        class="mr-1 size-4"
-                        aria-label="Sudah dibaca"
-                    />
-                    <ChevronDown
-                        class="size-4 transition-transform motion-reduce:transition-none"
-                        :class="expanded ? 'rotate-180' : ''"
+                    <span
+                        class="flex size-8 shrink-0 items-center justify-center rounded-xl @md:size-10"
+                        :class="
+                            category.warning
+                                ? 'bg-warning/10 text-warning'
+                                : 'bg-primary/10 text-primary'
+                        "
                         aria-hidden="true"
-                    />
+                        ><component
+                            :is="category.icon"
+                            class="size-4 @md:size-5"
+                    /></span>
+                    <span class="block min-w-0 flex-1 text-left">
+                        <span
+                            v-if="
+                                report?.kind !== 'weekly_owner' ||
+                                (showTenant && notice.tenant_name)
+                            "
+                            class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1"
+                        >
+                            <span
+                                v-if="report?.kind !== 'weekly_owner'"
+                                class="text-xs font-medium"
+                                :class="
+                                    category.warning
+                                        ? 'text-warning'
+                                        : 'text-primary'
+                                "
+                                >{{ category.label }}</span
+                            >
+                            <span
+                                v-if="showTenant && notice.tenant_name"
+                                class="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground"
+                            >
+                                <Building2
+                                    class="size-3 shrink-0"
+                                    aria-hidden="true"
+                                /><span class="truncate">{{
+                                    notice.tenant_name
+                                }}</span>
+                            </span>
+                        </span>
+                        <span class="block text-sm leading-5 font-semibold">{{
+                            report?.kind === 'weekly_owner'
+                                ? 'Laporan Mingguan Panen'
+                                : notice.title
+                        }}</span>
+                        <span
+                            v-if="preview"
+                            class="mt-1 hidden text-xs leading-5 text-muted-foreground @md:line-clamp-2"
+                            >{{ preview }}</span
+                        >
+                        <span
+                            v-if="period"
+                            class="mt-2 hidden rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground @md:inline-flex"
+                            >Periode {{ period }}</span
+                        >
+                        <time
+                            v-else
+                            class="mt-1.5 hidden text-xs text-muted-foreground @md:block"
+                            >{{ notice.created_at }}</time
+                        >
+                    </span>
                 </button>
+                <div
+                    class="ml-auto inline-flex items-center gap-0.5 @md:gap-1"
+                    :class="
+                        notice.can_read && !notice.is_read
+                            ? 'min-w-[5.875rem] shrink-10'
+                            : 'shrink-0'
+                    "
+                >
+                    <Button
+                        v-if="notice.can_read && !notice.is_read"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        class="h-auto min-h-9! min-w-16 shrink gap-1 px-1 py-1 text-xs leading-4 whitespace-normal has-[>svg]:px-1 @md:min-h-11! @md:gap-1.5 @md:px-2 @md:text-sm @md:has-[>svg]:px-2"
+                        aria-label="Tandai dibaca"
+                        title="Tandai dibaca"
+                        :disabled="pending !== null || loading"
+                        @click.stop="$emit('read', notice)"
+                    >
+                        <LoaderCircle
+                            v-if="pending === notice.id"
+                            class="size-3 animate-spin @md:size-4"
+                            aria-hidden="true"
+                        />
+                        <Check
+                            v-else
+                            class="size-3 @md:size-4"
+                            aria-hidden="true"
+                        />
+                        <span class="min-w-0">Tandai dibaca</span>
+                    </Button>
+                    <button
+                        type="button"
+                        class="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring @md:size-11"
+                        :aria-expanded="expanded"
+                        :aria-controls="contentId"
+                        :aria-label="
+                            expanded
+                                ? 'Tutup detail notifikasi'
+                                : 'Buka detail notifikasi'
+                        "
+                        @click.stop="expanded = !expanded"
+                    >
+                        <ChevronDown
+                            class="size-4 transition-transform motion-reduce:transition-none"
+                            :class="expanded ? 'rotate-180' : ''"
+                            aria-hidden="true"
+                        />
+                    </button>
+                </div>
+            </div>
+            <div
+                class="w-full space-y-1.5 pl-10 text-xs text-muted-foreground @md:hidden"
+            >
+                <p v-if="preview" class="leading-5">{{ preview }}</p>
+                <span
+                    v-if="period"
+                    class="inline-flex rounded-md bg-muted px-2 py-1 font-medium"
+                >
+                    Periode {{ period }}
+                </span>
+                <time v-else class="block">{{ notice.created_at }}</time>
             </div>
         </header>
         <div
@@ -237,18 +289,16 @@ const period = computed(() => {
             class="@container min-w-0 border-t border-border"
         >
             <div class="space-y-4 px-3 py-4 @md:px-5">
-                <p
-                    v-if="period && report?.kind !== 'weekly_owner'"
-                    class="inline-flex rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
-                >
-                    Periode {{ period }}
-                </p>
                 <WeeklyHarvestReport
                     v-if="report?.kind === 'weekly_owner'"
                     :content="report"
                 />
                 <WeeklyActivityReport
                     v-else-if="report?.kind === 'weekly_admin'"
+                    :content="report"
+                />
+                <IncidentNotificationReport
+                    v-else-if="report?.kind === 'incident_report'"
                     :content="report"
                 />
                 <TaskNotificationReport

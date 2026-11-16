@@ -34,13 +34,14 @@ final class WeeklyReportService
             ->whereHas('performer', fn ($users) => $users->withTrashed()->whereHas('role', fn ($roles) => $roles->where('name', 'petugas')))
             ->with(['activityType' => fn ($types) => $types->visibleTo($actor, $team)])
             ->orderBy('activity_date')->orderBy('id')->get();
+        $harvests = HarvestDetail::visibleTo($actor, $team)->whereIn('activity_id', $activities->modelKeys())->get()->keyBy('activity_id');
         $incidents = IncidentDetail::visibleTo($actor, $team)->whereIn('activity_id', $activities->modelKeys())->get()->keyBy('activity_id');
 
-        return array_values($farms->map(function (Farm $farm) use ($team, $blocks, $cycles, $activities, $incidents): array {
+        return array_values($farms->map(function (Farm $farm) use ($team, $blocks, $cycles, $activities, $incidents, $harvests): array {
             $farmActivities = $activities->where('farm_id', $farm->id);
             $farmBlocks = $blocks->where('farm_id', $farm->id)->keyBy('id');
             $groups = $farmBlocks->map(fn (FarmBlock $block): array => [
-                'id' => $block->id, 'name' => $block->getAttribute('name'), 'activity_counts' => [], 'obstacle_count' => 0, 'obstacles' => [], 'incidents' => [],
+                'id' => $block->id, 'name' => $block->getAttribute('name'), 'activity_counts' => [], 'harvest_ton' => 0.0, 'harvest_count' => 0, 'harvest_missing' => 0, 'obstacle_count' => 0, 'obstacles' => [], 'incidents' => [],
             ])->all();
             foreach ($farmActivities as $activity) {
                 $blockId = $activity->getAttribute('block_id') ?? $cycles->get($activity->planting_cycle_id)?->block_id;
@@ -48,13 +49,22 @@ final class WeeklyReportService
                 if ($blockId !== null && ! $farmBlocks->has($blockId)) {
                     $key = 'unassigned';
                 }
-                $groups[$key] ??= ['id' => null, 'name' => 'Tanpa blok', 'activity_counts' => [], 'obstacle_count' => 0, 'obstacles' => [], 'incidents' => []];
+                $groups[$key] ??= ['id' => null, 'name' => 'Tanpa blok', 'activity_counts' => [], 'harvest_ton' => 0.0, 'harvest_count' => 0, 'harvest_missing' => 0, 'obstacle_count' => 0, 'obstacles' => [], 'incidents' => []];
                 $name = $activity->activityType->name ?? 'Aktivitas lainnya';
                 $groups[$key]['activity_counts'][$name] = ($groups[$key]['activity_counts'][$name] ?? 0) + 1;
                 if (filled($activity->obstacles)) {
                     $groups[$key]['obstacle_count']++;
                     $summary = Str::limit(Str::squish($activity->obstacles), 100);
                     $groups[$key]['obstacles'][$summary] = ($groups[$key]['obstacles'][$summary] ?? 0) + 1;
+                }
+                if ($activity->activityType?->code === 'harvest') {
+                    $groups[$key]['harvest_count']++;
+                    $weight = $harvests->get($activity->id)?->gross_weight_ton;
+                    if ($weight === null) {
+                        $groups[$key]['harvest_missing']++;
+                    } else {
+                        $groups[$key]['harvest_ton'] += (float) $weight;
+                    }
                 }
                 $incident = $incidents->get($activity->id);
                 if ($incident !== null) {

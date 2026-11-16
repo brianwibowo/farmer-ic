@@ -32,7 +32,7 @@ class TaskReminderNotification extends Notification implements ShouldQueue
 
     protected function title(): string
     {
-        return 'Reminder Tugas SOP';
+        return 'Reminder Panen';
     }
 
     /** @return list<array<string, mixed>> */
@@ -43,10 +43,14 @@ class TaskReminderNotification extends Notification implements ShouldQueue
             throw new \InvalidArgumentException('Notification tasks must be an array.');
         }
         $groups = collect($tasks)->groupBy(fn (array $task): string => json_encode([
-            $task['farm_id'], $task['block_id'], $task['name'], $task['scheduled_date'], $task['due_date'],
+            $task['farm_id'], $task['block_id'], $task['name'], $task['scheduled_date'], $task['due_date'], $task['reason'] ?? null,
         ], JSON_THROW_ON_ERROR));
 
-        return array_values($groups->map(fn ($tasks): array => [...$tasks->first(), 'count' => $tasks->count()])->all());
+        return array_values($groups->map(fn ($tasks): array => [
+            ...$tasks->first(), 'count' => $tasks->count(),
+            'subblocks' => $tasks->filter(fn ($task) => isset($task['cycle_id'], $task['subblock_name']))
+                ->unique('cycle_id')->map(fn ($task) => ['id' => $task['cycle_id'], 'name' => $task['subblock_name']])->values()->all(),
+        ])->all());
     }
 
     /** @return array<string, mixed> */
@@ -54,11 +58,12 @@ class TaskReminderNotification extends Notification implements ShouldQueue
     {
         $groups = [];
         foreach ($this->groupedTasks() as $task) {
-            $key = $task['farm_id'].':'.($task['block_id'] ?? 'unassigned');
+            $key = $task['farm_id'].':'.($task['block_id'] ?? 'unassigned').':'.($task['reason'] ?? '');
             $groups[$key] ??= ['key' => $key, 'farm_id' => $task['farm_id'], 'block_id' => $task['block_id'], 'farm_name' => $task['farm_name'], 'block_name' => $task['block_name'], 'items' => []];
             $groups[$key]['items'][] = [
                 'name' => $task['name'], 'count' => $task['count'], 'scheduled_date' => $task['scheduled_date'],
-                'due_date' => $task['due_date'], 'days_before' => $task['days_before'],
+                'due_date' => $task['due_date'], 'days_before' => $task['days_before'], 'reason' => $task['reason'] ?? null,
+                'subblocks' => $task['subblocks'],
             ];
         }
 
@@ -80,8 +85,12 @@ class TaskReminderNotification extends Notification implements ShouldQueue
                 $lines[] = '';
             }
             array_push($lines, 'Lahan: '.$task['farm_name'], 'Blok: '.$task['block_name'],
-                'Tugas: '.$task['name'].' — '.$label, 'Jumlah tugas: '.$task['count'],
-                'Jadwal: '.$date, 'Batas toleransi: '.$due);
+                'Tugas: '.$task['name'].' — '.$label,
+                ($this instanceof SopDeviationNotification ? 'Jumlah tugas: '.$task['count'] : 'Jumlah subblok: '.(count($task['subblocks']) ?: $task['count'])),
+                'Jadwal: '.$date);
+            if ($this instanceof SopDeviationNotification) {
+                $lines[] = 'Batas toleransi: '.$due;
+            }
         }
 
         return ['title' => $this->title(), 'message' => implode("\n", $lines), 'content' => $this->toInboxContent()];
@@ -89,9 +98,7 @@ class TaskReminderNotification extends Notification implements ShouldQueue
 
     public function toWhatsAppText(): string
     {
-        $content = $this->toInApp();
-
-        return '*'.$content['title']."*\n\n".$content['message'];
+        return InboxPrompt::message($this->title());
     }
 
     /** @return list<int> */

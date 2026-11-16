@@ -55,6 +55,7 @@ final class WeeklyReportNotification extends Notification implements ShouldQueue
                     'activities' => $this->countItems($block['activity_counts']),
                     'obstacle_count' => $block['obstacle_count'], 'obstacle_summary' => $block['obstacle_summary'],
                     'incidents' => $this->countItems($block['incidents']),
+                    'harvest_ton' => $block['harvest_ton'] ?? 0, 'harvest_count' => $block['harvest_count'] ?? 0, 'harvest_missing' => $block['harvest_missing'] ?? 0,
                 ], $farm['blocks']),
             ], $this->data['farms'])];
         }
@@ -87,11 +88,7 @@ final class WeeklyReportNotification extends Notification implements ShouldQueue
 
     public function toWhatsAppText(): string
     {
-        $owner = $this->data['audience'] === 'owner';
-        $title = $owner ? 'Laporan Weekly Panen' : 'Laporan Weekly Aktivitas Petugas';
-        $lines = $owner ? $this->ownerLines($this->data['farms'], false) : $this->adminLines($this->data['farms']);
-
-        return '*'.$title."*\n".$this->header()."\n\n".implode("\n", $lines);
+        return InboxPrompt::message($this->data['audience'] === 'owner' ? 'Laporan Mingguan Panen Tersedia' : 'Laporan Mingguan Aktivitas Tersedia');
     }
 
     private function header(): string

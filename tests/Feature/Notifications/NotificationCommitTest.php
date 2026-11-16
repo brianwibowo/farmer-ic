@@ -63,8 +63,10 @@ class NotificationCommitTest extends TestCase
         $this->assertDatabaseCount('jobs', 0);
         DB::rollBack();
         $this->assertDatabaseCount('jobs', 0);
+        $this->assertDatabaseCount('operational_notification_events', 0);
+        $this->assertDatabaseCount('operational_notification_deliveries', 0);
         DB::transaction(fn () => $this->prepareWeeklyReport());
-        $this->assertDatabaseCount('jobs', 4);
+        $this->assertDatabaseCount('jobs', 1);
         $this->assertDatabaseCount('notifications', 0);
         Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'notifications', '--once' => true, '--sleep' => 0]);
         $this->assertDatabaseCount('notifications', 1);
@@ -94,7 +96,7 @@ class NotificationCommitTest extends TestCase
         $this->prepareReminder();
         $this->assertDatabaseCount('jobs', 0);
         DB::commit();
-        $this->assertDatabaseCount('jobs', 2);
+        $this->assertDatabaseCount('jobs', 1);
         $this->assertDatabaseCount('notifications', 0);
         $this->assertSame(0, Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'notifications', '--once' => true, '--sleep' => 0]));
         $this->assertDatabaseCount('notifications', 1);

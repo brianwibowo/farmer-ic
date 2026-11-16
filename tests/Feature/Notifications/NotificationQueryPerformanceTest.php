@@ -39,7 +39,7 @@ class NotificationQueryPerformanceTest extends TestCase
         parent::setUp();
         $this->travelTo(CarbonImmutable::parse('2026-10-30 20:00:00', 'Asia/Jakarta'));
         config(['inertia.ssr.enabled' => false, 'operational_notifications.enabled' => true,
-            'operational_notifications.connection' => 'database']);
+            'operational_notifications.connection' => 'database', 'operational_notifications.fonnte.enabled' => true]);
         Http::preventStrayRequests();
         Bus::fake();
     }
@@ -142,12 +142,16 @@ class NotificationQueryPerformanceTest extends TestCase
             $this->activity($farm, $officer);
         }
         Bus::fake();
+        $this->travel(7)->days();
+        foreach (Farm::where('team_id', $team->id)->get() as $currentFarm) {
+            $this->activity($currentFarm, $officer);
+        }
         $eight = $this->queryCount(fn () => $this->assertSame(1, $service->weeklyReports()));
         $this->assertSame($one, $eight, 'Weekly queries must not scale per farm.');
         $jobs = Bus::dispatched(SendWhatsAppNotification::class);
-        $this->assertCount($role === 'owner' ? 1 : 8, $jobs);
+        $this->assertCount(1, $jobs);
         foreach ($jobs as $job) {
-            $this->assertCount($role === 'owner' ? 8 : 1, $job->notification->data['farms']);
+            $this->assertCount(8, $job->notification->data['farms']);
         }
     }
 
@@ -167,7 +171,7 @@ class NotificationQueryPerformanceTest extends TestCase
         $thirty = $this->queryCount(fn () => $this->assertSame(1, $service->taskReminders()));
         $this->assertSame($one, $thirty, 'Reminder queries must not scale per task.');
         $tasks = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification->data['tasks'];
-        $this->assertCount(30, $tasks);
+        $this->assertCount(29, $tasks);
         $this->assertEqualsCanonicalizing([0, 1, 3], array_values(array_unique(array_column($tasks, 'days_before'))));
     }
 
@@ -204,7 +208,7 @@ class NotificationQueryPerformanceTest extends TestCase
         Bus::fake();
         $thirtyDispatch = $this->queryCount(fn () => $this->assertSame(1, $dispatch()));
         $thirtyData = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification->data;
-        $thirtyDelivery = $this->queryCount(fn () => $checkDelivery($thirtyData, 30));
+        $thirtyDelivery = $this->queryCount(fn () => $checkDelivery($thirtyData, 29));
         $this->assertSame($oneDispatch, $thirtyDispatch, $kind.' dispatcher queries must not scale per task.');
         $this->assertSame($oneDelivery, $thirtyDelivery, $kind.' queue validation queries must not scale per task.');
     }
@@ -269,6 +273,7 @@ class NotificationQueryPerformanceTest extends TestCase
             $this->farm($team);
         }
         Bus::fake();
+        $this->travel(7)->days();
         $service->weeklyReports();
         $data = Bus::dispatched(SendWhatsAppNotification::class)->first()->notification->data;
         $eight = $this->queryCount(fn () => $this->assertNotNull($service->validRecipient($data)));

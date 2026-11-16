@@ -26,6 +26,9 @@ export type ActivityBlock = {
     obstacle_count: number;
     obstacle_summary: string | null;
     incidents: CountItem[];
+    harvest_ton?: number;
+    harvest_count?: number;
+    harvest_missing?: number;
 };
 export type WeeklyAdminContent = {
     version: 1;
@@ -53,13 +56,29 @@ export type TaskContent = {
             scheduled_date: string;
             due_date: string;
             days_before: number;
+            subblocks?: { id: string; name: string }[];
+            reason?: string | null;
         }[];
+    }[];
+};
+export type IncidentContent = {
+    version: 1;
+    kind: 'incident_report';
+    incidents: {
+        id: string;
+        farm_id: string;
+        farm_name: string;
+        date: string;
+        category: string | null;
+        severity: string | null;
+        description: string | null;
     }[];
 };
 export type NotificationContent =
     | WeeklyOwnerContent
     | WeeklyAdminContent
-    | TaskContent;
+    | TaskContent
+    | IncidentContent;
 export type InboxNotice = {
     id: string;
     type: string | null;

@@ -104,12 +104,12 @@ function harvest(crop: HarvestCommodity): string {
                 class="py-3 first:pt-0 last:pb-0"
             >
                 <h4 class="mb-2 text-sm font-semibold">{{ crop.name }}</h4>
-                <dl class="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                        <dt class="text-xs text-muted-foreground">
-                            Target per siklus
-                        </dt>
-                        <dd class="mt-1 font-medium tabular-nums">
+                <dl class="divide-y divide-border text-sm">
+                    <div
+                        class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 py-2"
+                    >
+                        <dt class="text-muted-foreground">Target per siklus</dt>
+                        <dd class="text-right font-medium tabular-nums">
                             {{
                                 crop.target_ton === null
                                     ? 'Belum tersedia'
@@ -117,21 +117,25 @@ function harvest(crop: HarvestCommodity): string {
                             }}
                         </dd>
                     </div>
-                    <div class="text-right">
-                        <dt class="text-xs text-muted-foreground">
-                            Panen periode ini
-                        </dt>
+                    <div
+                        class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 py-2"
+                    >
+                        <dt class="text-muted-foreground">Panen periode ini</dt>
                         <dd
-                            class="mt-1 font-semibold text-primary tabular-nums"
+                            class="text-right font-semibold text-primary tabular-nums"
                         >
                             {{ harvest(crop) }}
                         </dd>
                     </div>
+                    <div
+                        class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 py-2"
+                    >
+                        <dt class="text-muted-foreground">Luas panen</dt>
+                        <dd class="text-right font-medium tabular-nums">
+                            {{ number(crop.harvest_area_ha, 4) }} ha
+                        </dd>
+                    </div>
                 </dl>
-                <p class="mt-2 text-xs text-muted-foreground">
-                    Luas panen periode ini:
-                    {{ number(crop.harvest_area_ha, 4) }} ha
-                </p>
                 <p
                     v-if="crop.target_missing > 0 || crop.harvest_missing > 0"
                     class="mt-2 flex items-start gap-1.5 text-xs text-warning"

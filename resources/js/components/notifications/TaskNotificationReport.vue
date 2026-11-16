@@ -1,18 +1,25 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { ChevronRight, ClipboardList, TriangleAlert } from '@lucide/vue';
 import type { TaskContent } from '@/types/notifications';
 import { date } from './format';
 const props = defineProps<{ content: TaskContent }>();
+const page = usePage();
 const deviation = computed(() => props.content.kind === 'sop_deviation');
 function href(group: TaskContent['groups'][number]): string {
     const farm = group.farm_id ?? group.key.split(':')[0];
     const block = group.block_id ?? group.key.split(':')[1];
     const query = new URLSearchParams();
     if (block && block !== 'unassigned') query.set('block_id', block);
-    if (deviation.value) {
-        query.set('view', 'overdue');
+    if (deviation.value || page.props.navigation?.admin) {
+        query.set(
+            'view',
+            deviation.value &&
+                !group.items.some((i) => i.reason?.startsWith('Jadwal ulang'))
+                ? 'overdue'
+                : 'all',
+        );
         query.set('farm_id', farm);
         return '/admin/tasks?' + query.toString();
     }
@@ -26,18 +33,18 @@ function href(group: TaskContent['groups'][number]): string {
             <Link
                 v-if="deviation"
                 :href="href(group)"
-                class="flex min-h-11 items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"
+                class="flex min-h-11 flex-wrap items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"
             >
                 <TriangleAlert
                     class="mt-1 size-4 shrink-0 text-warning"
                     aria-hidden="true"
                 />
-                <div class="min-w-0 flex-1">
+                <div class="min-w-40 flex-1">
                     <h3 class="text-sm font-semibold">{{ group.farm_name }}</h3>
                     <p class="mt-1 text-xs text-muted-foreground">
                         {{ group.block_name }} ·
                         {{ group.items.reduce((n, item) => n + item.count, 0) }}
-                        tugas melewati toleransi
+                        temuan ketidaksesuaian
                     </p>
                     <p
                         v-for="(item, index) in group.items"
@@ -45,15 +52,15 @@ function href(group: TaskContent['groups'][number]): string {
                         class="mt-2 text-xs leading-5"
                     >
                         {{ item.name }} · batas {{ date(item.due_date) }}
-                    </p>
-                    <p class="mt-2 text-xs font-medium text-primary">
-                        Lihat tugas terlambat
+                        <span v-if="item.reason" class="block text-warning">{{
+                            item.reason
+                        }}</span>
                     </p>
                 </div>
-                <ChevronRight
-                    class="mt-1 size-4 shrink-0 text-muted-foreground"
-                    aria-hidden="true"
-                />
+                <span
+                    class="ml-auto inline-flex min-h-11 shrink-0 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
+                    >Lihat tugas</span
+                >
             </Link>
             <template v-else>
                 <Link
@@ -71,17 +78,27 @@ function href(group: TaskContent['groups'][number]): string {
                         <p class="mt-1 text-xs text-muted-foreground">
                             {{ group.farm_name }} · {{ group.block_name }}
                         </p>
-                        <p class="mt-2 text-xs leading-5">
-                            <span class="font-medium text-primary"
-                                >H-{{ item.days_before }}</span
+                        <ul
+                            v-if="item.subblocks?.length"
+                            class="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 marker:text-primary"
+                        >
+                            <li
+                                v-for="subblock in item.subblocks"
+                                :key="subblock.id"
+                                :data-subblock-id="subblock.id"
                             >
-                            · {{ date(item.scheduled_date) }}
-                        </p>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            Batas toleransi {{ date(item.due_date)
-                            }}<span v-if="item.count > 1">
-                                · {{ item.count }} tugas</span
-                            >
+                                <span class="font-medium">{{
+                                    subblock.name
+                                }}</span>
+                                <span class="text-muted-foreground">
+                                    · H-{{ item.days_before }} ·
+                                    {{ date(item.scheduled_date) }}</span
+                                >
+                            </li>
+                        </ul>
+                        <p v-else class="mt-3 text-xs text-muted-foreground">
+                            Rincian subblok tidak tersedia pada notifikasi lama
+                            ini.
                         </p>
                     </div>
                     <ChevronRight

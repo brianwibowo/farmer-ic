@@ -30,24 +30,36 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
         $demoFarm = new App\Models\Farm(['name' => 'Kebun Cianjur', 'land_tenure' => 'owned', 'total_area_ha' => 10]);
         $demoFarm->forceFill(['team_id' => $team->id, 'created_by' => $user->id])->save();
         $demoBlocks = [];
+        $reminderTasks = [];
         $commodity = App\Models\Commodity::create(['name' => 'Jagung']);
         $variety = App\Models\CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
+        $sorghum = App\Models\Commodity::create(['name' => 'Sorgum']);
+        $sorghumVariety = App\Models\CropVariety::create(['commodity_id' => $sorghum->id, 'name' => 'Bioguma']);
         foreach (['A', 'B'] as $code) {
             $block = app(App\Services\FarmBlockService::class)->create($demoFarm, $user, $team, ['code' => $code, 'name' => 'Blok '.$code, 'area_ha' => 5]);
-            $cycle = app(App\Services\FarmBlockService::class)->createBatch($block, $user, $team, ['reserved_area_ha' => 2, 'planned_planting_at' => today()->subDays(20)->toDateString()]);
-            $cycle->forceFill(['variety_id' => $variety->id, 'planted_at' => today()->subDays(20), 'planted_area_ha' => 2, 'status' => 'active'])->save();
-            App\Models\PlantingCycleTask::create([
-                'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
-                'name' => $code === 'A' ? 'Pemupukan susulan' : 'Pemeriksaan hama dan kondisi tanaman',
-                'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
-                'offset_days' => 1, 'tolerance_days' => 2, 'scheduled_date' => today()->addDays(1), 'due_date' => today()->addDays(3), 'status' => 'pending', 'is_required' => true,
-            ]);
-            if ($code === 'A') {
-                App\Models\PlantingCycleTask::create([
-                    'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
-                    'name' => 'Pemupukan dasar', 'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
-                    'offset_days' => 0, 'tolerance_days' => 2, 'scheduled_date' => today()->subDays(4), 'due_date' => today()->subDays(2), 'status' => 'pending', 'is_required' => true,
+            foreach ($code === 'A' ? ['A1', 'A2'] : ['B1'] as $subblock) {
+                $days = $code === 'A' ? 1 : 3;
+                $cycle = app(App\Services\FarmBlockService::class)->createBatch($block, $user, $team, ['subblock_label' => $subblock, 'reserved_area_ha' => 2, 'planned_planting_at' => today()->subDays(20)->toDateString()]);
+                $cycle->forceFill(['variety_id' => ($code === 'A' ? $variety : $sorghumVariety)->id, 'planted_at' => today()->subDays(20), 'planted_area_ha' => 2, 'status' => 'active'])->save();
+                $harvestTask = App\Models\PlantingCycleTask::create([
+                    'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $cycle->stages()->where('code', 'harvest')->firstOrFail()->id,
+                    'name' => $code === 'A' ? 'Panen Jagung' : 'Panen Sorgum',
+                    'activity_category' => 'harvest', 'activity_subcategory' => null,
+                    'offset_days' => 20 + $days, 'tolerance_days' => 2, 'scheduled_date' => today()->addDays($days), 'due_date' => today()->addDays($days + 2), 'status' => 'pending', 'is_required' => true,
                 ]);
+                $reminderTasks[] = ['id' => $harvestTask->id, 'cycle_id' => $cycle->id,
+                    'subblock_name' => 'Subblok '.$cycle->subblock_label,
+                    'farm_id' => $demoFarm->id, 'farm_name' => $demoFarm->name,
+                    'block_id' => $block->id, 'block_name' => $block->name, 'name' => $harvestTask->name,
+                    'scheduled_date' => $harvestTask->scheduled_date->toDateString(),
+                    'due_date' => $harvestTask->due_date->toDateString(), 'days_before' => $days];
+                if ($subblock === 'A1') {
+                    App\Models\PlantingCycleTask::create([
+                        'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
+                        'name' => 'Pemupukan dasar', 'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation',
+                        'offset_days' => 0, 'tolerance_days' => 2, 'scheduled_date' => today()->subDays(4), 'due_date' => today()->subDays(2), 'status' => 'pending', 'is_required' => true,
+                    ]);
+                }
             }
             $demoBlocks[$code] = $block->id;
         }
@@ -75,8 +87,8 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
         $template = new App\Notifications\WeeklyReportNotification([...$period, 'audience' => 'owner', 'farms' => $farms]);
     } elseif ($role === 'admin') {
         $template = new App\Notifications\WeeklyReportNotification([...$period, 'audience' => 'admin', 'farms' => [
-            ['id' => $demoFarm->id, 'name' => 'Kebun Cianjur', 'activity_count' => 9, 'blocks' => [
-                ['id' => 'a', 'name' => 'Blok A', 'activity_counts' => ['Penyiraman' => 3, 'Pemupukan' => 1, 'Laporan insiden' => 2],
+            ['id' => $demoFarm->id, 'name' => 'Kebun Cianjur', 'activity_count' => 10, 'blocks' => [
+                ['id' => 'a', 'name' => 'Blok A', 'activity_counts' => ['Penyiraman' => 3, 'Pemupukan' => 1, 'Laporan insiden' => 2, 'Panen' => 1], 'harvest_count' => 1, 'harvest_ton' => 2.5, 'harvest_missing' => 0,
                     'obstacle_count' => 1, 'obstacle_summary' => 'Pengairan terkendala pompa; perbaikan telah dijadwalkan.',
                     'incidents' => ['Hama · Ringan' => 1, 'Kerusakan alat · Sedang' => 1]],
                 ['id' => 'b', 'name' => 'Blok B', 'activity_counts' => ['Penyiangan' => 3],
@@ -84,15 +96,7 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
             ]],
         ]]);
     } else {
-        $tasks = [];
-        foreach ([1, 1, 3] as $index => $days) {
-            $tasks[] = ['farm_id' => $demoFarm->id, 'farm_name' => 'Kebun Cianjur',
-                'block_id' => $demoBlocks[$days === 1 ? 'A' : 'B'], 'block_name' => $days === 1 ? 'Blok A' : 'Blok B',
-                'name' => $days === 1 ? 'Pemupukan susulan' : 'Pemeriksaan hama dan kondisi tanaman',
-                'scheduled_date' => now()->addDays($days)->toDateString(),
-                'due_date' => now()->addDays($days + 2)->toDateString(), 'days_before' => $days];
-        }
-        $template = new App\Notifications\TaskReminderNotification(['tasks' => $tasks]);
+        $template = new App\Notifications\TaskReminderNotification(['tasks' => $reminderTasks]);
     }
     $rich = $template->toInApp();
     (new App\Models\Notification)->forceFill([
@@ -102,11 +106,33 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
         'title' => $rich['title'], 'message' => $rich['message'], 'content' => $rich['content'],
         'created_at' => now()->addSeconds(2),
     ])->save();
+    if ($role === 'petugas') {
+        (new App\Models\Notification)->forceFill([
+            'user_id' => $ids['admin'], 'team_id' => $team->id, 'type' => 'task_reminder',
+            'title' => $rich['title'], 'message' => $rich['message'], 'content' => $rich['content'],
+            'created_at' => now()->addSeconds(3),
+        ])->save();
+    }
     if ($role === 'admin') {
+        $incidentActivity = Illuminate\Support\Facades\DB::transaction(function () use ($demoFarm) {
+            $reporter = App\Models\User::factory()->create(['role' => 'petugas']);
+            $type = App\Models\ActivityType::firstOrCreate(['code' => 'incident'], ['name' => 'Insiden']);
+            $activity = App\Models\FarmActivity::create(['farm_id' => $demoFarm->id, 'performed_by' => $reporter->id, 'activity_type_id' => $type->id, 'activity_date' => now(), 'description' => 'Pompa pengairan berhenti beroperasi. Pemeriksaan teknisi diperlukan.']);
+            $activity->incidentDetail()->create(['incident_category' => 'Kerusakan alat', 'severity' => 'light']);
+
+            return $activity;
+        });
+        $incident = (new App\Notifications\IncidentReportNotification(['incidents' => [[
+            'id' => $incidentActivity->id, 'farm_id' => $demoFarm->id, 'farm_name' => $demoFarm->name,
+            'date' => now()->toIso8601String(), 'category' => 'Kerusakan alat', 'severity' => 'Ringan', 'description' => $incidentActivity->description,
+        ]]]))->toInApp();
+        (new App\Models\Notification)->forceFill(['user_id' => $user->id, 'team_id' => $team->id, 'type' => 'incident_report',
+            'title' => $incident['title'], 'message' => $incident['message'], 'content' => $incident['content'], 'created_at' => now()->subSecond()])->save();
         $deviation = (new App\Notifications\SopDeviationNotification(['tasks' => [[
             'farm_id' => $demoFarm->id, 'farm_name' => 'Kebun Cianjur', 'block_id' => $demoBlocks['A'], 'block_name' => 'Blok A',
             'name' => 'Pemupukan dasar', 'scheduled_date' => now()->subDays(4)->toDateString(),
             'due_date' => now()->subDays(2)->toDateString(), 'days_before' => -4,
+            'reason' => 'Belum selesai melewati toleransi jadwal efektif',
         ]]]))->toInApp();
         (new App\Models\Notification)->forceFill([
             'user_id' => $user->id, 'team_id' => $team->id, 'type' => 'sop_deviation',
