@@ -159,13 +159,16 @@ function subblockLabel(name: string): string {
                         :key="row.id + ':' + row.date"
                         :data-subblock-id="row.id"
                     >
-                        <span class="font-medium"
-                            >{{ subblockLabel(row.name) }} —
-                            {{ timing(row.days) }}</span
-                        >
-                        <span class="block text-xs text-muted-foreground">{{
-                            date(row.date)
-                        }}</span>
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="min-w-0 font-medium"
+                                >{{ subblockLabel(row.name) }} —
+                                {{ timing(row.days) }}</span
+                            >
+                            <span
+                                class="shrink-0 text-right text-sm whitespace-nowrap text-muted-foreground"
+                                >{{ date(row.date) }}</span
+                            >
+                        </div>
                     </li>
                 </ul>
                 <p v-else class="mt-3 text-xs text-muted-foreground">
