@@ -176,6 +176,10 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::post('tasks/{task}/reschedule', [TaskManagementController::class, 'reschedule'])->whereUuid('task')->name('tasks.reschedule');
 
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');
+    Route::post('farm-management/geocode', \App\Http\Controllers\FarmGeocodingController::class)
+        ->middleware('throttle:20,1')->name('farm-management.geocode');
+    Route::post('farm-management/{farm}/geocode', \App\Http\Controllers\FarmGeocodingController::class)
+        ->whereUuid('farm')->middleware('throttle:20,1')->name('farm-management.geocode-update');
     Route::get('farm-management/{farm}/legalitas', [FarmLegalityController::class, 'show'])
         ->whereUuid('farm')->name('farm-management.legality.show');
     Route::post('farm-management/{farm}/legality', [FarmLegalityController::class, 'store'])
