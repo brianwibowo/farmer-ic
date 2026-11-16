@@ -19,11 +19,17 @@ class StorePreparationBatchRequest extends FormRequest
         return true;
     }
 
+    /** @return list<string> */
+    protected function allowedReturnTargets(): array
+    {
+        return ['farm', 'blocks'];
+    }
+
     /** @return array<string, array<mixed>> */
     public function rules(): array
     {
         return [
-            'return_to' => ['sometimes', 'nullable', Rule::in(['farm', 'blocks'])],
+            'return_to' => ['sometimes', 'nullable', Rule::in($this->allowedReturnTargets())],
             'subblock_label' => ['sometimes', 'nullable', 'string', 'max:30', 'regex:/^[A-Z0-9][A-Z0-9_-]*$/'],
             'planned_planting_at' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             ...array_fill_keys([

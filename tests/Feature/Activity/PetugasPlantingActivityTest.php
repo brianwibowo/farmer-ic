@@ -478,6 +478,35 @@ class PetugasPlantingActivityTest extends TestCase
         $this->get($secondUrl)->assertInertia(fn (Assert $page) => $page->where('areaLimitM2', 0));
     }
 
+    public function test_petugas_can_create_a_subblok_from_penanaman_and_record_planting_on_it(): void
+    {
+        $this->sop();
+        $this->actingAs($this->actor)->get('/petugas/penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('petugas/PlantingIndex')
+            ->has('blocks', 1)
+            ->where('blocks.0.id', $this->block->id)
+            ->where('blocks.0.available_ha', '5.0000')
+            ->where('blocks.0.can_create_batch', true));
+
+        $this->post('/petugas/blocks/'.$this->block->id.'/subbloks', [
+            'return_to' => 'penanaman',
+            'subblock_label' => 'BARU-1',
+            'planned_planting_at' => today()->toDateString(),
+        ])->assertSessionHasNoErrors()->assertRedirect('/petugas/penanaman');
+
+        $created = PlantingCycle::where('subblock_label', 'BARU-1')->firstOrFail();
+        $this->assertSame('planned', $created->status);
+        $this->assertSame('0.0000', $created->planted_area_ha);
+
+        $this->get('/petugas/penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('cycles', 2)
+            ->where('cycles.1.id', $created->id)
+            ->where('cycles.1.canRecord', true));
+
+        $this->post('/petugas/subbloks/'.$created->id.'/penanaman', $this->payload())->assertSessionHasNoErrors();
+        $this->assertSame('1.5000', $created->refresh()->planted_area_ha);
+    }
+
     public function test_a_generation_failure_rolls_back_planting_details_and_uploaded_files(): void
     {
         $mock = \Mockery::mock(PlantingCycleTaskService::class);

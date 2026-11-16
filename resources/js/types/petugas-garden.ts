@@ -8,6 +8,8 @@ export type GardenBlock = {
     description: string | null;
     is_active: boolean;
     batches_count: number;
+    available_ha: string;
+    can_create_batch: boolean;
     land_clearing_started_at: string | null;
     land_clearing_completed_at: string | null;
 };

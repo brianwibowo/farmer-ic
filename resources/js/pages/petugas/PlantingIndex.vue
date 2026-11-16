@@ -1,13 +1,23 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, LoaderCircle, RefreshCw, Sprout } from '@lucide/vue';
-import { ref } from 'vue';
+import {
+    ArrowLeft,
+    LoaderCircle,
+    Plus,
+    RefreshCw,
+    Sprout,
+} from '@lucide/vue';
+import { computed, ref } from 'vue';
+import SubblokCreateDialog, {
+    type SubblokBlockOption,
+} from '@/components/petugas/SubblokCreateDialog.vue';
 import { Button } from '@/components/ui/button';
 import { useActivityDate } from '@/composables/useActivityDate';
 import type { PlantingCycleContext } from '@/types/planting';
 
-defineProps<{
+const props = defineProps<{
     farm: { id: string; name: string };
+    blocks: (SubblokBlockOption & { area_ha: string })[];
     cycles: (PlantingCycleContext & {
         canRecord: boolean;
         canSync: boolean;
@@ -17,6 +27,18 @@ defineProps<{
 const syncForm = useForm({});
 const activityDate = useActivityDate();
 const pendingId = ref<string | null>(null);
+const createOpen = ref(false);
+const canCreateSubblok = computed(() =>
+    props.blocks.some((block) => block.is_active && block.can_create_batch),
+);
+const hasAvailableBlock = computed(() =>
+    props.blocks.some(
+        (block) =>
+            block.is_active &&
+            block.can_create_batch &&
+            Number(block.available_ha) > 0,
+    ),
+);
 function synchronize(id: string): void {
     if (syncForm.processing) return;
     pendingId.value = id;
@@ -39,26 +61,55 @@ function synchronize(id: string): void {
                 ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
                 aktivitas</Link
             >
-            <h1 class="mt-3 text-xl leading-7 font-semibold">
-                Catat penanaman
-            </h1>
-            <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                {{ farm.name }} · Catat tanggal tanam yang benar-benar terjadi,
-                bukan tanggal rencana.
-            </p>
+            <div class="mt-3 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h1 class="text-xl leading-7 font-semibold">
+                        Catat penanaman
+                    </h1>
+                    <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                        {{ farm.name }} · Catat tanggal tanam yang benar-benar
+                        terjadi, bukan tanggal rencana.
+                    </p>
+                </div>
+                <Button
+                    v-if="canCreateSubblok"
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="min-h-11 rounded-xl"
+                    :disabled="!hasAvailableBlock"
+                    @click="createOpen = true"
+                >
+                    <Plus class="size-4" aria-hidden="true" />
+                    Tambah subblok
+                </Button>
+            </div>
         </header>
         <p
             class="rounded-xl border border-border bg-muted/50 p-4 text-sm leading-6"
         >
-            Pilih subblok yang disiapkan Admin. Penanaman lanjutan dibatasi tiga
-            hari kalender sejak tanggal pelaksanaan pertama.
+            Pilih subblok yang tersedia atau tambah subblok baru pada blok
+            aktif. Penanaman lanjutan dibatasi tiga hari kalender sejak tanggal
+            pelaksanaan pertama.
+        </p>
+        <p
+            v-if="canCreateSubblok && !hasAvailableBlock"
+            class="text-xs text-muted-foreground"
+        >
+            Kapasitas seluruh blok sudah penuh. Subblok baru dapat ditambahkan
+            setelah siklus tanam berjalan selesai.
         </p>
         <p
             v-if="!cycles.length"
             class="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground"
         >
-            Belum ada subblok untuk kebun penugasan Anda. Hubungi Admin untuk
-            menyiapkannya.
+            {{
+                hasAvailableBlock
+                    ? 'Belum ada subblok untuk kebun penugasan Anda. Tambah subblok baru pada blok aktif untuk mulai mencatat penanaman.'
+                    : canCreateSubblok
+                      ? 'Belum ada subblok dan seluruh kapasitas blok aktif sudah penuh.'
+                      : 'Belum ada subblok atau blok aktif untuk kebun penugasan Anda. Hubungi Admin atau PIC kebun untuk menyiapkannya.'
+            }}
         </p>
         <article
             v-for="cycle in cycles"
@@ -152,5 +203,10 @@ function synchronize(id: string): void {
         <Button as-child variant="outline" class="min-h-11 w-full rounded-xl"
             ><Link href="/petugas/aktivitas">Lihat to-do kebun</Link></Button
         >
+        <SubblokCreateDialog
+            v-model:open="createOpen"
+            :blocks="blocks"
+            return-to="penanaman"
+        />
     </div>
 </template>

@@ -30,6 +30,7 @@ use App\Http\Controllers\Petugas\PetugasActivityController;
 use App\Http\Controllers\Petugas\PetugasGardenController;
 use App\Http\Controllers\Petugas\PetugasHomeController;
 use App\Http\Controllers\Petugas\PetugasPlantingController;
+use App\Http\Controllers\Petugas\PetugasSubblokController;
 use App\Http\Controllers\Petugas\PetugasTaskController;
 use App\Http\Controllers\Sop\SopTemplateController;
 use App\Http\Controllers\Sop\SopTemplateTaskController;
@@ -85,6 +86,7 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::get('weather/{farm}', DashboardWeatherController::class)
         ->whereUuid('farm')->middleware('throttle:30,1')->name('weather');
     Route::get('kebun', PetugasGardenController::class)->name('kebun');
+    Route::post('blocks/{block}/subbloks', PetugasSubblokController::class)->whereUuid('block')->name('subbloks.store');
     Route::get('penanaman', [PetugasPlantingController::class, 'index'])->name('planting.index');
     Route::get('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'show'])->whereUuid('cycle')->name('planting.show');
     Route::post('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'store'])->whereUuid('cycle')->name('planting.store');

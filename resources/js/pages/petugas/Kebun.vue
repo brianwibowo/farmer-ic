@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { LandPlot, Layers, Sprout } from '@lucide/vue';
+import { LandPlot, Layers, Plus, Sprout } from '@lucide/vue';
+import { ref } from 'vue';
 import GardenFarmCard from '@/components/petugas/GardenFarmCard.vue';
 import GardenBatchCard from '@/components/petugas/GardenBatchCard.vue';
+import SubblokCreateDialog from '@/components/petugas/SubblokCreateDialog.vue';
 import { Button } from '@/components/ui/button';
 import type { PetugasGarden } from '@/types/petugas-garden';
 import { gardenArea, gardenDate } from '@/types/petugas-garden';
 
 defineOptions({ inheritAttrs: false });
 defineProps<{ garden: PetugasGarden }>();
+const createOpen = ref(false);
 </script>
 
 <template>
@@ -126,12 +129,56 @@ defineProps<{ garden: PetugasGarden }>();
                                 }}
                             </p>
                         </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <h3 class="text-base font-semibold">Subblok</h3>
-                            <span class="text-xs text-muted-foreground"
-                                >{{ garden.batches.total }} batch</span
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-semibold">Subblok</h3>
+                                <p class="text-xs text-muted-foreground">
+                                    {{ garden.batches.total }} batch · Sisa
+                                    lahan
+                                    {{
+                                        gardenArea(
+                                            garden.selected_block.available_ha,
+                                        )
+                                    }}
+                                    ha
+                                </p>
+                            </div>
+                            <Button
+                                v-if="
+                                    garden.selected_block.can_create_batch &&
+                                    garden.selected_block.is_active
+                                "
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                class="min-h-11 rounded-xl"
+                                :disabled="
+                                    Number(garden.selected_block.available_ha) <=
+                                    0
+                                "
+                                :aria-label="`Tambah subblok di ${garden.selected_block.name}`"
+                                @click="createOpen = true"
                             >
+                                <Plus class="size-4" aria-hidden="true" />
+                                Tambah subblok
+                            </Button>
                         </div>
+                        <p
+                            v-if="!garden.selected_block.is_active"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Blok nonaktif. Subblok baru tidak dapat ditambahkan.
+                        </p>
+                        <p
+                            v-else-if="
+                                garden.selected_block.can_create_batch &&
+                                Number(garden.selected_block.available_ha) <= 0
+                            "
+                            class="text-xs text-muted-foreground"
+                        >
+                            Kapasitas blok sudah penuh. Subblok baru dapat
+                            ditambahkan setelah siklus tanam berjalan selesai.
+                        </p>
                         <div
                             v-if="!garden.batches.total"
                             class="petugas-card petugas-empty px-5 py-8 text-center"
@@ -192,6 +239,13 @@ defineProps<{ garden: PetugasGarden }>();
                                 >Berikutnya</Button
                             >
                         </nav>
+                        <SubblokCreateDialog
+                            v-model:open="createOpen"
+                            :blocks="[garden.selected_block]"
+                            :selected-block-id="garden.selected_block.id"
+                            lock-block
+                            return-to="kebun"
+                        />
                     </template>
                 </template>
             </section>

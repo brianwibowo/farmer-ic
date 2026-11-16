@@ -104,6 +104,8 @@ class PetugasGardenTest extends TestCase
             ->where('garden.farm.latitude', '-6.5965000')->where('garden.farm.longitude', '106.9502000')
             ->where('garden.summary', ['blocks' => 2, 'batches' => 3])->has('garden.blocks', 2)
             ->where('garden.selected_block.id', $north->id)->where('garden.selected_block.batches_count', 2)
+            ->where('garden.selected_block.available_ha', '4.5000')
+            ->where('garden.selected_block.can_create_batch', true)
             ->where('garden.batches.total', 2)->has('garden.batches.data', 2)
             ->where('garden.batches.data.0.id', $planned->id)->where('garden.batches.data.0.hst', null)
             ->where('garden.batches.data.0.planted_area_ha', '0.0000')
@@ -216,5 +218,89 @@ class PetugasGardenTest extends TestCase
     {
         $this->actingAs($this->petugas)->get('/petugas/kebun?block=invalid')->assertSessionHasErrors('block');
         $this->get('/petugas/kebun?page=0')->assertSessionHasErrors('page');
+    }
+
+    public function test_assigned_petugas_can_create_subblock_from_garden_and_rejects_full_or_invalid_inputs(): void
+    {
+        $block = $this->block($this->farm, 'B01');
+        $inactive = $this->block($this->farm, 'B02');
+        $inactive->forceFill(['is_active' => false])->save();
+
+        $this->actingAs($this->petugas)
+            ->post('/petugas/blocks/'.$block->id.'/subbloks', [
+                'return_to' => 'kebun',
+                'subblock_label' => ' ut-1 ',
+                'planned_planting_at' => '2026-11-25',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/petugas/kebun?block='.$block->id);
+
+        $created = PlantingCycle::where('block_id', $block->id)->firstOrFail();
+        $this->assertSame('UT-1', $created->subblock_label);
+        $this->assertSame('planned', $created->status);
+        $this->assertSame('0.0000', $created->planted_area_ha);
+        $this->assertSame('2026-11-25', $created->planned_planting_at?->toDateString());
+        $this->assertSame($this->petugas->id, $created->created_by);
+        $this->assertSame(6, $created->stages()->count());
+
+        $this->post('/petugas/blocks/'.$block->id.'/subbloks', ['subblock_label' => 'UT-1'])
+            ->assertSessionHasErrors('subblock_label');
+        $this->post('/petugas/blocks/'.$block->id.'/subbloks', ['reserved_area_ha' => '1'])
+            ->assertSessionHasErrors('reserved_area_ha');
+        $this->post('/petugas/blocks/'.$block->id.'/subbloks', ['return_to' => 'farm'])
+            ->assertSessionHasErrors('return_to');
+        $this->post('/petugas/blocks/'.$inactive->id.'/subbloks', [])
+            ->assertSessionHasErrors('subblock_label');
+
+        $commodity = Commodity::firstOrCreate(['name' => 'Jagung']);
+        $variety = CropVariety::firstOrCreate(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
+        $created->forceFill([
+            'status' => 'active',
+            'variety_id' => $variety->id,
+            'planted_at' => '2026-11-10',
+            'planted_area_ha' => '5.0000',
+        ])->save();
+
+        $this->get('/petugas/kebun?block='.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('garden.selected_block.available_ha', '0.0000')
+            ->where('garden.selected_block.can_create_batch', true));
+        $this->post('/petugas/blocks/'.$block->id.'/subbloks', [])
+            ->assertSessionHasErrors('subblock_label');
+        $this->assertSame(1, PlantingCycle::where('block_id', $block->id)->count());
+    }
+
+    public function test_petugas_subblock_creation_enforces_assignment_team_role_and_permissions(): void
+    {
+        $block = $this->block($this->farm, 'B01');
+        $otherFarmBlock = $this->block($this->farm($this->team), 'B02');
+
+        $foreignTeam = Team::factory()->create(['is_personal' => false]);
+        $foreignAdmin = User::factory()->create(['role' => 'admin']);
+        $this->join($foreignAdmin, $foreignTeam);
+        $foreignBlock = $this->block($this->farm($foreignTeam), 'B03', $foreignAdmin);
+
+        $this->actingAs($this->petugas)
+            ->post('/petugas/blocks/'.$otherFarmBlock->id.'/subbloks', [])
+            ->assertForbidden();
+        $this->post('/petugas/blocks/'.$foreignBlock->id.'/subbloks', [])
+            ->assertForbidden();
+
+        $this->actingAs($this->admin)
+            ->post('/petugas/blocks/'.$block->id.'/subbloks', [])
+            ->assertForbidden();
+
+        $roles = config('access.roles');
+        unset($roles['petugas']['planting_cycles.create']);
+        config(['access.roles' => $roles]);
+        $this->actingAs($this->petugas)->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('garden.selected_block.can_create_batch', false));
+        $this->post('/petugas/blocks/'.$block->id.'/subbloks', [])->assertForbidden();
+
+        $roles['petugas']['planting_cycles.create'] = 'own';
+        config(['access.roles' => $roles]);
+        $this->petugas->forceFill(['assigned_farm_id' => null])->save();
+        $this->petugas->unsetRelation('assignedFarm');
+        $this->post('/petugas/blocks/'.$block->id.'/subbloks', [])->assertForbidden();
+        $this->assertSame(0, PlantingCycle::count());
     }
 }

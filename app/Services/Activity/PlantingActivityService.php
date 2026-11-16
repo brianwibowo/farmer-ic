@@ -124,7 +124,7 @@ class PlantingActivityService
                 $dates = array_values(array_unique($dates));
                 sort($dates);
                 if (CarbonImmutable::parse($dates[0])->diffInDays(CarbonImmutable::parse(end($dates))) > 2) {
-                    throw ValidationException::withMessages(['work_date' => 'Penanaman dibatasi tiga hari kalender sejak tanam pertama. Pilih subblok lain yang telah disiapkan Admin.']);
+                    throw ValidationException::withMessages(['work_date' => 'Penanaman dibatasi tiga hari kalender sejak tanam pertama. Pilih atau buat subblok lain pada blok aktif.']);
                 }
                 $block = FarmBlock::visibleTo($actor, $team)->whereKey($cycle->block_id)->lockForUpdate()->firstOrFail();
                 if (! $block->is_active) {

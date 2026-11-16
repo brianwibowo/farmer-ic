@@ -7,12 +7,16 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\FarmBlockService;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
+use Illuminate\Support\Facades\Gate;
 use UnexpectedValueException;
 
 class PetugasGardenService
 {
+    public function __construct(private readonly FarmBlockService $blocks) {}
+
     /** @return array<string, mixed> */
     public function overview(User $actor, ?Farm $farm, ?Team $team, ?FarmBlock $selected = null, int $page = 1): array
     {
@@ -36,10 +40,13 @@ class PetugasGardenService
         }
         $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereNotNull('block_id');
         $blockCounts = (clone $cycles)->selectRaw('block_id, COUNT(*) AS total')->groupBy('block_id')->pluck('total', 'block_id');
+        $capacities = $this->blocks->capacitiesForBlocks($farm, $actor, $team, $blocks);
         $selected = $selected === null ? $blocks->first() : $blocks->firstWhere('id', $selected->id);
         $blockPayload = fn (FarmBlock $block): array => [
             ...$block->only(['id', 'code', 'name', 'area_ha', 'description', 'is_active']),
             'batches_count' => (int) ($blockCounts[$block->id] ?? 0),
+            'available_ha' => $capacities[$block->id]['available_ha'] ?? '0.0000',
+            'can_create_batch' => Gate::forUser($actor)->allows('create', [PlantingCycle::class, $block]),
             'land_clearing_started_at' => $this->clearingTimestamp($block, 'land_clearing_started_at'),
             'land_clearing_completed_at' => $this->clearingTimestamp($block, 'land_clearing_completed_at'),
         ];

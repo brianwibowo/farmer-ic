@@ -601,8 +601,9 @@ Subblok cards distinguish reserved area from actual planted area and show batch
 number, subblok label, planting round, status, actual/planned planting date, HST,
 and estimated harvest. Draw stage progress only from persisted stages; it is a
 count of completed stages, never a crop-growth percentage. Missing schedules,
-stages, assignments, blocks, or batches have explicit empty states. This page is
-a read-only overview; loading and navigation errors use the shared Petugas shell.
+stages, assignments, blocks, or batches have explicit empty states. Petugas can
+create a new subblok on an active block when permitted and remaining capacity
+allows; loading and navigation errors use the shared Petugas shell.
 
 The Figma page includes both full-color and LoFi variants. Use the active state for the current route, provide an accessible label for every icon, and keep the bar usable on standard, Plus, and Pro Max phone widths.
 

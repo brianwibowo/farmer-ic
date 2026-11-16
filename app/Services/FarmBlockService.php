@@ -359,6 +359,40 @@ class FarmBlockService
         });
     }
 
+    /**
+     * @param  EloquentCollection<int, FarmBlock>  $blocks
+     * @return array<string, array{available_ha: string, block_remaining_ha: string, farm_remaining_ha: string}>
+     */
+    public function capacitiesForBlocks(Farm $farm, User $actor, Team $team, EloquentCollection $blocks): array
+    {
+        if ($blocks->isEmpty()) {
+            return [];
+        }
+        $first = $blocks->firstOrFail();
+        $farmCapacity = $this->batchCapacity($farm, $first, PlantingCycle::visibleTo($actor, $team)->toBase());
+        $farmRemaining = LandArea::squareMetres($farmCapacity['farm_remaining_ha']) ?? 0;
+        $blockUsed = PlantingCycle::visibleTo($actor, $team)
+            ->whereIn('block_id', $blocks->modelKeys())
+            ->whereIn('status', ['planned', 'active'])
+            ->selectRaw('block_id, COALESCE(SUM(planted_area_ha), 0) AS used_ha')
+            ->groupBy('block_id')
+            ->pluck('used_ha', 'block_id');
+
+        return $blocks->mapWithKeys(function (FarmBlock $block) use ($blockUsed, $farmRemaining, $farmCapacity): array {
+            $area = LandArea::squareMetres($block->area_ha) ?? 0;
+            $used = LandArea::squareMetres($blockUsed[$block->id] ?? 0) ?? 0;
+            $blockRemaining = max(0, $area - $used);
+
+            return [
+                $block->id => [
+                    'available_ha' => LandArea::hectares(min($blockRemaining, $farmRemaining)),
+                    'block_remaining_ha' => LandArea::hectares($blockRemaining),
+                    'farm_remaining_ha' => $farmCapacity['farm_remaining_ha'],
+                ],
+            ];
+        })->all();
+    }
+
     /** @return array<string, string> */
     private function batchCapacity(Farm $farm, FarmBlock $block, Builder $cycles): array
     {
