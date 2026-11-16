@@ -4,7 +4,6 @@ import AdminHeader from '@/components/AdminHeader.vue';
 import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
-import { Toaster } from '@/components/ui/sonner';
 </script>
 
 <template>
@@ -23,7 +22,6 @@ import { Toaster } from '@/components/ui/sonner';
                     <slot />
                 </div>
             </AppContent>
-            <Toaster class="admin-dashboard-theme" />
         </AppShell>
     </div>
 </template>

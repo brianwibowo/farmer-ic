@@ -19,7 +19,10 @@ class ProfileUpdateTest extends TestCase
             ->actingAs($user)
             ->get(route('profile.edit'));
 
-        $response->assertOk();
+        $response->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('settings/Profile')
+                ->has('passwordRules'));
     }
 
     public function test_owner_receives_sidebar_profile_and_petugas_keeps_mobile_profile(): void

@@ -1,4 +1,5 @@
 import type { Directive } from 'vue';
+import type { toast } from '@/lib/toast';
 import type { Auth } from '@/types/auth';
 import type { AccountProfile } from '@/types/auth';
 import type { Team } from '@/types/teams';
@@ -58,5 +59,6 @@ declare module 'vue' {
         $inertia: typeof Router;
         $page: Page;
         $headManager: ReturnType<typeof createHeadManager>;
+        $toast: typeof toast;
     }
 }

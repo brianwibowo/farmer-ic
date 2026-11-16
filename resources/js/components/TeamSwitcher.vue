@@ -13,6 +13,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { switchMethod } from '@/routes/teams';
+import { toast } from '@/lib/toast';
 import type { Team } from '@/types';
 
 const props = withDefaults(
@@ -58,6 +59,7 @@ const plusIconClass = computed(() => (props.inHeader ? 'size-4' : 'h-4 w-4'));
 
 const switchTeam = (team: Team) => {
     if (switching.value || team.id === currentTeam.value?.id) return;
+    toast.dismiss();
     if (page.props.navigation?.owner) {
         switching.value = true;
         switchError.value = '';

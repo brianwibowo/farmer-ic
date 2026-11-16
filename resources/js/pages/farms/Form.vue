@@ -10,7 +10,7 @@ import {
     Save,
 } from '@lucide/vue';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
-import { toast } from 'vue-sonner';
+import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import FarmField from '@/components/farms/FarmField.vue';
 import FormErrorSummary from '@/components/farms/FormErrorSummary.vue';
