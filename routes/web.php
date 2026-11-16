@@ -51,6 +51,7 @@ Route::get('/', HomeController::class)->middleware(['auth', 'verified'])->name('
 
 Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): void {
     Route::get('ringkasan-eksekutif', [OwnerController::class, 'executiveSummary'])->name('owner.executive-summary');
+    Route::get('monitoring-lahan', [OwnerController::class, 'dashboard'])->name('owner.monitoring');
     Route::get('kebun', [FarmManagementController::class, 'index'])->name('kebun');
     Route::get('kebun/detail', function (Request $request) {
         $id = (string) $request->query('id', '');

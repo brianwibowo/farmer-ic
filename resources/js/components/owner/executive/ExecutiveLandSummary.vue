@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { Link } from '@inertiajs/vue3';
+import { ArrowUpRight } from '@lucide/vue';
+import { Button } from '@/components/ui/button';
 import OwnerDistributionChart from '@/components/owner/OwnerDistributionChart.vue';
 import ExecutivePanel from './ExecutivePanel.vue';
 import { executiveNumber as number } from '@/services/ownerExecutiveDemoService';
@@ -22,6 +25,14 @@ const items = computed(() =>
 
 <template>
     <ExecutivePanel id="kerja-sama" title="Kerja sama & luas lahan">
+        <template #actions>
+            <Button as-child variant="outline" size="sm" class="min-h-11"
+                ><Link
+                    href="/monitoring-lahan"
+                    aria-label="Lihat detail kerja sama dan luas lahan"
+                    >Lihat detail<ArrowUpRight aria-hidden="true" /></Link
+            ></Button>
+        </template>
         <div class="grid min-w-0 gap-5 xl:grid-cols-2">
             <div class="min-w-0">
                 <h3 class="mb-4 text-sm font-semibold">Per kategori</h3>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { RefreshCw } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
@@ -7,6 +7,7 @@ import OwnerDashboardCommodityChart from '@/components/owner/dashboard/OwnerDash
 import OwnerDashboardFarmPreview from '@/components/owner/dashboard/OwnerDashboardFarmPreview.vue';
 import OwnerDashboardLandTable from '@/components/owner/dashboard/OwnerDashboardLandTable.vue';
 import OwnerDashboardMetrics from '@/components/owner/dashboard/OwnerDashboardMetrics.vue';
+import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import { Button } from '@/components/ui/button';
 import { useOwnerReadFilters } from '@/composables/useOwnerReadFilters';
 import type {
@@ -18,9 +19,10 @@ const props = defineProps<{
     dashboard: OwnerDashboardData;
     landTable: OwnerLandTableData;
 }>();
-const page = usePage();
-const welcomeName = computed(() => page.props.auth.user?.name?.trim() ?? '');
-const { loading, error, feedback, submit } = useOwnerReadFilters('/', {});
+const { loading, error, feedback, submit } = useOwnerReadFilters(
+    '/monitoring-lahan',
+    {},
+);
 const updatedAt = computed(() => props.dashboard.generatedAt);
 const selectedMapFarmId = ref<string | null>(null);
 const selectedMapFarm = computed(() =>
@@ -44,40 +46,41 @@ watch(
 </script>
 
 <template>
-    <Head title="Dashboard Owner" />
+    <Head title="Monitoring Lahan" />
     <div
         class="owner-dashboard min-w-0 space-y-4 lg:space-y-6"
         :aria-busy="loading"
     >
-        <div
-            class="owner-dashboard-header flex items-center justify-between gap-3"
+        <OwnerPageHeader
+            title="Monitoring Lahan"
+            back-href="/ringkasan-eksekutif"
+            back-label="Kembali ke Ringkasan Eksekutif"
         >
-            <header class="min-w-0">
-                <h1
-                    class="admin-page-title break-words"
+            <template #heading>
+                <div
+                    class="owner-dashboard-header flex items-center justify-between gap-3"
                 >
-                    Selamat datang<template v-if="welcomeName"
-                        >,
-                        <span class="text-primary">{{
-                            welcomeName
-                        }}</span></template
-                    >!
-                </h1>
-            </header>
-            <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                class="min-h-11 min-w-11 shrink-0"
-                :disabled="loading"
-                aria-label="Perbarui dashboard"
-                @click="submit()"
-                ><RefreshCw
-                    class="size-4"
-                    :class="loading ? 'motion-safe:animate-spin' : ''"
-                    aria-hidden="true"
-            /></Button>
-        </div>
+                    <header class="min-w-0">
+                        <h1 class="admin-page-title wrap-break-word">
+                            Monitoring Lahan
+                        </h1>
+                    </header>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        class="min-h-11 min-w-11 shrink-0"
+                        :disabled="loading"
+                        aria-label="Perbarui monitoring lahan"
+                        @click="submit()"
+                        ><RefreshCw
+                            class="size-4"
+                            :class="loading ? 'motion-safe:animate-spin' : ''"
+                            aria-hidden="true"
+                    /></Button>
+                </div>
+            </template>
+        </OwnerPageHeader>
         <p
             v-if="loading || error || feedback"
             :role="error ? 'alert' : 'status'"
@@ -99,10 +102,7 @@ watch(
                 aria-labelledby="owner-map-heading"
             >
                 <div class="mb-3 flex items-center justify-between gap-3">
-                    <h2
-                        id="owner-map-heading"
-                        class="admin-section-title"
-                    >
+                    <h2 id="owner-map-heading" class="admin-section-title">
                         Peta lahan
                     </h2>
                     <Link

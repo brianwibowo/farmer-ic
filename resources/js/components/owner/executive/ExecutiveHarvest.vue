@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { ChevronDown } from "@lucide/vue";
-import { computed } from "vue";
-import ExecutiveChart from "./ExecutiveChart.vue";
-import ExecutivePanel from "./ExecutivePanel.vue";
-import ExecutiveTable from "./ExecutiveTable.vue";
+import { ArrowUpRight, ChevronDown } from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
+import { computed } from 'vue';
+import ExecutiveChart from './ExecutiveChart.vue';
+import ExecutivePanel from './ExecutivePanel.vue';
+import ExecutiveTable from './ExecutiveTable.vue';
 import {
     executiveNumber as number,
     executiveTotals,
-} from "@/services/ownerExecutiveDemoService";
-import type { ExecutiveColumn, ExecutiveRow } from "@/types/owner-executive";
+} from '@/services/ownerExecutiveDemoService';
+import type { ExecutiveColumn, ExecutiveRow } from '@/types/owner-executive';
 
 const props = defineProps<{ rows: ExecutiveRow[]; period: string }>();
 defineEmits<{ select: [id: string] }>();
-const unit = "ton";
+const unit = 'ton';
 const totals = computed(() => executiveTotals(props.rows));
 const achievement = computed(() =>
     totals.value.projected
@@ -20,12 +22,12 @@ const achievement = computed(() =>
         : 0,
 );
 const columns: ExecutiveColumn[] = [
-    { key: "farm", label: "Kebun" },
-    { key: "crop", label: "Komoditas" },
-    { key: "projected", label: `Proyeksi (${unit})`, numeric: true },
-    { key: "actual", label: `Aktual (${unit})`, numeric: true },
-    { key: "difference", label: `Selisih (${unit})`, numeric: true },
-    { key: "achievement", label: "Pencapaian", numeric: true },
+    { key: 'farm', label: 'Kebun' },
+    { key: 'crop', label: 'Komoditas' },
+    { key: 'projected', label: `Proyeksi (${unit})`, numeric: true },
+    { key: 'actual', label: `Aktual (${unit})`, numeric: true },
+    { key: 'difference', label: `Selisih (${unit})`, numeric: true },
+    { key: 'achievement', label: 'Pencapaian', numeric: true },
 ];
 const table = computed(() =>
     props.rows.map((row) => ({
@@ -47,11 +49,19 @@ const table = computed(() =>
         :description="period"
     >
         <template #actions>
-            <span
-                class="inline-flex items-center rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground"
-            >
-                Satuan: Ton
-            </span>
+            <div class="flex flex-wrap items-center gap-2">
+                <span
+                    class="inline-flex items-center rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                >
+                    Satuan: Ton
+                </span>
+                <Button as-child variant="outline" size="sm" class="min-h-11"
+                    ><Link
+                        href="/proyeksi"
+                        aria-label="Lihat detail proyeksi panen"
+                        >Lihat detail<ArrowUpRight aria-hidden="true" /></Link
+                ></Button>
+            </div>
         </template>
         <dl class="mb-3 grid grid-cols-3 gap-3 text-xs text-muted-foreground">
             <div>

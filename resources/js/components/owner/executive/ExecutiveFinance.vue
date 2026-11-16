@@ -10,7 +10,7 @@ import {
 } from '@/services/ownerExecutiveDemoService';
 import type { ExecutiveRow } from '@/types/owner-executive';
 
-const props = defineProps<{ rows: ExecutiveRow[] }>();
+const props = defineProps<{ rows: ExecutiveRow[]; annual?: boolean }>();
 const totals = computed(() => executiveTotals(props.rows));
 const commodities = computed(() => executiveCommodities(props.rows));
 const metrics = computed(() => [
@@ -27,8 +27,12 @@ const metrics = computed(() => [
 <template>
     <ExecutivePanel
         id="proyeksi-keuangan"
-        title="Proyeksi keuangan satu cycle"
-        description="Harga jual berbeda per komoditas. Perhitungan mengikuti luas tanam terpilih."
+        :title="
+            annual
+                ? 'Proyeksi keuangan tahunan'
+                : 'Proyeksi keuangan satu cycle'
+        "
+        description="Harga jual berbeda per komoditas. Perhitungan mengikuti proyeksi panen pada periode terpilih."
     >
         <dl
             class="mb-5 grid grid-cols-2 gap-4 border-b border-border pb-5 lg:grid-cols-4"

@@ -49,12 +49,13 @@ class HomePageTest extends TestCase
         $this->assertSame($role === 'superadmin', Gate::forUser($actor)->allows('owner.access'));
     }
 
-    public function test_owner_dashboard_uses_the_real_authenticated_identity(): void
+    public function test_owner_lands_on_executive_summary_with_the_real_authenticated_identity(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
 
-        $this->actingAs($owner)->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/Dashboard')
+        $this->actingAs($owner)->get('/')->assertRedirect('/ringkasan-eksekutif');
+        $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('owner/ExecutiveSummary')
             ->where('auth.user.id', $owner->id)
             ->where('account', ['name' => $owner->name, 'email' => $owner->email])
             ->where('currentTeam.id', $owner->current_team_id)
