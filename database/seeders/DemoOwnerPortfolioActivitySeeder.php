@@ -6,6 +6,7 @@ use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBlock;
 use App\Models\FarmerModel;
 use App\Models\FarmRisk;
 use App\Models\FertilizationDetail;
@@ -13,11 +14,14 @@ use App\Models\HarvestDetail;
 use App\Models\IrrigationDetail;
 use App\Models\PesticideDetail;
 use App\Models\PlantingCycle;
+use App\Models\PlantingCycleTask;
 use App\Models\PlantingDetail;
 use App\Models\PlantObservation;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\WeatherRecord;
+use App\Services\Activity\HarvestClosureService;
+use App\Services\Activity\PlantingCycleStageService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
@@ -47,6 +51,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                 $farm = Farm::visibleTo($actor, $team)->where('team_id', $team->id)
                     ->whereKey(DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']))->lockForUpdate()->firstOrFail();
                 $this->weather($farm, $site['key'], $actor, $team);
+                $this->blockPreparation($farm, $site, $actor, $performer, $team);
                 foreach ($site['batches'] as $batch) {
                     if ($batch['status'] === 'planned') {
                         continue;
@@ -143,6 +148,46 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                     'color' => $site['commodity'] === 'Rumput' ? 'Hijau segar' : 'Kuning keemasan',
                     'ripeness' => $site['commodity'] === 'Rumput' ? 'Siap potong' : 'Matang panen', 'cleanliness' => 'Bersih setelah sortasi',
                 ], $actor, $performer, $team);
+            if ($cycle->fresh()->status === 'active') {
+                Gate::forUser($actor)->authorize('configure', $cycle);
+                app(HarvestClosureService::class)->close($actor, $team, $cycle);
+            }
+        }
+    }
+
+    /** @param array<string, mixed> $site */
+    private function blockPreparation(Farm $farm, array $site, User $actor, User $performer, Team $team): void
+    {
+        if (! is_array($site['batches'] ?? null)) {
+            throw new LogicException('Data batch portofolio tidak valid.');
+        }
+        $byBlock = collect($site['batches'])->groupBy('block_code');
+        foreach ($byBlock as $blockCode => $batches) {
+            $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $blockCode)->firstOrFail();
+            $reference = $batches->sortBy('planned_planting_at')->first();
+            $date = CarbonImmutable::parse($reference['planned_planting_at'], 'Asia/Jakarta');
+            $reports = [
+                ['land_cleaning', $date->subDays(15), 'landCleaningDetail', ['area_ha' => $block->area_ha, 'method' => 'Pembersihan manual']],
+                ['loosening', $date->subDays(12), 'looseningDetail', ['area_ha' => $block->area_ha, 'method' => 'Cultivator', 'depth_cm' => 20]],
+            ];
+            if ($batches->contains(fn ($batch) => $batch['status'] !== 'planned' || $batch['current_stage'] === 'basic_fertilizer')) {
+                $reports[] = ['base_fertilization', $date->subDays(7), 'fertilizationDetail', [
+                    'fertilization_stage' => 'dasar', 'fertilizer_type' => 'Pupuk kandang', 'quantity_kg' => 500,
+                    'quantity_unit' => 'kg', 'area_ha' => $block->area_ha, 'application_method' => 'Tabur',
+                ]];
+            }
+            foreach ($reports as [$code, $when, $relation, $detail]) {
+                $type = ActivityType::visibleTo($actor, $team)->where('code', $code)->firstOrFail();
+                $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'block-activity:'.$site['key'].':'.$blockCode.':'.$code), [
+                    'farm_id' => $farm->id, 'block_id' => $block->id, 'activity_type_id' => $type->id,
+                    'performed_by' => $performer->id, 'activity_date' => $this->at($when->toDateString()),
+                    'description' => $type->name.' '.$blockCode, 'status' => 'completed',
+                ], $farm, $actor, $team);
+                if ($activity->wasRecentlyCreated) {
+                    $activity->{$relation}()->create($detail);
+                    app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
+                }
+            }
         }
     }
 
@@ -159,11 +204,25 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                 default => throw new LogicException('Jenis aktivitas portofolio tidak didukung: '.$code),
             }]);
         }
-        /** @var FarmActivity $activity */
-        $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'activity:'.$key.':'.$code), [
+        $activityId = DemoOwnerPortfolioData::id($team, 'activity:'.$key.':'.$code);
+        $taskData = [];
+        Gate::forUser($actor)->authorize('viewAny', [FarmActivity::class, $team]);
+        if ($code === 'harvest' && ! FarmActivity::visibleTo($actor, $team)->whereKey($activityId)->exists()) {
+            Gate::forUser($actor)->authorize('viewAny', [PlantingCycleTask::class, $team]);
+            $task = PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)
+                ->where('activity_category', 'harvest')->orderBy('scheduled_date')->orderBy('id')->firstOrFail();
+            $taskData = [
+                'planting_cycle_task_id' => $task->id,
+                'task_details' => json_encode([
+                    'area_ha' => $detail['harvested_area_ha'], 'weight_ton' => $detail['gross_weight_ton'],
+                    'moisture' => $detail['moisture_percentage'],
+                ], JSON_THROW_ON_ERROR),
+            ];
+        }
+        $activity = $this->record(FarmActivity::class, $activityId, [
             'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'block_id' => $cycle->block_id, 'activity_type_id' => $type->id,
             'performed_by' => $performer->id, 'activity_date' => $this->at($date),
-            'description' => $description, 'status' => 'completed', 'created_at' => $this->at($date), 'updated_at' => $this->at($date),
+            'description' => $description, 'status' => 'completed', 'created_at' => $this->at($date), 'updated_at' => $this->at($date), ...$taskData,
         ], $farm, $actor, $team);
         if ($activity->wasRecentlyCreated) {
             $model = match ($code) {
@@ -179,6 +238,7 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
                     'planting_cycle_id' => $cycle->id, 'observed_by' => $performer->id, 'observed_at' => $this->at($date)];
             }
             (new $model)->forceFill($payload)->save();
+            app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
         }
 
         return $activity;
@@ -197,15 +257,21 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         ], $farm, $actor, $team);
     }
 
-    /** @param class-string<FarmerModel> $class
+    /** @template TModel of FarmerModel
+     *
+     * @param  class-string<TModel>  $class
      * @param  array<string, mixed>  $data
+     * @return TModel
      */
     private function record(string $class, string $id, array $data, Model $parent, User $actor, Team $team): FarmerModel
     {
         Gate::forUser($actor)->authorize('viewAny', [$class, $team]);
         $existing = $class::visibleTo($actor, $team)->whereKey($id)->first();
         if ($existing !== null) {
-            foreach (['farm_id', 'planting_cycle_id', 'activity_id', 'observation_id'] as $foreignKey) {
+            if (! $existing instanceof $class) {
+                throw new LogicException('Jenis data portofolio tidak sesuai dengan model yang diminta.');
+            }
+            foreach (['farm_id', 'block_id', 'planting_cycle_id', 'activity_id', 'observation_id'] as $foreignKey) {
                 if (isset($data[$foreignKey]) && (string) $existing->getAttribute($foreignKey) !== (string) $data[$foreignKey]) {
                     throw new RuntimeException('ID portofolio sudah digunakan oleh relasi lain.');
                 }

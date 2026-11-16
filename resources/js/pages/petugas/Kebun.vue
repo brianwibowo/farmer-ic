@@ -121,8 +121,8 @@ defineProps<{ garden: PetugasGarden }>();
                                 {{
                                     garden.selected_block
                                         .land_clearing_completed_at
-                                        ? `Selesai ${gardenDate(garden.selected_block.land_clearing_completed_at)}`
-                                        : 'Belum dimulai'
+                                        ? `Laporan terakhir ${gardenDate(garden.selected_block.land_clearing_completed_at)}`
+                                        : 'Belum ada laporan'
                                 }}
                             </p>
                         </div>

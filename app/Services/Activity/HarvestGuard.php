@@ -38,14 +38,22 @@ class HarvestGuard
             throw ValidationException::withMessages([$weightField => 'Berat panen minimal 1 kg.']);
         }
 
-        $previousM2 = LandArea::squareMetres($this->harvestedArea($actor, $team, $cycle)) ?? 0;
-        $remainingM2 = $plantedM2 - $previousM2;
+        $remainingM2 = $this->remainingAreaM2($actor, $team, $cycle);
 
         if ($areaM2 > $remainingM2) {
             throw ValidationException::withMessages([
                 $areaField => 'Luas panen melebihi sisa luas tanam subblok (sisa '.LandArea::label(max(0, $remainingM2)).').',
             ]);
         }
+    }
+
+    /** The form may display this snapshot; writes must still lock and recheck it. */
+    public function remainingAreaM2(User $actor, Team $team, PlantingCycle $cycle): int
+    {
+        $plantedM2 = LandArea::squareMetres($cycle->getAttribute('planted_area_ha')) ?? 0;
+        $previousM2 = LandArea::squareMetres($this->harvestedArea($actor, $team, $cycle)) ?? 0;
+
+        return max(0, $plantedM2 - $previousM2);
     }
 
     private function harvestedArea(User $actor, Team $team, PlantingCycle $cycle): string|int|float

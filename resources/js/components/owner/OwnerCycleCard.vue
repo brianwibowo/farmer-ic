@@ -60,9 +60,28 @@ defineProps<{ cycle: OwnerCycle }>();
                 <dd class="mt-1">{{ ownerDate(cycle.planted_at) }}</dd>
             </div>
             <div class="col-span-2">
-                <dt class="text-xs text-muted-foreground">Estimasi panen</dt>
+                <dt class="text-xs text-muted-foreground">
+                    {{
+                        cycle.status === 'harvested'
+                            ? 'Status panen'
+                            : 'Estimasi awal panen'
+                    }}
+                </dt>
                 <dd class="mt-1">
-                    {{ ownerDate(cycle.estimated_harvest_at) }}
+                    {{
+                        cycle.status === 'harvested'
+                            ? 'Panen selesai'
+                            : cycle.estimated_harvest_at
+                              ? ownerDate(cycle.estimated_harvest_at)
+                              : 'Belum ada estimasi'
+                    }}
+                    <span
+                        v-if="cycle.status === 'harvested' && cycle.estimated_harvest_at"
+                        class="mt-1 block text-xs text-muted-foreground"
+                    >
+                        Estimasi sebelumnya:
+                        {{ ownerDate(cycle.estimated_harvest_at) }}
+                    </span>
                 </dd>
             </div>
         </dl>
@@ -107,8 +126,14 @@ defineProps<{ cycle: OwnerCycle }>();
                         {{ task.offset_days }}
                     </p>
                     <p class="text-xs text-muted-foreground">
-                        Jadwal {{ ownerDate(task.scheduled_date) }} · Tenggat
+                        Jadwal {{ ownerDate(task.effective_scheduled_date) }} · Tenggat
                         {{ ownerDate(task.due_date) }}
+                    </p>
+                    <p
+                        v-if="task.scheduled_date && task.effective_scheduled_date !== task.scheduled_date"
+                        class="text-xs text-muted-foreground"
+                    >
+                        Jadwal SOP: {{ ownerDate(task.scheduled_date) }}
                     </p>
                     <p
                         v-if="task.instructions"

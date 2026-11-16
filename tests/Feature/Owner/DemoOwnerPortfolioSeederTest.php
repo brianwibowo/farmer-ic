@@ -129,7 +129,9 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             $this->get('/kebun/'.$farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component('owner/Block')->where('block.id', $block->id)
                 ->where('cycles', fn ($rows) => collect($rows)->isNotEmpty() && collect($rows)->every(
-                    fn ($batch) => count($batch['stages']) === 6 && count($batch['tasks']) > 0 && $batch['sop'] !== null,
+                    fn ($batch) => count($batch['stages']) === 6 && ($batch['planted_at'] === null
+                        ? count($batch['tasks']) === 0 && $batch['sop'] === null
+                        : count($batch['tasks']) > 0 && $batch['sop'] !== null),
                 )));
 
             $activity = FarmActivity::query()->where('farm_id', $farm->id)->orderByDesc('activity_date')->firstOrFail();
@@ -146,6 +148,9 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         foreach ($batches as $batch) {
             $this->assertSame(6, $batch->stages_count);
             if ($batch->status === 'planned') {
+                $this->assertNull($batch->planted_at);
+            }
+            if ($batch->planted_at === null) {
                 $this->assertSame(0, $batch->tasks_count);
                 $this->assertNull($batch->sop_template_version_id);
             } else {
@@ -157,6 +162,8 @@ class DemoOwnerPortfolioSeederTest extends TestCase
             'planting' => 'plantingDetail', 'follow_up_fertilization' => 'fertilizationDetail',
             'irrigation' => 'irrigationDetail', 'pest_control' => 'pesticideDetail',
             'harvest' => 'harvestDetail', 'growth_check' => 'observation',
+            'land_cleaning' => 'landCleaningDetail', 'loosening' => 'looseningDetail',
+            'base_fertilization' => 'fertilizationDetail',
         ];
         $activities = FarmActivity::query()->whereIn('farm_id', $farmIds)
             ->with(['activityType', ...array_values($detailTypes)])->get();
@@ -164,9 +171,16 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         foreach ($activities as $activity) {
             $relation = $detailTypes[$activity->activityType->code];
             $this->assertNotNull($activity->getRelation($relation));
-            $this->assertSame(1, collect(array_values($detailTypes))
+            $this->assertSame(1, collect(array_values($detailTypes))->unique()
                 ->filter(fn (string $detail) => $activity->getRelation($detail) !== null)->count());
+            if ($activity->activityType->code === 'harvest') {
+                $task = $activity->task()->firstOrFail();
+                $this->assertSame('harvest', $task->activity_category);
+                $this->assertSame('completed', $task->status);
+                $this->assertNotNull($task->completed_by);
+            }
         }
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
     public function test_rerun_preserves_operational_history_and_syncs_requested_site_data(): void

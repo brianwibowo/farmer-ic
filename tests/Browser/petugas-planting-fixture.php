@@ -23,6 +23,6 @@ $sops->createTask($version, [
 Illuminate\Support\Facades\Gate::forUser($admin)->authorize('update', $version);
 $sops->publish($version, $admin);
 Illuminate\Support\Facades\Gate::forUser($admin)->authorize('update', $farm);
-$farm->forceFill(['default_sop_template_id' => $template->id])->save();
+$farm->forceFill(['commodity_id' => $commodity->id, 'default_sop_template_id' => $template->id])->save();
 App\Models\ActivityType::firstOrCreate(['code' => 'planting'], ['name' => 'Penanaman']);
 echo json_encode(['cycle' => $planned->id, 'variety' => $variety->id], JSON_THROW_ON_ERROR).PHP_EOL;

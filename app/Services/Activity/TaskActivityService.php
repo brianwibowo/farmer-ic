@@ -9,6 +9,7 @@ use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
+use App\Support\ActivityInputLimits;
 use App\Support\TaskActivityFields;
 use App\Support\VoluntaryActivityFields;
 use Carbon\CarbonImmutable;
@@ -45,6 +46,9 @@ class TaskActivityService
                 $cycleQuery = PlantingCycle::visibleTo($actor, $farm->team)->whereKey($task->planting_cycle_id)
                     ->where('farm_id', $farm->id);
                 $cycle = ($code === 'harvest' ? $cycleQuery->lockForUpdate() : $cycleQuery->sharedLock())->firstOrFail();
+                if (! in_array($cycle->status, ['planned', 'active'], true)) {
+                    throw ValidationException::withMessages(['task' => 'Subblok sudah ditutup.']);
+                }
                 if ($cycle->planted_at === null || $data['work_date'] < $cycle->planted_at->toDateString()) {
                     throw ValidationException::withMessages(['work_date' => 'Laporan tugas lanjutan harus pada atau setelah tanggal tanam aktual.']);
                 }
@@ -66,13 +70,13 @@ class TaskActivityService
                     );
                 } else {
                     if (isset($details['area_ha']) && (float) $details['area_ha'] > (float) $cycle->planted_area_ha) {
-                        throw ValidationException::withMessages(['details.area_ha' => 'Luas dikerjakan tidak boleh melebihi luas tanam subblok.']);
+                        throw ValidationException::withMessages([($data['schema'] ?? null) === 'taxonomy' ? 'details.area' : 'details.area_ha' => 'Luas dikerjakan tidak boleh melebihi luas tanam subblok.']);
                     }
                     if ((isset($details['area_ha']) && $details['area_ha'] <= 0) || (isset($details['weight_ton']) && $details['weight_ton'] <= 0)) {
                         throw ValidationException::withMessages(['details' => 'Luas minimal 1 m² dan berat panen minimal 1 kg.']);
                     }
                 }
-                if (($details['quantity_kg'] ?? 0) > 999999999.999) {
+                if (($details['quantity_kg'] ?? 0) > ActivityInputLimits::NORMALIZED_QUANTITY_KG) {
                     throw ValidationException::withMessages(['details.quantity' => 'Jumlah terlalu besar setelah konversi satuan.']);
                 }
                 $log = $this->headers->resolve($farm, $actor, $data);
@@ -114,6 +118,8 @@ class TaskActivityService
                     $paths[] = $path;
                     ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $path]);
                 }
+
+                app(PlantingCycleStageService::class)->record($actor, $farm->team, $activity, $type);
 
                 if ($task->status === 'pending') {
                     $task->forceFill(['status' => 'in_progress'])->save();

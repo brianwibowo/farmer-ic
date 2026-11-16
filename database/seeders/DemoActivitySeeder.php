@@ -12,6 +12,8 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
 use App\Services\Activity\DailyActivityLogService;
+use App\Services\Activity\HarvestClosureService;
+use App\Services\Activity\PlantingCycleStageService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +27,7 @@ class DemoActivitySeeder extends Seeder
         \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('viewAny', [Farm::class, $team]);
         $farm = Farm::visibleTo($petugas, $team)->where('team_id', $team->id)
             ->whereIn('name', DemoFarmSeeder::FARM_NAMES)->firstOrFail();
-        $cycle = PlantingCycle::visibleTo($petugas, $team)->where('farm_id', $farm->id)->where('status', 'active')->firstOrFail();
+        $cycle = PlantingCycle::visibleTo($petugas, $team)->where('farm_id', $farm->id)->where('status', 'active')->orderByDesc('batch_number')->firstOrFail();
         $plantedAt = $cycle->planted_at ?? $cycle->planned_planting_at;
         if ($plantedAt === null) {
             throw new \LogicException('Siklus tanam demo harus memiliki tanggal tanam atau rencana tanam.');
@@ -115,12 +117,24 @@ class DemoActivitySeeder extends Seeder
 
         $previous = PlantingCycle::visibleTo($petugas, $team)
             ->where('farm_id', $farm->id)
-            ->where('status', 'harvested')
-            ->orderByDesc('planted_at')
-            ->orderByDesc('batch_number')
+            ->where('subblock_label', 'A')->whereHas('block', fn ($q) => $q->where('code', 'B01'))
             ->first();
         if ($previous instanceof PlantingCycle) {
+            if ($previous->sop_template_version_id === null && $cycle->sop_template_version_id !== null) {
+                $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
+                \Illuminate\Support\Facades\Gate::forUser($admin)->authorize('update', $previous);
+                $previous->forceFill(['sop_template_version_id' => $cycle->sop_template_version_id])->save();
+            }
+            $this->seedActivityWithDetail($farm, $previous, $petugas, 'planting', 'Penanaman Blok Utara sebelumnya', [
+                'seed_name' => 'Benih jagung Bisi 18', 'quantity_kg' => 18.500,
+                'planting_pattern' => 'Jarak tanam 20 x 40 cm', 'area_ha' => 4.2500,
+            ], $previous->planted_at->toDateString());
             $this->seedPreviousHarvest($farm, $previous, $petugas);
+            if ($previous->fresh()->status === 'active') {
+                $admin = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['admin']['email'])->firstOrFail();
+                \Illuminate\Support\Facades\Gate::forUser($admin)->authorize('configure', $previous);
+                app(HarvestClosureService::class)->close($admin, $team, $previous);
+            }
         }
 
         $planting = FarmActivity::query()->where('farm_id', $farm->id)->where('description', 'Penanaman Blok 1')->first();
@@ -163,13 +177,17 @@ class DemoActivitySeeder extends Seeder
                     'task_details' => json_encode($detail, JSON_THROW_ON_ERROR),
                 ])->save();
                 if (in_array($task->status, ['pending', 'in_progress'], true)) {
-                    $task->forceFill([
-                        'status' => 'completed',
-                        'completed_at' => $activity->activity_date,
-                        'completed_by' => $user->id,
-                        'completion_note' => 'Tercatat melalui laporan aktivitas demo.',
-                        'skip_reason' => null,
-                    ])->save();
+                    if ($typeCode === 'harvest') {
+                        $task->forceFill(['status' => 'in_progress'])->save();
+                    } else {
+                        $task->forceFill([
+                            'status' => 'completed',
+                            'completed_at' => $activity->activity_date,
+                            'completed_by' => $user->id,
+                            'completion_note' => 'Tercatat melalui laporan aktivitas demo.',
+                            'skip_reason' => null,
+                        ])->save();
+                    }
                 }
             }
             $relation = match ($typeCode) {
@@ -182,6 +200,7 @@ class DemoActivitySeeder extends Seeder
                 default => throw new \LogicException("Unsupported seeded activity type {$typeCode}"),
             };
             $activity->{$relation}()->create($detail);
+            app(PlantingCycleStageService::class)->record($user, $farm->team, $activity, $type);
         });
     }
 
@@ -255,6 +274,7 @@ class DemoActivitySeeder extends Seeder
                 'plant_condition' => 'Daun hijau, pertumbuhan seragam.',
                 'notes' => 'Perlu pemantauan ulat pada sisi timur blok.',
             ]);
+            app(PlantingCycleStageService::class)->record($user, $farm->team, $activity, $type);
         });
     }
 
@@ -266,10 +286,17 @@ class DemoActivitySeeder extends Seeder
         foreach ($blocks as $block) {
             $cleaningDate = $block->code === 'B01' ? '2026-05-17' : '2026-09-20';
             $soilDate = $block->code === 'B01' ? '2026-05-20' : '2026-09-23';
-            foreach ([
+            $reports = [
                 ['land_cleaning', 'Pembersihan lahan percontohan '.$block->code, $cleaningDate, 'landCleaningDetail', ['area_ha' => '1.0000', 'method' => 'Pembersihan manual']],
                 ['loosening', 'Penggemburan tanah percontohan '.$block->code, $soilDate, 'looseningDetail', ['area_ha' => '1.0000', 'method' => 'Cultivator', 'depth_cm' => 20]],
-            ] as [$code, $description, $date, $relation, $detail]) {
+            ];
+            if ($block->code === 'B01') {
+                $reports[] = ['base_fertilization', 'Pemupukan dasar percontohan '.$block->code, '2026-05-25', 'fertilizationDetail', [
+                    'fertilization_stage' => 'dasar', 'fertilizer_type' => 'Kandang', 'quantity_kg' => '2000.000',
+                    'quantity_unit' => 'kg', 'area_ha' => '1.0000', 'application_method' => 'Tabur',
+                ]];
+            }
+            foreach ($reports as [$code, $description, $date, $relation, $detail]) {
                 if (FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('description', $description)->exists()) {
                     continue;
                 }
@@ -285,6 +312,7 @@ class DemoActivitySeeder extends Seeder
                     ]);
                     $activity->forceFill(['block_id' => $block->id])->save();
                     $activity->{$relation}()->create($detail);
+                    app(PlantingCycleStageService::class)->record($actor, $farm->team, $activity, $type);
                 });
             }
         }

@@ -7,6 +7,8 @@ use App\Models\Farm;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
+use App\Services\Activity\PlantingCycleStageService;
+use App\Services\Activity\VoluntaryActivityCategoryService;
 use App\Support\ActivityDetailMap;
 use App\Support\TaskActivityFields;
 use Illuminate\Support\Facades\Gate;
@@ -23,7 +25,11 @@ class FarmActivityPolicy extends ResourcePolicy
     public function recordVoluntary(User $user, Farm $farm, ActivityType $type): bool
     {
         if (! $this->create($user, $farm) || ! Gate::forUser($user)->allows('view', $type)
-            || ! $type->is_active || ! $type->is_selectable || in_array($type->code, ['planting', 'block_mapping'], true)) {
+            || ! $type->is_active || ! $type->is_selectable || in_array($type->code, ['planting', 'block_mapping'], true)
+            || VoluntaryActivityCategoryService::requiresTask($type->code)) {
+            return false;
+        }
+        if (PlantingCycleStageService::tracks($type->code) && ! $this->canReadStages($user, $farm)) {
             return false;
         }
         $detail = ActivityDetailMap::table($type->detail_key);
@@ -43,7 +49,7 @@ class FarmActivityPolicy extends ResourcePolicy
     public function recordPlanting(User $user, PlantingCycle $cycle): bool
     {
         $farm = $cycle->farm;
-        if (! Gate::forUser($user)->allows('update', $cycle) || ! $this->create($user, $farm)) {
+        if (! Gate::forUser($user)->allows('update', $cycle) || ! $this->create($user, $farm) || ! $this->canReadStages($user, $farm)) {
             return false;
         }
         foreach (['daily_activity_logs', 'activity_photos', 'planting_details'] as $prefix) {
@@ -68,6 +74,9 @@ class FarmActivityPolicy extends ResourcePolicy
         if (TaskActivityFields::activityCode($task) === null) {
             return false;
         }
+        if (PlantingCycleStageService::tracks(TaskActivityFields::activityCode($task)) && ! $this->canReadStages($user, $farm)) {
+            return false;
+        }
         $detail = ActivityDetailMap::table(TaskActivityFields::detailKey($task));
         foreach (array_filter(['daily_activity_logs', 'activity_photos', $detail]) as $prefix) {
             foreach (['view', 'create'] as $ability) {
@@ -75,6 +84,19 @@ class FarmActivityPolicy extends ResourcePolicy
                 if ($scope === null || ($scope === 'own' && $user->assignedFarmId() !== $farm->id)) {
                     return false;
                 }
+            }
+        }
+
+        return true;
+    }
+
+    /** Stage writes are a derived part of the authorized report use case. */
+    private function canReadStages(User $user, Farm $farm): bool
+    {
+        foreach (['planting_cycles.view', 'planting_cycle_stages.view'] as $permission) {
+            $scope = $this->permissions->scope($user, $permission);
+            if ($scope === null || ($scope === 'own' && $user->assignedFarmId() !== $farm->id)) {
+                return false;
             }
         }
 

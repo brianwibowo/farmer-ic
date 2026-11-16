@@ -28,6 +28,7 @@ const props = withDefaults(
         theme?: string;
         returnTo?: 'farm' | 'blocks';
         batchPermissions: Record<string, boolean>;
+        harvestPermissions: Record<string, boolean>;
         clientPagination?: boolean;
         searchable?: boolean;
         total?: number;
@@ -205,6 +206,7 @@ function remove(): void {
                                 :farm="farm"
                                 :block="block"
                                 :batch-permissions="batchPermissions"
+                                :harvest-permissions="harvestPermissions"
                                 :theme="theme ?? 'admin-dashboard-theme'"
                                 :return-to="returnTo ?? 'blocks'"
                             />

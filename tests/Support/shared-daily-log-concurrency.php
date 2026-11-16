@@ -45,8 +45,11 @@ foreach ($actors as $actor) {
 $commodity = App\Models\Commodity::create(['name' => 'Jagung']);
 $variety = App\Models\CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
 $cycle = App\Models\PlantingCycle::create(['farm_id' => $farm->id, 'variety_id' => $variety->id, 'planted_at' => '2026-11-01', 'planted_area_ha' => '2', 'status' => 'active']);
-$stage = new App\Models\PlantingCycleStage;
-$stage->forceFill(['planting_cycle_id' => $cycle->id, 'code' => 'maintenance', 'position' => 5, 'status' => 'in_progress', 'started_at' => now()])->save();
+foreach (App\Models\PlantingCycleStage::CODES as $position => $code) {
+    $stage = new App\Models\PlantingCycleStage;
+    $stage->forceFill(['planting_cycle_id' => $cycle->id, 'code' => $code, 'position' => $position + 1, 'status' => 'upcoming'])->save();
+}
+$stage = $cycle->stages()->where('code', 'maintenance')->firstOrFail();
 $task = App\Models\PlantingCycleTask::create([
     'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $stage->id,
     'activity_category' => 'maintenance', 'activity_subcategory' => 'irrigation', 'name' => 'Pengairan paralel',
@@ -64,7 +67,7 @@ foreach ($actors as $index => $actor) {
 }
 foreach ($processes as $process) {
     $process->wait();
-    if (! $process->isSuccessful()) {
+    if (! $process->isSuccessful() || ! preg_match('/^[0-9a-f-]{36}\s*$/i', $process->getOutput())) {
         throw new RuntimeException($process->getOutput().$process->getErrorOutput());
     }
 }
@@ -75,5 +78,9 @@ $workerCounts = $activities->pluck('worker_count')->all();
 sort($workerCounts);
 if ($positions !== [1, 2] || $workerCounts !== [3, 8]) {
     throw new RuntimeException('Concurrent appends duplicated/overwrote the header, position, or activity worker count.');
+}
+$stage->refresh();
+if ($stage->status !== 'in_progress' || $stage->started_at === null || $stage->completed_at === null) {
+    throw new RuntimeException('Concurrent reports did not maintain the persisted stage.');
 }
 echo json_encode(['headers' => 1, 'activities' => 2, 'positions' => $positions, 'workers' => $workerCounts], JSON_THROW_ON_ERROR).PHP_EOL;

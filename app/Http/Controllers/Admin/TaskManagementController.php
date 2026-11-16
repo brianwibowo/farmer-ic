@@ -307,6 +307,7 @@ class TaskManagementController extends Controller
                 'id' => $cycle->id,
                 'number' => $cycle->batch_number,
                 'label' => $cycle->subblock_label,
+                'planted_at' => Gate::allows('view', $cycle) ? $cycle->planted_at?->toDateString() : null,
             ],
             'stage' => $task->stage?->only(['code']),
             'sop_version' => $cycle?->sopTemplateVersion?->only(['id', 'version']),

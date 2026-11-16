@@ -16,6 +16,7 @@ const props = defineProps<{
     fields: TaskActivityField[];
     canRecord: boolean;
     blockedReason: string | null;
+    completionGuidance: string;
 }>();
 const activityDate = useActivityDate();
 const completionForm = useForm({ note: '' });
@@ -201,8 +202,7 @@ function completedAtLabel(value: string | null): string {
             </article>
         </section>
         <p class="text-xs leading-5 text-muted-foreground">
-            Menyimpan laporan tidak otomatis menyelesaikan tugas. Tandai selesai
-            setelah seluruh pekerjaan tuntas.
+            {{ completionGuidance }}
         </p>
     </div>
 </template>

@@ -202,8 +202,7 @@ function submitReschedule(): void {
                     atau menandai tugas tidak dikerjakan.
                 </p>
                 <p v-else class="mt-2 text-sm leading-6 text-muted-foreground">
-                    Tugas ini tidak dapat diubah karena statusnya sudah
-                    {{ adminTaskStatusLabels[task.status].toLowerCase() }}.
+                    Tugas ini tidak dapat diubah karena status atau izin akses.
                 </p>
                 <Button v-if="task.can.update" variant="outline" class="mt-4 h-10 w-full rounded-xl" @click="openReschedule">
                     <RotateCcw />Ubah jadwal
@@ -256,12 +255,20 @@ function submitReschedule(): void {
                 </DialogDescription>
             </DialogHeader>
             <form class="space-y-4" @submit.prevent="submitReschedule">
-                <FarmField id="reschedule-date" label="Tanggal baru" required :error="rescheduleForm.errors.rescheduled_date" v-slot="field">
+                <FarmField
+                    id="reschedule-date"
+                    label="Tanggal baru"
+                    required
+                    :hint="task.activity_category === 'harvest' && task.subblok?.planted_at ? `Tidak boleh sebelum tanggal tanam ${adminTaskDate(task.subblok.planted_at)}.` : undefined"
+                    :error="rescheduleForm.errors.rescheduled_date"
+                    v-slot="field"
+                >
                     <input
                         :id="field.id"
                         v-model="rescheduleForm.rescheduled_date"
                         class="admin-field"
                         type="date"
+                        :min="task.activity_category === 'harvest' ? (task.subblok?.planted_at ?? undefined) : undefined"
                         required
                         :aria-invalid="field.invalid"
                         :aria-describedby="field.description"

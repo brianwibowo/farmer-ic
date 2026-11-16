@@ -154,12 +154,21 @@ class FarmService
     {
         $blocks = \App\Models\FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->select('id');
         $batches = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('block_id', $blocks)
-            ->whereIn('status', ['planned', 'active', 'harvested'])->get(['id', 'status']);
-        $stages = \App\Models\PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())
-            ->where('status', 'in_progress')->orderBy('position')->get(['planting_cycle_id', 'code'])->keyBy('planting_cycle_id');
+            ->whereIn('status', ['planned', 'active', 'harvested'])
+            ->with(['stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')])
+            ->get(['id', 'farm_id', 'block_id', 'status']);
         $counts = array_fill_keys([...\App\Models\PlantingCycleStage::CODES, 'not_started'], 0);
         foreach ($batches as $batch) {
-            $code = $batch->status === 'harvested' ? 'harvest' : ($stages->get($batch->id)?->getAttribute('code') ?? 'not_started');
+            $code = 'not_started';
+            foreach ($batch->stages as $stage) {
+                if ($stage->status === 'in_progress') {
+                    $code = $stage->code;
+                    break;
+                }
+                if ($stage->code === 'harvest' && $stage->status === 'completed') {
+                    $code = 'harvest';
+                }
+            }
             $counts[$code]++;
         }
 

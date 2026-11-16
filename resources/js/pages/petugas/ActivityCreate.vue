@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Camera, LoaderCircle, Save, X } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import TaskContext from '@/components/petugas/TaskContext.vue';
 import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
@@ -9,12 +9,19 @@ import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
 import type { PetugasTask } from '@/types/petugas-task';
+import {
+    activityDetailMaximumErrors,
+    formatActivityNumber,
+    maximumError,
+} from '@/lib/activityInputLimits';
 
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
     task: PetugasTask;
     fields: ActivityField[];
+    areaLimitM2: number;
+    numericLimits: { workerCount: number; quantityKg: number };
     today: string;
     workDate: string;
 }>();
@@ -39,10 +46,50 @@ const form = useForm({
     photos: [] as File[],
 });
 const clientErrors = ref<Record<string, string>>({});
+const numericErrors = computed<Record<string, string>>(() => {
+    const result = activityDetailMaximumErrors(
+        props.fields,
+        form.details,
+        props.areaLimitM2,
+        props.numericLimits.quantityKg,
+    );
+    const workerError = maximumError(
+        form.worker_count,
+        props.numericLimits.workerCount,
+        'Jumlah pekerja',
+    );
+    if (workerError) result.worker_count = workerError;
+    return result;
+});
+const noArea = computed(
+    () =>
+        props.areaLimitM2 === 0 &&
+        props.fields.some((field) => field.key === 'area' && !field.optional),
+);
 const errors = computed<Record<string, string>>(() => ({
     ...form.errors,
     ...clientErrors.value,
+    ...numericErrors.value,
 }));
+watch(
+    () => ({ ...form.details }),
+    (current, previous) => {
+        for (const key of Object.keys(current)) {
+            if (current[key] === previous[key]) continue;
+            form.clearErrors(`details.${key}` as keyof typeof form.errors);
+            if (key === 'area_unit')
+                form.clearErrors('details.area' as keyof typeof form.errors);
+            if (key === 'quantity_unit' || key === 'bag_size')
+                form.clearErrors(
+                    'details.quantity' as keyof typeof form.errors,
+                );
+        }
+    },
+);
+watch(
+    () => form.worker_count,
+    () => form.clearErrors('worker_count'),
+);
 const headerReady = ref(false);
 const existingHeader = ref(false);
 function selectPhotos(event: Event): void {
@@ -70,7 +117,13 @@ function selectPhotos(event: Event): void {
     input.value = '';
 }
 function submit(): void {
-    if (form.processing || !headerReady.value) return;
+    if (
+        form.processing ||
+        !headerReady.value ||
+        noArea.value ||
+        Object.keys(numericErrors.value).length
+    )
+        return;
     clientErrors.value = {};
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto bukti.';
@@ -166,13 +219,22 @@ function submit(): void {
                             v-model.number="form.worker_count"
                             type="number"
                             min="1"
-                            max="32767"
+                            :max="numericLimits.workerCount"
                             step="1"
                             required
                             class="task-activity-field"
                             :aria-invalid="!!errors.worker_count"
-                            aria-describedby="error-worker_count"
+                            aria-describedby="worker-count-help error-worker_count"
                         />
+                        <span
+                            id="worker-count-help"
+                            class="block text-xs text-muted-foreground"
+                            >Maksimal
+                            {{
+                                formatActivityNumber(numericLimits.workerCount)
+                            }}
+                            pekerja.</span
+                        >
                         <span
                             v-if="errors.worker_count"
                             id="error-worker_count"
@@ -184,7 +246,12 @@ function submit(): void {
                         v-model="form.details"
                         :fields="fields"
                         :errors="errors"
+                        :area-limit-m2="areaLimitM2"
                     />
+                    <p v-if="noArea" role="status" class="text-sm text-warning">
+                        Tidak ada sisa luas yang dapat dilaporkan untuk
+                        aktivitas ini.
+                    </p>
                     <p v-if="errors.details" class="text-sm text-error">
                         {{ errors.details }}
                     </p>
@@ -274,7 +341,7 @@ function submit(): void {
             >
                 {{
                     errors.task ??
-                    'Aktivitas belum tersimpan. Periksa isian yang ditandai.'
+                    'Periksa isian yang ditandai sebelum menyimpan.'
                 }}
             </p>
             <p class="text-xs leading-5 text-muted-foreground">
@@ -284,7 +351,12 @@ function submit(): void {
             <Button
                 type="submit"
                 class="min-h-12 w-full rounded-xl"
-                :disabled="form.processing || !headerReady"
+                :disabled="
+                    form.processing ||
+                    !headerReady ||
+                    noArea ||
+                    Object.keys(numericErrors).length > 0
+                "
                 ><LoaderCircle
                     v-if="form.processing"
                     class="size-4 animate-spin motion-reduce:animate-none"

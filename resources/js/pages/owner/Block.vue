@@ -43,7 +43,7 @@ const origin = computed(() => ownerFarmOrigin(page.url));
         <dl class="grid grid-cols-2 gap-3 text-sm">
             <div>
                 <dt class="text-xs text-muted-foreground">
-                    Mulai land clearing
+                    Laporan pertama pembersihan lahan
                 </dt>
                 <dd class="mt-1">
                     {{ ownerDate(block.land_clearing_started_at) }}
@@ -51,7 +51,7 @@ const origin = computed(() => ownerFarmOrigin(page.url));
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">
-                    Selesai land clearing
+                    Laporan terakhir pembersihan lahan
                 </dt>
                 <dd class="mt-1">
                     {{ ownerDate(block.land_clearing_completed_at) }}

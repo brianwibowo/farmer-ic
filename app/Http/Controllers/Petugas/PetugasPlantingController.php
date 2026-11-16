@@ -8,9 +8,11 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
+use App\Services\Activity\ActivityFormLimits;
 use App\Services\Activity\ActivitySequenceService;
 use App\Services\Activity\PlantingActivityService;
 use App\Services\PlantingCycleTaskService;
+use App\Support\ActivityInputLimits;
 use App\Support\TaskGenerationFeedback;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,12 +40,14 @@ class PetugasPlantingController extends Controller
         ]);
     }
 
-    public function show(Request $request, PlantingCycle $cycle, PlantingActivityService $planting, ActivitySequenceService $sequence): Response
+    public function show(Request $request, PlantingCycle $cycle, PlantingActivityService $planting, ActivitySequenceService $sequence, ActivityFormLimits $limits): Response
     {
         $this->authorizeCycle($request, $cycle);
 
         return Inertia::render('petugas/PlantingCreate', [
             ...$planting->formData($request->user(), $cycle),
+            'areaLimitM2' => $limits->plantingArea($request->user(), $cycle),
+            'numericLimits' => ActivityInputLimits::planting(),
             'farm' => $cycle->farm->only(['id', 'name']),
             'canRecord' => in_array($cycle->status, ['planned', 'active'], true) && Gate::allows('recordPlanting', [FarmActivity::class, $cycle]),
             'blockedReason' => $sequence->blockedReason($request->user(), $cycle, 'planting'),

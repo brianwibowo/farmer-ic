@@ -160,7 +160,7 @@ class OwnerPortalTest extends TestCase
     public function test_owner_reads_all_activity_types_including_records_without_logbooks(): void
     {
         $this->get('/aktivitas?per_page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('owner/Activities')->where('activities.total', 12)->has('activities.data', 2));
+            ->component('owner/Activities')->where('activities.total', 14)->has('activities.data', 2));
 
         $activity = FarmActivity::query()->where('description', 'Penanaman Blok 1')->firstOrFail();
         $activity->forceFill(['daily_activity_log_id' => null, 'position' => null])->save();
@@ -189,6 +189,9 @@ class OwnerPortalTest extends TestCase
             ->where('activities.total', 1)->where('activities.data.0.type.code', 'harvest'));
         $this->get('/aktivitas?from_date=2027-01-01&to_date=2027-01-31')
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('activities.total', 0));
+        $fertilization = ActivityType::query()->where('code', 'base_fertilization')->firstOrFail();
+        $this->get('/aktivitas?activity_type_id='.$fertilization->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('activities.total', 1)->where('activities.data.0.type.code', 'base_fertilization'));
     }
 
     public function test_owner_reads_sop_versions_and_people_without_developer_accounts(): void
@@ -279,7 +282,7 @@ class OwnerPortalTest extends TestCase
             ->where('farms.total', 1)->where('summary.count', 1)
             ->where('farms.data.0.id', $this->farm->id));
         $this->get('/aktivitas?team_id='.$otherTeam->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('activities.total', 12)->has('farms', 1)
+            ->where('activities.total', 14)->has('farms', 1)
             ->where('activities.data', fn ($rows) => ! collect($rows)->contains('id', $activity->id)));
         $this->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.0.value', 1)->has('dashboard.farmOptions', 1));

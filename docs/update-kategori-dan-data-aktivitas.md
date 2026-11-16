@@ -60,7 +60,7 @@ tetap dapat melakukan skip/reschedule. Lihat
 
 - `parent_id` — `null` untuk kategori root, diisi untuk subkategori.
 - `detail_key` — menentukan detail table yang dipakai. `null` berarti detail table belum tersedia.
-- `is_selectable` — `false` untuk parent kategori dan `block_mapping`; aktivitas baru harus memilih baris selectable.
+- `is_selectable` — `false` untuk kategori pengelompokan dan `block_mapping`; aktivitas root tanpa subkategori seperti pemupukan dasar dapat dipilih langsung.
 - `sort_order` / `is_active` — urutan dropdown dan status.
 
 Tree saat ini:
@@ -70,8 +70,8 @@ land_cleaning
 soil_preparation
 ├── loosening
 ├── beds
-├── liming
-└── base_fertilization
+└── liming
+base_fertilization
 planting
 maintenance
 ├── irrigation

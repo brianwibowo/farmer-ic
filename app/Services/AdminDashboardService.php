@@ -10,7 +10,6 @@ use App\Models\FinancialProjection;
 use App\Models\FinancialTransaction;
 use App\Models\OperationalTarget;
 use App\Models\PlantingCycle;
-use App\Models\PlantingCycleStage;
 use App\Models\Team;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -188,14 +187,15 @@ class AdminDashboardService
         })->values()->all();
 
         $runningCycles = (clone $cycles)->whereIn('status', ['planned', 'active']);
-        $runningCount = (clone $runningCycles)->count();
-        $stageCounts = PlantingCycleStage::query()->visibleTo($actor, $team)
-            ->whereIn('planting_cycle_id', (clone $runningCycles)->select('id'))
-            ->where('status', 'in_progress')
-            ->selectRaw('code, COUNT(*) as total')->groupBy('code')->pluck('total', 'code');
+        $runningBatches = (clone $runningCycles)
+            ->with(['stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')])
+            ->get(['id', 'farm_id', 'block_id', 'status']);
+        $runningCount = $runningBatches->count();
+        $stageCounts = $runningBatches->flatMap(fn (PlantingCycle $batch) => $batch->stages->where('status', 'in_progress'))
+            ->countBy('code');
         $stageNames = ['soil_preparation' => 'Persiapan tanah', 'basic_fertilizer' => 'Pupuk dasar', 'planting' => 'Penanaman', 'maintenance' => 'Pemeliharaan', 'harvest' => 'Panen'];
         $stages = collect($stageNames)->map(fn (string $label, string $code): array => ['code' => $code, 'label' => $label, 'count' => (int) ($stageCounts[$code] ?? 0)])->values()->all();
-        $timelineUnknown = max(0, $runningCount - array_sum(array_column($stages, 'count')));
+        $timelineUnknown = max(0, $runningCount - $stageCounts->sum());
         $trend = $this->activityTrend($trendActivities, $weekStart, $period);
         $riskItems = (clone $openRisks)
             ->orderByDesc('detected_at')

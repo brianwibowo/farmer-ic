@@ -10,20 +10,23 @@ use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
 use App\Models\User;
+use App\Services\Activity\HarvestEstimateService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class PlantingCycleTaskService
 {
+    public function __construct(private readonly HarvestEstimateService $estimates) {}
+
     /**
      * Callers authorize the parent-cycle use case before invoking this service.
      *
      * @return array{status: string, created: int, rescheduled: int, version_id: string|null, detail: string|null}
      */
-    public function generateForSubblok(PlantingCycle $subblok, User $actor): array
+    public function generateForSubblok(PlantingCycle $subblok, User $actor, string $errorField = 'status', bool $anchorChanged = false): array
     {
-        return DB::transaction(function () use ($subblok, $actor): array {
+        return DB::transaction(function () use ($subblok, $actor, $errorField, $anchorChanged): array {
             $team = $subblok->farm?->team;
             if ($team === null) {
                 return $this->result('missing_farm');
@@ -53,7 +56,14 @@ class PlantingCycleTaskService
                     return $this->result('missing_published_version');
                 }
                 if ($tasks->isNotEmpty()) {
-                    return $this->result('already_generated', 0, $this->reschedulePending($tasks, $anchor), $version->id);
+                    $harvestChanged = false;
+                    $rescheduled = $this->reschedulePending($tasks, $anchor, $harvestChanged);
+                    $hasOpenHarvest = $anchorChanged && $tasks->contains(fn (PlantingCycleTask $task): bool => $task->activity_category === 'harvest' && in_array($task->status, ['pending', 'in_progress'], true));
+                    if ($harvestChanged || $hasOpenHarvest || $cycle->estimated_harvest_at === null) {
+                        $this->estimates->synchronize($actor, $team, $cycle, $errorField);
+                    }
+
+                    return $this->result('already_generated', 0, $rescheduled, $version->id);
                 }
             } else {
                 $linked = $farm->defaultSopTemplate;
@@ -103,13 +113,17 @@ class PlantingCycleTaskService
                 $created++;
             }
             $cycle->forceFill(['sop_template_version_id' => $version->id])->save();
+            // A pre-existing estimate may have come from an older workflow or seeder.
+            if ($cycle->estimated_harvest_at === null) {
+                $this->estimates->synchronize($actor, $team, $cycle, $errorField);
+            }
 
             return $this->result($created > 0 ? 'generated' : 'no_tasks', $created, 0, $version->id);
         });
     }
 
     /** @param Collection<int, PlantingCycleTask> $tasks */
-    private function reschedulePending(Collection $tasks, CarbonImmutable $anchor): int
+    private function reschedulePending(Collection $tasks, CarbonImmutable $anchor, bool &$harvestChanged): int
     {
         $count = 0;
         foreach ($tasks as $task) {
@@ -120,7 +134,11 @@ class PlantingCycleTaskService
             // Preserve an Admin's explicit override when the base HST schedule moves.
             $due = ($task->rescheduled_date ?? $date)->addDays($task->tolerance_days);
             if ($task->scheduled_date?->toDateString() !== $date->toDateString() || $task->due_date?->toDateString() !== $due->toDateString()) {
+                $previous = $task->effectiveScheduledDate()?->toDateString();
                 $task->forceFill(['scheduled_date' => $date->toDateString(), 'due_date' => $due->toDateString()])->save();
+                if ($task->activity_category === 'harvest' && $previous !== $task->effectiveScheduledDate()?->toDateString()) {
+                    $harvestChanged = true;
+                }
                 $count++;
             }
         }

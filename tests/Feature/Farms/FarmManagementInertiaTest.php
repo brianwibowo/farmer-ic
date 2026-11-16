@@ -188,7 +188,8 @@ class FarmManagementInertiaTest extends TestCase
         $blocks->createBatch($otherBlock, $this->admin, $this->team, ['reserved_area_ha' => '1']);
         $url = '/admin/farm-management/'.$farm->id;
         $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.target_volume_ton', '80.125')
-            ->where('farm.progress_overview.total', 2)->where('farm.progress_overview.stages.1.code', 'soil_preparation')->where('farm.progress_overview.stages.1.count', 2));
+            ->where('farm.progress_overview.total', 2)->where('farm.progress_overview.stages.1.code', 'soil_preparation')->where('farm.progress_overview.stages.1.count', 0)
+            ->where('farm.progress_overview.stages.6.count', 2));
         foreach ([0, -1, '0.0001', 'invalid'] as $invalid) {
             $this->patch($url, ['target_volume_ton' => $invalid])->assertSessionHasErrors('target_volume_ton');
         }
@@ -196,7 +197,7 @@ class FarmManagementInertiaTest extends TestCase
         $this->assertSame('125.500', $farm->fresh()->getAttribute('target_volume_ton'));
         \App\Models\PlantingCycle::where('block_id', $first->block_id)->update(['status' => 'cancelled']);
         $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
-        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.progress_overview.total', 1)->where('farm.progress_overview.stages.1.count', 1));
+        $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.progress_overview.total', 1)->where('farm.progress_overview.stages.1.count', 0)->where('farm.progress_overview.stages.6.count', 1));
         $worker = $this->actor('petugas', $this->team);
         $worker->forceFill(['assigned_farm_id' => $otherFarm->id])->save();
         $this->assertSame(0, app(FarmService::class)->progressOverview($farm, $worker, $this->team)['total']);

@@ -20,11 +20,6 @@ class PruneOwnerDemoFarms extends Command
 
     public function handle(): int
     {
-        if (! app()->environment('local', 'testing')) {
-            $this->error('Perintah ini hanya dapat dijalankan pada environment local atau testing.');
-
-            return self::FAILURE;
-        }
 
         $actor = User::query()->where('email', DemoIdentitySeeder::ACCOUNTS['superadmin']['email'])
             ->where('is_active', true)->whereHas('role', fn ($roles) => $roles->where('name', 'superadmin'))->first();
