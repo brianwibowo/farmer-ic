@@ -16,6 +16,7 @@ import {
     Wind,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { toast } from '@/lib/toast';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Button } from '@/components/ui/button';
@@ -153,7 +154,7 @@ async function loadWeather(manual = false): Promise<void> {
         if (request !== current || disposed) return;
         weather.value = result.data;
         if (manual && result.data.status === 'ready')
-            feedback.value = 'Cuaca berhasil dimuat.';
+            void toast.success('Cuaca berhasil dimuat.');
     } catch {
         if (request !== current || disposed) return;
         error.value = 'Cuaca belum dapat diperbarui. Coba lagi.';

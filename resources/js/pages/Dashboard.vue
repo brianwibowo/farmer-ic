@@ -14,6 +14,7 @@ import DashboardMetricCards from '@/components/dashboard/DashboardMetricCards.vu
 import DashboardPlantingOverview from '@/components/dashboard/DashboardPlantingOverview.vue';
 import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/lib/toast';
 import type { DashboardInvitation } from '@/types';
 import type { AdminDashboardData } from '@/types/dashboard';
 
@@ -57,7 +58,9 @@ watch(
 );
 function reportFailure(): false {
     failed.value = true;
-    feedback.value = 'Dashboard belum dapat diperbarui. Silakan coba lagi.';
+    const message = 'Dashboard belum dapat diperbarui. Silakan coba lagi.';
+    feedback.value = message;
+    void toast.error(message);
     return false;
 }
 function loadDashboard(): void {
@@ -77,7 +80,7 @@ function loadDashboard(): void {
             preserveScroll: true,
             replace: true,
             onSuccess: () => {
-                feedback.value = 'Dashboard berhasil diperbarui.';
+                void toast.success('Dashboard berhasil diperbarui.');
             },
             onError: reportFailure,
             onHttpException: reportFailure,

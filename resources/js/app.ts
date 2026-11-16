@@ -13,6 +13,7 @@ import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import HarvestTransactionLayout from '@/layouts/HarvestTransactionLayout.vue';
 import PlantingTransactionLayout from '@/layouts/PlantingTransactionLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { toast } from '@/lib/toast';
 import { getAppName, resolveAppName } from '@/lib/appName';
 import { dismissStartupScreen, showStartupError } from '@/lib/startupScreen';
 
@@ -68,6 +69,7 @@ void createInertiaApp({
                 }
             },
         });
+        app.config.globalProperties.$toast = toast;
     },
     progress: {
         color: '#4B5563',

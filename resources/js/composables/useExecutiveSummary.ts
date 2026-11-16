@@ -6,6 +6,7 @@ import {
     ref,
     watch,
 } from 'vue';
+import { toast } from '@/lib/toast';
 import {
     executiveMoney as money,
     executiveNumber as number,
@@ -58,12 +59,16 @@ export function useExecutiveSummary() {
                 filters.cycle = result.defaultCycle;
             }
             if (refresh)
-                feedback.value =
-                    'Data contoh berhasil dimuat ulang. Filter tetap diterapkan.';
+                void toast.success(
+                    'Data contoh berhasil dimuat ulang. Filter tetap diterapkan.',
+                );
         } catch {
-            if (!disposed)
-                error.value =
+            if (!disposed) {
+                const message =
                     'Data contoh belum berhasil dimuat. Periksa koneksi lalu coba lagi.';
+                error.value = message;
+                void toast.error(message);
+            }
         } finally {
             if (!disposed) loading.value = false;
         }
@@ -150,7 +155,7 @@ export function useExecutiveSummary() {
             farm: '',
             commodity: '',
         });
-        feedback.value = 'Filter dikembalikan ke pilihan awal.';
+        void toast.info('Filter dikembalikan ke pilihan awal.');
     }
     const periodLabel = computed(() =>
         filters.cycle === 'all'
