@@ -5,7 +5,7 @@ import {
     reactive,
     ref,
     watch,
-} from 'vue';
+} from "vue";
 import {
     executiveMoney as money,
     executiveNumber as number,
@@ -18,52 +18,52 @@ import {
     executiveSnapshotDate,
     executiveTotals,
     loadExecutiveDemo,
-} from '@/services/ownerExecutiveDemoService';
+} from "@/services/ownerExecutiveDemoService";
 import type {
     ExecutiveDemoData,
     ExecutiveFilters,
-} from '@/types/owner-executive';
+} from "@/types/owner-executive";
 
 export function useExecutiveSummary() {
     const data = ref<ExecutiveDemoData>();
     const loading = ref(true);
-    const error = ref('');
-    const feedback = ref('');
+    const error = ref("");
+    const feedback = ref("");
     const filters = reactive<ExecutiveFilters>({
         year: 2026,
-        cycle: 1,
-        partner: '',
-        region: '',
-        farm: '',
-        commodity: '',
+        cycle: "all",
+        partner: "",
+        region: "",
+        farm: "",
+        commodity: "",
     });
     watch(
         filters,
         () => {
-            feedback.value = '';
+            feedback.value = "";
         },
-        { flush: 'sync' },
+        { flush: "sync" },
     );
     let disposed = false;
     async function load(refresh = false) {
         loading.value = true;
-        error.value = '';
-        feedback.value = '';
+        error.value = "";
+        feedback.value = "";
         try {
             const result = await loadExecutiveDemo();
             if (disposed) return;
             data.value = result;
             if (!refresh) {
                 filters.year = result.defaultYear;
-                filters.cycle = result.defaultCycle;
+                filters.cycle = "all";
             }
             if (refresh)
                 feedback.value =
-                    'Data contoh berhasil dimuat ulang. Filter tetap diterapkan.';
+                    "Data contoh berhasil dimuat ulang. Filter tetap diterapkan.";
         } catch {
             if (!disposed)
                 error.value =
-                    'Data contoh belum berhasil dimuat. Periksa koneksi lalu coba lagi.';
+                    "Data contoh belum berhasil dimuat. Periksa koneksi lalu coba lagi.";
         } finally {
             if (!disposed) loading.value = false;
         }
@@ -90,7 +90,7 @@ export function useExecutiveSummary() {
     );
     const regions = computed(() =>
         [...new Set(data.value?.farms.map((farm) => farm.region))].sort(
-            (a, b) => a.localeCompare(b, 'id'),
+            (a, b) => a.localeCompare(b, "id"),
         ),
     );
     watch(cycles, (available) => {
@@ -109,7 +109,7 @@ export function useExecutiveSummary() {
     );
     watch(farmOptions, (farms) => {
         if (filters.farm && !farms.some((farm) => farm.id === filters.farm))
-            filters.farm = '';
+            filters.farm = "";
     });
     const partnerSummary = computed(() =>
         (data.value?.partners ?? [])
@@ -144,16 +144,16 @@ export function useExecutiveSummary() {
     function reset() {
         Object.assign(filters, {
             year: data.value?.defaultYear ?? 2026,
-            cycle: data.value?.defaultCycle ?? 1,
-            partner: '',
-            region: '',
-            farm: '',
-            commodity: '',
+            cycle: "all",
+            partner: "",
+            region: "",
+            farm: "",
+            commodity: "",
         });
-        feedback.value = 'Filter dikembalikan ke pilihan awal.';
+        feedback.value = "Filter dikembalikan ke pilihan awal.";
     }
     const periodLabel = computed(() =>
-        filters.cycle === 'all'
+        filters.cycle === "all"
             ? `1 Januari–31 Desember ${filters.year}`
             : `Cycle ${filters.cycle} · ${filters.year}`,
     );
@@ -161,28 +161,28 @@ export function useExecutiveSummary() {
         const date =
             data.value && executiveSnapshotDate(data.value, filters.year);
         return date
-            ? new Intl.DateTimeFormat('id-ID', {
-                  dateStyle: 'medium',
-                  timeZone: 'Asia/Jakarta',
+            ? new Intl.DateTimeFormat("id-ID", {
+                  dateStyle: "medium",
+                  timeZone: "Asia/Jakarta",
               }).format(new Date(date))
-            : 'belum tersedia';
+            : "belum tersedia";
     });
     const monthlyLabel = computed(() =>
-        new Intl.DateTimeFormat('id-ID', {
-            month: 'long',
-            year: 'numeric',
+        new Intl.DateTimeFormat("id-ID", {
+            month: "long",
+            year: "numeric",
         }).format(
             new Date(filters.year, (data.value?.referenceMonth ?? 11) - 1, 1),
         ),
     );
     const updatedLabel = computed(() =>
         data.value
-            ? new Intl.DateTimeFormat('id-ID', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                  timeZone: 'Asia/Jakarta',
-              }).format(new Date(data.value.updatedAt)) + ' WIB'
-            : '—',
+            ? new Intl.DateTimeFormat("id-ID", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                  timeZone: "Asia/Jakarta",
+              }).format(new Date(data.value.updatedAt)) + " WIB"
+            : "—",
     );
     return {
         data,

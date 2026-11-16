@@ -49,7 +49,7 @@ const changed = computed(
     () =>
         chips.value.length > 0 ||
         props.filters.year !== props.data.defaultYear ||
-        props.filters.cycle !== props.data.defaultCycle,
+        props.filters.cycle !== 'all',
 );
 function set<K extends keyof ExecutiveFilters>(
     key: K,

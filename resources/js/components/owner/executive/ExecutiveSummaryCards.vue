@@ -118,12 +118,12 @@ const utilization = computed(() =>
                 <p class="mt-2 text-xs leading-5 text-muted-foreground">
                     {{ number(totals.unused) }} Ha belum ditanam
                 </p>
-                <p
+                <!-- <p
                     v-if="snapshotLabel"
                     class="mt-1 text-xs leading-5 text-muted-foreground"
                 >
                     Posisi {{ snapshotLabel }}
-                </p>
+                </p> -->
             </article>
             <article
                 class="admin-card flex min-w-0 flex-col bg-card p-4 lg:p-[18px]"
@@ -229,13 +229,13 @@ const utilization = computed(() =>
                 >
                     Belum ada stok untuk filter ini.
                 </p>
-                <p class="mt-auto pt-3 text-xs leading-5 text-muted-foreground">
+                <!-- <p class="mt-auto pt-3 text-xs leading-5 text-muted-foreground">
                     Stok tersedia setelah pengiriman dan penyesuaian<span
                         v-if="snapshotLabel"
                     >
                         · posisi {{ snapshotLabel }}</span
                     >.
-                </p>
+                </p> -->
             </article>
         </template>
     </div>

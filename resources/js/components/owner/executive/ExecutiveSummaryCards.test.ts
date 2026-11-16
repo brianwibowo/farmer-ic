@@ -11,7 +11,7 @@ import {
 
 const filters = {
     year: data.defaultYear,
-    cycle: data.defaultCycle,
+    cycle: 'all' as const,
     partner: '',
     region: '',
     farm: '',

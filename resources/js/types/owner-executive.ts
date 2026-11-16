@@ -14,7 +14,6 @@ export type ExecutivePricing = {
 export type ExecutiveDemoData = {
     updatedAt: string;
     defaultYear: number;
-    defaultCycle: number;
     referenceMonth: number;
     commodities: {
         id: string;
