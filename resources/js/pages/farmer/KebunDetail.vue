@@ -111,10 +111,10 @@ async function loadDetail(): Promise<void> {
         const kebun = await getKebunDetail(kebunId.value);
         if (request !== requestId) return;
         selectedKebun.value = kebun;
-        if (!kebun) error.value = 'Kebun tidak ditemukan.';
+        if (!kebun) error.value = 'Lahan tidak ditemukan.';
     } catch {
         if (request === requestId) {
-            error.value = 'Detail kebun belum dapat dimuat. Silakan coba lagi.';
+            error.value = 'Detail lahan belum dapat dimuat. Silakan coba lagi.';
         }
     } finally {
         if (request === requestId) loading.value = false;
@@ -181,13 +181,13 @@ watch(kebunId, () => void loadDetail());
 </script>
 
 <template>
-    <Head title="Detail Kebun" />
+    <Head title="Detail Lahan" />
     <FarmerMobileShell active-key="garden">
         <div
             v-if="loading"
             class="space-y-4 p-5"
             role="status"
-            aria-label="Memuat detail kebun"
+            aria-label="Memuat detail lahan"
         >
             <div class="h-12 w-2/3 animate-pulse rounded-xl bg-muted" />
             <div class="h-32 animate-pulse rounded-2xl bg-muted" />
@@ -199,7 +199,7 @@ watch(kebunId, () => void loadDetail());
             role="status"
         >
             <p class="text-sm text-muted-foreground">
-                {{ error || 'Kebun tidak ditemukan.' }}
+                {{ error || 'Lahan tidak ditemukan.' }}
             </p>
             <button
                 type="button"
@@ -211,7 +211,7 @@ watch(kebunId, () => void loadDetail());
             <Link
                 href="/kebun"
                 class="block text-sm font-medium text-secondary underline"
-                >Kembali ke daftar kebun</Link
+                >Kembali ke daftar lahan</Link
             >
         </div>
         <div v-else class="space-y-6 px-5 pt-4 pb-6">
@@ -219,7 +219,7 @@ watch(kebunId, () => void loadDetail());
                 <Link
                     href="/kebun"
                     class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-secondary transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    aria-label="Kembali ke daftar kebun"
+                    aria-label="Kembali ke daftar lahan"
                 >
                     <ArrowLeft
                         :size="20"
@@ -229,7 +229,7 @@ watch(kebunId, () => void loadDetail());
                 </Link>
                 <div>
                     <p class="text-sm font-medium text-muted-foreground">
-                        Detail Kebun
+                        Detail Lahan
                     </p>
                     <h1
                         class="text-2xl leading-8 font-semibold text-card-foreground"
@@ -243,13 +243,13 @@ watch(kebunId, () => void loadDetail());
                 <button
                     type="button"
                     class="group relative h-38 w-36 shrink-0 self-stretch overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    aria-label="Buka foto kebun"
+                    aria-label="Buka foto lahan"
                     @click="
                         openImage({
                             src: detail.image,
                             alt: `Tanaman ${detail.crop} di ${detail.name}`,
-                            title: 'Foto kebun',
-                            caption: 'Foto kebun dari data referensi.',
+                            title: 'Foto lahan',
+                            caption: 'Foto lahan dari data referensi.',
                         })
                     "
                 >
@@ -266,7 +266,7 @@ watch(kebunId, () => void loadDetail());
                 </button>
                 <div class="min-w-0 flex-1">
                     <h2 id="garden-summary-title" class="sr-only">
-                        Ringkasan kebun
+                        Ringkasan lahan
                     </h2>
                     <div class="flex flex-col gap-2.5 text-sm">
                         <span
@@ -722,7 +722,7 @@ watch(kebunId, () => void loadDetail());
             <Link
                 :href="`/aktivitas?kebun=${encodeURIComponent(detail.id)}`"
                 class="flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-base font-semibold text-primary-foreground transition-colors hover:bg-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >Aktivitas Kebun</Link
+                >Aktivitas Lahan</Link
             >
         </div>
 

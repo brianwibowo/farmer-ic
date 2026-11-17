@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NumberPagination from '@/components/NumberPagination.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Pencil, Plus, Search, Trash2 } from '@lucide/vue';
@@ -88,7 +89,7 @@ function remove(): void {
         >
             <div>
                 <h2 class="admin-section-title text-primary">
-                    Blok kebun
+                    Blok lahan
                     <span
                         class="ml-1 text-sm font-normal text-muted-foreground"
                         >{{ total ?? blocks.length }}</span
@@ -162,8 +163,20 @@ function remove(): void {
                                 >
                             </p>
                             <p class="mt-1 text-xs text-muted-foreground">
-                                {{ options.commodities.find((item) => item.id === block.commodity_id)?.name ?? 'Komoditas belum diatur' }}
-                                · {{ options.sops.find((item) => item.id === block.default_sop_template_id)?.name ?? 'SOP belum diatur' }}
+                                {{
+                                    options.commodities.find(
+                                        (item) =>
+                                            item.id === block.commodity_id,
+                                    )?.name ?? 'Komoditas belum diatur'
+                                }}
+                                ·
+                                {{
+                                    options.sops.find(
+                                        (item) =>
+                                            item.id ===
+                                            block.default_sop_template_id,
+                                    )?.name ?? 'SOP belum diatur'
+                                }}
                             </p>
                         </td>
                         <td
@@ -242,7 +255,7 @@ function remove(): void {
             <p class="mt-1 text-sm text-muted-foreground">
                 {{
                     canCreate
-                        ? 'Tambahkan blok untuk membagi lahan kebun.'
+                        ? 'Tambahkan blok untuk membagi lahan lahan.'
                         : 'Blok akan tampil setelah ditambahkan.'
                 }}
             </p>
@@ -251,22 +264,14 @@ function remove(): void {
             v-if="lastPage > 1"
             class="flex items-center justify-between gap-3 border-t border-border p-4 text-sm"
         >
-            <p class="text-muted-foreground">
-                {{ currentPage }} / {{ lastPage }} · {{ filtered.length }} blok
-            </p>
-            <div class="flex gap-2">
-                <Button
-                    variant="outline"
-                    :disabled="currentPage === 1"
-                    @click="currentPage--"
-                    >Sebelumnya</Button
-                ><Button
-                    variant="outline"
-                    :disabled="currentPage === lastPage"
-                    @click="currentPage++"
-                    >Berikutnya</Button
-                >
-            </div>
+            <p class="text-muted-foreground">{{ filtered.length }} blok</p>
+            <NumberPagination
+                :current-page="currentPage"
+                :total-pages="lastPage"
+                label="Pagination blok"
+                class="ml-auto justify-end"
+                @change="currentPage = $event"
+            />
         </footer>
     </section>
     <BlockDialog
@@ -301,7 +306,7 @@ function remove(): void {
                 ><DialogDescription>{{
                     deleting?.deletionBlocked
                         ? 'Blok memiliki histori. Gunakan Ubah blok untuk menonaktifkannya setelah seluruh sub blok selesai.'
-                        : 'Blok akan dihapus dari kebun. Pastikan blok ini sudah tidak diperlukan.'
+                        : 'Blok akan dihapus dari lahan. Pastikan blok ini sudah tidak diperlukan.'
                 }}</DialogDescription></DialogHeader
             >
             <p v-if="error" role="alert" class="text-sm text-error">

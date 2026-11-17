@@ -69,7 +69,7 @@
   "farms": [
     {
       "id": "cariu",
-      "name": "Kebun Cariu",
+      "name": "Lahan Cariu",
       "city": "Bogor",
       "region": "Jawa Barat",
       "partnerId": "bumi",
@@ -82,7 +82,7 @@
     },
     {
       "id": "cileuksa",
-      "name": "Kebun Cileuksa",
+      "name": "Lahan Cileuksa",
       "city": "Bogor",
       "region": "Jawa Barat",
       "partnerId": "bumi",
@@ -95,7 +95,7 @@
     },
     {
       "id": "jonggol",
-      "name": "Kebun Jonggol",
+      "name": "Lahan Jonggol",
       "city": "Bogor",
       "region": "Jawa Barat",
       "partnerId": "bumi",
@@ -108,7 +108,7 @@
     },
     {
       "id": "subang",
-      "name": "Kebun Cipunagara",
+      "name": "Lahan Cipunagara",
       "city": "Subang",
       "region": "Jawa Barat",
       "partnerId": "tani",
@@ -121,7 +121,7 @@
     },
     {
       "id": "lembang",
-      "name": "Kebun Cikole",
+      "name": "Lahan Cikole",
       "city": "Bandung Barat",
       "region": "Jawa Barat",
       "partnerId": "tani",
@@ -134,7 +134,7 @@
     },
     {
       "id": "batang",
-      "name": "Kebun Gringsing",
+      "name": "Lahan Gringsing",
       "city": "Batang",
       "region": "Jawa Tengah",
       "partnerId": "lestari",
@@ -147,7 +147,7 @@
     },
     {
       "id": "boyolali",
-      "name": "Kebun Musuk",
+      "name": "Lahan Musuk",
       "city": "Boyolali",
       "region": "Jawa Tengah",
       "partnerId": "lestari",
@@ -160,7 +160,7 @@
     },
     {
       "id": "sleman",
-      "name": "Kebun Pakem",
+      "name": "Lahan Pakem",
       "city": "Sleman",
       "region": "DI Yogyakarta",
       "partnerId": "lestari",
@@ -173,7 +173,7 @@
     },
     {
       "id": "bantul",
-      "name": "Kebun Pundong",
+      "name": "Lahan Pundong",
       "city": "Bantul",
       "region": "DI Yogyakarta",
       "partnerId": "tani",

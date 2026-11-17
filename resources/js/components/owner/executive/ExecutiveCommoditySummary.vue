@@ -56,6 +56,7 @@ const cards = computed(() => [
                 :selected="selected || null"
                 :unit="card.unit"
                 :total-label="card.label"
+                :floor-center-value="card.id === 'harvested'"
                 category-label="komoditas"
                 embedded
                 compact

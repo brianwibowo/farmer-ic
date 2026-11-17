@@ -12,7 +12,7 @@ class DemoDataKnowledgeSource
 {
     /** @var array<string, string> */
     private const REFERENCE_TITLES = [
-        'Demo kebunLocations origin/dev' => 'Dataset referensi lokasi kebun',
+        'Demo kebunLocations origin/dev' => 'Dataset referensi lokasi lahan',
         'Demo commodityCatalog origin/dev' => 'Dataset referensi komoditas',
         'Demo dashboardFinancialSummary origin/dev' => 'Ringkasan dataset referensi keuangan',
         'Finance demo origin/dev' => 'Dataset referensi keuangan',
@@ -33,12 +33,12 @@ class DemoDataKnowledgeSource
         $allKebun = (array) ($raw['kebun'] ?? []);
         foreach ($allKebun as $item) {
             $id = (string) ($item['id'] ?? uniqid('kebun-', true));
-            $docs[] = $this->doc("demo-kebun-{$id}", 'Kebun '.$item['name'], 'garden', $item);
+            $docs[] = $this->doc("demo-kebun-{$id}", 'Lahan '.$item['name'], 'garden', $item);
         }
         if ($allKebun !== []) {
             $docs[] = $this->doc(
                 'demo-kebun-summary',
-                'Daftar lengkap semua kebun ('.count($allKebun).' kebun)',
+                'Daftar lengkap semua lahan ('.count($allKebun).' lahan)',
                 'garden',
                 ['total_kebun' => count($allKebun), 'kebun' => $allKebun],
             );
@@ -53,11 +53,11 @@ class DemoDataKnowledgeSource
             );
         }
         foreach ((array) ($raw['kebunInsights'] ?? []) as $id => $item) {
-            $docs[] = $this->doc("demo-insight-{$id}", 'Insight kebun '.$id, 'insight', ['id' => $id, ...$item]);
+            $docs[] = $this->doc("demo-insight-{$id}", 'Insight lahan '.$id, 'insight', ['id' => $id, ...$item]);
         }
         foreach ((array) ($raw['activityLogs'] ?? []) as $item) {
             $id = (string) ($item['id'] ?? uniqid('activity-', true));
-            $docs[] = $this->doc("demo-activity-{$id}", 'Aktivitas kebun '.$id, 'activity', $item);
+            $docs[] = $this->doc("demo-activity-{$id}", 'Aktivitas lahan '.$id, 'activity', $item);
         }
         foreach (['kebunLocations' => 'garden_location', 'commodityCatalog' => 'commodity', 'dashboardFinancialSummary' => 'finance'] as $key => $domain) {
             if (isset($raw[$key])) {

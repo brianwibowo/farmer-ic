@@ -1,5 +1,24 @@
 # Referensi data dashboard admin
 
+## Pagination aktivitas lapangan
+
+Daftar Admin memakai pagination database, default 10 baris dengan opsi 20/50.
+Parameter `activity_page`, `activity_per_page`, `activity_search`, dan
+`activity_officer_id` divalidasi oleh `DashboardRequest`. `AdminDashboardService`
+menerapkan scope tenant/lahan dan `visibleTo` sebelum pencarian, filter Petugas,
+count dan pagination. Urutan terbaru stabil: `activity_date DESC, id DESC`.
+Pencarian mencakup catatan, nama jenis aktivitas, lahan dan Petugas, dengan scope
+pada setiap relasi; filter Petugas tidak memperluas akses ke tenant lain.
+
+Props `dashboard.activities` berisi halaman aktif. `activityPagination`
+menyediakan rentang, halaman, total terfilter dan `scope_total`; `activityFilters`
+menyediakan filter terpasang. Filter daftar tidak mengubah grafik/statistik atau
+total per Petugas. Inertia mempertahankan farm/period dan posisi scroll;
+perubahan pencarian/Petugas/ukuran halaman kembali ke halaman satu. Tidak ada
+endpoint baru. Controller dan middleware dashboard tetap menjadi batas izin;
+grant baca aktivitas yang hilang menghasilkan daftar dan total kosong.
+Preview Owner tetap memakai kontrak lamanya dan tidak ikut dipaginasi revisi ini.
+
 `GET /admin/dashboard` dijalankan oleh `DashboardController` dan membentuk
 prop `dashboard` melalui `App\Services\AdminDashboardService`. Seluruh query
 berjalan dengan `visibleTo($actor, $team)` dan pembatasan eksplisit ke ID kebun

@@ -158,7 +158,7 @@ const utilization = computed(() =>
                             >
                         </dd>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            {{ number(partnerCount, 0) }} mitra · per kebun
+                            {{ number(partnerCount, 0) }} mitra · per lahan
                         </p>
                     </div>
                     <div class="border-t border-border pt-4">

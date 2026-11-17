@@ -43,12 +43,12 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class FarmDeletionService
 {
     private const LABELS = [
-        'farm_blocks' => 'Blok kebun', 'planting_cycle_stages' => 'Timeline batch',
+        'farm_blocks' => 'Blok lahan', 'planting_cycle_stages' => 'Timeline batch',
         'planting_cycle_tasks' => 'Tugas SOP subblok',
         'farm_legalities' => 'Legalitas lahan', 'farm_legality_documents' => 'Draft PDF legalitas',
         'planting_cycles' => 'Siklus tanam', 'daily_activity_logs' => 'Logbook harian',
-        'farm_activities' => 'Aktivitas kebun', 'plant_observations' => 'Pengamatan tanaman',
-        'farm_risks' => 'Risiko kebun', 'ai_insights' => 'Insight AI siklus tanam',
+        'farm_activities' => 'Aktivitas lahan', 'plant_observations' => 'Pengamatan tanaman',
+        'farm_risks' => 'Risiko lahan', 'ai_insights' => 'Insight AI siklus tanam',
         'activity_photos' => 'Referensi foto kegiatan', 'block_mapping_details' => 'Detail pemetaan blok',
         'planting_details' => 'Detail penanaman', 'fertilization_details' => 'Detail pemupukan',
         'irrigation_details' => 'Detail penyiraman', 'pesticide_details' => 'Detail pestisida',
@@ -82,7 +82,7 @@ class FarmDeletionService
             DB::transaction(function () use ($actor, $farm, $confirmationName, $reason, $summaryToken): void {
                 $farm = $this->lockedFarm($actor, $farm);
                 if ($confirmationName !== $farm->name) {
-                    throw ValidationException::withMessages(['confirmation_name' => 'Nama kebun berubah. Muat ulang dan konfirmasi nama terbaru.']);
+                    throw ValidationException::withMessages(['confirmation_name' => 'Nama lahan berubah. Muat ulang dan konfirmasi nama terbaru.']);
                 }
                 if (mb_strlen(trim($reason)) < 5 || mb_strlen($reason) > 2000) {
                     throw ValidationException::withMessages(['reason' => 'Alasan penghapusan harus 5 sampai 2.000 karakter.']);
@@ -92,7 +92,7 @@ class FarmDeletionService
                     throw new ConflictHttpException($this->sharedMessage());
                 }
                 if (! hash_equals($this->token($farm, $graph), $summaryToken)) {
-                    throw ValidationException::withMessages(['force_delete' => 'Data terkait kebun berubah. Muat ulang ringkasan dan konfirmasi kembali.']);
+                    throw ValidationException::withMessages(['force_delete' => 'Data terkait lahan berubah. Muat ulang ringkasan dan konfirmasi kembali.']);
                 }
 
                 // Locking every selected parent prevents FK-backed child inserts from
@@ -220,7 +220,7 @@ class FarmDeletionService
 
     private function sharedMessage(): string
     {
-        return 'Ada relasi siklus, laporan, atau keuangan di luar kebun ini. Periksa dan pisahkan relasi tersebut sebelum force delete.';
+        return 'Ada relasi siklus, laporan, atau keuangan di luar lahan ini. Periksa dan pisahkan relasi tersebut sebelum force delete.';
     }
 
     /** @param array<string, list<string>> $graph
@@ -228,7 +228,7 @@ class FarmDeletionService
      */
     private function groups(array $graph): array
     {
-        $groups = [['key' => 'farms', 'label' => 'Kebun', 'count' => 1, 'effect' => 'delete']];
+        $groups = [['key' => 'farms', 'label' => 'Lahan', 'count' => 1, 'effect' => 'delete']];
         foreach (self::LABELS as $table => $label) {
             $groups[] = ['key' => $table, 'label' => $label, 'count' => count($graph[$table]), 'effect' => $table === 'users' ? 'detach' : 'delete'];
         }

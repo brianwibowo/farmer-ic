@@ -104,7 +104,7 @@ async function copyMessage(message: ChatMessage): Promise<void> {
         <p
             class="mt-2 max-w-[280px] text-sm leading-relaxed text-muted-foreground"
         >
-            Tanyakan kondisi kebun, aktivitas, atau minta gambar/ilustrasi
+            Tanyakan kondisi lahan, aktivitas, atau minta gambar/ilustrasi
             pertanian. AI akan memilih format data, jawaban, atau visual yang
             paling sesuai.
         </p>

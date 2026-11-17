@@ -186,7 +186,7 @@ function focusFarm(id: string) {
                     aria-hidden="true"
                 />
                 <h2 class="text-lg font-semibold">
-                    Tidak ada kebun yang sesuai
+                    Tidak ada lahan yang sesuai
                 </h2>
                 <p class="mt-2 text-sm text-muted-foreground">
                     Ubah kombinasi filter untuk melihat ringkasan.
@@ -224,8 +224,8 @@ function focusFarm(id: string) {
                 />
                 <ExecutivePanel
                     id="peta-kebun"
-                    title="Sebaran lokasi kebun"
-                    description="Pilih titik untuk membuka ringkasan kebun."
+                    title="Sebaran lokasi lahan"
+                    description="Pilih titik untuk membuka ringkasan lahan."
                     ><DashboardFarmMap
                         :farms="mapFarms"
                         selectable
@@ -280,7 +280,7 @@ function focusFarm(id: string) {
                 ><Button
                     class="min-h-12 w-full"
                     @click="focusFarm(selectedMapFarm.id)"
-                    >Lihat ringkasan kebun ini</Button
+                    >Lihat ringkasan lahan ini</Button
                 ></template
             >
         </OwnerDashboardFarmPreview>

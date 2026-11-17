@@ -8,7 +8,7 @@ export function useFarmManagementNavigation() {
         page.props.navigation?.owner ? '/kebun' : '/admin/farm-management',
     );
     const title = computed(() =>
-        page.props.navigation?.owner ? 'Lahan' : 'Manajemen Kebun',
+        page.props.navigation?.owner ? 'Lahan' : 'Manajemen Lahan',
     );
 
     return { indexUrl, title };

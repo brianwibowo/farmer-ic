@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowUpRight,
     CalendarDays,
-    ChevronLeft,
-    ChevronRight,
     ClipboardList,
     LoaderCircle,
     Search,
@@ -96,7 +95,7 @@ const appliedFilters = computed(() => {
         const farmName =
             props.farms.find((farm) => farm.id === props.filters.farm_id)
                 ?.name ?? 'Tidak tersedia';
-        items.push({ key: 'farm_id', label: `Kebun: ${farmName}` });
+        items.push({ key: 'farm_id', label: `Lahan: ${farmName}` });
     }
 
     if (props.filters.block_id) {
@@ -280,7 +279,7 @@ function reset(): void {
                                 v-model="form.search"
                                 type="search"
                                 class="admin-field pl-10!"
-                                placeholder="Cari nama tugas, kebun, blok, atau subblok…"
+                                placeholder="Cari nama tugas, lahan, blok, atau subblok…"
                                 maxlength="100"
                                 :disabled="form.processing"
                                 :aria-invalid="!!form.errors.search"
@@ -619,7 +618,9 @@ function reset(): void {
                             : '0 tugas ditemukan'
                     }}
                 </p>
-                <div class="flex flex-wrap items-center gap-3">
+                <div
+                    class="ml-auto flex flex-wrap items-center justify-end gap-3"
+                >
                     <div class="w-36">
                         <AppSelect
                             id="tasks-page-size"
@@ -640,57 +641,12 @@ function reset(): void {
                             >
                         </AppSelect>
                     </div>
-                    <nav
-                        class="flex items-center gap-1"
-                        aria-label="Pagination tugas"
-                    >
-                        <Button
-                            v-if="tasks.prev_page_url"
-                            as-child
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="Halaman sebelumnya"
-                        >
-                            <Link :href="tasks.prev_page_url" preserve-scroll
-                                ><ChevronLeft
-                            /></Link>
-                        </Button>
-                        <Button
-                            v-else
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled
-                            aria-label="Halaman sebelumnya"
-                        >
-                            <ChevronLeft />
-                        </Button>
-                        <span
-                            aria-current="page"
-                            class="px-2 text-xs font-semibold tabular-nums"
-                        >
-                            {{ tasks.current_page }} / {{ tasks.last_page }}
-                        </span>
-                        <Button
-                            v-if="tasks.next_page_url"
-                            as-child
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="Halaman berikutnya"
-                        >
-                            <Link :href="tasks.next_page_url" preserve-scroll
-                                ><ChevronRight
-                            /></Link>
-                        </Button>
-                        <Button
-                            v-else
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled
-                            aria-label="Halaman berikutnya"
-                        >
-                            <ChevronRight />
-                        </Button>
-                    </nav>
+                    <InertiaPagination
+                        :paginator="tasks"
+                        label="Pagination tugas"
+                        class="ml-auto justify-end"
+                        :disabled="form.processing"
+                    />
                 </div>
             </footer>
         </section>

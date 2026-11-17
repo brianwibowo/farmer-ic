@@ -114,7 +114,7 @@ const mainNavItems = computed<NavItem[]>(() => {
             ? [
                   {
                       title: props.adminTheme
-                          ? 'Manajemen Kebun'
+                          ? 'Manajemen Lahan'
                           : 'Farm Management',
                       href: '/admin/farm-management',
                       icon: LandPlot,

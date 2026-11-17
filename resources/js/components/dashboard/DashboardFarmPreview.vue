@@ -84,7 +84,7 @@ const hasCoordinates = computed(
                     size="icon"
                     class="size-11 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
-                    <DialogClose aria-label="Tutup ringkasan kebun">
+                    <DialogClose aria-label="Tutup ringkasan lahan">
                         <X class="size-5" aria-hidden="true" />
                     </DialogClose>
                 </Button>
@@ -202,7 +202,7 @@ const hasCoordinates = computed(
                             :href="detailUrl ?? farm.detail_url"
                             @click="open = false"
                         >
-                            Detail kebun
+                            Detail lahan
                             <ArrowRight class="size-4" aria-hidden="true" />
                         </Link>
                     </Button>

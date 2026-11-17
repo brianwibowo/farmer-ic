@@ -87,7 +87,7 @@ watch(
             class="text-xs leading-5"
             :class="error ? 'text-error' : 'text-muted-foreground'"
         >
-            {{ loading ? 'Memuat ringkasan kebun…' : error || feedback }}
+            {{ loading ? 'Memuat ringkasan lahan…' : error || feedback }}
         </p>
         <OwnerDashboardMetrics :table="landTable" />
         <OwnerDashboardLandTable :table="landTable" :loading="loading" />
@@ -108,7 +108,7 @@ watch(
                     <Link
                         href="/kebun"
                         class="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-                        >Lihat kebun</Link
+                        >Lihat lahan</Link
                     >
                 </div>
                 <DashboardFarmMap

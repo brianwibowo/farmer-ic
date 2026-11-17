@@ -405,7 +405,7 @@ class FarmManagementInertiaTest extends TestCase
             $workers[] = $worker->id;
             $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)
                 ->assertRedirect('/admin/farm-management')->assertSessionHasErrors([
-                    'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.',
+                    'delete' => 'Lahan tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.',
                 ]);
             $this->assertDatabaseHas('farms', ['id' => $farm->id]);
             $this->assertSame($farm->id, DB::table('users')->where('id', $worker->id)->value('assigned_farm_id'));
@@ -437,14 +437,14 @@ class FarmManagementInertiaTest extends TestCase
             'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
         ]);
         $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
-            'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',
+            'delete' => 'Lahan tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',
         ]);
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
         $this->assertDatabaseHas('planting_cycles', ['farm_id' => $farm->id, 'status' => 'harvested']);
         $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $farm->id]);
         $worker->forceFill(['assigned_farm_id' => null])->save();
         $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
-            'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: siklus tanam, logbook harian. Histori operasional tetap dipertahankan.',
+            'delete' => 'Lahan tidak dapat dihapus karena masih memiliki: siklus tanam, logbook harian. Histori operasional tetap dipertahankan.',
         ]);
     }
 

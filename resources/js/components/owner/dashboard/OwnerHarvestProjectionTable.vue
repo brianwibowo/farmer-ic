@@ -18,10 +18,10 @@ defineProps<{ projection: HarvestProjection; loading: boolean }>();
                 id="farm-projection-heading"
                 class="text-base font-semibold lg:text-lg"
             >
-                Proyeksi per kebun
+                Proyeksi per lahan
             </h2>
             <p class="text-xs text-muted-foreground">
-                {{ projection.farm_count }} kebun ·
+                {{ projection.farm_count }} lahan ·
                 {{ projection.period === 'year' ? 'Per tahun' : 'Per cycle' }}
             </p>
         </div>
@@ -30,15 +30,15 @@ defineProps<{ projection: HarvestProjection; loading: boolean }>();
             role="status"
             class="border-t border-border px-4 py-12 text-center"
         >
-            <p class="text-base font-semibold">Belum ada kebun</p>
+            <p class="text-base font-semibold">Belum ada lahan</p>
             <p class="mt-2 text-sm text-muted-foreground">
-                Proyeksi akan muncul setelah kebun dan batch aktif dicatat.
+                Proyeksi akan muncul setelah lahan dan batch aktif dicatat.
             </p>
         </div>
         <div
             v-else
             role="region"
-            aria-label="Tabel proyeksi panen per kebun, geser untuk melihat seluruh kolom"
+            aria-label="Tabel proyeksi panen per lahan, geser untuk melihat seluruh kolom"
             tabindex="0"
             class="isolate max-h-[65vh] overflow-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
         >
@@ -49,8 +49,8 @@ defineProps<{ projection: HarvestProjection; loading: boolean }>();
                     Proyeksi panen
                     {{
                         projection.period === 'year'
-                            ? 'per tahun berdasarkan total luas kebun dan frekuensi panen'
-                            : 'per cycle berdasarkan total luas kebun'
+                            ? 'per tahun berdasarkan total luas lahan dan frekuensi panen'
+                            : 'per cycle berdasarkan total luas lahan'
                     }}.
                 </caption>
                 <thead class="text-muted-foreground">
@@ -59,7 +59,7 @@ defineProps<{ projection: HarvestProjection; loading: boolean }>();
                             scope="col"
                             class="sticky top-0 left-0 z-30 w-2/5 border-y border-r border-border bg-muted px-4 py-3 font-medium lg:px-5"
                         >
-                            Nama kebun
+                            Nama lahan
                         </th>
                         <th
                             scope="col"
@@ -101,7 +101,7 @@ defineProps<{ projection: HarvestProjection; loading: boolean }>();
                                 v-if="row.missing_count"
                                 class="mt-1 text-xs leading-5 text-muted-foreground"
                             >
-                                Data luas kebun atau rumus tanaman belum tersedia
+                                Data luas lahan atau rumus tanaman belum tersedia
                             </p>
                             <p
                                 v-else-if="!row.batch_count"

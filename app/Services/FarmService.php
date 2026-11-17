@@ -100,7 +100,7 @@ class FarmService
     {
         Farm::visibleTo($user, $team)->findOrFail($farm->id);
         $blockers = [];
-        foreach ([\App\Models\FarmBlock::class => 'blok kebun', PlantingCycle::class => 'siklus tanam', \App\Models\DailyActivityLog::class => 'logbook', \App\Models\FarmActivity::class => 'aktivitas', \App\Models\WeatherRecord::class => 'riwayat cuaca', \App\Models\FinancialTransaction::class => 'transaksi', \App\Models\FinancialProjection::class => 'proyeksi', \App\Models\FinancialBudget::class => 'anggaran', \App\Models\OperationalTarget::class => 'target operasional'] as $model => $label) {
+        foreach ([\App\Models\FarmBlock::class => 'blok lahan', PlantingCycle::class => 'siklus tanam', \App\Models\DailyActivityLog::class => 'logbook', \App\Models\FarmActivity::class => 'aktivitas', \App\Models\WeatherRecord::class => 'riwayat cuaca', \App\Models\FinancialTransaction::class => 'transaksi', \App\Models\FinancialProjection::class => 'proyeksi', \App\Models\FinancialBudget::class => 'anggaran', \App\Models\OperationalTarget::class => 'target operasional'] as $model => $label) {
             if ($model::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()) {
                 $blockers[] = $label;
             }
@@ -209,21 +209,21 @@ class FarmService
                 $blockCapacity = DB::table('farm_blocks')->where('farm_id', $locked->id)->where('is_active', true)
                     ->selectRaw('COALESCE(SUM(area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
                 if ($blockCapacity) {
-                    throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total luas blok aktif.']);
+                    throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh kurang dari total luas blok aktif.']);
                 }
                 $reservationCapacity = DB::table('planting_cycles')->where('farm_id', $locked->id)
                     ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('block_id')->where('status', 'active'))
                         ->orWhere(fn ($batch) => $batch->whereNotNull('block_id')->whereIn('status', ['planned', 'active'])))
                     ->selectRaw('COALESCE(SUM(planted_area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
                 if ($reservationCapacity) {
-                    throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh kurang dari total luas tanam berjalan.']);
+                    throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh kurang dari total luas tanam berjalan.']);
                 }
                 $exceedsArea = DB::table('planting_cycles')->where('farm_id', $locked->id)
                     ->where('status', 'active')
                     ->selectRaw('COALESCE(SUM(planted_area_ha), 0) > CAST(? AS numeric) AS exceeds_area', [$data['total_area_ha']])
                     ->value('exceeds_area');
                 if ($exceedsArea) {
-                    throw ValidationException::withMessages(['total_area_ha' => 'Luas kebun tidak boleh lebih kecil dari total luas tanam aktif.']);
+                    throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh lebih kecil dari total luas tanam aktif.']);
                 }
             }
             $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'land_tenure_party']));
@@ -263,7 +263,7 @@ class FarmService
             if (! $pic || ! $pic->is_active || ! $pic->role()->where('name', 'petugas')->exists()
                 || ! $pic->teams()->whereKey($farm->team_id)->exists()
                 || ($pic->assignedFarmId() !== null && $pic->assignedFarmId() !== $farm->id)) {
-                throw ValidationException::withMessages(['pic_user_id' => 'Pilih petugas aktif dalam tenant ini yang belum ditugaskan atau sudah ditugaskan ke kebun ini.']);
+                throw ValidationException::withMessages(['pic_user_id' => 'Pilih petugas aktif dalam tenant ini yang belum ditugaskan atau sudah ditugaskan ke lahan ini.']);
             }
             $pic->forceFill(['assigned_farm_id' => $farm->id])->save();
         }
@@ -283,11 +283,11 @@ class FarmService
                     $blockers[] = 'penugasan Petugas';
                 }
                 foreach ([
-                    'farm_blocks' => 'blok kebun',
+                    'farm_blocks' => 'blok lahan',
                     'farm_legalities' => 'legalitas lahan',
                     'planting_cycles' => 'siklus tanam',
                     'daily_activity_logs' => 'logbook harian',
-                    'farm_activities' => 'aktivitas kebun',
+                    'farm_activities' => 'aktivitas lahan',
                     'weather_records' => 'riwayat cuaca',
                     'financial_transactions' => 'transaksi keuangan',
                     'financial_projections' => 'proyeksi keuangan',
@@ -299,7 +299,7 @@ class FarmService
                     }
                 }
                 if ($blockers !== []) {
-                    $message = 'Kebun tidak dapat dihapus karena masih memiliki: '.implode(', ', $blockers).'.';
+                    $message = 'Lahan tidak dapat dihapus karena masih memiliki: '.implode(', ', $blockers).'.';
                     if ($hasAssignments) {
                         $message .= ' Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.';
                     }
@@ -315,7 +315,7 @@ class FarmService
                 throw $exception;
             }
 
-            throw new ConflictHttpException('Kebun masih memiliki data terkait dan tidak dapat dihapus.', $exception);
+            throw new ConflictHttpException('Lahan masih memiliki data terkait dan tidak dapat dihapus.', $exception);
         }
     }
 }

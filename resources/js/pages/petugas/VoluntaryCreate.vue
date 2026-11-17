@@ -283,7 +283,7 @@ function submit(): void {
                             placeholder="Pilih subblok"
                             :class="fieldClass"
                             ><AppSelectOption v-if="optionalLocation" value=""
-                                >Seluruh kebun</AppSelectOption
+                                >Seluruh lahan</AppSelectOption
                             ><AppSelectOption
                                 v-for="cycle in cycles"
                                 :key="cycle.id"

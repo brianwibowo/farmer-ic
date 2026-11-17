@@ -111,7 +111,7 @@ class FarmUxTest extends TestCase
         $this->getJson('/admin/farm-management/'.$farm->id.'/deletion-check')->assertOk()->assertJsonPath('blockers', []);
         $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '10']);
         $this->get('/admin/farm-management/'.$farm->id.'/edit')->assertInertia(fn (Assert $page) => $page->where('farm.capacity.minimum_area_ha', '10.0000'));
-        $this->getJson('/admin/farm-management/'.$farm->id.'/deletion-check')->assertJsonPath('blockers', ['blok kebun']);
+        $this->getJson('/admin/farm-management/'.$farm->id.'/deletion-check')->assertJsonPath('blockers', ['blok lahan']);
         $this->get('/kebun/'.$farm->id.'/blocks/'.$block->id.'/edit')->assertInertia(fn (Assert $page) => $page->where('capacity.maximum_area_ha', '12.5000'));
     }
 

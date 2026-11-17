@@ -84,8 +84,8 @@ function syncMarker(): void {
     if (!marker) {
         marker = leaflet
             .marker(props.modelValue, {
-                title: 'Pin lokasi kebun',
-                alt: 'Pin lokasi kebun',
+                title: 'Pin lokasi lahan',
+                alt: 'Pin lokasi lahan',
                 keyboard: true,
                 draggable: props.editable && !props.disabled,
                 icon: leaflet.divIcon({
@@ -138,8 +138,8 @@ async function initialize(): Promise<void> {
         mapElement.value.setAttribute(
             'aria-label',
             props.editable
-                ? 'Pilih titik lokasi kebun di peta'
-                : 'Peta lokasi kebun',
+                ? 'Pilih titik lokasi lahan di peta'
+                : 'Peta lokasi lahan',
         );
         mapElement.value.setAttribute('aria-describedby', hintId);
         map.on('click', (event) => {
@@ -206,7 +206,7 @@ onBeforeUnmount(() => {
             {{
                 editable
                     ? 'Klik peta untuk menaruh pin, lalu geser pin untuk memperbaiki posisi. Dengan keyboard, geser peta menggunakan tombol panah lalu pilih Gunakan titik tengah peta.'
-                    : 'Pin menunjukkan titik lokasi kebun, bukan batas atau luas lahan.'
+                    : 'Pin menunjukkan titik lokasi lahan, bukan batas atau luas lahan.'
             }}
         </p>
         <div
@@ -234,7 +234,7 @@ onBeforeUnmount(() => {
             v-else
             class="rounded-xl border border-dashed border-border bg-muted/40 p-5 text-sm text-muted-foreground"
         >
-            Lokasi kebun belum dipilih. Lengkapi pada halaman ubah kebun.
+            Lokasi lahan belum dipilih. Lengkapi pada halaman ubah lahan.
         </div>
         <div
             v-if="mapError"
@@ -278,7 +278,7 @@ onBeforeUnmount(() => {
         >
             {{
                 modelValue
-                    ? 'Pin lokasi sudah dipilih. Perubahan tersimpan setelah Simpan kebun.'
+                    ? 'Pin lokasi sudah dipilih. Perubahan tersimpan setelah Simpan lahan.'
                     : 'Belum ada pin. Lokasi boleh dikosongkan.'
             }}
         </p>

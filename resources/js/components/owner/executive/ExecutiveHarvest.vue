@@ -22,7 +22,7 @@ const achievement = computed(() =>
         : 0,
 );
 const columns: ExecutiveColumn[] = [
-    { key: 'farm', label: 'Kebun' },
+    { key: 'farm', label: 'Lahan' },
     { key: 'crop', label: 'Komoditas' },
     { key: 'projected', label: `Proyeksi (${unit})`, numeric: true },
     { key: 'actual', label: `Aktual (${unit})`, numeric: true },
@@ -45,7 +45,7 @@ const table = computed(() =>
 <template>
     <ExecutivePanel
         id="panen"
-        title="Panen aktual vs proyeksi per kebun"
+        title="Panen aktual vs proyeksi per lahan"
         :description="period"
     >
         <template #actions>
@@ -90,9 +90,9 @@ const table = computed(() =>
             </div>
         </dl>
         <ExecutiveChart
-            title="Perbandingan panen aktual dan proyeksi per kebun"
+            title="Perbandingan panen aktual dan proyeksi per lahan"
             kind="grouped"
-            :labels="rows.map((row) => row.farm.name.replace('Kebun ', ''))"
+            :labels="rows.map((row) => row.farm.name.replace('Lahan ', ''))"
             :series="[
                 {
                     label: 'Proyeksi',
@@ -114,7 +114,7 @@ const table = computed(() =>
                 <span
                     >Lihat rincian panen
                     <span class="ml-1 font-normal text-muted-foreground"
-                        >· {{ rows.length }} kebun</span
+                        >· {{ rows.length }} lahan</span
                     ></span
                 ><ChevronDown
                     class="size-4 group-open:rotate-180"

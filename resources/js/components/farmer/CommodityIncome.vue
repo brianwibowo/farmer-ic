@@ -67,7 +67,7 @@ async function loadSummaries(): Promise<void> {
     } catch {
         if (!disposed)
             error.value =
-                'Ringkasan kebun belum dapat dimuat. Silakan coba lagi.';
+                'Ringkasan lahan belum dapat dimuat. Silakan coba lagi.';
     } finally {
         if (!disposed) loading.value = false;
     }
@@ -97,7 +97,7 @@ onBeforeUnmount(() => {
                 id="commodity-summary-heading"
                 class="text-base font-black text-card-foreground"
             >
-                Ringkasan Kebun
+                Ringkasan Lahan
             </h2>
             <Link
                 href="/laporan"
@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
                 :size="18"
                 class="animate-spin"
                 aria-hidden="true"
-            />Memuat ringkasan kebun…
+            />Memuat ringkasan lahan…
         </div>
         <div
             v-else-if="error"
@@ -143,7 +143,7 @@ onBeforeUnmount(() => {
                 aria-hidden="true"
             />
             <p class="mt-2 text-sm text-muted-foreground">
-                Belum ada ringkasan kebun.
+                Belum ada ringkasan lahan.
             </p>
         </div>
         <template v-else>
@@ -153,7 +153,7 @@ onBeforeUnmount(() => {
                 class="commodity-carousel relative grid snap-x snap-mandatory auto-cols-[100%] grid-flow-col gap-3 overflow-x-auto overscroll-x-contain rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 :class="{ 'is-dragging': isDragging }"
                 tabindex="0"
-                aria-label="Geser untuk melihat kartu ringkasan kebun"
+                aria-label="Geser untuk melihat kartu ringkasan lahan"
                 @scroll.passive="updateActiveSlide"
                 @pointerdown="pointerDown"
                 @pointermove="pointerMove"

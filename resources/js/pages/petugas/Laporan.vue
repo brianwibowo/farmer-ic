@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ClipboardList, ChevronRight, Search } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
@@ -47,7 +48,7 @@ const filter = reactive({
 });
 const loading = ref(false);
 const emptyDescription = computed(() => {
-    if (!props.farm) return 'Hubungi Admin untuk penugasan kebun.';
+    if (!props.farm) return 'Hubungi Admin untuk penugasan lahan.';
 
     return props.categories.length
         ? 'Coba ubah filter atau ketuk tombol + untuk mencatat aktivitas mandiri.'
@@ -83,7 +84,7 @@ function reset(): void {
             <h1 class="text-xl font-semibold">Laporan</h1>
             <p class="mt-1 text-sm text-muted-foreground">
                 Riwayat pekerjaan ·
-                {{ farm?.name ?? 'Belum ada penugasan kebun' }}
+                {{ farm?.name ?? 'Belum ada penugasan lahan' }}
             </p>
         </header>
         <div
@@ -225,24 +226,13 @@ function reset(): void {
                 /></Link>
             </li>
         </ul>
-        <nav
+        <InertiaPagination
             v-if="reports && reports.last_page > 1"
-            class="flex items-center justify-between text-sm"
-            aria-label="Halaman laporan"
-        >
-            <Link
-                v-if="reports.prev_page_url"
-                :href="reports.prev_page_url"
-                class="min-h-11 p-3 text-secondary"
-                >← Sebelumnya</Link
-            ><span>{{ reports.current_page }} / {{ reports.last_page }}</span
-            ><Link
-                v-if="reports.next_page_url"
-                :href="reports.next_page_url"
-                class="min-h-11 p-3 text-secondary"
-                >Berikutnya →</Link
-            >
-        </nav>
+            :paginator="reports"
+            label="Pagination laporan"
+            class="ml-auto justify-end"
+            :disabled="loading"
+        />
         <ActivityAddButton :categories="categories" />
     </div>
 </template>
