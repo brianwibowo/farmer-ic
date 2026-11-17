@@ -1,33 +1,32 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ClipboardList, ChevronRight, Search } from '@lucide/vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import {
+    Activity,
+    ClipboardCheck,
+    ClipboardList,
+    NotebookPen,
+    Search,
+} from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
+import ReportCard from '@/components/petugas/ReportCard.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import type { PetugasActivityCategory } from '@/types/petugas-activity';
+import type { PetugasReportSummary } from '@/types/petugas-report';
 
 defineOptions({ inheritAttrs: false });
-
-type Report = {
-    id: string;
-    name: string;
-    date: string;
-    location: string;
-    source: string;
-    notes: string | null;
-    photo: string | null;
-};
 const props = defineProps<{
     farm: { id: string; name: string } | null;
     reports: {
-        data: Report[];
+        data: PetugasReportSummary[];
         total: number;
         current_page: number;
         last_page: number;
         prev_page_url: string | null;
         next_page_url: string | null;
     } | null;
+    stats: { sop: number; mandiri: number };
     filters: {
         q?: string;
         type?: string;
@@ -38,6 +37,7 @@ const props = defineProps<{
     types: { code: string; name: string }[];
     categories: PetugasActivityCategory[];
 }>();
+const page = usePage();
 const filter = reactive({
     q: props.filters.q ?? '',
     type: props.filters.type ?? '',
@@ -48,11 +48,18 @@ const filter = reactive({
 const loading = ref(false);
 const emptyDescription = computed(() => {
     if (!props.farm) return 'Hubungi Admin untuk penugasan kebun.';
-
     return props.categories.length
         ? 'Coba ubah filter atau ketuk tombol + untuk mencatat aktivitas mandiri.'
         : 'Coba ubah filter untuk melihat laporan lain.';
 });
+const listUrl = computed(() =>
+    /^\/petugas\/laporan(?:\?|$)/.test(page.url)
+        ? page.url
+        : '/petugas/laporan',
+);
+function detailHref(id: string): string {
+    return `/petugas/laporan/${id}?${new URLSearchParams({ back: listUrl.value })}`;
+}
 function apply(): void {
     router.get(
         '/petugas/laporan',
@@ -76,101 +83,159 @@ function reset(): void {
     apply();
 }
 </script>
+
 <template>
     <Head title="Laporan" />
-    <div class="space-y-4 pb-28" :aria-busy="loading">
-        <header>
-            <h1 class="text-xl font-semibold">Laporan</h1>
-            <p class="mt-1 text-sm text-muted-foreground">
-                Riwayat pekerjaan ·
-                {{ farm?.name ?? 'Belum ada penugasan kebun' }}
-            </p>
-        </header>
-        <div
-            class="flex items-center justify-between rounded-xl border border-primary/25 bg-primary/10 px-4 py-3"
-        >
-            <div>
-                <p class="text-xl font-semibold">{{ reports?.total ?? 0 }}</p>
-                <p class="text-xs text-muted-foreground">Aktivitas tercatat</p>
+    <div class="min-w-0 space-y-4 pb-28 text-foreground" :aria-busy="loading">
+        <header class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+                <h1>Laporan</h1>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    {{ farm?.name ?? 'Belum ada penugasan kebun' }}
+                </p>
             </div>
             <Link
                 v-if="farm"
                 href="/petugas/laporan/harian"
-                class="inline-flex min-h-11 items-center text-xs font-semibold text-secondary underline"
-                >Info kerja harian</Link
+                class="inline-flex min-h-11 shrink-0 items-center text-xs font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >Laporan harian</Link
             >
-        </div>
-        <form v-if="farm" class="space-y-2" @submit.prevent="apply">
-            <label class="relative block"
-                ><span class="sr-only">Cari laporan</span
-                ><input
+        </header>
+
+        <section
+            class="grid grid-cols-3 gap-2"
+            aria-label="Ringkasan laporan sesuai filter"
+        >
+            <div
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
+            >
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                    ><Activity class="size-4" aria-hidden="true"
+                /></span>
+                <p class="text-lg font-semibold">{{ reports?.total ?? 0 }}</p>
+                <p class="text-xs text-muted-foreground">Aktivitas</p>
+            </div>
+            <div
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
+            >
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-info/10 text-info"
+                    ><ClipboardCheck class="size-4" aria-hidden="true"
+                /></span>
+                <p class="text-lg font-semibold">{{ stats.sop }}</p>
+                <p class="text-xs text-muted-foreground">SOP</p>
+            </div>
+            <div
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
+            >
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                    ><NotebookPen class="size-4" aria-hidden="true"
+                /></span>
+                <p class="text-lg font-semibold">{{ stats.mandiri }}</p>
+                <p class="text-xs text-muted-foreground">Mandiri</p>
+            </div>
+        </section>
+
+        <form v-if="farm" class="space-y-3" @submit.prevent="apply">
+            <label class="relative block">
+                <span class="sr-only">Cari laporan</span>
+                <input
                     v-model="filter.q"
                     type="search"
+                    maxlength="100"
                     placeholder="Cari aktivitas atau subblok"
-                    class="min-h-11 w-full rounded-xl border border-primary bg-card px-3 pr-10 text-sm focus-visible:outline-2 focus-visible:outline-ring" /><Search
-                    class="pointer-events-none absolute top-3 right-3 size-5 text-primary"
-            /></label>
+                    class="petugas-field min-h-11 w-full rounded-xl border border-border px-3 pr-10 text-foreground"
+                />
+                <Search
+                    class="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-primary"
+                    aria-hidden="true"
+                />
+            </label>
             <div class="grid grid-cols-2 gap-2">
-                <label class="space-y-1 text-xs"
-                    ><span>Tanggal kerja</span
-                    ><input
+                <label class="min-w-0 space-y-1 text-xs">
+                    <span>Tanggal kerja</span>
+                    <input
                         v-model="filter.date"
                         type="date"
-                        class="min-h-11 w-full min-w-0 rounded-xl border border-border bg-card px-2 text-sm [color-scheme:light] dark:[color-scheme:dark]" /></label
-                ><label class="space-y-1 text-xs"
-                    ><span>Kategori</span
-                    ><AppSelect
+                        class="petugas-field min-h-11 w-full min-w-0 rounded-xl border border-border px-2 text-foreground [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                </label>
+                <div class="min-w-0 space-y-1 text-xs">
+                    <label for="report-type">Kategori</label>
+                    <AppSelect
+                        id="report-type"
                         v-model="filter.type"
                         aria-label="Kategori laporan"
                         class="min-h-11"
-                        ><AppSelectOption value=""
+                    >
+                        <AppSelectOption value=""
                             >Semua kategori</AppSelectOption
-                        ><AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="type in types"
                             :key="type.code"
                             :value="type.code"
                             >{{ type.name }}</AppSelectOption
-                        ></AppSelect
-                    ></label
-                >
+                        >
+                    </AppSelect>
+                </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <AppSelect
-                    v-model="filter.source"
-                    aria-label="Asal aktivitas"
-                    class="min-h-11 flex-1"
-                    ><AppSelectOption value="">Semua sumber</AppSelectOption
-                    ><AppSelectOption value="sop">Dari SOP</AppSelectOption
-                    ><AppSelectOption value="mandiri"
-                        >Mandiri</AppSelectOption
-                    ></AppSelect
-                ><label class="flex min-h-11 items-center gap-2 text-xs"
-                    ><input v-model="filter.mine" type="checkbox" />Input
-                    saya</label
-                >
+            <div class="flex flex-wrap items-end gap-2">
+                <div class="min-w-36 flex-1 space-y-1 text-xs">
+                    <label for="report-source">Sumber laporan</label>
+                    <AppSelect
+                        id="report-source"
+                        v-model="filter.source"
+                        aria-label="Asal aktivitas"
+                        class="min-h-11"
+                    >
+                        <AppSelectOption value="">Semua sumber</AppSelectOption>
+                        <AppSelectOption value="sop">Dari SOP</AppSelectOption>
+                        <AppSelectOption value="mandiri"
+                            >Mandiri</AppSelectOption
+                        >
+                    </AppSelect>
+                </div>
+                <label class="flex min-h-11 items-center gap-2 text-xs">
+                    <input
+                        v-model="filter.mine"
+                        type="checkbox"
+                        class="size-4 accent-primary"
+                    />Input saya
+                </label>
             </div>
             <div class="flex gap-2">
                 <button
                     type="submit"
                     :disabled="loading"
-                    class="min-h-11 flex-1 rounded-xl bg-secondary px-3 text-sm font-medium text-secondary-foreground disabled:opacity-50"
+                    class="min-h-11 flex-1 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
                 >
-                    {{ loading ? 'Memuat…' : 'Terapkan filter' }}</button
-                ><button
+                    {{ loading ? 'Memuat…' : 'Terapkan filter' }}
+                </button>
+                <button
                     type="button"
-                    class="min-h-11 rounded-xl border border-border px-3 text-sm"
                     :disabled="loading"
+                    class="min-h-11 rounded-xl border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
                     @click="reset"
                 >
                     Reset
                 </button>
             </div>
         </form>
+
+        <p v-if="loading" role="status" class="text-sm text-muted-foreground">
+            Memuat laporan…
+        </p>
         <div
-            v-if="!reports?.data.length"
+            v-if="!reports?.data.length && !loading"
             class="petugas-card petugas-empty bg-muted/40 px-5 py-10 text-center"
         >
-            <ClipboardList class="mx-auto size-9 text-primary" />
+            <ClipboardList
+                class="mx-auto size-9 text-primary"
+                aria-hidden="true"
+            />
             <h2 class="mt-3 font-semibold">
                 Belum ada laporan yang ditampilkan
             </h2>
@@ -178,70 +243,42 @@ function reset(): void {
                 {{ emptyDescription }}
             </p>
         </div>
-        <ul v-else class="space-y-3" aria-label="Riwayat aktivitas">
-            <li v-for="(report, index) in reports.data" :key="report.id">
-                <h2
-                    v-if="
-                        index === 0 ||
-                        reports.data[index - 1].date !== report.date
-                    "
-                    class="mt-4 mb-2 text-xs font-semibold text-muted-foreground"
-                >
-                    {{ report.date }}
-                </h2>
-                <Link
-                    :href="`/petugas/laporan/${report.id}`"
-                    class="petugas-card flex gap-3 p-3 hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-ring"
-                    ><img
-                        v-if="report.photo"
-                        :src="report.photo"
-                        alt="Dokumentasi aktivitas"
-                        loading="lazy"
-                        class="size-20 shrink-0 rounded-xl object-cover" /><span
-                        v-else
-                        class="flex size-20 shrink-0 items-center justify-center rounded-xl bg-primary/10"
-                        ><ClipboardList class="size-7 text-primary"
-                    /></span>
-                    <div class="min-w-0 flex-1">
-                        <span
-                            class="rounded-md bg-primary/10 px-2 py-1 text-[10px] font-semibold text-secondary"
-                            >{{ report.source }}</span
-                        >
-                        <h3 class="mt-2 text-sm font-semibold">
-                            {{ report.name }}
-                        </h3>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            {{ report.location }}
-                        </p>
-                        <p
-                            v-if="report.notes"
-                            class="mt-1 line-clamp-1 text-xs text-muted-foreground"
-                        >
-                            {{ report.notes }}
-                        </p>
-                    </div>
-                    <ChevronRight
-                        class="mt-2 size-4 shrink-0 text-muted-foreground"
-                /></Link>
+        <ul
+            v-else-if="reports?.data.length"
+            class="space-y-3"
+            aria-label="Riwayat aktivitas"
+        >
+            <li v-for="report in reports.data" :key="report.id">
+                <ReportCard
+                    :report="report"
+                    :farm-name="farm?.name ?? 'Kebun'"
+                    :href="detailHref(report.id)"
+                />
             </li>
         </ul>
         <nav
             v-if="reports && reports.last_page > 1"
-            class="flex items-center justify-between text-sm"
+            class="flex items-center justify-between gap-2 text-sm"
             aria-label="Halaman laporan"
         >
             <Link
                 v-if="reports.prev_page_url"
                 :href="reports.prev_page_url"
-                class="min-h-11 p-3 text-secondary"
+                class="inline-flex min-h-11 items-center rounded-xl px-2 text-primary focus-visible:outline-2 focus-visible:outline-ring"
                 >← Sebelumnya</Link
-            ><span>{{ reports.current_page }} / {{ reports.last_page }}</span
-            ><Link
+            >
+            <span v-else class="min-h-11" aria-hidden="true" />
+            <span
+                >Halaman {{ reports.current_page }} /
+                {{ reports.last_page }}</span
+            >
+            <Link
                 v-if="reports.next_page_url"
                 :href="reports.next_page_url"
-                class="min-h-11 p-3 text-secondary"
+                class="inline-flex min-h-11 items-center rounded-xl px-2 text-primary focus-visible:outline-2 focus-visible:outline-ring"
                 >Berikutnya →</Link
             >
+            <span v-else class="min-h-11" aria-hidden="true" />
         </nav>
         <ActivityAddButton :categories="categories" />
     </div>

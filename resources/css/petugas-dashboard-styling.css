@@ -134,6 +134,46 @@
     font-weight: 500;
 }
 
+.petugas-dashboard-theme .petugas-activity-field {
+    min-height: 3rem;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    padding: 0.75rem;
+    color: var(--foreground);
+    font-size: 1rem;
+}
+
+.petugas-dashboard-theme .petugas-activity-field:hover:not(:disabled) {
+    border-color: var(--ring);
+}
+
+.petugas-dashboard-theme .petugas-activity-field:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.petugas-dashboard-theme .petugas-activity-field[aria-invalid='true'] {
+    border-color: var(--error);
+}
+
+.petugas-dashboard-theme .petugas-activity-field:disabled {
+    background: var(--muted);
+    color: var(--muted-foreground);
+}
+
+.petugas-dashboard-theme #activity-worker-count {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.petugas-dashboard-theme #activity-worker-count::-webkit-inner-spin-button,
+.petugas-dashboard-theme #activity-worker-count::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
 @media (min-width: 481px) {
     .petugas-dashboard-theme .petugas-mobile-frame {
         outline: 1px solid var(--border);

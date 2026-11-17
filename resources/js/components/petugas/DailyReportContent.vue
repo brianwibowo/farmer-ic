@@ -96,19 +96,30 @@ const adding = ref(false);
                     v-if="activity.photos.length"
                     class="grid grid-cols-2 gap-2"
                 >
-                    <a
+                    <template
                         v-for="(photo, index) in activity.photos"
                         :key="photo.id"
-                        :href="photo.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        ><img
-                            :src="photo.url"
-                            :alt="`Bukti ${activity.name}, foto ${index + 1}`"
-                            class="aspect-square w-full rounded-xl object-cover"
-                            loading="lazy"
-                    /></a>
+                    >
+                        <a
+                            v-if="photo.available !== false"
+                            :href="photo.url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            ><img
+                                :src="photo.url"
+                                :alt="`Bukti ${activity.name}, foto ${index + 1}`"
+                                class="aspect-square w-full rounded-xl object-cover"
+                                loading="lazy"
+                        /></a>
+                        <div
+                            v-else
+                            role="status"
+                            class="flex aspect-square items-center justify-center rounded-xl bg-muted p-3 text-center text-xs text-muted-foreground"
+                        >
+                            Foto {{ index + 1 }} tidak tersedia
+                        </div>
+                    </template>
                 </div>
                 <Link
                     v-if="activity.task_id && canRecord"

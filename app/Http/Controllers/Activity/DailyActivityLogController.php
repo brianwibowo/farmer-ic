@@ -15,6 +15,7 @@ use App\Models\Team;
 use App\Services\Activity\DailyActivityLogService;
 use App\Services\Activity\DailyActivityReportService;
 use App\Support\ActivityInputLimits;
+use App\Support\ActivityPhotoFile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -96,10 +97,11 @@ class DailyActivityLogController extends Controller
         Gate::authorize('view', $photo);
         abort_unless($activity->farm_id === $farm->id && $photo->activity_id === $activity->id, 404);
         $photo = ActivityPhoto::visibleTo($request->user(), $farm->team)->where('activity_id', $activity->id)->findOrFail($photo->id);
+        abort_unless(ActivityPhotoFile::available($photo), 404);
+
         if ($photo->image_url === '/images/kebun-placeholder.svg') {
             return response()->stream(fn () => print file_get_contents(public_path('images/kebun-placeholder.svg')), 200, ['Content-Type' => 'image/svg+xml', 'Cache-Control' => 'private, no-store']);
         }
-        abort_unless(str_starts_with($photo->image_url, 'task-activities/'.$activity->id.'/') && ! str_contains($photo->image_url, '..'), 404);
 
         return Storage::disk('local')->response($photo->image_url, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }

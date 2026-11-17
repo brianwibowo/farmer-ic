@@ -647,6 +647,63 @@ allows; loading and navigation errors use the shared Petugas shell.
 
 The Figma page includes both full-color and LoFi variants. Use the active state for the current route, provide an accessible label for every icon, and keep the bar usable on standard, Plus, and Pro Max phone widths.
 
+### Petugas activity reports
+
+Use the reference activity list's compact photo-led cards, metadata icons,
+category badge, and three summary tiles in `/petugas/laporan`, while retaining
+the Petugas shell, theme, floating add action, search, date, category, source,
+personal filter, daily-report link, and server pagination. Tiles show the
+filtered total, SOP reports, and independent reports from scoped database
+queries, not reference-only farm or attention totals. Cards show the persisted
+farm, activity type, date, location, source, worker count, notes, and photo
+count where available. Do not invent HST or attention labels. Missing photo
+files show an explicit unavailable state instead of a broken image or a
+substitute photograph.
+
+Individual reports use the reference detail hierarchy: back navigation, a
+metadata card with activity type, farm, location, date, and officer, a divided
+report-detail card, and a separate photo gallery with accessible enlargement.
+Show recorded worker count, notes, daily-log context, and every available
+detail; show pest/disease panels only when those values actually exist. State
+when legacy daily-log data or evidence is missing. Preserve the active list
+filters and page in the back link. Reference-only reset, mock data, and
+unavailable metrics are not part of the operational screen.
+
+### Petugas task activity entry
+
+Keep the task-specific activity form in the Petugas mobile shell. Lead with a
+compact task and location summary; its disclosure retains the SOP context,
+instructions, and reporting window. Use themed icon accents and the existing
+20px Petugas cards to distinguish the work date, results, and evidence without
+relying on color alone. Place an amount beside its unit when both are present,
+and provide accessible increment/decrement controls alongside a directly
+editable worker count. Preserve all field limits, unit conversion, validation,
+and the existing server submission.
+
+The photo picker shows the selected count and local previews, with a labeled
+remove control for each file. Keep the existing file restrictions and required
+photo feedback; previews do not imply that files have been saved. Collapse
+optional notes initially and reveal them when a server error requires attention.
+Keep the clarification that saving a report does not complete or approve the
+task. Support keyboard operation, narrow phones, both themes, and the existing
+loading, error, and success states.
+
+The activity mandiri form uses the same card hierarchy, worker control,
+compact amount/unit fields, photo picker, and optional notes. Its summary shows
+the selected activity type and assigned farm instead of an SOP task. Retain
+the required or optional block/subblock choices for each category, the
+corresponding location limits and blocked reasons, and links to any matching
+SOP tasks. For incidents and other activities, enable the optional subblock
+choice only after selecting a block, show only that block's active subblocks,
+and clear the subblock when the block changes. Explain the whole-farm and
+whole-block choices and show a clear empty state. Preserve the existing
+independent activity submission and never imply it completes a task.
+
+Penanaman is also reachable from the activity mandiri menu but keeps its
+separate subblock selection and planting workflow. Apply the same visual form
+hierarchy there while preserving variety and capacity checks, actual planting
+dates, seed units and bag weight, evidence, and planting-report history.
+
 ## Login and password recovery pages
 
 ### Application loading screen

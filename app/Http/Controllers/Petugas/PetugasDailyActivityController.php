@@ -25,12 +25,13 @@ class PetugasDailyActivityController extends Controller
         $filters['mine'] = $request->boolean('mine');
         $farm = $request->user()->assignedFarm;
         if (! $farm instanceof Farm) {
-            return Inertia::render('petugas/Laporan', ['farm' => null, 'reports' => null, 'filters' => $filters, 'types' => [], 'categories' => []]);
+            return Inertia::render('petugas/Laporan', ['farm' => null, 'reports' => null, 'stats' => ['sop' => 0, 'mandiri' => 0], 'filters' => $filters, 'types' => [], 'categories' => []]);
         }
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [FarmActivity::class, $farm->team]);
 
         return Inertia::render('petugas/Laporan', ['farm' => $farm->only(['id', 'name']), 'filters' => $filters,
+            'stats' => $reports->sourceCounts($request->user(), $farm, $filters),
             'reports' => $reports->listing($request->user(), $farm, $filters),
             'types' => ActivityType::visibleTo($request->user(), $farm->team)->where('is_active', true)->where('is_selectable', true)->orderBy('sort_order')->get(['code', 'name']),
             'categories' => $categories->forFarm($request->user(), $farm)]);

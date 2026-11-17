@@ -58,4 +58,60 @@ describe('activity form numeric feedback', () => {
         expect(html).toContain('Maksimal 70.000 m²');
         expect(html).not.toContain('id="detail-error-area"');
     });
+
+    it('keeps area and its unit together in the compact task form', async () => {
+        const html = await renderToString(
+            h(ActivityDetailFields, {
+                fields: [
+                    ...fields,
+                    {
+                        key: 'area_unit',
+                        label: 'Satuan luas',
+                        type: 'select',
+                        options: ['m²', 'Ha'],
+                    },
+                    { key: 'description', label: 'Keterangan', type: 'text' },
+                ],
+                modelValue: {
+                    area: '500',
+                    area_unit: 'm²',
+                    description: '',
+                },
+                errors: { 'details.area_unit': 'Pilih satuan luas.' },
+                areaLimitM2: 70000,
+                compact: true,
+            }),
+        );
+
+        expect(html).toContain(
+            'grid-cols-[minmax(0,1fr)_minmax(5.75rem,0.55fr)]',
+        );
+        expect(html).toContain('id="detail-area"');
+        expect(html).toContain('step="1"');
+        expect(html).toContain('Maksimal 70.000 m²');
+        expect(html).toContain('detail-error-area_unit');
+        expect(html).toContain('col-span-2');
+    });
+
+    it('opens optional details when the server returns a field error', async () => {
+        const html = await renderToString(
+            h(ActivityDetailFields, {
+                fields: [
+                    {
+                        key: 'description',
+                        label: 'Deskripsi',
+                        type: 'text',
+                        optional: true,
+                    },
+                ],
+                modelValue: { description: '' },
+                errors: { 'details.description': 'Periksa deskripsi.' },
+                areaLimitM2: null,
+                compact: true,
+            }),
+        );
+
+        expect(html).toMatch(/<details[^>]*\sopen/);
+        expect(html).toContain('detail-error-description');
+    });
 });

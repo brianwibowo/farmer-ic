@@ -7,18 +7,18 @@ export type DailyHeader = {
 };
 
 export type DailyReportActivity = {
-        id: string;
-        name: string;
-        position: number | null;
-        worker_count: number | null;
-        performed_by: string;
-        performer_name: string | null;
-        subblok: string | null;
-        block: string | null;
-        notes: string | null;
-        task_id: string | null;
-        details: { label: string; value: string | number }[];
-        photos: { id: string; url: string }[];
+    id: string;
+    name: string;
+    position: number | null;
+    worker_count: number | null;
+    performed_by: string;
+    performer_name: string | null;
+    subblok: string | null;
+    block: string | null;
+    notes: string | null;
+    task_id: string | null;
+    details: { label: string; value: string | number }[];
+    photos: { id: string; url: string; available?: boolean }[];
 };
 
 export type DailyReport = DailyHeader & {

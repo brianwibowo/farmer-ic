@@ -12,6 +12,7 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\User;
 use App\Support\ActivityDetailMap;
+use App\Support\ActivityPhotoFile;
 use App\Support\VoluntaryActivityFields;
 
 class DailyActivityReportService
@@ -60,6 +61,7 @@ class DailyActivityReportService
             'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? []), $type?->code),
             'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn (ActivityPhoto $photo) => [
                 'id' => $photo->id, 'url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id]),
+                'available' => ActivityPhotoFile::available($photo),
             ])->all(),
         ];
     }

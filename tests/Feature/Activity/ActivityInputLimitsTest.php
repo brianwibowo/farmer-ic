@@ -105,7 +105,7 @@ class ActivityInputLimitsTest extends TestCase
             ->component('petugas/VoluntaryCreate')
             ->where('blocks', fn ($blocks) => collect($blocks)->contains(fn ($block) => $block['id'] === $this->block->id && $block['area_limit_m2'] === 50000)
                 && ! collect($blocks)->contains('id', $foreignBlock->id))
-            ->where('cycles', fn ($cycles) => collect($cycles)->contains(fn ($cycle) => $cycle['id'] === $this->cycle->id && $cycle['area_limit_m2'] === 20000)));
+            ->where('cycles', fn ($cycles) => collect($cycles)->contains(fn ($cycle) => $cycle['id'] === $this->cycle->id && $cycle['block']['id'] === $this->block->id && $cycle['area_limit_m2'] === 20000)));
 
         $this->cycle->forceFill(['planted_area_ha' => '1.2500'])->save();
         $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';

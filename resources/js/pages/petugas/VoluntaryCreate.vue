@@ -1,17 +1,35 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
-import { LoaderCircle, X } from '@lucide/vue';
+import {
+    ArrowLeft,
+    ArrowRight,
+    CalendarDays,
+    ChevronDown,
+    ClipboardList,
+    FileText,
+    LoaderCircle,
+    MapPin,
+    Save,
+    SquarePen,
+} from '@lucide/vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
+import ActivityPhotoPicker from '@/components/petugas/ActivityPhotoPicker.vue';
+import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
+import { Button } from '@/components/ui/button';
+import { useErrorDisclosure } from '@/composables/useErrorDisclosure';
+import { useVoluntaryLocation } from '@/composables/useVoluntaryLocation';
 import {
     activityDetailMaximumErrors,
-    formatActivityNumber,
     maximumError,
 } from '@/lib/activityInputLimits';
+
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
     farm: { id: string; name: string };
     type: { id: string; code: string; name: string };
@@ -28,7 +46,7 @@ const props = defineProps<{
     cycles: {
         id: string;
         subblock_label: string;
-        block: { name: string };
+        block: { id: string; name: string };
         reserved_area_ha: string;
         area_limit_m2: number;
         blocked_reason: string | null;
@@ -67,26 +85,13 @@ const blockOnly = computed(() =>
 const optionalLocation = computed(() =>
     ['incident', 'other'].includes(props.type.code),
 );
-watch(
-    () => form.cycle_id,
-    (value) => {
-        if (value) form.block_id = '';
-    },
-);
-watch(
-    () => form.block_id,
-    (value) => {
-        if (value) form.cycle_id = '';
-    },
-);
-const areaLimitM2 = computed(
-    () =>
-        props.cycles.find((cycle) => cycle.id === form.cycle_id)
-            ?.area_limit_m2 ??
-        props.blocks.find((block) => block.id === form.block_id)
-            ?.area_limit_m2 ??
-        null,
-);
+const { availableCycles, areaLimitM2, blockedReason, submittedBlockId } =
+    useVoluntaryLocation(
+        form,
+        () => optionalLocation.value,
+        () => props.blocks,
+        () => props.cycles,
+    );
 const numericErrors = computed<Record<string, string>>(() => {
     const result = activityDetailMaximumErrors(
         props.fields,
@@ -106,6 +111,14 @@ const errors = computed<Record<string, string>>(() => ({
     ...form.errors,
     ...numericErrors.value,
 }));
+const photoErrors = computed(() =>
+    Object.entries(form.errors).filter(
+        ([key]) => key === 'photos' || key.startsWith('photos.'),
+    ),
+);
+const { open: notesOpen, onToggle: syncNotesOpen } = useErrorDisclosure(
+    () => !!errors.value.notes,
+);
 const noArea = computed(
     () =>
         areaLimitM2.value === 0 &&
@@ -136,22 +149,27 @@ watch(
     () => form.worker_count,
     () => form.clearErrors('worker_count'),
 );
+watch(
+    () => form.work_date,
+    () => form.clearErrors('work_date'),
+);
+watch(
+    () => form.notes,
+    () => form.clearErrors('notes'),
+);
 watch(areaLimitM2, () =>
     form.clearErrors('details.area' as keyof typeof form.errors),
 );
 const matches = computed(() =>
     props.matchingTasks.filter((t) => t.planting_cycle_id === form.cycle_id),
 );
-const blockedReason = computed(
-    () =>
-        props.blocks.find((block) => block.id === form.block_id)
-            ?.blocked_reason ??
-        props.cycles.find((cycle) => cycle.id === form.cycle_id)
-            ?.blocked_reason ??
-        null,
-);
-const fieldClass =
-    'block min-h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [color-scheme:light] dark:[color-scheme:dark]';
+function clearPhotoErrors(): void {
+    clientError.value = '';
+    for (const key of Object.keys(form.errors)) {
+        if (key === 'photos' || key.startsWith('photos.'))
+            form.clearErrors(key as keyof typeof form.errors);
+    }
+}
 function photos(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = [...(input.files ?? [])];
@@ -166,8 +184,28 @@ function photos(event: Event): void {
     )
         clientError.value =
             'Pilih maksimal 5 foto JPG/PNG/WebP, masing-masing maksimal 10 MB.';
-    else form.photos.push(...files);
+    else {
+        form.photos.push(...files);
+        clearPhotoErrors();
+    }
     input.value = '';
+}
+function removePhoto(index: number): void {
+    form.photos.splice(index, 1);
+    clearPhotoErrors();
+}
+function scheduledDateLabel(value: string | null): string {
+    if (!value) return 'Belum dijadwalkan';
+    const input = /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? `${value}T12:00:00+07:00`
+        : value;
+    const date = new Date(input);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat('id-ID', {
+              dateStyle: 'medium',
+              timeZone: 'Asia/Jakarta',
+          }).format(date);
 }
 function submit(): void {
     if (
@@ -191,6 +229,7 @@ function submit(): void {
         );
         return {
             ...data,
+            block_id: submittedBlockId(data.cycle_id, data.block_id),
             details,
         };
     }).post(`/petugas/aktivitas/mandiri/${props.type.code}`, {
@@ -201,49 +240,124 @@ function submit(): void {
 </script>
 <template>
     <Head :title="`Catat ${type.name}`" />
-    <div class="space-y-4">
-        <Link
-            href="/petugas/laporan"
-            class="inline-flex min-h-11 items-center text-sm text-secondary"
-            >← Kembali ke laporan</Link
-        >
+    <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
-            <span class="text-xs font-medium text-secondary"
-                >Aktivitas mandiri</span
+            <Link
+                href="/petugas/laporan"
+                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
+                laporan</Link
             >
-            <h1 class="mt-1 text-xl font-semibold">{{ type.name }}</h1>
-            <p class="mt-1 text-sm text-muted-foreground">{{ farm.name }}</p>
+            <h1 class="mt-2 text-xl leading-7 font-semibold">
+                Catat aktivitas
+            </h1>
+            <p class="mt-1 text-sm leading-5 text-muted-foreground">
+                Laporkan pekerjaan mandiri di kebun.
+            </p>
         </header>
+        <section
+            class="petugas-card overflow-hidden"
+            aria-label="Aktivitas yang dilaporkan"
+        >
+            <div class="flex items-center gap-3 bg-primary/5 p-4">
+                <span
+                    class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                >
+                    <ClipboardList class="size-5" aria-hidden="true" />
+                </span>
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold text-primary">
+                        Aktivitas mandiri
+                    </p>
+                    <p class="mt-0.5 text-base leading-6 font-bold">
+                        {{ type.name }}
+                    </p>
+                    <p
+                        class="mt-1 flex items-start gap-1 text-xs leading-5 text-muted-foreground"
+                    >
+                        <MapPin
+                            class="mt-0.5 size-3.5 shrink-0"
+                            aria-hidden="true"
+                        />
+                        <span>{{ farm.name }}</span>
+                    </p>
+                </div>
+            </div>
+        </section>
         <form class="space-y-4" @submit.prevent="submit">
             <fieldset
                 :disabled="form.processing"
-                class="space-y-4 disabled:opacity-60"
+                class="space-y-4 disabled:opacity-70"
             >
-                <section
-                    class="space-y-4 rounded-2xl border border-border bg-card p-4"
-                >
-                    <label class="block space-y-2 text-sm"
-                        ><span>Tanggal pelaksanaan *</span
-                        ><input
+                <section class="petugas-card space-y-4 p-4">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                        >
+                            <CalendarDays class="size-5" aria-hidden="true" />
+                        </span>
+                        <h2 class="text-base font-semibold">
+                            Waktu pelaksanaan
+                        </h2>
+                    </div>
+                    <label class="block space-y-2 text-sm">
+                        <span class="font-medium">Tanggal kerja *</span>
+                        <input
                             v-model="form.work_date"
                             type="date"
                             required
                             :max="today"
-                            :class="fieldClass" /></label
-                    ><label
-                        v-if="blockOnly || optionalLocation"
-                        class="block space-y-2 text-sm"
-                    >
-                        <span>Blok {{ blockOnly ? '*' : '(opsional)' }}</span>
+                            class="petugas-activity-field block [color-scheme:light] dark:[color-scheme:dark]"
+                            :aria-invalid="!!errors.work_date"
+                            :aria-describedby="
+                                errors.work_date
+                                    ? 'voluntary-date-error'
+                                    : undefined
+                            "
+                        />
+                        <span
+                            v-if="errors.work_date"
+                            id="voluntary-date-error"
+                            class="block text-xs text-error"
+                            >{{ errors.work_date }}</span
+                        >
+                    </label>
+                </section>
+                <section class="petugas-card space-y-4 p-4">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                        >
+                            <MapPin class="size-5" aria-hidden="true" />
+                        </span>
+                        <h2 class="text-base font-semibold">
+                            Lokasi pekerjaan
+                        </h2>
+                    </div>
+                    <div v-if="blockOnly || optionalLocation" class="space-y-2">
+                        <label
+                            for="voluntary-block"
+                            class="text-sm font-medium"
+                        >
+                            Blok {{ blockOnly ? '*' : '(opsional)' }}
+                        </label>
                         <AppSelect
+                            id="voluntary-block"
                             v-model="form.block_id"
                             :required="blockOnly"
+                            :disabled="form.processing"
                             aria-label="Blok"
                             placeholder="Pilih blok"
-                            :class="fieldClass"
+                            class="petugas-activity-field"
+                            :aria-invalid="!!errors.block_id"
+                            :aria-describedby="
+                                errors.block_id
+                                    ? 'voluntary-block-error'
+                                    : undefined
+                            "
                         >
                             <AppSelectOption v-if="optionalLocation" value=""
-                                >Tanpa blok</AppSelectOption
+                                >Tidak dipilih</AppSelectOption
                             >
                             <AppSelectOption
                                 v-for="block in blocks"
@@ -252,29 +366,103 @@ function submit(): void {
                                 >{{ block.code }} ·
                                 {{ block.name }}</AppSelectOption
                             >
-                        </AppSelect> </label
-                    ><label v-if="!blockOnly" class="block space-y-2 text-sm"
-                        ><span
-                            >Blok / subblok{{
-                                optionalLocation ? ' (opsional)' : ' *'
-                            }}</span
-                        ><AppSelect
+                        </AppSelect>
+                        <p
+                            v-if="errors.block_id"
+                            id="voluntary-block-error"
+                            class="text-xs text-error"
+                            aria-live="polite"
+                        >
+                            {{ errors.block_id }}
+                        </p>
+                    </div>
+                    <div v-if="!blockOnly" class="space-y-2">
+                        <label
+                            for="voluntary-cycle"
+                            class="text-sm font-medium"
+                            >{{
+                                optionalLocation
+                                    ? 'Subblok (opsional)'
+                                    : 'Blok / subblok *'
+                            }}</label
+                        >
+                        <AppSelect
+                            id="voluntary-cycle"
                             v-model="form.cycle_id"
                             :required="!optionalLocation"
-                            aria-label="Subblok"
+                            :disabled="
+                                form.processing ||
+                                (optionalLocation &&
+                                    (!form.block_id || !availableCycles.length))
+                            "
+                            :aria-label="
+                                optionalLocation ? 'Subblok' : 'Blok / subblok'
+                            "
                             placeholder="Pilih subblok"
-                            :class="fieldClass"
-                            ><AppSelectOption v-if="optionalLocation" value=""
-                                >Seluruh kebun</AppSelectOption
+                            class="petugas-activity-field"
+                            :aria-invalid="!!errors.cycle_id"
+                            :aria-describedby="
+                                [
+                                    optionalLocation
+                                        ? 'voluntary-cycle-help'
+                                        : null,
+                                    errors.cycle_id
+                                        ? 'voluntary-cycle-error'
+                                        : null,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' ') || undefined
+                            "
                             ><AppSelectOption
-                                v-for="cycle in cycles"
+                                v-if="optionalLocation"
+                                value=""
+                                >{{
+                                    form.block_id
+                                        ? 'Seluruh blok'
+                                        : 'Pilih blok terlebih dahulu'
+                                }}</AppSelectOption
+                            ><AppSelectOption
+                                v-for="cycle in availableCycles"
                                 :key="cycle.id"
                                 :value="cycle.id"
-                                >{{ cycle.block.name }} ·
-                                {{ cycle.subblock_label }}</AppSelectOption
+                                >{{
+                                    optionalLocation
+                                        ? cycle.subblock_label
+                                        : `${cycle.block.name} · ${cycle.subblock_label}`
+                                }}</AppSelectOption
                             ></AppSelect
-                        ></label
+                        >
+                        <p
+                            v-if="optionalLocation"
+                            id="voluntary-cycle-help"
+                            class="text-xs leading-5 text-muted-foreground"
+                            aria-live="polite"
+                        >
+                            <!-- {{
+                                !form.block_id
+                                    ? 'Pilih blok terlebih dahulu untuk memilih subblok.'
+                                    : !availableCycles.length
+                                      ? 'Belum ada subblok aktif pada blok ini.'
+                                      : 'Pilih subblok atau biarkan kosong untuk seluruh blok.'
+                            }} -->
+                        </p>
+                        <p
+                            v-if="errors.cycle_id"
+                            id="voluntary-cycle-error"
+                            class="text-xs text-error"
+                            aria-live="polite"
+                        >
+                            {{ errors.cycle_id }}
+                        </p>
+                    </div>
+                    <p
+                        v-if="optionalLocation"
+                        class="text-xs leading-5 text-muted-foreground"
                     >
+                        Tanpa blok, aktivitas berlaku untuk seluruh kebun. Tanpa
+                        subblok, aktivitas berlaku untuk seluruh blok yang
+                        dipilih.
+                    </p>
                     <p
                         v-if="
                             blockOnly
@@ -306,100 +494,130 @@ function submit(): void {
                             v-for="task in matches"
                             :key="task.id"
                             :href="`/petugas/tasks/${task.id}`"
-                            class="mt-1 flex min-h-11 items-center text-sm font-medium text-secondary underline"
+                            class="mt-1 flex min-h-11 items-center gap-2 rounded-xl text-sm font-medium text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                             >{{ task.name }} ·
-                            {{ task.scheduled_date ?? 'Belum dijadwalkan' }}
-                            →</Link
-                        >
+                            {{ scheduledDateLabel(task.scheduled_date) }}
+                            <ArrowRight
+                                class="size-4 shrink-0"
+                                aria-hidden="true"
+                        /></Link>
                     </div>
                 </section>
-                <section
-                    class="space-y-4 rounded-2xl border border-border bg-card p-4"
-                >
-                    <h2 class="font-semibold">Hasil pekerjaan</h2>
-                    <label class="block space-y-2 text-sm"
-                        ><span>Jumlah pekerja untuk aktivitas ini *</span
-                        ><input
-                            v-model.number="form.worker_count"
-                            type="number"
-                            min="1"
-                            :max="numericLimits.workerCount"
-                            step="1"
-                            required
-                            :class="fieldClass"
-                            :aria-invalid="!!errors.worker_count"
-                            aria-describedby="voluntary-worker-help voluntary-worker-error"
-                        /><span
-                            id="voluntary-worker-help"
-                            class="block text-xs text-muted-foreground"
-                            >Maksimal
-                            {{
-                                formatActivityNumber(numericLimits.workerCount)
-                            }}
-                            pekerja.</span
-                        ><span
-                            v-if="errors.worker_count"
-                            id="voluntary-worker-error"
-                            class="block text-xs text-error"
-                            aria-live="polite"
-                            >{{ errors.worker_count }}</span
-                        ></label
-                    >
+                <section class="petugas-card space-y-4 p-4">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-info/10 text-info"
+                        >
+                            <SquarePen class="size-5" aria-hidden="true" />
+                        </span>
+                        <h2 class="text-base font-semibold">Hasil pekerjaan</h2>
+                    </div>
+                    <ActivityWorkerCount
+                        v-model="form.worker_count"
+                        :maximum="numericLimits.workerCount"
+                        :error="errors.worker_count"
+                    />
                     <ActivityDetailFields
                         v-model="form.details"
                         :fields="fields"
                         :errors="errors"
                         :area-limit-m2="areaLimitM2"
+                        compact
                     />
                     <p v-if="noArea" role="status" class="text-sm text-warning">
                         Tidak ada luas yang dapat dilaporkan untuk lokasi ini.
                     </p>
-                </section>
-                <section
-                    class="space-y-4 rounded-2xl border border-border bg-card p-4"
-                >
-                    <label class="block space-y-2 text-sm"
-                        ><span>Foto dokumentasi *</span
-                        ><input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            multiple
-                            :class="fieldClass"
-                            @change="photos"
-                    /></label>
-                    <p class="text-xs text-muted-foreground">
-                        Minimal 1, maksimal 5 foto. JPG/PNG/WebP, maksimal 10 MB
-                        per foto.
+                    <p v-if="errors.details" class="text-sm text-error">
+                        {{ errors.details }}
                     </p>
-                    <ul class="space-y-2">
-                        <li
-                            v-for="(photo, index) in form.photos"
-                            :key="index"
-                            class="flex items-center gap-2 rounded-xl bg-muted px-3"
+                    <p
+                        v-if="errors['details.bed_area']"
+                        class="text-sm text-error"
+                        aria-live="polite"
+                    >
+                        {{ errors['details.bed_area'] }}
+                    </p>
+                </section>
+                <section class="petugas-card space-y-4 p-4">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
                         >
-                            <span class="min-w-0 flex-1 truncate text-xs">{{
-                                photo.name
-                            }}</span
-                            ><button
-                                type="button"
-                                class="flex size-11 items-center justify-center"
-                                :aria-label="`Hapus ${photo.name}`"
-                                @click="form.photos.splice(index, 1)"
+                            <FileText class="size-5" aria-hidden="true" />
+                        </span>
+                        <h2 class="text-base font-semibold">Bukti pekerjaan</h2>
+                    </div>
+                    <ActivityPhotoPicker
+                        :photos="form.photos"
+                        :invalid="!!clientError || photoErrors.length > 0"
+                        @select="photos"
+                        @remove="removePhoto"
+                    />
+                    <div
+                        v-if="clientError || photoErrors.length"
+                        id="photo-errors"
+                        role="alert"
+                        class="space-y-1"
+                    >
+                        <p v-if="clientError" class="text-xs text-error">
+                            {{ clientError }}
+                        </p>
+                        <p
+                            v-for="[key, message] in photoErrors"
+                            :key="key"
+                            class="text-xs text-error"
+                        >
+                            {{ message }}
+                        </p>
+                    </div>
+                    <details
+                        class="group rounded-xl bg-muted/50"
+                        :open="notesOpen"
+                        @toggle="syncNotesOpen"
+                    >
+                        <summary
+                            class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+                        >
+                            <FileText
+                                class="size-4 text-primary"
+                                aria-hidden="true"
+                            />
+                            <span class="flex-1">Tambah catatan</span>
+                            <ChevronDown
+                                class="size-4 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                                aria-hidden="true"
+                            />
+                        </summary>
+                        <div class="space-y-2 px-3 pb-3">
+                            <label
+                                for="voluntary-notes"
+                                class="block text-sm font-medium"
                             >
-                                <X class="size-4" />
-                            </button>
-                        </li>
-                    </ul>
-                    <label class="block space-y-2 text-sm"
-                        ><span>Catatan (opsional)</span
-                        ><textarea
-                            v-model="form.notes"
-                            rows="3"
-                            maxlength="5000"
-                            placeholder="Metode, bahan/pupuk/pestisida, dosis, kondisi lapangan, atau observasi tambahan..."
-                            :class="fieldClass"
-                        />
-                    </label>
+                                Catatan (opsional)
+                            </label>
+                            <textarea
+                                id="voluntary-notes"
+                                v-model="form.notes"
+                                rows="3"
+                                maxlength="5000"
+                                placeholder="Metode, bahan, dosis, atau kondisi lapangan..."
+                                class="petugas-activity-field block"
+                                :aria-invalid="!!errors.notes"
+                                :aria-describedby="
+                                    errors.notes
+                                        ? 'voluntary-notes-error'
+                                        : undefined
+                                "
+                            />
+                            <p
+                                v-if="errors.notes"
+                                id="voluntary-notes-error"
+                                class="text-xs text-error"
+                            >
+                                {{ errors.notes }}
+                            </p>
+                        </div>
+                    </details>
                 </section>
             </fieldset>
             <div
@@ -407,12 +625,12 @@ function submit(): void {
                 role="alert"
                 class="space-y-1 rounded-xl border border-error/30 bg-error/10 p-3 text-sm"
             >
-                <p v-if="clientError">{{ clientError }}</p>
+                <p>Periksa isian yang ditandai sebelum menyimpan.</p>
                 <p v-for="(error, key) in form.errors" :key="key">
                     {{ error }}
                 </p>
             </div>
-            <button
+            <Button
                 :disabled="
                     form.processing ||
                     !!blockedReason ||
@@ -420,17 +638,18 @@ function submit(): void {
                     Object.keys(numericErrors).length > 0
                 "
                 type="submit"
-                class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-secondary px-4 font-semibold text-secondary-foreground disabled:opacity-50"
+                class="min-h-12 w-full rounded-xl"
             >
                 <LoaderCircle
                     v-if="form.processing"
                     class="size-4 animate-spin motion-reduce:animate-none"
-                />{{
+                    aria-hidden="true"
+                /><Save v-else class="size-4" aria-hidden="true" />{{
                     form.processing
                         ? `Menyimpan ${form.progress?.percentage ?? ''}…`
                         : 'Simpan laporan'
                 }}
-            </button>
+            </Button>
         </form>
     </div>
 </template>
