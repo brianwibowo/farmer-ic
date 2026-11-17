@@ -8,12 +8,10 @@ import {
     ArrowDownWideNarrow,
     ArrowUpWideNarrow,
     ArrowUpRight,
-    Building2,
     ChevronLeft,
     ChevronRight,
     LandPlot,
     LoaderCircle,
-    MapPin,
     Pencil,
     Plus,
     Search,
@@ -30,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import DeleteFarmDialog from "@/components/farms/DeleteFarmDialog.vue";
 import FarmField from "@/components/farms/FarmField.vue";
+import FarmSummaryCards from "@/components/farms/FarmSummaryCards.vue";
 import {
     hectares,
     landTenureLabel,
@@ -124,54 +123,11 @@ function reset(): void {
 <template>
     <Head :title="sectionTitle" />
     <div class="space-y-[18px]">
-        <div class="grid grid-cols-3 gap-2 sm:gap-4">
-            <div
-                v-for="item in [
-                    {
-                        label: 'Total kebun',
-                        value: summary.count,
-                        icon: LandPlot,
-                        unit: 'kebun',
-                    },
-                    {
-                        label: 'Luas terdaftar',
-                        value: hectares(summary.area_ha),
-                        icon: MapPin,
-                        unit: 'ha',
-                    },
-                    {
-                        label: 'Wilayah kota/kabupaten',
-                        value: summary.cities,
-                        icon: Building2,
-                        unit: 'wilayah',
-                    },
-                ]"
-                :key="item.label"
-                class="admin-card min-w-0 rounded-xl bg-card p-3 sm:p-5"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <p
-                        class="min-h-10 text-xs leading-5 text-muted-foreground sm:min-h-0 sm:text-sm"
-                    >
-                        {{ item.label }}
-                    </p>
-                    <component
-                        :is="item.icon"
-                        class="hidden size-5 shrink-0 text-primary sm:block"
-                        aria-hidden="true"
-                    />
-                </div>
-                <p
-                    class="admin-metric-value mt-2 text-xl! tracking-tight sm:mt-4 sm:text-3xl!"
-                >
-                    {{ item.value }}
-                    <span
-                        class="ml-1 text-xs font-medium text-muted-foreground sm:ml-2 sm:text-sm"
-                        >{{ item.unit }}</span
-                    >
-                </p>
-            </div>
-        </div>
+        <FarmSummaryCards
+            :summary="summary"
+            :farms="farms.data"
+            :location-options="locationOptions"
+        />
 
         <section class="admin-card overflow-hidden rounded-xl bg-card">
             <div class="border-b border-border p-4 md:p-5">

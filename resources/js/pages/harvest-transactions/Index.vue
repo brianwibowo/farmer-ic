@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import {
     ChevronDown,
-    ClipboardList,
     LoaderCircle,
-    Ruler,
     Search,
     Wheat,
+    X,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
-import FarmField from '@/components/farms/FarmField.vue';
+import { ref } from 'vue';
 import HarvestReportList from '@/components/harvest/HarvestReportList.vue';
 import LogbookPagination from '@/components/logbook/LogbookPagination.vue';
+import TransactionFiltersPopover from '@/components/transactions/TransactionFiltersPopover.vue';
+import TransactionSummaryCards from '@/components/transactions/TransactionSummaryCards.vue';
 import { Button } from '@/components/ui/button';
+import { useTransactionFilters } from '@/composables/useTransactionFilters';
 import {
     type HarvestTransactionBlockOption,
     type HarvestTransactionFarmOption,
@@ -32,89 +33,22 @@ const props = defineProps<{
     varieties: HarvestTransactionVarietyOption[];
 }>();
 
-const initialBlock = props.blocks.find(
-    (block) => block.id === props.filters.block_id,
-);
-const filters = useForm({
-    search: props.filters.search ?? '',
-    farm_id: props.filters.farm_id ?? initialBlock?.farm_id ?? '',
-    block_id: props.filters.block_id ?? '',
-    variety_id: props.filters.variety_id ?? '',
-    from_date: props.filters.from_date ?? '',
-    to_date: props.filters.to_date ?? '',
-    per_page: Number(props.filters.per_page ?? 15),
+const {
+    filters,
+    showFilters,
+    appliedFilters,
+    filterCount,
+    hasFilters,
+    apply,
+    clearFilter,
+    reset,
+} = useTransactionFilters({
+    url: '/admin/transaksi-panen',
+    initialFilters: () => props.filters,
+    farms: () => props.farms,
+    blocks: () => props.blocks,
+    varieties: () => props.varieties,
 });
-
-const blockOptions = computed(() =>
-    filters.farm_id
-        ? props.blocks.filter((block) => block.farm_id === filters.farm_id)
-        : [],
-);
-const hasFilters = computed(() =>
-    Boolean(
-        filters.search ||
-        filters.farm_id ||
-        filters.block_id ||
-        filters.variety_id ||
-        filters.from_date ||
-        filters.to_date,
-    ),
-);
-const summaryCards = computed(() => [
-    {
-        label: 'Subblok terpanen',
-        value: String(props.summary.subblocks),
-        hint: 'Subblok dengan realisasi panen',
-        icon: ClipboardList,
-    },
-    {
-        label: 'Luas panen',
-        value: `${formatDecimal(props.summary.area_ha)} ha`,
-        hint: 'Akumulasi luas laporan',
-        icon: Ruler,
-    },
-    {
-        label: 'Berat panen',
-        value: `${formatDecimal(props.summary.weight_ton)} ton`,
-        hint: 'Akumulasi berat kotor',
-        icon: Wheat,
-    },
-]);
-
-function apply(): void {
-    if (
-        filters.from_date &&
-        filters.to_date &&
-        filters.to_date < filters.from_date
-    ) {
-        filters.setError(
-            'to_date',
-            'Tanggal akhir tidak boleh sebelum tanggal awal.',
-        );
-        return;
-    }
-    filters.clearErrors();
-    filters.get('/admin/transaksi-panen', {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-    });
-}
-
-function reset(): void {
-    filters.search = '';
-    filters.farm_id = '';
-    filters.block_id = '';
-    filters.variety_id = '';
-    filters.from_date = '';
-    filters.to_date = '';
-    filters.per_page = 15;
-    apply();
-}
-
-function changeFarm(): void {
-    filters.block_id = '';
-}
 
 const monthLabels = [
     'Jan',
@@ -143,12 +77,6 @@ function formatDecimal(value: string | null, digits = 2): string {
 function formatDate(value: string): string {
     const [year, month, day] = value.split('-').map(Number);
     return `${String(day).padStart(2, '0')} ${monthLabels[month - 1] ?? ''} ${year}`;
-}
-
-function varietyLabel(variety: HarvestTransactionVarietyOption): string {
-    return variety.commodity
-        ? `${variety.name} · ${variety.commodity.name}`
-        : variety.name;
 }
 
 const expandedKeys = ref<string[]>([]);
@@ -195,35 +123,22 @@ function rowSubblock(row: HarvestTransactionRow): string {
 <template>
     <Head title="Transaksi Panen" />
     <div class="space-y-[18px]" :aria-busy="filters.processing">
-        <section
-            class="grid grid-cols-2 gap-3 lg:grid-cols-3"
-            aria-label="Ringkasan transaksi panen"
-        >
-            <article
-                v-for="item in summaryCards"
-                :key="item.label"
-                class="admin-panel"
-            >
-                <div class="flex items-start justify-between gap-2">
-                    <h2 class="text-sm font-semibold">{{ item.label }}</h2>
-                    <component
-                        :is="item.icon"
-                        class="hidden size-5 shrink-0 text-primary sm:block"
-                        aria-hidden="true"
-                    />
-                </div>
-                <p class="admin-metric-value mt-3">{{ item.value }}</p>
-                <p class="mt-1 text-xs text-muted-foreground">
-                    {{ item.hint }}
-                </p>
-            </article>
-        </section>
+        <TransactionSummaryCards
+            mode="harvest"
+            :subblocks="summary.subblocks"
+            :reports="summary.reports"
+            :area-ha="summary.area_ha"
+            :primary-metric-value="summary.weight_ton"
+            :row-areas="
+                transactions.data.map(
+                    (row) => Number(row.harvested_area_ha) || 0,
+                )
+            "
+        />
 
         <section class="admin-card overflow-hidden rounded-xl bg-card">
-            <div class="border-b border-border p-4 md:p-5">
-                <div
-                    class="mb-4 flex flex-wrap items-center justify-between gap-3"
-                >
+            <div class="border-b border-border px-4 py-4 md:px-5">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
                         <h2 class="admin-section-title">Daftar subblok</h2>
                         <span
@@ -237,170 +152,110 @@ function rowSubblock(row: HarvestTransactionRow): string {
                     </p>
                 </div>
 
-                <form
-                    class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-4"
-                    @submit.prevent="apply"
-                >
-                    <FarmField
-                        id="harvest-transaction-search"
-                        label="Cari"
-                        :error="filters.errors.search"
-                        class="sm:col-span-2"
-                        v-slot="field"
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <form
+                        class="flex min-w-0 flex-1 basis-64 items-center gap-2"
+                        @submit.prevent="apply"
                     >
-                        <div class="relative">
-                            <Search
-                                class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground"
-                                aria-hidden="true"
-                            />
-                            <input
-                                :id="field.id"
-                                v-model="filters.search"
-                                class="admin-field pl-9!"
-                                type="search"
-                                maxlength="100"
-                                placeholder="Kebun, blok, varietas, atau petugas"
-                                :aria-invalid="field.invalid"
-                                :aria-describedby="field.description"
-                            />
+                        <div class="min-w-0 grow">
+                            <label
+                                for="harvest-transaction-search"
+                                class="sr-only"
+                                >Cari transaksi panen</label
+                            >
+                            <div class="relative">
+                                <Search
+                                    class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <input
+                                    id="harvest-transaction-search"
+                                    v-model="filters.search"
+                                    class="admin-field pl-10!"
+                                    type="search"
+                                    maxlength="100"
+                                    placeholder="Kebun, blok, varietas, atau petugas…"
+                                    :disabled="filters.processing"
+                                    :aria-invalid="!!filters.errors.search"
+                                    :aria-describedby="
+                                        filters.errors.search
+                                            ? 'harvest-search-error'
+                                            : undefined
+                                    "
+                                />
+                            </div>
                         </div>
-                    </FarmField>
-
-                    <FarmField
-                        id="harvest-transaction-farm"
-                        label="Kebun"
-                        :error="filters.errors.farm_id"
-                        v-slot="field"
-                    >
-                        <select
-                            :id="field.id"
-                            v-model="filters.farm_id"
-                            class="admin-field"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                            @change="changeFarm"
-                        >
-                            <option value="">Semua kebun</option>
-                            <option
-                                v-for="farm in farms"
-                                :key="farm.id"
-                                :value="farm.id"
-                            >
-                                {{ farm.name }}
-                            </option>
-                        </select>
-                    </FarmField>
-
-                    <FarmField
-                        id="harvest-transaction-block"
-                        label="Blok"
-                        :error="filters.errors.block_id"
-                        v-slot="field"
-                    >
-                        <select
-                            :id="field.id"
-                            v-model="filters.block_id"
-                            class="admin-field"
-                            :disabled="!filters.farm_id"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                        >
-                            <option value="">
-                                {{
-                                    filters.farm_id
-                                        ? 'Semua blok'
-                                        : 'Pilih kebun terlebih dahulu'
-                                }}
-                            </option>
-                            <option
-                                v-for="block in blockOptions"
-                                :key="block.id"
-                                :value="block.id"
-                            >
-                                {{ block.code }} · {{ block.name }}
-                            </option>
-                        </select>
-                    </FarmField>
-
-                    <FarmField
-                        id="harvest-transaction-variety"
-                        label="Varietas"
-                        :error="filters.errors.variety_id"
-                        v-slot="field"
-                    >
-                        <select
-                            :id="field.id"
-                            v-model="filters.variety_id"
-                            class="admin-field"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                        >
-                            <option value="">Semua varietas</option>
-                            <option
-                                v-for="variety in varieties"
-                                :key="variety.id"
-                                :value="variety.id"
-                            >
-                                {{ varietyLabel(variety) }}
-                            </option>
-                        </select>
-                    </FarmField>
-
-                    <FarmField
-                        id="harvest-transaction-from"
-                        label="Dari tanggal"
-                        :error="filters.errors.from_date"
-                        v-slot="field"
-                    >
-                        <input
-                            :id="field.id"
-                            v-model="filters.from_date"
-                            type="date"
-                            class="admin-field"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                        />
-                    </FarmField>
-
-                    <FarmField
-                        id="harvest-transaction-to"
-                        label="Sampai tanggal"
-                        :error="filters.errors.to_date"
-                        v-slot="field"
-                    >
-                        <input
-                            :id="field.id"
-                            v-model="filters.to_date"
-                            type="date"
-                            class="admin-field"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                        />
-                    </FarmField>
-
-                    <div class="flex flex-wrap items-center gap-2 pt-0 sm:pt-7">
                         <Button
                             type="submit"
-                            class="h-10 rounded-xl"
+                            variant="outline"
+                            class="size-10 shrink-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                            aria-label="Cari transaksi panen"
+                            title="Cari transaksi panen"
                             :disabled="filters.processing"
                         >
                             <LoaderCircle
                                 v-if="filters.processing"
                                 class="animate-spin motion-reduce:animate-none"
                             />
-                            <Search v-else />Terapkan
+                            <Search v-else class="size-4" />
                         </Button>
-                        <Button
-                            v-if="hasFilters"
-                            type="button"
-                            variant="ghost"
-                            :disabled="filters.processing"
-                            @click="reset"
-                        >
-                            Reset filter
-                        </Button>
+                    </form>
+
+                    <div class="flex shrink-0 items-center gap-2">
+                        <TransactionFiltersPopover
+                            id-prefix="harvest"
+                            v-model:open="showFilters"
+                            v-model:farm-id="filters.farm_id"
+                            v-model:block-id="filters.block_id"
+                            v-model:variety-id="filters.variety_id"
+                            v-model:from-date="filters.from_date"
+                            v-model:to-date="filters.to_date"
+                            :farms="farms"
+                            :blocks="blocks"
+                            :varieties="varieties"
+                            :processing="filters.processing"
+                            :count="filterCount"
+                            :errors="filters.errors"
+                            @apply="apply"
+                            @reset="reset"
+                        />
                     </div>
-                </form>
+                </div>
+
+                <div
+                    v-if="appliedFilters.length"
+                    class="mt-3 flex flex-wrap items-center gap-2"
+                    aria-label="Filter yang diterapkan"
+                >
+                    <button
+                        v-for="item in appliedFilters"
+                        :key="item.key"
+                        type="button"
+                        class="inline-flex max-w-full items-center gap-2 rounded-md bg-accent/60 px-2.5 py-1.5 text-xs text-accent-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+                        :disabled="filters.processing"
+                        :aria-label="'Hapus filter ' + item.label"
+                        @click="clearFilter(item.key)"
+                    >
+                        <span class="break-words">{{ item.label }}</span>
+                        <X class="size-3.5 shrink-0" />
+                    </button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        :disabled="filters.processing"
+                        @click="reset"
+                        >Reset semua</Button
+                    >
+                </div>
+
+                <p
+                    v-if="Object.keys(filters.errors).length"
+                    id="harvest-search-error"
+                    role="alert"
+                    class="mt-3 text-sm text-error"
+                >
+                    {{ Object.values(filters.errors)[0] }}
+                </p>
             </div>
 
             <div
