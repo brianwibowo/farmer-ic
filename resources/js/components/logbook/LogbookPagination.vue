@@ -20,15 +20,9 @@ defineEmits<{ change: [] }>();
         <p class="text-xs text-muted-foreground" role="status">
             {{
                 page.total
-                    ? 'Menampilkan ' +
-                      page.from +
-                      '–' +
-                      page.to +
-                      ' dari ' +
-                      page.total
-                    : '0'
+                    ? `Menampilkan ${page.from}–${page.to} dari ${page.total} ${label}`
+                    : `0 ${label}`
             }}
-            {{ label }}
         </p>
         <div class="flex items-center gap-2">
             <div class="w-36">

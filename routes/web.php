@@ -154,6 +154,7 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::get('dashboard/weather/{farm}', DashboardWeatherController::class)
         ->whereUuid('farm')->middleware('throttle:30,1')->name('admin.dashboard.weather');
     Route::get('logbook', [AdminLogbookController::class, 'index'])->name('admin.logbook.index');
+    Route::get('logbook/aktivitas/{activity}', [AdminLogbookController::class, 'activity'])->whereUuid('activity')->name('admin.logbook.activity');
     Route::get('logbook/{farm}', [AdminLogbookController::class, 'farm'])->whereUuid('farm')->name('admin.logbook.farm');
     Route::get('logbook/{farm}/{dailyLog}', [AdminLogbookController::class, 'show'])->whereUuid(['farm', 'dailyLog'])->name('admin.logbook.show');
     Route::get('transaksi-penanaman', [PlantingTransactionController::class, 'index'])->name('admin.planting-transactions.index');

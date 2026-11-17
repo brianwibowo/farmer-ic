@@ -5,13 +5,15 @@ export type LogbookFarm = {
     district: string | null;
     province: string | null;
 };
+
 export type LogbookSummary = {
     farms: number;
     reports: number;
     today: number;
     activities: number;
-    obstacles: number;
+    incidents: number;
 };
+
 export type LogbookPage<T> = {
     data: T[];
     total: number;
@@ -22,46 +24,104 @@ export type LogbookPage<T> = {
     prev_page_url: string | null;
     next_page_url: string | null;
 };
+
 export type LogbookRow = {
     id: string;
     work_date: string;
     recorder_name: string | null;
     activities_count: number;
-    obstacle_count: number;
+    incident_count: number;
 };
-export type LogbookActivity = {
+
+export type LogbookActivityRow = {
     id: string;
-    type: string | null;
-    name: string | null;
+    work_date: string;
+    farm_id: string;
+    farm_name: string | null;
+    code: string | null;
+    name: string;
+    source: 'sop' | 'mandiri';
     block_name: string | null;
-    position: number;
+    subblok: string | null;
+    performer_name: string | null;
     worker_count: number | null;
     notes: string | null;
-    obstacle_status: 'none' | 'reported' | 'not_recorded';
-    obstacles: string | null;
-    proposed_solution: string | null;
-    action_taken: string | null;
-    block_mapping: {
-        form_version: number;
-        block_id: string | null;
-        block_name: string;
-        length_m: string;
-        width_m: string;
-        row_spacing_cm: string | null;
-        plant_spacing_cm: string | null;
-        rows_per_bed: number | null;
+    photos_count: number;
+    daily_log_id: string | null;
+};
+
+export type LogbookActivityDetailField = {
+    label: string;
+    value: string | number;
+};
+
+export type LogbookActivityPhoto = {
+    id: string;
+    url: string;
+};
+
+export type LogbookReportActivity = {
+    id: string;
+    code: string | null;
+    name: string;
+    position: number | null;
+    worker_count: number | null;
+    performed_by: string | null;
+    performer_name: string | null;
+    block: string | null;
+    subblok: string | null;
+    notes: string | null;
+    task_id: string | null;
+    source: 'sop' | 'mandiri';
+    details: LogbookActivityDetailField[];
+    photos: LogbookActivityPhoto[];
+};
+
+export type LogbookActivityShow = LogbookReportActivity & {
+    work_date: string;
+    created_at: string | null;
+    updated_at: string | null;
+    daily_log: {
+        id: string;
+        work_date: string;
+        recorder_name: string | null;
+        activities_count: number;
+    } | null;
+    task: {
+        id: string;
+        name: string;
+        status: string;
     } | null;
 };
-export type LogbookDetail = Omit<
-    LogbookRow,
-    'activities_count' | 'obstacle_count'
-> & {
+
+export type LogbookDetail = {
+    id: string;
     farm_id: string;
+    work_date: string;
     recorded_by: string;
-    activities: LogbookActivity[];
+    recorder_name: string | null;
+    activities: LogbookReportActivity[];
     created_at: string;
     updated_at: string | null;
 };
+
+export type LogbookIndexFilterOptions = {
+    farms: { id: string; name: string }[];
+    activity_types: { id: string; code: string; name: string }[];
+    performers: { id: string; name: string }[];
+};
+
+export type LogbookIndexFilters = {
+    search?: string;
+    farm_id?: string;
+    activity_type?: string;
+    source?: 'sop' | 'mandiri' | '';
+    performed_by?: string;
+    from_date?: string;
+    to_date?: string;
+    per_page?: number;
+};
+
 export function logbookDate(value: string | null): string {
     return value
         ? new Intl.DateTimeFormat('id-ID', {
@@ -72,6 +132,7 @@ export function logbookDate(value: string | null): string {
           )
         : 'Belum ada laporan';
 }
+
 export function farmLocation(farm: LogbookFarm): string {
     return (
         [farm.district, farm.city, farm.province].filter(Boolean).join(', ') ||

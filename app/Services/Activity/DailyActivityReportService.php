@@ -2,6 +2,7 @@
 
 namespace App\Services\Activity;
 
+use App\Enums\IncidentSeverity;
 use App\Http\Resources\DailyActivityHeaderResource;
 use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
@@ -22,7 +23,7 @@ class DailyActivityReportService
     {
         $team = $farm->team;
         $log = DailyActivityLog::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereKey($log->id)->with('recorder:id,name')->firstOrFail();
-        $activities = FarmActivity::visibleTo($actor, $team)->where('daily_activity_log_id', $log->id)->with('performer:id,name')->orderBy('position')->get();
+        $activities = FarmActivity::visibleTo($actor, $team)->where('daily_activity_log_id', $log->id)->with('performer:id,name')->orderBy('position')->orderBy('id')->get();
 
         return [
             ...(new DailyActivityHeaderResource($log))->resolve(),
@@ -52,12 +53,13 @@ class DailyActivityReportService
         $detail = $detailClass === null ? null : $detailClass::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
 
         return [
-            'id' => $activity->id, 'name' => $type->name ?? 'Aktivitas', 'position' => $activity->position,
+            'id' => $activity->id, 'code' => $type?->code, 'name' => $type->name ?? 'Aktivitas', 'position' => $activity->position,
             'worker_count' => $activity->worker_count,
             'performed_by' => $activity->performed_by, 'performer_name' => $activity->performer?->name,
             'subblok' => $cycle?->getAttribute('subblock_label'), 'notes' => $activity->description,
             'block' => $block?->name,
             'task_id' => $activity->getAttribute('planting_cycle_task_id'),
+            'source' => $activity->getAttribute('planting_cycle_task_id') !== null ? 'sop' : 'mandiri',
             'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? []), $type?->code),
             'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn (ActivityPhoto $photo) => [
                 'id' => $photo->id, 'url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id]),
@@ -73,12 +75,15 @@ class DailyActivityReportService
     {
         $labels = [
             'seed_name' => 'Benih', 'quantity_kg' => 'Jumlah (kg)', 'planting_pattern' => 'Pola tanam', 'area_ha' => 'Luas (ha)',
-            'harvested_area_ha' => 'Luas panen (ha)', 'gross_weight_ton' => 'Berat (ton)', 'moisture_percentage' => 'Kadar air (%)',
+            'affected_area_ha' => 'Luas terdampak (ha)',
+            'harvested_area_ha' => 'Luas panen (ha)', 'gross_weight_ton' => 'Berat (ton)', 'weight_ton' => 'Berat panen (ton)', 'moisture_percentage' => 'Kadar air (%)',
             'water_source' => 'Sumber air', 'irrigation_method' => 'Metode', 'duration_hours' => 'Durasi (jam)', 'machine_type' => 'Mesin',
             'fertilizer_type' => 'Pupuk', 'application_method' => 'Metode aplikasi', 'pesticide_category' => 'Kategori pengendalian',
             'purpose' => 'Sasaran', 'brand_name' => 'Produk', 'dosage_per_tank' => 'Dosis per tangki', 'tank_count' => 'Jumlah tangki',
             'growth_phase' => 'Fase', 'average_height_cm' => 'Tinggi (cm)', 'pest_indication' => 'Hama', 'disease_indication' => 'Penyakit',
-            'block_name' => 'Blok', 'length_m' => 'Panjang (m)', 'width_m' => 'Lebar (m)', 'incident_category' => 'Kejadian', 'severity' => 'Tingkat',
+            'block_name' => 'Blok', 'length_m' => 'Panjang (m)', 'width_m' => 'Lebar (m)',
+            'rows_per_bed' => 'Baris per bedeng', 'row_spacing_cm' => 'Jarak antarbaris (cm)', 'plant_spacing_cm' => 'Jarak tanam (cm)',
+            'incident_category' => 'Kejadian', 'severity' => 'Tingkat', 'proposed_solution' => 'Usulan penanganan',
             'method' => 'Metode pekerjaan', 'depth_cm' => 'Kedalaman (cm)', 'sample_count' => 'Jumlah sampel',
             'fertilizer' => 'Nama pupuk', 'target' => 'Sasaran pekerjaan', 'product' => 'Produk pengendali',
             'fertilization_stage' => 'Tahap pemupukan', 'quantity_unit' => 'Satuan jumlah', 'sack_size_kg' => 'Ukuran karung (kg)',
@@ -95,14 +100,27 @@ class DailyActivityReportService
             if ($key === 'area_unit' && ! isset($values['area'])) {
                 continue;
             }
+            if ($key === 'area_ha' && isset($values['harvested_area_ha'])) {
+                continue;
+            }
+            if ($key === 'affected_area_ha' && (isset($values['area_ha']) || isset($values['area']))) {
+                continue;
+            }
+            if ($key === 'weight_ton' && (isset($values['gross_weight_ton']) || isset($values['weight']))) {
+                continue;
+            }
             if ($key === 'method' && (isset($values['irrigation_method']) || isset($values['application_method']))) {
                 continue;
             }
             if ($key === 'fertilizer' && isset($values['fertilizer_type'])) {
                 continue;
             }
-            if (isset($values[$key])) {
-                $details[] = ['label' => $label, 'value' => $values[$key]];
+            if (isset($values[$key]) && $values[$key] !== '') {
+                $value = $values[$key];
+                if ($key === 'severity' && is_string($value)) {
+                    $value = IncidentSeverity::fromStored($value)?->label() ?? $value;
+                }
+                $details[] = ['label' => $label, 'value' => $value];
             }
         }
 

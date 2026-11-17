@@ -306,7 +306,7 @@ function reset(): void {
                                 <th scope="col">Tanggal kerja</th>
                                 <th scope="col">Pelapor</th>
                                 <th scope="col">Kegiatan</th>
-                                <th scope="col">Kendala tercatat</th>
+                                <th scope="col">Insiden</th>
                                 <th scope="col" class="text-right">
                                     <span class="sr-only">Aksi</span>
                                 </th>
@@ -340,12 +340,12 @@ function reset(): void {
                                     <span
                                         class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
                                         :class="
-                                            log.obstacle_count
+                                            log.incident_count
                                                 ? 'bg-warning/15 text-warning'
                                                 : 'bg-muted text-muted-foreground'
                                         "
                                     >
-                                        {{ log.obstacle_count }} kendala
+                                        {{ log.incident_count }} insiden
                                     </span>
                                 </td>
                                 <td class="text-right">
@@ -405,12 +405,12 @@ function reset(): void {
                             <span
                                 class="rounded-full px-2.5 py-1 font-semibold"
                                 :class="
-                                    log.obstacle_count
+                                    log.incident_count
                                         ? 'bg-warning/15 text-warning'
                                         : 'bg-muted text-muted-foreground'
                                 "
                             >
-                                {{ log.obstacle_count }} kendala tercatat
+                                {{ log.incident_count }} insiden
                             </span>
                         </div>
                     </li>
