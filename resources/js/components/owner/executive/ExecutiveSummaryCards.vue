@@ -14,9 +14,10 @@ const props = withDefaults(
         partnerCount: number;
         month: string;
         snapshotLabel?: string;
+        showCommercialCard?: boolean;
         loading?: boolean;
     }>(),
-    { loading: false },
+    { loading: false, showCommercialCard: true },
 );
 const utilization = computed(() =>
     Math.min(100, Math.max(0, props.totals.utilization)),
@@ -26,7 +27,8 @@ const utilization = computed(() =>
 <template>
     <div
         id="ringkasan-kpi"
-        class="grid min-w-0 grid-cols-1 items-stretch gap-[18px] md:grid-cols-2 xl:grid-cols-4"
+        class="grid min-w-0 grid-cols-1 items-stretch gap-[18px] md:grid-cols-2"
+        :class="showCommercialCard ? 'xl:grid-cols-4' : 'xl:grid-cols-2'"
         aria-label="Indikator utama"
         :aria-busy="loading"
     >
@@ -35,10 +37,10 @@ const utilization = computed(() =>
                 >Memuat ringkasan eksekutif…</span
             >
             <div
-                v-for="index in 3"
+                v-for="index in showCommercialCard ? 3 : 2"
                 :key="index"
                 class="admin-card min-h-72 bg-muted motion-safe:animate-pulse"
-                :class="index === 3 ? 'md:col-span-2' : ''"
+                :class="showCommercialCard && index === 3 ? 'md:col-span-2' : ''"
                 aria-hidden="true"
             />
         </template>
@@ -126,6 +128,7 @@ const utilization = computed(() =>
                 </p> -->
             </article>
             <article
+                v-if="showCommercialCard"
                 class="admin-card flex min-w-0 flex-col bg-card p-4 lg:p-[18px]"
                 aria-labelledby="executive-partnership-heading"
             >
@@ -177,7 +180,8 @@ const utilization = computed(() =>
                 </dl>
             </article>
             <article
-                class="admin-card flex min-w-0 flex-col bg-card p-4 md:col-span-2 lg:p-[18px]"
+                class="admin-card flex min-w-0 flex-col bg-card p-4 lg:p-[18px]"
+                :class="showCommercialCard ? 'md:col-span-2' : ''"
                 aria-labelledby="executive-stock-heading"
             >
                 <header class="mb-3 flex items-start justify-between gap-2">
