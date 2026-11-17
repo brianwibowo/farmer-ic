@@ -3,33 +3,42 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowUpRight,
     CalendarDays,
+    ChevronLeft,
+    ChevronRight,
     ClipboardList,
     LoaderCircle,
     Search,
+    X,
 } from '@lucide/vue';
-import { computed } from 'vue';
-import FarmField from '@/components/farms/FarmField.vue';
+import { computed, ref } from 'vue';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import TaskFiltersPopover from '@/components/tasks/TaskFiltersPopover.vue';
 import TaskQuickActions from '@/components/tasks/TaskQuickActions.vue';
+import TaskSummaryCards from '@/components/tasks/TaskSummaryCards.vue';
+import TaskViewTabs from '@/components/tasks/TaskViewTabs.vue';
 import { Button } from '@/components/ui/button';
 import {
     adminTaskCategoryLabel,
-    adminTaskCategoryOptions,
     adminTaskDate,
     adminTaskHst,
     adminTaskStatusClass,
     adminTaskStatusLabels,
-    adminTaskStatusOptions,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
-    adminTaskViewOptions,
     type AdminTaskBlockOption,
+    type AdminTaskCategory,
     type AdminTaskFarmOption,
     type AdminTaskFilters,
     type AdminTaskPage,
+    type AdminTaskStatus,
     type AdminTaskSubblokOption,
     type AdminTaskSummary,
     type AdminTaskView,
 } from '@/types/tasks';
+import { sopActivityCategoryLabels } from '@/types/sop';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
     tasks: AdminTaskPage;
@@ -39,6 +48,8 @@ const props = defineProps<{
     blocks: AdminTaskBlockOption[];
     subbloks: AdminTaskSubblokOption[];
 }>();
+
+const showFilters = ref(false);
 
 const initialSubblok = props.subbloks.find(
     (subblok) => subblok.id === props.filters.subblok_id,
@@ -55,55 +66,89 @@ const form = useForm({
     status: props.filters.status ?? '',
     category: props.filters.category ?? '',
     view: (props.filters.view ?? 'actionable') as AdminTaskView,
-    per_page: props.filters.per_page ?? 15,
+    per_page: Number(props.filters.per_page ?? 15),
 });
-const blockOptions = computed(() =>
-    form.farm_id
-        ? props.blocks.filter((block) => block.farm_id === form.farm_id)
-        : [],
+
+const activeTabView = computed<AdminTaskView>(() =>
+    props.filters.status ? 'all' : form.view,
 );
-const subblokOptions = computed(() =>
-    form.block_id
-        ? props.subbloks.filter((subblok) => subblok.block_id === form.block_id)
-        : [],
+
+const appliedFilters = computed(() => {
+    const items: {
+        key:
+            | 'search'
+            | 'farm_id'
+            | 'block_id'
+            | 'subblok_id'
+            | 'status'
+            | 'category';
+        label: string;
+    }[] = [];
+
+    if (props.filters.search) {
+        items.push({
+            key: 'search',
+            label: `Pencarian: ${props.filters.search}`,
+        });
+    }
+
+    if (props.filters.farm_id) {
+        const farmName =
+            props.farms.find((farm) => farm.id === props.filters.farm_id)
+                ?.name ?? 'Tidak tersedia';
+        items.push({ key: 'farm_id', label: `Kebun: ${farmName}` });
+    }
+
+    if (props.filters.block_id) {
+        const block = props.blocks.find(
+            (item) => item.id === props.filters.block_id,
+        );
+        items.push({
+            key: 'block_id',
+            label: block
+                ? `Blok: ${block.code} · ${block.name}`
+                : 'Blok: Tidak tersedia',
+        });
+    }
+
+    if (props.filters.subblok_id) {
+        const subblok = props.subbloks.find(
+            (item) => item.id === props.filters.subblok_id,
+        );
+        items.push({
+            key: 'subblok_id',
+            label: subblok
+                ? `Subblok: ${subblok.label ?? `Subblok ${subblok.number}`}`
+                : 'Subblok: Tidak tersedia',
+        });
+    }
+
+    if (props.filters.status) {
+        const label =
+            adminTaskStatusLabels[props.filters.status as AdminTaskStatus] ??
+            props.filters.status;
+        items.push({ key: 'status', label: `Status: ${label}` });
+    }
+
+    if (props.filters.category) {
+        const label =
+            sopActivityCategoryLabels[
+                props.filters.category as AdminTaskCategory
+            ] ?? props.filters.category;
+        items.push({ key: 'category', label: `Kategori: ${label}` });
+    }
+
+    return items;
+});
+
+const filterCount = computed(
+    () => appliedFilters.value.filter((item) => item.key !== 'search').length,
 );
+
 const hasFilters = computed(
-    () =>
-        !!form.search ||
-        !!form.farm_id ||
-        !!form.block_id ||
-        !!form.subblok_id ||
-        !!form.status ||
-        !!form.category ||
-        form.view !== 'actionable',
+    () => appliedFilters.value.length > 0 || form.view !== 'actionable',
 );
-const summaryCards = computed(() => [
-    {
-        label: 'Total tugas',
-        value: props.summary.total,
-        tone: 'text-foreground',
-    },
-    {
-        label: 'Terbuka',
-        value: props.summary.open,
-        tone: 'text-primary',
-    },
-    {
-        label: 'Terlambat',
-        value: props.summary.overdue,
-        tone: 'text-error',
-    },
-    {
-        label: 'Hari ini',
-        value: props.summary.today,
-        tone: 'text-warning',
-    },
-    {
-        label: 'Selesai / tidak dikerjakan',
-        value: props.summary.completed,
-        tone: 'text-success',
-    },
-]);
+
 const emptyCopy = computed(() => {
     if (hasFilters.value) {
         return {
@@ -132,20 +177,6 @@ const emptyCopy = computed(() => {
     };
 });
 
-function changeFarm(): void {
-    form.block_id = '';
-    form.subblok_id = '';
-}
-
-function changeBlock(): void {
-    if (
-        form.subblok_id &&
-        !subblokOptions.value.some((subblok) => subblok.id === form.subblok_id)
-    ) {
-        form.subblok_id = '';
-    }
-}
-
 function selectView(view: AdminTaskView): void {
     if (form.processing) return;
     form.view = view;
@@ -154,7 +185,9 @@ function selectView(view: AdminTaskView): void {
 }
 
 function changeStatus(): void {
-    if (form.status) form.view = 'all';
+    if (form.status) {
+        form.view = 'all';
+    }
 }
 
 function apply(): void {
@@ -162,7 +195,40 @@ function apply(): void {
         preserveState: true,
         preserveScroll: true,
         replace: true,
+        onSuccess: () => {
+            showFilters.value = false;
+        },
+        onError: (errors) => {
+            if (
+                errors.farm_id ||
+                errors.block_id ||
+                errors.subblok_id ||
+                errors.status ||
+                errors.category
+            ) {
+                showFilters.value = true;
+            }
+        },
     });
+}
+
+function clearFilter(
+    key:
+        | 'search'
+        | 'farm_id'
+        | 'block_id'
+        | 'subblok_id'
+        | 'status'
+        | 'category',
+): void {
+    form[key] = '';
+    if (key === 'farm_id') {
+        form.block_id = '';
+        form.subblok_id = '';
+    } else if (key === 'block_id') {
+        form.subblok_id = '';
+    }
+    apply();
 }
 
 function reset(): void {
@@ -173,308 +239,163 @@ function reset(): void {
     form.status = '';
     form.category = '';
     form.view = 'actionable';
+    form.clearErrors();
     apply();
 }
 </script>
 
 <template>
     <Head title="Tugas Operasional" />
-    <div class="space-y-6">
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p
-                    class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase"
-                >
-                    Operasional / Tugas
-                </p>
-                <h1 class="admin-page-title tracking-tight">
-                    Tugas operasional
-                </h1>
-                <p
-                    class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground"
-                >
-                    Pantau tugas yang dihasilkan dari SOP subblok. Lepaskan,
-                    batalkan, atau jadwalkan ulang tugas yang belum dikerjakan.
-                </p>
-            </div>
-        </header>
-
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <div
-                v-for="item in summaryCards"
-                :key="item.label"
-                class="rounded-xl border border-border bg-card p-4"
-            >
-                <p class="text-xs text-muted-foreground">{{ item.label }}</p>
-                <p class="admin-metric-value mt-2" :class="item.tone">
-                    {{ item.value }}
-                </p>
-            </div>
-        </div>
-
-        <div
-            class="flex flex-wrap gap-2"
-            role="group"
-            aria-label="Tampilan tugas"
-        >
-            <button
-                v-for="[value, label] in adminTaskViewOptions"
-                :key="value"
-                type="button"
-                :aria-pressed="form.view === value"
-                class="min-h-11 shrink-0 rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60"
-                :class="
-                    form.view === value
-                        ? 'border-secondary bg-secondary text-secondary-foreground'
-                        : 'border-border bg-card text-muted-foreground hover:bg-muted/40'
-                "
-                :disabled="form.processing"
-                @click="selectView(value)"
-            >
-                {{ label }}
-            </button>
-        </div>
+    <div class="space-y-[18px]" :aria-busy="form.processing">
+        <TaskSummaryCards :summary="summary" />
 
         <section
-            class="overflow-hidden rounded-xl border border-border bg-card"
+            class="user-directory rounded-xl bg-card"
+            aria-label="Daftar tugas operasional"
         >
-            <div class="border-b border-border p-4 md:p-5">
-                <div class="mb-4 flex items-center gap-2">
-                    <h2 class="admin-section-title">Daftar tugas</h2>
-                    <span
-                        class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
-                    >
-                        {{ tasks.total }}
-                    </span>
-                </div>
+            <div class="user-directory-inset">
+                <TaskViewTabs
+                    :active="activeTabView"
+                    :summary="summary"
+                    :processing="form.processing"
+                    @select="selectView"
+                />
+            </div>
+
+            <div class="user-directory-toolbar">
                 <form
-                    class="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-4"
+                    class="flex min-w-0 flex-1 basis-64 items-center gap-2"
                     @submit.prevent="apply"
                 >
-                    <FarmField
-                        id="task-search"
-                        label="Cari"
-                        :error="form.errors.search"
-                        class="sm:col-span-2"
-                        v-slot="field"
-                    >
+                    <div class="min-w-0 grow">
+                        <label for="search-tasks" class="sr-only"
+                            >Cari tugas</label
+                        >
                         <div class="relative">
                             <Search
-                                class="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground"
+                                class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                                 aria-hidden="true"
-                            />
-                            <input
-                                :id="field.id"
+                            /><input
+                                id="search-tasks"
                                 v-model="form.search"
-                                class="admin-field pl-9!"
                                 type="search"
+                                class="admin-field pl-10!"
+                                placeholder="Cari nama tugas, kebun, blok, atau subblok…"
                                 maxlength="100"
-                                placeholder="Nama tugas, kebun, blok, atau subblok"
-                                :aria-invalid="field.invalid"
-                                :aria-describedby="field.description"
+                                :disabled="form.processing"
+                                :aria-invalid="!!form.errors.search"
+                                :aria-describedby="
+                                    form.errors.search
+                                        ? 'tasks-search-error'
+                                        : undefined
+                                "
                             />
                         </div>
-                    </FarmField>
-                    <FarmField
-                        id="task-farm"
-                        label="Kebun"
-                        :error="form.errors.farm_id"
-                        v-slot="field"
-                    >
-                        <select
-                            :id="field.id"
-                            v-model="form.farm_id"
-                            class="admin-field"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                            @change="changeFarm"
-                        >
-                            <option value="">Semua kebun</option>
-                            <option
-                                v-for="farm in farms"
-                                :key="farm.id"
-                                :value="farm.id"
-                            >
-                                {{ farm.name }}
-                            </option>
-                        </select>
-                    </FarmField>
-                    <FarmField
-                        id="task-block"
-                        label="Blok"
-                        :error="form.errors.block_id"
-                        v-slot="field"
-                    >
-                        <select
-                            :id="field.id"
-                            v-model="form.block_id"
-                            class="admin-field"
-                            :disabled="!form.farm_id"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                            @change="changeBlock"
-                        >
-                            <option value="">
-                                {{
-                                    form.farm_id
-                                        ? 'Semua blok'
-                                        : 'Pilih kebun terlebih dahulu'
-                                }}
-                            </option>
-                            <option
-                                v-for="block in blockOptions"
-                                :key="block.id"
-                                :value="block.id"
-                            >
-                                {{ block.code }} · {{ block.name }}
-                            </option>
-                        </select>
-                    </FarmField>
-                    <FarmField
-                        id="task-subblok"
-                        label="Subblok"
-                        :error="form.errors.subblok_id"
-                        v-slot="field"
-                    >
-                        <select
-                            :id="field.id"
-                            v-model="form.subblok_id"
-                            class="admin-field"
-                            :disabled="!form.block_id"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                        >
-                            <option value="">
-                                {{
-                                    form.block_id
-                                        ? 'Semua subblok'
-                                        : form.farm_id
-                                          ? 'Pilih blok terlebih dahulu'
-                                          : 'Pilih kebun terlebih dahulu'
-                                }}
-                            </option>
-                            <option
-                                v-for="subblok in subblokOptions"
-                                :key="subblok.id"
-                                :value="subblok.id"
-                            >
-                                {{
-                                    subblok.label ?? `Subblok ${subblok.number}`
-                                }}
-                            </option>
-                        </select>
-                    </FarmField>
-                    <FarmField
-                        id="task-status"
-                        label="Status"
-                        :error="form.errors.status"
-                        v-slot="field"
-                    >
-                        <select
-                            :id="field.id"
-                            v-model="form.status"
-                            class="admin-field"
-                            @change="changeStatus"
-                        >
-                            <option value="">Semua status</option>
-                            <option
-                                v-for="[value, label] in adminTaskStatusOptions"
-                                :key="value"
-                                :value="value"
-                            >
-                                {{ label }}
-                            </option>
-                        </select>
-                    </FarmField>
-                    <FarmField
-                        id="task-category"
-                        label="Kategori"
-                        :error="form.errors.category"
-                        v-slot="field"
-                    >
-                        <select
-                            :id="field.id"
-                            v-model="form.category"
-                            class="admin-field"
-                        >
-                            <option value="">Semua kategori</option>
-                            <option
-                                v-for="[
-                                    value,
-                                    label,
-                                ] in adminTaskCategoryOptions"
-                                :key="value"
-                                :value="value"
-                            >
-                                {{ label }}
-                            </option>
-                        </select>
-                    </FarmField>
-                    <div
-                        class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-4"
-                    >
-                        <select
-                            v-model.number="form.per_page"
-                            class="admin-field w-auto!"
-                            aria-label="Jumlah per halaman"
-                        >
-                            <option :value="15">15 / halaman</option>
-                            <option :value="30">30 / halaman</option>
-                            <option :value="50">50 / halaman</option>
-                        </select>
-                        <Button
-                            type="submit"
-                            class="h-10 rounded-xl"
-                            :disabled="form.processing"
-                        >
-                            <LoaderCircle
-                                v-if="form.processing"
-                                class="animate-spin"
-                            />
-                            <Search v-else />Terapkan
-                        </Button>
-                        <Button
-                            v-if="hasFilters"
-                            type="button"
-                            variant="ghost"
-                            :disabled="form.processing"
-                            @click="reset"
-                        >
-                            Reset filter
-                        </Button>
                     </div>
+                    <Button
+                        type="submit"
+                        variant="outline"
+                        class="size-10 shrink-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                        aria-label="Cari tugas"
+                        title="Cari tugas"
+                        :disabled="form.processing"
+                    >
+                        <LoaderCircle
+                            v-if="form.processing"
+                            class="animate-spin motion-reduce:animate-none"
+                        />
+                        <Search v-else class="size-4" />
+                    </Button>
                 </form>
+
+                <div class="flex shrink-0 items-center gap-2">
+                    <TaskFiltersPopover
+                        v-model:open="showFilters"
+                        v-model:farm-id="form.farm_id"
+                        v-model:block-id="form.block_id"
+                        v-model:subblok-id="form.subblok_id"
+                        v-model:status="form.status"
+                        v-model:category="form.category"
+                        :farms="farms"
+                        :blocks="blocks"
+                        :subbloks="subbloks"
+                        :processing="form.processing"
+                        :count="filterCount"
+                        :errors="form.errors"
+                        @status-change="changeStatus"
+                        @apply="apply"
+                        @reset="reset"
+                    />
+                </div>
             </div>
+
+            <div
+                v-if="appliedFilters.length"
+                class="user-directory-inset mb-4 flex flex-wrap items-center gap-2"
+                aria-label="Filter yang diterapkan"
+            >
+                <button
+                    v-for="item in appliedFilters"
+                    :key="item.key"
+                    type="button"
+                    class="inline-flex max-w-full items-center gap-2 rounded-md bg-accent/60 px-2.5 py-1.5 text-xs text-accent-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+                    :disabled="form.processing"
+                    :aria-label="'Hapus filter ' + item.label"
+                    @click="clearFilter(item.key)"
+                >
+                    <span class="break-words">{{ item.label }}</span
+                    ><X class="size-3.5 shrink-0" />
+                </button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    :disabled="form.processing"
+                    @click="reset"
+                    >Reset semua</Button
+                >
+            </div>
+
+            <p
+                v-if="Object.keys(form.errors).length"
+                id="tasks-search-error"
+                role="alert"
+                class="user-directory-inset mb-4 text-sm text-error"
+            >
+                {{ Object.values(form.errors)[0] }}
+            </p>
 
             <div
                 v-if="form.processing"
-                class="space-y-4 p-6"
+                class="user-directory-inset space-y-3 py-5"
                 role="status"
                 aria-label="Memuat tugas"
             >
                 <div
                     v-for="row in 3"
                     :key="row"
-                    class="h-12 animate-pulse rounded-xl bg-muted"
+                    class="h-[72px] animate-pulse rounded-xl bg-muted motion-reduce:animate-none"
                 />
-                <p class="text-sm text-muted-foreground">Memuat tugas.</p>
+                <p class="text-sm text-muted-foreground">Memuat tugas…</p>
             </div>
+
             <div v-else-if="!tasks.data.length" class="px-5 py-16 text-center">
                 <div
-                    class="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent text-primary"
+                    class="mx-auto flex size-14 items-center justify-center rounded-full bg-accent text-primary"
                 >
-                    <ClipboardList class="size-7" />
+                    <ClipboardList class="size-6" />
                 </div>
-                <h3 class="mt-4 font-semibold">{{ emptyCopy.title }}</h3>
+                <h2 class="mt-4 text-base font-semibold">
+                    {{ emptyCopy.title }}
+                </h2>
                 <p
-                    class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground"
+                    class="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground"
                 >
                     {{ emptyCopy.description }}
                 </p>
                 <Button
                     v-if="hasFilters"
                     variant="outline"
-                    class="mt-5 rounded-xl"
+                    class="mt-5"
                     @click="reset"
                     >Reset filter</Button
                 >
@@ -482,43 +403,26 @@ function reset(): void {
 
             <template v-else>
                 <div
-                    class="hidden overflow-x-auto md:block"
+                    class="user-directory-inset hidden overflow-x-auto md:block"
                     role="region"
                     aria-label="Tabel tugas operasional"
                     tabindex="0"
                 >
-                    <table class="w-full text-left text-sm">
-                        <thead
-                            class="bg-muted/50 text-xs text-muted-foreground"
-                        >
+                    <table
+                        class="user-directory-table w-full min-w-[820px] text-left text-sm"
+                    >
+                        <thead>
                             <tr>
-                                <th scope="col" class="px-5 py-3 font-semibold">
-                                    Tugas
-                                </th>
-                                <th scope="col" class="px-5 py-3 font-semibold">
-                                    Lokasi
-                                </th>
-                                <th scope="col" class="px-5 py-3 font-semibold">
-                                    Jadwal
-                                </th>
-                                <th scope="col" class="px-5 py-3 font-semibold">
-                                    Status
-                                </th>
-                                <th
-                                    scope="col"
-                                    class="px-5 py-3 text-right font-semibold"
-                                >
-                                    Tindakan
-                                </th>
+                                <th scope="col">Tugas</th>
+                                <th scope="col">Lokasi</th>
+                                <th scope="col">Jadwal</th>
+                                <th scope="col">Status</th>
+                                <th scope="col" class="text-right">Tindakan</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-border">
-                            <tr
-                                v-for="task in tasks.data"
-                                :key="task.id"
-                                class="align-top hover:bg-muted/40"
-                            >
-                                <td class="px-5 py-4">
+                        <tbody>
+                            <tr v-for="task in tasks.data" :key="task.id">
+                                <td>
                                     <Link
                                         :href="`/admin/tasks/${task.id}`"
                                         class="font-semibold hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
@@ -531,8 +435,10 @@ function reset(): void {
                                         {{ adminTaskCategoryLabel(task) }}
                                     </p>
                                 </td>
-                                <td class="px-5 py-4">
-                                    <p>{{ task.farm?.name ?? '-' }}</p>
+                                <td>
+                                    <p class="font-medium">
+                                        {{ task.farm?.name ?? '-' }}
+                                    </p>
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
@@ -546,8 +452,10 @@ function reset(): void {
                                         >
                                     </p>
                                 </td>
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    <p>{{ adminTaskHst(task.offset_days) }}</p>
+                                <td class="whitespace-nowrap">
+                                    <p class="font-medium">
+                                        {{ adminTaskHst(task.offset_days) }}
+                                    </p>
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
@@ -581,10 +489,10 @@ function reset(): void {
                                         {{ adminTaskDate(task.due_date) }}
                                     </p>
                                 </td>
-                                <td class="px-5 py-4">
+                                <td>
                                     <div class="flex flex-wrap gap-2">
                                         <span
-                                            class="rounded-full px-2.5 py-1 text-xs font-medium"
+                                            class="rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap"
                                             :class="
                                                 adminTaskStatusClass(
                                                     task.status,
@@ -598,7 +506,7 @@ function reset(): void {
                                             }}
                                         </span>
                                         <span
-                                            class="rounded-full px-2.5 py-1 text-xs font-medium"
+                                            class="rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap"
                                             :class="
                                                 adminTaskUrgencyClass(
                                                     task.urgency,
@@ -613,13 +521,14 @@ function reset(): void {
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-5 py-4">
+                                <td class="text-right">
                                     <div class="flex justify-end gap-1">
                                         <TaskQuickActions :task="task" />
                                         <Button
                                             as-child
                                             variant="ghost"
                                             size="icon"
+                                            class="rounded-xl"
                                             :aria-label="`Lihat ${task.name}`"
                                         >
                                             <Link
@@ -635,27 +544,32 @@ function reset(): void {
                 </div>
 
                 <ul
-                    class="divide-y divide-border md:hidden"
+                    class="user-directory-inset space-y-3 pb-4 md:hidden"
                     aria-label="Daftar tugas operasional"
                 >
-                    <li v-for="task in tasks.data" :key="task.id" class="p-4">
+                    <li
+                        v-for="task in tasks.data"
+                        :key="task.id"
+                        class="space-y-3 rounded-xl bg-background p-4"
+                    >
                         <Link
                             :href="`/admin/tasks/${task.id}`"
-                            class="flex items-start justify-between gap-3 font-semibold"
+                            class="flex items-start justify-between gap-3 font-semibold hover:text-primary"
                         >
                             <span>{{ task.name }}</span>
                             <ArrowUpRight
                                 class="size-4 shrink-0 text-primary"
                             />
                         </Link>
-                        <p class="mt-1 text-xs text-muted-foreground">
+                        <p class="text-xs text-muted-foreground">
+                            {{ adminTaskCategoryLabel(task) }} ·
                             {{ task.farm?.name ?? '-' }} ·
                             {{ task.block?.code ?? '-' }}
                             <template v-if="task.subblok?.label">
                                 · {{ task.subblok.label }}</template
                             >
                         </p>
-                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <span
                                 class="rounded-full px-2.5 py-1 text-xs font-medium"
                                 :class="adminTaskStatusClass(task.status)"
@@ -687,40 +601,98 @@ function reset(): void {
                                 }}
                             </span>
                         </div>
-                        <div class="mt-3">
+                        <div
+                            v-if="task.can.update"
+                            class="border-t border-border pt-3"
+                        >
                             <TaskQuickActions :task="task" show-labels />
                         </div>
                     </li>
                 </ul>
+            </template>
 
-                <div
-                    v-if="tasks.last_page > 1"
-                    class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm"
-                >
-                    <p class="text-muted-foreground">
-                        Menampilkan {{ tasks.from }}–{{ tasks.to }} dari
-                        {{ tasks.total }}
-                    </p>
-                    <div class="flex gap-2">
+            <footer class="user-directory-footer">
+                <p class="text-xs text-muted-foreground" role="status">
+                    {{
+                        tasks.total
+                            ? `Menampilkan ${tasks.from}–${tasks.to} dari ${tasks.total} tugas`
+                            : '0 tugas ditemukan'
+                    }}
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="w-36">
+                        <AppSelect
+                            id="tasks-page-size"
+                            v-model="form.per_page"
+                            class="admin-field"
+                            aria-label="Jumlah tugas per halaman"
+                            :disabled="form.processing"
+                            @change="apply"
+                        >
+                            <AppSelectOption :value="15"
+                                >15 / halaman</AppSelectOption
+                            >
+                            <AppSelectOption :value="30"
+                                >30 / halaman</AppSelectOption
+                            >
+                            <AppSelectOption :value="50"
+                                >50 / halaman</AppSelectOption
+                            >
+                        </AppSelect>
+                    </div>
+                    <nav
+                        class="flex items-center gap-1"
+                        aria-label="Pagination tugas"
+                    >
                         <Button
                             v-if="tasks.prev_page_url"
                             as-child
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Halaman sebelumnya"
                         >
-                            <Link :href="tasks.prev_page_url">Sebelumnya</Link>
+                            <Link :href="tasks.prev_page_url" preserve-scroll
+                                ><ChevronLeft
+                            /></Link>
                         </Button>
+                        <Button
+                            v-else
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled
+                            aria-label="Halaman sebelumnya"
+                        >
+                            <ChevronLeft />
+                        </Button>
+                        <span
+                            aria-current="page"
+                            class="px-2 text-xs font-semibold tabular-nums"
+                        >
+                            {{ tasks.current_page }} / {{ tasks.last_page }}
+                        </span>
                         <Button
                             v-if="tasks.next_page_url"
                             as-child
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Halaman berikutnya"
                         >
-                            <Link :href="tasks.next_page_url">Berikutnya</Link>
+                            <Link :href="tasks.next_page_url" preserve-scroll
+                                ><ChevronRight
+                            /></Link>
                         </Button>
-                    </div>
+                        <Button
+                            v-else
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled
+                            aria-label="Halaman berikutnya"
+                        >
+                            <ChevronRight />
+                        </Button>
+                    </nav>
                 </div>
-            </template>
+            </footer>
         </section>
     </div>
 </template>

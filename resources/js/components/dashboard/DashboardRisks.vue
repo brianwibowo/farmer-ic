@@ -70,5 +70,12 @@ defineProps<{ risks: DashboardData['risks'] }>();
                 Risiko kebun yang perlu ditinjau akan muncul di sini.
             </p>
         </div>
+        <p
+            v-if="risks.total > risks.items.length"
+            class="mt-3 text-xs text-muted-foreground"
+        >
+            Menampilkan {{ risks.items.length }} dari {{ risks.total }} risiko,
+            diurutkan dari yang terbaru.
+        </p>
     </article>
 </template>

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { extractDelta, parseMessage, sortChatMessages } from './aiChatProtocol';
 
 describe('chat message presentation', () => {
