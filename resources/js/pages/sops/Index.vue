@@ -6,7 +6,6 @@ import {
     ArrowDownWideNarrow,
     ArrowUpRight,
     ArrowUpWideNarrow,
-    CheckCircle2,
     ChevronLeft,
     ChevronRight,
     ClipboardList,
@@ -15,13 +14,13 @@ import {
     Plus,
     Search,
     SlidersHorizontal,
-    Sprout,
     Trash2,
     X,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import DeleteSopDialog from '@/components/sops/DeleteSopDialog.vue';
+import SopSummaryCards from '@/components/sops/SopSummaryCards.vue';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -148,28 +147,9 @@ const directionDescription = computed(() => {
     return `Urutan ${labels[ascending ? 0 : 1]}. Ubah menjadi ${labels[ascending ? 1 : 0]}.`;
 });
 
-const summaryCards = computed(() => [
-    {
-        label: 'Total template',
-        value: props.summary?.total ?? props.sops.total,
-        unit: 'template',
-        icon: ClipboardList,
-    },
-    {
-        label: 'Template aktif',
-        value:
-            props.summary?.active ??
-            props.sops.data.filter((item) => item.is_active).length,
-        unit: 'aktif',
-        icon: CheckCircle2,
-    },
-    {
-        label: 'Komoditas terdaftar',
-        value: props.commodities.length,
-        unit: 'komoditas',
-        icon: Sprout,
-    },
-]);
+const activePageCount = computed(
+    () => props.sops.data.filter((item) => item.is_active).length,
+);
 
 function apply(): void {
     form.get('/admin/sops', {
@@ -208,38 +188,15 @@ function reset(): void {
 <template>
     <Head title="SOP" />
     <div class="space-y-[18px]">
-        <div class="grid grid-cols-3 gap-2 sm:gap-4">
-            <div
-                v-for="item in summaryCards"
-                :key="item.label"
-                class="admin-card min-w-0 rounded-xl border border-border bg-card p-3 sm:p-5"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <p
-                        class="min-h-10 text-xs leading-5 text-muted-foreground sm:min-h-0 sm:text-sm"
-                    >
-                        {{ item.label }}
-                    </p>
-                    <component
-                        :is="item.icon"
-                        class="hidden size-5 shrink-0 text-primary sm:block"
-                        aria-hidden="true"
-                    />
-                </div>
-                <p
-                    class="admin-metric-value mt-2 text-xl! tracking-tight sm:mt-4 sm:text-3xl!"
-                >
-                    {{ item.value }}
-                    <span
-                        class="ml-1 text-xs font-medium text-muted-foreground sm:ml-2 sm:text-sm"
-                        >{{ item.unit }}</span
-                    >
-                </p>
-            </div>
-        </div>
+        <SopSummaryCards
+            :total="sops.total"
+            :active="activePageCount"
+            :commodities="commodities"
+            :summary="summary"
+        />
 
         <section
-            class="admin-card overflow-hidden rounded-xl border border-border bg-card"
+            class="admin-card overflow-hidden rounded-xl bg-card"
         >
             <div class="border-b border-border p-4 md:p-5">
                 <div class="mb-4 flex items-center gap-2">

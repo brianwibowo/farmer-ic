@@ -121,11 +121,15 @@ jobs:
                         rmdir "$DOCKER_CONFIG" 2>/dev/null || true
                       }
                       trap cleanup_registry_login EXIT
-                      printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin >/dev/null
+                      . docker/registry-retry.sh
+                      registry_login() {
+                        printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin >/dev/null
+                      }
+                      registry_retry registry_login
                       unset REGISTRY_TOKEN
                       export APP_IMAGE_REF="$RELEASE_IMAGE_REF"
 
-                      docker compose --env-file .env.production -f compose.production.yaml --profile rag pull app
+                      registry_retry docker compose --env-file .env.production -f compose.production.yaml --profile rag pull app
 
                       # Verify the actual connection and isolated namespaces, not
                       # just values that a DB_URL/REDIS_URL could override.

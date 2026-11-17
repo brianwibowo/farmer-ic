@@ -184,6 +184,35 @@ It uses the existing persisted demo Superadmin with native policy checks for
 fixture writes; Owner remains read-only. All new records belong to that demo
 tenant. The complete portfolio is inserted in one transaction.
 
+New portfolio activities are linked to a shared daily header per farm and
+Jakarta work date. Existing deterministic portfolio activities without a header
+are linked on rerun only when a header for the same farm and date already exists.
+Otherwise they remain unchanged; their details are still readable without a daily
+header. Existing headers, activity details, and non-portfolio activities are not
+overwritten. New demo headers use illustrative 08:00–16:00 hours, explicitly
+identified as demo data in their notes.
+If the portfolio farms and batches already exist, run only the activity seeder
+on the intended demo database to repair missing links without resetting it:
+
+```sh
+php artisan --env=local db:seed --database=pgsql --class=DemoOwnerPortfolioActivitySeeder
+```
+
+This targeted seeder may also add other missing portfolio activity, observation,
+weather, risk, and photo fixtures, update preparation stages for newly seeded
+activities, and close a harvested demo cycle when applicable. It does not repair
+unrelated legacy activities. Review those effects before running it on an existing
+demo installation.
+
+`DemoActivitySeeder`, run by the standard seed, also recognizes the original
+`Panen percobaan Blok 2` fixture by its tenant, farm, performer, type, date and
+harvest details. On local/testing PostgreSQL it links that fixture only if a
+header for the same farm and date already exists. Otherwise it remains unchanged.
+The report detail and date filter support activities without a daily header;
+working hours are not invented. These rules do not modify other legacy data.
+Only run demo seeders on an intended demo database: environment names alone
+do not prove that the target is safe.
+
 | New site | Land (ha) | Land tenure | Commodity/variety | Batch snapshot |
 | --- | ---: | --- | --- | --- |
 | Kebun Sukamaju | 8 | Owned | Rumput / Pakchong | 3.25 ha active; 1.75 ha harvested |

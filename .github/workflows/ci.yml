@@ -100,6 +100,7 @@ jobs:
           bash tests/Deployment/entrypoint-test.sh
           python3 tests/Deployment/compose-config-test.py
           python3 tests/Deployment/release-image-metadata-test.py
+          python3 tests/Deployment/registry-retry-test.py
 
       - name: Prepare disposable test configuration
         run: |
