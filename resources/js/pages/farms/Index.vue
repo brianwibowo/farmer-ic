@@ -123,11 +123,7 @@ function reset(): void {
 <template>
     <Head :title="sectionTitle" />
     <div class="space-y-[18px]">
-        <FarmSummaryCards
-            :summary="summary"
-            :farms="farms.data"
-            :location-options="locationOptions"
-        />
+        <FarmSummaryCards :summary="summary" />
 
         <section class="admin-card overflow-hidden rounded-xl bg-card">
             <div class="border-b border-border p-4 md:p-5">

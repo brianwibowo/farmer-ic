@@ -126,10 +126,8 @@ function rowSubblock(row: PlantingTransactionRow): string {
         <TransactionSummaryCards
             mode="planting"
             :subblocks="summary.subblocks"
-            :reports="summary.reports"
             :area-ha="summary.area_ha"
             :primary-metric-value="summary.seed_kg"
-            :row-areas="transactions.data.map((row) => Number(row.area_ha) || 0)"
         />
 
         <section class="admin-card overflow-hidden rounded-xl bg-card">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowUpRight, MapPin, Sprout } from '@lucide/vue';
+import { ArrowUpRight, LandPlot, MapPin, Ruler, Sprout } from '@lucide/vue';
+import SummaryStatCard from '@/components/SummaryStatCard.vue';
 import { watch } from 'vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import OwnerPagination from '@/components/owner/OwnerPagination.vue';
@@ -38,17 +39,8 @@ watch(
         description="Lihat lahan, blok, dan perjalanan tanam pada tenant aktif."
     />
     <div class="grid grid-cols-2 gap-3">
-        <article class="rounded-xl bg-muted p-4">
-            <p class="text-xs text-muted-foreground">Lahan dalam tenant</p>
-            <p class="mt-2 text-2xl font-semibold">{{ summary.count }}</p>
-        </article>
-        <article class="rounded-xl bg-muted p-4">
-            <p class="text-xs text-muted-foreground">Luas terdaftar</p>
-            <p class="mt-2 text-2xl font-semibold break-words">
-                {{ ownerArea(summary.area_ha) }}
-                <span class="text-xs font-normal">ha</span>
-            </p>
-        </article>
+        <SummaryStatCard label="Total lahan" :value="summary.count" :icon="LandPlot" />
+        <SummaryStatCard label="Luas terdaftar (ha)" :value="ownerArea(summary.area_ha)" :icon="Ruler" />
     </div>
     <form
         class="space-y-3 rounded-xl border border-border p-4"

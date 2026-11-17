@@ -180,9 +180,6 @@ const coordinates = computed<[number, number] | null>(() =>
                             >ha</span
                         >
                     </dd>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                        Total luas lahan terdaftar.
-                    </p>
                 </div>
                 <div>
                     <dt
@@ -228,9 +225,6 @@ const coordinates = computed<[number, number] | null>(() =>
                             >Belum diisi</span
                         >
                     </dd>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                        Target hasil panen yang ditetapkan.
-                    </p>
                 </div>
                 <div>
                     <dt

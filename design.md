@@ -1029,6 +1029,16 @@ Place page size and pagination in the table footer. Preserve detail/edit/delete
 permissions and workflows. Detail and create/edit forms use the same admin-panel
 surfaces, emerald titles and 18px gaps; keep the cascading address selectors.
 
+### Stat cards outside dashboards
+
+Use `SummaryStatCard` for non-dashboard summary metrics. Each card contains
+only its label, primary value and one icon. Omit descriptive footnotes, badges,
+secondary counts, mini charts, gauges, progress bars and decorative graphics.
+Put measurement units in the label (for example Luas terdaftar (ha)) so the
+value remains unambiguous. Retain scoped backend totals, semantic theme colors,
+20px corners, bold metric typography and responsive grids. This rule does not
+change Admin/Owner/Petugas dashboard or Executive Summary cards.
+
 ### User Management pages
 
 Keep a standalone stat-card grid followed by the content card containing
