@@ -30,10 +30,16 @@ class PlantingActivityService
     ) {}
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, PlantingCycle> */
-    public function cycles(User $actor, Farm $farm): \Illuminate\Database\Eloquent\Collection
+    public function cycles(User $actor, Farm $farm, ?FarmBlock $block = null): \Illuminate\Database\Eloquent\Collection
     {
-        return PlantingCycle::visibleTo($actor, $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
-            ->orderBy('batch_number')->get();
+        return PlantingCycle::visibleTo($actor, $farm->team)
+            ->where('farm_id', $farm->id)
+            ->whereNotNull('block_id')
+            ->when($block !== null, fn ($query) => $query->where('block_id', $block->id))
+            ->orderByDesc('created_at')
+            ->orderByDesc('batch_number')
+            ->orderByDesc('id')
+            ->get();
     }
 
     /** @return array<string, mixed> */

@@ -32,6 +32,7 @@ const props = defineProps<{
     selectedBlockId?: string | null;
     lockBlock?: boolean;
     returnTo: 'kebun' | 'penanaman';
+    workDate?: string | null;
 }>();
 
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
@@ -45,6 +46,7 @@ const clientBlockError = ref('');
 
 const form = useForm({
     return_to: props.returnTo,
+    work_date: props.workDate ?? null,
     subblock_label: '',
     planned_planting_at: '',
 });
@@ -52,9 +54,7 @@ const form = useForm({
 const selectedBlock = computed(
     () =>
         props.blocks.find((block) => block.id === chosenBlockId.value) ??
-        eligibleBlocks.value.find(
-            (block) => Number(block.available_ha) > 0,
-        ) ??
+        eligibleBlocks.value.find((block) => Number(block.available_ha) > 0) ??
         eligibleBlocks.value[0] ??
         null,
 );
@@ -85,6 +85,7 @@ watch(
         chosenBlockId.value = preferred;
         clientBlockError.value = '';
         form.return_to = props.returnTo;
+        form.work_date = props.workDate ?? null;
         form.subblock_label = '';
         form.planned_planting_at = '';
         form.clearErrors();
@@ -171,8 +172,11 @@ const fieldClass =
                         class="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3"
                     >
                         <div class="min-w-0">
-                            <p class="text-xs font-medium text-muted-foreground">
-                                {{ selectedBlock.code }} · {{ selectedBlock.name }}
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                {{ selectedBlock.code }} ·
+                                {{ selectedBlock.name }}
                             </p>
                             <p class="mt-0.5 text-xs text-muted-foreground">
                                 Sisa lahan untuk penanaman
@@ -190,7 +194,10 @@ const fieldClass =
                     <FormErrorSummary
                         :errors="errors"
                         :fields="{
-                            block_id: { id: 'petugas-subblok-block', label: 'Blok' },
+                            block_id: {
+                                id: 'petugas-subblok-block',
+                                label: 'Blok',
+                            },
                             subblock_label: {
                                 id: 'petugas-subblok-label',
                                 label: 'Label subblok',

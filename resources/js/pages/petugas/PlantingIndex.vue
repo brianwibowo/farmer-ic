@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import {
-    ArrowLeft,
-    LoaderCircle,
-    Plus,
-    RefreshCw,
-    Sprout,
-} from '@lucide/vue';
+import { ArrowLeft, LoaderCircle, Plus, RefreshCw, Sprout } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import SubblokCreateDialog, {
     type SubblokBlockOption,
@@ -17,7 +11,8 @@ import type { PlantingCycleContext } from '@/types/planting';
 
 const props = defineProps<{
     farm: { id: string; name: string };
-    blocks: (SubblokBlockOption & { area_ha: string })[];
+    blocks: (SubblokBlockOption & { area_ha: string; cycles_count: number })[];
+    selectedBlockId: string | null;
     cycles: (PlantingCycleContext & {
         canRecord: boolean;
         canSync: boolean;
@@ -28,6 +23,12 @@ const syncForm = useForm({});
 const activityDate = useActivityDate();
 const pendingId = ref<string | null>(null);
 const createOpen = ref(false);
+const workDateParam = computed(() =>
+    activityDate.value ? activityDate.value.slice('?work_date='.length) : null,
+);
+const totalCyclesCount = computed(() =>
+    props.blocks.reduce((sum, block) => sum + block.cycles_count, 0),
+);
 const canCreateSubblok = computed(() =>
     props.blocks.some((block) => block.is_active && block.can_create_batch),
 );
@@ -39,6 +40,15 @@ const hasAvailableBlock = computed(() =>
             Number(block.available_ha) > 0,
     ),
 );
+function blockFilterHref(blockId: string | null): string {
+    const params = new URLSearchParams();
+    if (blockId) params.set('block', blockId);
+    if (activityDate.value) {
+        params.set('work_date', activityDate.value.slice('?work_date='.length));
+    }
+    const query = params.toString();
+    return query ? `/petugas/penanaman?${query}` : '/petugas/penanaman';
+}
 function synchronize(id: string): void {
     if (syncForm.processing) return;
     pendingId.value = id;
@@ -85,13 +95,13 @@ function synchronize(id: string): void {
                 </Button>
             </div>
         </header>
-        <p
+        <!-- <p
             class="rounded-xl border border-border bg-muted/50 p-4 text-sm leading-6"
         >
             Pilih subblok yang tersedia atau tambah subblok baru pada blok
             aktif. Penanaman lanjutan dibatasi tiga hari kalender sejak tanggal
             pelaksanaan pertama.
-        </p>
+        </p> -->
         <p
             v-if="canCreateSubblok && !hasAvailableBlock"
             class="text-xs text-muted-foreground"
@@ -99,16 +109,60 @@ function synchronize(id: string): void {
             Kapasitas seluruh blok sudah penuh. Subblok baru dapat ditambahkan
             setelah siklus tanam berjalan selesai.
         </p>
+        <nav
+            v-if="blocks.length"
+            aria-label="Filter blok kebun"
+            class="flex gap-2 overflow-x-auto pb-1"
+        >
+            <Link
+                :href="blockFilterHref(null)"
+                preserve-scroll
+                class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                :class="
+                    !selectedBlockId
+                        ? 'border-primary/40 bg-primary/10 text-secondary dark:text-primary'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                "
+                :aria-current="!selectedBlockId ? 'page' : undefined"
+                :aria-label="`Semua blok, ${totalCyclesCount} subblok`"
+                >Semua<span
+                    class="rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-foreground"
+                    >{{ totalCyclesCount }}</span
+                ></Link
+            ><Link
+                v-for="block in blocks"
+                :key="block.id"
+                :href="blockFilterHref(block.id)"
+                preserve-scroll
+                class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                :class="
+                    block.id === selectedBlockId
+                        ? 'border-primary/40 bg-primary/10 text-secondary dark:text-primary'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                "
+                :aria-current="
+                    block.id === selectedBlockId ? 'page' : undefined
+                "
+                :aria-label="`${block.code}, ${block.name}, ${block.cycles_count} subblok${block.is_active ? '' : ', nonaktif'}`"
+                >{{ block.code
+                }}<span
+                    class="rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-foreground"
+                    >{{ block.cycles_count }}</span
+                ></Link
+            >
+        </nav>
         <p
             v-if="!cycles.length"
             class="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground"
         >
             {{
-                hasAvailableBlock
-                    ? 'Belum ada subblok untuk kebun penugasan Anda. Tambah subblok baru pada blok aktif untuk mulai mencatat penanaman.'
-                    : canCreateSubblok
-                      ? 'Belum ada subblok dan seluruh kapasitas blok aktif sudah penuh.'
-                      : 'Belum ada subblok atau blok aktif untuk kebun penugasan Anda. Hubungi Admin atau PIC kebun untuk menyiapkannya.'
+                selectedBlockId
+                    ? 'Belum ada subblok pada blok ini.'
+                    : hasAvailableBlock
+                      ? 'Belum ada subblok untuk kebun penugasan Anda. Tambah subblok baru pada blok aktif untuk mulai mencatat penanaman.'
+                      : canCreateSubblok
+                        ? 'Belum ada subblok dan seluruh kapasitas blok aktif sudah penuh.'
+                        : 'Belum ada subblok atau blok aktif untuk kebun penugasan Anda. Hubungi Admin atau PIC kebun untuk menyiapkannya.'
             }}
         </p>
         <article
@@ -168,9 +222,7 @@ function synchronize(id: string): void {
                     </div>
                     <div>
                         <dt class="text-xs text-muted-foreground">Luas</dt>
-                        <dd>
-                            Tertanam {{ cycle.planted_area_ha }} ha
-                        </dd>
+                        <dd>Tertanam {{ cycle.planted_area_ha }} ha</dd>
                     </div>
                 </dl>
             </details>
@@ -206,7 +258,9 @@ function synchronize(id: string): void {
         <SubblokCreateDialog
             v-model:open="createOpen"
             :blocks="blocks"
+            :selected-block-id="selectedBlockId"
             return-to="penanaman"
+            :work-date="workDateParam"
         />
     </div>
 </template>

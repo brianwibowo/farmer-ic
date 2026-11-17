@@ -524,23 +524,132 @@ class PetugasPlantingActivityTest extends TestCase
             ->where('blocks.0.available_ha', '5.0000')
             ->where('blocks.0.can_create_batch', true));
 
-        $this->post('/petugas/blocks/'.$this->block->id.'/subbloks', [
+        $response = $this->post('/petugas/blocks/'.$this->block->id.'/subbloks', [
             'return_to' => 'penanaman',
             'subblock_label' => 'BARU-1',
-            'planned_planting_at' => today()->toDateString(),
-        ])->assertSessionHasNoErrors()->assertRedirect('/petugas/penanaman');
+            'planned_planting_at' => now('Asia/Jakarta')->toDateString(),
+        ]);
 
         $created = PlantingCycle::where('subblock_label', 'BARU-1')->firstOrFail();
+        $response->assertSessionHasNoErrors()->assertRedirect('/petugas/subbloks/'.$created->id.'/penanaman');
         $this->assertSame('planned', $created->status);
         $this->assertSame('0.0000', $created->planted_area_ha);
 
         $this->get('/petugas/penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('cycles', 2)
-            ->where('cycles.1.id', $created->id)
-            ->where('cycles.1.canRecord', true));
+            ->where('cycles.0.id', $created->id)
+            ->where('cycles.0.canRecord', true)
+            ->where('cycles.1.id', $this->cycle->id));
 
         $this->post('/petugas/subbloks/'.$created->id.'/penanaman', $this->payload())->assertSessionHasNoErrors();
         $this->assertSame('1.5000', $created->refresh()->planted_area_ha);
+    }
+
+    public function test_penanaman_subblok_creation_redirects_conditionally_and_preserves_work_date(): void
+    {
+        $this->sop();
+        $workDate = now('Asia/Jakarta')->subDay()->toDateString();
+
+        $response = $this->actingAs($this->actor)->post('/petugas/blocks/'.$this->block->id.'/subbloks', [
+            'return_to' => 'penanaman',
+            'work_date' => $workDate,
+            'subblock_label' => 'LANGSUNG-1',
+        ]);
+        $immediate = PlantingCycle::where('subblock_label', 'LANGSUNG-1')->firstOrFail();
+        $response->assertSessionHasNoErrors()->assertRedirect('/petugas/subbloks/'.$immediate->id.'/penanaman?work_date='.$workDate);
+
+        $futureResponse = $this->post('/petugas/blocks/'.$this->block->id.'/subbloks', [
+            'return_to' => 'penanaman',
+            'work_date' => $workDate,
+            'subblock_label' => 'RENCANA-2',
+            'planned_planting_at' => now('Asia/Jakarta')->addDays(3)->toDateString(),
+        ]);
+        $future = PlantingCycle::where('subblock_label', 'RENCANA-2')->firstOrFail();
+        $futureResponse->assertSessionHasNoErrors()->assertRedirect('/petugas/penanaman?work_date='.$workDate);
+        $this->get('/petugas/penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('cycles.0.id', $future->id));
+
+        $this->post('/petugas/blocks/'.$this->block->id.'/subbloks', [
+            'return_to' => 'penanaman',
+            'work_date' => now('Asia/Jakarta')->addDay()->toDateString(),
+            'subblock_label' => 'INVALID-DATE',
+        ])->assertSessionHasErrors('work_date');
+
+        $noVarietyBlock = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
+            'code' => 'B02',
+            'name' => 'Blok Tanpa Komoditas',
+            'area_ha' => '2',
+        ]);
+        $this->post('/petugas/blocks/'.$noVarietyBlock->id.'/subbloks', [
+            'return_to' => 'penanaman',
+            'subblock_label' => 'TANPA-KOM-1',
+        ])->assertSessionHasNoErrors()->assertRedirect('/petugas/penanaman');
+
+        $roles = config('access.roles');
+        unset($roles['petugas']['farm_activities.create']);
+        config(['access.roles' => $roles]);
+        $this->post('/petugas/blocks/'.$this->block->id.'/subbloks', [
+            'return_to' => 'penanaman',
+            'subblock_label' => 'TANPA-IZIN-1',
+        ])->assertSessionHasNoErrors()->assertRedirect('/petugas/penanaman');
+    }
+
+    public function test_penanaman_filters_by_block_and_sorts_subblocks_newest_first(): void
+    {
+        $secondBlock = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
+            'code' => 'B02',
+            'name' => 'Blok Selatan',
+            'area_ha' => '2',
+        ]);
+        $emptyBlock = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
+            'code' => 'B03',
+            'name' => 'Blok Timur',
+            'area_ha' => '1',
+        ]);
+
+        $this->cycle->forceFill(['created_at' => now()->subDays(3)])->saveQuietly();
+        $olderSecond = app(FarmBlockService::class)->createBatch($secondBlock, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $olderSecond->forceFill(['created_at' => now()->subDays(2)])->saveQuietly();
+        $newestFirst = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $newestFirst->forceFill(['created_at' => now()->subDay()])->saveQuietly();
+        $newestOverall = app(FarmBlockService::class)->createBatch($secondBlock, $this->admin, $this->team, ['reserved_area_ha' => '1']);
+        $newestOverall->forceFill(['created_at' => now()])->saveQuietly();
+
+        $this->actingAs($this->actor)->get('/petugas/penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('petugas/PlantingIndex')
+            ->where('selectedBlockId', null)
+            ->has('blocks', 3)
+            ->where('blocks.0.cycles_count', 2)
+            ->where('blocks.1.cycles_count', 2)
+            ->where('blocks.2.cycles_count', 0)
+            ->has('cycles', 4)
+            ->where('cycles.0.id', $newestOverall->id)
+            ->where('cycles.1.id', $newestFirst->id)
+            ->where('cycles.2.id', $olderSecond->id)
+            ->where('cycles.3.id', $this->cycle->id));
+
+        $this->get('/petugas/penanaman?block='.$secondBlock->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('selectedBlockId', $secondBlock->id)
+            ->where('blocks.0.cycles_count', 2)
+            ->where('blocks.1.cycles_count', 2)
+            ->has('cycles', 2)
+            ->where('cycles.0.id', $newestOverall->id)
+            ->where('cycles.1.id', $olderSecond->id));
+
+        $this->get('/petugas/penanaman?block='.$emptyBlock->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('selectedBlockId', $emptyBlock->id)
+            ->has('cycles', 0));
+
+        $this->get('/petugas/penanaman?block=invalid')->assertSessionHasErrors('block');
+
+        $otherFarm = new Farm(['name' => 'Kebun Lain', 'land_tenure' => 'owned', 'total_area_ha' => '4']);
+        $otherFarm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
+        $foreignBlock = app(FarmBlockService::class)->create($otherFarm, $this->admin, $this->team, [
+            'code' => 'B99',
+            'name' => 'Blok Asing',
+            'area_ha' => '2',
+        ]);
+        $this->get('/petugas/penanaman?block='.$foreignBlock->id)->assertForbidden();
     }
 
     public function test_hst_starts_the_day_after_first_planting_across_read_surfaces_and_blocks_pre_anchor_maintenance(): void
