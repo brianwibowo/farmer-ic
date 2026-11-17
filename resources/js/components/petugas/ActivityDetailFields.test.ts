@@ -1,6 +1,6 @@
 import { renderToString } from '@vue/server-renderer';
 import { h } from 'vue';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { activityDetailMaximumErrors } from '@/lib/activityInputLimits';
 import ActivityDetailFields from './ActivityDetailFields.vue';
 

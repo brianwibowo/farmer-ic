@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { createSSRApp } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import BrandLogo from '@/components/BrandLogo.vue';

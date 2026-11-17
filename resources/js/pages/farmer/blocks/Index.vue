@@ -94,7 +94,7 @@ function search(): void {
                 }}</span>
             </p>
             <p
-                v-if="metric.hint"
+                v-if="'hint' in metric && metric.hint"
                 class="mt-1 text-xs leading-5 text-muted-foreground"
             >
                 {{ metric.hint }}

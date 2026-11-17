@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { renderToString } from '@vue/server-renderer';
 import { h } from 'vue';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { PetugasHomeIncident } from '@/types/petugas-home';
 import HomeIncidentAlerts from './HomeIncidentAlerts.vue';
 

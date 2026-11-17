@@ -61,6 +61,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Audit PHP dependencies including development tools
+        run: composer audit --locked --no-interaction
+
+      - name: Audit frontend dependencies including development tools
+        run: npm audit --audit-level=moderate
+
       - name: Prepare test application
         run: |
           cp .env.example .env
@@ -81,7 +87,7 @@ jobs:
           ./vendor/bin/pint --test
           ./vendor/bin/phpstan analyse --debug --memory-limit=512M --no-progress
           # Vitest creates a Vite test server, not a production HMR server.
-          LARAVEL_BYPASS_ENV_CHECK=1 npx vitest run
+          LARAVEL_BYPASS_ENV_CHECK=1 npx vp test run
           php artisan test
 
   docker:
