@@ -19,6 +19,8 @@ use Illuminate\Support\Collection;
 
 class AdminDashboardService
 {
+    private const RISK_PREVIEW_LIMIT = 10;
+
     /**
      * Build a read-only dashboard from the same scoped records used elsewhere
      * in the admin portal. The service intentionally returns presentation-ready
@@ -57,6 +59,7 @@ class AdminDashboardService
                 $query->whereNull('status')
                     ->orWhereNotIn('status', ['resolved', 'closed']);
             });
+        $openIncidents = $this->openIncidentReports($activityQuery, $actor, $team);
         $financialTransactions = FinancialTransaction::query()->visibleTo($actor, $team)->whereIn('farm_id', $farmIds);
         $currentProjections = FinancialProjection::query()
             ->visibleTo($actor, $team)
@@ -200,13 +203,39 @@ class AdminDashboardService
         $riskItems = (clone $openRisks)
             ->orderByDesc('detected_at')
             ->orderByDesc('id')
+            ->limit(self::RISK_PREVIEW_LIMIT)
             ->get(['id', 'risk_description', 'detected_at'])
             ->map(fn (FarmRisk $risk): array => [
                 'id' => (string) $risk->id,
                 'title' => $risk->risk_description,
+                'sortAt' => $risk->detected_at->getTimestamp(),
                 'detectedAt' => $risk->detected_at
                     ->settings(['locale' => 'id'])
                     ->isoFormat('HH:mm · D MMMM YYYY'),
+            ])->toBase();
+        $incidentItems = (clone $openIncidents)
+            ->with(['incidentDetail' => fn ($details) => $details->visibleTo($actor, $team)])
+            ->orderByDesc('activity_date')->orderByDesc('id')
+            ->limit(self::RISK_PREVIEW_LIMIT)
+            ->get(['id', 'farm_id', 'activity_date', 'description', 'task_details'])
+            ->map(function (FarmActivity $activity): array {
+                $details = json_decode((string) $activity->getAttribute('task_details'), true);
+
+                return [
+                    'id' => 'incident:'.$activity->id,
+                    'title' => data_get($details, 'description') ?: $activity->description
+                        ?: $activity->incidentDetail?->incident_category ?: 'Insiden kebun dilaporkan',
+                    'sortAt' => $activity->activity_date->getTimestamp(),
+                    'detectedAt' => $activity->activity_date->setTimezone('Asia/Jakarta')
+                        ->settings(['locale' => 'id'])->isoFormat('HH:mm · D MMMM YYYY'),
+                ];
+            });
+        $riskTotal = (clone $openRisks)->count() + (clone $openIncidents)->count();
+        $riskItems = $riskItems->concat($incidentItems)
+            ->sortBy([['sortAt', 'desc'], ['id', 'desc']])
+            ->take(self::RISK_PREVIEW_LIMIT)
+            ->map(fn (array $risk): array => [
+                'id' => $risk['id'], 'title' => $risk['title'], 'detectedAt' => $risk['detectedAt'],
             ])
             ->values()
             ->all();
@@ -224,7 +253,7 @@ class AdminDashboardService
                 'withoutTimeline' => $timelineUnknown,
             ],
             'risks' => [
-                'total' => (clone $openRisks)->count(),
+                'total' => $riskTotal,
                 'items' => $riskItems,
             ],
             'generatedAt' => CarbonImmutable::now()->settings(['locale' => 'id'])->isoFormat('D MMMM YYYY'),
@@ -242,7 +271,7 @@ class AdminDashboardService
                     ],
                 ],
                 ['key' => 'cycles', 'label' => 'Batch berjalan', 'value' => $runningCount, 'unit' => 'batch', 'note' => $this->decimal($activeArea).' ha pada batch aktif.'],
-                ['key' => 'risks', 'label' => 'Risiko terbuka', 'value' => (clone $openRisks)->count(), 'unit' => 'risiko', 'note' => 'Perlu ditinjau sebelum status ditutup.'],
+                ['key' => 'risks', 'label' => 'Risiko terbuka', 'value' => $riskTotal, 'unit' => 'risiko', 'note' => 'Risiko kebun dan laporan insiden yang belum ditutup.'],
             ],
             'activity' => [
                 'total' => $activitiesThisWeek,
@@ -272,6 +301,28 @@ class AdminDashboardService
             'officers' => $officers,
             'tasks' => $tasks,
         ];
+    }
+
+    /**
+     * Read the existing incident report, not a duplicate FarmRisk record.
+     * Legacy reports use status; voluntary forms retain incident_status in JSONB.
+     * An explicit activity status takes precedence over that input snapshot.
+     *
+     * @param  Builder<FarmActivity>  $activities  Already scoped to the visible, selected farms.
+     * @return Builder<FarmActivity>
+     */
+    private function openIncidentReports(Builder $activities, User $actor, Team $team): Builder
+    {
+        return (clone $activities)
+            ->whereHas('incidentDetail', fn ($details) => $details->visibleTo($actor, $team))
+            ->where('activity_date', '<=', CarbonImmutable::now('Asia/Jakarta'))
+            ->whereRaw(<<<'SQL'
+LOWER(REPLACE(COALESCE(
+    NULLIF(BTRIM(farm_activities.status), ''),
+    NULLIF(BTRIM(farm_activities.task_details->>'incident_status'), ''),
+    'open'
+), ' ', '_')) IN (?, ?, ?, ?, ?)
+SQL, ['open', 'progress', 'in_progress', 'pending', 'reported']);
     }
 
     /**
