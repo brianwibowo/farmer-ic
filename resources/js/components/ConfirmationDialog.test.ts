@@ -1,7 +1,7 @@
 import { renderToString } from '@vue/server-renderer';
 import type { SSRContext } from '@vue/server-renderer';
 import { createSSRApp } from 'vue';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import ConfirmationDialog from './ConfirmationDialog.vue';
 import { requestConfirmation, resolveConfirmation } from '@/composables/useConfirmation';
 
