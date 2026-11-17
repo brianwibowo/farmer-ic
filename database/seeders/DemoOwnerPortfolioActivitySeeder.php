@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
+use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
@@ -17,6 +18,7 @@ use App\Models\PlantObservation;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\WeatherRecord;
+use App\Services\Activity\DailyActivityHeaderService;
 use App\Services\Activity\HarvestClosureService;
 use App\Services\Activity\PlantingCycleStageService;
 use Carbon\CarbonImmutable;
@@ -184,7 +186,9 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             $attributes['task_details'] = json_encode($detail, JSON_THROW_ON_ERROR);
         }
         $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'block-activity:'.$siteKey.':'.$block->code.':'.$code), $attributes, $farm, $actor, $team);
-        if ($activity->wasRecentlyCreated) {
+        $created = $activity->wasRecentlyCreated;
+        $this->linkDailyLog($activity, $farm, $actor, $team, $created);
+        if ($created) {
             if ($relation !== null) {
                 $activity->{$relation}()->create($detail);
             }
@@ -227,7 +231,9 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
             'performed_by' => $performer->id, 'activity_date' => $this->at($date),
             'description' => $description, 'status' => 'completed', 'created_at' => $this->at($date), 'updated_at' => $this->at($date), ...$taskData,
         ], $farm, $actor, $team);
-        if ($activity->wasRecentlyCreated) {
+        $created = $activity->wasRecentlyCreated;
+        $this->linkDailyLog($activity, $farm, $actor, $team, $created);
+        if ($created) {
             if ($code === 'maintenance' && $identity !== 'growth_check') {
                 app(PlantingCycleStageService::class)->record($actor, $team, $activity, $type);
 
@@ -250,6 +256,35 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         }
 
         return $activity;
+    }
+
+    private function linkDailyLog(FarmActivity $activity, Farm $farm, User $actor, Team $team, bool $created): void
+    {
+        if ($activity->daily_activity_log_id !== null) {
+            return;
+        }
+
+        // The caller holds the farm lock for the surrounding portfolio transaction.
+        // Only deterministic portfolio activities reach this method; retain any
+        // existing report details, user edits and shared daily header unchanged.
+        Gate::forUser($actor)->authorize('update', $activity);
+        Gate::forUser($actor)->authorize('viewAny', [DailyActivityLog::class, $team]);
+        Gate::forUser($actor)->authorize('create', [DailyActivityLog::class, $farm]);
+        $headers = app(DailyActivityHeaderService::class);
+        $date = $activity->activity_date->setTimezone('Asia/Jakarta')->toDateString();
+        if (! $created && $headers->forDate($farm, $actor, $date) === null) {
+            // Existing reports have unknown daily hours; never invent a header for them.
+            return;
+        }
+        $log = $headers->resolve($farm, $actor, [
+            'work_date' => $date,
+            'start_time' => '08:00', 'end_time' => '16:00',
+            'daily_notes' => 'Jam kerja ini merupakan ilustrasi untuk skenario portofolio demo.',
+        ]);
+        $activity->forceFill([
+            'daily_activity_log_id' => $log->id,
+            'position' => $headers->nextPosition($log, $actor),
+        ])->save();
     }
 
     private function weather(Farm $farm, string $key, User $actor, Team $team): void

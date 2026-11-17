@@ -6,6 +6,66 @@ live test results and current limitations, see
 The historical observations below must not be treated as the current proxy or
 workflow status without checking the running server.
 
+## Manual demo database migrations
+
+The **Manual demo database migrations** workflow is started from GitHub Actions
+using a successful CI **push to main** run ID for the current main commit. It
+downloads that run's immutable image metadata, verifies the repository and
+commit, and refuses older or unverified runs. The image artifact expires under
+the existing CI retention policy. The VPS must already have the same commit
+checked out, `.env.production`, and no local changes to the Compose or
+registry retry configuration; it will not force a checkout. The workflow uses
+the same VPS and GHCR secrets as Deploy. Configure the `demo-database` GitHub
+environment with restricted access and required reviewers as supported by the
+repository plan; the environment name by itself is not an approval mechanism.
+
+Choose `migrate` to run pending migrations without resetting data. The workflow
+verifies the actual PostgreSQL target and Redis/Qdrant namespaces, displays
+`migrate:status`, runs the command in a one-off container with
+`APP_ENV=local`, and verifies that no migrations remain pending. That override
+is limited to those one-off containers; it does not change `.env.production`
+or the environment of running services. Laravel caches configuration in the
+container entrypoint before executing Artisan.
+
+Choose `fresh-seed` only when the exact `farmer_ic_app` database is explicitly
+confirmed disposable demo data: this **drops every table and all data in the
+target schema**, then seeds fixture records and known demo credentials. Set
+repository variable `DEMO_DATABASE_RESET_ENABLED=true` only for that approved
+demo target and enter the exact confirmation `RESET farmer_ic_app`. Neither the
+variable, database name nor `APP_ENV=local` proves the database is disposable;
+the operator must verify the real target. The existing PostgreSQL service and
+other databases are not deleted. Review seeders and external integrations first;
+this action does not clear or rebuild Redis, Qdrant, uploaded files or other
+shared state.
+
+For `fresh-seed`, the workflow records the running `farmer-ic` app, blue/green,
+worker, notification and scheduler containers, stops them, checks that no
+matching service remains running, then resets and seeds. This causes an outage.
+Only after reset, seed and pending-migration verification succeed does it start
+the exact containers that were running previously; it does not start services
+that were already stopped. The workflow waits for their container health checks
+where present, but this does not prove application compatibility: the old images
+must work with the new schema. Review application and worker behavior and
+complete the separate deployment as needed.
+
+If stopping fails before reset begins, the workflow attempts to restore the
+recorded containers. If reset, seed, verification or restart fails after reset
+begins, the database may be incomplete and services may be stopped or only
+partially restarted. The job retains a temporary file on the VPS containing the
+previously running container IDs and prints its path for operator recovery;
+it does not blindly start potentially incompatible services. The workflow
+checks Compose labels but cannot exclude manually started or external clients
+or prevent another operator from starting services concurrently, so an
+exclusive maintenance window is still required. It does not activate
+blue-green or run deployment.
+
+Migration is separate from deployment: after success, rerun the appropriate
+Deploy job if its tested commit is still current. Migrations can break the
+currently running version or queued jobs even when they are not `fresh`.
+Review compatibility and arrange maintenance as needed. No backup or rollback
+is performed automatically, and schema compatibility is not proved by
+`migrate:status`.
+
 The current application uses PHP 8.5, PostgreSQL and UUID domain/user IDs. The
 image builds PHP dependencies and Wayfinder helpers with PHP 8.5, builds Vue
 with Node 22, and runs Apache, workers and the scheduler from the same image.

@@ -10,6 +10,7 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class PetugasReportReadService
@@ -33,7 +34,13 @@ class PetugasReportReadService
             $query->whereHas('activityType', fn ($q) => $q->visibleTo($actor, $team)->where('code', $filters['type']));
         }
         if (! empty($filters['date'])) {
-            $query->whereHas('dailyActivityLog', fn ($q) => $q->visibleTo($actor, $team)->whereDate('work_date', $filters['date']));
+            $day = CarbonImmutable::parse($filters['date'], 'Asia/Jakarta')->startOfDay();
+            $query->where(function ($q) use ($actor, $team, $filters, $day): void {
+                $q->whereHas('dailyActivityLog', fn ($q) => $q->visibleTo($actor, $team)->whereDate('work_date', $filters['date']))
+                    ->orWhere(fn ($q) => $q->whereNull('daily_activity_log_id')
+                        ->where('activity_date', '>=', $day->utc())
+                        ->where('activity_date', '<', $day->addDay()->utc()));
+            });
         }
         if (($filters['source'] ?? '') === 'sop') {
             $query->whereNotNull('planting_cycle_task_id');
