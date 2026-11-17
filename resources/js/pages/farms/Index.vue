@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { useFarmManagementNavigation } from "@/composables/useFarmManagementNavigation";
-import AppSelect from "@/components/selects/AppSelect.vue";
-import AppSelectOption from "@/components/selects/AppSelectOption.vue";
-import { Head, Link, useForm } from "@inertiajs/vue3";
-import { computed, ref } from "vue";
+import InertiaPagination from '@/components/InertiaPagination.vue';
+import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import {
     ArrowDownWideNarrow,
     ArrowUpWideNarrow,
     ArrowUpRight,
-    ChevronLeft,
-    ChevronRight,
     LandPlot,
     LoaderCircle,
     Pencil,
@@ -18,24 +17,24 @@ import {
     SlidersHorizontal,
     Trash2,
     X,
-} from "@lucide/vue";
-import { Button } from "@/components/ui/button";
+} from '@lucide/vue';
+import { Button } from '@/components/ui/button';
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
-import DeleteFarmDialog from "@/components/farms/DeleteFarmDialog.vue";
-import FarmField from "@/components/farms/FarmField.vue";
-import FarmSummaryCards from "@/components/farms/FarmSummaryCards.vue";
+} from '@/components/ui/tooltip';
+import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
+import FarmField from '@/components/farms/FarmField.vue';
+import FarmSummaryCards from '@/components/farms/FarmSummaryCards.vue';
 import {
     hectares,
     landTenureLabel,
     type FarmFilters,
     type FarmPage,
     type FarmRow,
-} from "@/types/farms";
+} from '@/types/farms';
 
 defineOptions({ inheritAttrs: false });
 const { indexUrl, title: sectionTitle } = useFarmManagementNavigation();
@@ -51,11 +50,11 @@ const props = defineProps<{
 const selectedFarm = ref<FarmRow | null>(null);
 const showFilters = ref(false);
 const filters = useForm({
-    search: props.filters.search ?? "",
-    city: props.filters.city ?? "",
-    province: props.filters.province ?? "",
-    sort: props.filters.sort ?? "name",
-    direction: props.filters.direction ?? "asc",
+    search: props.filters.search ?? '',
+    city: props.filters.city ?? '',
+    province: props.filters.province ?? '',
+    sort: props.filters.sort ?? 'name',
+    direction: props.filters.direction ?? 'asc',
     per_page: Number(props.filters.per_page ?? 15),
 });
 const hasFilters = computed(
@@ -64,8 +63,8 @@ const hasFilters = computed(
             filters.search ||
             filters.city ||
             filters.province ||
-            filters.sort !== "name" ||
-            filters.direction !== "asc" ||
+            filters.sort !== 'name' ||
+            filters.direction !== 'asc' ||
             filters.per_page !== 15
         ),
 );
@@ -81,13 +80,13 @@ const hasSearchCriteria = computed(
         ),
 );
 const directionDescription = computed(() => {
-    const ascending = filters.direction === "asc";
+    const ascending = filters.direction === 'asc';
     const labels =
-        filters.sort === "total_area_ha"
-            ? ["Terkecil ke terbesar", "Terbesar ke terkecil"]
-            : filters.sort === "created_at"
-              ? ["Terlama ke terbaru", "Terbaru ke terlama"]
-              : ["A–Z", "Z–A"];
+        filters.sort === 'total_area_ha'
+            ? ['Terkecil ke terbesar', 'Terbesar ke terkecil']
+            : filters.sort === 'created_at'
+              ? ['Terlama ke terbaru', 'Terbaru ke terlama']
+              : ['A–Z', 'Z–A'];
     return `Urutan ${labels[ascending ? 0 : 1]}. Ubah menjadi ${labels[ascending ? 1 : 0]}.`;
 });
 function apply(): void {
@@ -102,19 +101,19 @@ function apply(): void {
     });
 }
 function toggleDirection(): void {
-    filters.direction = filters.direction === "asc" ? "desc" : "asc";
+    filters.direction = filters.direction === 'asc' ? 'desc' : 'asc';
     apply();
 }
-function removeLocation(key: "city" | "province"): void {
-    filters[key] = "";
+function removeLocation(key: 'city' | 'province'): void {
+    filters[key] = '';
     apply();
 }
 function reset(): void {
-    filters.search = "";
-    filters.city = "";
-    filters.province = "";
-    filters.sort = "name";
-    filters.direction = "asc";
+    filters.search = '';
+    filters.city = '';
+    filters.province = '';
+    filters.sort = 'name';
+    filters.direction = 'asc';
     filters.per_page = 15;
     apply();
 }
@@ -419,8 +418,8 @@ function reset(): void {
                 <h3 class="mt-4 font-semibold">
                     {{
                         hasSearchCriteria
-                            ? "Lahan tidak ditemukan"
-                            : "Belum ada lahan"
+                            ? 'Lahan tidak ditemukan'
+                            : 'Belum ada lahan'
                     }}
                 </h3>
                 <p
@@ -428,8 +427,8 @@ function reset(): void {
                 >
                     {{
                         hasSearchCriteria
-                            ? "Coba kata kunci atau wilayah lain untuk menampilkan lahan."
-                            : "Data lahan yang dapat kamu akses akan muncul di sini."
+                            ? 'Coba kata kunci atau wilayah lain untuk menampilkan lahan.'
+                            : 'Data lahan yang dapat kamu akses akan muncul di sini.'
                     }}
                 </p>
                 <Button
@@ -494,7 +493,7 @@ function reset(): void {
                                     >
                                         {{
                                             farm.district ??
-                                            "Kecamatan belum diisi"
+                                            'Kecamatan belum diisi'
                                         }}
                                     </p>
                                 </td>
@@ -506,18 +505,24 @@ function reset(): void {
                                         }}</span
                                     >
                                     <p
-                                        v-if="farm.land_tenure === 'rented' || farm.land_tenure === 'partnership'"
+                                        v-if="
+                                            farm.land_tenure === 'rented' ||
+                                            farm.land_tenure === 'partnership'
+                                        "
                                         class="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]"
                                     >
-                                        {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}
+                                        {{
+                                            farm.land_tenure_party ||
+                                            'Pihak terkait belum diisi'
+                                        }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <p>{{ farm.city ?? "—" }}</p>
+                                    <p>{{ farm.city ?? '—' }}</p>
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ farm.province ?? "—" }}
+                                        {{ farm.province ?? '—' }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
@@ -582,16 +587,22 @@ function reset(): void {
                             >{{ landTenureLabel(farm.land_tenure) }}</span
                         >
                         <p
-                            v-if="farm.land_tenure === 'rented' || farm.land_tenure === 'partnership'"
+                            v-if="
+                                farm.land_tenure === 'rented' ||
+                                farm.land_tenure === 'partnership'
+                            "
                             class="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]"
                         >
-                            {{ farm.land_tenure_party || 'Pihak terkait belum diisi' }}
+                            {{
+                                farm.land_tenure_party ||
+                                'Pihak terkait belum diisi'
+                            }}
                         </p>
                         <p class="mt-2 text-xs text-muted-foreground">
                             {{
                                 [farm.district, farm.city, farm.province]
                                     .filter(Boolean)
-                                    .join(", ") || "Lokasi belum diisi"
+                                    .join(', ') || 'Lokasi belum diisi'
                             }}
                         </p>
                         <div
@@ -631,7 +642,7 @@ function reset(): void {
                         </div>
                     </li>
                 </ul>
-                <nav
+                <footer
                     class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4"
                     aria-label="Pagination lahan"
                 >
@@ -639,7 +650,9 @@ function reset(): void {
                         Menampilkan {{ farms.from }}–{{ farms.to }} dari
                         {{ farms.total }} lahan
                     </p>
-                    <div class="flex flex-wrap items-center gap-3">
+                    <div
+                        class="ml-auto flex flex-wrap items-center justify-end gap-3"
+                    >
                         <div class="flex items-center gap-2">
                             <label
                                 for="farm-per-page"
@@ -678,33 +691,14 @@ function reset(): void {
                                 {{ filters.errors.per_page }}
                             </p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <Button
-                                v-if="farms.prev_page_url"
-                                as-child
-                                variant="outline"
-                                size="sm"
-                                ><Link
-                                    :href="farms.prev_page_url"
-                                    preserve-scroll
-                                    ><ChevronLeft />Sebelumnya</Link
-                                ></Button
-                            ><span aria-current="page" class="px-2 text-xs"
-                                >{{ farms.current_page }} /
-                                {{ farms.last_page }}</span
-                            ><Button
-                                v-if="farms.next_page_url"
-                                as-child
-                                variant="outline"
-                                size="sm"
-                                ><Link
-                                    :href="farms.next_page_url"
-                                    preserve-scroll
-                                    >Berikutnya<ChevronRight /></Link
-                            ></Button>
-                        </div>
+                        <InertiaPagination
+                            :paginator="farms"
+                            label="Pagination lahan"
+                            class="ml-auto justify-end"
+                            :disabled="filters.processing"
+                        />
                     </div>
-                </nav>
+                </footer>
             </template>
         </section>
     </div>

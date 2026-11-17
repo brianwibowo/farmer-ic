@@ -29,6 +29,22 @@ export type DashboardTrend = {
     }>;
 };
 
+export type DashboardActivityFilters = {
+    search: string;
+    officer_id: string | null;
+    per_page: number;
+};
+
+export type DashboardActivityPagination = {
+    total: number;
+    scope_total: number;
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    from: number | null;
+    to: number | null;
+};
+
 export type DashboardData = {
     generatedAt: string;
     filters: { farm_id: string | null; period: string };
@@ -96,6 +112,8 @@ export type DashboardMapFarmPreview =
     };
 
 export type AdminDashboardData = Omit<DashboardData, 'landMap'> & {
+    activityFilters: DashboardActivityFilters;
+    activityPagination: DashboardActivityPagination;
     landMap: Omit<DashboardData['landMap'], 'farms'> & {
         farms: DashboardMapFarmPreview[];
     };

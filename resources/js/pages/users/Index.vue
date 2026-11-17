@@ -1,9 +1,8 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     Building2,
-    ChevronLeft,
-    ChevronRight,
     LandPlot,
     LoaderCircle,
     Mail,
@@ -465,7 +464,9 @@ function teamLabel(user: ManagedUser): string {
                             : '0 pengguna ditemukan'
                     }}
                 </p>
-                <div class="flex flex-wrap items-center gap-3">
+                <div
+                    class="ml-auto flex flex-wrap items-center justify-end gap-3"
+                >
                     <div class="w-36">
                         <AppSelect
                             id="users-page-size"
@@ -483,49 +484,12 @@ function teamLabel(user: ManagedUser): string {
                             ></AppSelect
                         >
                     </div>
-                    <nav
-                        class="flex items-center gap-1"
-                        aria-label="Pagination pengguna"
-                    >
-                        <Button
-                            v-if="users.prev_page_url"
-                            as-child
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="Halaman sebelumnya"
-                            ><Link :href="users.prev_page_url" preserve-scroll
-                                ><ChevronLeft /></Link></Button
-                        ><Button
-                            v-else
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled
-                            aria-label="Halaman sebelumnya"
-                            ><ChevronLeft
-                        /></Button>
-                        <span
-                            aria-current="page"
-                            class="px-2 text-xs font-semibold tabular-nums"
-                            >{{ users.current_page }} /
-                            {{ users.last_page }}</span
-                        >
-                        <Button
-                            v-if="users.next_page_url"
-                            as-child
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="Halaman berikutnya"
-                            ><Link :href="users.next_page_url" preserve-scroll
-                                ><ChevronRight /></Link></Button
-                        ><Button
-                            v-else
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled
-                            aria-label="Halaman berikutnya"
-                            ><ChevronRight
-                        /></Button>
-                    </nav>
+                    <InertiaPagination
+                        :paginator="users"
+                        label="Pagination pengguna"
+                        class="ml-auto justify-end"
+                        :disabled="filters.processing"
+                    />
                 </div>
             </footer>
         </section>

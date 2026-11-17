@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { CheckCircle2, LandPlot, LoaderCircle, Ruler } from '@lucide/vue';
 import SummaryStatCard from '@/components/SummaryStatCard.vue';
 import { computed } from 'vue';
@@ -66,10 +67,25 @@ function search(): void {
             </p>
         </div>
     </header>
-    <section class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="Ringkasan blok lahan">
-        <SummaryStatCard label="Total blok" :value="summary.total" :icon="LandPlot" />
-        <SummaryStatCard label="Blok aktif" :value="summary.active" :icon="CheckCircle2" />
-        <SummaryStatCard label="Luas blok aktif (ha)" :value="hectares(summary.active_area_ha)" :icon="Ruler" />
+    <section
+        class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
+        aria-label="Ringkasan blok lahan"
+    >
+        <SummaryStatCard
+            label="Total blok"
+            :value="summary.total"
+            :icon="LandPlot"
+        />
+        <SummaryStatCard
+            label="Blok aktif"
+            :value="summary.active"
+            :icon="CheckCircle2"
+        />
+        <SummaryStatCard
+            label="Luas blok aktif (ha)"
+            :value="hectares(summary.active_area_ha)"
+            :icon="Ruler"
+        />
     </section>
     <form
         class="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4"
@@ -137,25 +153,16 @@ function search(): void {
         :searchable="false"
         return-to="blocks"
     />
-    <nav
+    <footer
         v-if="blocks.last_page > 1"
-        aria-label="Halaman daftar blok"
         class="flex flex-wrap items-center justify-between gap-3"
     >
-        <span class="text-sm text-muted-foreground"
-            >Halaman {{ blocks.current_page }} dari {{ blocks.last_page }} ·
-            {{ blocks.total }} blok</span
-        >
-        <div class="flex gap-2">
-            <Button v-if="blocks.prev_page_url" as-child variant="outline"
-                ><Link :href="blocks.prev_page_url" preserve-scroll
-                    >Sebelumnya</Link
-                ></Button
-            ><Button v-if="blocks.next_page_url" as-child variant="outline"
-                ><Link :href="blocks.next_page_url" preserve-scroll
-                    >Berikutnya</Link
-                ></Button
-            >
-        </div>
-    </nav>
+        <p class="text-xs text-muted-foreground">{{ blocks.total }} blok</p>
+        <InertiaPagination
+            :paginator="blocks"
+            :disabled="filters.processing"
+            label="Pagination blok"
+            class="ml-auto justify-end"
+        />
+    </footer>
 </template>

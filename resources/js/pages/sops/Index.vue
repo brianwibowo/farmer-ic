@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
@@ -6,8 +7,6 @@ import {
     ArrowDownWideNarrow,
     ArrowUpRight,
     ArrowUpWideNarrow,
-    ChevronLeft,
-    ChevronRight,
     ClipboardList,
     LoaderCircle,
     Pencil,
@@ -195,9 +194,7 @@ function reset(): void {
             :summary="summary"
         />
 
-        <section
-            class="admin-card overflow-hidden rounded-xl bg-card"
-        >
+        <section class="admin-card overflow-hidden rounded-xl bg-card">
             <div class="border-b border-border p-4 md:p-5">
                 <div class="mb-4 flex items-center gap-2">
                     <h2 class="admin-section-title">Daftar template</h2>
@@ -709,7 +706,7 @@ function reset(): void {
                     </li>
                 </ul>
 
-                <nav
+                <footer
                     class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4"
                     aria-label="Pagination SOP"
                 >
@@ -717,7 +714,9 @@ function reset(): void {
                         Menampilkan {{ sops.from ?? 0 }}-{{ sops.to ?? 0 }} dari
                         {{ sops.total }} template
                     </p>
-                    <div class="flex flex-wrap items-center gap-3">
+                    <div
+                        class="ml-auto flex flex-wrap items-center justify-end gap-3"
+                    >
                         <div class="flex items-center gap-2">
                             <label
                                 for="sop-per-page"
@@ -757,39 +756,14 @@ function reset(): void {
                                 {{ form.errors.per_page }}
                             </p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <Button
-                                v-if="sops.prev_page_url"
-                                as-child
-                                variant="outline"
-                                size="sm"
-                            >
-                                <Link
-                                    :href="sops.prev_page_url"
-                                    preserve-scroll
-                                >
-                                    <ChevronLeft />Sebelumnya
-                                </Link>
-                            </Button>
-                            <span aria-current="page" class="px-2 text-xs">
-                                {{ sops.current_page }} / {{ sops.last_page }}
-                            </span>
-                            <Button
-                                v-if="sops.next_page_url"
-                                as-child
-                                variant="outline"
-                                size="sm"
-                            >
-                                <Link
-                                    :href="sops.next_page_url"
-                                    preserve-scroll
-                                >
-                                    Berikutnya<ChevronRight />
-                                </Link>
-                            </Button>
-                        </div>
+                        <InertiaPagination
+                            :paginator="sops"
+                            label="Pagination SOP"
+                            class="ml-auto justify-end"
+                            :disabled="form.processing"
+                        />
                     </div>
-                </nav>
+                </footer>
             </template>
         </section>
     </div>

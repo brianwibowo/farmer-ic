@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NumberPagination from '@/components/NumberPagination.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, router } from '@inertiajs/vue3';
@@ -757,35 +758,15 @@ function clearTransactionFilters(): void {
                         Transaksi tidak ditemukan untuk filter ini.
                     </li>
                 </ul>
-                <nav
+                <NumberPagination
                     v-if="transactions.last_page > 1"
-                    aria-label="Halaman transaksi"
-                    class="mt-4 flex items-center justify-between gap-2 text-xs"
-                >
-                    <button
-                        type="button"
-                        :disabled="transactions.current_page === 1 || isLoading"
-                        class="rounded-xl border border-border px-3 py-2 disabled:opacity-50"
-                        @click="visitFilters(transactions.current_page - 1)"
-                    >
-                        Sebelumnya
-                    </button>
-                    <span aria-current="page"
-                        >Halaman {{ transactions.current_page }} /
-                        {{ transactions.last_page }}</span
-                    >
-                    <button
-                        type="button"
-                        :disabled="
-                            transactions.current_page ===
-                                transactions.last_page || isLoading
-                        "
-                        class="rounded-xl border border-border px-3 py-2 disabled:opacity-50"
-                        @click="visitFilters(transactions.current_page + 1)"
-                    >
-                        Berikutnya
-                    </button>
-                </nav>
+                    :current-page="transactions.current_page"
+                    :total-pages="transactions.last_page"
+                    :disabled="isLoading"
+                    label="Pagination transaksi"
+                    class="mt-4 ml-auto justify-end"
+                    @change="visitFilters"
+                />
             </section>
         </div>
     </FarmerMobileShell>

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import InertiaPagination from '@/components/InertiaPagination.vue';
+import { Head } from '@inertiajs/vue3';
 import { Sprout, Tractor, Wheat } from '@lucide/vue';
 import { computed } from 'vue';
 import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
 import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
-import { Button } from '@/components/ui/button';
 import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
 import HomeSopTask from '@/components/petugas/HomeSopTask.vue';
 import HomeIncidentAlerts from '@/components/petugas/HomeIncidentAlerts.vue';
@@ -135,38 +135,12 @@ const cards = computed(() => [
                         <HomeSopTask :task="task" />
                     </li>
                 </ul>
-                <nav
+                <InertiaPagination
                     v-if="home.tasks.last_page > 1"
-                    class="flex flex-wrap items-center justify-between gap-2 pt-1 [&_a]:h-11 [&_a]:rounded-xl [&_button]:h-11 [&_button]:rounded-xl"
-                    aria-label="Halaman tugas hari ini"
-                >
-                    <Button
-                        v-if="home.tasks.prev_page_url"
-                        as-child
-                        variant="outline"
-                        size="sm"
-                        ><Link :href="home.tasks.prev_page_url" preserve-scroll
-                            >Sebelumnya</Link
-                        ></Button
-                    ><Button v-else variant="outline" size="sm" disabled
-                        >Sebelumnya</Button
-                    ><span
-                        class="text-xs text-muted-foreground"
-                        aria-current="page"
-                        >{{ home.tasks.current_page }} /
-                        {{ home.tasks.last_page }}</span
-                    ><Button
-                        v-if="home.tasks.next_page_url"
-                        as-child
-                        variant="outline"
-                        size="sm"
-                        ><Link :href="home.tasks.next_page_url" preserve-scroll
-                            >Berikutnya</Link
-                        ></Button
-                    ><Button v-else variant="outline" size="sm" disabled
-                        >Berikutnya</Button
-                    >
-                </nav>
+                    :paginator="home.tasks"
+                    label="Pagination tugas hari ini"
+                    class="ml-auto justify-end pt-1"
+                />
             </template>
         </section>
         <ActivityAddButton :categories="categories" />

@@ -16,7 +16,10 @@ import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/lib/toast';
 import type { DashboardInvitation } from '@/types';
-import type { AdminDashboardData } from '@/types/dashboard';
+import type {
+    AdminDashboardData,
+    DashboardActivityFilters,
+} from '@/types/dashboard';
 
 defineOptions({ inheritAttrs: false });
 const page = usePage();
@@ -49,6 +52,45 @@ const period = ref(props.dashboard.filters.period);
 const refreshing = ref(false);
 const feedback = ref('');
 const failed = ref(false);
+const activityError = ref('');
+function activityParams(filters: DashboardActivityFilters, page = 1) {
+    return {
+        activity_search: filters.search,
+        activity_officer_id: filters.officer_id,
+        activity_per_page: filters.per_page,
+        activity_page: page,
+    };
+}
+function loadActivities(filters: DashboardActivityFilters, page: number): void {
+    if (refreshing.value) return;
+    refreshing.value = true;
+    activityError.value = '';
+    const onFailure = (): false => {
+        activityError.value =
+            'Aktivitas belum dapat dimuat. Silakan coba lagi.';
+        return false;
+    };
+    router.get(
+        '/admin/dashboard',
+        {
+            farm_id: props.dashboard.filters.farm_id,
+            period: props.dashboard.filters.period,
+            ...activityParams(filters, page),
+        },
+        {
+            only: ['dashboard'],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onError: onFailure,
+            onHttpException: onFailure,
+            onNetworkError: onFailure,
+            onFinish: () => {
+                refreshing.value = false;
+            },
+        },
+    );
+}
 watch(
     () => props.dashboard.filters,
     (filters) => {
@@ -68,11 +110,19 @@ function loadDashboard(): void {
     refreshing.value = true;
     feedback.value = '';
     failed.value = false;
+    activityError.value = '';
     router.get(
         '/admin/dashboard',
         {
             ...(farmId.value ? { farm_id: farmId.value } : {}),
             period: period.value,
+            ...activityParams({
+                ...props.dashboard.activityFilters,
+                officer_id:
+                    (farmId.value || null) === props.dashboard.filters.farm_id
+                        ? props.dashboard.activityFilters.officer_id
+                        : null,
+            }),
         },
         {
             only: ['dashboard'],
@@ -242,6 +292,11 @@ function loadDashboard(): void {
         <DashboardActivities
             :activities="dashboard.activities"
             :officers="dashboard.officers"
+            :filters="dashboard.activityFilters"
+            :pagination="dashboard.activityPagination"
+            :loading="refreshing"
+            :error="activityError"
+            @change="loadActivities"
         />
         <DashboardFarmPreview
             v-if="selectedMapFarm"

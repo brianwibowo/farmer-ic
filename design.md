@@ -284,6 +284,32 @@ Pagination includes text and icon items with these states:
 
 Use buttons or links for page items, expose the current page with `aria-current="page"`, and provide accessible labels for previous and next icon controls.
 
+Admin Dashboard's Aktivitas lapangan uses server pagination (10/20/50 rows),
+scoped before filtering/counts. Show the range, total, current page and previous/
+next controls on desktop and mobile. Search and Petugas filters reset to page
+one and search all matching records, not a recent preview. Preserve the farm and
+chart period through Inertia visits, keep scrolling stable, disable controls
+while loading and provide retry feedback. Activity filters must not change
+dashboard metric/chart/officer totals.
+
+Use `NumberPagination` for pagination throughout Admin, Owner and Petugas pages:
+borderless page numbers,
+a filled circular active page (`bg-primary text-primary-foreground`) and icon-only
+chevron navigation. Other pages use muted text with a soft primary hover state.
+Use compact 32px visual circles, 12px numbers, 16px chevrons and 4px gaps. Keep
+44px transparent hit targets on coarse pointers, visible keyboard focus and
+`aria-current="page"`. Show up to three consecutive numbers on phones and four
+on wider screens, always including the current page. Hide unavailable arrows
+at either end and disable all controls while loading. Use semantic tokens in
+both themes; do not replace the existing backend pagination/filter flow.
+Align pagination at the footer's right edge, after the page-size selector when
+present. Retain record totals/ranges without repeating the current/last page as
+plain text. Use `InertiaPagination` for route-based Laravel paginators; it keeps
+the current query filters and scroll position, disables controls during the
+visit and reports loading errors. Pages with existing request handlers use
+`NumberPagination` directly so their loading/error/filter flow is preserved.
+Omit the Kelola lahan shortcut from the activity footer.
+
 ## Tabs
 
 Tabs include individual tab items and five-tab examples. Supported states are:

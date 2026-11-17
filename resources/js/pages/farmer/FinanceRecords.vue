@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NumberPagination from '@/components/NumberPagination.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { onBeforeUnmount, ref, watch } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
@@ -240,28 +241,15 @@ function remove(): void {
                     Belum ada {{ title.toLowerCase() }} yang sesuai dengan
                     pencarian dan cakupan akses Anda.
                 </div>
-                <nav
+                <NumberPagination
                     v-if="records.last_page > 1"
-                    aria-label="Halaman data keuangan"
-                    class="flex items-center justify-between gap-2 text-xs"
-                >
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        :disabled="records.current_page === 1"
-                        @click="load(records.current_page - 1)"
-                        >Sebelumnya</Button
-                    ><span aria-current="page"
-                        >{{ records.current_page }} /
-                        {{ records.last_page }}</span
-                    ><Button
-                        size="sm"
-                        variant="outline"
-                        :disabled="records.current_page === records.last_page"
-                        @click="load(records.current_page + 1)"
-                        >Berikutnya</Button
-                    >
-                </nav>
+                    :current-page="records.current_page"
+                    :total-pages="records.last_page"
+                    :disabled="loading"
+                    label="Pagination data keuangan"
+                    class="ml-auto justify-end"
+                    @change="load"
+                />
             </template>
             <FinanceRecordForm
                 v-model:open="formOpen"

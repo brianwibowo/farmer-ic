@@ -26,11 +26,11 @@ class AdminDashboardService
      * in the admin portal. The service intentionally returns presentation-ready
      * values, while authorization remains at the route/controller boundary.
      *
-     * @param  array{farm_id?: string|null, period?: string|int}  $filters
+     * @param  array{farm_id?: string|null, period?: string|int, activity_search?: string|null, activity_officer_id?: string|null, activity_per_page?: int, activity_page?: int}  $filters
      * @param  int|null  $commodityLimit  Null returns every scoped commodity for complete charts.
      * @return array<string, mixed>
      */
-    public function summary(User $actor, Team $team, array $filters = [], ?int $commodityLimit = 3, bool $includeMapPreviews = false): array
+    public function summary(User $actor, Team $team, array $filters = [], ?int $commodityLimit = 3, bool $includeMapPreviews = false, bool $paginateActivities = false): array
     {
         $farmId = $filters['farm_id'] ?? null;
         $period = (int) ($filters['period'] ?? 7);
@@ -66,15 +66,34 @@ class AdminDashboardService
             ->whereIn('farm_id', $farmIds)
             ->whereDate('period_start', '<=', CarbonImmutable::today())
             ->whereDate('period_end', '>=', CarbonImmutable::today());
+        $activityFilters = [
+            'search' => trim($filters['activity_search'] ?? ''),
+            'officer_id' => $filters['activity_officer_id'] ?? null,
+            'per_page' => (int) ($filters['activity_per_page'] ?? 10),
+        ];
         $recentActivities = (clone $activityQuery)
             ->with([
                 'farm' => fn ($farms) => $farms->visibleTo($actor, $team)->select(['id', 'name']),
                 'performer' => fn ($users) => $users->visibleTo($actor, $team)->select(['id', 'name', 'avatar_url']),
                 'activityType' => fn ($types) => $types->visibleTo($actor, $team)->select(['id', 'name']),
             ])
-            ->orderByDesc('activity_date')
-            ->limit(30)
-            ->get();
+            ->orderByDesc('activity_date')->orderByDesc('id');
+        $activityPagination = null;
+        if ($paginateActivities) {
+            $scopeTotal = (clone $activityQuery)->count();
+            $paginator = $this->filterActivityFeed($recentActivities, $actor, $team, $activityFilters)
+                ->paginate($activityFilters['per_page'], ['*'], 'activity_page', (int) ($filters['activity_page'] ?? 1))
+                ->appends($filters);
+            $activityPagination = [
+                'total' => $paginator->total(), 'scope_total' => $scopeTotal,
+                'current_page' => $paginator->currentPage(), 'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(), 'from' => $paginator->firstItem(), 'to' => $paginator->lastItem(),
+            ];
+            $recentActivities = $paginator->getCollection();
+        } else {
+            // Owner monitoring retains its existing recent-activity preview contract.
+            $recentActivities = $recentActivities->limit(30)->get();
+        }
         $activityTotalsByOfficer = (clone $activityQuery)
             ->selectRaw('performed_by, COUNT(*) as activity_count, MAX(activity_date) as latest_activity_at')
             ->groupBy('performed_by')
@@ -241,6 +260,7 @@ class AdminDashboardService
             ->all();
 
         return [
+            ...($paginateActivities ? ['activityFilters' => $activityFilters, 'activityPagination' => $activityPagination] : []),
             'filters' => ['farm_id' => $farmId, 'period' => (string) $period],
             'farmOptions' => $farmOptions->map(fn (Farm $farm): array => ['id' => (string) $farm->id, 'name' => $farm->name])->all(),
             'trend' => $trend,
@@ -301,6 +321,31 @@ class AdminDashboardService
             'officers' => $officers,
             'tasks' => $tasks,
         ];
+    }
+
+    /**
+     * Filter only the feed; dashboard metrics, trend and officer totals keep their full scope.
+     *
+     * @param  Builder<FarmActivity>  $query
+     * @param  array{search: string, officer_id: ?string, per_page: int}  $filters
+     * @return Builder<FarmActivity>
+     */
+    private function filterActivityFeed(Builder $query, User $actor, Team $team, array $filters): Builder
+    {
+        if ($filters['officer_id'] !== null) {
+            $query->where('performed_by', $filters['officer_id'])
+                ->whereHas('performer', fn ($users) => $users->visibleTo($actor, $team));
+        }
+        if ($filters['search'] !== '') {
+            $term = '%'.addcslashes($filters['search'], '\\%_').'%';
+            $query->where(fn (Builder $search) => $search
+                ->where('description', 'ilike', $term)
+                ->orWhereHas('activityType', fn ($types) => $types->visibleTo($actor, $team)->where('name', 'ilike', $term))
+                ->orWhereHas('farm', fn ($farms) => $farms->visibleTo($actor, $team)->where('name', 'ilike', $term))
+                ->orWhereHas('performer', fn ($users) => $users->visibleTo($actor, $team)->where('name', 'ilike', $term)));
+        }
+
+        return $query;
     }
 
     /**

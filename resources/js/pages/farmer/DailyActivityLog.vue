@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
@@ -6,7 +7,6 @@ import {
     AlertTriangle,
     ArrowLeft,
     CalendarDays,
-    ChevronLeft,
     ChevronRight,
     Clock3,
     ClipboardList,
@@ -273,10 +273,6 @@ function clearFilters(): void {
     filterForm.from_date = '';
     filterForm.to_date = '';
     applyFilters();
-}
-
-function goToPage(url: string | null): void {
-    if (url) router.visit(url, { preserveScroll: true, preserveState: true });
 }
 
 function detailUrl(log: DailyLog): string {
@@ -982,31 +978,13 @@ function detailUrl(log: DailyLog): string {
                     </article>
                 </div>
 
-                <div
+                <InertiaPagination
                     v-if="logs.meta.last_page > 1"
-                    class="mt-4 flex items-center justify-between border-t border-border pt-3"
-                >
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-2 text-xs font-semibold text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                        :disabled="!logs.links.prev"
-                        @click="goToPage(logs.links.prev)"
-                    >
-                        <ChevronLeft :size="15" /> Sebelumnya
-                    </button>
-                    <span class="text-xs text-muted-foreground"
-                        >Halaman {{ logs.meta.current_page }} dari
-                        {{ logs.meta.last_page }}</span
-                    >
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-2 text-xs font-semibold text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                        :disabled="!logs.links.next"
-                        @click="goToPage(logs.links.next)"
-                    >
-                        Berikutnya <ChevronRight :size="15" />
-                    </button>
-                </div>
+                    :paginator="logs.meta"
+                    label="Pagination logbook harian"
+                    class="mt-4 ml-auto justify-end border-t border-border pt-3"
+                    preserve-state
+                />
             </section>
         </div>
     </component>
