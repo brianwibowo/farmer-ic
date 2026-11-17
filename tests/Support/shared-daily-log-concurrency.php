@@ -19,8 +19,8 @@ if (($argv[1] ?? '') === 'worker') {
     Illuminate\Support\Facades\Gate::forUser($actor)->authorize('recordTask', [App\Models\FarmActivity::class, $task]);
     config(['filesystems.disks.local.root' => storage_path('framework/testing/disks/daily-log-concurrency')]);
     $activity = app(App\Services\Activity\TaskActivityService::class)->create($actor, $task, [
-        'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'end_time' => '16:00', 'worker_count' => (int) $argv[4],
-        'daily_notes' => 'Tim harian bersama.', 'notes' => 'Pengairan dari worker paralel.',
+        'work_date' => now('Asia/Jakarta')->toDateString(), 'worker_count' => (int) $argv[4],
+        'notes' => 'Pengairan dari worker paralel.',
         'details' => ['area_ha' => '1'],
         'photos' => [new Illuminate\Http\UploadedFile(public_path('images/logo.png'), 'bukti.png', 'image/png', null, true)],
     ]);

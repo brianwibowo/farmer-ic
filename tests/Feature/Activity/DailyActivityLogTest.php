@@ -85,7 +85,7 @@ class DailyActivityLogTest extends TestCase
         $this->assertAuthenticated();
         $response = $this->postJson($this->url(), $payload)->assertCreated()
             ->assertJsonPath('data.activities.0.worker_count', 6)->assertJsonPath('data.recorded_by', $this->recorder->id)
-            ->assertJsonPath('data.recorder_name', 'Budi Santoso')->assertJsonPath('data.start_time', '08:00')
+            ->assertJsonPath('data.recorder_name', 'Budi Santoso')
             ->assertJsonCount(2, 'data.activities')->assertJsonPath('data.activities.0.block_mapping.length_m', '35.000')
             ->assertJsonPath('data.activities.0.block_mapping.row_spacing_cm', '40.00')
             ->assertJsonPath('data.activities.0.block_mapping.form_version', 1)
@@ -122,24 +122,22 @@ class DailyActivityLogTest extends TestCase
         $this->getJson($this->url($other))->assertForbidden();
     }
 
-    public function test_mapping_appends_to_the_existing_day_without_overwriting_its_header(): void
+    public function test_mapping_appends_to_the_existing_day_without_overwriting_initial_recorder(): void
     {
         $id = $this->postJson($this->url(), $this->payload())->assertCreated()->json('data.id');
         $data = $this->payload();
         $data['worker_count'] = 20;
-        $data['notes'] = 'Header tidak boleh ditimpa.';
+        $data['activities'][0]['notes'] = 'Catatan aktivitas kedua.';
         $this->postJson($this->url(), $data)->assertSuccessful()->assertJsonPath('data.id', $id)
             ->assertJsonPath('data.activities.1.worker_count', 20)->assertJsonCount(2, 'data.activities')->assertJsonPath('data.activities.1.position', 2);
         $this->assertDatabaseCount('daily_activity_logs', 1);
     }
 
-    public function test_invalid_header_and_mapping_fields_do_not_create_partial_records(): void
+    public function test_invalid_log_and_mapping_fields_do_not_create_partial_records(): void
     {
         foreach (
             [
                 'work_date' => '2026-02-30',
-                'start_time' => '25:00',
-                'end_time' => '07:00',
                 'worker_count' => 0,
                 'recorded_by' => (string) Str::uuid(),
                 'activities' => [],
@@ -317,8 +315,6 @@ class DailyActivityLogTest extends TestCase
     {
         return [
             'work_date' => '2026-10-27',
-            'start_time' => '08:00',
-            'end_time' => '16:00',
             'worker_count' => 6,
             'recorded_by' => $this->recorder->id,
             'activities' => [[

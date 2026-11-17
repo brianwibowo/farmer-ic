@@ -10,7 +10,6 @@ use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\User;
 use App\Support\VoluntaryActivityFields;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -55,8 +54,8 @@ class VoluntaryActivityService
                 if (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->planted_area_ha) || (! $cycle && $block && $d['area_ha'] > (float) $block->area_ha))) {
                     throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi luas lokasi yang dipilih.']);
                 }
-                $log = $this->headers->resolve($farm, $actor, $data);
-                $date = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
+                $log = $this->headers->resolve($farm, $actor, $data['work_date']);
+                $date = $this->headers->activityTimestamp($data['work_date']);
                 $activity = new FarmActivity([
                     'farm_id' => $farm->id, 'planting_cycle_id' => $cycle?->id, 'activity_type_id' => $type->id,
                     'performed_by' => $actor->id, 'activity_date' => $date, 'daily_activity_log_id' => $log->id,

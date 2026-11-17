@@ -5,7 +5,6 @@ import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
 import type { PlantingCycleContext, PlantingReport } from '@/types/planting';
 import {
     areaMaximum,
@@ -36,10 +35,7 @@ const props = defineProps<{
 const form = useForm({
     schema: 'taxonomy',
     work_date: props.workDate,
-    start_time: '07:00',
-    end_time: '',
     worker_count: '1',
-    daily_notes: '',
     variety_id: props.varieties.some(
         (variety) => variety.id === props.cycle.variety?.id,
     )
@@ -56,8 +52,6 @@ const form = useForm({
 });
 type FieldKey =
     | 'work_date'
-    | 'start_time'
-    | 'end_time'
     | 'worker_count'
     | 'area'
     | 'seed_name'
@@ -92,7 +86,6 @@ const fields = computed<
     },
 ]);
 const clientErrors = ref<Record<string, string>>({});
-const headerReady = ref(false);
 watch(
     () => form.area_unit,
     (unit, previous) => {
@@ -106,7 +99,6 @@ watch(
         );
     },
 );
-const existingHeader = ref(false);
 const maximumArea = computed(() =>
     areaMaximum(props.numericLimits.area, props.areaLimitM2, form.area_unit),
 );
@@ -227,25 +219,8 @@ function submit(): void {
     clientErrors.value = {};
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto penanaman.';
-    if (
-        !existingHeader.value &&
-        form.end_time &&
-        form.end_time <= form.start_time
-    )
-        clientErrors.value.end_time =
-            'Waktu selesai harus setelah waktu mulai.';
     if (Object.keys(clientErrors.value).length) return;
-    if (!headerReady.value) return;
-    form.transform((data) =>
-        existingHeader.value
-            ? {
-                  ...data,
-                  start_time: undefined,
-                  end_time: undefined,
-                  daily_notes: undefined,
-              }
-            : data,
-    ).post(`/petugas/subbloks/${props.cycle.id}/penanaman`, {
+    form.post(`/petugas/subbloks/${props.cycle.id}/penanaman`, {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => {
@@ -301,7 +276,7 @@ function submit(): void {
             {{ blockedReason }}
         </p>
         <form v-if="canRecord" class="space-y-4" @submit.prevent="submit">
-            <p
+            <!-- <p
                 class="rounded-xl border border-border bg-muted/50 p-4 text-sm leading-6"
             >
                 Penanaman dapat dicatat dalam tiga hari kalender sejak tanam
@@ -309,7 +284,7 @@ function submit(): void {
                 selalu ditetapkan satu hari setelah tanggal tanam pertama pada
                 subblok; jadwal SOP pending menyesuaikan otomatis bila ada
                 laporan tanggal lebih awal.
-            </p>
+            </p> -->
             <p
                 v-if="!commodityConfigured"
                 role="status"
@@ -356,16 +331,6 @@ function submit(): void {
                         >{{ errors.work_date }}</span
                     ></label
                 >
-                <DailyHeaderContext
-                    v-model:start="form.start_time"
-                    v-model:end="form.end_time"
-                    v-model:notes="form.daily_notes"
-                    :farm-id="farm.id"
-                    :date="form.work_date"
-                    :errors="errors"
-                    @ready="headerReady = $event"
-                    @existing="existingHeader = $event"
-                />
                 <label class="block space-y-2 text-sm"
                     ><span>Jumlah pekerja untuk aktivitas ini</span
                     ><input
@@ -630,7 +595,6 @@ function submit(): void {
                     form.processing ||
                     !varieties.length ||
                     varietyMismatch ||
-                    !headerReady ||
                     areaLimitM2 === 0 ||
                     Object.keys(numericErrors).length > 0 ||
                     !!blockedReason

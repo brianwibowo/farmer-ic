@@ -6,7 +6,6 @@ defineProps<{
     farm: { id: string; name: string };
     date: string;
     log: DailyReport;
-    canUpdate: boolean;
 }>();
 </script>
 <template>
@@ -29,7 +28,6 @@ defineProps<{
             :farm="farm"
             :date="date"
             :log="log"
-            :can-update="canUpdate"
             :can-record="false"
         />
     </div>

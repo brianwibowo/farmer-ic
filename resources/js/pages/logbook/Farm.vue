@@ -209,7 +209,8 @@ function reset(): void {
                     props.filters.recorded_by
                         ? ' · ' +
                           (recorders.find(
-                              (person) => person.id === props.filters.recorded_by,
+                              (person) =>
+                                  person.id === props.filters.recorded_by,
                           )?.name ?? 'Pelapor tidak tersedia')
                         : ''
                 }}
@@ -264,9 +265,6 @@ function reset(): void {
                                     Tanggal kerja
                                 </th>
                                 <th scope="col" class="px-5 py-3">Pelapor</th>
-                                <th scope="col" class="px-5 py-3">
-                                    Waktu kerja
-                                </th>
                                 <th scope="col" class="px-5 py-3">Kegiatan</th>
                                 <th scope="col" class="px-5 py-3">
                                     Kendala tercatat
@@ -299,11 +297,6 @@ function reset(): void {
                                         log.recorder_name ??
                                         'Pelapor tidak tersedia'
                                     }}
-                                </td>
-                                <td
-                                    class="px-5 py-4 text-xs whitespace-nowrap text-muted-foreground"
-                                >
-                                    {{ log.start_time }}-{{ log.end_time ?? 'Belum diisi' }}
                                 </td>
                                 <td
                                     class="px-5 py-4 font-semibold tabular-nums"
@@ -357,10 +350,7 @@ function reset(): void {
                             ><ArrowUpRight class="size-4 text-primary"
                         /></Link>
                         <p class="text-xs text-muted-foreground">
-                            {{
-                                log.recorder_name ?? 'Pelapor tidak tersedia'
-                            }}
-                            · {{ log.start_time }}-{{ log.end_time ?? 'Belum diisi' }} WIB
+                            {{ log.recorder_name ?? 'Pelapor tidak tersedia' }}
                         </p>
                         <div class="flex flex-wrap gap-3 text-xs">
                             <span

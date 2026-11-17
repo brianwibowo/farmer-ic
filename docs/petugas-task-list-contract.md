@@ -4,22 +4,19 @@ Status: **Database-backed tasks, task-linked reports, and initial planting reali
 
 ## Shared daily reports
 
-`daily_activity_logs` is a shared header for **one farm + work date**, not one
-header per activity or officer. The database enforces
+`daily_activity_logs` is a shared daily container for **one farm + work date**,
+not one record per activity or officer. The database enforces
 `daily_logs_farm_date_unique (farm_id, work_date)`. `recorded_by` is the first
 creator; `farm_activities.performed_by` remains the actual reporting officer.
-Daily hours and general notes belong to the header. Worker count is stored on
-each `farm_activities` row and may differ between activities; it is not a header
-field. Activity `notes` and `daily_notes` are separate inputs. Existing headers
-are never overwritten by append requests.
+Worker count and optional activity `notes` are stored on each
+`farm_activities` row and may differ between activities. Daily header time/notes
+fields (`start_time`, `end_time`, `daily_notes`) and separate header editing
+were removed so recording forms capture work date and per-activity inputs directly.
 
 Aktivitas now opens the concise SOP to-do list directly, with filters and a
 floating + category picker for voluntary reports. Laporan holds paginated farm
 history with source/category/date/search and optional own-input filtering; its
-daily subpage shows the shared summary and private evidence. Recording forms
-check the chosen day's header: reuse its summary
-when present, or request daily information for the first activity. Date lookup
-has loading/error/retry states and cancels stale requests.
+daily subpage shows the shared daily activities and private evidence.
 
 New endpoints (authenticated and policy-authorized):
 
@@ -30,18 +27,13 @@ GET   /petugas/laporan/{activity}
 GET   /petugas/laporan/harian?work_date=YYYY-MM-DD
 GET   /petugas/aktivitas/mandiri/{type:code}
 POST  /petugas/aktivitas/mandiri/{type:code}
-GET   /kebun/{farm}/daily-logs/context?work_date=YYYY-MM-DD
-PATCH /kebun/{farm}/daily-logs/{dailyLog}
 GET   /kebun/{farm}/daily-logs/activities/{activity}/photos/{photo}
 ```
 
-Assigned Petugas and authorized tenant Admin can edit the shared header from a
-separate Ubah action. Owners remain read-only. Farm, date, original creator and
-activities cannot be reassigned. End time may be null until work is finished;
-workers means distinct people across the entire farm workday. Task, planting and legacy
-block-mapping writes all acquire the same exclusive persisted farm lock before
-resolving a header and allocating `max(position) + 1`. A farm/date unique index
-and existing header/position unique constraint also guard the database itself.
+Task, planting and legacy block-mapping writes all acquire the same exclusive
+persisted farm lock before resolving the daily log record and allocating
+`max(position) + 1`. A farm/date unique index and existing log/position unique
+constraint also guard the database itself.
 Concurrent first writes keep the first successful creator's values; the second
 appends without overwriting them. Report/header creation, details and photos
 remain in the same transaction. Missing required information for a new header

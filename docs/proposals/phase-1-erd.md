@@ -533,7 +533,7 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | Tabel | Status | Kolom lengkap |
 | --- | --- | --- |
 | `activity_types` | Disesuaikan | `id`, `code`, `name`, `description` *(6 kategori utama + `incident`, `other`, internal `block_mapping`; kolom taxonomy aktif ada di `database/schema.dbml`)* |
-| `daily_activity_logs` | Tetap | `id`, `farm_id`, `recorded_by`, `work_date`, `start_time`, `end_time`, `worker_count`, `notes`, `created_at`, `updated_at` |
+| `daily_activity_logs` | Disesuaikan | `id`, `farm_id`, `recorded_by`, `work_date`, `created_at`, `updated_at` |
 | `farm_activities` | Disesuaikan | `id`, `farm_id`, `planting_cycle_id`, `activity_type_id`, `performed_by`, `activity_date`, `description`, `status`, `created_at`, `updated_at`, `daily_activity_log_id`, `position`, `obstacle_status`, `obstacles`, `proposed_solution`, `action_taken`, `task_details`, `planting_cycle_task_id` |
 | `activity_photos` | Tetap | `id`, `activity_id`, `label`, `caption`, `image_url`, `uploaded_at` |
 | `block_mapping_details` | Disesuaikan | `activity_id`, `form_version`, `block_name`, `length_m`, `width_m`, `row_spacing_cm`, `plant_spacing_cm`, `rows_per_bed`, `block_id` |

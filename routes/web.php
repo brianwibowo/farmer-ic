@@ -143,9 +143,7 @@ Route::get('/bypass', function (Request $request) {
 Route::middleware(['auth', 'verified'])->prefix('kebun/{farm}/daily-logs')->whereUuid('farm')->group(function (): void {
     Route::get('/', [DailyActivityLogController::class, 'index'])->name('daily-logs.index');
     Route::post('/', [DailyActivityLogController::class, 'store'])->name('daily-logs.store');
-    Route::get('context', [DailyActivityLogController::class, 'context'])->name('daily-logs.context');
     Route::get('activities/{activity}/photos/{photo}', [DailyActivityLogController::class, 'photo'])->whereUuid(['activity', 'photo'])->name('daily-logs.photos');
-    Route::patch('{dailyLog}', [DailyActivityLogController::class, 'update'])->whereUuid('dailyLog')->name('daily-logs.update');
     Route::get('{dailyLog}', [DailyActivityLogController::class, 'show'])
         ->whereUuid('dailyLog')
         ->name('daily-logs.show');

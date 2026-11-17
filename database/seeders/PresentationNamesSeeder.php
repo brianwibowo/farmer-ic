@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\ActivityPhoto;
 use App\Models\AuditLog;
 use App\Models\Commodity;
-use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
@@ -92,9 +91,6 @@ class PresentationNamesSeeder extends Seeder
 
     private function baseDetails(Farm $farm): void
     {
-        foreach ($this->query(DailyActivityLog::class)->where('farm_id', $farm->id)->get() as $log) {
-            $this->replace($log, ['notes' => ['Pemetaan awal untuk persiapan bedengan demo.' => 'Pemetaan awal untuk persiapan bedengan.']]);
-        }
         foreach ($this->query(PlantingCycle::class)->where('farm_id', $farm->id)->get() as $cycle) {
             $this->replace($cycle, ['subblock_label' => ['DEMO' => 'A']]);
         }

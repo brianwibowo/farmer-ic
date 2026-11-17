@@ -86,7 +86,7 @@ class PetugasTaskActivityTest extends TestCase
         $base = [...$this->payload(), 'cycle_id' => $this->cycle->id];
         $blockBase = [...$this->payload(), 'block_id' => $this->cycle->block_id];
         $yesterday = today()->subDay()->toDateString();
-        $planting = ['work_date' => $yesterday, 'start_time' => '07:00', 'worker_count' => 3,
+        $planting = ['work_date' => $yesterday, 'worker_count' => 3,
             'variety_id' => $this->cycle->variety_id, 'area_ha' => 1, 'seed_name' => 'Bisi 18', 'quantity_kg' => 5,
             'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
         $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';
@@ -376,27 +376,27 @@ class PetugasTaskActivityTest extends TestCase
         }
     }
 
-    public function test_stage_report_times_use_the_shared_daily_header_not_database_write_times(): void
+    public function test_stage_report_times_use_work_date_not_database_write_times(): void
     {
         $this->travelTo(now()->startOfSecond());
         $url = '/petugas/tasks/'.$this->task->id.'/aktivitas';
         $firstDate = now('Asia/Jakarta')->subDays(3)->toDateString();
         $lastDate = now('Asia/Jakarta')->subDays(2)->toDateString();
-        $this->actingAs($this->actor)->post($url, [...$this->payload(), 'work_date' => $firstDate, 'start_time' => '07:00'])
+        $this->actingAs($this->actor)->post($url, [...$this->payload(), 'work_date' => $firstDate])
             ->assertSessionHasNoErrors();
-        $this->post($url, [...$this->payload(), 'work_date' => $firstDate, 'start_time' => '09:00'])
+        $this->post($url, [...$this->payload(), 'work_date' => $firstDate])
             ->assertSessionHasNoErrors();
 
         $stage = $this->cycle->stages()->where('code', 'maintenance')->firstOrFail();
-        $this->assertSame($firstDate.' 07:00', $stage->started_at->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'));
+        $this->assertSame($firstDate.' 08:00', $stage->started_at->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'));
         $this->assertTrue($stage->started_at->equalTo($stage->completed_at));
         $this->assertFalse($stage->started_at->isSameDay($stage->created_at));
-        $this->assertSame([$firstDate.' 07:00', $firstDate.' 07:00'], FarmActivity::query()->orderBy('position')->get()
+        $this->assertSame([$firstDate.' 08:00', $firstDate.' 08:00'], FarmActivity::query()->orderBy('position')->get()
             ->map(fn (FarmActivity $activity) => $activity->activity_date->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'))->all());
 
-        $this->post($url, [...$this->payload(), 'work_date' => $lastDate, 'start_time' => '08:00'])
+        $this->post($url, [...$this->payload(), 'work_date' => $lastDate])
             ->assertSessionHasNoErrors();
-        $this->assertSame($firstDate.' 07:00', $stage->fresh()->started_at->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'));
+        $this->assertSame($firstDate.' 08:00', $stage->fresh()->started_at->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'));
         $this->assertSame($lastDate.' 08:00', $stage->fresh()->completed_at->setTimezone('Asia/Jakarta')->format('Y-m-d H:i'));
     }
 
@@ -661,13 +661,13 @@ class PetugasTaskActivityTest extends TestCase
             $location = \App\Services\Activity\ActivitySequenceService::isBlockPreparation($code)
                 ? ['block_id' => $this->cycle->block_id]
                 : ['cycle_id' => $code === 'other' ? null : $this->cycle->id];
-            $this->post('/petugas/aktivitas/mandiri/'.$code, [...$this->payload(), ...$location, 'end_time' => null,
+            $this->post('/petugas/aktivitas/mandiri/'.$code, [...$this->payload(), ...$location,
                 'notes' => 'Catatan opsional untuk '.$code,
                 'details' => $details])->assertSessionHasNoErrors()->assertRedirect();
         }
         $this->assertDatabaseCount('farm_activities', 6);
         $this->assertDatabaseCount('daily_activity_logs', 1);
-        $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $this->farm->id, 'end_time' => null]);
+        $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $this->farm->id]);
         $this->assertDatabaseCount('harvest_details', 0);
         $this->assertDatabaseHas('fertilization_details', ['fertilization_stage' => 'kandang', 'area_ha' => '0.1000']);
         $this->assertSame('pending', $this->task->refresh()->status);
@@ -707,7 +707,7 @@ class PetugasTaskActivityTest extends TestCase
 
     public function test_taxonomy_sop_form_persists_units_and_starts_task(): void
     {
-        $data = [...$this->payload(), 'schema' => 'taxonomy', 'end_time' => null,
+        $data = [...$this->payload(), 'schema' => 'taxonomy',
             'details' => ['area' => 1000, 'area_unit' => 'm²']];
         $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $data)->assertSessionHasNoErrors();
         $activity = FarmActivity::where('planting_cycle_task_id', $this->task->id)->firstOrFail();
@@ -747,7 +747,7 @@ class PetugasTaskActivityTest extends TestCase
     private function payload(): array
     {
         return [
-            'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'end_time' => '10:00', 'worker_count' => 3,
+            'work_date' => now('Asia/Jakarta')->toDateString(), 'worker_count' => 3,
             'notes' => 'Perawatan berjalan lancar.',
             'details' => ['area_ha' => '1.0000'],
             'photos' => [UploadedFile::fake()->image('pengairan.jpg')],
@@ -834,10 +834,9 @@ class PetugasTaskActivityTest extends TestCase
         $this->post($url, ['note' => 'Tidak boleh.'])->assertForbidden();
     }
 
-    public function test_two_officers_share_one_header_without_overwriting_daily_information(): void
+    public function test_two_officers_share_one_daily_log_without_overwriting_initial_recorder(): void
     {
         $data = $this->payload();
-        $data['daily_notes'] = 'Tim gabungan bekerja di beberapa subblok.';
         $url = '/petugas/tasks/'.$this->task->id.'/aktivitas';
         $this->actingAs($this->actor)->post($url, $data)->assertSessionHasNoErrors();
         $first = \App\Models\DailyActivityLog::firstOrFail();
@@ -846,82 +845,65 @@ class PetugasTaskActivityTest extends TestCase
         $other->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $this->farm->id])->save();
         $data = $this->payload();
         $data['worker_count'] = 99;
-        $data['start_time'] = '08:00';
-        $data['daily_notes'] = 'Tidak boleh menimpa header pertama.';
         $this->actingAs($other)->post($url, $data)->assertSessionHasNoErrors();
 
         $this->assertDatabaseCount('daily_activity_logs', 1);
         $this->assertSame($this->actor->id, $first->refresh()->recorded_by);
-        $this->assertSame('Tim gabungan bekerja di beberapa subblok.', $first->notes);
         $this->assertSame([1, 2], FarmActivity::orderBy('position')->pluck('position')->all());
         $this->assertSame([3, 99], FarmActivity::orderBy('position')->pluck('worker_count')->all());
         $this->assertSame([$this->actor->id, $other->id], FarmActivity::orderBy('position')->pluck('performed_by')->all());
-        $this->get('/petugas/laporan/harian')->assertInertia(fn (Assert $page) => $page->component('petugas/DailyReport')->has('log.activities', 2)->where('log.activities.0.worker_count', 3)->where('log.activities.1.worker_count', 99)->where('canUpdate', true));
+        $this->get('/petugas/laporan/harian')->assertInertia(fn (Assert $page) => $page->component('petugas/DailyReport')->has('log.activities', 2)->where('log.activities.0.worker_count', 3)->where('log.activities.1.worker_count', 99)->missing('canUpdate'));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
-    public function test_existing_header_needs_no_repeated_hours_and_new_date_requires_daily_information(): void
+    public function test_same_date_reuses_daily_log_and_new_date_creates_a_separate_log(): void
     {
         $url = '/petugas/tasks/'.$this->task->id.'/aktivitas';
         $this->actingAs($this->actor)->post($url, $this->payload())->assertSessionHasNoErrors();
         $data = $this->payload();
-        unset($data['start_time'], $data['end_time']);
         $this->post($url, $data)->assertSessionHasNoErrors();
         $data['photos'] = [UploadedFile::fake()->image('pengairan-lain.jpg')];
         $data['work_date'] = now('Asia/Jakarta')->subDay()->toDateString();
-        $this->post($url, $data)->assertSessionHasErrors(['start_time']);
-        $this->assertDatabaseCount('daily_activity_logs', 1);
-        $this->assertDatabaseCount('farm_activities', 2);
+        $this->post($url, $data)->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('daily_activity_logs', 2);
+        $this->assertDatabaseCount('farm_activities', 3);
     }
 
-    public function test_header_edit_is_separate_shared_and_keeps_original_creator_and_activities(): void
+    public function test_daily_log_detail_is_readable_while_removed_header_edit_and_context_endpoints_are_unavailable(): void
     {
         $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertSessionHasNoErrors();
         $log = \App\Models\DailyActivityLog::firstOrFail();
-        $edit = '/kebun/'.$this->farm->id.'/daily-logs/'.$log->id;
-        $data = ['start_time' => '06:00', 'end_time' => '17:00', 'daily_notes' => 'Ringkasan harian diperbarui.'];
-        $this->patch($edit, $data)->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertSame('06:00', substr($log->refresh()->start_time, 0, 5));
-        $this->assertSame('Ringkasan harian diperbarui.', $log->notes);
-        $this->assertSame($this->actor->id, $log->recorded_by);
+        $detail = '/kebun/'.$this->farm->id.'/daily-logs/'.$log->id;
+        $this->patch($detail, ['work_date' => '2026-01-01'])->assertStatus(405);
+        $this->getJson('/kebun/'.$this->farm->id.'/daily-logs/context?work_date='.$log->work_date->toDateString())->assertNotFound();
         $this->assertDatabaseCount('farm_activities', 1);
-        $admin = User::factory()->create(['role' => 'admin']);
-        $this->team->members()->attach($admin, ['role' => TeamRole::Member->value]);
-        $admin->forceFill(['current_team_id' => $this->team->id])->save();
-        $this->actingAs($admin)->patch($edit, ['start_time' => '06:30', 'end_time' => '17:30', 'daily_notes' => 'Ringkasan admin.'])->assertSessionHasNoErrors();
-        $this->assertSame('06:30', substr($log->refresh()->start_time, 0, 5));
         $owner = User::factory()->create(['role' => 'owner']);
         $this->team->members()->attach($owner, ['role' => TeamRole::Member->value]);
-        $this->actingAs($owner)->patch($edit, $data)->assertForbidden();
-        $this->get($edit)->assertOk()->assertInertia(fn (Assert $page) => $page->where('canUpdate', false)->has('log.activities', 1));
-        $this->actingAs($this->actor)->patch($edit, [...$data, 'work_date' => '2026-01-01', 'recorded_by' => $admin->id])->assertSessionHasErrors(['work_date', 'recorded_by']);
+        $owner->forceFill(['current_team_id' => $this->team->id])->save();
+        $this->actingAs($owner)->get($detail)->assertOk()->assertInertia(fn (Assert $page) => $page->missing('canUpdate')->has('log.activities', 1));
     }
 
-    public function test_daily_context_and_report_photos_are_farm_scoped(): void
+    public function test_daily_report_and_photos_are_farm_scoped(): void
     {
         $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertSessionHasNoErrors();
-        $date = now('Asia/Jakarta')->toDateString();
-        $context = '/kebun/'.$this->farm->id.'/daily-logs/context?work_date='.$date;
-        $this->getJson($context)->assertOk()->assertJsonPath('data.start_time', '07:00');
         $photo = ActivityPhoto::firstOrFail();
         $url = '/kebun/'.$this->farm->id.'/daily-logs/activities/'.$photo->activity_id.'/photos/'.$photo->id;
         $this->get($url)->assertOk();
         $other = new Farm(['name' => 'Kebun tanpa akses', 'land_tenure' => 'owned', 'total_area_ha' => '3']);
         $other->forceFill(['team_id' => $this->team->id, 'created_by' => $this->actor->id])->save();
-        $this->getJson('/kebun/'.$other->id.'/daily-logs/context?work_date='.$date)->assertForbidden();
+        $this->get('/kebun/'.$other->id.'/daily-logs')->assertForbidden();
         $this->actor->forceFill(['assigned_farm_id' => $other->id])->save();
         $this->actor->unsetRelation('assignedFarm');
-        $this->getJson($context)->assertForbidden();
         $this->get($url)->assertForbidden();
         $this->get('/petugas/laporan/harian')->assertInertia(fn (Assert $page) => $page->where('log', null));
     }
 
-    public function test_database_unique_constraint_prevents_a_second_header_for_the_same_farm_date(): void
+    public function test_database_unique_constraint_prevents_a_second_log_for_the_same_farm_date(): void
     {
         $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertSessionHasNoErrors();
         $log = \App\Models\DailyActivityLog::firstOrFail();
         try {
-            DB::transaction(fn () => \App\Models\DailyActivityLog::create($log->only(['farm_id', 'work_date', 'recorded_by', 'start_time', 'end_time', 'notes'])));
+            DB::transaction(fn () => \App\Models\DailyActivityLog::create($log->only(['farm_id', 'work_date', 'recorded_by'])));
             $this->fail('Expected unique farm/date constraint.');
         } catch (\Illuminate\Database\QueryException $error) {
             $this->assertSame('23505', (string) $error->getCode());
@@ -929,23 +911,18 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertDatabaseCount('daily_activity_logs', 1);
     }
 
-    public function test_foreign_tenant_and_read_only_grants_cannot_edit_or_expose_a_daily_header(): void
+    public function test_foreign_tenant_and_missing_grants_cannot_view_daily_logs(): void
     {
         $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertSessionHasNoErrors();
         $log = \App\Models\DailyActivityLog::firstOrFail();
-        $edit = '/kebun/'.$this->farm->id.'/daily-logs/'.$log->id;
-        $data = ['start_time' => '06:00', 'end_time' => '17:00'];
-        $roles = config('access.roles');
-        unset($roles['petugas']['daily_activity_logs.update']);
-        config(['access.roles' => $roles]);
-        $this->patch($edit, $data)->assertForbidden();
+        $photo = ActivityPhoto::firstOrFail();
         $foreign = Team::factory()->create(['is_personal' => false]);
         $this->team->members()->detach($this->actor);
         $foreign->members()->attach($this->actor, ['role' => TeamRole::Member->value]);
         $this->actor->forceFill(['current_team_id' => $foreign->id])->save();
         $this->actor->unsetRelation('teams')->unsetRelation('currentTeam')->unsetRelation('assignedFarm');
-        $this->getJson('/kebun/'.$this->farm->id.'/daily-logs/context?work_date='.$log->work_date->toDateString())->assertForbidden();
-        $this->patch($edit, $data)->assertForbidden();
+        $this->get('/kebun/'.$this->farm->id.'/daily-logs/'.$log->id)->assertForbidden();
+        $this->get('/kebun/'.$this->farm->id.'/daily-logs/activities/'.$photo->activity_id.'/photos/'.$photo->id)->assertForbidden();
         $this->get('/petugas/aktivitas')->assertForbidden();
         $this->assertSame(3, FarmActivity::firstOrFail()->worker_count);
     }

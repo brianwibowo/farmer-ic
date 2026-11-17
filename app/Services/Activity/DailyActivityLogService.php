@@ -8,7 +8,6 @@ use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -78,8 +77,8 @@ class DailyActivityLogService
                 throw ValidationException::withMessages(['activities' => 'Referensi Pemetaan Blok belum tersedia. Jalankan BlockMappingActivityTypeSeeder.']);
             }
 
-            $log = $this->headers->resolve($farm, $recorder, [...$data, 'daily_notes' => $data['notes'] ?? null]);
-            $startedAt = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
+            $log = $this->headers->resolve($farm, $recorder, $data['work_date']);
+            $startedAt = $this->headers->activityTimestamp($data['work_date']);
             $position = $this->headers->nextPosition($log, $recorder);
             foreach ($data['activities'] as $index => $item) {
                 $block = null;

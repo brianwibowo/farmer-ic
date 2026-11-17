@@ -68,11 +68,20 @@ function photoFailed(id: string): void {
                 v-if="activity.cycle || activity.block_name"
                 class="mt-3 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"
             >
-                {{ [activity.block_name, activity.cycle?.label].filter(Boolean).join(' · ') }}
+                {{
+                    [activity.block_name, activity.cycle?.label]
+                        .filter(Boolean)
+                        .join(' · ')
+                }}
             </p>
         </section>
 
-        <p v-if="activity.worker_count !== null" class="text-sm text-muted-foreground">Jumlah pekerja aktivitas: {{ activity.worker_count }} orang</p>
+        <p
+            v-if="activity.worker_count !== null"
+            class="text-sm text-muted-foreground"
+        >
+            Jumlah pekerja aktivitas: {{ activity.worker_count }} orang
+        </p>
         <section
             v-if="activity.details.length"
             class="rounded-xl border border-border bg-card p-4"
@@ -138,23 +147,6 @@ function photoFailed(id: string): void {
                     <dt class="text-xs text-muted-foreground">Tanggal kerja</dt>
                     <dd class="mt-1 text-sm">
                         {{ ownerReadDate(activity.log.work_date) }}
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">Jam kerja</dt>
-                    <dd class="mt-1 text-sm">
-                        {{ activity.log.start_time.slice(0, 5) }}–{{
-                            activity.log.end_time?.slice(0, 5) ?? 'Belum diisi'
-                        }}
-                        WIB
-                    </dd>
-                </div>
-                <div v-if="activity.log.notes" class="col-span-2">
-                    <dt class="text-xs text-muted-foreground">
-                        Catatan harian
-                    </dt>
-                    <dd class="mt-1 text-sm leading-6 whitespace-pre-line">
-                        {{ activity.log.notes }}
                     </dd>
                 </div>
             </dl>

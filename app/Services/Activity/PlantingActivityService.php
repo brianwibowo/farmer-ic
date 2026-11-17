@@ -168,8 +168,8 @@ class PlantingActivityService
                 $estimate = $this->estimates->forPlantingDate($actor, $team, $cycle, $anchor);
                 $cycle->forceFill(['planting_started_on' => $dates[0], 'planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate, 'planting_window_checked_at' => null,
                     'variety_id' => $variety->id, 'planted_area_ha' => LandArea::hectares($totalArea), 'reserved_area_ha' => LandArea::hectares($totalArea), 'status' => 'active'])->save();
-                $log = $this->headers->resolve($farm, $actor, $data);
-                $started = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
+                $log = $this->headers->resolve($farm, $actor, $data['work_date']);
+                $started = $this->headers->activityTimestamp($data['work_date']);
                 $activity = FarmActivity::create([
                     'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'activity_type_id' => $type->id,
                     'performed_by' => $actor->id, 'activity_date' => $started, 'daily_activity_log_id' => $log->id,

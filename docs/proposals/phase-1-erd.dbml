@@ -174,15 +174,12 @@ Table daily_activity_logs {
   farm_id uuid [not null, ref: > farms.id]
   recorded_by uuid [not null, ref: > users.id]
   work_date date [not null]
-  start_time time [not null]
-  end_time time [not null]
-  worker_count int [not null]
-  notes text
   created_at timestamptz [not null]
   updated_at timestamptz
 
   indexes {
     (id, farm_id) [unique]
+    (farm_id, work_date) [unique]
   }
 }
 

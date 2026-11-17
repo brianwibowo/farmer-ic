@@ -497,7 +497,7 @@ class OwnerReadService
             'photos' => $activity->photos->map(fn ($photo): array => [...$photo->only(['id', 'caption', 'label']), 'image_url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id])])->all(),
             'details' => $details,
             'log' => $log === null ? null : [
-                ...$log->only(['id', 'start_time', 'end_time', 'notes']),
+                'id' => $log->id,
                 'work_date' => $log->work_date->toDateString(),
             ],
         ];

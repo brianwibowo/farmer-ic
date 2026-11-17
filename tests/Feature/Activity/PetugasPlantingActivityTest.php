@@ -76,7 +76,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->sop();
         $this->actingAs($this->actor);
         foreach (['2026-10-26', '2026-10-28'] as $date) {
-            $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.4', 'work_date' => $date, 'end_time' => null])->assertSessionHasNoErrors();
+            $this->post($this->url(), [...$this->payload(), 'area_ha' => '0.4', 'work_date' => $date])->assertSessionHasNoErrors();
         }
         $task = $this->cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail();
         $this->assertSame('2026-10-26', $this->cycle->refresh()->getAttribute('planting_started_on'));
@@ -142,7 +142,7 @@ class PetugasPlantingActivityTest extends TestCase
         $data = $this->payload();
         unset($data['area_ha'], $data['quantity_kg']);
         $data = [...$data, 'schema' => 'taxonomy', 'area' => 1000, 'area_unit' => 'm²',
-            'quantity' => 2, 'quantity_unit' => 'sak', 'bag_size' => 5, 'end_time' => null];
+            'quantity' => 2, 'quantity_unit' => 'sak', 'bag_size' => 5];
         $this->post($this->url(), $data)->assertSessionHasNoErrors();
         $this->assertDatabaseHas('planting_details', ['area_ha' => '0.1000', 'quantity_kg' => '10.000']);
         $date = \Carbon\CarbonImmutable::parse($data['work_date'])->subDay()->toDateString();
@@ -173,7 +173,7 @@ class PetugasPlantingActivityTest extends TestCase
 
     private function payload(): array
     {
-        return ['work_date' => now('Asia/Jakarta')->subDays(2)->toDateString(), 'start_time' => '07:00', 'end_time' => '11:00', 'worker_count' => 4,
+        return ['work_date' => now('Asia/Jakarta')->subDays(2)->toDateString(), 'worker_count' => 4,
             'variety_id' => $this->variety->id, 'area_ha' => '1.5000', 'seed_name' => 'Benih Jagung Bisi 18', 'quantity_kg' => '12.500',
             'notes' => 'Penanaman selesai dengan tanah cukup lembap.', 'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
     }
@@ -566,7 +566,6 @@ class PetugasPlantingActivityTest extends TestCase
         $this->post('/petugas/aktivitas/mandiri/maintenance', [
             'cycle_id' => $cycle->id,
             'work_date' => '2026-11-10',
-            'start_time' => '08:00',
             'worker_count' => 2,
             'schema' => 'taxonomy',
             'details' => ['area' => '0.5', 'area_unit' => 'Ha'],
@@ -595,7 +594,6 @@ class PetugasPlantingActivityTest extends TestCase
         $this->actingAs($this->actor)->post('/petugas/aktivitas/mandiri/maintenance', [
             'cycle_id' => $cycle->id,
             'work_date' => '2026-11-11',
-            'start_time' => '08:00',
             'worker_count' => 2,
             'schema' => 'taxonomy',
             'details' => ['area' => '0.5', 'area_unit' => 'Ha'],

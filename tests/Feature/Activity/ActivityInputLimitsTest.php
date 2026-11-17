@@ -73,7 +73,7 @@ class ActivityInputLimitsTest extends TestCase
         $second = User::factory()->create(['role' => 'petugas']);
         $this->team->members()->attach($second, ['role' => 'member']);
         $second->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $this->farm->id])->save();
-        $payload = ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'worker_count' => 2,
+        $payload = ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'worker_count' => 2,
             'details' => ['area' => '0.5', 'area_unit' => 'Ha', 'weight' => '100', 'weight_unit' => 'kg'],
             'photos' => [UploadedFile::fake()->image('panen.jpg')]];
         $this->actingAs($second)->post($url, $payload)->assertSessionHasNoErrors();
@@ -91,7 +91,7 @@ class ActivityInputLimitsTest extends TestCase
         $task = $this->task('maintenance', null);
         $url = '/petugas/tasks/'.$task->id.'/aktivitas';
         $this->actingAs($this->petugas)->get($url.'/buat')->assertInertia(fn (Assert $page) => $page->where('areaLimitM2', 12500));
-        $this->post($url, ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'worker_count' => 2,
+        $this->post($url, ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'worker_count' => 2,
             'details' => ['area' => 12501, 'area_unit' => 'm²'],
             'photos' => [UploadedFile::fake()->image('irigasi.jpg')]])->assertSessionHasErrors('details.area');
     }

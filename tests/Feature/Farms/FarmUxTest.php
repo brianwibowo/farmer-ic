@@ -142,7 +142,7 @@ class FarmUxTest extends TestCase
         $this->actingAs($petugas);
         $this->get('/kebun/'.$farm->id.'/daily-logs')->assertOk()->assertInertia(fn (Assert $page) => $page->has('blocks', 1)->where('blocks.0.id', $block->id));
         $this->post('/kebun/'.$farm->id.'/daily-logs', [
-            'work_date' => '2026-11-02', 'start_time' => '08:00', 'end_time' => '09:00', 'worker_count' => 2,
+            'work_date' => '2026-11-02', 'worker_count' => 2,
             'activities' => [['type' => 'block_mapping', 'obstacle_status' => 'none', 'block_mapping' => [
                 'block_id' => $block->id, 'block_name' => $block->name, 'length_m' => '10', 'width_m' => '10',
             ]]],

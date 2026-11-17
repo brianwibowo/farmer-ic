@@ -89,7 +89,7 @@ class HarvestEstimateTest extends TestCase
     private function plant(string $date = '2026-11-11'): void
     {
         $this->actingAs($this->petugas)->post('/petugas/subbloks/'.$this->cycle->id.'/penanaman', [
-            'work_date' => $date, 'start_time' => '07:00', 'worker_count' => 2, 'variety_id' => $this->variety->id,
+            'work_date' => $date, 'worker_count' => 2, 'variety_id' => $this->variety->id,
             'area_ha' => '0.5', 'seed_name' => 'Benih Jagung Bisi', 'quantity_kg' => '5',
             'photos' => [UploadedFile::fake()->image('tanam.jpg')],
         ])->assertSessionHasNoErrors();
@@ -289,7 +289,7 @@ class HarvestEstimateTest extends TestCase
         $this->cycle->activities()->update(['activity_date' => '2026-11-12 07:00:00+07']);
         $this->cycle->forceFill(['planting_started_on' => '2026-11-12', 'planted_at' => '2026-11-12'])->save();
         $this->actingAs($this->petugas)->post('/petugas/subbloks/'.$this->cycle->id.'/penanaman', [
-            'work_date' => '2026-11-13', 'start_time' => '07:00', 'worker_count' => 2, 'variety_id' => $this->variety->id,
+            'work_date' => '2026-11-13', 'worker_count' => 2, 'variety_id' => $this->variety->id,
             'area_ha' => '0.5', 'seed_name' => 'Benih Jagung Bisi', 'quantity_kg' => '5',
             'photos' => [UploadedFile::fake()->image('tanam-lanjutan.jpg')],
         ])->assertSessionHasErrors('work_date');
@@ -308,7 +308,7 @@ class HarvestEstimateTest extends TestCase
         $this->cycle->activities()->update(['activity_date' => '2026-11-12 07:00:00+07']);
         $this->cycle->forceFill(['planting_started_on' => '2026-11-12', 'planted_at' => '2026-11-12'])->save();
         $this->actingAs($this->petugas)->post('/petugas/subbloks/'.$this->cycle->id.'/penanaman', [
-            'work_date' => '2026-11-13', 'start_time' => '07:00', 'worker_count' => 2, 'variety_id' => $this->variety->id,
+            'work_date' => '2026-11-13', 'worker_count' => 2, 'variety_id' => $this->variety->id,
             'area_ha' => '0.5', 'seed_name' => 'Benih Jagung Bisi', 'quantity_kg' => '5',
             'photos' => [UploadedFile::fake()->image('tanam-lanjutan.jpg')],
         ])->assertSessionHasErrors('work_date');
@@ -507,7 +507,7 @@ class HarvestEstimateTest extends TestCase
         $task = $this->harvest();
         $this->travelTo(CarbonImmutable::parse('2027-02-10 10:00', 'Asia/Jakarta'));
         $this->actingAs($this->petugas)->post('/petugas/tasks/'.$task->id.'/aktivitas', [
-            'work_date' => '2027-02-10', 'start_time' => '07:00', 'worker_count' => 2,
+            'work_date' => '2027-02-10', 'worker_count' => 2,
             'details' => ['area_ha' => '0.1', 'weight_ton' => '0.1'],
             'photos' => [UploadedFile::fake()->image('panen.jpg')],
         ])->assertSessionHasNoErrors();

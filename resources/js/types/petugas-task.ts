@@ -88,8 +88,6 @@ export type TaskActivityReport = {
     id: string;
     performer_name: string | null;
     work_date: string;
-    start_time: string;
-    end_time: string | null;
     worker_count: number;
     notes: string | null;
     details: Record<string, string | number | null>;

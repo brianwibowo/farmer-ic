@@ -348,11 +348,8 @@ Table farm_activities {
 Table daily_activity_logs {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
-  recorded_by uuid [not null, ref: > users.id, note: 'Pembuat pertama header bersama; pelaksana tiap aktivitas ada di farm_activities.performed_by']
+  recorded_by uuid [not null, ref: > users.id, note: 'Pembuat pertama logbook harian; pelaksana tiap aktivitas ada di farm_activities.performed_by']
   work_date date [not null]
-  start_time time [not null]
-  end_time time
-  notes text
   created_at timestamptz [not null]
   updated_at timestamptz
 
@@ -360,7 +357,7 @@ Table daily_activity_logs {
     (id, farm_id) [unique]
     (farm_id, work_date) [unique]
   }
-  Note: 'Satu header bersama per kebun per tanggal. Jam mulai wajib; jam selesai boleh menyusul. Jumlah pekerja disimpan per aktivitas dan menambah aktivitas tidak menimpa header.'
+  Note: 'Satu pengelompokan logbook harian per kebun per tanggal. Jumlah pekerja disimpan per aktivitas.'
 }
 
 Ref: farm_activities.(daily_activity_log_id, farm_id) > daily_activity_logs.(id, farm_id)

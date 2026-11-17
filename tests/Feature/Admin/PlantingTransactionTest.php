@@ -97,9 +97,6 @@ class PlantingTransactionTest extends TestCase
             'farm_id' => $farm->id,
             'recorded_by' => $actor->id,
             'work_date' => $date,
-            'start_time' => '07:00',
-            'end_time' => '11:00',
-            'notes' => 'Laporan penanaman '.$date,
         ]);
         $activity = FarmActivity::create([
             'farm_id' => $farm->id,

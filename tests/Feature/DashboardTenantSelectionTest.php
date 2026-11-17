@@ -155,7 +155,7 @@ class DashboardTenantSelectionTest extends TestCase
     private function createLog(Farm $farm, User $worker, string $date): void
     {
         $this->actingAs($worker)->postJson('/kebun/'.$farm->id.'/daily-logs', [
-            'work_date' => $date, 'start_time' => '08:00', 'end_time' => '09:00', 'worker_count' => 1,
+            'work_date' => $date, 'worker_count' => 1,
             'activities' => [['type' => 'block_mapping', 'obstacle_status' => 'none', 'notes' => 'Pemetaan '.$farm->name,
                 'block_mapping' => ['block_name' => 'Area pemetaan', 'length_m' => 10, 'width_m' => 10]]],
         ])->assertCreated();

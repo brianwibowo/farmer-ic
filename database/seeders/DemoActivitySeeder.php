@@ -53,11 +53,8 @@ class DemoActivitySeeder extends Seeder
             \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('create', [DailyActivityLog::class, $farm]);
             app(DailyActivityLogService::class)->create($farm, [
                 'work_date' => $mappingDate,
-                'start_time' => '08:00',
-                'end_time' => '16:00',
                 'worker_count' => 6,
                 'recorded_by' => $petugas->id,
-                'notes' => 'Pemetaan awal untuk persiapan bedengan.',
                 'activities' => [[
                     'type' => 'block_mapping',
                     'block_mapping' => [
@@ -72,6 +69,7 @@ class DemoActivitySeeder extends Seeder
                     'obstacles' => 'Sebagian batas lahan mengikuti kontur lereng.',
                     'proposed_solution' => 'Sesuaikan panjang bedeng dengan batas lahan.',
                     'action_taken' => 'Batas blok ditandai di lapangan.',
+                    'notes' => 'Pemetaan awal untuk persiapan bedengan.',
                 ]],
             ]);
         }
@@ -319,10 +317,7 @@ class DemoActivitySeeder extends Seeder
         \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('create', [DailyActivityLog::class, $farm]);
         Farm::visibleTo($actor, $farm->team)->whereKey($farm->id)->lockForUpdate()->firstOrFail();
         $headers = app(\App\Services\Activity\DailyActivityHeaderService::class);
-        $log = $headers->resolve($farm, $actor, [
-            'work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00',
-            'daily_notes' => 'Kegiatan lapangan bersama tim Kebun Cileuksa.',
-        ]);
+        $log = $headers->resolve($farm, $actor, $date);
 
         return [$log, $headers->nextPosition($log, $actor)];
     }

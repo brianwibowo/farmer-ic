@@ -137,7 +137,7 @@ class ModelAuthorizationTest extends TestCase
             'FarmLegality' => ['farm_id' => $farm->id, 'institution' => 'Kelompok Tani Mitra', 'summary' => 'Kerja sama pengelolaan lahan.', 'created_at' => now(), 'updated_at' => now()],
             'FarmLegalityDocument' => ['farm_legality_id' => $this->record(\App\Models\FarmLegality::class, $user, $team, $farm)->id, 'disk' => 'legality', 'path' => 'farm-legalities/'.$farm->id.'/draft.pdf', 'original_name' => 'Draft kerja sama.pdf', 'mime_type' => 'application/pdf', 'size_bytes' => 240, 'created_at' => now(), 'updated_at' => now()],
             'FarmActivity' => ['farm_id' => $farm->id, 'activity_type_id' => $this->record(\App\Models\ActivityType::class, $user, $team, $farm)->getKey(), 'performed_by' => $user->id, 'activity_date' => now(), 'created_at' => now()],
-            'DailyActivityLog' => ['farm_id' => $farm->id, 'recorded_by' => $user->id, 'work_date' => today(), 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now()],
+            'DailyActivityLog' => ['farm_id' => $farm->id, 'recorded_by' => $user->id, 'work_date' => today(), 'created_at' => now()],
             'BlockMappingDetail' => ['block_name' => 'Block 1', 'length_m' => '10', 'width_m' => '10'],
             'FarmBlock' => ['farm_id' => $farm->id, 'code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '1.0000', 'created_by' => $user->id, 'land_clearing_started_at' => now(), 'created_at' => now(), 'updated_at' => now()],
             'PlantingCycleStage' => ['planting_cycle_id' => $this->record(PlantingCycle::class, $user, $team, $farm)->id, 'code' => 'soil_preparation', 'position' => 2, 'status' => 'in_progress', 'started_at' => now(), 'created_at' => now(), 'updated_at' => now()],

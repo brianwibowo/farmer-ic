@@ -4,7 +4,6 @@ import { computed, ref, watch } from 'vue';
 import { LoaderCircle, X } from '@lucide/vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
 import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
@@ -45,10 +44,7 @@ const form = useForm({
     cycle_id: '',
     block_id: '',
     work_date: props.today,
-    start_time: '07:00',
-    end_time: '',
     worker_count: 1,
-    daily_notes: '',
     notes: '',
     details: Object.fromEntries(
         props.fields.map((f) => [
@@ -62,8 +58,6 @@ const form = useForm({
     ) as Record<string, string>,
     photos: [] as File[],
 });
-const ready = ref(false);
-const existing = ref(false);
 const clientError = ref('');
 const blockOnly = computed(() =>
     ['land_cleaning', 'soil_preparation', 'base_fertilization'].includes(
@@ -178,7 +172,6 @@ function photos(event: Event): void {
 function submit(): void {
     if (
         form.processing ||
-        !ready.value ||
         blockedReason.value ||
         noArea.value ||
         Object.keys(numericErrors.value).length
@@ -187,10 +180,6 @@ function submit(): void {
     clientError.value = '';
     if (!form.photos.length) {
         clientError.value = 'Tambahkan minimal satu foto dokumentasi.';
-        return;
-    }
-    if (!existing.value && form.end_time && form.end_time <= form.start_time) {
-        clientError.value = 'Jam selesai harus setelah jam mulai.';
         return;
     }
     form.transform((data) => {
@@ -203,13 +192,6 @@ function submit(): void {
         return {
             ...data,
             details,
-            ...(existing.value
-                ? {
-                      start_time: undefined,
-                      end_time: undefined,
-                      daily_notes: undefined,
-                  }
-                : {}),
         };
     }).post(`/petugas/aktivitas/mandiri/${props.type.code}`, {
         forceFormData: true,
@@ -331,16 +313,6 @@ function submit(): void {
                         >
                     </div>
                 </section>
-                <DailyHeaderContext
-                    v-model:start="form.start_time"
-                    v-model:end="form.end_time"
-                    v-model:notes="form.daily_notes"
-                    :farm-id="farm.id"
-                    :date="form.work_date"
-                    :errors="form.errors"
-                    @ready="ready = $event"
-                    @existing="existing = $event"
-                />
                 <section
                     class="space-y-4 rounded-2xl border border-border bg-card p-4"
                 >
@@ -443,7 +415,6 @@ function submit(): void {
             <button
                 :disabled="
                     form.processing ||
-                    !ready ||
                     !!blockedReason ||
                     noArea ||
                     Object.keys(numericErrors).length > 0

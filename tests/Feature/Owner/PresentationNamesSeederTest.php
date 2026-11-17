@@ -3,7 +3,6 @@
 namespace Tests\Feature\Owner;
 
 use App\Models\ActivityPhoto;
-use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
@@ -79,7 +78,6 @@ class PresentationNamesSeederTest extends TestCase
         }
         $base = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $base->update(['name' => 'Kebun Cileuksa Demo']);
-        DailyActivityLog::query()->where('farm_id', $base->id)->update(['notes' => 'Pemetaan awal untuk persiapan bedengan demo.']);
         WeatherRecord::query()->where('farm_id', $base->id)->update(['data_source' => 'Stasiun cuaca demo']);
         FinancialTransaction::query()->where('farm_id', $base->id)->where('description', 'Pembelian benih jagung Bisi 18 untuk siklus')
             ->update(['description' => 'Pembelian benih jagung Bisi 18 untuk siklus demo']);
@@ -124,7 +122,6 @@ class PresentationNamesSeederTest extends TestCase
             $this->assertSame($site['name'], Farm::query()->findOrFail(DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']))->name);
         }
         $this->assertDatabaseHas('fertilization_details', ['activity_id' => $fertilization->id, 'brand_name' => 'NPK']);
-        $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $base->id, 'notes' => 'Pemetaan awal untuk persiapan bedengan.']);
         $this->assertSame(0, PlantingCycle::query()->where('subblock_label', 'like', 'DEMO%')->count());
         $this->assertSame(0, ActivityPhoto::query()->where('label', 'Ilustrasi lahan demo')->count());
         $this->assertSame(0, PlantObservation::query()->where('notes', 'like', '%portofolio demo%')->count());

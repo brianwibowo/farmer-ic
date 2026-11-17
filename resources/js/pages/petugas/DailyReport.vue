@@ -9,7 +9,6 @@ const props = defineProps<{
     date: string;
     today: string;
     log: DailyReport | null;
-    canUpdate: boolean;
     canRecord: boolean;
 }>();
 const pending = ref(false);
@@ -74,7 +73,6 @@ function changeDate(event: Event): void {
             :farm="farm"
             :date="date"
             :log="log"
-            :can-update="canUpdate"
             :can-record="canRecord"
         />
         <nav

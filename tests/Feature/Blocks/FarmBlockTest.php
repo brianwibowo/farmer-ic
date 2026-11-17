@@ -737,7 +737,7 @@ class FarmBlockTest extends TestCase
         $petugas = User::factory()->create(['role' => 'petugas']);
         $this->join($petugas);
         $petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
-        $payload = ['work_date' => now('Asia/Jakarta')->format('Y-m-d'), 'start_time' => '08:00', 'end_time' => '10:00', 'worker_count' => 2,
+        $payload = ['work_date' => now('Asia/Jakarta')->format('Y-m-d'), 'worker_count' => 2,
             'activities' => [['type' => 'block_mapping', 'obstacle_status' => 'none',
                 'block_mapping' => ['block_id' => $block->id, 'block_name' => 'Nama saat pengukuran', 'length_m' => '100', 'width_m' => '100']]]];
         $this->actingAs($petugas)->post('/kebun/'.$this->farm->id.'/daily-logs', $payload)->assertSessionHasNoErrors()->assertRedirect();

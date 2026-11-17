@@ -47,7 +47,7 @@ class PetugasDailyActivityController extends Controller
         $data['activities'] = array_values(array_filter($data['activities'], fn ($row) => $row['id'] === $activity->id));
 
         return Inertia::render('petugas/ReportShow', ['farm' => $farm->only(['id', 'name']), 'log' => $data,
-            'canUpdate' => Gate::allows('update', $log), 'date' => $log->work_date->toDateString()]);
+            'date' => $log->work_date->toDateString()]);
     }
 
     public function index(Request $request, DailyActivityHeaderService $headers, DailyActivityReportService $reports): Response
@@ -56,7 +56,7 @@ class PetugasDailyActivityController extends Controller
         if (! $farm instanceof Farm) {
             return Inertia::render('petugas/DailyReport', [
                 'farm' => null, 'log' => null, 'date' => now('Asia/Jakarta')->toDateString(),
-                'today' => now('Asia/Jakarta')->toDateString(), 'canUpdate' => false, 'canRecord' => false,
+                'today' => now('Asia/Jakarta')->toDateString(), 'canRecord' => false,
             ]);
         }
         Gate::authorize('view', $farm);
@@ -68,7 +68,6 @@ class PetugasDailyActivityController extends Controller
         return Inertia::render('petugas/DailyReport', [
             'farm' => $farm->only(['id', 'name']), 'date' => $date, 'today' => now('Asia/Jakarta')->toDateString(),
             'log' => $log === null ? null : $reports->report($request->user(), $farm, $log),
-            'canUpdate' => $log !== null && Gate::allows('update', $log),
             'canRecord' => Gate::allows('create', [DailyActivityLog::class, $farm]),
         ]);
     }

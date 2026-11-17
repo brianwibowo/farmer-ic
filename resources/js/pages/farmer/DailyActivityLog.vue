@@ -8,7 +8,6 @@ import {
     CalendarDays,
     ChevronLeft,
     ChevronRight,
-    Clock3,
     ClipboardList,
     Plus,
     Save,
@@ -17,8 +16,7 @@ import {
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
-import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { maximumError } from '@/lib/activityInputLimits';
 
 type Farm = {
@@ -57,12 +55,9 @@ type DailyLog = {
     id: string;
     farm_id: string;
     work_date: string;
-    start_time: string;
-    end_time: string | null;
     timezone: string;
     recorded_by: string;
     recorder_name: string | null;
-    notes: string | null;
     activities: Activity[];
     created_at: string;
     updated_at: string | null;
@@ -123,9 +118,6 @@ type Props = {
 const props = defineProps<Props>();
 const page = usePage();
 const { indexUrl } = useFarmManagementNavigation();
-const headerReady = ref(false);
-const existingHeader = ref(false);
-const headerVersion = ref(0);
 function selectBlock(activity: ActivityForm): void {
     activity.block_mapping.block_name =
         props.blocks.find(
@@ -155,10 +147,7 @@ function emptyActivity(): ActivityForm {
 
 const form = useForm({
     work_date: props.today,
-    start_time: '08:00',
-    end_time: '16:00',
     worker_count: 1,
-    notes: '',
     activities: [emptyActivity()],
 });
 const numericErrors = computed<Record<string, string>>(() => {
@@ -229,32 +218,11 @@ function removeActivity(index: number): void {
 }
 
 function submit(): void {
-    if (
-        !headerReady.value ||
-        form.processing ||
-        Object.keys(numericErrors.value).length
-    )
-        return;
-    form.transform((data) =>
-        existingHeader.value
-            ? {
-                  ...data,
-                  start_time: undefined,
-                  end_time: undefined,
-                  notes: undefined,
-              }
-            : data,
-    ).post(`/kebun/${props.farm.id}/daily-logs`, {
+    if (form.processing || Object.keys(numericErrors.value).length) return;
+    form.post(`/kebun/${props.farm.id}/daily-logs`, {
         preserveScroll: true,
         onSuccess: () => {
-            headerVersion.value++;
-            form.reset(
-                'start_time',
-                'end_time',
-                'worker_count',
-                'notes',
-                'activities',
-            );
+            form.reset('worker_count', 'activities');
             form.work_date = props.today;
             form.activities = [emptyActivity()];
         },
@@ -368,19 +336,6 @@ function detailUrl(log: DailyLog): string {
                             </p>
                         </label>
                     </div>
-
-                    <DailyHeaderContext
-                        :key="headerVersion"
-                        v-model:start="form.start_time"
-                        v-model:end="form.end_time"
-                        v-model:notes="form.notes"
-                        :farm-id="farm.id"
-                        :date="form.work_date"
-                        :errors="form.errors"
-                        :report-base="`/kebun/${farm.id}/daily-logs`"
-                        @ready="headerReady = $event"
-                        @existing="existingHeader = $event"
-                    />
 
                     <div class="space-y-3">
                         <label
@@ -834,7 +789,6 @@ function detailUrl(log: DailyLog): string {
                         class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                         :disabled="
                             form.processing ||
-                            !headerReady ||
                             Object.keys(numericErrors).length > 0
                         "
                     >
@@ -938,12 +892,6 @@ function detailUrl(log: DailyLog): string {
                                 >
                                     {{ log.work_date }}
                                 </p>
-                                <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ log.start_time }}-{{
-                                        log.end_time ?? 'Belum diisi'
-                                    }}
-                                    WIB
-                                </p>
                             </div>
                             <Link
                                 :href="detailUrl(log)"
@@ -973,12 +921,6 @@ function detailUrl(log: DailyLog): string {
                                 >
                             </span>
                         </div>
-                        <p
-                            v-if="log.notes"
-                            class="mt-3 line-clamp-2 text-xs leading-5 text-muted-foreground"
-                        >
-                            {{ log.notes }}
-                        </p>
                     </article>
                 </div>
 

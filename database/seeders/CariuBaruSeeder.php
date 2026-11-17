@@ -204,8 +204,6 @@ class CariuBaruSeeder extends Seeder
             Gate::forUser($actor)->authorize('create', [DailyActivityLog::class, $farm]);
             $log = DailyActivityLog::create([
                 'farm_id' => $farm->id, 'recorded_by' => $performer->id, 'work_date' => $date,
-                'start_time' => $dayRows->min('start'), 'end_time' => $dayRows->max('end'),
-                'notes' => 'SPREADSHEET: rentang gabungan harian; waktu tiap kegiatan ada pada catatan. Petugas adalah identitas SIMULASI.',
             ]);
             foreach ($dayRows as $row) {
                 $spec = $this->sourceSpec($row);
@@ -218,11 +216,14 @@ class CariuBaruSeeder extends Seeder
                     }
                     Gate::forUser($performer)->authorize('recordPlanting', [FarmActivity::class, $cycle]);
                     Gate::forUser($performer)->authorize('synchronize', [PlantingCycleTask::class, $cycle]);
-                    $result = app(PlantingActivityService::class)->record($performer, $cycle, [
-                        'work_date' => $date, 'start_time' => $row['start'], 'end_time' => $row['end'],
-                        'worker_count' => $row['workers'], 'notes' => $notes, 'variety_id' => $variety->id,
-                        'area_ha' => $spec['area'], 'seed_name' => null, 'quantity_kg' => null, 'photos' => [],
-                    ]);
+                    $result = CarbonImmutable::withTestNow(
+                        CarbonImmutable::parse($row['date'].' '.$row['start'], 'Asia/Jakarta'),
+                        fn (): array => app(PlantingActivityService::class)->record($performer, $cycle, [
+                            'work_date' => $date,
+                            'worker_count' => $row['workers'], 'notes' => $notes, 'variety_id' => $variety->id,
+                            'area_ha' => $spec['area'], 'seed_name' => null, 'quantity_kg' => null, 'photos' => [],
+                        ]),
+                    );
                     if (! in_array($result['status'], ['generated', 'already_generated'], true)) {
                         throw new RuntimeException('Tugas SOP gagal dibentuk untuk '.$row['source'].': '.$result['status']);
                     }
@@ -347,8 +348,8 @@ class CariuBaruSeeder extends Seeder
                 // on its historical work date, without bypassing reporting rules.
                 CarbonImmutable::withTestNow(CarbonImmutable::parse($date.' 16:00', 'Asia/Jakarta'), function () use ($performer, $task, $date, $note, $details): void {
                     app(TaskActivityService::class)->create($performer, $task, [
-                        'work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 2,
-                        'daily_notes' => 'SIMULASI Cariu Baru — bukan laporan aktual.', 'notes' => $note, 'details' => $details, 'photos' => [],
+                        'work_date' => $date, 'worker_count' => 2,
+                        'notes' => $note, 'details' => $details, 'photos' => [],
                     ]);
                 });
                 if ($task->activity_category === 'harvest') {

@@ -78,7 +78,7 @@ class AdminLogbookTest extends TestCase
         $this->get($url.'?from_date=2026-10-28&to_date=2026-10-20')->assertSessionHasErrors('to_date');
     }
 
-    public function test_admin_logbook_is_read_only_except_for_header_edits(): void
+    public function test_admin_logbook_is_read_only(): void
     {
         $log = $this->report($this->farm, $this->admin, '2026-10-27');
         $url = '/admin/logbook/'.$this->farm->id;
@@ -89,8 +89,7 @@ class AdminLogbookTest extends TestCase
         $this->post($url, $this->payload('2026-10-28'))->assertStatus(405);
         $this->post('/kebun/'.$this->farm->id.'/daily-logs', $this->payload('2026-10-28'))->assertForbidden();
         $this->postJson('/api/kebun/'.$this->farm->id.'/daily-logs', $this->payload('2026-10-28'))->assertForbidden();
-        // Admin logbook remains read-only; the separate shared-header edit is allowed.
-        $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows('update', $log));
+        $this->patch('/kebun/'.$this->farm->id.'/daily-logs/'.$log->id, [])->assertStatus(405);
         foreach (['create', 'delete'] as $ability) {
             $subject = $ability === 'create' ? [DailyActivityLog::class, $this->farm] : $log;
             $this->assertFalse(\Illuminate\Support\Facades\Gate::forUser($this->admin)->allows($ability, $subject));
@@ -183,7 +182,7 @@ class AdminLogbookTest extends TestCase
 
     private function payload(string $date): array
     {
-        return ['work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00', 'worker_count' => 6,
+        return ['work_date' => $date, 'worker_count' => 6,
             'activities' => [['type' => 'block_mapping', 'obstacle_status' => 'none',
                 'block_mapping' => ['block_name' => 'Blok Utara', 'length_m' => 35, 'width_m' => 50]]]];
     }

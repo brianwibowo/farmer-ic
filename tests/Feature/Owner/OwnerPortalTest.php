@@ -242,8 +242,7 @@ class OwnerPortalTest extends TestCase
     public function test_persisted_petugas_logbook_activity_appears_in_owner_feed(): void
     {
         $this->actingAs($this->petugas)->post('/kebun/'.$this->farm->id.'/daily-logs', [
-            'work_date' => '2026-11-04', 'start_time' => '08:00', 'end_time' => null, 'worker_count' => 3,
-            'notes' => 'Pemetaan ulang batas blok setelah hujan.',
+            'work_date' => '2026-11-04', 'worker_count' => 3,
             'activities' => [[
                 'type' => 'block_mapping', 'notes' => 'Pengukuran ulang sisi timur blok',
                 'block_mapping' => ['block_name' => 'Blok Timur', 'length_m' => 25, 'width_m' => 40,
@@ -256,7 +255,7 @@ class OwnerPortalTest extends TestCase
         $this->actingAs($this->owner)->get('/aktivitas?search=Pengukuran')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('activities.total', 1)->where('activities.data.0.id', $activity->id));
         $this->get('/aktivitas/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('activity.worker_count', 3)->where('activity.log.end_time', null));
+            ->where('activity.worker_count', 3)->where('activity.log.work_date', '2026-11-04'));
     }
 
     public function test_farms_without_coordinates_or_observations_remain_in_lists_and_totals(): void

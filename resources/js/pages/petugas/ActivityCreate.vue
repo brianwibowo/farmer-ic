@@ -4,7 +4,6 @@ import { ArrowLeft, Camera, LoaderCircle, Save, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import TaskContext from '@/components/petugas/TaskContext.vue';
-import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
 import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
@@ -28,10 +27,7 @@ const props = defineProps<{
 const form = useForm({
     schema: 'taxonomy',
     work_date: props.workDate,
-    start_time: '07:00',
-    end_time: '',
     worker_count: 1,
-    daily_notes: '',
     notes: '',
     details: Object.fromEntries(
         props.fields.map((field) => [
@@ -90,8 +86,6 @@ watch(
     () => form.worker_count,
     () => form.clearErrors('worker_count'),
 );
-const headerReady = ref(false);
-const existingHeader = ref(false);
 function selectPhotos(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
@@ -119,7 +113,6 @@ function selectPhotos(event: Event): void {
 function submit(): void {
     if (
         form.processing ||
-        !headerReady.value ||
         noArea.value ||
         Object.keys(numericErrors.value).length
     )
@@ -127,24 +120,8 @@ function submit(): void {
     clientErrors.value = {};
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto bukti.';
-    if (
-        !existingHeader.value &&
-        form.end_time &&
-        form.end_time <= form.start_time
-    )
-        clientErrors.value.end_time =
-            'Waktu selesai harus setelah waktu mulai.';
     if (Object.keys(clientErrors.value).length) return;
-    form.transform((data) =>
-        existingHeader.value
-            ? {
-                  ...data,
-                  start_time: undefined,
-                  end_time: undefined,
-                  daily_notes: undefined,
-              }
-            : data,
-    ).post(`/petugas/tasks/${props.task.id}/aktivitas`, {
+    form.post(`/petugas/tasks/${props.task.id}/aktivitas`, {
         forceFormData: true,
         preserveScroll: true,
     });
@@ -188,8 +165,17 @@ function submit(): void {
                             v-model="form.work_date"
                             type="date"
                             required
-                            :max="task.reporting_window && task.reporting_window.end < today ? task.reporting_window.end : today"
-                            :min="task.reporting_window?.start ?? task.subblok.planted_at ?? undefined"
+                            :max="
+                                task.reporting_window &&
+                                task.reporting_window.end < today
+                                    ? task.reporting_window.end
+                                    : today
+                            "
+                            :min="
+                                task.reporting_window?.start ??
+                                task.subblok.planted_at ??
+                                undefined
+                            "
                             class="task-activity-field [color-scheme:light] dark:[color-scheme:dark]"
                             :aria-invalid="!!errors.work_date"
                             aria-describedby="error-work_date"
@@ -200,20 +186,15 @@ function submit(): void {
                             >{{ errors.work_date }}</span
                         ></label
                     >
-                    <p v-if="task.reporting_window" class="text-xs text-muted-foreground">
-                        Jendela pelaporan: {{ task.reporting_window.start }} sampai {{ task.reporting_window.end }} (WIB).
+                    <p
+                        v-if="task.reporting_window"
+                        class="text-xs text-muted-foreground"
+                    >
+                        Jendela pelaporan:
+                        {{ task.reporting_window.start }} sampai
+                        {{ task.reporting_window.end }} (WIB).
                     </p>
                 </section>
-                <DailyHeaderContext
-                    v-model:start="form.start_time"
-                    v-model:end="form.end_time"
-                    v-model:notes="form.daily_notes"
-                    :farm-id="task.subblok.farm.id"
-                    :date="form.work_date"
-                    :errors="errors"
-                    @ready="headerReady = $event"
-                    @existing="existingHeader = $event"
-                />
                 <section class="petugas-card space-y-4 p-4">
                     <h2 class="text-base font-semibold">Hasil pelaksanaan</h2>
                     <label class="block space-y-2 text-sm">
@@ -357,7 +338,6 @@ function submit(): void {
                 class="min-h-12 w-full rounded-xl"
                 :disabled="
                     form.processing ||
-                    !headerReady ||
                     noArea ||
                     Object.keys(numericErrors).length > 0
                 "
