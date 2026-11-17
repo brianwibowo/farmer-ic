@@ -28,7 +28,7 @@ class FarmBlockConcurrencyTest extends TestCase
         $actor->unsetRelation('teams');
         // Fixture creation only; the HTTP policy denying master-block writes by
         // Petugas is tested separately. Workers explicitly authorize batch creation.
-        $block = app(FarmBlockService::class)->create($farm, $actor, $team, ['code' => 'B01', 'name' => 'Blok Bersama', 'area_ha' => '3.0000']);
+        $block = app(FarmBlockService::class)->create($farm, $actor, $team, ['name' => 'Blok Bersama', 'area_ha' => '3.0000']);
         $workerName = 'block-concurrency-'.Str::random(8);
         $workers = [];
         try {

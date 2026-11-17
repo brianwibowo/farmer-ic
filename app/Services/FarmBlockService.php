@@ -46,13 +46,13 @@ class FarmBlockService
         $query = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id);
         if (($filters['search'] ?? '') !== '') {
             $search = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($filters['search'])).'%';
-            $query->where(fn ($query) => $query->where('code', 'ilike', $search)->orWhere('name', 'ilike', $search));
+            $query->where('name', 'ilike', $search);
         }
         if (in_array($filters['status'] ?? '', ['active', 'inactive'], true)) {
             $query->where('is_active', $filters['status'] === 'active');
         }
 
-        $paginator = $query->orderBy('code')->orderBy('id')->paginate($filters['per_page'] ?? 15)->appends($filters);
+        $paginator = $query->orderBy('name')->orderBy('id')->paginate($filters['per_page'] ?? 15)->appends($filters);
         $paginator->setCollection($this->overview($farm, $actor, $team, $paginator->getCollection()));
 
         return $paginator;
@@ -65,7 +65,7 @@ class FarmBlockService
     public function overview(Farm $farm, User $actor, Team $team, ?\Illuminate\Support\Collection $selected = null, bool $includeGrowth = false): \Illuminate\Support\Collection
     {
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
-            ->when($selected !== null, fn ($query) => $query->whereIn('id', $selected->pluck('id')))->orderBy('code')->get();
+            ->when($selected !== null, fn ($query) => $query->whereIn('id', $selected->pluck('id')))->orderBy('name')->get();
         if ($blocks->isEmpty()) {
             return $blocks;
         }
@@ -231,7 +231,7 @@ class FarmBlockService
         return DB::transaction(function () use ($block, $actor, $team, $data): FarmBlock {
             $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
             $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
-            $this->validateBlock($farm, array_replace($locked->only(['code', 'area_ha', 'is_active']), $data), $locked);
+            $this->validateBlock($farm, array_replace($locked->only(['name', 'area_ha', 'is_active']), $data), $locked);
             $this->validateBlockSop($actor, $team, array_replace($locked->only(['commodity_id', 'default_sop_template_id']), $data));
             $locked->fill($data)->save();
             $locked->forceFill(array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])))->save();
@@ -259,8 +259,8 @@ class FarmBlockService
         // Physical integrity checks deliberately include every historical reference,
         // independent of the actor's list filters or related-record permissions.
         $others = DB::table('farm_blocks')->where('farm_id', $farm->id)->when($block, fn ($query) => $query->where('id', '<>', $block->id));
-        if ((clone $others)->where('code', $data['code'])->exists()) {
-            throw ValidationException::withMessages(['code' => 'Kode blok sudah digunakan dalam kebun ini.']);
+        if ((clone $others)->whereRaw('LOWER(TRIM(name)) = LOWER(TRIM(?))', [$data['name']])->exists()) {
+            throw ValidationException::withMessages(['name' => 'Nama blok sudah digunakan dalam kebun ini.']);
         }
         if (($data['is_active'] ?? true) && (clone $others)->where('is_active', true)
             ->selectRaw('COALESCE(SUM(area_ha), 0) + CAST(? AS numeric) > CAST(? AS numeric) AS exceeds', [$data['area_ha'], $farm->total_area_ha])->value('exceeds')) {

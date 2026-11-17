@@ -24,7 +24,7 @@ $farm = new App\Models\Farm(['name' => 'Kebun Pengujian Cileuksa', 'land_tenure'
 $farm->forceFill(['team_id' => $team->id, 'created_by' => $admin->id])->save();
 $petugas->forceFill(['current_team_id' => $team->id, 'assigned_farm_id' => $farm->id])->save();
 Illuminate\Support\Facades\Gate::forUser($admin)->authorize('create', [App\Models\FarmBlock::class, $farm]);
-$block = app(App\Services\FarmBlockService::class)->create($farm, $admin, $team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+$block = app(App\Services\FarmBlockService::class)->create($farm, $admin, $team, ['name' => 'Blok Utara', 'area_ha' => '5']);
 Illuminate\Support\Facades\Gate::forUser($admin)->authorize('create', [App\Models\PlantingCycle::class, $farm]);
 $cycle = app(App\Services\FarmBlockService::class)->createBatch($block, $admin, $team, ['reserved_area_ha' => '2', 'planned_planting_at' => today()->subDays(21)->toDateString()]);
 $commodity = App\Models\Commodity::create(['name' => 'Jagung']);

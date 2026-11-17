@@ -21,7 +21,6 @@ const props = defineProps<{
     numericLimits: { workerCount: number; quantityKg: number };
     blocks: {
         id: string;
-        code: string;
         name: string;
         area_limit_m2: number;
         blocked_reason: string | null;
@@ -267,8 +266,7 @@ function submit(): void {
                                 v-for="block in blocks"
                                 :key="block.id"
                                 :value="block.id"
-                                >{{ block.code }} ·
-                                {{ block.name }}</AppSelectOption
+                                >{{ block.name }}</AppSelectOption
                             >
                         </AppSelect> </label
                     ><label v-if="!blockOnly" class="block space-y-2 text-sm"

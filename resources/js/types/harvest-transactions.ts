@@ -22,7 +22,7 @@ export type HarvestTransactionRow = {
     first_activity_date: string | null;
     last_activity_date: string | null;
     farm: { id: string; name: string } | null;
-    block: { id: string; code: string; name: string } | null;
+    block: { id: string; name: string } | null;
     cycle: {
         id: string;
         batch_number: number | null;
@@ -71,7 +71,6 @@ export type HarvestTransactionFarmOption = { id: string; name: string };
 export type HarvestTransactionBlockOption = {
     id: string;
     farm_id: string;
-    code: string;
     name: string;
     farm?: { id: string; name: string } | null;
 };

@@ -59,7 +59,7 @@ class HarvestEstimateTest extends TestCase
         $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
         $this->petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $blocks = app(FarmBlockService::class);
-        $block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Estimasi', 'area_ha' => '5']);
+        $block = $blocks->create($this->farm, $this->admin, $this->team, ['name' => 'Blok Estimasi', 'area_ha' => '5']);
         $this->cycle = $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
         $commodity = Commodity::create(['name' => 'Jagung Estimasi']);
         $block->forceFill(['commodity_id' => $commodity->id])->save();

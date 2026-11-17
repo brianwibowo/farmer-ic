@@ -91,7 +91,7 @@ class DemoSopSeeder extends Seeder
             ?? (clone $query)->orderBy('batch_number')->first();
 
         if (! $subblok instanceof PlantingCycle) {
-            $block = FarmBlock::query()->where('farm_id', $farm->id)->where('code', 'B01')->first();
+            $block = FarmBlock::query()->where('farm_id', $farm->id)->where('name', 'Blok Utara')->first();
             if ($block === null) {
                 return;
             }

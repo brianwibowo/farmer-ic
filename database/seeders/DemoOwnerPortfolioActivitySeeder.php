@@ -153,9 +153,9 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         if (! is_array($site['batches'] ?? null)) {
             throw new LogicException('Data batch portofolio tidak valid.');
         }
-        $byBlock = collect($site['batches'])->groupBy('block_code');
-        foreach ($byBlock as $blockCode => $batches) {
-            $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $blockCode)->firstOrFail();
+        $byBlock = collect($site['batches'])->groupBy('block_name');
+        foreach ($byBlock as $blockName => $batches) {
+            $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('name', $blockName)->firstOrFail();
             $reference = $batches->sortBy('planned_planting_at')->first();
             $date = CarbonImmutable::parse($reference['planned_planting_at'], 'Asia/Jakarta');
             $reports = [
@@ -180,12 +180,12 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $attributes = [
             'farm_id' => $farm->id, 'block_id' => $block->id, 'activity_type_id' => $type->id,
             'performed_by' => $performer->id, 'activity_date' => $this->at($when->toDateString()),
-            'description' => $type->name.' '.$block->code, 'status' => 'completed',
+            'description' => $type->name.' '.$block->name, 'status' => 'completed',
         ];
         if ($relation === null) {
             $attributes['task_details'] = json_encode($detail, JSON_THROW_ON_ERROR);
         }
-        $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'block-activity:'.$siteKey.':'.$block->code.':'.$code), $attributes, $farm, $actor, $team);
+        $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'block-activity:'.$siteKey.':'.$block->name.':'.$code), $attributes, $farm, $actor, $team);
         $created = $activity->wasRecentlyCreated;
         $this->linkDailyLog($activity, $farm, $actor, $team, $created);
         if ($created) {

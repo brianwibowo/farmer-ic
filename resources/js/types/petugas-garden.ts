@@ -2,7 +2,6 @@ import type { LandTenure } from '@/types/farms';
 
 export type GardenBlock = {
     id: string;
-    code: string;
     name: string;
     area_ha: string;
     description: string | null;

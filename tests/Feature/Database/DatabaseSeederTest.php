@@ -64,8 +64,8 @@ class DatabaseSeederTest extends TestCase
         $demoFarm = Farm::query()->where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $this->assertTrue(DB::table('block_mapping_details as d')->join('farm_activities as a', 'a.id', '=', 'd.activity_id')
             ->where('a.farm_id', $demoFarm->id)->exists());
-        foreach (['B01', 'B02'] as $code) {
-            $blockId = DB::table('farm_blocks')->where('farm_id', $demoFarm->id)->where('code', $code)->value('id');
+        foreach (['Blok Utara', 'Blok Selatan'] as $name) {
+            $blockId = DB::table('farm_blocks')->where('farm_id', $demoFarm->id)->where('name', $name)->value('id');
             $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
                 ->join('land_cleaning_details as d', 'd.activity_id', '=', 'a.id')
                 ->where('a.farm_id', $demoFarm->id)->where('a.block_id', $blockId)->whereNull('a.planting_cycle_id')->where('t.code', 'land_cleaning')->exists());
@@ -76,7 +76,7 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseHas('activity_types', ['code' => 'base_fertilization', 'name' => 'Pemupukan Kandang', 'parent_id' => null, 'is_selectable' => true, 'detail_key' => 'fertilization']);
         $this->assertTrue(DB::table('farm_activities as a')->join('activity_types as t', 't.id', '=', 'a.activity_type_id')
             ->join('farm_blocks as b', 'b.id', '=', 'a.block_id')->join('fertilization_details as d', 'd.activity_id', '=', 'a.id')
-            ->where('a.farm_id', $demoFarm->id)->where('b.code', 'B01')->whereNull('a.planting_cycle_id')
+            ->where('a.farm_id', $demoFarm->id)->where('b.name', 'Blok Utara')->whereNull('a.planting_cycle_id')
             ->where('t.code', 'base_fertilization')->where('d.fertilization_stage', 'kandang')->exists());
         $this->assertGreaterThan(0, DB::table('farm_activities')->where('farm_id', $demoFarm->id)->whereNotNull('planting_cycle_id')->whereNotNull('block_id')->count());
         $this->assertSame(0, DB::table('farm_activities as a')->join('planting_cycles as c', 'c.id', '=', 'a.planting_cycle_id')

@@ -62,7 +62,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->farm = new Farm(['name' => 'Kebun Realisasi Jagung', 'land_tenure' => 'owned', 'total_area_ha' => '10']);
         $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
         $this->actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
-        $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+        $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '5']);
         $this->cycle = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team, ['reserved_area_ha' => '2', 'planned_planting_at' => now('Asia/Jakarta')->subDays(5)->toDateString()]);
         $commodity = Commodity::create(['name' => 'Jagung']);
         $this->block->forceFill(['commodity_id' => $commodity->id])->save();

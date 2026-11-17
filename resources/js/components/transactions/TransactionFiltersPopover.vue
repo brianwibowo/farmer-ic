@@ -17,7 +17,6 @@ export type TransactionFarmOption = { id: string; name: string };
 export type TransactionBlockOption = {
     id: string;
     farm_id: string;
-    code: string;
     name: string;
 };
 export type TransactionVarietyOption = {
@@ -184,7 +183,7 @@ watch(farmId, (next, prev) => {
                                     v-for="block in blockOptions"
                                     :key="block.id"
                                     :value="block.id"
-                                    >{{ block.code }} · {{ block.name }}</AppSelectOption
+                                    >{{ block.name }}</AppSelectOption
                                 >
                             </AppSelect>
                         </FarmField>

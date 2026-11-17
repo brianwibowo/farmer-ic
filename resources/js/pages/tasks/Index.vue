@@ -106,7 +106,7 @@ const appliedFilters = computed(() => {
         items.push({
             key: 'block_id',
             label: block
-                ? `Blok: ${block.code} · ${block.name}`
+                ? `Blok: ${block.name}`
                 : 'Blok: Tidak tersedia',
         });
     }
@@ -442,7 +442,6 @@ function reset(): void {
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ task.block?.code ?? '-' }} ·
                                         {{
                                             task.block?.name ??
                                             'Blok belum diisi'
@@ -564,7 +563,7 @@ function reset(): void {
                         <p class="text-xs text-muted-foreground">
                             {{ adminTaskCategoryLabel(task) }} ·
                             {{ task.farm?.name ?? '-' }} ·
-                            {{ task.block?.code ?? '-' }}
+                            {{ task.block?.name ?? '-' }}
                             <template v-if="task.subblok?.label">
                                 · {{ task.subblok.label }}</template
                             >

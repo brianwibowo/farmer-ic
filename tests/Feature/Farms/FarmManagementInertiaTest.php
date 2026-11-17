@@ -156,9 +156,9 @@ class FarmManagementInertiaTest extends TestCase
         $other = app(FarmService::class)->create($this->payload(['name' => 'Kebun Lain']), $this->admin, $this->team);
         $base = '/kebun/'.$farm->id.'/blocks';
         $detail = '/admin/farm-management/'.$farm->id;
-        $this->post($base, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '2', 'return_to' => 'farm'])->assertRedirect($detail);
+        $this->post($base, ['name' => 'Blok Utara', 'area_ha' => '2', 'return_to' => 'farm'])->assertRedirect($detail);
         $block = \App\Models\FarmBlock::firstOrFail();
-        app(\App\Services\FarmBlockService::class)->create($other, $this->admin, $this->team, ['code' => 'B99', 'name' => 'Blok Kebun Lain', 'area_ha' => '1']);
+        app(\App\Services\FarmBlockService::class)->create($other, $this->admin, $this->team, ['name' => 'Blok Kebun Lain', 'area_ha' => '1']);
         $this->get($detail)->assertInertia(fn (Assert $page) => $page->has('blocks', 1)->where('blocks.0.id', $block->id)
             ->where('blocks.0.can.update', true)->where('can.createBlock', true)->where('blocks.0.deletionBlocked', false));
         $this->patch($base.'/'.$block->id, ['name' => 'Blok Barat', 'return_to' => 'farm'])->assertRedirect($detail);
@@ -172,11 +172,11 @@ class FarmManagementInertiaTest extends TestCase
         $this->post('/admin/farm-management', $this->payload(['target_volume_ton' => '80.125']))->assertSessionHasNoErrors();
         $farm = Farm::firstOrFail();
         $blocks = app(\App\Services\FarmBlockService::class);
-        $block = $blocks->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+        $block = $blocks->create($farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '5']);
         $first = $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
         $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
         $otherFarm = app(FarmService::class)->create($this->payload(['name' => 'Kebun Lain']), $this->admin, $this->team);
-        $otherBlock = $blocks->create($otherFarm, $this->admin, $this->team, ['code' => 'B99', 'name' => 'Blok Lain', 'area_ha' => '2']);
+        $otherBlock = $blocks->create($otherFarm, $this->admin, $this->team, ['name' => 'Blok Lain', 'area_ha' => '2']);
         $blocks->createBatch($otherBlock, $this->admin, $this->team, ['reserved_area_ha' => '1']);
         $url = '/admin/farm-management/'.$farm->id;
         $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.target_volume_ton', '80.125')

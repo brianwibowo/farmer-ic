@@ -49,7 +49,6 @@ class PlantingCycleTaskGenerationTest extends TestCase
             'created_by' => $this->admin->id,
         ])->save();
         $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
-            'code' => 'B01',
             'name' => 'Blok Utara',
             'area_ha' => '5.0000',
         ]);

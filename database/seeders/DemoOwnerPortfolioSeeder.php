@@ -99,7 +99,7 @@ class DemoOwnerPortfolioSeeder extends Seeder
         $batchData = DemoOwnerPortfolioData::megamendungActiveBatch();
 
         $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
-            ->where('code', $batchData['block_code'])->firstOrFail();
+            ->where('name', $batchData['block_name'])->firstOrFail();
         $existing = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
             ->where('subblock_label', $batchData['subblock_label'])
             ->where('block_id', $block->id)->first();
@@ -214,10 +214,10 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 ...$data, 'description' => 'Blok fisik pada skenario portofolio '.$site['name'].', snapshot 5 November 2026.', 'is_active' => true,
                 'commodity_id' => $variety->commodity_id, 'default_sop_template_id' => $template->id,
             ]);
-            $blocks[$data['code']] = $block;
+            $blocks[$data['name']] = $block;
         }
         foreach ($site['batches'] as $data) {
-            $block = $blocks[$data['block_code']];
+            $block = $blocks[$data['block_name']];
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
             $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
                 'reserved_area_ha' => $data['reserved_area_ha'], 'subblock_label' => $data['subblock_label'],

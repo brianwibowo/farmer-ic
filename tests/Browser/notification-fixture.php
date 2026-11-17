@@ -36,7 +36,7 @@ foreach (['admin', 'owner', 'petugas'] as $role) {
         $sorghum = App\Models\Commodity::create(['name' => 'Sorgum']);
         $sorghumVariety = App\Models\CropVariety::create(['commodity_id' => $sorghum->id, 'name' => 'Bioguma']);
         foreach (['A', 'B'] as $code) {
-            $block = app(App\Services\FarmBlockService::class)->create($demoFarm, $user, $team, ['code' => $code, 'name' => 'Blok '.$code, 'area_ha' => 5]);
+            $block = app(App\Services\FarmBlockService::class)->create($demoFarm, $user, $team, ['name' => 'Blok '.$code, 'area_ha' => 5]);
             foreach ($code === 'A' ? ['A1', 'A2'] : ['B1'] as $subblock) {
                 $days = match ($subblock) {
                     'A1' => 0,

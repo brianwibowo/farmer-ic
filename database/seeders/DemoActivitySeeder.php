@@ -105,7 +105,7 @@ class DemoActivitySeeder extends Seeder
 
         $previous = PlantingCycle::visibleTo($petugas, $team)
             ->where('farm_id', $farm->id)
-            ->where('subblock_label', 'A')->whereHas('block', fn ($q) => $q->where('code', 'B01'))
+            ->where('subblock_label', 'A')->whereHas('block', fn ($q) => $q->where('name', 'Blok Utara'))
             ->first();
         if ($previous instanceof PlantingCycle) {
             if ($previous->sop_template_version_id === null && $cycle->sop_template_version_id !== null) {
@@ -299,16 +299,17 @@ class DemoActivitySeeder extends Seeder
     {
         $team = $farm->team;
         \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('viewAny', [FarmBlock::class, $team]);
-        $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('code', ['B01', 'B02'])->get();
+        $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('name', ['Blok Utara', 'Blok Selatan'])->get();
         foreach ($blocks as $block) {
-            $cleaningDate = $block->code === 'B01' ? '2026-05-17' : '2026-09-20';
-            $soilDate = $block->code === 'B01' ? '2026-05-20' : '2026-09-23';
+            $isNorth = $block->name === 'Blok Utara';
+            $cleaningDate = $isNorth ? '2026-05-17' : '2026-09-20';
+            $soilDate = $isNorth ? '2026-05-20' : '2026-09-23';
             $reports = [
-                ['land_cleaning', 'Pembersihan lahan percontohan '.$block->code, $cleaningDate, 'landCleaningDetail', ['area_ha' => '1.0000']],
-                ['soil_preparation', 'Pengolahan tanah percontohan '.$block->code, $soilDate, null, ['area_ha' => '1.0000']],
+                ['land_cleaning', 'Pembersihan lahan percontohan '.$block->name, $cleaningDate, 'landCleaningDetail', ['area_ha' => '1.0000']],
+                ['soil_preparation', 'Pengolahan tanah percontohan '.$block->name, $soilDate, null, ['area_ha' => '1.0000']],
             ];
-            if ($block->code === 'B01') {
-                $reports[] = ['base_fertilization', 'Pemupukan kandang percontohan '.$block->code, '2026-05-25', 'fertilizationDetail', [
+            if ($isNorth) {
+                $reports[] = ['base_fertilization', 'Pemupukan kandang percontohan '.$block->name, '2026-05-25', 'fertilizationDetail', [
                     'fertilization_stage' => 'kandang', 'area_ha' => '1.0000',
                 ]];
             }

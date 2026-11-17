@@ -64,7 +64,7 @@ const hasNotes = computed(
 const locationSummary = computed(() => {
     const parts = [
         props.task.farm?.name,
-        props.task.block?.code,
+        props.task.block?.name,
         props.task.subblok?.label ??
             (props.task.subblok?.number
                 ? `Subblok ${props.task.subblok.number}`
@@ -210,7 +210,6 @@ function submitReschedule(): void {
                                 subblok
                             </dt>
                             <dd class="mt-1.5 font-medium">
-                                {{ task.block?.code ?? '-' }} ·
                                 {{ task.block?.name ?? '-' }}
                                 <template v-if="task.subblok?.label">
                                     · {{ task.subblok.label }}</template

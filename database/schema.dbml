@@ -174,7 +174,6 @@ Table planting_cycles {
 Table farm_blocks {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
-  code varchar(30) [not null]
   name varchar(150) [not null]
   area_ha decimal(12,4) [not null]
   description text
@@ -187,7 +186,6 @@ Table farm_blocks {
   commodity_id uuid [ref: > commodities.id, note: 'Komoditas blok']
   default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default blok untuk penanaman baru']
   indexes {
-    (farm_id, code) [unique]
     (id, farm_id) [unique]
     commodity_id
     default_sop_template_id
