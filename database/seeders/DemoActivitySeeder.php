@@ -8,11 +8,13 @@ use App\Models\DailyActivityLog;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
+use App\Models\HarvestDetail;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
 use App\Services\Activity\DailyActivityLogService;
 use App\Services\Activity\HarvestClosureService;
+use App\Services\Activity\LegacyDemoHarvestRepairService;
 use App\Services\Activity\PlantingCycleStageService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -77,6 +79,7 @@ class DemoActivitySeeder extends Seeder
         }
 
         $this->seedBlockPreparation($farm, $petugas);
+        $this->repairLegacyHarvest($farm, $petugas);
 
         $this->seedActivityWithDetail($farm, $cycle, $petugas, 'planting', 'Penanaman Blok 1', [
             'seed_name' => 'Benih jagung Bisi 18',
@@ -132,6 +135,29 @@ class DemoActivitySeeder extends Seeder
                 'image_url' => '/images/kebun-placeholder.svg',
                 'uploaded_at' => now(),
             ]);
+        }
+    }
+
+    private function repairLegacyHarvest(Farm $farm, User $actor): void
+    {
+        if (! app()->environment(['local', 'testing']) || DB::connection()->getDriverName() !== 'pgsql') {
+            return;
+        }
+        $team = $farm->team;
+        \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('viewAny', [FarmActivity::class, $team]);
+        \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('viewAny', [DailyActivityLog::class, $team]);
+        \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('viewAny', [ActivityType::class, $team]);
+        \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('viewAny', [HarvestDetail::class, $team]);
+        $activities = FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->where('description', 'Panen percobaan Blok 2')->whereNull('daily_activity_log_id')->get();
+        $header = DailyActivityLog::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->whereDate('work_date', '2026-12-15')->first();
+        if ($header !== null) {
+            \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('view', $header);
+        }
+        foreach ($activities as $activity) {
+            \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('update', $activity);
+            app(LegacyDemoHarvestRepairService::class)->repair($actor, $activity, $header);
         }
     }
 

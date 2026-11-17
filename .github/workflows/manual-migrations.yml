@@ -1,0 +1,213 @@
+name: Manual demo database migrations
+
+on:
+    workflow_dispatch:
+        inputs:
+            ci_run_id:
+                description: 'ID successful CI push run for the current main commit'
+                required: true
+                type: string
+            operation:
+                description: 'migrate preserves data; fresh-seed stops services and deletes all tables/data'
+                required: true
+                type: choice
+                options:
+                    - migrate
+                    - fresh-seed
+            fresh_confirmation:
+                description: 'For fresh-seed only: type RESET farmer_ic_app'
+                required: false
+                type: string
+
+permissions:
+    contents: read
+    actions: read
+    packages: read
+
+# Serialize against the normal deployment and other manual migrations.
+concurrency:
+    group: deploy-production
+    cancel-in-progress: false
+
+jobs:
+    migrate:
+        name: Migrate approved demo database
+        runs-on: ubuntu-latest
+        environment: demo-database
+        steps:
+            - name: Validate CI run and operator confirmation
+              id: release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CI_RUN_ID: ${{ inputs.ci_run_id }}
+                  OPERATION: ${{ inputs.operation }}
+                  FRESH_CONFIRMATION: ${{ inputs.fresh_confirmation }}
+                  DEMO_RESET_ENABLED: ${{ vars.DEMO_DATABASE_RESET_ENABLED }}
+              run: |
+                  set -eu
+                  case "$CI_RUN_ID" in ''|*[!0-9]*) echo 'CI run ID must contain digits only.' >&2; exit 1 ;; esac
+                  case "$OPERATION" in
+                    migrate) ;;
+                    fresh-seed)
+                      [ "$DEMO_RESET_ENABLED" = true ] || { echo 'Set DEMO_DATABASE_RESET_ENABLED=true only for an approved disposable demo database.' >&2; exit 1; }
+                      [ "$FRESH_CONFIRMATION" = 'RESET farmer_ic_app' ] || { echo 'Fresh reset requires the exact confirmation: RESET farmer_ic_app' >&2; exit 1; }
+                      ;;
+                    *) echo 'Invalid operation.' >&2; exit 1 ;;
+                  esac
+                  run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID")
+                  printf '%s' "$run" | jq -e --arg repo "$GITHUB_REPOSITORY" \
+                    '.status == "completed" and .conclusion == "success" and .event == "push" and
+                     .head_branch == "main" and .path == ".github/workflows/ci.yml" and
+                     .repository.full_name == $repo and .head_repository.full_name == $repo' >/dev/null
+                  sha=$(printf '%s' "$run" | jq -er '.head_sha | select(test("^[0-9a-f]{40}$"))')
+                  main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+                  [ "$sha" = "$main_sha" ] || { echo 'CI run is not for the current main commit.' >&2; exit 1; }
+                  printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
+
+            - name: Check out tested commit
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ steps.release.outputs.sha }}
+
+            - name: Download tested image reference
+              uses: actions/download-artifact@v4
+              with:
+                  name: release-image-${{ steps.release.outputs.sha }}
+                  path: ${{ runner.temp }}/release-image
+                  run-id: ${{ inputs.ci_run_id }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Verify image reference
+              id: image
+              env:
+                  TESTED_COMMIT: ${{ steps.release.outputs.sha }}
+              run: |
+                  set -eu
+                  image_ref=$(python3 docker/release-image-metadata.py verify \
+                    --repository "$GITHUB_REPOSITORY" --revision "$TESTED_COMMIT" \
+                    --metadata "$RUNNER_TEMP/release-image/release-image.json")
+                  printf 'image_ref=%s\n' "$image_ref" >> "$GITHUB_OUTPUT"
+
+            - name: Verify target and run migration on VPS
+              uses: appleboy/ssh-action@v1.2.2
+              env:
+                  VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/home/clouduser/farmer-ic' }}
+                  COMMIT_SHA: ${{ steps.release.outputs.sha }}
+                  RELEASE_IMAGE_REF: ${{ steps.image.outputs.image_ref }}
+                  OPERATION: ${{ inputs.operation }}
+                  FRESH_CONFIRMATION: ${{ inputs.fresh_confirmation }}
+                  DEMO_RESET_ENABLED: ${{ vars.DEMO_DATABASE_RESET_ENABLED }}
+                  REGISTRY_USER: ${{ github.actor }}
+                  REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  APP_KEY: ${{ secrets.APP_KEY }}
+                  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+              with:
+                  host: ${{ secrets.VPS_HOST || 'farmer.icdigital.io' }}
+                  port: ${{ secrets.VPS_PORT || '12320' }}
+                  username: ${{ secrets.VPS_USER || secrets.VPS_USERNAME || 'clouduser' }}
+                  password: ${{ secrets.VPS_PASSWORD }}
+                  key: ${{ secrets.VPS_KEY || secrets.SSH_PRIVATE_KEY }}
+                  fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+                  command_timeout: 30m
+                  envs: VPS_DEPLOY_PATH,COMMIT_SHA,RELEASE_IMAGE_REF,OPERATION,FRESH_CONFIRMATION,DEMO_RESET_ENABLED,REGISTRY_USER,REGISTRY_TOKEN,APP_KEY,OPENROUTER_API_KEY
+                  script: |
+                      set -eu
+                      cd "$VPS_DEPLOY_PATH"
+                      # Do not update the working tree or overwrite server changes.
+                      git fetch --depth 1 origin main
+                      [ "$(git rev-parse FETCH_HEAD)" = "$COMMIT_SHA" ] || { echo 'main has changed; choose a new successful CI run.' >&2; exit 1; }
+                      [ "$(git rev-parse HEAD)" = "$COMMIT_SHA" ] || { echo 'VPS checkout differs from tested commit; review and update it before migrating.' >&2; exit 1; }
+                      git diff --quiet HEAD -- compose.production.yaml docker/registry-retry.sh || { echo 'VPS migration configuration has local modifications.' >&2; exit 1; }
+                      [ -f .env.production ] || { echo 'Missing .env.production.' >&2; exit 1; }
+                      if grep -q '^APP_KEY=.' .env.production; then unset APP_KEY; elif [ -z "${APP_KEY:-}" ]; then echo 'APP_KEY is required.' >&2; exit 1; fi
+                      if [ -z "${OPENROUTER_API_KEY:-}" ]; then unset OPENROUTER_API_KEY; fi
+                      case "$OPERATION" in
+                        migrate) ;;
+                        fresh-seed)
+                          [ "$DEMO_RESET_ENABLED" = true ] && [ "$FRESH_CONFIRMATION" = 'RESET farmer_ic_app' ] || { echo 'Demo reset confirmation failed.' >&2; exit 1; }
+                          ;;
+                        *) echo 'Invalid operation.' >&2; exit 1 ;;
+                      esac
+                      umask 077
+                      DOCKER_CONFIG=$(mktemp -d "${TMPDIR:-/tmp}/farmer-ic-registry.XXXXXXXXXX")
+                      export DOCKER_CONFIG
+                      maintenance_manifest=''
+                      reset_started=0
+                      cleanup() {
+                        result=$?
+                        rm -f "$DOCKER_CONFIG/config.json"
+                        rmdir "$DOCKER_CONFIG" 2>/dev/null || true
+                        if [ -n "$maintenance_manifest" ] && [ -f "$maintenance_manifest" ]; then
+                          if [ "$reset_started" -eq 0 ]; then
+                            echo "Reset did not start. Attempting to restore previously running services." >&2
+                            while IFS= read -r container; do
+                              [ -n "$container" ] || continue
+                              if [ "$(docker inspect --format '{{.State.Running}}' "$container" 2>/dev/null || true)" = false ]; then
+                                docker start "$container" >/dev/null || echo "Could not restart container $container." >&2
+                              fi
+                            done < "$maintenance_manifest"
+                          else
+                            echo "Fresh reset or restart failed. Review database and service state before recovery." >&2
+                          fi
+                          echo "Previously running container IDs are retained at $maintenance_manifest." >&2
+                        fi
+                        return "$result"
+                      }
+                      trap cleanup EXIT
+                      . docker/registry-retry.sh
+                      registry_login() { printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin >/dev/null; }
+                      registry_retry registry_login
+                      unset REGISTRY_TOKEN
+                      export APP_IMAGE_REF="$RELEASE_IMAGE_REF"
+                      registry_retry docker compose --env-file .env.production -f compose.production.yaml --profile rag pull app
+                      compose_run() {
+                        docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps -e APP_ENV=local app "$@"
+                      }
+                      compose_run php docker/verify-release-target.php farmer_ic_app farmer-ic-postgres redis farmer_ic_app_ http://qdrant:6333 farmer_ic_app_knowledge
+                      echo 'Current migration status:'
+                      compose_run php artisan migrate:status --no-interaction
+                      case "$OPERATION" in
+                        migrate) compose_run php artisan migrate --force --no-interaction ;;
+                        fresh-seed)
+                          # Record only running containers, so pre-existing stopped
+                          # services are never started by this workflow.
+                          maintenance_manifest=$(mktemp "${TMPDIR:-/tmp}/farmer-ic-maintenance.XXXXXXXXXX")
+                          for service in app web-blue web-green worker notifications scheduler; do
+                            docker ps -q --filter label=com.docker.compose.project=farmer-ic --filter "label=com.docker.compose.service=$service" >> "$maintenance_manifest"
+                          done
+                          echo 'Stopping the recorded web, worker and scheduler containers for the demo reset.'
+                          while IFS= read -r container; do
+                            [ -n "$container" ] || continue
+                            docker stop "$container" >/dev/null
+                          done < "$maintenance_manifest"
+                          for service in app web-blue web-green worker notifications scheduler; do
+                            running=$(docker ps -q --filter label=com.docker.compose.project=farmer-ic --filter "label=com.docker.compose.service=$service")
+                            [ -z "$running" ] || { echo "Service $service is still running." >&2; exit 1; }
+                          done
+                          reset_started=1
+                          compose_run php artisan migrate:fresh --seed --force --no-interaction
+                          ;;
+                      esac
+                      compose_run php artisan migrate:status --pending=1 --no-interaction
+                      if [ "$OPERATION" = fresh-seed ]; then
+                        echo 'Restarting only the containers that were running before maintenance.'
+                        while IFS= read -r container; do
+                          [ -n "$container" ] || continue
+                          docker start "$container" >/dev/null
+                        done < "$maintenance_manifest"
+                        while IFS= read -r container; do
+                          [ -n "$container" ] || continue
+                          attempt=0
+                          while :; do
+                            state=$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container")
+                            case "$state" in 'running healthy'|'running none') break ;; esac
+                            attempt=$((attempt + 1))
+                            [ "$attempt" -lt 30 ] || { echo "Container $container did not become healthy: $state" >&2; exit 1; }
+                            sleep 2
+                          done
+                        done < "$maintenance_manifest"
+                        rm -f "$maintenance_manifest"
+                        maintenance_manifest=''
+                        echo 'Previously running containers were started and passed container health checks. Verify application compatibility.'
+                      fi
+                      echo 'Migration completed. Deployment remains a separate action.'
