@@ -19,6 +19,7 @@ const props = withDefaults(
         compact?: boolean;
         showFooter?: boolean;
         showLegend?: boolean;
+        floorCenterValue?: boolean;
     }>(),
     {
         title: 'Distribusi',
@@ -30,6 +31,7 @@ const props = withDefaults(
         compact: false,
         showFooter: true,
         showLegend: true,
+        floorCenterValue: false,
     },
 );
 const selectedId = defineModel<string | null>('selected', { default: null });
@@ -106,6 +108,10 @@ const activeId = computed(() => previewId.value ?? selectedId.value);
 const activeSlice = computed(() =>
     slices.value.find((crop) => crop.id === activeId.value),
 );
+const centerValue = computed(() => {
+    const value = activeSlice.value?.value ?? total.value;
+    return areaFormat.format(props.floorCenterValue ? Math.floor(value) : value);
+});
 const selectedSlice = computed(() =>
     slices.value.find((crop) => crop.id === selectedId.value),
 );
@@ -280,10 +286,7 @@ function clearSelection(): void {
                         <p
                             class="mt-1 text-[30px] leading-9 font-bold tracking-tight tabular-nums"
                         >
-                            {{
-                                activeSlice?.valueLabel ??
-                                areaFormat.format(total)
-                            }}<span
+                            {{ centerValue }}<span
                                 class="block text-xs leading-4 font-medium tracking-normal text-muted-foreground"
                                 >{{ unit }}</span
                             >

@@ -51,7 +51,7 @@ const items = computed(() =>
             <div
                 class="min-w-0 border-t border-border pt-5 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-5"
             >
-                <h3 class="mb-4 text-sm font-semibold">Per mitra</h3>
+                <h3 class="mb-4 text-sm font-semibold">Per mitra lahan</h3>
                 <OwnerDistributionChart
                     class="land-distribution"
                     title="Luas lahan per mitra"

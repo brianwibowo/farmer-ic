@@ -1,21 +1,17 @@
 <script setup lang="ts">
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { ownerFarmOrigin } from '@/lib/ownerFarmNavigation';
 import {
     ArrowLeft,
-    ClipboardList,
     LandPlot,
     MapPin,
     Target,
     Sprout,
-    Pencil,
-    Trash2,
 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import FarmBlocksTable from '@/components/blocks/FarmBlocksTable.vue';
-import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
 import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
 import {
     hectares,
@@ -58,7 +54,6 @@ const props = defineProps<{
         createBlock: boolean;
     };
 }>();
-const deleting = ref(false);
 const contractLabel = computed(() => {
     const contract = props.ownerSummary?.contract;
     if (!contract) return 'Tidak tersedia';
@@ -133,27 +128,6 @@ const coordinates = computed<[number, number] | null>(() =>
                 <h1 class="admin-page-title min-w-0 break-words">
                     {{ farm.name }}
                 </h1>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <Link
-                    v-if="can.dailyLogs"
-                    :href="`/kebun/${farm.id}/daily-logs`"
-                    class="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
-                    ><ClipboardList class="size-4" />Logbook</Link
-                >
-                <Button v-if="can.update" as-child variant="outline"
-                    ><Link :href="`/admin/farm-management/${farm.id}/edit`"
-                        ><Pencil />Ubah lahan</Link
-                    ></Button
-                >
-                <Button
-                    v-if="can.delete"
-                    variant="destructive-ghost"
-                    size="icon"
-                    aria-label="Hapus lahan"
-                    @click="deleting = true"
-                    ><Trash2
-                /></Button>
             </div>
         </header>
         <section class="overflow-hidden rounded-xl bg-card">
@@ -332,8 +306,4 @@ const coordinates = computed<[number, number] | null>(() =>
             >
         </div>
     </div>
-    <DeleteFarmDialog
-        :farm="deleting ? farm : null"
-        @close="deleting = false"
-    />
 </template>
