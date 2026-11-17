@@ -10,6 +10,7 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\User;
+use App\Support\ActivityDetailMap;
 use App\Support\ActivityPhotoFile;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PetugasReportReadService
 {
+    public function __construct(private readonly ActivityReportHighlightService $highlights) {}
+
     /** @param array<string, mixed> $filters
      * @return LengthAwarePaginator<int, array<string, mixed>>
      */
@@ -98,7 +101,41 @@ class PetugasReportReadService
             'location' => implode(' · ', array_filter([$block === null ? null : $block->name, $cycle?->getAttribute('subblock_label')])) ?: 'Lokasi spesifik tidak tercatat',
             'source' => $activity->getAttribute('planting_cycle_task_id') === null ? 'Mandiri' : 'SOP',
             'worker_count' => $activity->worker_count,
-            'notes' => $activity->description, 'photo_count' => $photos->count(),
+            'notes' => $activity->description, 'highlight' => $this->highlight($actor, $farm, $activity, $type),
+            'photo_count' => $photos->count(),
             'photo' => $photo ? route('daily-logs.photos', ['farm' => $farm, 'activity' => $activity, 'photo' => $photo]) : null];
+    }
+
+    private function highlight(User $actor, Farm $farm, FarmActivity $activity, ?ActivityType $type): ?string
+    {
+        if ($type === null) {
+            return null;
+        }
+        $code = $type->code;
+
+        $input = json_decode((string) $activity->getAttribute('task_details'), true);
+        $values = is_array($input) ? $input : [];
+        $detailKey = match ($code) {
+            'land_cleaning' => 'land_cleaning',
+            'base_fertilization' => 'fertilization',
+            'planting' => 'planting',
+            'harvest' => 'harvest',
+            'incident' => 'incident',
+            'other' => 'other',
+            default => null,
+        };
+        if ($detailKey !== null) {
+            $detailClass = ActivityDetailMap::model($detailKey);
+            if ($detailClass === null) {
+                return null;
+            }
+            $detail = $detailClass::visibleTo($actor, $farm->team)->where('activity_id', $activity->id)->first();
+            if ($detail === null) {
+                return null;
+            }
+            $values = array_filter($detail->attributesToArray(), fn ($value) => $value !== null && $value !== '') + $values;
+        }
+
+        return $this->highlights->format($code, $values);
     }
 }

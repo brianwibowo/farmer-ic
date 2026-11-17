@@ -12,6 +12,7 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
 use App\Services\Activity\TaskReportingWindow;
+use App\Support\ActivityPhotoFile;
 use Carbon\CarbonImmutable;
 
 class PetugasTaskReadService
@@ -90,6 +91,7 @@ class PetugasTaskReadService
                     'notes' => $activity->description, 'details' => json_decode((string) $activity->getAttribute('task_details'), true),
                     'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn ($photo) => [
                         'id' => $photo->id, 'url' => route('petugas.aktivitas.photos', ['activity' => $activity->id, 'photo' => $photo->id]),
+                        'available' => str_starts_with($photo->image_url, 'task-activities/'.$activity->id.'/') && ActivityPhotoFile::available($photo),
                     ])->all(),
                 ];
             })->all());

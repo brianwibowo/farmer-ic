@@ -3,9 +3,9 @@ import { Link } from '@inertiajs/vue3';
 import {
     Camera,
     ChevronRight,
+    ClipboardList,
     Clock3,
     ImageOff,
-    Leaf,
     MapPin,
     UsersRound,
 } from '@lucide/vue';
@@ -15,7 +15,6 @@ import type { PetugasReportSummary } from '@/types/petugas-report';
 
 const props = defineProps<{
     report: PetugasReportSummary;
-    farmName: string;
     href: string;
 }>();
 
@@ -76,13 +75,13 @@ watch(
                         <span
                             class="inline-flex max-w-full rounded-md bg-primary/10 px-2 py-1 text-[10px] leading-3 font-semibold text-primary"
                         >
-                            {{ report.name }}
+                            {{ report.source }}
                         </span>
-                        <h2
-                            class="mt-1 text-base leading-5 font-semibold text-foreground"
+                        <h3
+                            class="mt-1 text-base leading-5 font-semibold break-words text-foreground"
                         >
-                            {{ farmName }}
-                        </h2>
+                            {{ report.name }}
+                        </h3>
                     </div>
                     <ChevronRight
                         class="mt-1 size-4 shrink-0 text-muted-foreground"
@@ -106,26 +105,27 @@ watch(
                             report.location
                         }}</span>
                     </p>
-                    <p class="flex items-start gap-1.5">
+                    <p
+                        v-if="report.worker_count !== null"
+                        class="flex items-start gap-1.5"
+                    >
                         <UsersRound
                             class="mt-0.5 size-3.5 shrink-0 text-primary"
                             aria-hidden="true"
                         />
-                        <span
-                            >{{ report.source
-                            }}<template v-if="report.worker_count !== null">
-                                · {{ report.worker_count }} pekerja</template
-                            ></span
-                        >
+                        <span>{{ report.worker_count }} pekerja</span>
                     </p>
                 </div>
                 <p
-                    v-if="report.notes"
+                    v-if="report.highlight"
                     class="mt-2 flex items-start gap-1.5 text-xs font-medium text-primary"
                 >
-                    <Leaf class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                    <ClipboardList
+                        class="mt-0.5 size-3.5 shrink-0"
+                        aria-hidden="true"
+                    />
                     <span class="line-clamp-2 break-words">{{
-                        report.notes
+                        report.highlight
                     }}</span>
                 </p>
             </div>

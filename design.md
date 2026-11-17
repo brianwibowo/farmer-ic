@@ -650,15 +650,27 @@ The Figma page includes both full-color and LoFi variants. Use the active state 
 ### Petugas activity reports
 
 Use the reference activity list's compact photo-led cards, metadata icons,
-category badge, and three summary tiles in `/petugas/laporan`, while retaining
+source badge, and three summary tiles in `/petugas/laporan`, while retaining
 the Petugas shell, theme, floating add action, search, date, category, source,
-personal filter, daily-report link, and server pagination. Tiles show the
-filtered total, SOP reports, and independent reports from scoped database
-queries, not reference-only farm or attention totals. Cards show the persisted
-farm, activity type, date, location, source, worker count, notes, and photo
-count where available. Do not invent HST or attention labels. Missing photo
-files show an explicit unavailable state instead of a broken image or a
-substitute photograph.
+personal filter, and server pagination. Start the visible content with the
+summary tiles: do not show the page title, farm name, or a daily-report link
+above them. Keep a screen-reader heading and the work-date filter; the existing
+daily-report route remains unchanged. Tiles show the filtered total, SOP
+reports, and independent reports from scoped database
+queries, not reference-only farm or attention totals. Use the activity type as
+the card title and SOP/Mandiri as the badge; do not repeat the assigned farm
+name on each card. Cards show the persisted date, location, worker count, and
+photo count where available. Replace the card's free-form notes with one
+structured highlight: worked area for preparation and maintenance, seed name
+and quantity for planting, harvested weight for harvest, or incident category
+and severity. Preserve the recorded units and omit the highlight when the
+relevant data is missing or not visible. Notes remain in the report detail.
+Do not invent HST or attention labels. Missing photo files show an explicit
+unavailable state instead of a broken image or a substitute photograph. Group
+the reports on each results page under their
+server-provided date headings in `YYYY-MM-DD` format, newest date first, while
+retaining the existing card content and order within each date. When a date
+spans pages, repeat its heading on each page.
 
 Individual reports use the reference detail hierarchy: back navigation, a
 metadata card with activity type, farm, location, date, and officer, a divided
@@ -668,6 +680,21 @@ detail; show pest/disease panels only when those values actually exist. State
 when legacy daily-log data or evidence is missing. Preserve the active list
 filters and page in the back link. Reference-only reset, mock data, and
 unavailable metrics are not part of the operational screen.
+
+### Petugas tasks
+
+Use the report pages' mobile card hierarchy for `/petugas/aktivitas` and task
+details. Keep the existing summary counts and remembered search, status,
+category, block, and subblock filters. Task cards use category icons rather than
+invented photos and show the real task name, location, schedule, target HST,
+urgency, work status, and linked-report count. On detail, group the persisted
+task and location, schedule, variety, actual HST, reporting window, and SOP
+instructions into readable cards. Keep recording, blocked reasons, completion
+guidance, the completion form and its errors, and the completed state unchanged
+in meaning. Related reports retain their details, notes, original photos, and
+detail links. Missing dates or photo files get explicit states; never replace
+missing evidence with an example image. Use the shared Petugas shell and
+semantic light/dark tokens.
 
 ### Petugas task activity entry
 

@@ -57,6 +57,19 @@ const listUrl = computed(() =>
         ? page.url
         : '/petugas/laporan',
 );
+const reportGroups = computed(() => {
+    const groups = new Map<string, PetugasReportSummary[]>();
+
+    for (const report of props.reports?.data ?? []) {
+        const reports = groups.get(report.date) ?? [];
+        reports.push(report);
+        groups.set(report.date, reports);
+    }
+
+    return Array.from(groups, ([date, reports]) => ({ date, reports })).sort(
+        (a, b) => b.date.localeCompare(a.date),
+    );
+});
 function detailHref(id: string): string {
     return `/petugas/laporan/${id}?${new URLSearchParams({ back: listUrl.value })}`;
 }
@@ -86,22 +99,8 @@ function reset(): void {
 
 <template>
     <Head title="Laporan" />
+    <h1 class="sr-only">Laporan</h1>
     <div class="min-w-0 space-y-4 pb-28 text-foreground" :aria-busy="loading">
-        <header class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-                <h1>Laporan</h1>
-                <p class="mt-1 text-sm text-muted-foreground">
-                    {{ farm?.name ?? 'Belum ada penugasan kebun' }}
-                </p>
-            </div>
-            <Link
-                v-if="farm"
-                href="/petugas/laporan/harian"
-                class="inline-flex min-h-11 shrink-0 items-center text-xs font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >Laporan harian</Link
-            >
-        </header>
-
         <section
             class="grid grid-cols-3 gap-2"
             aria-label="Ringkasan laporan sesuai filter"
@@ -237,25 +236,44 @@ function reset(): void {
                 aria-hidden="true"
             />
             <h2 class="mt-3 font-semibold">
-                Belum ada laporan yang ditampilkan
+                {{
+                    farm
+                        ? 'Belum ada laporan yang ditampilkan'
+                        : 'Belum ada penugasan kebun'
+                }}
             </h2>
             <p class="mt-2 text-sm text-muted-foreground">
                 {{ emptyDescription }}
             </p>
         </div>
-        <ul
-            v-else-if="reports?.data.length"
-            class="space-y-3"
+        <div
+            v-else-if="reportGroups.length"
+            class="space-y-5"
+            role="group"
             aria-label="Riwayat aktivitas"
         >
-            <li v-for="report in reports.data" :key="report.id">
-                <ReportCard
-                    :report="report"
-                    :farm-name="farm?.name ?? 'Kebun'"
-                    :href="detailHref(report.id)"
-                />
-            </li>
-        </ul>
+            <section
+                v-for="group in reportGroups"
+                :key="group.date"
+                :aria-labelledby="`report-date-${group.date}`"
+                class="space-y-2"
+            >
+                <h2
+                    :id="`report-date-${group.date}`"
+                    class="text-xs font-semibold text-muted-foreground"
+                >
+                    <time :datetime="group.date">{{ group.date }}</time>
+                </h2>
+                <ul class="space-y-3">
+                    <li v-for="report in group.reports" :key="report.id">
+                        <ReportCard
+                            :report="report"
+                            :href="detailHref(report.id)"
+                        />
+                    </li>
+                </ul>
+            </section>
+        </div>
         <nav
             v-if="reports && reports.last_page > 1"
             class="flex items-center justify-between gap-2 text-sm"

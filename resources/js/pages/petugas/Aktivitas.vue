@@ -1,21 +1,17 @@
 <script setup lang="ts">
-import { Head, Link, useRemember } from '@inertiajs/vue3';
+import { Head, useRemember } from '@inertiajs/vue3';
 import {
     CalendarDays,
-    ChevronRight,
+    CalendarClock,
+    CircleAlert,
     ClipboardList,
-    MapPin,
     Search,
-    Sprout,
 } from '@lucide/vue';
 import { computed, reactive, unref, watch } from 'vue';
+import TaskCard from '@/components/petugas/TaskCard.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import type {
-    PetugasTask,
-    PetugasTaskPageProps,
-    PetugasTaskUrgency,
-} from '@/types/petugas-task';
+import type { PetugasTask, PetugasTaskPageProps } from '@/types/petugas-task';
 import { sopActivityCategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
@@ -78,13 +74,6 @@ const options = [
     { key: 'completed', label: 'Ditutup' },
     { key: 'all', label: 'Semua' },
 ];
-const urgencyLabels: Record<PetugasTaskUrgency, string> = {
-    overdue: 'Terlambat',
-    today: 'Hari ini',
-    upcoming: 'Mendatang',
-    completed: 'Ditutup',
-};
-
 const blocks = computed(() => [
     ...new Map(
         props.tasks.map((t) => [t.subblok.block.id, t.subblok.block]),
@@ -150,7 +139,7 @@ function reset(): void {
     <Head title="Tugas" />
     <div class="min-w-0 space-y-4 pb-16 text-foreground">
         <header>
-            <h1 class="text-xl leading-7 font-semibold">Tugas</h1>
+            <h1>Tugas</h1>
             <p class="mt-1 text-sm text-muted-foreground">
                 {{
                     farm
@@ -161,47 +150,53 @@ function reset(): void {
         </header>
         <section class="grid grid-cols-3 gap-2" aria-label="Ringkasan tugas">
             <div
-                v-for="metric in [
-                    {
-                        key: 'overdue',
-                        label: 'Terlambat',
-                        count: summary.overdue,
-                    },
-                    { key: 'today', label: 'Hari ini', count: summary.today },
-                    {
-                        key: 'upcoming',
-                        label: 'Mendatang',
-                        count: summary.upcoming,
-                    },
-                ]"
-                :key="metric.key"
-                class="rounded-xl border px-2 py-3 text-center"
-                :class="
-                    metric.key === 'overdue'
-                        ? 'border-warning/40 bg-warning/10'
-                        : 'border-primary/25 bg-primary/10'
-                "
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
             >
-                <CalendarDays
-                    class="mx-auto mb-2 size-5 text-secondary"
-                    aria-hidden="true"
-                />
-                <p class="text-lg font-semibold">{{ metric.count }}</p>
-                <p class="text-[11px] text-muted-foreground">
-                    {{ metric.label }}
-                </p>
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-warning/15 text-foreground"
+                >
+                    <CircleAlert class="size-4" aria-hidden="true" />
+                </span>
+                <p class="text-lg font-semibold">{{ summary.overdue }}</p>
+                <p class="text-xs text-muted-foreground">Terlambat</p>
+            </div>
+            <div
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
+            >
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-info/10 text-info"
+                >
+                    <CalendarDays class="size-4" aria-hidden="true" />
+                </span>
+                <p class="text-lg font-semibold">{{ summary.today }}</p>
+                <p class="text-xs text-muted-foreground">Hari ini</p>
+            </div>
+            <div
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
+            >
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                >
+                    <CalendarClock class="size-4" aria-hidden="true" />
+                </span>
+                <p class="text-lg font-semibold">{{ summary.upcoming }}</p>
+                <p class="text-xs text-muted-foreground">Mendatang</p>
             </div>
         </section>
-        <div class="space-y-2">
-            <label class="relative block"
-                ><span class="sr-only">Cari tugas</span
-                ><input
+        <section class="space-y-2" aria-label="Filter tugas">
+            <label class="relative block">
+                <span class="sr-only">Cari tugas</span>
+                <input
                     v-model="filter.q"
                     type="search"
                     placeholder="Cari tugas atau subblok"
-                    class="min-h-11 w-full rounded-xl border border-primary bg-card px-3 pr-10 text-sm focus-visible:outline-2 focus-visible:outline-ring" /><Search
-                    class="pointer-events-none absolute top-3 right-3 size-5 text-primary"
-            /></label>
+                    class="petugas-field min-h-11 w-full rounded-xl border border-border px-3 pr-10 text-foreground"
+                />
+                <Search
+                    class="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-primary"
+                    aria-hidden="true"
+                />
+            </label>
             <div class="grid grid-cols-2 gap-2">
                 <AppSelect
                     v-model="filter.block"
@@ -257,26 +252,31 @@ function reset(): void {
                     ></AppSelect
                 >
             </div>
-        </div>
+        </section>
         <p
             v-if="defaultSopMissing && farm"
-            class="rounded-xl bg-muted p-3 text-xs leading-5"
+            class="rounded-xl border border-border bg-muted/50 p-3 text-xs leading-5"
         >
             SOP default pada salah satu blok belum diatur. Hubungi Admin;
             aktivitas mandiri tetap dapat dicatat.
         </p>
-        <div
-            class="flex items-center justify-between text-xs text-muted-foreground"
-        >
-            <span>{{ tasks.length }} tugas</span
-            ><button
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-semibold">Daftar tugas</h2>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    {{ tasks.length }} tugas ditampilkan
+                </p>
+            </div>
+            <button
                 v-if="
                     filter.q ||
                     filter.category ||
                     filter.block ||
+                    filter.subblok ||
                     filter.status !== 'active'
                 "
-                class="min-h-11 text-secondary underline"
+                type="button"
+                class="min-h-11 rounded-xl px-2 text-xs font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 @click="reset"
             >
                 Reset filter
@@ -304,53 +304,7 @@ function reset(): void {
         </div>
         <ul v-else class="space-y-3" aria-label="Daftar tugas">
             <li v-for="task in tasks" :key="task.id">
-                <Link
-                    :href="`/petugas/tasks/${task.id}`"
-                    class="petugas-card flex gap-3 p-3 transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                    <span
-                        class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-secondary"
-                        ><Sprout class="size-6"
-                    /></span>
-                    <div class="min-w-0 flex-1">
-                        <span
-                            class="text-[10px] font-semibold text-secondary"
-                            >{{ label(task.activity_category) }}</span
-                        >
-                        <h2 class="mt-1 text-base leading-5 font-semibold">
-                            {{ task.name }}
-                        </h2>
-                        <p
-                            class="mt-2 flex items-center gap-1 text-xs text-muted-foreground"
-                        >
-                            <MapPin class="size-3 shrink-0" />{{
-                                task.subblok.block.name
-                            }}
-                            · {{ task.subblok.label }}
-                        </p>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            {{ task.scheduled_date ?? 'Belum dijadwalkan' }} ·
-                            Target HST {{ task.offset_days }}
-                        </p>
-                        <span
-                            class="mt-2 inline-block rounded-md px-2 py-1 text-[10px] font-medium"
-                            :class="
-                                task.urgency === 'overdue'
-                                    ? 'bg-warning/15 text-foreground'
-                                    : 'bg-muted text-muted-foreground'
-                            "
-                            >{{ urgencyLabels[task.urgency]
-                            }}<template v-if="task.linked_activities_count">
-                                ·
-                                {{ task.linked_activities_count }}
-                                laporan</template
-                            ></span
-                        >
-                    </div>
-                    <ChevronRight
-                        class="mt-2 size-4 shrink-0 text-muted-foreground"
-                    />
-                </Link>
+                <TaskCard :task="task" />
             </li>
         </ul>
     </div>
