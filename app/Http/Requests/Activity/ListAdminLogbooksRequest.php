@@ -12,7 +12,12 @@ class ListAdminLogbooksRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'view' => ['nullable', 'string', Rule::in(['activities', 'farms'])],
             'search' => ['nullable', 'string', 'max:150'],
+            'farm_id' => ['nullable', 'uuid'],
+            'activity_type' => ['nullable', 'string', 'max:60'],
+            'source' => ['nullable', 'string', Rule::in(['sop', 'mandiri'])],
+            'performed_by' => ['nullable', 'uuid'],
             'from_date' => ['nullable', 'date_format:Y-m-d'],
             'to_date' => ['nullable', 'date_format:Y-m-d'],
             'recorded_by' => ['nullable', 'uuid'],
