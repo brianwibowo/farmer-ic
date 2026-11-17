@@ -258,6 +258,9 @@ explicit destructive action. Use the same dialog for Inertia form navigation
 and closing block, subblock, or legality editors. Prevent duplicate decisions
 and resume an approved navigation only once. SweetAlert2 joins the existing
 Reka focus stack and uses its own elevated overlay above editors.
+Render the body Teleport only after client mount so SSR hydration never walks
+unrelated body elements. Close SweetAlert before Vue removes its target and
+finish body/ARIA cleanup without waiting for a closing animation.
 Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
 installed npm package, never a CDN. Keep the native `beforeunload`
 warning for refresh/tab closure, where browsers do not allow a custom dialog.
