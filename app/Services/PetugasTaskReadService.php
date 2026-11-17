@@ -26,7 +26,7 @@ class PetugasTaskReadService
         $summary = collect(['overdue', 'today', 'upcoming', 'completed'])->mapWithKeys(fn ($key) => [$key => $tasks->where('urgency', $key)->count()])->all();
 
         return [
-            'tasks' => $tasks->filter(fn ($task) => $status === 'all' || $task['urgency'] === $status)
+            'tasks' => $tasks->filter(fn ($task) => $status === 'all' || ($status === 'active' ? in_array($task['urgency'], ['overdue', 'today'], true) : $task['urgency'] === $status))
                 ->sortBy(fn ($task) => [array_search($task['urgency'], ['overdue', 'today', 'upcoming', 'completed']), $task['scheduled_date'] ?? '9999-12-31', $task['offset_days'], $task['name']])->values()->all(),
             'summary' => $summary,
         ];

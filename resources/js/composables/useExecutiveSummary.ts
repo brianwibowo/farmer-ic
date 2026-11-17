@@ -32,7 +32,7 @@ export function useExecutiveSummary() {
     const feedback = ref('');
     const filters = reactive<ExecutiveFilters>({
         year: 2026,
-        cycle: 1,
+        cycle: 'all',
         partner: '',
         region: '',
         farm: '',
@@ -56,7 +56,7 @@ export function useExecutiveSummary() {
             data.value = result;
             if (!refresh) {
                 filters.year = result.defaultYear;
-                filters.cycle = result.defaultCycle;
+                filters.cycle = 'all';
             }
             if (refresh)
                 void toast.success(
@@ -149,7 +149,7 @@ export function useExecutiveSummary() {
     function reset() {
         Object.assign(filters, {
             year: data.value?.defaultYear ?? 2026,
-            cycle: data.value?.defaultCycle ?? 1,
+            cycle: 'all',
             partner: '',
             region: '',
             farm: '',

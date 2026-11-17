@@ -411,6 +411,7 @@ SQL, [$table, $column['name']]), $table.'.'.$column['name'].' needs an index pre
             $primaryColumn = match (true) {
                 str_ends_with($table, '_details') => 'activity_id',
                 $table === 'administrative_regions' => 'code',
+                $table === 'operational_notification_events' => 'event_key',
                 default => 'id',
             };
             $this->assertSame($primaryColumn, $this->database->scalar("SELECT a.attname FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1] WHERE c.contype = 'p' AND c.conrelid = ?::regclass", [$table]));

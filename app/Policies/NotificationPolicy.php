@@ -34,6 +34,11 @@ class NotificationPolicy extends ResourcePolicy
         return $record->exists && (string) $record->getAttribute('user_id') === $user->id && $this->viewAny($user);
     }
 
+    public function updateAny(User $user): bool
+    {
+        return $this->viewAny($user) && $this->permissions->scope($user, 'notifications.update') === 'own';
+    }
+
     public function update(User $user, Model $record): bool
     {
         return $this->view($user, $record) && $this->permissions->scope($user, 'notifications.update') === 'own';

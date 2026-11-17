@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Policies\NotificationPolicy;
 use App\Services\Notifications\NotificationInboxService;
 use App\Support\RolePermissions;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,11 +34,12 @@ class NotificationController extends Controller
             $filters = $request->validated();
             $context = $this->tenantContext($actor, $filters, $inbox);
             $tenantNames = array_column($context['options'], 'name', 'id');
-            $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
 
             return Inertia::render('notifications/Index', [
-                'notifications' => $inbox->paginate($actor, $filters)->through(fn (Notification $notification): array => [
+                'notifications' => $inbox->paginate($actor, ['status' => $filters['status'] ?? 'unread', 'category' => $filters['category'] ?? 'all'])->through(fn (Notification $notification): array => [
                     'id' => $notification->id, 'title' => $notification->title,
+                    'type' => $notification->type,
+                    'content' => $notification->content,
                     'message' => $inbox->messageFor($actor, $notification, isset($tenantNames[$notification->team_id])),
                     'tenant_name' => $tenantNames[$notification->team_id] ?? null,
                     'is_read' => $notification->is_read,
@@ -50,12 +50,20 @@ class NotificationController extends Controller
                 ]),
                 'unreadCount' => $inbox->unreadCount($request->user()),
                 'hasPhoneNumber' => filled($request->user()->phone_number),
-                'filters' => [...$filters, 'team_id' => isset($filters['team_id']) ? (int) $filters['team_id'] : null],
-                'defaultFilters' => ['status' => 'unread', 'date_from' => $today, 'date_to' => $today, 'team_id' => null],
-                'tenantOptions' => $context['options'],
+                'fonnteEnabled' => (bool) config('operational_notifications.fonnte.enabled', false),
+                'status' => $filters['status'] ?? 'unread',
+                'category' => $filters['category'] ?? 'all',
                 'canFilterTenant' => $context['show'],
             ]);
         });
+    }
+
+    public function readAll(FilterNotificationsRequest $request, NotificationInboxService $inbox): RedirectResponse
+    {
+        Gate::authorize('updateAny', Notification::class);
+        $inbox->markAllRead($request->user());
+
+        return to_route('notifications.index', $request->validated());
     }
 
     public function read(FilterNotificationsRequest $request, Notification $notification, NotificationInboxService $inbox): RedirectResponse

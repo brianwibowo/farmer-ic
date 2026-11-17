@@ -7,7 +7,6 @@ use App\Models\Team;
 use App\Models\User;
 use App\Policies\NotificationPolicy;
 use App\Support\RolePermissions;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -20,15 +19,14 @@ final class NotificationInboxService
     public function paginate(User $actor, array $filters): LengthAwarePaginator
     {
         $query = $this->query($actor);
-        if ($filters['status'] === 'unread') {
+        if (($filters['status'] ?? 'unread') === 'unread') {
             $query->where('is_read', false);
-        } else {
-            $from = CarbonImmutable::parse($filters['date_from'], config('app.timezone'))->startOfDay();
-            $until = CarbonImmutable::parse($filters['date_to'], config('app.timezone'))->addDay()->startOfDay();
-            $query->where('created_at', '>=', $from->toIso8601String())->where('created_at', '<', $until->toIso8601String());
-            if (! empty($filters['team_id'])) {
-                $query->where('team_id', $filters['team_id']);
-            }
+        } elseif (($filters['status'] ?? null) === 'read') {
+            $query->where('is_read', true);
+        }
+
+        if (($filters['category'] ?? 'all') !== 'all') {
+            $query->where('type', $filters['category']);
         }
 
         return $query->orderByDesc('created_at')->orderByDesc('id')->paginate(15)->appends($filters);
@@ -54,17 +52,10 @@ final class NotificationInboxService
     public function messageFor(User $actor, Notification $notification, bool $tenantBadge = false): string
     {
         $message = $notification->message ?? '';
-        if ($notification->type !== 'daily_report') {
-            return $message;
-        }
-        $showTenant = app(NotificationPolicy::class)->showsTenantContext($actor);
-        if (! $showTenant || $tenantBadge) {
-            // Only remove the known header, never a tenant-like line inside an activity note.
-            $message = preg_replace('/\A((?:Report Harian Kebun dari Petugas[^\r\n]*\r?\n)?)Tenant:[^\r\n]*(?:\r?\n|$)/u', '$1', $message) ?? $message;
-        }
-        if (! $showTenant) {
-            $message = str_replace('Satu rekap seluruh kebun dalam tenant, per penerima dan tanggal.',
-                'Satu rekap seluruh kebun, per penerima dan tanggal.', $message);
+        if ($notification->type === 'weekly_report') {
+            return $tenantBadge || ! app(NotificationPolicy::class)->showsTenantContext($actor)
+                ? preg_replace('/\ATenant:[^\r\n]*(?:\r?\n|$)/u', '', $message) ?? $message
+                : $message;
         }
 
         return $message;
@@ -79,7 +70,12 @@ final class NotificationInboxService
     private function query(User $actor): Builder
     {
         return Notification::visibleTo($actor)->where('user_id', $actor->id)
-            ->whereIn('type', ['daily_report', 'harvest_reminder']);
+            ->whereIn('type', ['weekly_report', 'task_reminder', 'sop_deviation', 'incident_report']);
+    }
+
+    public function markAllRead(User $actor): void
+    {
+        $this->query($actor)->where('is_read', false)->update(['is_read' => true, 'read_at' => now()]);
     }
 
     public function markRead(Notification $notification): void
