@@ -94,9 +94,14 @@ and private photos. It reuses or creates the shared daily log, then creates a `p
 is completed using the shared daily hours on the reported date; other preparation stages are not
 fabricated or closed automatically. Multiple reports within three inclusive
 calendar days accumulate planted area up to the reservation. Continued planting
-must use the same variety. `planting_started_on` stores the earliest work date;
-`planted_at` is the second distinct actual date if present, otherwise the first.
-Late submissions for valid work dates remain accepted. Corrections/deletion of
+must use the same variety. `planting_started_on` stores the earliest work date; `planted_at` is the HST
+`H+0` anchor, always set to the calendar day after `planting_started_on`
+(`first_work_date + 1 day`). Adding second- or third-day plantings in the
+three-day window accumulates area without shifting HST; only a backdated
+earlier `work_date` moves `planting_started_on` and shifts `planted_at` (and
+therefore `scheduled_date` / `due_date`) automatically. On the first planting day
+itself, `hst` is `null` until `planted_at` (`0 HST`). Follow-up maintenance is
+permitted from `planted_at` (`H+0`) onward. Late submissions for valid work dates remain accepted. Corrections/deletion of
 existing planting reports are not part of this form.
 
 Taxonomy payloads retain m²/Ha, kg/sak/butir and optional depth in `task_details`;

@@ -150,7 +150,7 @@ Table planting_cycles {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
   variety_id uuid [ref: > crop_varieties.id, note: 'Nullable only for a zero-area preparation batch']
-  planted_at date [note: 'Nullable only for a zero-area preparation batch']
+  planted_at date [note: 'Acuan H+0 HST (satu hari setelah penanaman pertama); nullable hanya untuk persiapan tanam tanpa luas']
   estimated_harvest_at date
   planted_area_ha decimal(12,4) [not null, note: 'Positive, or zero for planned preparation batches; dynamically defines subblock area from planting activities within remaining block/farm capacity']
   estimated_weight_ton decimal(14,3)

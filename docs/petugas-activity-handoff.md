@@ -212,19 +212,19 @@ Tidak ada keputusan untuk memasukkan workflow itu dalam implementasi ini.
   lama yang hanya menerima satu realisasi awal per subblok.
 - **Target operasional:** satu blok per hari, sekitar 1 Ha. Belum disepakati
   sebagai batas validasi yang menolak pencatatan.
-- **Pemicu SOP:** generasi tugas dipicu pencatatan penanaman pertama, langsung
-  memakai tanggal tanam pertama sebagai acuan sementara (contoh: 26).
-  Sistem kemudian memeriksa penanaman dalam jendela tiga hari dan menyesuaikan
-  acuan HST serta jadwal SOP. Jendela mengikuti contoh yang disepakati, yaitu
-  26–28 inklusif; bukan diperpanjang hingga 29. Setelah jendela berakhir, lakukan
-  rekonsiliasi meskipun tidak ada laporan tambahan. Mekanisme eksekusi otomatis
-  pemeriksaan ini masih perlu diimplementasikan.
-- **Acuan HST:** berdasarkan hari yang benar-benar ada pelaksanaan penanaman,
-  bukan titik tengah jendela kalender atau urutan submit laporan. Untuk tiga
-  hari penanaman, gunakan hari kedua; untuk dua hari, gunakan hari kedua juga.
-  Contoh: 26/27/28 → 27; 26/27 → 27; 26/28 (27 kosong) → 28.
-  Beberapa laporan pada tanggal yang sama tetap dihitung satu hari penanaman.
-  Jika hanya ada penanaman pada satu hari, acuan tetap tanggal tersebut.
+- **Pemicu & Acuan HST:** generasi tugas dipicu langsung saat pencatatan
+  penanaman pertama, dengan acuan `H+0` HST (`planted_at`) **selalu ditetapkan
+  satu hari setelah tanggal pelaksanaan penanaman pertama** pada subblok
+  (`planting_started_on + 1 hari`, misalnya tanam 26 → `H+0` pada tanggal 27;
+  jadwal SOP `offset_days = 7` jatuh pada `27 + 7`). Pada hari penanaman
+  pertama (tanggal 26), HST belum dimulai (`null`), lalu menjadi `0 HST` pada
+  tanggal 27 dan `1 HST` pada tanggal 28.
+  Penambahan penanaman pada hari kedua/ketiga dalam jendela tiga hari inklusif
+  (26–28) tidak menggeser acuan HST; jadwal SOP pending dan `planted_at`
+  dihitung ulang hanya jika ada laporan terlambat dengan tanggal pelaksanaan
+  lebih awal (misalnya tanggal 25 menyusul tanggal 26). Beberapa laporan pada
+  tanggal yang sama tetap dihitung satu tanggal tanam. Command
+  `planting:reconcile-windows` tetap memeriksa penutupan jendela tiga hari.
 - **Penyesuaian jadwal disetujui:** ketika acuan HST berubah, hitung ulang jadwal
   tugas pending tanpa duplikasi, sambil mempertahankan snapshot SOP dan override
   jadwal Admin. Belum diimplementasikan untuk alur penanaman bertahap ini.
@@ -392,9 +392,13 @@ File rujukan:
 - Penanaman menerima m²/Ha dan benih kg/sak/butir; berat per sak diperlukan,
   butir harus bulat dan tidak diperlakukan sebagai kg. Kedalaman opsional;
   pola tanam dari pemetaan bila tersedia dapat dikoreksi.
-- `planting_started_on` menyimpan tanggal pertama; `planted_at` menyimpan acuan
-  HST (tanggal aktual berbeda kedua, atau pertama bila hanya satu). Akumulasi
-  luas tidak boleh melebihi reservasi dan varietas lanjutan harus sama.
+- `planting_started_on` menyimpan tanggal pelaksanaan tanam pertama;
+  `planted_at` menyimpan acuan `H+0` HST yang selalu ditetapkan **satu hari
+  setelah `planting_started_on`** (`first_work_date + 1 hari`). Akumulasi
+  luas tidak boleh melebihi sisa kapasitas blok/kebun dan varietas lanjutan
+  harus sama.
+- Perawatan lanjutan (`maintenance`) diizinkan mulai tanggal acuan `planted_at`
+  (`H+0`) ke atas.
 - Jendela tiga hari inklusif memakai tanggal pekerjaan, bukan submit. Laporan
   terlambat tetap dihitung. Rentang waktu tahap memakai tanggal paling awal/akhir
   sehingga laporan yang datang tidak berurutan tetap sah.

@@ -77,7 +77,7 @@ const statusLabels: Record<string, string> = {
 const ageLabels: Record<string, string> = {
     available: 'HST belum tersedia',
     not_planted: 'Belum tanam',
-    future: 'Tanggal tanam mendatang',
+    future: 'HST belum dimulai',
     cancelled: 'Dibatalkan',
 };
 function currentStage(batch: PreparationBatch): string {
@@ -339,17 +339,26 @@ const progressSummary = computed(() => {
     />
     <Dialog
         :open="!!closing"
-        @update:open="(value) => { if (!value && !closeForm.processing) closing = null; }"
+        @update:open="
+            (value) => {
+                if (!value && !closeForm.processing) closing = null;
+            }
+        "
     >
         <DialogContent
             :class="theme"
             :show-close-button="!closeForm.processing"
             @interact-outside.prevent
-            @escape-key-down="(event) => { if (closeForm.processing) event.preventDefault(); }"
+            @escape-key-down="
+                (event) => {
+                    if (closeForm.processing) event.preventDefault();
+                }
+            "
         >
             <DialogHeader>
                 <DialogTitle>
-                    Tutup panen sub blok {{ block.code }}{{ closing?.subblock_label }}?
+                    Tutup panen sub blok {{ block.code
+                    }}{{ closing?.subblock_label }}?
                 </DialogTitle>
                 <DialogDescription>
                     Pastikan laporan panen sudah lengkap. Subblok akan selesai
@@ -362,11 +371,18 @@ const progressSummary = computed(() => {
                 {{ closeError }}
             </p>
             <DialogFooter>
-                <Button variant="outline" :disabled="closeForm.processing" @click="closing = null">
+                <Button
+                    variant="outline"
+                    :disabled="closeForm.processing"
+                    @click="closing = null"
+                >
                     Batal
                 </Button>
                 <Button :disabled="closeForm.processing" @click="closeHarvest">
-                    <LoaderCircle v-if="closeForm.processing" class="animate-spin" />
+                    <LoaderCircle
+                        v-if="closeForm.processing"
+                        class="animate-spin"
+                    />
                     {{ closeForm.processing ? 'Menutup…' : 'Ya, tutup panen' }}
                 </Button>
             </DialogFooter>

@@ -65,7 +65,9 @@ class PetugasTaskReadService
             'subblok' => [
                 'id' => $cycle->id, 'number' => $cycle->getAttribute('batch_number'), 'label' => $cycle->getAttribute('subblock_label'),
                 'planned_planting_at' => $cycle->planned_planting_at?->toDateString(), 'planted_at' => $cycle->planted_at?->toDateString(),
-                'hst' => $cycle->planted_at ? (int) $cycle->planted_at->startOfDay()->diffInDays($today, false) : null,
+                'hst' => $cycle->planted_at !== null && $cycle->planted_at->toDateString() <= $today->toDateString()
+                    ? (int) CarbonImmutable::parse($cycle->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today)
+                    : null,
                 'farm' => $farm->only(['id', 'name']), 'block' => $block->only(['id', 'name']),
                 'variety' => $variety?->only(['id', 'name']) ?? ['id' => '', 'name' => 'Belum ditentukan'],
             ],

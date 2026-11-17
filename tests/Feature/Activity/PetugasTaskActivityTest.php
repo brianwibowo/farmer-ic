@@ -85,7 +85,8 @@ class PetugasTaskActivityTest extends TestCase
         $this->cycle->forceFill(['planted_at' => null, 'planted_area_ha' => 0, 'status' => 'planned'])->save();
         $base = [...$this->payload(), 'cycle_id' => $this->cycle->id];
         $blockBase = [...$this->payload(), 'block_id' => $this->cycle->block_id];
-        $planting = ['work_date' => today()->toDateString(), 'start_time' => '07:00', 'worker_count' => 3,
+        $yesterday = today()->subDay()->toDateString();
+        $planting = ['work_date' => $yesterday, 'start_time' => '07:00', 'worker_count' => 3,
             'variety_id' => $this->cycle->variety_id, 'area_ha' => 1, 'seed_name' => 'Bisi 18', 'quantity_kg' => 5,
             'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
         $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';

@@ -163,7 +163,7 @@ class PlantingActivityService
                 if ($type === null) {
                     throw ValidationException::withMessages(['cycle' => 'Referensi aktivitas Penanaman belum tersedia. Hubungi admin.']);
                 }
-                $anchor = CarbonImmutable::parse($dates[1] ?? $dates[0]);
+                $anchor = $this->anchorDate($dates[0]);
                 $anchorChanged = $cycle->planted_at?->toDateString() !== $anchor->toDateString();
                 $estimate = $this->estimates->forPlantingDate($actor, $team, $cycle, $anchor);
                 $cycle->forceFill(['planting_started_on' => $dates[0], 'planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate, 'planting_window_checked_at' => null,
@@ -230,14 +230,20 @@ class PlantingActivityService
             if (! $dates || ! in_array($cycle->status, ['planned', 'active'], true)) {
                 return;
             }
-            $anchor = CarbonImmutable::parse($dates[1] ?? $dates[0]);
+            $anchor = $this->anchorDate($dates[0]);
             $anchorChanged = $cycle->planted_at?->toDateString() !== $anchor->toDateString();
             $estimate = $this->estimates->forPlantingDate($actor, $team, $cycle, $anchor);
-            $cycle->forceFill(['planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate])->save();
+            $cycle->forceFill(['planting_started_on' => $dates[0], 'planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate])->save();
             $this->tasks->generateForSubblok($cycle, $actor, 'status', $anchorChanged);
             if (now('Asia/Jakarta')->toDateString() > CarbonImmutable::parse($dates[0])->addDays(2)->toDateString()) {
                 $cycle->forceFill(['planting_window_checked_at' => now()])->save();
             }
         });
+    }
+
+    /** HST H+0 is always set to the day after the earliest recorded planting date. */
+    private function anchorDate(string $firstWorkDate): CarbonImmutable
+    {
+        return CarbonImmutable::parse($firstWorkDate)->addDay();
     }
 }

@@ -113,13 +113,40 @@ const maximumArea = computed(() =>
 const numericErrors = computed<Record<string, string>>(() => {
     const result: Record<string, string> = {};
     const checks: [string, string | undefined][] = [
-        ['worker_count', maximumError(form.worker_count, props.numericLimits.workerCount, 'Jumlah pekerja')],
-        ['area', maximumError(form.area, maximumArea.value, 'Luas tambahan', form.area_unit)],
-        ['quantity', maximumError(form.quantity, props.numericLimits.quantity, 'Jumlah benih')],
+        [
+            'worker_count',
+            maximumError(
+                form.worker_count,
+                props.numericLimits.workerCount,
+                'Jumlah pekerja',
+            ),
+        ],
+        [
+            'area',
+            maximumError(
+                form.area,
+                maximumArea.value,
+                'Luas tambahan',
+                form.area_unit,
+            ),
+        ],
+        [
+            'quantity',
+            maximumError(
+                form.quantity,
+                props.numericLimits.quantity,
+                'Jumlah benih',
+            ),
+        ],
         [
             'bag_size',
             form.quantity_unit === 'sak'
-                ? maximumError(form.bag_size, props.numericLimits.bagSize, 'Berat per sak', 'kg')
+                ? maximumError(
+                      form.bag_size,
+                      props.numericLimits.bagSize,
+                      'Berat per sak',
+                      'kg',
+                  )
                 : undefined,
         ],
     ];
@@ -128,7 +155,8 @@ const numericErrors = computed<Record<string, string>>(() => {
         form.quantity_unit === 'sak' &&
         form.quantity &&
         form.bag_size &&
-        Number(form.quantity) * Number(form.bag_size) > props.numericLimits.quantityKg
+        Number(form.quantity) * Number(form.bag_size) >
+            props.numericLimits.quantityKg
     ) {
         result.quantity = `Jumlah benih setelah konversi maksimal ${formatActivityNumber(props.numericLimits.quantityKg)} kg.`;
     }
@@ -140,9 +168,23 @@ const errors = computed<Record<string, string>>(() => ({
     ...numericErrors.value,
 }));
 watch(
-    () => [form.area, form.area_unit, form.worker_count, form.quantity, form.quantity_unit, form.bag_size],
+    () => [
+        form.area,
+        form.area_unit,
+        form.worker_count,
+        form.quantity,
+        form.quantity_unit,
+        form.bag_size,
+    ],
     (current, previous) => {
-        const keys = ['area', 'area', 'worker_count', 'quantity', 'quantity', 'bag_size'] as const;
+        const keys = [
+            'area',
+            'area',
+            'worker_count',
+            'quantity',
+            'quantity',
+            'bag_size',
+        ] as const;
         current.forEach((value, index) => {
             if (value !== previous[index]) form.clearErrors(keys[index]);
         });
@@ -263,9 +305,10 @@ function submit(): void {
                 class="rounded-xl border border-border bg-muted/50 p-4 text-sm leading-6"
             >
                 Penanaman dapat dicatat dalam tiga hari kalender sejak tanam
-                pertama. Isi luas tambahan untuk pekerjaan ini. HST mengikuti
-                hari penanaman aktual kedua jika ada; jadwal SOP pending
-                menyesuaikan otomatis.
+                pertama. Isi luas tambahan untuk pekerjaan ini. Acuan H+0 HST
+                selalu ditetapkan satu hari setelah tanggal tanam pertama pada
+                subblok; jadwal SOP pending menyesuaikan otomatis bila ada
+                laporan tanggal lebih awal.
             </p>
             <p
                 v-if="!commodityConfigured"
@@ -288,11 +331,13 @@ function submit(): void {
                 role="status"
                 class="text-sm leading-6 text-muted-foreground"
             >
-                Belum ada varietas untuk komoditas blok ini. Hubungi admin
-                untuk menyiapkan data varietas.
+                Belum ada varietas untuk komoditas blok ini. Hubungi admin untuk
+                menyiapkan data varietas.
             </p>
             <fieldset
-                :disabled="form.processing || !varieties.length || varietyMismatch"
+                :disabled="
+                    form.processing || !varieties.length || varietyMismatch
+                "
                 class="space-y-4 rounded-xl border border-border bg-card p-4 disabled:opacity-70"
             >
                 <h2 class="text-base font-semibold">Pelaksanaan penanaman</h2>
@@ -332,11 +377,17 @@ function submit(): void {
                         required
                         :class="fieldClass"
                         :aria-invalid="!!errors.worker_count"
-                        :aria-describedby="errors.worker_count ? 'planting-worker-help planting-worker-error' : 'planting-worker-help'"
+                        :aria-describedby="
+                            errors.worker_count
+                                ? 'planting-worker-help planting-worker-error'
+                                : 'planting-worker-help'
+                        "
                     /><span
                         id="planting-worker-help"
                         class="block text-xs text-muted-foreground"
-                        >Maksimal {{ formatActivityNumber(numericLimits.workerCount) }} pekerja.</span
+                        >Maksimal
+                        {{ formatActivityNumber(numericLimits.workerCount) }}
+                        pekerja.</span
                     ><span
                         v-if="errors.worker_count"
                         id="planting-worker-error"
@@ -410,11 +461,17 @@ function submit(): void {
                         :max="numericLimits.bagSize"
                         :class="fieldClass"
                         :aria-invalid="!!errors.bag_size"
-                        :aria-describedby="errors.bag_size ? 'planting-bag-help planting-error-bag_size' : 'planting-bag-help'"
+                        :aria-describedby="
+                            errors.bag_size
+                                ? 'planting-bag-help planting-error-bag_size'
+                                : 'planting-bag-help'
+                        "
                     /><span
                         id="planting-bag-help"
                         class="block text-xs text-muted-foreground"
-                        >Maksimal {{ formatActivityNumber(numericLimits.bagSize) }} kg per sak.</span
+                        >Maksimal
+                        {{ formatActivityNumber(numericLimits.bagSize) }} kg per
+                        sak.</span
                     ><span
                         v-if="errors.bag_size"
                         id="planting-error-bag_size"
@@ -432,30 +489,48 @@ function submit(): void {
                         v-model="form[field.key]"
                         :type="field.type"
                         :required="!field.optional"
-                        :min="field.key === 'area'
-                            ? (form.area_unit === 'm²' ? 1 : 0.0001)
-                            : field.min"
+                        :min="
+                            field.key === 'area'
+                                ? form.area_unit === 'm²'
+                                    ? 1
+                                    : 0.0001
+                                : field.min
+                        "
                         :max="field.key === 'area' ? maximumArea : field.max"
-                        :step="field.key === 'area'
-                            ? (form.area_unit === 'm²' ? 1 : 0.0001)
-                            : field.step"
+                        :step="
+                            field.key === 'area'
+                                ? form.area_unit === 'm²'
+                                    ? 1
+                                    : 0.0001
+                                : field.step
+                        "
                         :maxlength="field.type === 'text' ? 150 : undefined"
                         :class="fieldClass"
                         :aria-invalid="!!errors[field.key]"
-                        :aria-describedby="[
-                            field.key === 'area' || field.max ? `planting-help-${field.key}` : null,
-                            errors[field.key] ? `planting-error-${field.key}` : null,
-                        ].filter(Boolean).join(' ') || undefined"
+                        :aria-describedby="
+                            [
+                                field.key === 'area' || field.max
+                                    ? `planting-help-${field.key}`
+                                    : null,
+                                errors[field.key]
+                                    ? `planting-error-${field.key}`
+                                    : null,
+                            ]
+                                .filter(Boolean)
+                                .join(' ') || undefined
+                        "
                     /><span
                         v-if="field.key === 'area'"
                         :id="`planting-help-${field.key}`"
                         class="block text-xs text-muted-foreground"
-                        >Maksimal {{ formatActivityNumber(maximumArea ?? 0) }} {{ form.area_unit }} untuk laporan ini.</span
+                        >Maksimal {{ formatActivityNumber(maximumArea ?? 0) }}
+                        {{ form.area_unit }} untuk laporan ini.</span
                     ><span
                         v-else-if="field.max"
                         :id="`planting-help-${field.key}`"
                         class="block text-xs text-muted-foreground"
-                        >Maksimal {{ formatActivityNumber(Number(field.max)) }}.</span
+                        >Maksimal
+                        {{ formatActivityNumber(Number(field.max)) }}.</span
                     ><span
                         v-if="errors[field.key]"
                         :id="`planting-error-${field.key}`"
@@ -541,7 +616,13 @@ function submit(): void {
                     'Periksa isian yang ditandai sebelum menyimpan.'
                 }}
             </p>
-            <p v-if="areaLimitM2 === 0" role="status" class="text-sm text-warning">Tidak ada sisa luas untuk penanaman tambahan pada subblok ini.</p>
+            <p
+                v-if="areaLimitM2 === 0"
+                role="status"
+                class="text-sm text-warning"
+            >
+                Tidak ada sisa luas untuk penanaman tambahan pada subblok ini.
+            </p>
             <Button
                 type="submit"
                 class="min-h-12 w-full rounded-xl"

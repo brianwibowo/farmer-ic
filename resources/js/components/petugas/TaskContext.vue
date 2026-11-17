@@ -26,7 +26,9 @@ defineProps<{ task: PetugasTask }>();
             {{ task.subblok.variety.name }} ·
             {{
                 task.subblok.hst === null
-                    ? 'Belum ditanam'
+                    ? task.subblok.planted_at
+                        ? 'HST belum dimulai'
+                        : 'Belum ditanam'
                     : `${task.subblok.hst} HST`
             }}
         </p>
