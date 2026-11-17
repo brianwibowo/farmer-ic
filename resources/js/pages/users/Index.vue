@@ -95,7 +95,7 @@ const appliedFilters = computed(() =>
         {
             key: 'farm_id' as const,
             label: props.filters.farm_id
-                ? 'Kebun: ' +
+                ? 'Lahan: ' +
                   (props.options.farms.find(
                       (farm) => farm.id === props.filters.farm_id,
                   )?.name ?? 'Tidak tersedia')
@@ -291,7 +291,7 @@ function teamLabel(user: ManagedUser): string {
                 >
                     {{
                         hasFilters
-                            ? 'Coba kata kunci, role, tim, atau kebun yang berbeda.'
+                            ? 'Coba kata kunci, role, tim, atau lahan yang berbeda.'
                             : 'Pengguna yang dapat Anda akses akan ditampilkan di sini.'
                     }}
                 </p>
@@ -323,7 +323,7 @@ function teamLabel(user: ManagedUser): string {
                                 <th scope="col">Pengguna</th>
                                 <th scope="col">Email</th>
                                 <th scope="col">Role</th>
-                                <th scope="col">Tim & kebun tugas</th>
+                                <th scope="col">Tim & lahan tugas</th>
                                 <th scope="col">Bergabung</th>
                                 <th scope="col">Status akun</th>
                                 <th scope="col">

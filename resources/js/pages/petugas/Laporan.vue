@@ -47,7 +47,7 @@ const filter = reactive({
 });
 const loading = ref(false);
 const emptyDescription = computed(() => {
-    if (!props.farm) return 'Hubungi Admin untuk penugasan kebun.';
+    if (!props.farm) return 'Hubungi Admin untuk penugasan lahan.';
 
     return props.categories.length
         ? 'Coba ubah filter atau ketuk tombol + untuk mencatat aktivitas mandiri.'
@@ -83,7 +83,7 @@ function reset(): void {
             <h1 class="text-xl font-semibold">Laporan</h1>
             <p class="mt-1 text-sm text-muted-foreground">
                 Riwayat pekerjaan ·
-                {{ farm?.name ?? 'Belum ada penugasan kebun' }}
+                {{ farm?.name ?? 'Belum ada penugasan lahan' }}
             </p>
         </header>
         <div

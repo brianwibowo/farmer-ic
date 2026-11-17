@@ -123,14 +123,14 @@ function loadDashboard(): void {
                 class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:flex sm:w-auto sm:flex-wrap"
             >
                 <label class="col-span-2 min-w-0 flex-1 sm:flex-none"
-                    ><span class="sr-only">Kebun</span
+                    ><span class="sr-only">Lahan</span
                     ><AppSelect
                         v-model="farmId"
                         class="admin-field dashboard-filter w-full sm:max-w-56"
                         :disabled="refreshing"
                         @change="loadDashboard"
                     >
-                        <AppSelectOption value="">Semua kebun</AppSelectOption>
+                        <AppSelectOption value="">Semua lahan</AppSelectOption>
                         <AppSelectOption
                             v-for="farm in dashboard.farmOptions"
                             :key="farm.id"
@@ -179,7 +179,7 @@ function loadDashboard(): void {
             class="text-xs"
             :class="failed ? 'text-error' : 'text-muted-foreground'"
         >
-            {{ refreshing ? 'Memuat ringkasan kebun…' : feedback }}
+            {{ refreshing ? 'Memuat ringkasan lahan…' : feedback }}
         </p>
         <DashboardMetricCards :dashboard="dashboard" />
         <section
@@ -203,10 +203,10 @@ function loadDashboard(): void {
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h2 id="map-heading" class="admin-section-title">
-                            Denah kebun
+                            Denah lahan
                         </h2>
                         <p class="mt-1 text-sm text-muted-foreground">
-                            Lokasi kebun dari koordinat yang tersimpan, sesuai
+                            Lokasi lahan dari koordinat yang tersimpan, sesuai
                             filter dan cakupan akses.
                         </p>
                     </div>
@@ -216,7 +216,7 @@ function loadDashboard(): void {
                         variant="outline"
                         size="sm"
                         ><Link href="/admin/farm-management"
-                            >Kelola kebun</Link
+                            >Kelola lahan</Link
                         ></Button
                     >
                 </div>
@@ -229,8 +229,8 @@ function loadDashboard(): void {
                 <p class="mt-3 text-xs leading-5 text-muted-foreground">
                     {{
                         dashboard.landMap.hasCoordinates
-                            ? 'Marker menunjukkan lokasi kebun, bukan batas bidang atau subblok.'
-                            : 'Lengkapi latitude dan longitude pada data kebun untuk menampilkan lokasi.'
+                            ? 'Marker menunjukkan lokasi lahan, bukan batas bidang atau subblok.'
+                            : 'Lengkapi latitude dan longitude pada data lahan untuk menampilkan lokasi.'
                     }}
                 </p>
             </section>

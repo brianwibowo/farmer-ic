@@ -120,7 +120,7 @@ function setPeriod(period: 'cycle' | 'year'): void {
                         v-if="card.missing_count"
                         class="mt-1 text-xs leading-5 text-muted-foreground"
                     >
-                        Data luas kebun belum tersedia.
+                        Data luas lahan belum tersedia.
                     </p>
                 </article>
             </div>

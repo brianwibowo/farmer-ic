@@ -96,7 +96,7 @@ function activityLabel(status: string): string {
                         Aktivitas lapangan
                     </h2>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Aktivitas terbaru yang dicatat oleh petugas pada kebun
+                        Aktivitas terbaru yang dicatat oleh petugas pada lahan
                         dalam cakupan Anda.
                     </p>
                 </div>
@@ -139,7 +139,7 @@ function activityLabel(status: string): string {
                             v-model="activitySearch"
                             type="search"
                             class="admin-field pl-10!"
-                            placeholder="Cari aktivitas atau kebun"
+                            placeholder="Cari aktivitas atau lahan"
                             aria-controls="dashboard-activity-results"
                         />
                     </span>
@@ -183,7 +183,7 @@ function activityLabel(status: string): string {
                         >
                             <tr>
                                 <th scope="col" class="px-5 py-3">Kegiatan</th>
-                                <th scope="col" class="px-5 py-3">Kebun</th>
+                                <th scope="col" class="px-5 py-3">Lahan</th>
                                 <th scope="col" class="px-5 py-3">Petugas</th>
                                 <th scope="col" class="px-5 py-3">Tanggal</th>
                                 <th scope="col" class="px-5 py-3">Status</th>
@@ -275,7 +275,7 @@ function activityLabel(status: string): string {
                         <dl
                             class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-xs leading-5"
                         >
-                            <dt class="text-muted-foreground">Kebun</dt>
+                            <dt class="text-muted-foreground">Lahan</dt>
                             <dd class="break-words text-foreground">
                                 {{ activityItem.farm }}
                             </dd>
@@ -310,7 +310,7 @@ function activityLabel(status: string): string {
                         {{
                             hasFilters
                                 ? 'Pilih petugas lain atau ubah kata kunci pencarian.'
-                                : 'Aktivitas yang dicatat pada kebun dalam cakupan Anda akan muncul di sini.'
+                                : 'Aktivitas yang dicatat pada lahan dalam cakupan Anda akan muncul di sini.'
                         }}
                     </p>
                     <Button
@@ -335,7 +335,7 @@ function activityLabel(status: string): string {
                     variant="link"
                     size="sm"
                     ><Link href="/admin/farm-management"
-                        >Kelola kebun</Link
+                        >Kelola lahan</Link
                     ></Button
                 >
             </footer>
@@ -419,7 +419,7 @@ function activityLabel(status: string): string {
                     class="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground"
                 >
                     Belum ada petugas aktif yang dapat ditampilkan untuk cakupan
-                    kebun ini.
+                    lahan ini.
                 </div>
             </div>
         </aside>

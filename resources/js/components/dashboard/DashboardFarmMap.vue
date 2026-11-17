@@ -119,8 +119,8 @@ async function initialize(): Promise<void> {
         leaflet.control
             .zoom({
                 position: 'bottomright',
-                zoomInTitle: 'Perbesar peta kebun',
-                zoomOutTitle: 'Perkecil peta kebun',
+                zoomInTitle: 'Perbesar peta lahan',
+                zoomOutTitle: 'Perkecil peta lahan',
             })
             .addTo(map);
         leaflet.control.scale({ imperial: false, maxWidth: 100 }).addTo(map);
@@ -222,7 +222,7 @@ async function initialize(): Promise<void> {
     } catch {
         if (disposed || current !== initialization) return;
         destroyMap();
-        error.value = 'Peta kebun belum dapat dimuat. Silakan coba lagi.';
+        error.value = 'Peta lahan belum dapat dimuat. Silakan coba lagi.';
     } finally {
         if (!disposed && current === initialization) loading.value = false;
     }
@@ -252,7 +252,7 @@ onBeforeUnmount(() => {
         <div
             ref="container"
             class="absolute inset-0"
-            aria-label="Peta lokasi kebun"
+            aria-label="Peta lokasi lahan"
             :aria-busy="loading"
         />
         <div
@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
                 :size="18"
                 class="animate-spin"
                 aria-hidden="true"
-            />Memuat peta kebun…
+            />Memuat peta lahan…
         </div>
         <div
             v-else-if="error || locatedFarms.length === 0"
@@ -277,10 +277,10 @@ onBeforeUnmount(() => {
                 aria-hidden="true"
             />
             <p class="text-sm font-medium text-foreground">
-                {{ error || 'Belum ada kebun dengan koordinat.' }}
+                {{ error || 'Belum ada lahan dengan koordinat.' }}
             </p>
             <p v-if="!error" class="text-xs text-muted-foreground">
-                Lengkapi latitude dan longitude pada data kebun untuk
+                Lengkapi latitude dan longitude pada data lahan untuk
                 menampilkan peta.
             </p>
             <Button
@@ -299,8 +299,8 @@ onBeforeUnmount(() => {
                 variant="outline"
                 size="icon"
                 class="absolute top-3 right-3 z-[1000] rounded-xl bg-card"
-                aria-label="Tampilkan semua kebun"
-                title="Tampilkan semua kebun"
+                aria-label="Tampilkan semua lahan"
+                title="Tampilkan semua lahan"
                 @click="showAllFarms"
             >
                 <LocateFixed :size="18" aria-hidden="true" />

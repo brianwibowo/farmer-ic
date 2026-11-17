@@ -61,7 +61,7 @@ class KnowledgeService
             ],
             [
                 'id' => 'assistant-policy',
-                'title' => 'Kebijakan Asisten Kebun',
+                'title' => 'Kebijakan Asisten Lahan',
                 'content' => $this->read('policy_path'),
                 'source' => 'Knowledge base Farmer IC · assistant policy',
                 'version' => 'static-v1',

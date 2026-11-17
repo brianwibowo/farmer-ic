@@ -37,14 +37,14 @@ const remainingCities = computed(() =>
 <template>
     <section
         class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
-        aria-label="Ringkasan manajemen kebun"
+        aria-label="Ringkasan manajemen lahan"
     >
         <!-- 1. Total kebun + mini area comparison bars -->
         <article
             class="admin-panel flex flex-col justify-between gap-3 rounded-xl bg-card"
         >
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-sm font-semibold">Total kebun</h2>
+                <h2 class="text-sm font-semibold">Total lahan</h2>
                 <LandPlot
                     class="size-4 shrink-0 text-primary"
                     aria-hidden="true"
@@ -112,7 +112,7 @@ const remainingCities = computed(() =>
             </div>
 
             <p class="text-xs text-muted-foreground">
-                Total luasan kebun terdaftar
+                Total luasan lahan terdaftar
             </p>
         </article>
 
@@ -156,7 +156,7 @@ const remainingCities = computed(() =>
                 {{
                     locationOptions.provinces.length
                         ? `${number.format(locationOptions.provinces.length)} provinsi terjangkau`
-                        : 'Sebaran wilayah kebun'
+                        : 'Sebaran wilayah lahan'
                 }}
             </p>
         </article>

@@ -56,8 +56,8 @@ const form = useForm({
 });
 const errorFields = computed<Record<string, { id: string; label: string }>>(
     () => ({
-        name: { id: 'farm-name', label: 'Nama kebun' },
-        pic_user_id: { id: 'farm-pic', label: 'PIC kebun' },
+        name: { id: 'farm-name', label: 'Nama lahan' },
+        pic_user_id: { id: 'farm-pic', label: 'PIC lahan' },
         total_area_ha: { id: 'farm-area', label: 'Luas lahan' },
         target_volume_ton: {
             id: 'farm-target-volume',
@@ -174,7 +174,7 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-    <Head :title="farm ? `Ubah ${farm.name}` : 'Tambah kebun'" />
+    <Head :title="farm ? `Ubah ${farm.name}` : 'Tambah lahan'" />
     <div class="mx-auto max-w-4xl space-y-[18px]">
         <Link
             :href="backUrl"
@@ -183,7 +183,7 @@ async function submit(): Promise<void> {
         >
         <header>
             <h1 class="admin-page-title">
-                {{ farm ? 'Ubah kebun' : 'Tambah kebun' }}
+                {{ farm ? 'Ubah lahan' : 'Tambah lahan' }}
             </h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
                 Simpan informasi lahan untuk tim {{ team.name }}. Field bertanda
@@ -202,7 +202,7 @@ async function submit(): Promise<void> {
                             <LandPlot class="size-5" />
                         </div>
                         <div>
-                            <h2 class="admin-section-title">Informasi kebun</h2>
+                            <h2 class="admin-section-title">Informasi lahan</h2>
                             <p class="mt-1 text-xs text-muted-foreground">
                                 Identitas dan luas resmi lahan.
                             </p>
@@ -211,7 +211,7 @@ async function submit(): Promise<void> {
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <FarmField
                             id="farm-name"
-                            label="Nama kebun"
+                            label="Nama lahan"
                             required
                             :error="form.errors.name"
                             class="sm:col-span-2"
@@ -222,7 +222,7 @@ async function submit(): Promise<void> {
                                 class="admin-field"
                                 required
                                 maxlength="150"
-                                placeholder="Contoh: Kebun Cileuksa"
+                                placeholder="Contoh: Lahan Cileuksa"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                         /></FarmField>
@@ -257,7 +257,7 @@ async function submit(): Promise<void> {
                             id="farm-target-volume"
                             label="Target volume panen (ton)"
                             :required="!farm"
-                            hint="Target total panen kebun. 1 ton = 1.000 kg."
+                            hint="Target total panen lahan. 1 ton = 1.000 kg."
                             :error="form.errors.target_volume_ton"
                             v-slot="field"
                         >
@@ -332,7 +332,7 @@ async function submit(): Promise<void> {
                         </FarmField>
                         <FarmField
                             id="farm-pic"
-                            label="PIC kebun (opsional)"
+                            label="PIC lahan (opsional)"
                             :error="form.errors.pic_user_id"
                             v-slot="field"
                         >
@@ -359,9 +359,9 @@ async function submit(): Promise<void> {
                 <section
                     class="admin-card rounded-xl bg-card p-5 md:p-6"
                 >
-                    <h2 class="admin-section-title">Lokasi kebun</h2>
+                    <h2 class="admin-section-title">Lokasi lahan</h2>
                     <p class="mt-1 mb-6 text-xs text-muted-foreground">
-                        Detail alamat membantu petugas mengenali lokasi kebun.
+                        Detail alamat membantu petugas mengenali lokasi lahan.
                     </p>
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <FarmField
@@ -404,7 +404,7 @@ async function submit(): Promise<void> {
                     </div>
                     <div class="mt-6 space-y-3">
                         <h3 class="text-sm font-medium">
-                            Titik lokasi kebun
+                            Titik lokasi lahan
                             <span class="font-normal text-muted-foreground"
                                 >(opsional)</span
                             >
@@ -433,12 +433,12 @@ async function submit(): Promise<void> {
                         />
                         <p class="text-xs text-muted-foreground">
                             Pin menandai satu titik lokasi. Luas lahan tetap
-                            diisi pada informasi kebun.
+                            diisi pada informasi lahan.
                         </p>
                     </div>
                 </section>
                 <section class="admin-card rounded-xl bg-card p-5 md:p-6">
-                    <h2 class="admin-section-title mb-5">Dokumentasi kebun</h2>
+                    <h2 class="admin-section-title mb-5">Dokumentasi lahan</h2>
                     <FarmField
                         id="farm-image"
                         label="Tautan foto (opsional)"
@@ -476,7 +476,7 @@ async function submit(): Promise<void> {
                             ? 'Menentukan lokasi…'
                             : form.processing
                               ? 'Menyimpan…'
-                              : 'Simpan kebun'
+                              : 'Simpan lahan'
                     }}</Button
                 >
             </div>

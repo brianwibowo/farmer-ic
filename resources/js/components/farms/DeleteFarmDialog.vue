@@ -106,9 +106,9 @@ function remove(): void {
             >
                 <AlertTriangle class="size-6" />
             </div>
-            <DialogTitle>Hapus kebun?</DialogTitle>
+            <DialogTitle>Hapus lahan?</DialogTitle>
             <DialogDescription class="text-muted-foreground"
-                >Kebun <strong>{{ farm?.name }}</strong> akan dihapus permanen.
+                >Lahan <strong>{{ farm?.name }}</strong> akan dihapus permanen.
                 Penghapusan hanya diperbolehkan jika belum ada histori
                 operasional dan semua penugasan Petugas sudah dilepas atau
                 dipindahkan.</DialogDescription
@@ -125,7 +125,7 @@ function remove(): void {
                 role="status"
                 class="text-sm text-muted-foreground"
             >
-                Memeriksa histori dan penugasan kebun…
+                Memeriksa histori dan penugasan lahan…
             </p>
             <p
                 v-if="blockers.length"
@@ -170,7 +170,7 @@ function remove(): void {
                         v-if="form.processing"
                         class="animate-spin"
                     />{{
-                        form.processing ? 'Menghapus…' : 'Hapus kebun permanen'
+                        form.processing ? 'Menghapus…' : 'Hapus lahan permanen'
                     }}</Button
                 >
             </DialogFooter>

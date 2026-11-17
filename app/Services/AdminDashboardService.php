@@ -117,7 +117,7 @@ class AdminDashboardService
             ->map(fn (OperationalTarget $task): array => [
                 'id' => (string) $task->id,
                 'title' => $task->task_name,
-                'farm' => $task->farm->name ?? 'Kebun tidak tersedia',
+                'farm' => $task->farm->name ?? 'Lahan tidak tersedia',
                 'assignee' => $task->creator->name ?? 'Belum ditentukan',
                 'date' => $task->target_date?->settings(['locale' => 'id'])->isoFormat('D MMM YYYY') ?? 'Tanpa tenggat',
                 'status' => $this->taskStatus($task->status),
@@ -224,7 +224,7 @@ class AdminDashboardService
                 return [
                     'id' => 'incident:'.$activity->id,
                     'title' => data_get($details, 'description') ?: $activity->description
-                        ?: $activity->incidentDetail?->incident_category ?: 'Insiden kebun dilaporkan',
+                        ?: $activity->incidentDetail?->incident_category ?: 'Insiden lahan dilaporkan',
                     'sortAt' => $activity->activity_date->getTimestamp(),
                     'detectedAt' => $activity->activity_date->setTimezone('Asia/Jakarta')
                         ->settings(['locale' => 'id'])->isoFormat('HH:mm · D MMMM YYYY'),
@@ -258,20 +258,20 @@ class AdminDashboardService
             ],
             'generatedAt' => CarbonImmutable::now()->settings(['locale' => 'id'])->isoFormat('D MMMM YYYY'),
             'metrics' => [
-                ['key' => 'farms', 'label' => 'Total kebun', 'value' => (clone $farms)->count(), 'unit' => 'kebun', 'note' => 'Kebun dalam cakupan akses Anda.'],
+                ['key' => 'farms', 'label' => 'Total lahan', 'value' => (clone $farms)->count(), 'unit' => 'lahan', 'note' => 'Lahan dalam cakupan akses Anda.'],
                 [
                     'key' => 'area',
                     'label' => 'Luas terkelola',
                     'value' => $this->decimal($totalArea),
                     'unit' => 'ha',
-                    'note' => 'Akumulasi luas kebun yang dapat dipantau.',
+                    'note' => 'Akumulasi luas lahan yang dapat dipantau.',
                     'breakdown' => [
                         'blocks' => $mappedBlocks,
                         'subBlocks' => (clone $cycles)->whereNotNull('block_id')->count(),
                     ],
                 ],
                 ['key' => 'cycles', 'label' => 'Batch berjalan', 'value' => $runningCount, 'unit' => 'batch', 'note' => $this->decimal($activeArea).' ha pada batch aktif.'],
-                ['key' => 'risks', 'label' => 'Risiko terbuka', 'value' => $riskTotal, 'unit' => 'risiko', 'note' => 'Risiko kebun dan laporan insiden yang belum ditutup.'],
+                ['key' => 'risks', 'label' => 'Risiko terbuka', 'value' => $riskTotal, 'unit' => 'risiko', 'note' => 'Risiko lahan dan laporan insiden yang belum ditutup.'],
             ],
             'activity' => [
                 'total' => $activitiesThisWeek,
@@ -292,7 +292,7 @@ class AdminDashboardService
                 'id' => (string) $activity->id,
                 'title' => $activity->activityType->name ?? 'Aktivitas lapangan',
                 'description' => $activity->description,
-                'farm' => $activity->farm->name ?? 'Kebun tidak tersedia',
+                'farm' => $activity->farm->name ?? 'Lahan tidak tersedia',
                 'officerId' => (string) $activity->performed_by,
                 'officerName' => $activity->performer->name ?? 'Petugas tidak tersedia',
                 'date' => $activity->activity_date->settings(['locale' => 'id'])->isoFormat('D MMM YYYY'),

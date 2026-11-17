@@ -88,7 +88,7 @@ function remove(): void {
         >
             <div>
                 <h2 class="admin-section-title text-primary">
-                    Blok kebun
+                    Blok lahan
                     <span
                         class="ml-1 text-sm font-normal text-muted-foreground"
                         >{{ total ?? blocks.length }}</span
@@ -242,7 +242,7 @@ function remove(): void {
             <p class="mt-1 text-sm text-muted-foreground">
                 {{
                     canCreate
-                        ? 'Tambahkan blok untuk membagi lahan kebun.'
+                        ? 'Tambahkan blok untuk membagi lahan lahan.'
                         : 'Blok akan tampil setelah ditambahkan.'
                 }}
             </p>
@@ -301,7 +301,7 @@ function remove(): void {
                 ><DialogDescription>{{
                     deleting?.deletionBlocked
                         ? 'Blok memiliki histori. Gunakan Ubah blok untuk menonaktifkannya setelah seluruh sub blok selesai.'
-                        : 'Blok akan dihapus dari kebun. Pastikan blok ini sudah tidak diperlukan.'
+                        : 'Blok akan dihapus dari lahan. Pastikan blok ini sudah tidak diperlukan.'
                 }}</DialogDescription></DialogHeader
             >
             <p v-if="error" role="alert" class="text-sm text-error">

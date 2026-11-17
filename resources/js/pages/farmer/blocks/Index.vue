@@ -57,7 +57,7 @@ function search(): void {
             <h1
                 class="admin-page-title mt-1 text-2xl font-semibold sm:text-3xl"
             >
-                Blok kebun
+                Blok lahan
             </h1>
             <p class="mt-2 text-sm text-muted-foreground">
                 {{ farm.name }} · Kelola blok permanen dan pembagian batch
@@ -74,7 +74,7 @@ function search(): void {
                     label: 'Luas blok aktif',
                     value: hectares(summary.active_area_ha),
                     unit: 'ha',
-                    hint: `dari ${hectares(farm.total_area_ha)} ha kebun`,
+                    hint: `dari ${hectares(farm.total_area_ha)} ha lahan`,
                 },
             ]"
             :key="metric.label"

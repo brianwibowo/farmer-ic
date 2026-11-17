@@ -26,8 +26,8 @@ const entries = computed(() =>
         },
         {
             allowed: page.props.ownerNavigation?.farms,
-            title: 'Kebun',
-            description: 'Daftar kebun, blok, dan perkembangan tanam.',
+            title: 'Lahan',
+            description: 'Daftar lahan, blok, dan perkembangan tanam.',
             href: '/kebun',
             icon: Sprout,
         },
@@ -42,7 +42,7 @@ const entries = computed(() =>
         {
             allowed: page.props.ownerNavigation?.sops,
             title: 'SOP',
-            description: 'Panduan kerja, versi, dan jadwal kegiatan kebun.',
+            description: 'Panduan kerja, versi, dan jadwal kegiatan lahan.',
             href: '/lainnya/sop',
             icon: BookOpen,
         },
@@ -50,7 +50,7 @@ const entries = computed(() =>
             allowed: page.props.ownerNavigation?.users,
             title: 'Data pengguna',
             description:
-                'Anggota tim dan penugasan kebun yang dapat Anda lihat.',
+                'Anggota tim dan penugasan lahan yang dapat Anda lihat.',
             href: '/lainnya/pengguna',
             icon: UsersRound,
         },
@@ -63,7 +63,7 @@ const entries = computed(() =>
     <div class="space-y-5">
         <OwnerPageHeader
             title="Lainnya"
-            description="Jelajahi kebun, kegiatan, dan informasi tim Anda."
+            description="Jelajahi lahan, kegiatan, dan informasi tim Anda."
         />
         <OwnerTenantContext
             v-if="page.props.navigation?.teamSwitcher"

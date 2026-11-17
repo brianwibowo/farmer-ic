@@ -30,7 +30,7 @@ const getDonutSegments = () => {
 
 <template>
     <Teleport to="body">
-        <article :class="['report-print-document', { 'export-mode': props.exportMode }]" aria-label="Dokumen laporan kebun">
+        <article :class="['report-print-document', { 'export-mode': props.exportMode }]" aria-label="Dokumen laporan lahan">
             <header class="print-header">
                 <div>
                     <div class="print-identity">
@@ -38,7 +38,7 @@ const getDonutSegments = () => {
                         <strong class="print-brand-name">{{ appName }}</strong>
                         <p class="print-kicker">· Laporan resmi</p>
                     </div>
-                    <h1>Laporan Kebun</h1>
+                    <h1>Laporan Lahan</h1>
                     <p>{{ report.periodLabel }} · {{ report.scopeLabel }}</p>
                 </div>
                 <div class="print-meta">
@@ -48,9 +48,9 @@ const getDonutSegments = () => {
             </header>
 
             <section class="print-section">
-                <h2 class="print-section-title"><Sprout :size="17" /> Ringkasan kebun</h2>
+                <h2 class="print-section-title"><Sprout :size="17" /> Ringkasan lahan</h2>
                 <div class="print-metrics">
-                    <div class="metric-green"><span><Sprout :size="14" /> Total kebun</span><strong>{{ report.summary.totalKebun }}</strong></div>
+                    <div class="metric-green"><span><Sprout :size="14" /> Total lahan</span><strong>{{ report.summary.totalKebun }}</strong></div>
                     <div class="metric-blue"><span><CircleDollarSign :size="14" /> Total luas</span><strong>{{ report.summary.totalArea }} Ha</strong></div>
                     <div class="metric-purple"><span><TrendingUp :size="14" /> Pertumbuhan</span><strong>{{ report.summary.growth }}%</strong></div>
                     <div class="metric-orange"><span><Wheat :size="14" /> Panen tercatat</span><strong>{{ report.harvest.totalWeight }} Ton</strong></div>
@@ -76,7 +76,7 @@ const getDonutSegments = () => {
                 </p>
                 <table>
                     <thead>
-                        <tr><th>Kebun</th><th>Komoditas · fase</th><th>Pendapatan</th><th>OPEX</th><th>ROI</th></tr>
+                        <tr><th>Lahan</th><th>Komoditas · fase</th><th>Pendapatan</th><th>OPEX</th><th>ROI</th></tr>
                     </thead>
                     <tbody>
                         <tr v-for="farm in report.finance.farms" :key="farm.id">
@@ -113,7 +113,7 @@ const getDonutSegments = () => {
                     </svg>
                     <div class="donut-hole">
                         <strong>{{ report.growthTimeline?.observedKebunCount || report.summary.totalKebun }}</strong>
-                        <span>Kebun</span>
+                        <span>Lahan</span>
                     </div>
                 </div>
             </div>
@@ -124,7 +124,7 @@ const getDonutSegments = () => {
                     <span class="legend-indicator" :style="{ backgroundColor: stageColors[idx % stageColors.length] }" />
                     <div class="legend-info">
                         <span class="legend-title">{{ stage.label }}</span>
-                        <strong>{{ stage.count }} kebun </strong>
+                        <strong>{{ stage.count }} lahan </strong>
                     </div>
                 </div>
             </div>

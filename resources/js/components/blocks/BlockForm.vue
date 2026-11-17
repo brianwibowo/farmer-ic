@@ -155,7 +155,7 @@ function submit(): void {
                 role="status"
                 class="rounded-xl bg-muted p-4 text-sm leading-6 text-foreground"
             >
-                Kapasitas kebun tidak mencukupi untuk blok aktif ini. Sesuaikan
+                Kapasitas lahan tidak mencukupi untuk blok aktif ini. Sesuaikan
                 alokasi blok yang ada, atau pilih status Nonaktif untuk mencatat
                 blok tanpa alokasi baru.
             </p>
@@ -172,7 +172,7 @@ function submit(): void {
                         untuk {{ capacity.running_batches }} sub blok berjalan.
                     </p>
                     <p v-else class="mt-1 text-xs text-muted-foreground">
-                        Luas blok mengikuti sisa lahan kebun.
+                        Luas blok mengikuti sisa lahan lahan.
                     </p>
                 </div>
                 <p class="text-2xl font-bold tabular-nums">
@@ -206,7 +206,7 @@ function submit(): void {
                     label="Kode blok"
                     required
                     :error="form.errors.code"
-                    hint="Contoh: B01. Unik dalam kebun ini."
+                    hint="Contoh: B01. Unik dalam lahan ini."
                     v-slot="field"
                     ><input
                         :id="field.id"

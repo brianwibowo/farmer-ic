@@ -135,7 +135,7 @@ function reset(): void {
                     class="mb-4 flex flex-wrap items-center justify-between gap-3"
                 >
                     <div class="flex items-center gap-2">
-                        <h2 class="admin-section-title">Daftar kebun</h2>
+                        <h2 class="admin-section-title">Daftar lahan</h2>
                         <span
                             class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
                             >{{ farms.total }}</span
@@ -143,7 +143,7 @@ function reset(): void {
                     </div>
                     <Button v-if="can.create" as-child class="h-10 rounded-xl"
                         ><Link href="/admin/farm-management/create"
-                            ><Plus />Tambah kebun</Link
+                            ><Plus />Tambah lahan</Link
                         ></Button
                     >
                 </div>
@@ -153,7 +153,7 @@ function reset(): void {
                     >
                         <FarmField
                             id="farm-search"
-                            label="Cari kebun"
+                            label="Cari lahan"
                             class="col-span-2 lg:col-span-1"
                             :error="filters.errors.search"
                             v-slot="field"
@@ -169,7 +169,7 @@ function reset(): void {
                                         v-model="filters.search"
                                         class="admin-field pl-9!"
                                         type="search"
-                                        placeholder="Nama atau lokasi kebun"
+                                        placeholder="Nama atau lokasi lahan"
                                         maxlength="150"
                                         :disabled="filters.processing"
                                         :aria-invalid="field.invalid"
@@ -183,10 +183,10 @@ function reset(): void {
                                     :disabled="filters.processing"
                                     :aria-label="
                                         filters.processing
-                                            ? 'Mencari kebun'
-                                            : 'Cari kebun'
+                                            ? 'Mencari lahan'
+                                            : 'Cari lahan'
                                     "
-                                    title="Cari kebun"
+                                    title="Cari lahan"
                                 >
                                     <LoaderCircle
                                         v-if="filters.processing"
@@ -237,7 +237,7 @@ function reset(): void {
                                     @change="apply"
                                 >
                                     <AppSelectOption value="name"
-                                        >Nama kebun</AppSelectOption
+                                        >Nama lahan</AppSelectOption
                                     >
                                     <AppSelectOption value="total_area_ha">
                                         Luas lahan
@@ -405,14 +405,14 @@ function reset(): void {
                 v-if="filters.processing"
                 class="space-y-4 p-6"
                 role="status"
-                aria-label="Memuat daftar kebun"
+                aria-label="Memuat daftar lahan"
             >
                 <div
                     v-for="row in 3"
                     :key="row"
                     class="h-12 animate-pulse rounded-xl bg-muted"
                 />
-                <p class="text-sm text-muted-foreground">Memuat kebun…</p>
+                <p class="text-sm text-muted-foreground">Memuat lahan…</p>
             </div>
             <div v-else-if="!farms.data.length" class="px-5 py-16 text-center">
                 <div
@@ -423,8 +423,8 @@ function reset(): void {
                 <h3 class="mt-4 font-semibold">
                     {{
                         hasSearchCriteria
-                            ? "Kebun tidak ditemukan"
-                            : "Belum ada kebun"
+                            ? "Lahan tidak ditemukan"
+                            : "Belum ada lahan"
                     }}
                 </h3>
                 <p
@@ -432,8 +432,8 @@ function reset(): void {
                 >
                     {{
                         hasSearchCriteria
-                            ? "Coba kata kunci atau wilayah lain untuk menampilkan kebun."
-                            : "Data kebun yang dapat kamu akses akan muncul di sini."
+                            ? "Coba kata kunci atau wilayah lain untuk menampilkan lahan."
+                            : "Data lahan yang dapat kamu akses akan muncul di sini."
                     }}
                 </p>
                 <Button
@@ -445,7 +445,7 @@ function reset(): void {
                 >
                 <Button v-else-if="can.create" as-child class="mt-5 rounded-xl"
                     ><Link href="/admin/farm-management/create"
-                        ><Plus />Tambah kebun pertama</Link
+                        ><Plus />Tambah lahan pertama</Link
                     ></Button
                 >
             </div>
@@ -453,7 +453,7 @@ function reset(): void {
                 <div
                     class="hidden overflow-x-auto md:block"
                     role="region"
-                    aria-label="Tabel daftar kebun"
+                    aria-label="Tabel daftar lahan"
                     tabindex="0"
                 >
                     <table class="w-full text-left text-sm">
@@ -462,7 +462,7 @@ function reset(): void {
                         >
                             <tr>
                                 <th scope="col" class="px-5 py-3 font-semibold">
-                                    Nama kebun
+                                    Nama lahan
                                 </th>
                                 <th scope="col" class="px-5 py-3 font-semibold">
                                     Status lahan
@@ -572,7 +572,7 @@ function reset(): void {
                 </div>
                 <ul
                     class="divide-y divide-border md:hidden"
-                    aria-label="Daftar kebun"
+                    aria-label="Daftar lahan"
                 >
                     <li v-for="farm in farms.data" :key="farm.id" class="p-4">
                         <Link
@@ -637,11 +637,11 @@ function reset(): void {
                 </ul>
                 <nav
                     class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4"
-                    aria-label="Pagination kebun"
+                    aria-label="Pagination lahan"
                 >
                     <p class="text-xs text-muted-foreground">
                         Menampilkan {{ farms.from }}–{{ farms.to }} dari
-                        {{ farms.total }} kebun
+                        {{ farms.total }} lahan
                     </p>
                     <div class="flex flex-wrap items-center gap-3">
                         <div class="flex items-center gap-2">

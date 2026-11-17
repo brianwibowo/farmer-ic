@@ -497,7 +497,7 @@ function reset(): void {
                     {{
                         hasSearchCriteria
                             ? 'Coba kata kunci atau komoditas lain untuk menampilkan template SOP.'
-                            : 'Buat template SOP pertama untuk komoditas yang ditanam di kebun.'
+                            : 'Buat template SOP pertama untuk komoditas yang ditanam di lahan.'
                     }}
                 </p>
                 <Button

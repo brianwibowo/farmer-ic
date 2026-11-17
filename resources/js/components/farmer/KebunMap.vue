@@ -163,7 +163,7 @@ async function initializeMap(): Promise<void> {
     } catch {
         destroyMap();
         errorMessage.value =
-            'Peta kebun belum dapat dimuat. Silakan coba lagi.';
+            'Peta lahan belum dapat dimuat. Silakan coba lagi.';
     } finally {
         if (!disposed) isLoading.value = false;
     }
@@ -203,7 +203,7 @@ onBeforeUnmount(() => {
                 id="kebun-map-heading"
                 class="text-base font-black text-foreground"
             >
-                Peta Kebun
+                Peta Lahan
             </h2>
             <span
                 class="rounded-full bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground"
@@ -217,7 +217,7 @@ onBeforeUnmount(() => {
             <div
                 ref="mapElement"
                 class="absolute inset-0"
-                aria-label="Peta titik lokasi kebun di Jawa Tengah"
+                aria-label="Peta titik lokasi lahan di Jawa Tengah"
                 :aria-busy="isLoading"
             />
 
@@ -231,7 +231,7 @@ onBeforeUnmount(() => {
                     class="animate-spin"
                     aria-hidden="true"
                 />
-                Memuat peta kebun…
+                Memuat peta lahan…
             </div>
             <div
                 v-else-if="errorMessage || kebunCount === 0"
@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
             >
                 <MapPin :size="28" class="text-primary" aria-hidden="true" />
                 <p class="text-sm text-muted-foreground">
-                    {{ errorMessage || 'Belum ada kebun dengan lokasi peta.' }}
+                    {{ errorMessage || 'Belum ada lahan dengan lokasi peta.' }}
                 </p>
                 <button
                     type="button"
@@ -254,8 +254,8 @@ onBeforeUnmount(() => {
                 <button
                     type="button"
                     class="absolute top-3 right-3 z-[1000] flex size-9 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-sm focus-visible:outline-2 focus-visible:outline-ring"
-                    title="Tampilkan semua kebun"
-                    aria-label="Tampilkan semua kebun"
+                    title="Tampilkan semua lahan"
+                    aria-label="Tampilkan semua lahan"
                     @click="showAllKebun"
                 >
                     <LocateFixed :size="18" aria-hidden="true" />
@@ -282,7 +282,7 @@ onBeforeUnmount(() => {
         </div>
         <div
             class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground"
-            aria-label="Keterangan status kebun"
+            aria-label="Keterangan status lahan"
         >
             <span class="flex items-center gap-1"
                 ><span class="size-2 rounded-full bg-success" />Sehat</span

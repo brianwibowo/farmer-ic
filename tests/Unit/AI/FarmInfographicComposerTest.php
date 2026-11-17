@@ -144,7 +144,7 @@ class FarmInfographicComposerTest extends TestCase
         $this->assertStringNotContainsString('1.480', $text);
         $this->assertStringNotContainsString('480 ha', $text);
         $this->assertStringContainsString('1.000 ha', $text);
-        $this->assertStringContainsString('Proporsi antar-kebun terpilih', $text);
+        $this->assertStringContainsString('Proporsi antar-lahan terpilih', $text);
     }
 
     public function test_requested_layouts_have_distinct_geometry_and_long_landscape_text_is_not_cropped(): void

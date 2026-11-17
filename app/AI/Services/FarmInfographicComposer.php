@@ -87,7 +87,7 @@ class FarmInfographicComposer
             unset($art);
             throw new InvalidArgumentException('Rencana infografis tidak memiliki fakta yang dapat ditampilkan.');
         }
-        $title = trim((string) ($plan['title'] ?? 'Ringkasan kebun'));
+        $title = trim((string) ($plan['title'] ?? 'Ringkasan lahan'));
         $footer = $this->footerLines($plan);
         do {
             $titleWidth = $width - ($orientation === 'landscape' ? 530 : 430);
@@ -120,7 +120,7 @@ class FarmInfographicComposer
         ];
         imagefilledrectangle($canvas, 0, 0, $width - 1, $height - 1, $this->colors['background']);
         $this->rounded($canvas, 32, 32, $width - 64, $headerHeight, $this->colors['dark']);
-        $this->paragraph($canvas, 'DATA DEMO · KEBUN', 60, 58, $titleWidth, 14, 'light', true);
+        $this->paragraph($canvas, 'DATA DEMO · LAHAN', 60, 58, $titleWidth, 14, 'light', true);
         $this->paragraph($canvas, $title, 60, 103, $titleWidth, 29, 'white', true, 46);
         $artWidth = $orientation === 'landscape' ? 400 : 300;
         $artBounds = ['x' => $width - $artWidth - 54, 'y' => 54, 'width' => $artWidth, 'height' => $headerHeight - 44];
@@ -184,7 +184,7 @@ class FarmInfographicComposer
             foreach ($facts as $fact) {
                 if (is_int($fact['value']) || is_float($fact['value'])) {
                     if ($fact['value'] < 0) {
-                        throw new InvalidArgumentException('Diagram kebun tidak menerima nilai negatif.');
+                        throw new InvalidArgumentException('Diagram lahan tidak menerima nilai negatif.');
                     }
                     $groups[(string) $fact['unit']][] = $fact;
                 }
@@ -223,7 +223,7 @@ class FarmInfographicComposer
                 $y += $h + $gap;
                 $facts = array_values(array_filter($facts, fn ($fact) => $fact['key'] !== $key));
             } else {
-                $notice = 'Diagram proporsi memerlukan luas lahan atau hasil panen dari minimal dua kebun. Persentase pertumbuhan dan fakta lain ditampilkan sebagai nilai masing-masing kebun.';
+                $notice = 'Diagram proporsi memerlukan luas lahan atau hasil panen dari minimal dua lahan. Persentase pertumbuhan dan fakta lain ditampilkan sebagai nilai masing-masing lahan.';
                 $noticeHeight = 48 + count($this->wrap($notice, 17, $width - 136)) * 28;
                 $blocks[] = ['type' => 'notice', 'x' => 40, 'y' => $y, 'w' => $width - 80, 'h' => $noticeHeight, 'text' => $notice];
                 $y += $noticeHeight + 24;
@@ -433,7 +433,7 @@ class FarmInfographicComposer
         ['x' => $x, 'y' => $y, 'w' => $w] = $block;
         $facts = $block['facts'];
         $this->paragraph($canvas, $facts[0]['label'], $x + 28, $y + 24, $w - 56, 22, 'dark', true);
-        $this->paragraph($canvas, 'Proporsi antar-kebun terpilih · '.$facts[0]['unit'], $x + 28, $y + 66, $w - 56, 14, 'muted');
+        $this->paragraph($canvas, 'Proporsi antar-lahan terpilih · '.$facts[0]['unit'], $x + 28, $y + 66, $w - 56, 14, 'muted');
         $wide = $w > 1200;
         $diameter = 350;
         $cx = $wide ? $x + 225 : $x + (int) ($w / 2);

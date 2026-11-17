@@ -87,7 +87,7 @@ class DailyActivityLogService
                     $block = FarmBlock::visibleTo($recorder, $farm->team)->where('farm_id', $farm->id)
                         ->whereKey($item['block_mapping']['block_id'])->first();
                     if (! $block) {
-                        throw ValidationException::withMessages(["activities.{$index}.block_mapping.block_id" => 'Blok harus berasal dari kebun laporan dan dapat diakses.']);
+                        throw ValidationException::withMessages(["activities.{$index}.block_mapping.block_id" => 'Blok harus berasal dari lahan laporan dan dapat diakses.']);
                     }
                 }
                 if ($item['type'] !== 'block_mapping') {

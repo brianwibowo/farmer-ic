@@ -67,7 +67,7 @@ const page = usePage();
 const origin = computed(() => ownerFarmOrigin(page.url));
 const backHref = computed(() => (origin.value === 'home' ? '/' : '/kebun'));
 const backLabel = computed(() =>
-    origin.value === 'home' ? 'Kembali ke Beranda' : 'Daftar kebun',
+    origin.value === 'home' ? 'Kembali ke Beranda' : 'Daftar lahan',
 );
 const mapFarms = computed(() => [
     {
@@ -107,7 +107,7 @@ const severity: Record<string, string> = {
         aria-labelledby="farm-information"
     >
         <h2 id="farm-information" class="text-base font-semibold">
-            Informasi kebun
+            Informasi lahan
         </h2>
         <dl class="mt-4 space-y-3 text-sm">
             <div>
@@ -197,10 +197,10 @@ const severity: Record<string, string> = {
             <span class="text-sm font-normal">ton</span>
         </p>
         <p class="mt-2 text-xs leading-5 text-muted-foreground">
-            Akumulasi berat panen dari aktivitas yang tercatat pada kebun ini.
+            Akumulasi berat panen dari aktivitas yang tercatat pada lahan ini.
         </p>
     </section>
-    <nav aria-label="Data terkait kebun" class="grid grid-cols-2 gap-3">
+    <nav aria-label="Data terkait lahan" class="grid grid-cols-2 gap-3">
         <Link
             v-if="page.props.ownerNavigation?.activities"
             :href="`/aktivitas?farm_id=${farm.id}`"
@@ -222,7 +222,7 @@ const severity: Record<string, string> = {
             v-if="!blocks.length"
             class="mt-3 rounded-xl bg-muted p-4 text-sm text-muted-foreground"
         >
-            Belum ada blok tercatat pada kebun ini.
+            Belum ada blok tercatat pada lahan ini.
         </p>
         <div class="mt-3 space-y-3">
             <Link
@@ -402,7 +402,7 @@ const severity: Record<string, string> = {
         </article>
     </section>
     <section>
-        <h2 class="text-base font-semibold">Petugas kebun</h2>
+        <h2 class="text-base font-semibold">Petugas lahan</h2>
         <p
             v-if="!officers.length"
             class="mt-3 rounded-xl bg-muted p-4 text-sm text-muted-foreground"

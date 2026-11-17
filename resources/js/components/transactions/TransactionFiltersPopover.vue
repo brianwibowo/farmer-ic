@@ -137,7 +137,7 @@ watch(farmId, (next, prev) => {
                     <div class="min-h-0 space-y-4 overflow-y-auto p-5">
                         <FarmField
                             :id="`${idPrefix}-filter-farm`"
-                            label="Kebun"
+                            label="Lahan"
                             :error="errors.farm_id"
                             v-slot="field"
                         >
@@ -150,7 +150,7 @@ watch(farmId, (next, prev) => {
                                 :aria-describedby="field.description"
                             >
                                 <AppSelectOption value=""
-                                    >Semua kebun</AppSelectOption
+                                    >Semua lahan</AppSelectOption
                                 >
                                 <AppSelectOption
                                     v-for="farm in farms"
@@ -178,7 +178,7 @@ watch(farmId, (next, prev) => {
                                 <AppSelectOption value="">{{
                                     farmId
                                         ? 'Semua blok'
-                                        : 'Pilih kebun terlebih dahulu'
+                                        : 'Pilih lahan terlebih dahulu'
                                 }}</AppSelectOption>
                                 <AppSelectOption
                                     v-for="block in blockOptions"

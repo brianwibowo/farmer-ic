@@ -170,7 +170,7 @@ function rowSubblock(row: PlantingTransactionRow): string {
                                     class="admin-field pl-10!"
                                     type="search"
                                     maxlength="100"
-                                    placeholder="Kebun, blok, varietas, benih, atau petugas…"
+                                    placeholder="Lahan, blok, varietas, benih, atau petugas…"
                                     :disabled="filters.processing"
                                     :aria-invalid="!!filters.errors.search"
                                     :aria-describedby="

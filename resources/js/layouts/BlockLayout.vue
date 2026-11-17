@@ -59,7 +59,7 @@ const farm = computed(
                     <Link
                         href="/blocks"
                         class="rounded-xl text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                        >Blok kebun</Link
+                        >Blok lahan</Link
                     >
                 </nav>
                 <Button

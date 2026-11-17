@@ -38,7 +38,7 @@ const emit = defineEmits<{
             </div>
             <div>
                 <p class="text-sm font-semibold text-foreground">
-                    Asisten Kebun
+                    Asisten Lahan
                 </p>
                 <p
                     class="flex items-center gap-1 text-[11px] text-muted-foreground"

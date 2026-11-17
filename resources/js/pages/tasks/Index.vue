@@ -96,7 +96,7 @@ const appliedFilters = computed(() => {
         const farmName =
             props.farms.find((farm) => farm.id === props.filters.farm_id)
                 ?.name ?? 'Tidak tersedia';
-        items.push({ key: 'farm_id', label: `Kebun: ${farmName}` });
+        items.push({ key: 'farm_id', label: `Lahan: ${farmName}` });
     }
 
     if (props.filters.block_id) {
@@ -280,7 +280,7 @@ function reset(): void {
                                 v-model="form.search"
                                 type="search"
                                 class="admin-field pl-10!"
-                                placeholder="Cari nama tugas, kebun, blok, atau subblok…"
+                                placeholder="Cari nama tugas, lahan, blok, atau subblok…"
                                 maxlength="100"
                                 :disabled="form.processing"
                                 :aria-invalid="!!form.errors.search"

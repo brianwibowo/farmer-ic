@@ -59,7 +59,7 @@ function reset(): void {
             >
                 <div class="flex items-center gap-2">
                     <h2 id="logbook-farms-title" class="admin-section-title">
-                        Logbook per kebun
+                        Logbook per lahan
                     </h2>
                     <span
                         class="rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-accent-foreground"
@@ -67,7 +67,7 @@ function reset(): void {
                     >
                 </div>
                 <p class="text-xs text-muted-foreground">
-                    Ringkasan mencakup seluruh kebun yang dapat diakses
+                    Ringkasan mencakup seluruh lahan yang dapat diakses
                 </p>
             </header>
             <form
@@ -76,7 +76,7 @@ function reset(): void {
             >
                 <div class="min-w-0 grow basis-52">
                     <label class="sr-only" for="logbook-farm-search"
-                        >Cari kebun</label
+                        >Cari lahan</label
                     >
                     <div class="relative">
                         <Search
@@ -86,7 +86,7 @@ function reset(): void {
                             v-model="filters.search"
                             type="search"
                             maxlength="150"
-                            placeholder="Cari nama atau lokasi kebun…"
+                            placeholder="Cari nama atau lokasi lahan…"
                             class="admin-field pl-10!"
                             :disabled="filters.processing"
                             :aria-invalid="!!filters.errors.search"
@@ -129,21 +129,21 @@ function reset(): void {
                     class="h-16 animate-pulse rounded-xl bg-muted motion-reduce:animate-none"
                 />
                 <p class="text-sm text-muted-foreground">
-                    Memuat logbook kebun…
+                    Memuat logbook lahan…
                 </p>
             </div>
             <div v-else-if="!farms.data.length" class="px-5 py-16 text-center">
                 <BookOpen class="mx-auto size-9 text-primary" />
                 <h3 class="mt-4 font-semibold">
                     {{
-                        hasSearch ? 'Kebun tidak ditemukan' : 'Belum ada kebun'
+                        hasSearch ? 'Lahan tidak ditemukan' : 'Belum ada lahan'
                     }}
                 </h3>
                 <p class="mt-2 text-sm text-muted-foreground">
                     {{
                         hasSearch
-                            ? 'Coba nama atau lokasi kebun yang berbeda.'
-                            : 'Kebun yang dapat Anda akses akan muncul di sini.'
+                            ? 'Coba nama atau lokasi lahan yang berbeda.'
+                            : 'Lahan yang dapat Anda akses akan muncul di sini.'
                     }}
                 </p>
                 <Button
@@ -158,7 +158,7 @@ function reset(): void {
                 <div
                     class="hidden overflow-x-auto md:block"
                     role="region"
-                    aria-label="Tabel logbook per kebun"
+                    aria-label="Tabel logbook per lahan"
                     tabindex="0"
                 >
                     <table class="w-full min-w-[680px] text-left text-sm">
@@ -166,7 +166,7 @@ function reset(): void {
                             class="bg-muted/50 text-xs text-muted-foreground"
                         >
                             <tr>
-                                <th scope="col" class="px-5 py-3">Kebun</th>
+                                <th scope="col" class="px-5 py-3">Lahan</th>
                                 <th scope="col" class="px-5 py-3">Lokasi</th>
                                 <th scope="col" class="px-5 py-3">
                                     Jumlah logbook
@@ -226,7 +226,7 @@ function reset(): void {
                 </div>
                 <ul
                     class="divide-y divide-border md:hidden"
-                    aria-label="Logbook per kebun"
+                    aria-label="Logbook per lahan"
                 >
                     <li
                         v-for="farm in farms.data"
@@ -261,7 +261,7 @@ function reset(): void {
             <LogbookPagination
                 v-model:size="filters.per_page"
                 :page="farms"
-                label="kebun"
+                label="lahan"
                 :loading="filters.processing"
                 @change="apply"
             />

@@ -35,7 +35,7 @@ const backUrl = computed(() =>
     fromMonitoring.value ? '/monitoring-lahan' : indexUrl.value,
 );
 const backLabel = computed(() =>
-    fromMonitoring.value ? 'Kembali ke Monitoring Lahan' : 'Daftar kebun',
+    fromMonitoring.value ? 'Kembali ke Monitoring Lahan' : 'Daftar lahan',
 );
 const props = defineProps<{
     farm: ManagedFarm;
@@ -143,14 +143,14 @@ const coordinates = computed<[number, number] | null>(() =>
                 >
                 <Button v-if="can.update" as-child variant="outline"
                     ><Link :href="`/admin/farm-management/${farm.id}/edit`"
-                        ><Pencil />Ubah kebun</Link
+                        ><Pencil />Ubah lahan</Link
                     ></Button
                 >
                 <Button
                     v-if="can.delete"
                     variant="destructive-ghost"
                     size="icon"
-                    aria-label="Hapus kebun"
+                    aria-label="Hapus lahan"
                     @click="deleting = true"
                     ><Trash2
                 /></Button>
@@ -159,7 +159,7 @@ const coordinates = computed<[number, number] | null>(() =>
         <section class="overflow-hidden rounded-xl bg-card">
             <header class="px-5 pt-4 sm:px-6 sm:pt-5">
                 <h2 class="admin-section-title text-primary">
-                    Ringkasan kebun
+                    Ringkasan lahan
                 </h2>
             </header>
             <dl
@@ -172,7 +172,7 @@ const coordinates = computed<[number, number] | null>(() =>
                         <LandPlot
                             class="size-4 shrink-0 text-primary"
                             aria-hidden="true"
-                        />Luas kebun
+                        />Luas lahan
                     </dt>
                     <dd class="admin-metric-value mt-2 text-foreground">
                         {{ hectares(farm.total_area_ha) }}
@@ -191,7 +191,7 @@ const coordinates = computed<[number, number] | null>(() =>
                         <MapPin
                             class="size-4 shrink-0 text-primary"
                             aria-hidden="true"
-                        />Lokasi kebun
+                        />Lokasi lahan
                     </dt>
                     <dd
                         class="mt-2 text-xl leading-snug font-bold text-foreground"
@@ -253,7 +253,7 @@ const coordinates = computed<[number, number] | null>(() =>
                 class="grid gap-x-6 gap-y-4 border-t border-border bg-muted/20 px-5 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-3"
             >
                 <div>
-                    <dt class="text-xs text-muted-foreground">PIC kebun</dt>
+                    <dt class="text-xs text-muted-foreground">PIC lahan</dt>
                     <dd class="mt-1 text-sm font-semibold">
                         {{ farm.pic_name ?? 'Belum ditentukan' }}
                     </dd>
@@ -334,7 +334,7 @@ const coordinates = computed<[number, number] | null>(() =>
             <Link
                 :href="`/admin/farm-management/${farm.id}/force-delete`"
                 class="inline-flex min-h-11 items-center text-xs text-error underline underline-offset-4"
-                >Hapus permanen kebun dan data terkait</Link
+                >Hapus permanen lahan dan data terkait</Link
             >
         </div>
     </div>

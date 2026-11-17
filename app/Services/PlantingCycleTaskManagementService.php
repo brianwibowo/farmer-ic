@@ -33,7 +33,7 @@ class PlantingCycleTaskManagementService
         return DB::transaction(function () use ($task, $actor, $note): PlantingCycleTask {
             $team = $task->plantingCycle?->farm?->team;
             if (! $team instanceof Team) {
-                throw ValidationException::withMessages(['status' => 'Konteks kebun tugas tidak tersedia.']);
+                throw ValidationException::withMessages(['status' => 'Konteks lahan tugas tidak tersedia.']);
             }
             $locked = PlantingCycleTask::visibleTo($actor, $team)->whereKey($task->id)->lockForUpdate()->firstOrFail();
 
@@ -95,7 +95,7 @@ class PlantingCycleTaskManagementService
             $parent = $task->plantingCycle;
             $team = $parent?->farm?->team;
             if (! $parent instanceof PlantingCycle || ! $team instanceof Team) {
-                throw ValidationException::withMessages(['status' => 'Konteks kebun tugas tidak tersedia.']);
+                throw ValidationException::withMessages(['status' => 'Konteks lahan tugas tidak tersedia.']);
             }
 
             $cycle = null;

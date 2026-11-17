@@ -47,12 +47,12 @@ class PruneOwnerDemoFarms extends Command
         $farmsToDelete = Farm::visibleTo($actor, $team)->where('team_id', $team->id)
             ->whereNotIn('id', $keepIds)->orderBy('name')->get();
         if ($farmsToDelete->isEmpty()) {
-            $this->info('Tidak ada kebun tambahan di tenant demo. Kebun yang disetujui tetap tersimpan.');
+            $this->info('Tidak ada lahan tambahan di tenant demo. Lahan yang disetujui tetap tersimpan.');
 
             return self::SUCCESS;
         }
 
-        $this->warn('Kebun berikut dan seluruh data operasional terkait akan dihapus permanen:');
+        $this->warn('Lahan berikut dan seluruh data operasional terkait akan dihapus permanen:');
         foreach ($farmsToDelete as $farm) {
             $this->line(sprintf('- %s | %s | %s ha', $farm->name, $farm->city ?? 'tanpa kabupaten', $farm->total_area_ha));
         }
@@ -64,7 +64,7 @@ class PruneOwnerDemoFarms extends Command
             return self::SUCCESS;
         }
 
-        if (! $this->option('force') && ! $this->confirm('Lanjutkan penghapusan permanen untuk kebun di atas?')) {
+        if (! $this->option('force') && ! $this->confirm('Lanjutkan penghapusan permanen untuk lahan di atas?')) {
             $this->info('Penghapusan dibatalkan.');
 
             return self::SUCCESS;
@@ -81,7 +81,7 @@ class PruneOwnerDemoFarms extends Command
             return $farms->count();
         });
 
-        $this->info(sprintf('Berhasil menghapus %d kebun tambahan beserta data terkait.', $deletedCount));
+        $this->info(sprintf('Berhasil menghapus %d lahan tambahan beserta data terkait.', $deletedCount));
 
         return self::SUCCESS;
     }
@@ -94,7 +94,7 @@ class PruneOwnerDemoFarms extends Command
             ->orderByRaw('CASE WHEN name = ? THEN 0 ELSE 1 END', [DemoFarmSeeder::FARM_NAME])
             ->orderBy('created_at')->first();
         if (! $baseFarm instanceof Farm) {
-            $this->error('Kebun Cileuksa belum ditemukan. Jalankan php artisan db:seed terlebih dahulu.');
+            $this->error('Lahan Cileuksa belum ditemukan. Jalankan php artisan db:seed terlebih dahulu.');
 
             return null;
         }
@@ -110,13 +110,13 @@ class PruneOwnerDemoFarms extends Command
             $farmId = DemoOwnerPortfolioData::id($team, 'farm:'.$site['key']);
             $farm = Farm::visibleTo($actor, $team)->where('team_id', $team->id)->find($farmId);
             if (! $farm instanceof Farm) {
-                $this->error('Satu atau lebih kebun dari daftar yang disetujui belum ditemukan. Jalankan php artisan db:seed terlebih dahulu.');
+                $this->error('Satu atau lebih lahan dari daftar yang disetujui belum ditemukan. Jalankan php artisan db:seed terlebih dahulu.');
 
                 return null;
             }
             if ($farm->name !== $site['name'] || $farm->city !== $site['city']
                 || (float) $farm->total_area_ha !== (float) $site['area_ha']) {
-                $this->error('Data salah satu kebun belum sesuai daftar. Jalankan php artisan db:seed terlebih dahulu.');
+                $this->error('Data salah satu lahan belum sesuai daftar. Jalankan php artisan db:seed terlebih dahulu.');
 
                 return null;
             }
@@ -124,7 +124,7 @@ class PruneOwnerDemoFarms extends Command
         }
 
         if (count(array_unique($ids)) !== 7) {
-            $this->error('Daftar kebun yang disetujui tidak menghasilkan tepat tujuh ID berbeda; tidak ada data yang dihapus.');
+            $this->error('Daftar lahan yang disetujui tidak menghasilkan tepat tujuh ID berbeda; tidak ada data yang dihapus.');
 
             return null;
         }

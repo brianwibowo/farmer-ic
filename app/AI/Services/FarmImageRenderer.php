@@ -63,7 +63,7 @@ class FarmImageRenderer
         ])));
 
         $title = $this->escape($name);
-        $escapedHeading = $this->escape('Kondisi '.(stripos($name, 'kebun') === 0 ? $name : 'Kebun '.$name));
+        $escapedHeading = $this->escape('Kondisi '.(preg_match('/^(?:kebun|lahan)\b/iu', $name) ? $name : 'Lahan '.$name));
         $escapedLocation = $this->escape($location);
         $escapedCrop = $this->escape($crop);
         $escapedUsed = $this->escape($used);
@@ -98,7 +98,7 @@ class FarmImageRenderer
   <path d="M77 112c12-22 22-27 32-34-1 17-9 30-27 38" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
   <path d="M81 120c11-7 20-14 27-24" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
   <text x="148" y="98" fill="#153f2b" font-family="Arial, sans-serif" font-size="35" font-weight="700">{$escapedHeading}</text>
-  <text x="148" y="134" fill="#587365" font-family="Arial, sans-serif" font-size="21">Data kebun terverifikasi · farmDemoData.json</text>
+  <text x="148" y="134" fill="#587365" font-family="Arial, sans-serif" font-size="21">Data lahan terverifikasi · farmDemoData.json</text>
 
   {$imageMarkup}
   <rect x="70" y="610" width="635" height="68" rx="16" fill="#144d34" fill-opacity="0.94"/>
@@ -106,7 +106,7 @@ class FarmImageRenderer
 
   <g transform="translate(750 208)">
     <rect width="350" height="470" rx="22" fill="#f7fbf8" stroke="#cfe2d4" stroke-width="2"/>
-    <text x="28" y="48" fill="#173b29" font-family="Arial, sans-serif" font-size="26" font-weight="700">Detail Kebun</text>
+    <text x="28" y="48" fill="#173b29" font-family="Arial, sans-serif" font-size="26" font-weight="700">Detail Lahan</text>
     <line x1="28" y1="70" x2="322" y2="70" stroke="#d2e3d6" stroke-width="2"/>
     <text x="28" y="111" fill="#587365" font-family="Arial, sans-serif" font-size="17">LOKASI</text>
     <text x="28" y="143" fill="#173b29" font-family="Arial, sans-serif" font-size="22" font-weight="700">{$escapedLocation}</text>

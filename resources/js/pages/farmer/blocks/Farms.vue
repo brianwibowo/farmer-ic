@@ -16,13 +16,13 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Blok kebun" />
+    <Head title="Blok lahan" />
     <header>
         <h1 class="admin-page-title text-2xl font-semibold sm:text-3xl">
-            Blok kebun
+            Blok lahan
         </h1>
         <p class="mt-2 text-sm text-muted-foreground">
-            Pilih kebun dalam tim {{ team.name }} untuk melihat blok dan batch.
+            Pilih lahan dalam tim {{ team.name }} untuk melihat blok dan batch.
         </p>
     </header>
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -44,12 +44,12 @@ defineProps<{
         v-if="!farms.data.length"
         class="rounded-xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground"
     >
-        Belum ada kebun yang dapat diakses. Petugas perlu mendapat penugasan
-        kebun dari Admin.
+        Belum ada lahan yang dapat diakses. Petugas perlu mendapat penugasan
+        lahan dari Admin.
     </p>
     <nav
         v-if="farms.prev_page_url || farms.next_page_url"
-        aria-label="Halaman daftar kebun"
+        aria-label="Halaman daftar lahan"
         class="flex flex-wrap gap-4 text-sm"
     >
         <Link v-if="farms.prev_page_url" :href="farms.prev_page_url"

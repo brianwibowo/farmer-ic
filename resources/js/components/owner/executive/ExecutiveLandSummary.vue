@@ -18,7 +18,7 @@ const items = computed(() =>
         id: partner.id,
         name: partner.name,
         value: partner.area,
-        detail: `${partner.farmCount} kebun`,
+        detail: `${partner.farmCount} lahan`,
     })),
 );
 </script>

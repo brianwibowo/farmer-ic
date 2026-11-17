@@ -33,6 +33,13 @@ Read this document before implementing or changing any UI.
 
 ## Application name
 
+Use **lahan** as the Indonesian product term across navigation, headings,
+buttons, filters, validation, notifications and assistant copy. Preserve legacy
+route URLs, component/file names, API/data keys and record identifiers containing
+`kebun`; they are technical contracts. Persisted user-entered names/history are
+data and must not be rewritten as part of a wording change. AI intent matching
+must continue accepting both `kebun` and `lahan`.
+
 The system display name comes from Laravel `config('app.name')`, which reads
 `APP_NAME` and defaults to **Bumi Hijauan**. Vue components use `useAppName()`
 from the shared Inertia `name` prop. The initial HTML exposes the same value in

@@ -212,7 +212,7 @@ watch(
             </h3>
             <UserField
                 id="assigned-farm"
-                label="Farm / kebun"
+                label="Farm / lahan"
                 :error="farmError"
                 :hint="
                     !canConfigure

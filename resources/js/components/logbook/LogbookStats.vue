@@ -16,15 +16,15 @@ const number = new Intl.NumberFormat('id-ID');
 const primaryMetric = computed(() =>
     props.directory
         ? {
-              label: 'Kebun',
+              label: 'Lahan',
               value: props.summary.farms,
-              hint: 'Kebun dalam cakupan akses',
+              hint: 'Lahan dalam cakupan akses',
               icon: LandPlot,
           }
         : {
               label: 'Kegiatan tercatat',
               value: props.summary.activities,
-              hint: 'Total kegiatan pada kebun ini',
+              hint: 'Total kegiatan pada lahan ini',
               icon: ClipboardList,
           },
 );

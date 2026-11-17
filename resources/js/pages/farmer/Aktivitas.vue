@@ -429,7 +429,7 @@ onBeforeUnmount(() => {
                         v-if="kebunParam"
                         :href="backHref"
                         class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        aria-label="Kembali ke Detail Kebun"
+                        aria-label="Kembali ke Detail Lahan"
                     >
                         <ArrowLeft :size="18" :stroke-width="1.8" />
                     </Link>
@@ -492,7 +492,7 @@ onBeforeUnmount(() => {
                     <p
                         class="min-w-0 text-[11px] leading-4 font-medium text-muted-foreground"
                     >
-                        Kebun
+                        Lahan
                     </p>
                 </div>
                 <div
