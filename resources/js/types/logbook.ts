@@ -6,12 +6,6 @@ export type LogbookFarm = {
     province: string | null;
 };
 
-export type LogbookFarmRow = LogbookFarm & {
-    log_count: number;
-    latest_work_date: string | null;
-    incidents_count: number;
-};
-
 export type LogbookSummary = {
     farms: number;
     reports: number;
@@ -111,8 +105,6 @@ export type LogbookDetail = {
     updated_at: string | null;
 };
 
-export type LogbookIndexView = 'activities' | 'farms';
-
 export type LogbookIndexFilterOptions = {
     farms: { id: string; name: string }[];
     activity_types: { id: string; code: string; name: string }[];
@@ -120,7 +112,6 @@ export type LogbookIndexFilterOptions = {
 };
 
 export type LogbookIndexFilters = {
-    view?: LogbookIndexView;
     search?: string;
     farm_id?: string;
     activity_type?: string;

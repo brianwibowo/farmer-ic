@@ -56,12 +56,12 @@ class AdminLogbookTest extends TestCase
         }
 
         $this->actingAs($this->admin)->get('/admin/logbook')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('logbook/Index')->where('view', 'activities')->where('navigation.logbook', true));
+            ->component('logbook/Index')->missing('view')->missing('farms')->where('navigation.logbook', true));
         $developer = User::factory()->create(['role' => 'superadmin']);
         $this->actingAs($developer)->get('/admin/logbook')->assertOk();
     }
 
-    public function test_activity_feed_and_farms_tab_counts_and_search_exclude_other_tenants(): void
+    public function test_activity_feed_counts_and_search_exclude_other_tenants(): void
     {
         $incident = $this->incidentReport($this->farm, $this->admin, '2026-10-27');
         $mapping = $this->report($this->farm, $this->admin, '2026-10-26');
@@ -71,13 +71,13 @@ class AdminLogbookTest extends TestCase
 
         $this->actingAs($this->admin)->get('/admin/logbook')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('logbook/Index')
-            ->where('view', 'activities')
             ->where('activities.total', 2)
             ->where('activities.data.0.id', $incident->id)
             ->where('activities.data.0.code', 'incident')
             ->where('activities.data.0.source', 'mandiri')
             ->where('activities.data.1.daily_log_id', $mapping->id)
-            ->where('farms', null)
+            ->missing('farms')
+            ->missing('view')
             ->where('summary.farms', 2)
             ->where('summary.reports', 2)
             ->where('summary.activities', 2)
@@ -86,22 +86,6 @@ class AdminLogbookTest extends TestCase
         $this->get('/admin/logbook?search=Rahasia')->assertInertia(fn (Assert $page) => $page
             ->where('activities.total', 0)
             ->where('summary.incidents', 1));
-
-        $this->get('/admin/logbook?view=farms')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('logbook/Index')
-            ->where('view', 'farms')
-            ->where('activities', null)
-            ->where('farms.total', 2)->has('farms.data', 2)
-            ->where('farms.data.0.log_count', 2)
-            ->where('farms.data.0.latest_work_date', '2026-10-27')
-            ->where('farms.data.0.incidents_count', 1)
-            ->where('farms.data.1.log_count', 0)
-            ->where('farms.data.1.latest_work_date', null)
-            ->where('farms.data.1.incidents_count', 0));
-
-        $this->get('/admin/logbook?view=farms&search=Rahasia')->assertInertia(fn (Assert $page) => $page
-            ->where('farms.total', 0)
-            ->where('summary.reports', 2));
     }
 
     public function test_activity_feed_filters_by_farm_type_source_performer_and_dates(): void

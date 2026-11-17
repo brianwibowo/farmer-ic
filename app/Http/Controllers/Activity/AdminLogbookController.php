@@ -27,13 +27,10 @@ class AdminLogbookController extends Controller
         Gate::authorize('viewAny', [DailyActivityLog::class, $team]);
 
         $validated = $request->validated();
-        $view = ($validated['view'] ?? 'activities') === 'farms' ? 'farms' : 'activities';
 
         return Inertia::render('logbook/Index', [
-            'view' => $view,
-            'activities' => $view === 'activities' ? $this->logbooks->activities($request->user(), $team, $validated) : null,
-            'filterOptions' => $view === 'activities' ? $this->logbooks->filterOptions($request->user(), $team) : null,
-            'farms' => $view === 'farms' ? $this->logbooks->farms($request->user(), $team, $validated) : null,
+            'activities' => $this->logbooks->activities($request->user(), $team, $validated),
+            'filterOptions' => $this->logbooks->filterOptions($request->user(), $team),
             'summary' => $this->logbooks->summary($request->user(), $team),
             'filters' => $validated,
             'team' => $team->only(['id', 'name']),

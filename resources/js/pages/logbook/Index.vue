@@ -1,27 +1,16 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import {
-    ArrowUpRight,
-    BookOpen,
-    ClipboardList,
-    LandPlot,
-    LoaderCircle,
-    Search,
-    X,
-} from '@lucide/vue';
+import { ArrowUpRight, BookOpen, LoaderCircle, Search, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import LogbookActivityFiltersPopover from '@/components/logbook/LogbookActivityFiltersPopover.vue';
 import LogbookPagination from '@/components/logbook/LogbookPagination.vue';
 import LogbookStats from '@/components/logbook/LogbookStats.vue';
 import { Button } from '@/components/ui/button';
 import {
-    farmLocation,
     logbookDate,
     type LogbookActivityRow,
-    type LogbookFarmRow,
     type LogbookIndexFilterOptions,
     type LogbookIndexFilters,
-    type LogbookIndexView,
     type LogbookPage,
     type LogbookSummary,
 } from '@/types/logbook';
@@ -29,10 +18,8 @@ import {
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
-    view: LogbookIndexView;
-    activities: LogbookPage<LogbookActivityRow> | null;
-    filterOptions: LogbookIndexFilterOptions | null;
-    farms: LogbookPage<LogbookFarmRow> | null;
+    activities: LogbookPage<LogbookActivityRow>;
+    filterOptions: LogbookIndexFilterOptions;
     summary: LogbookSummary;
     filters: LogbookIndexFilters;
     team: { id: number; name: string };
@@ -41,7 +28,6 @@ const props = defineProps<{
 const showFilters = ref(false);
 
 const filters = useForm({
-    view: props.view,
     search: props.filters.search ?? '',
     farm_id: props.filters.farm_id ?? '',
     activity_type: props.filters.activity_type ?? '',
@@ -53,9 +39,8 @@ const filters = useForm({
 });
 
 watch(
-    () => [props.view, props.filters] as const,
-    ([nextView, nextFilters]) => {
-        filters.view = nextView;
+    () => props.filters,
+    (nextFilters) => {
         filters.search = nextFilters.search ?? '';
         filters.farm_id = nextFilters.farm_id ?? '';
         filters.activity_type = nextFilters.activity_type ?? '';
@@ -97,65 +82,52 @@ const appliedFilters = computed(() => {
             label: `Pencarian: ${props.filters.search}`,
         });
     }
-    if (props.view === 'activities') {
-        if (props.filters.farm_id) {
-            const name =
-                opts?.farms.find((farm) => farm.id === props.filters.farm_id)
-                    ?.name ?? 'Kebun tidak tersedia';
-            chips.push({ key: 'farm_id', label: `Kebun: ${name}` });
-        }
-        if (props.filters.activity_type) {
-            const name =
-                opts?.activity_types.find(
-                    (type) => type.code === props.filters.activity_type,
-                )?.name ?? props.filters.activity_type;
-            chips.push({ key: 'activity_type', label: `Jenis: ${name}` });
-        }
-        if (props.filters.source) {
-            chips.push({
-                key: 'source',
-                label: `Sumber: ${props.filters.source === 'sop' ? 'Tugas SOP' : 'Mandiri'}`,
-            });
-        }
-        if (props.filters.performed_by) {
-            const name =
-                opts?.performers.find(
-                    (person) => person.id === props.filters.performed_by,
-                )?.name ?? 'Pelaksana tidak tersedia';
-            chips.push({ key: 'performed_by', label: `Pelaksana: ${name}` });
-        }
-        if (props.filters.from_date) {
-            chips.push({
-                key: 'from_date',
-                label: `Dari: ${logbookDate(props.filters.from_date)}`,
-            });
-        }
-        if (props.filters.to_date) {
-            chips.push({
-                key: 'to_date',
-                label: `Sampai: ${logbookDate(props.filters.to_date)}`,
-            });
-        }
+    if (props.filters.farm_id) {
+        const name =
+            opts.farms.find((farm) => farm.id === props.filters.farm_id)
+                ?.name ?? 'Kebun tidak tersedia';
+        chips.push({ key: 'farm_id', label: `Kebun: ${name}` });
+    }
+    if (props.filters.activity_type) {
+        const name =
+            opts.activity_types.find(
+                (type) => type.code === props.filters.activity_type,
+            )?.name ?? props.filters.activity_type;
+        chips.push({ key: 'activity_type', label: `Jenis: ${name}` });
+    }
+    if (props.filters.source) {
+        chips.push({
+            key: 'source',
+            label: `Sumber: ${props.filters.source === 'sop' ? 'Tugas SOP' : 'Mandiri'}`,
+        });
+    }
+    if (props.filters.performed_by) {
+        const name =
+            opts.performers.find(
+                (person) => person.id === props.filters.performed_by,
+            )?.name ?? 'Pelaksana tidak tersedia';
+        chips.push({ key: 'performed_by', label: `Pelaksana: ${name}` });
+    }
+    if (props.filters.from_date) {
+        chips.push({
+            key: 'from_date',
+            label: `Dari: ${logbookDate(props.filters.from_date)}`,
+        });
+    }
+    if (props.filters.to_date) {
+        chips.push({
+            key: 'to_date',
+            label: `Sampai: ${logbookDate(props.filters.to_date)}`,
+        });
     }
 
     return chips;
 });
 
 const hasActiveFilters = computed(() => appliedFilters.value.length > 0);
-const searchInputId = computed(() =>
-    props.view === 'activities'
-        ? 'logbook-activity-search'
-        : 'logbook-farm-search',
-);
-const searchPlaceholder = computed(() =>
-    props.view === 'activities'
-        ? 'Cari aktivitas, kebun, blok, subblok, atau pelaksana…'
-        : 'Cari nama atau lokasi kebun…',
-);
 
 function apply(): void {
     if (
-        filters.view === 'activities' &&
         filters.from_date &&
         filters.to_date &&
         filters.to_date < filters.from_date
@@ -172,24 +144,14 @@ function apply(): void {
     filters
         .transform((data) => {
             const query: Record<string, string | number> = {};
-            if (data.view === 'farms') {
-                query.view = 'farms';
-            }
-            if (data.search.trim()) {
-                query.search = data.search.trim();
-            }
-            if (data.view === 'activities') {
-                if (data.farm_id) query.farm_id = data.farm_id;
-                if (data.activity_type)
-                    query.activity_type = data.activity_type;
-                if (data.source) query.source = data.source;
-                if (data.performed_by) query.performed_by = data.performed_by;
-                if (data.from_date) query.from_date = data.from_date;
-                if (data.to_date) query.to_date = data.to_date;
-            }
-            if (Number(data.per_page) !== 15) {
-                query.per_page = data.per_page;
-            }
+            if (data.search.trim()) query.search = data.search.trim();
+            if (data.farm_id) query.farm_id = data.farm_id;
+            if (data.activity_type) query.activity_type = data.activity_type;
+            if (data.source) query.source = data.source;
+            if (data.performed_by) query.performed_by = data.performed_by;
+            if (data.from_date) query.from_date = data.from_date;
+            if (data.to_date) query.to_date = data.to_date;
+            if (Number(data.per_page) !== 15) query.per_page = data.per_page;
             return query;
         })
         .get('/admin/logbook', {
@@ -212,22 +174,6 @@ function apply(): void {
                 }
             },
         });
-}
-
-function switchView(nextView: LogbookIndexView): void {
-    if (nextView === props.view || filters.processing) {
-        return;
-    }
-    filters.view = nextView;
-    filters.search = '';
-    filters.farm_id = '';
-    filters.activity_type = '';
-    filters.source = '';
-    filters.performed_by = '';
-    filters.from_date = '';
-    filters.to_date = '';
-    filters.clearErrors();
-    apply();
 }
 
 function clearFilter(key: FilterChipKey): void {
@@ -273,62 +219,39 @@ function activitySubtitle(row: LogbookActivityRow): string {
 
         <section
             class="admin-card overflow-hidden rounded-xl bg-card"
-            aria-label="Logbook aktivitas lapangan"
+            aria-labelledby="logbook-activities-title"
         >
-            <div class="border-b border-border px-4 md:px-5">
+            <div class="border-b border-border px-4 py-4 md:px-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <nav
-                        class="user-directory-tabs border-b-0!"
-                        aria-label="Tampilan logbook"
-                    >
-                        <button
-                            type="button"
-                            class="user-directory-tab"
-                            :class="{ 'is-active': view === 'activities' }"
-                            :aria-pressed="view === 'activities'"
-                            :disabled="filters.processing"
-                            @click="switchView('activities')"
+                    <div class="flex items-center gap-2">
+                        <h2
+                            id="logbook-activities-title"
+                            class="admin-section-title"
                         >
-                            <ClipboardList class="size-4" aria-hidden="true" />
-                            <span>Semua aktivitas</span>
-                            <span class="user-directory-tab-count">{{
-                                summary.activities
-                            }}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="user-directory-tab"
-                            :class="{ 'is-active': view === 'farms' }"
-                            :aria-pressed="view === 'farms'"
-                            :disabled="filters.processing"
-                            @click="switchView('farms')"
+                            Semua aktivitas
+                        </h2>
+                        <span
+                            class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
                         >
-                            <LandPlot class="size-4" aria-hidden="true" />
-                            <span>Per kebun</span>
-                            <span class="user-directory-tab-count">{{
-                                summary.farms
-                            }}</span>
-                        </button>
-                    </nav>
-                    <p class="hidden text-xs text-muted-foreground sm:block">
+                            {{ activities.total }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-muted-foreground">
                         Tanggal mengikuti waktu kerja WIB
                     </p>
                 </div>
-            </div>
 
-            <div class="border-b border-border px-4 py-4 md:px-5">
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="mt-4 flex flex-wrap items-center gap-3">
                     <form
                         class="flex min-w-0 flex-1 basis-64 items-center gap-2"
                         @submit.prevent="apply"
                     >
                         <div class="min-w-0 grow">
-                            <label :for="searchInputId" class="sr-only">
-                                {{
-                                    view === 'activities'
-                                        ? 'Cari aktivitas'
-                                        : 'Cari kebun'
-                                }}
+                            <label
+                                for="logbook-activity-search"
+                                class="sr-only"
+                            >
+                                Cari aktivitas
                             </label>
                             <div class="relative">
                                 <Search
@@ -336,11 +259,11 @@ function activitySubtitle(row: LogbookActivityRow): string {
                                     aria-hidden="true"
                                 />
                                 <input
-                                    :id="searchInputId"
+                                    id="logbook-activity-search"
                                     v-model="filters.search"
                                     type="search"
                                     class="admin-field pl-10!"
-                                    :placeholder="searchPlaceholder"
+                                    placeholder="Cari aktivitas, kebun, blok, subblok, atau pelaksana…"
                                     maxlength="150"
                                     :disabled="filters.processing"
                                     :aria-invalid="!!filters.errors.search"
@@ -356,16 +279,8 @@ function activitySubtitle(row: LogbookActivityRow): string {
                             type="submit"
                             variant="outline"
                             class="size-10 shrink-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
-                            :aria-label="
-                                view === 'activities'
-                                    ? 'Cari aktivitas'
-                                    : 'Cari kebun'
-                            "
-                            :title="
-                                view === 'activities'
-                                    ? 'Cari aktivitas'
-                                    : 'Cari kebun'
-                            "
+                            aria-label="Cari aktivitas"
+                            title="Cari aktivitas"
                             :disabled="filters.processing"
                         >
                             <LoaderCircle
@@ -376,10 +291,7 @@ function activitySubtitle(row: LogbookActivityRow): string {
                         </Button>
                     </form>
 
-                    <div
-                        v-if="view === 'activities' && filterOptions"
-                        class="flex shrink-0 items-center gap-2"
-                    >
+                    <div class="flex shrink-0 items-center gap-2">
                         <LogbookActivityFiltersPopover
                             v-model:open="showFilters"
                             v-model:farm-id="filters.farm_id"
@@ -449,488 +361,269 @@ function activitySubtitle(row: LogbookActivityRow): string {
                 <p class="text-sm text-muted-foreground">Memuat logbook…</p>
             </div>
 
-            <!-- Tab 1: Semua aktivitas -->
-            <template v-else-if="view === 'activities' && activities">
+            <div
+                v-else-if="!activities.data.length"
+                class="px-5 py-16 text-center"
+            >
                 <div
-                    v-if="!activities.data.length"
-                    class="px-5 py-16 text-center"
+                    class="mx-auto flex size-14 items-center justify-center rounded-full bg-accent text-primary"
                 >
-                    <div
-                        class="mx-auto flex size-14 items-center justify-center rounded-full bg-accent text-primary"
-                    >
-                        <BookOpen class="size-6" />
-                    </div>
-                    <h3 class="mt-4 text-base font-semibold">
-                        {{
-                            hasActiveFilters
-                                ? 'Aktivitas tidak ditemukan'
-                                : 'Belum ada aktivitas tercatat'
-                        }}
-                    </h3>
-                    <p
-                        class="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground"
-                    >
-                        {{
-                            hasActiveFilters
-                                ? 'Coba kata kunci atau kombinasi filter yang berbeda.'
-                                : 'Aktivitas lapangan yang dicatat oleh petugas akan muncul di sini.'
-                        }}
-                    </p>
-                    <Button
-                        v-if="hasActiveFilters"
-                        class="mt-5 rounded-xl"
-                        variant="outline"
-                        @click="resetAll"
-                    >
-                        Reset filter
-                    </Button>
+                    <BookOpen class="size-6" />
                 </div>
+                <h3 class="mt-4 text-base font-semibold">
+                    {{
+                        hasActiveFilters
+                            ? 'Aktivitas tidak ditemukan'
+                            : 'Belum ada aktivitas tercatat'
+                    }}
+                </h3>
+                <p
+                    class="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground"
+                >
+                    {{
+                        hasActiveFilters
+                            ? 'Coba kata kunci atau kombinasi filter yang berbeda.'
+                            : 'Aktivitas lapangan yang dicatat oleh petugas akan muncul di sini.'
+                    }}
+                </p>
+                <Button
+                    v-if="hasActiveFilters"
+                    class="mt-5 rounded-xl"
+                    variant="outline"
+                    @click="resetAll"
+                >
+                    Reset filter
+                </Button>
+            </div>
 
-                <template v-else>
-                    <div
-                        class="hidden overflow-x-auto md:block"
-                        role="region"
-                        aria-label="Tabel aktivitas logbook"
-                        tabindex="0"
-                    >
-                        <table class="w-full table-fixed text-left text-sm">
-                            <thead
-                                class="bg-muted/50 text-xs text-muted-foreground"
-                            >
-                                <tr>
-                                    <th
-                                        scope="col"
-                                        class="w-[14%] px-4 py-3 font-semibold"
-                                    >
-                                        Tanggal
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[24%] px-4 py-3 font-semibold"
-                                    >
-                                        Lokasi
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[24%] px-4 py-3 font-semibold"
-                                    >
-                                        Aktivitas
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[16%] px-4 py-3 font-semibold"
-                                    >
-                                        Pelaksana
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[12%] px-4 py-3 font-semibold"
-                                    >
-                                        Sumber
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[10%] px-4 py-3 text-right font-semibold"
-                                    >
-                                        Detail
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border">
-                                <tr
-                                    v-for="row in activities.data"
-                                    :key="row.id"
-                                    class="align-top hover:bg-muted/40"
-                                >
-                                    <td class="px-4 py-4">
-                                        <p
-                                            class="font-medium whitespace-nowrap"
-                                        >
-                                            {{ logbookDate(row.work_date) }}
-                                        </p>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <p class="font-medium">
-                                            {{ row.farm_name ?? '-' }}
-                                        </p>
-                                        <p
-                                            v-if="row.block_name"
-                                            class="mt-1 text-xs text-muted-foreground"
-                                        >
-                                            {{ row.block_name }}
-                                        </p>
-                                        <p
-                                            v-if="row.subblok"
-                                            class="mt-1 text-xs text-muted-foreground"
-                                        >
-                                            Subblok {{ row.subblok }}
-                                        </p>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <Link
-                                            :href="`/admin/logbook/aktivitas/${row.id}`"
-                                            class="font-medium hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-                                        >
-                                            {{ row.name }}
-                                        </Link>
-                                        <p
-                                            v-if="activitySubtitle(row)"
-                                            class="mt-1 line-clamp-2 text-xs text-muted-foreground"
-                                        >
-                                            {{ activitySubtitle(row) }}
-                                        </p>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <p class="font-medium">
-                                            {{
-                                                row.performer_name ??
-                                                'Petugas tidak tersedia'
-                                            }}
-                                        </p>
-                                        <p
-                                            v-if="row.worker_count !== null"
-                                            class="mt-1 text-xs text-muted-foreground tabular-nums"
-                                        >
-                                            {{ row.worker_count }} pekerja
-                                        </p>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <div class="flex flex-wrap gap-1.5">
-                                            <span
-                                                class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap"
-                                                :class="
-                                                    row.source === 'sop'
-                                                        ? 'bg-accent text-accent-foreground'
-                                                        : 'bg-muted text-muted-foreground'
-                                                "
-                                            >
-                                                {{
-                                                    row.source === 'sop'
-                                                        ? 'Tugas SOP'
-                                                        : 'Mandiri'
-                                                }}
-                                            </span>
-                                            <span
-                                                v-if="row.code === 'incident'"
-                                                class="inline-flex rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-warning"
-                                            >
-                                                Insiden
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-4 text-right">
-                                        <Link
-                                            :href="`/admin/logbook/aktivitas/${row.id}`"
-                                            class="inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs font-medium text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring"
-                                            :aria-label="`Lihat detail ${row.name}`"
-                                        >
-                                            Detail
-                                            <ArrowUpRight class="size-3.5" />
-                                        </Link>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="divide-y divide-border md:hidden">
-                        <article
-                            v-for="row in activities.data"
-                            :key="row.id"
-                            class="space-y-3 p-4"
+            <template v-else>
+                <div
+                    class="hidden overflow-x-auto md:block"
+                    role="region"
+                    aria-label="Tabel aktivitas logbook"
+                    tabindex="0"
+                >
+                    <table class="w-full table-fixed text-left text-sm">
+                        <thead
+                            class="bg-muted/50 text-xs text-muted-foreground"
                         >
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
+                            <tr>
+                                <th
+                                    scope="col"
+                                    class="w-[14%] px-4 py-3 font-semibold"
+                                >
+                                    Tanggal
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[24%] px-4 py-3 font-semibold"
+                                >
+                                    Lokasi
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[24%] px-4 py-3 font-semibold"
+                                >
+                                    Aktivitas
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[16%] px-4 py-3 font-semibold"
+                                >
+                                    Pelaksana
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[12%] px-4 py-3 font-semibold"
+                                >
+                                    Sumber
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-[10%] px-4 py-3 text-right font-semibold"
+                                >
+                                    Detail
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border">
+                            <tr
+                                v-for="row in activities.data"
+                                :key="row.id"
+                                class="align-top hover:bg-muted/40"
+                            >
+                                <td class="px-4 py-4">
+                                    <p class="font-medium whitespace-nowrap">
+                                        {{ logbookDate(row.work_date) }}
+                                    </p>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <p class="font-medium">
+                                        {{ row.farm_name ?? '-' }}
+                                    </p>
+                                    <p
+                                        v-if="row.block_name"
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        {{ row.block_name }}
+                                    </p>
+                                    <p
+                                        v-if="row.subblok"
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        Subblok {{ row.subblok }}
+                                    </p>
+                                </td>
+                                <td class="px-4 py-4">
                                     <Link
                                         :href="`/admin/logbook/aktivitas/${row.id}`"
-                                        class="font-semibold hover:text-primary"
+                                        class="font-medium hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
                                     >
                                         {{ row.name }}
                                     </Link>
                                     <p
-                                        class="mt-0.5 text-xs text-muted-foreground"
+                                        v-if="activitySubtitle(row)"
+                                        class="mt-1 line-clamp-2 text-xs text-muted-foreground"
                                     >
-                                        {{ row.farm_name ?? '-' }}
-                                        <template v-if="activityLocation(row)">
-                                            ·
-                                            {{
-                                                activityLocation(row)
-                                            }}</template
-                                        >
+                                        {{ activitySubtitle(row) }}
                                     </p>
-                                </div>
-                                <span
-                                    class="shrink-0 text-xs font-medium text-muted-foreground"
-                                >
-                                    {{ logbookDate(row.work_date) }}
-                                </span>
-                            </div>
-                            <p
-                                v-if="activitySubtitle(row)"
-                                class="line-clamp-2 text-xs text-muted-foreground"
-                            >
-                                {{ activitySubtitle(row) }}
-                            </p>
-                            <div
-                                class="flex flex-wrap items-center justify-between gap-2 pt-1"
-                            >
-                                <div
-                                    class="flex flex-wrap items-center gap-1.5"
-                                >
-                                    <span
-                                        class="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                        :class="
-                                            row.source === 'sop'
-                                                ? 'bg-accent text-accent-foreground'
-                                                : 'bg-muted text-muted-foreground'
-                                        "
-                                    >
-                                        {{
-                                            row.source === 'sop'
-                                                ? 'Tugas SOP'
-                                                : 'Mandiri'
-                                        }}
-                                    </span>
-                                    <span
-                                        v-if="row.code === 'incident'"
-                                        class="rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning"
-                                    >
-                                        Insiden
-                                    </span>
-                                    <span class="text-xs text-muted-foreground">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <p class="font-medium">
                                         {{
                                             row.performer_name ??
                                             'Petugas tidak tersedia'
                                         }}
-                                    </span>
-                                </div>
-                                <Link
-                                    :href="`/admin/logbook/aktivitas/${row.id}`"
-                                    class="inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs font-medium text-primary hover:bg-primary/10"
-                                >
-                                    Detail
-                                    <ArrowUpRight class="size-3.5" />
-                                </Link>
-                            </div>
-                        </article>
-                    </div>
-                </template>
-
-                <LogbookPagination
-                    v-model:size="filters.per_page"
-                    :page="activities"
-                    label="aktivitas"
-                    :loading="filters.processing"
-                    @change="apply"
-                />
-            </template>
-
-            <!-- Tab 2: Per kebun -->
-            <template v-else-if="view === 'farms' && farms">
-                <div v-if="!farms.data.length" class="px-5 py-16 text-center">
-                    <div
-                        class="mx-auto flex size-14 items-center justify-center rounded-full bg-accent text-primary"
-                    >
-                        <BookOpen class="size-6" />
-                    </div>
-                    <h3 class="mt-4 text-base font-semibold">
-                        {{
-                            hasActiveFilters
-                                ? 'Kebun tidak ditemukan'
-                                : 'Belum ada kebun'
-                        }}
-                    </h3>
-                    <p
-                        class="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground"
-                    >
-                        {{
-                            hasActiveFilters
-                                ? 'Coba nama atau lokasi kebun yang berbeda.'
-                                : 'Kebun yang dapat Anda akses akan muncul di sini.'
-                        }}
-                    </p>
-                    <Button
-                        v-if="hasActiveFilters"
-                        class="mt-5 rounded-xl"
-                        variant="outline"
-                        @click="resetAll"
-                    >
-                        Reset pencarian
-                    </Button>
-                </div>
-
-                <template v-else>
-                    <div
-                        class="hidden overflow-x-auto md:block"
-                        role="region"
-                        aria-label="Tabel logbook per kebun"
-                        tabindex="0"
-                    >
-                        <table class="w-full table-fixed text-left text-sm">
-                            <thead
-                                class="bg-muted/50 text-xs text-muted-foreground"
-                            >
-                                <tr>
-                                    <th
-                                        scope="col"
-                                        class="w-[26%] px-4 py-3 font-semibold"
+                                    </p>
+                                    <p
+                                        v-if="row.worker_count !== null"
+                                        class="mt-1 text-xs text-muted-foreground tabular-nums"
                                     >
-                                        Kebun
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[24%] px-4 py-3 font-semibold"
-                                    >
-                                        Lokasi
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[14%] px-4 py-3 font-semibold"
-                                    >
-                                        Laporan harian
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[12%] px-4 py-3 font-semibold"
-                                    >
-                                        Insiden
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[14%] px-4 py-3 font-semibold"
-                                    >
-                                        Laporan terakhir
-                                    </th>
-                                    <th
-                                        scope="col"
-                                        class="w-[10%] px-4 py-3 text-right font-semibold"
-                                    >
-                                        Logbook
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border">
-                                <tr
-                                    v-for="farm in farms.data"
-                                    :key="farm.id"
-                                    class="align-top hover:bg-muted/40"
-                                >
-                                    <td class="px-4 py-4">
-                                        <Link
-                                            :href="`/admin/logbook/${farm.id}`"
-                                            class="font-medium hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-                                        >
-                                            {{ farm.name }}
-                                        </Link>
-                                    </td>
-                                    <td
-                                        class="px-4 py-4 text-xs leading-5 text-muted-foreground"
-                                    >
-                                        {{ farmLocation(farm) }}
-                                    </td>
-                                    <td
-                                        class="px-4 py-4 font-medium tabular-nums"
-                                    >
-                                        {{ farm.log_count }}
-                                    </td>
-                                    <td class="px-4 py-4">
+                                        {{ row.worker_count }} pekerja
+                                    </p>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <div class="flex flex-wrap gap-1.5">
                                         <span
-                                            class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap tabular-nums"
+                                            class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap"
                                             :class="
-                                                farm.incidents_count > 0
-                                                    ? 'bg-warning/15 text-warning'
+                                                row.source === 'sop'
+                                                    ? 'bg-accent text-accent-foreground'
                                                     : 'bg-muted text-muted-foreground'
                                             "
                                         >
-                                            {{ farm.incidents_count }} insiden
+                                            {{
+                                                row.source === 'sop'
+                                                    ? 'Tugas SOP'
+                                                    : 'Mandiri'
+                                            }}
                                         </span>
-                                    </td>
-                                    <td
-                                        class="px-4 py-4 text-xs whitespace-nowrap text-muted-foreground"
-                                    >
-                                        {{ logbookDate(farm.latest_work_date) }}
-                                    </td>
-                                    <td class="px-4 py-4 text-right">
-                                        <Link
-                                            :href="`/admin/logbook/${farm.id}`"
-                                            class="inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs font-medium text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring"
-                                            :aria-label="`Buka logbook ${farm.name}`"
+                                        <span
+                                            v-if="row.code === 'incident'"
+                                            class="inline-flex rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-warning"
                                         >
-                                            Buka
-                                            <ArrowUpRight class="size-3.5" />
-                                        </Link>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="divide-y divide-border md:hidden">
-                        <article
-                            v-for="farm in farms.data"
-                            :key="farm.id"
-                            class="space-y-2.5 p-4"
-                        >
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
+                                            Insiden
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 text-right">
                                     <Link
-                                        :href="`/admin/logbook/${farm.id}`"
-                                        class="font-semibold hover:text-primary"
+                                        :href="`/admin/logbook/aktivitas/${row.id}`"
+                                        class="inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs font-medium text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring"
+                                        :aria-label="`Lihat detail ${row.name}`"
                                     >
-                                        {{ farm.name }}
+                                        Detail
+                                        <ArrowUpRight class="size-3.5" />
                                     </Link>
-                                    <p
-                                        class="mt-0.5 text-xs leading-5 text-muted-foreground"
-                                    >
-                                        {{ farmLocation(farm) }}
-                                    </p>
-                                </div>
-                                <span
-                                    class="shrink-0 text-xs text-muted-foreground"
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="divide-y divide-border md:hidden">
+                    <article
+                        v-for="row in activities.data"
+                        :key="row.id"
+                        class="space-y-3 p-4"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <Link
+                                    :href="`/admin/logbook/aktivitas/${row.id}`"
+                                    class="font-semibold hover:text-primary"
                                 >
-                                    {{ logbookDate(farm.latest_work_date) }}
+                                    {{ row.name }}
+                                </Link>
+                                <p class="mt-0.5 text-xs text-muted-foreground">
+                                    {{ row.farm_name ?? '-' }}
+                                    <template v-if="activityLocation(row)">
+                                        · {{ activityLocation(row) }}</template
+                                    >
+                                </p>
+                            </div>
+                            <span
+                                class="shrink-0 text-xs font-medium text-muted-foreground"
+                            >
+                                {{ logbookDate(row.work_date) }}
+                            </span>
+                        </div>
+                        <p
+                            v-if="activitySubtitle(row)"
+                            class="line-clamp-2 text-xs text-muted-foreground"
+                        >
+                            {{ activitySubtitle(row) }}
+                        </p>
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2 pt-1"
+                        >
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span
+                                    class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                    :class="
+                                        row.source === 'sop'
+                                            ? 'bg-accent text-accent-foreground'
+                                            : 'bg-muted text-muted-foreground'
+                                    "
+                                >
+                                    {{
+                                        row.source === 'sop'
+                                            ? 'Tugas SOP'
+                                            : 'Mandiri'
+                                    }}
+                                </span>
+                                <span
+                                    v-if="row.code === 'incident'"
+                                    class="rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning"
+                                >
+                                    Insiden
+                                </span>
+                                <span class="text-xs text-muted-foreground">
+                                    {{
+                                        row.performer_name ??
+                                        'Petugas tidak tersedia'
+                                    }}
                                 </span>
                             </div>
-                            <div
-                                class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs"
+                            <Link
+                                :href="`/admin/logbook/aktivitas/${row.id}`"
+                                class="inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs font-medium text-primary hover:bg-primary/10"
                             >
-                                <div class="flex items-center gap-1.5">
-                                    <span
-                                        class="rounded-full bg-accent px-2.5 py-0.5 font-medium text-accent-foreground"
-                                    >
-                                        {{ farm.log_count }} logbook
-                                    </span>
-                                    <span
-                                        class="rounded-full px-2.5 py-0.5 font-medium"
-                                        :class="
-                                            farm.incidents_count > 0
-                                                ? 'bg-warning/15 text-warning'
-                                                : 'bg-muted text-muted-foreground'
-                                        "
-                                    >
-                                        {{ farm.incidents_count }} insiden
-                                    </span>
-                                </div>
-                                <Link
-                                    :href="`/admin/logbook/${farm.id}`"
-                                    class="inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs font-medium text-primary hover:bg-primary/10"
-                                >
-                                    Buka
-                                    <ArrowUpRight class="size-3.5" />
-                                </Link>
-                            </div>
-                        </article>
-                    </div>
-                </template>
-
-                <LogbookPagination
-                    v-model:size="filters.per_page"
-                    :page="farms"
-                    label="kebun"
-                    :loading="filters.processing"
-                    @change="apply"
-                />
+                                Detail
+                                <ArrowUpRight class="size-3.5" />
+                            </Link>
+                        </div>
+                    </article>
+                </div>
             </template>
+
+            <LogbookPagination
+                v-model:size="filters.per_page"
+                :page="activities"
+                label="aktivitas"
+                :loading="filters.processing"
+                @change="apply"
+            />
         </section>
     </div>
 </template>

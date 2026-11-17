@@ -12,7 +12,6 @@ class ListAdminLogbooksRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'view' => ['nullable', 'string', Rule::in(['activities', 'farms'])],
             'search' => ['nullable', 'string', 'max:150'],
             'farm_id' => ['nullable', 'uuid'],
             'activity_type' => ['nullable', 'string', 'max:60'],

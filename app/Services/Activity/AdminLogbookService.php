@@ -202,34 +202,6 @@ class AdminLogbookService
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, array{id: string, name: string, city: string|null, district: string|null, province: string|null, log_count: int, latest_work_date: mixed, incidents_count: int}>
-     */
-    public function farms(User $actor, Team $team, array $filters): LengthAwarePaginator
-    {
-        $incidentsSubquery = $this->activitiesQuery($actor, $team)->whereColumn('farm_id', 'farms.id');
-        $this->applyIncidentFilter($incidentsSubquery, $actor, $team);
-
-        $query = Farm::visibleTo($actor, $team)->select(['id', 'name', 'city', 'district', 'province'])
-            ->selectSub($this->logs($actor, $team)->whereColumn('farm_id', 'farms.id')->selectRaw('count(*)'), 'log_count')
-            ->selectSub($this->logs($actor, $team)->whereColumn('farm_id', 'farms.id')->selectRaw('max(work_date)'), 'latest_work_date')
-            ->selectSub($incidentsSubquery->selectRaw('count(*)'), 'incidents_count');
-
-        if ($search = trim((string) ($filters['search'] ?? ''))) {
-            $pattern = $this->likePattern($search);
-            $query->where(fn (Builder $query) => $query->where('name', 'ilike', $pattern)->orWhere('city', 'ilike', $pattern)->orWhere('province', 'ilike', $pattern));
-        }
-
-        return $query->orderBy('name')->orderBy('id')->paginate($filters['per_page'] ?? 15)->appends($filters)
-            ->through(fn (Farm $farm): array => [
-                ...$farm->only(['id', 'name', 'city', 'district', 'province']),
-                'log_count' => (int) $farm->getAttribute('log_count'),
-                'latest_work_date' => $farm->getAttribute('latest_work_date'),
-                'incidents_count' => (int) $farm->getAttribute('incidents_count'),
-            ]);
-    }
-
     /** @return array{farms: int, reports: int, today: int, activities: int, incidents: int} */
     public function summary(User $actor, Team $team, ?Farm $farm = null): array
     {
