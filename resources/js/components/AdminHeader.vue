@@ -24,6 +24,7 @@ const isSectionIndex = computed(() =>
         'farms/Index',
         'users/Index',
         'sops/Index',
+        'tasks/Index',
         'logbook/Index',
         'planting-transactions/Index',
         'harvest-transactions/Index',
