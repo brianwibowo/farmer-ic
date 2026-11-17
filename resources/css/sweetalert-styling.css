@@ -1,0 +1,113 @@
+.app-confirmation-target {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    pointer-events: auto;
+}
+
+.app-confirmation-container {
+    pointer-events: auto;
+}
+
+.swal2-popup.app-confirmation-popup {
+    width: min(28.75rem, calc(100vw - 2rem));
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--admin-card-radius);
+    background: var(--card);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+}
+
+.app-confirmation-popup .swal2-icon.swal2-warning {
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+.app-confirmation-popup .swal2-title {
+    padding: 0;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+}
+
+.app-confirmation-popup .swal2-html-container {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+}
+
+.app-confirmation-popup .swal2-actions {
+    gap: 0.5rem;
+    margin: 1.5rem 0 0;
+}
+
+.app-confirmation-confirm,
+.app-confirmation-cancel {
+    min-height: 2.75rem;
+    margin: 0;
+    padding: 0.625rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.app-confirmation-confirm {
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+}
+
+.app-confirmation-confirm:hover {
+    background: var(--destructive-hover);
+}
+
+.app-confirmation-confirm:active {
+    background: var(--destructive-pressed);
+}
+
+.app-confirmation-cancel {
+    border-color: var(--border);
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.app-confirmation-cancel:hover {
+    background: var(--muted);
+}
+
+.app-confirmation-confirm:focus-visible {
+    outline: 2px solid var(--destructive);
+    outline-offset: 3px;
+}
+
+.app-confirmation-cancel:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+}
+
+@media (max-width: 479px) {
+    .swal2-popup.app-confirmation-popup {
+        padding: 1.25rem;
+    }
+
+    .app-confirmation-popup .swal2-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .app-confirmation-popup .swal2-actions button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-confirmation-container *,
+    .app-confirmation-container {
+        animation: none !important;
+        transition: none !important;
+    }
+}

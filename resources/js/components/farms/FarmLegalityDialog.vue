@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { requestConfirmation } from '@/composables/useConfirmation';
 import { useForm } from '@inertiajs/vue3';
 import {
     AlertTriangle,
@@ -85,16 +86,20 @@ watch(
     },
 );
 
-function close(open: boolean): void {
+async function close(open: boolean): Promise<void> {
     if (busy.value) return;
     if (
         !open &&
         form.isDirty &&
-        !window.confirm(
-            'Tutup dan buang perubahan legalitas yang belum disimpan?',
-        )
+        !(await requestConfirmation({
+            description:
+                'Perubahan legalitas belum disimpan. Tutup editor dan buang perubahan ini?',
+            confirmLabel: 'Buang perubahan',
+            cancelLabel: 'Lanjut mengedit',
+        }))
     )
         return;
+    if (busy.value) return;
     emit('update:open', open);
 }
 function validateFiles(files: File[]): string | null {
