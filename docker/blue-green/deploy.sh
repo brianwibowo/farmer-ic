@@ -30,13 +30,16 @@ slot_from_host() {
         *) echo "Invalid upstream: $1" >&2; return 1 ;;
     esac
 }
-public_is() {
+public_path_is() {
     headers=$(curl -fsSk --max-time 5 -o /dev/null -D - -w '\nHTTP_STATUS:%{http_code}\n' \
         --resolve farmer.icdigital.io:443:127.0.0.1 \
-        https://farmer.icdigital.io/up) || return 1
+        "https://farmer.icdigital.io$2") || return 1
     clean=$(printf '%s\n' "$headers" | tr -d '\r')
     printf '%s\n' "$clean" | grep -Fx 'HTTP_STATUS:200' >/dev/null || return 1
     printf '%s\n' "$clean" | grep -Fxi "X-Farmer-Release-Slot: $1" >/dev/null
+}
+public_is() {
+    public_path_is "$1" /up && public_path_is "$1" /login
 }
 wait_public() {
     expected=$1
@@ -54,6 +57,8 @@ ready() {
     [ "$health" = healthy ] || { echo "$container is not healthy ($health)." >&2; return 1; }
     code=$(docker exec "$container" curl -fsS -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1/up)
     [ "$code" = 200 ] || { echo "$container returned HTTP $code." >&2; return 1; }
+    code=$(docker exec "$container" curl -fsS -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1/login)
+    [ "$code" = 200 ] || { echo "$container login returned HTTP $code." >&2; return 1; }
 }
 
 docker inspect "$router" >/dev/null

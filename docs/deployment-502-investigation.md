@@ -236,3 +236,47 @@ then restored to legacy. The router and both slots remain running on the VM but
 are not currently receiving public traffic. Their
 preparation files are in `/home/clouduser/farmer-ic-bluegreen-prep`; existing
 untracked demo files were not modified.
+
+### GHCR login timeout: 17 November 2026
+
+Deploy run `43990037467` failed at `docker login ghcr.io` with a TLS handshake
+timeout, before image pull, release preflight or service replacement. The
+server checkout advanced to commit `022e859`, but the running legacy app
+remained on its previous image. During a later read-only connectivity check,
+one TLS connection timed out and subsequent requests returned HTTP 401 from
+`/v2/`, the normal unauthenticated registry challenge. This demonstrates
+intermittent connectivity at inspection time, not the network component
+responsible for the earlier timeout.
+
+The workflow now retries registry login and image pull at most three times,
+with 3- and 6-second delays. Credentials remain on standard input, and a
+persistent registry or authentication error still fails before rollout.
+Retries do not repair a continuing network failure. This change applies only
+after the revised workflow is committed and deployed; rerunning an older
+workflow uses its existing script.
+
+At inspection the public proxy still pointed directly to `farmer-ic-app-1`.
+Consequently, even if GHCR connectivity succeeds, the blue-green script will
+fail closed at its public-route check until the documented initial proxy cutover
+has been completed. Do not confuse a successful registry retry with a
+successful deployment.
+
+### First blue-green deployment: 17 November 2026
+
+After the user reset and seeded the demo database with the release image, the
+initial HTTPS Portal cutover was performed and run `43990037467` was rerun.
+The run completed successfully with blue serving the release and workers
+healthy. `/up` returned HTTP 200, but `/login` returned 502: the new router's
+default Nginx buffers were too small for the application response headers.
+The router was updated on the VM to match the existing HTTPS Portal buffer
+settings and reloaded; subsequent `/up` and `/login` returned 200. The
+repository router configuration contains the same correction, and the deploy
+script now checks both endpoints. These repository changes must be reviewed
+and committed; the emergency router configuration is a tracked modification on
+the VM and should not be discarded. The VM also retains the explicit
+`router.conf.pre-buffer-fix` and `router.conf.pending` files for investigation.
+
+The release health check alone missed the login failure; HTTP 200 for `/up`
+does not verify application usability or zero downtime. The prior legacy
+image predates the destructive database reset and schema changes, so its
+health status is not evidence that application rollback to it is safe.
