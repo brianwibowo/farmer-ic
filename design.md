@@ -248,6 +248,23 @@ Pop-ups support both horizontal and vertical button layouts. Content patterns in
 
 Use a real dialog or modal pattern, keep the action order predictable, and make the close and primary actions keyboard accessible.
 
+Unsaved-change confirmations use SweetAlert2 through the shared
+`ConfirmationDialog` mounted in `AppShell`, with admin tokens, a 20px card,
+warning icon, concise title/message,
+and 44px-or-larger actions. Keep its overlay/content above an already-open
+editor. Focus the safe cancel action first. Cancel and Escape preserve typed
+values; ignore outside clicks. Leaving/discarding requires an
+explicit destructive action. Use the same dialog for Inertia form navigation
+and closing block, subblock, or legality editors. Prevent duplicate decisions
+and resume an approved navigation only once. SweetAlert2 joins the existing
+Reka focus stack and uses its own elevated overlay above editors.
+Render the body Teleport only after client mount so SSR hydration never walks
+unrelated body elements. Close SweetAlert before Vue removes its target and
+finish body/ARIA cleanup without waiting for a closing animation.
+Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
+installed npm package, never a CDN. Keep the native `beforeunload`
+warning for refresh/tab closure, where browsers do not allow a custom dialog.
+
 ## Pagination
 
 Pagination includes text and icon items with these states:
