@@ -9,11 +9,10 @@ export type DailyHeader = {
     recorder_name?: string | null;
 };
 
-export type DailyReport = DailyHeader & {
-    activities: {
+export type DailyReportActivity = {
         id: string;
         name: string;
-        position: number;
+        position: number | null;
         worker_count: number | null;
         performed_by: string;
         performer_name: string | null;
@@ -23,5 +22,8 @@ export type DailyReport = DailyHeader & {
         task_id: string | null;
         details: { label: string; value: string | number }[];
         photos: { id: string; url: string }[];
-    }[];
+};
+
+export type DailyReport = DailyHeader & {
+    activities: DailyReportActivity[];
 };

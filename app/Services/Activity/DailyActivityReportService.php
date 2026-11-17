@@ -25,27 +25,42 @@ class DailyActivityReportService
 
         return [
             ...(new DailyActivityHeaderResource($log))->resolve(),
-            'activities' => $activities->map(function (FarmActivity $activity) use ($actor, $team): array {
-                $type = ActivityType::visibleTo($actor, $team)->whereKey($activity->activity_type_id)->first();
-                $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($activity->planting_cycle_id)->first();
-                $blockId = $activity->getAttribute('block_id') ?? $cycle?->block_id;
-                $block = $blockId === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($blockId)->first();
-                $detailClass = ActivityDetailMap::model($type?->detail_key);
-                $detail = $detailClass === null ? null : $detailClass::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
+            'activities' => $activities->map(fn (FarmActivity $activity): array => $this->shapeActivity($actor, $farm, $activity))->all(),
+        ];
+    }
 
-                return [
-                    'id' => $activity->id, 'name' => $type->name ?? 'Aktivitas', 'position' => $activity->position,
-                    'worker_count' => $activity->worker_count,
-                    'performed_by' => $activity->performed_by, 'performer_name' => $activity->performer?->name,
-                    'subblok' => $cycle?->getAttribute('subblock_label'), 'notes' => $activity->description,
-                    'block' => $block?->name,
-                    'task_id' => $activity->getAttribute('planting_cycle_task_id'),
-                    'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? []), $type?->code),
-                    'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn (ActivityPhoto $photo) => [
-                        'id' => $photo->id, 'url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id]),
-                    ])->all(),
-                ];
-            })->all(),
+    /** @return array<string, mixed> */
+    public function activity(User $actor, Farm $farm, FarmActivity $activity): array
+    {
+        $team = $farm->team;
+        $activity = FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->whereKey($activity->id)->with('performer:id,name')->firstOrFail();
+
+        return $this->shapeActivity($actor, $farm, $activity);
+    }
+
+    /** @return array<string, mixed> */
+    private function shapeActivity(User $actor, Farm $farm, FarmActivity $activity): array
+    {
+        $team = $farm->team;
+        $type = ActivityType::visibleTo($actor, $team)->whereKey($activity->activity_type_id)->first();
+        $cycle = PlantingCycle::visibleTo($actor, $team)->whereKey($activity->planting_cycle_id)->first();
+        $blockId = $activity->getAttribute('block_id') ?? $cycle?->block_id;
+        $block = $blockId === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($blockId)->first();
+        $detailClass = ActivityDetailMap::model($type?->detail_key);
+        $detail = $detailClass === null ? null : $detailClass::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
+
+        return [
+            'id' => $activity->id, 'name' => $type->name ?? 'Aktivitas', 'position' => $activity->position,
+            'worker_count' => $activity->worker_count,
+            'performed_by' => $activity->performed_by, 'performer_name' => $activity->performer?->name,
+            'subblok' => $cycle?->getAttribute('subblock_label'), 'notes' => $activity->description,
+            'block' => $block?->name,
+            'task_id' => $activity->getAttribute('planting_cycle_task_id'),
+            'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? []), $type?->code),
+            'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn (ActivityPhoto $photo) => [
+                'id' => $photo->id, 'url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id]),
+            ])->all(),
         ];
     }
 
