@@ -54,7 +54,7 @@ class FarmLegalityController extends Controller
             Gate::authorize('create', [FarmLegalityDocument::class, $farm]);
         }
         $this->legalities->save($request->user(), $team, $farm, null, $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Legalitas kebun berhasil ditambahkan.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Legalitas lahan berhasil ditambahkan.']);
 
         return to_route('farm-management.legality.show', $farm);
     }

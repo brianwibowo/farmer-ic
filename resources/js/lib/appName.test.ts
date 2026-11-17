@@ -23,17 +23,17 @@ describe('application name from Laravel', () => {
 
     it('uses server metadata for titles and plain services', () => {
         vi.stubGlobal('document', {
-            querySelector: () => ({ content: 'Kebun Nusantara' }),
+            querySelector: () => ({ content: 'Lahan Nusantara' }),
         });
-        expect(getAppName()).toBe('Kebun Nusantara');
+        expect(getAppName()).toBe('Lahan Nusantara');
     });
 
     it('renders the configured name safely in both shared logos', async () => {
-        page.props.name = '<Kebun & Nusantara>';
+        page.props.name = '<Lahan & Nusantara>';
         for (const component of [BrandLogo, AppLogo]) {
             const html = await renderToString(createSSRApp(component));
-            expect(html).toContain('&lt;Kebun &amp; Nusantara&gt;');
-            expect(html).not.toContain('<Kebun & Nusantara>');
+            expect(html).toContain('&lt;Lahan &amp; Nusantara&gt;');
+            expect(html).not.toContain('<Lahan & Nusantara>');
         }
     });
 });

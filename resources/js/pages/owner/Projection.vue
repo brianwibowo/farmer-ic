@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { Sprout } from '@lucide/vue';
+import SummaryStatCard from '@/components/SummaryStatCard.vue';
 import { watch } from 'vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import OwnerHarvestProjectionTable from '@/components/owner/dashboard/OwnerHarvestProjectionTable.vue';
@@ -97,33 +99,17 @@ function setPeriod(period: 'cycle' | 'year'): void {
                 class="grid min-w-0 gap-3 sm:grid-cols-3 lg:gap-5"
                 aria-live="polite"
             >
-                <article
+                <SummaryStatCard
                     v-for="card in projection.cards"
                     :key="card.key"
-                    class="min-w-0 rounded-xl border border-border bg-card p-5 lg:p-6"
-                >
-                    <h3
-                        class="text-sm font-medium text-muted-foreground lg:text-base"
-                    >
-                        {{ card.name }}
-                    </h3>
-                    <p
-                        class="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1"
-                    >
-                        <span
-                            class="admin-metric-value break-all text-primary tabular-nums"
-                            >{{ projectionNumber(card.projection_ton) }}</span
-                        >
-                        <span class="text-sm text-muted-foreground">ton</span>
-                    </p>
-                    <p
-                        v-if="card.missing_count"
-                        class="mt-1 text-xs leading-5 text-muted-foreground"
-                    >
-                        Data luas kebun belum tersedia.
-                    </p>
-                </article>
+                    :label="`${card.name} (ton)`"
+                    :value="projectionNumber(card.projection_ton)"
+                    :icon="Sprout"
+                />
             </div>
+            <p v-if="projection.cards.some((card) => card.missing_count)" role="status" class="text-xs text-muted-foreground">
+                Sebagian data luas lahan belum tersedia.
+            </p>
             <p
                 v-if="projection.unidentified_batches"
                 role="status"

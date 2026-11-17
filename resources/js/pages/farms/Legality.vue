@@ -51,8 +51,8 @@ const location = computed(() =>
                 >
                     <Link
                         :href="backUrl"
-                        aria-label="Kembali ke detail kebun"
-                        title="Kembali ke detail kebun"
+                        aria-label="Kembali ke detail lahan"
+                        title="Kembali ke detail lahan"
                         ><ArrowLeft class="size-5" aria-hidden="true"
                     /></Link>
                 </Button>

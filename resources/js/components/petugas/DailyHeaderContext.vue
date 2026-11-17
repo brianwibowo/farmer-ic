@@ -167,7 +167,7 @@ onBeforeUnmount(() => controller?.abort());
             >
             <div v-if="editing" class="space-y-3 border-t border-border pt-3">
                 <p class="text-xs text-muted-foreground">
-                    Perubahan berlaku untuk seluruh aktivitas kebun pada tanggal
+                    Perubahan berlaku untuk seluruh aktivitas lahan pada tanggal
                     ini.
                 </p>
                 <label class="block space-y-1 text-sm"

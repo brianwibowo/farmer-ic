@@ -15,7 +15,7 @@ import { getGrowthProfile, getGrowthStageAtPercent } from '@/data/growthStages';
 
 // Bump the demo snapshot version whenever the unified JSON seed changes so an
 // existing browser session receives the latest demo data.
-const storageKey = 'farm_state_v19';
+const storageKey = 'farm_state_v20';
 
 export type DashboardFinancialSummary = {
     income: number;
@@ -181,7 +181,7 @@ export async function getFarmCommoditySummaries(): Promise<CommoditySummary[]> {
                 name: commodity.name,
                 image: commodity.image,
                 statistics: [
-                    { label: 'Jumlah', value: `${items.length} Kebun` },
+                    { label: 'Jumlah', value: `${items.length} Lahan` },
                     {
                         label: 'Luas tanam',
                         value: `${formatHectare(plantedArea)} / ${formatHectare(totalArea)}`,
@@ -209,14 +209,14 @@ export async function getFarmCommoditySummaries(): Promise<CommoditySummary[]> {
     const overall: CommoditySummary = {
         ...overallFarmSummary,
         statistics: [
-            { label: 'Jumlah', value: `${state.kebun.length} Kebun` },
+            { label: 'Jumlah', value: `${state.kebun.length} Lahan` },
             {
                 label: 'Luas Total',
                 value: `${formatHectare(totalPlantedArea)} / ${formatHectare(totalFarmArea)}`,
             },
             {
                 label: 'Total tanam',
-                value: `${state.kebun.filter((item) => item.usedHectare > 0).length} Kebun`,
+                value: `${state.kebun.filter((item) => item.usedHectare > 0).length} Lahan`,
             },
         ],
     };
@@ -263,21 +263,21 @@ export async function getDashboardFinancialSummary(): Promise<DashboardFinancial
         projectedExpenses: state.finance.totalExpense,
         information: {
             income: {
-                description: `Total pendapatan kebun dalam data keuangan pada periode ini.${includesPlans('income') ? ' Data referensi juga mencakup transaksi pendapatan yang masih direncanakan.' : ''}`,
+                description: `Total pendapatan lahan dalam data keuangan pada periode ini.${includesPlans('income') ? ' Data referensi juga mencakup transaksi pendapatan yang masih direncanakan.' : ''}`,
                 period: incomePeriod,
             },
             projectedIncome: {
                 description:
-                    'Estimasi pendapatan dari panen seluruh kebun, mengikuti jadwal panen yang tersedia. Nilai ini dapat berubah sesuai hasil panen dan harga jual.',
+                    'Estimasi pendapatan dari panen seluruh lahan, mengikuti jadwal panen yang tersedia. Nilai ini dapat berubah sesuai hasil panen dan harga jual.',
                 period: harvestPeriod,
             },
             expenses: {
-                description: `Total biaya kebun dalam data keuangan pada periode ini.${includesPlans('expense') ? ' Data referensi juga mencakup transaksi pengeluaran yang masih direncanakan.' : ''}`,
+                description: `Total biaya lahan dalam data keuangan pada periode ini.${includesPlans('expense') ? ' Data referensi juga mencakup transaksi pengeluaran yang masih direncanakan.' : ''}`,
                 period: expensePeriod,
             },
             projectedExpenses: {
                 description:
-                    'Estimasi biaya kebun. Pada data referensi saat ini, nilainya menggunakan total pengeluaran pada periode ini sebagai acuan.',
+                    'Estimasi biaya lahan. Pada data referensi saat ini, nilainya menggunakan total pengeluaran pada periode ini sebagai acuan.',
                 period: expensePeriod,
             },
         },
@@ -718,10 +718,10 @@ export function buildFarmReport(
     const scopeLabel =
         filters.kebunId === 'all'
             ? filters.commodity === 'all'
-                ? 'Semua kebun'
+                ? 'Semua lahan'
                 : filters.commodity
             : (state.kebun.find((item) => item.id === filters.kebunId)?.name ??
-              'Kebun terpilih');
+              'Lahan terpilih');
 
     return {
         generatedAt: new Date().toLocaleString('id-ID'),

@@ -426,7 +426,7 @@ class FinanceService
     private function cycle(User $user, Team $team, Farm $farm, ?string $id): void
     {
         if ($id !== null && PlantingCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->whereKey($id)->sharedLock()->first() === null) {
-            throw ValidationException::withMessages(['planting_cycle_id' => 'Siklus tanam harus tersedia dan berasal dari kebun yang sama.']);
+            throw ValidationException::withMessages(['planting_cycle_id' => 'Siklus tanam harus tersedia dan berasal dari lahan yang sama.']);
         }
     }
 

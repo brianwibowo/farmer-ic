@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Archive, RotateCcw } from '@lucide/vue';
 import UserDirectoryTabs from '@/components/users/UserDirectoryTabs.vue';
@@ -196,31 +197,13 @@ function restore(): void {
             <p class="text-xs text-muted-foreground">
                 {{ users.total }} pengguna terhapus dalam cakupan akses Anda
             </p>
-            <nav
+            <InertiaPagination
                 v-if="users.last_page > 1"
-                class="flex items-center gap-3"
-                aria-label="Pagination pengguna terhapus"
-            >
-                <Button
-                    v-if="users.prev_page_url"
-                    as-child
-                    variant="outline"
-                    size="sm"
-                    ><Link :href="users.prev_page_url">Sebelumnya</Link></Button
-                >
-                <span
-                    aria-current="page"
-                    class="text-xs font-semibold tabular-nums"
-                    >{{ users.current_page }} / {{ users.last_page }}</span
-                >
-                <Button
-                    v-if="users.next_page_url"
-                    as-child
-                    variant="outline"
-                    size="sm"
-                    ><Link :href="users.next_page_url">Berikutnya</Link></Button
-                >
-            </nav>
+                :paginator="users"
+                label="Pagination pengguna terhapus"
+                class="ml-auto justify-end"
+                :disabled="form.processing"
+            />
         </footer>
     </section>
     <Dialog

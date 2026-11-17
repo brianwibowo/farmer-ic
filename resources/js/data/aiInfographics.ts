@@ -17,17 +17,17 @@ export const infographicGenerationConfig = {
 
 const smartFarmingInfographic: AiInfographic = {
     id: 'smart-farming-overview',
-    title: 'Panduan Kebun Pintar',
+    title: 'Panduan Lahan Pintar',
     description:
-        'Visual ringkas tentang bagian utama pemantauan kebun dan teknologi pertanian.',
+        'Visual ringkas tentang bagian utama pemantauan lahan dan teknologi pertanian.',
     bullets: [
         'Pantau pertumbuhan tanaman dengan foto dan catatan lapangan.',
         'Gunakan data irigasi, tanah, dan cuaca sebagai bahan pertimbangan.',
         'Validasi temuan visual sebelum mengambil tindakan di lapangan.',
     ],
     image: '/images/ai-infographics/smart-farming-overview.png',
-    imageAlt: 'Visual Panduan Kebun Pintar',
-    imageName: 'Visual Panduan Kebun Pintar',
+    imageAlt: 'Visual Panduan Lahan Pintar',
+    imageName: 'Visual Panduan Lahan Pintar',
 };
 
 const agriculturalTopic =

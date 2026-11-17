@@ -315,7 +315,7 @@ export async function queryDemoData(
             ? `Periode: ${quarter.label}`
             : `Periode: ${period.label}`;
         const scopeLine = allGardens
-            ? `Cakupan: seluruh kebun (${farmDemoSeedData.kebun.length} kebun)`
+            ? `Cakupan: seluruh lahan (${farmDemoSeedData.kebun.length} lahan)`
             : 'Cakupan: data keuangan yang tersedia';
         const totals = quarter
             ? [
@@ -331,7 +331,7 @@ export async function queryDemoData(
         return {
             source: 'Dataset referensi keuangan',
             content: [
-                '### 💰 Ringkasan Keuangan Kebun',
+                '### 💰 Ringkasan Keuangan Lahan',
                 `> 📊 ${totals} | ⏳ **${financeScope}**`,
                 `> 🌱 **${scopeLine}** | 📌 **Sumber:** Data referensi`,
                 '',
@@ -362,7 +362,7 @@ export async function queryDemoData(
         return {
             source: 'Dataset referensi aktivitas',
             content: [
-                '### 🧾 Aktivitas Kebun Terbaru',
+                '### 🧾 Aktivitas Lahan Terbaru',
                 `> 📌 **Catatan:** ${entries.length} aktivitas | ⏳ **Status:** Tersedia | 📊 **Sumber:** Data referensi`,
                 '',
                 ...entries.map(
@@ -379,13 +379,13 @@ export async function queryDemoData(
         const kebun = await listKebun();
         const specific = kebun.find((item) => {
             const nameLower = item.name.toLowerCase();
-            const simpleName = nameLower.replace(/^kebun\s+/, '');
+            const simpleName = nameLower.replace(/^(?:kebun|lahan)\s+/, '');
             return value.includes(nameLower) || value.includes(simpleName);
         });
 
         if (specific) {
             return {
-                source: `Dataset referensi kebun · ${specific.name}`,
+                source: `Dataset referensi lahan · ${specific.name}`,
                 content: [
                     `### 🌱 Kondisi ${specific.name}`,
                     `> 🌾 **Komoditas:** ${specific.seedType} (${specific.seedTypeDetail || 'Varietas Unggul'}) | 🩺 **Status:** ${specific.healthStatus}`,
@@ -394,24 +394,24 @@ export async function queryDemoData(
                     `- **Status Tanaman:** ${specific.healthStatus === 'Sehat' ? '✅ Tanaman dalam kondisi sehat dan pertumbuhannya optimal.' : specific.healthStatus === 'Kritis' ? '🚨 Status kritis, butuh tindakan penanganan dan inspeksi segera.' : '⚠️ Perlu perhatian khusus dan pemantauan berkala.'}`,
                     `- **Alamat:** ${specific.address}`,
                     '',
-                    '> 💡 **Catatan:** Anda dapat membuka halaman rincian kebun untuk melihat riwayat pemupukan, catatan lapangan, dan dokumentasi foto.',
+                    '> 💡 **Catatan:** Anda dapat membuka halaman rincian lahan untuk melihat riwayat pemupukan, catatan lapangan, dan dokumentasi foto.',
                 ].join('\n'),
             };
         }
 
         const attention = kebun.filter((item) => item.healthStatus !== 'Sehat');
         return {
-            source: 'Dataset referensi kebun',
+            source: 'Dataset referensi lahan',
             content: [
-                '### 🌱 Kondisi Kebun Petani',
-                `> 🌾 **Total kebun:** ${kebun.length} | ✅ **Sehat:** ${kebun.length - attention.length} | ⚠️ **Perlu perhatian/Kritis:** ${attention.length}`,
+                '### 🌱 Kondisi Lahan Petani',
+                `> 🌾 **Total lahan:** ${kebun.length} | ✅ **Sehat:** ${kebun.length - attention.length} | ⚠️ **Perlu perhatian/Kritis:** ${attention.length}`,
                 '',
                 ...kebun.map(
                     (item, index) =>
                         `${index + 1}. **${item.name}**: ${item.seedType}${item.seedTypeDetail ? ' (' + item.seedTypeDetail + ')' : ''} · ${item.healthStatus} · ${item.city} (${item.usedHectare}/${item.availableHectare} ha)`,
                 ),
                 '',
-                '> 💡 **Tips:** Sebutkan nama kebun tertentu (misal: *"Kondisi kebun Sumber Makmur"*) untuk melihat rincian lokasi dan varietas benihnya.',
+                '> 💡 **Tips:** Sebutkan nama lahan tertentu (misal: *"Kondisi lahan Sumber Makmur"*) untuk melihat rincian lokasi dan varietas benihnya.',
             ].join('\n'),
         };
     }

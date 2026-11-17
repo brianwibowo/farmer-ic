@@ -38,7 +38,7 @@ export type CommodityCatalogItem = {
 
 export const overallFarmSummary: CommodityCatalogItem = {
     id: 'all',
-    name: 'Keseluruhan Kebun',
+    name: 'Keseluruhan Lahan',
     image: '/images/commodities/kebun.png',
 };
 

@@ -26,7 +26,7 @@ function category(task: OwnerSopTask): string {
     <div class="space-y-5">
         <OwnerPageHeader
             :title="template.name"
-            :description="template.commodity?.name ?? 'Panduan kerja kebun'"
+            :description="template.commodity?.name ?? 'Panduan kerja lahan'"
             back-href="/lainnya/sop"
             back-label="Daftar SOP"
         />

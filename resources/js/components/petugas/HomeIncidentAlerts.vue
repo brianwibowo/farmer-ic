@@ -24,7 +24,7 @@ const date = (value: string) =>
     <section
         v-if="incidents.data.length"
         class="space-y-3"
-        aria-label="Peringatan insiden kebun"
+        aria-label="Peringatan insiden lahan"
     >
         <article
             v-for="incident in incidents.data"
@@ -50,7 +50,7 @@ const date = (value: string) =>
                     {{
                         incident.description ||
                         incident.category ||
-                        'Insiden kebun dilaporkan'
+                        'Insiden lahan dilaporkan'
                     }}
                 </h3>
                 <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">

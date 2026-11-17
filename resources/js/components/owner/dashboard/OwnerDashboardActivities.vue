@@ -79,7 +79,7 @@ function statusTone(status: string): string {
                     Aktivitas lapangan
                 </h2>
                 <p class="mt-1 text-xs leading-5 text-muted-foreground">
-                    Catatan terbaru dari kebun yang dapat Anda lihat.
+                    Catatan terbaru dari lahan yang dapat Anda lihat.
                 </p>
             </div>
             <Link
@@ -126,7 +126,7 @@ function statusTone(status: string): string {
                         id="owner-dashboard-activity-search"
                         v-model="search"
                         type="search"
-                        placeholder="Aktivitas, kebun, atau petugas"
+                        placeholder="Aktivitas, lahan, atau petugas"
                         aria-controls="owner-dashboard-activity-results"
                         class="min-h-11 w-full min-w-0 rounded-xl border border-input bg-background py-2 pr-3 pl-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
                     />
@@ -192,7 +192,7 @@ function statusTone(status: string): string {
                         <dl
                             class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs leading-5"
                         >
-                            <dt class="text-muted-foreground">Kebun</dt>
+                            <dt class="text-muted-foreground">Lahan</dt>
                             <dd class="break-words">{{ activity.farm }}</dd>
                             <dt class="text-muted-foreground">Petugas</dt>
                             <dd class="break-words">
@@ -216,7 +216,7 @@ function statusTone(status: string): string {
                     {{
                         hasFilters
                             ? 'Ubah kata kunci atau pilih petugas lain.'
-                            : 'Catatan petugas pada kebun dalam cakupan Anda akan muncul di sini.'
+                            : 'Catatan petugas pada lahan dalam cakupan Anda akan muncul di sini.'
                     }}
                 </p>
             </div>

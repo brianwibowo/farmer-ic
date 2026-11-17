@@ -33,7 +33,7 @@ const emit = defineEmits<{
 
 const items: FarmerNavItem[] = [
     { key: 'home', label: 'Beranda', href: '/referensi' },
-    { key: 'garden', label: 'Kebun', href: '/referensi/kebun' },
+    { key: 'garden', label: 'Lahan', href: '/referensi/kebun' },
     { key: 'ai', label: 'AI', emphasis: true, href: '/referensi/ai' },
     { key: 'finance', label: 'Keuangan', href: '/referensi/finance' },
     { key: 'activity', label: 'Aktivitas', href: '/referensi/aktivitas' },

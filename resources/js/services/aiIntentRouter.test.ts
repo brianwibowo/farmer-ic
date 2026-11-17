@@ -40,7 +40,7 @@ describe('ai intent router', () => {
     );
 
     it('does not turn a data display request into image generation', () => {
-        const route = routeAiPrompt('tampilkan kondisi kebun saya');
+        const route = routeAiPrompt('tampilkan kondisi lahan saya');
 
         expect(route.intent).toBe('data');
         expect(route.reason).toBe('explicit_data_lookup');
@@ -101,7 +101,7 @@ describe('ai intent router', () => {
     });
 
     it('rejects direct coding requests even when they mention farming', () => {
-        const route = routeAiPrompt('buat kode untuk kebun');
+        const route = routeAiPrompt('buat kode untuk lahan');
 
         expect(route.intent).toBe('out_of_scope');
         expect(route.reason).toBe('unsupported_topic');

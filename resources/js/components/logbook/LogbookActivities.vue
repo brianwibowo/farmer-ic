@@ -33,7 +33,7 @@ const number = (value: string | number | null, unit = '') =>
                         {{
                             activity.type === 'block_mapping'
                                 ? 'Pemetaan blok'
-                                : 'Aktivitas kebun'
+                                : 'Aktivitas lahan'
                         }}
                     </p>
                     <h3

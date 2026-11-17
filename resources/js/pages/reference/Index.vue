@@ -10,9 +10,9 @@ import AiMessageList from '@/reference/components/farmer/AiMessageList.vue';
 const inputText = ref('');
 const quickPrompts = [
     '📊 Gambar: Panduan Pemupukan Jagung sesuai Fase',
-    '💧 Gambar: Jadwal & Kebutuhan Air Kebun',
+    '💧 Gambar: Jadwal & Kebutuhan Air Lahan',
     '🐛 Gambar: Deteksi & Pengendalian Hama Daun',
-    'Bagaimana kondisi kebun saya hari ini?',
+    'Bagaimana kondisi lahan saya hari ini?',
 ];
 const voice = {
     isPreparing: ref(false), isRecording: ref(false), isTranscribing: ref(false),

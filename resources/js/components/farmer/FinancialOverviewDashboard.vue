@@ -24,7 +24,7 @@ const formatRupiah = (value: number): string =>
 </script>
 
 <template>
-    <section aria-label="Pendapatan dan pengeluaran kebun">
+    <section aria-label="Pendapatan dan pengeluaran lahan">
         <div
             v-if="loading"
             class="grid grid-cols-2 gap-3"
@@ -36,7 +36,7 @@ const formatRupiah = (value: number): string =>
         </div>
         <div v-else-if="financialSummary" class="grid grid-cols-2 gap-3">
             <StatCard
-                title="Pendapatan Kebun"
+                title="Pendapatan Lahan"
                 :value="formatRupiah(financialSummary.income)"
                 projection-title="Proyeksi Pendapatan"
                 :projection-value="
@@ -49,7 +49,7 @@ const formatRupiah = (value: number): string =>
                 "
             />
             <StatCard
-                title="Pengeluaran Kebun"
+                title="Pengeluaran Lahan"
                 :value="formatRupiah(financialSummary.expenses)"
                 projection-title="Proyeksi Pengeluaran"
                 :projection-value="

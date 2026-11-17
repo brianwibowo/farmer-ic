@@ -24,7 +24,7 @@ watch(
 </script>
 
 <template>
-    <Head title="SOP kebun" />
+    <Head title="SOP lahan" />
     <div class="space-y-5" :aria-busy="loading">
         <OwnerPageHeader
             title="SOP"

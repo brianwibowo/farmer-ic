@@ -195,7 +195,7 @@ function submitReschedule(): void {
                             <dt
                                 class="flex items-center gap-1.5 text-xs text-muted-foreground"
                             >
-                                <LandPlot class="size-3.5 text-primary" />Kebun
+                                <LandPlot class="size-3.5 text-primary" />Lahan
                             </dt>
                             <dd class="mt-1.5 font-medium">
                                 {{ task.farm?.name ?? '-' }}

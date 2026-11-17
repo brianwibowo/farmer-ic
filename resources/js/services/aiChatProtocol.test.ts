@@ -94,7 +94,7 @@ describe('chat message presentation', () => {
         const message = parseMessage({
             id: 'data-1',
             role: 'assistant',
-            content: '### Kondisi Kebun\n1. Kebun A: Sehat',
+            content: '### Kondisi Lahan\n1. Lahan A: Sehat',
             attachments: [],
         });
 

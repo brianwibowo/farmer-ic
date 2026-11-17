@@ -132,7 +132,7 @@ function clear(key: string) {
                 >
             </fieldset>
             <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                <span aria-live="polite">{{ count }} kebun terpilih</span
+                <span aria-live="polite">{{ count }} lahan terpilih</span
                 ><button
                     v-if="changed"
                     type="button"
@@ -189,7 +189,7 @@ function clear(key: string) {
                 </AppSelect>
             </div>
             <div class="exec-label">
-                <label :for="`${panelId}-farm`">Kebun</label>
+                <label :for="`${panelId}-farm`">Lahan</label>
                 <AppSelect
                     :id="`${panelId}-farm`"
                     :model-value="filters.farm"
@@ -197,7 +197,7 @@ function clear(key: string) {
                     class="admin-field min-h-11!"
                     @update:model-value="set('farm', $event)"
                 >
-                    <AppSelectOption value="">Semua kebun</AppSelectOption>
+                    <AppSelectOption value="">Semua lahan</AppSelectOption>
                     <AppSelectOption
                         v-for="farm in farmOptions"
                         :key="farm.id"

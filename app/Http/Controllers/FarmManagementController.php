@@ -39,7 +39,7 @@ class FarmManagementController extends Controller
         return app(RolePermissions::class)->withMembershipSnapshot($request->user(), function () use ($request): Response {
             $team = $request->user()->currentTeam;
             Gate::authorize('viewAny', [Farm::class, $team]);
-            abort_unless($team instanceof Team, 403, 'Pilih tim aktif untuk mengelola kebun.');
+            abort_unless($team instanceof Team, 403, 'Pilih tim aktif untuk mengelola lahan.');
             $farms = $this->farms->paginate($request->user(), $team, $request->validated());
 
             return Inertia::render('farms/Index', [
@@ -85,7 +85,7 @@ class FarmManagementController extends Controller
         abort_unless($team instanceof Team, 403);
         $this->authorizePic($request, $team);
         $farm = $this->farms->create($request->validated(), $request->user(), $team);
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun berhasil ditambahkan.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Lahan berhasil ditambahkan.']);
 
         return to_route('farm-management.show', $farm);
     }
@@ -147,7 +147,7 @@ class FarmManagementController extends Controller
         Gate::authorize('update', $farm);
         $this->authorizePic($request, $farm->team, $farm);
         $this->farms->update($farm, $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan kebun berhasil disimpan.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan lahan berhasil disimpan.']);
 
         return to_route('farm-management.show', $farm);
     }
@@ -173,7 +173,7 @@ class FarmManagementController extends Controller
         } catch (ConflictHttpException $exception) {
             throw ValidationException::withMessages(['delete' => $exception->getMessage()]);
         }
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun berhasil dihapus.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Lahan berhasil dihapus.']);
 
         return to_route('farm-management.index');
     }
@@ -206,7 +206,7 @@ class FarmManagementController extends Controller
         } catch (ConflictHttpException $exception) {
             throw ValidationException::withMessages(['force_delete' => $exception->getMessage()]);
         }
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Kebun dan data operasionalnya dihapus permanen. Akun pengguna tetap disimpan.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Lahan dan data operasionalnya dihapus permanen. Akun pengguna tetap disimpan.']);
 
         return to_route($request->user()->currentTeam instanceof Team ? 'farm-management.index' : 'admin.dashboard');
     }

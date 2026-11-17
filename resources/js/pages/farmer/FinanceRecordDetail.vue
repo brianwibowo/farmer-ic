@@ -13,7 +13,7 @@ const props = defineProps<{
 }>();
 const labels: Record<string, string> = {
     id: 'ID',
-    farm_id: 'ID kebun',
+    farm_id: 'ID lahan',
     category_id: 'ID kategori',
     planting_cycle_id: 'ID siklus tanam',
     name: 'Nama',

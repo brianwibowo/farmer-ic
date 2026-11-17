@@ -158,7 +158,7 @@ function submit(): void {
     form.clearErrors();
     localError.value = '';
     if (!props.record && props.resource !== 'categories' && !farmId.value) {
-        localError.value = 'Pilih kebun terlebih dahulu.';
+        localError.value = 'Pilih lahan terlebih dahulu.';
         return;
     }
     for (const field of moneyFields.value) {
@@ -241,7 +241,7 @@ function submit(): void {
                     v-if="resource !== 'categories' && !record"
                     class="space-y-1.5"
                 >
-                    <Label for="finance-farm">Kebun</Label>
+                    <Label for="finance-farm">Lahan</Label>
                     <AppSelect
                         id="finance-farm"
                         v-model="farmId"
@@ -249,7 +249,7 @@ function submit(): void {
                         class="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
                     >
                         <AppSelectOption value="" disabled
-                            >Pilih kebun</AppSelectOption
+                            >Pilih lahan</AppSelectOption
                         >
                         <AppSelectOption
                             v-for="farm in options.farms"

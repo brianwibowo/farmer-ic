@@ -19,7 +19,7 @@ class PetugasSubblokController extends Controller
     public function __invoke(StorePetugasSubblokRequest $request, FarmBlock $block, FarmBlockService $blocks): RedirectResponse
     {
         $farm = $request->user()->assignedFarm;
-        abort_unless($farm instanceof Farm, 403, 'Anda belum memiliki penugasan kebun.');
+        abort_unless($farm instanceof Farm, 403, 'Anda belum memiliki penugasan lahan.');
         Gate::authorize('view', $farm);
         $team = $farm->team;
         abort_unless($team instanceof Team, 403);

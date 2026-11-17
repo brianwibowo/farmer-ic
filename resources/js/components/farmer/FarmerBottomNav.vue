@@ -59,7 +59,7 @@ const navigationItems = computed<FarmerNavItem[]>(() => {
                 ? [
                       {
                           key: 'garden' as const,
-                          label: 'Kebun',
+                          label: 'Lahan',
                           href: '/admin/farm-management',
                       },
                   ]
@@ -79,7 +79,7 @@ const navigationItems = computed<FarmerNavItem[]>(() => {
     if (page.props.navigation?.petugas && props.activeKey !== 'ai') {
         return [
             { key: 'home', label: 'Beranda', href: '/petugas' },
-            { key: 'garden', label: 'Kebun', href: '/petugas/kebun' },
+            { key: 'garden', label: 'Lahan', href: '/petugas/kebun' },
             { key: 'activity', label: 'Tugas', href: '/petugas/aktivitas' },
             { key: 'report', label: 'Laporan', href: '/petugas/laporan' },
         ];

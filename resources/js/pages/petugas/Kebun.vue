@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { LandPlot, Layers, Plus, Sprout } from '@lucide/vue';
 import { ref } from 'vue';
@@ -15,10 +16,10 @@ const createOpen = ref(false);
 </script>
 
 <template>
-    <Head title="Kebun · Petugas" />
+    <Head title="Lahan · Petugas" />
     <div class="space-y-[var(--admin-content-gap)]">
         <h1 class="text-2xl leading-8 font-semibold tracking-tight">
-            Kebun saya
+            Lahan saya
         </h1>
         <section
             v-if="!garden.farm"
@@ -29,10 +30,10 @@ const createOpen = ref(false);
                 aria-hidden="true"
             />
             <h2 class="mt-3 text-base font-semibold">
-                Belum ada kebun penugasan
+                Belum ada lahan penugasan
             </h2>
             <p class="mt-2 text-sm text-muted-foreground">
-                Hubungi admin untuk penugasan kebun.
+                Hubungi admin untuk penugasan lahan.
             </p>
         </section>
         <template v-else>
@@ -50,12 +51,12 @@ const createOpen = ref(false);
                         aria-hidden="true"
                     />
                     <p class="mt-3 text-sm font-medium">
-                        Belum ada blok pada kebun ini
+                        Belum ada blok pada lahan ini
                     </p>
                 </div>
                 <template v-else>
                     <nav
-                        aria-label="Pilih blok kebun"
+                        aria-label="Pilih blok lahan"
                         class="flex gap-2 overflow-x-auto pb-1"
                     >
                         <Link
@@ -129,7 +130,9 @@ const createOpen = ref(false);
                                 }}
                             </p>
                         </div>
-                        <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-3"
+                        >
                             <div>
                                 <h3 class="text-base font-semibold">Subblok</h3>
                                 <p class="text-xs text-muted-foreground">
@@ -153,8 +156,9 @@ const createOpen = ref(false);
                                 size="sm"
                                 class="min-h-11 rounded-xl"
                                 :disabled="
-                                    Number(garden.selected_block.available_ha) <=
-                                    0
+                                    Number(
+                                        garden.selected_block.available_ha,
+                                    ) <= 0
                                 "
                                 :aria-label="`Tambah subblok di ${garden.selected_block.name}`"
                                 @click="createOpen = true"
@@ -203,42 +207,12 @@ const createOpen = ref(false);
                                 <GardenBatchCard :batch="batch" />
                             </li>
                         </ul>
-                        <nav
+                        <InertiaPagination
                             v-if="garden.batches.last_page > 1"
-                            aria-label="Halaman subblok"
-                            class="flex flex-wrap items-center justify-between gap-2 [&_a]:h-11 [&_a]:rounded-xl [&_button]:h-11 [&_button]:rounded-xl"
-                        >
-                            <Button
-                                v-if="garden.batches.prev_page_url"
-                                as-child
-                                variant="outline"
-                                size="sm"
-                                ><Link
-                                    :href="garden.batches.prev_page_url"
-                                    preserve-scroll
-                                    >Sebelumnya</Link
-                                ></Button
-                            ><Button v-else variant="outline" size="sm" disabled
-                                >Sebelumnya</Button
-                            ><span
-                                class="text-xs text-muted-foreground"
-                                aria-current="page"
-                                >{{ garden.batches.current_page }} /
-                                {{ garden.batches.last_page }}</span
-                            ><Button
-                                v-if="garden.batches.next_page_url"
-                                as-child
-                                variant="outline"
-                                size="sm"
-                                ><Link
-                                    :href="garden.batches.next_page_url"
-                                    preserve-scroll
-                                    >Berikutnya</Link
-                                ></Button
-                            ><Button v-else variant="outline" size="sm" disabled
-                                >Berikutnya</Button
-                            >
-                        </nav>
+                            :paginator="garden.batches"
+                            label="Pagination subblok"
+                            class="ml-auto justify-end"
+                        />
                         <SubblokCreateDialog
                             v-model:open="createOpen"
                             :blocks="[garden.selected_block]"

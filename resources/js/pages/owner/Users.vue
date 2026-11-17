@@ -42,7 +42,7 @@ const hasFilters = computed(
     <div class="space-y-5" :aria-busy="loading">
         <OwnerPageHeader
             title="Data pengguna"
-            description="Lihat anggota tim dan penugasan kebun dalam tenant aktif."
+            description="Lihat anggota tim dan penugasan lahan dalam tenant aktif."
             back-href="/lainnya"
         />
         <form

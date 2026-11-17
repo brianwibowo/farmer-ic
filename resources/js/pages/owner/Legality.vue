@@ -62,7 +62,7 @@ const status = computed(() =>
         title="Detail legalitas"
         :back-href="backHref"
         :back-label="
-            returnToHome ? 'Kembali ke Monitoring Lahan' : 'Kembali ke kebun'
+            returnToHome ? 'Kembali ke Monitoring Lahan' : 'Kembali ke lahan'
         "
     />
     <section

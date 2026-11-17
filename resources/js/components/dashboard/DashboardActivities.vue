@@ -1,48 +1,79 @@
 <script setup lang="ts">
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import { Link } from '@inertiajs/vue3';
 import { ClipboardList, Search, Users } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import NumberPagination from '@/components/NumberPagination.vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import type { DashboardActivity, DashboardOfficer } from '@/types/dashboard';
+import type {
+    DashboardActivity,
+    DashboardActivityFilters,
+    DashboardActivityPagination,
+    DashboardOfficer,
+} from '@/types/dashboard';
 
 const props = defineProps<{
     activities: DashboardActivity[];
     officers: DashboardOfficer[];
+    filters: DashboardActivityFilters;
+    pagination: DashboardActivityPagination;
+    loading: boolean;
+    error: string;
 }>();
-const activitySearch = ref('');
-const selectedOfficerId = ref<string | null>(null);
+const emit = defineEmits<{
+    change: [filters: DashboardActivityFilters, page: number];
+}>();
+const activitySearch = ref(props.filters.search);
+const selectedOfficerId = ref<string | null>(props.filters.officer_id);
+const perPage = ref(props.filters.per_page);
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+function syncFilters(): void {
+    clearTimeout(searchTimer);
+    activitySearch.value = props.filters.search;
+    selectedOfficerId.value = props.filters.officer_id;
+    perPage.value = props.filters.per_page;
+}
+watch(() => props.filters, syncFilters);
 watch(
-    () => props.officers,
-    (officers) => {
-        if (!officers.some((officer) => officer.id === selectedOfficerId.value))
-            selectedOfficerId.value = null;
+    () => props.error,
+    (error) => {
+        if (error) syncFilters();
     },
 );
+onBeforeUnmount(() => clearTimeout(searchTimer));
 const selectedOfficer = computed(() =>
     props.officers.find((officer) => officer.id === selectedOfficerId.value),
 );
 const hasFilters = computed(() =>
     Boolean(activitySearch.value.trim() || selectedOfficerId.value),
 );
-const visibleActivities = computed(() => {
-    const query = activitySearch.value.trim().toLocaleLowerCase('id-ID');
-    return props.activities.filter((activity) => {
-        const matchesOfficer =
-            selectedOfficerId.value === null ||
-            activity.officerId === selectedOfficerId.value;
-        const matchesSearch =
-            `${activity.title} ${activity.description ?? ''} ${activity.farm} ${activity.officerName}`
-                .toLocaleLowerCase('id-ID')
-                .includes(query);
-        return matchesOfficer && matchesSearch;
-    });
-});
+const visibleActivities = computed(() => props.activities);
+function requestPage(page = 1): void {
+    clearTimeout(searchTimer);
+    if (props.loading) return;
+    emit(
+        'change',
+        {
+            search: activitySearch.value.trim(),
+            officer_id: selectedOfficerId.value,
+            per_page: perPage.value,
+        },
+        page,
+    );
+}
+function searchActivities(): void {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => requestPage(), 300);
+}
+function selectOfficer(id: string | null): void {
+    selectedOfficerId.value = id;
+    requestPage();
+}
 function resetFilters(): void {
     activitySearch.value = '';
     selectedOfficerId.value = null;
+    requestPage();
 }
 function activityTone(status: string): string {
     const normalized = status.trim().toLocaleLowerCase('id-ID');
@@ -80,7 +111,10 @@ function activityLabel(status: string): string {
 </script>
 
 <template>
-    <section class="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
+    <section
+        class="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]"
+        :aria-busy="loading"
+    >
         <article
             class="admin-card min-w-0 overflow-hidden rounded-xl bg-card"
             aria-labelledby="activities-heading"
@@ -96,7 +130,7 @@ function activityLabel(status: string): string {
                         Aktivitas lapangan
                     </h2>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Aktivitas terbaru yang dicatat oleh petugas pada kebun
+                        Aktivitas terbaru yang dicatat oleh petugas pada lahan
                         dalam cakupan Anda.
                     </p>
                 </div>
@@ -110,6 +144,8 @@ function activityLabel(status: string): string {
                     >
                     <AppSelect
                         v-model="selectedOfficerId"
+                        :disabled="loading"
+                        @change="requestPage()"
                         class="admin-field"
                         aria-controls="dashboard-activity-results"
                     >
@@ -138,8 +174,12 @@ function activityLabel(status: string): string {
                         <input
                             v-model="activitySearch"
                             type="search"
+                            maxlength="200"
+                            :disabled="loading"
+                            @input="searchActivities"
+                            @keydown.enter.prevent="requestPage()"
                             class="admin-field pl-10!"
-                            placeholder="Cari aktivitas atau kebun"
+                            placeholder="Cari aktivitas atau lahan"
                             aria-controls="dashboard-activity-results"
                         />
                     </span>
@@ -161,11 +201,30 @@ function activityLabel(status: string): string {
                     type="button"
                     variant="outline"
                     size="sm"
+                    :disabled="loading"
                     @click="resetFilters"
                     >Reset filter</Button
                 >
             </div>
-            <div id="dashboard-activity-results">
+            <p
+                v-if="error"
+                role="alert"
+                class="border-t border-border px-5 py-3 text-sm text-error"
+            >
+                {{ error }}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    class="ml-2"
+                    :disabled="loading"
+                    @click="requestPage(pagination.current_page)"
+                    >Coba lagi</Button
+                >
+            </p>
+            <div
+                id="dashboard-activity-results"
+                :class="{ 'opacity-60': loading }"
+            >
                 <div
                     v-if="visibleActivities.length"
                     class="hidden overflow-x-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring md:block"
@@ -183,7 +242,7 @@ function activityLabel(status: string): string {
                         >
                             <tr>
                                 <th scope="col" class="px-5 py-3">Kegiatan</th>
-                                <th scope="col" class="px-5 py-3">Kebun</th>
+                                <th scope="col" class="px-5 py-3">Lahan</th>
                                 <th scope="col" class="px-5 py-3">Petugas</th>
                                 <th scope="col" class="px-5 py-3">Tanggal</th>
                                 <th scope="col" class="px-5 py-3">Status</th>
@@ -275,7 +334,7 @@ function activityLabel(status: string): string {
                         <dl
                             class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-xs leading-5"
                         >
-                            <dt class="text-muted-foreground">Kebun</dt>
+                            <dt class="text-muted-foreground">Lahan</dt>
                             <dd class="break-words text-foreground">
                                 {{ activityItem.farm }}
                             </dd>
@@ -310,13 +369,14 @@ function activityLabel(status: string): string {
                         {{
                             hasFilters
                                 ? 'Pilih petugas lain atau ubah kata kunci pencarian.'
-                                : 'Aktivitas yang dicatat pada kebun dalam cakupan Anda akan muncul di sini.'
+                                : 'Aktivitas yang dicatat pada lahan dalam cakupan Anda akan muncul di sini.'
                         }}
                     </p>
                     <Button
                         v-if="hasFilters"
                         type="button"
                         variant="outline"
+                        :disabled="loading"
                         class="mt-2"
                         @click="resetFilters"
                         >Reset filter</Button
@@ -327,17 +387,44 @@ function activityLabel(status: string): string {
                 class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3 text-xs text-muted-foreground"
             >
                 <span role="status" aria-live="polite" aria-atomic="true"
-                    >Menampilkan {{ visibleActivities.length }} dari
-                    {{ activities.length }} aktivitas terbaru.</span
-                ><Button
-                    v-if="$page.props.navigation?.farms"
-                    as-child
-                    variant="link"
-                    size="sm"
-                    ><Link href="/admin/farm-management"
-                        >Kelola kebun</Link
-                    ></Button
+                    ><template v-if="loading">Memuat aktivitas…</template>
+                    <template v-else
+                        >Menampilkan {{ pagination.from ?? 0 }}–{{
+                            pagination.to ?? 0
+                        }}
+                        dari {{ pagination.total }} aktivitas.</template
+                    ></span
                 >
+                <div class="ml-auto flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-end">
+                    <label
+                        class="flex items-center gap-2"
+                        for="dashboard-activity-per-page"
+                    >
+                        Per halaman
+                        <AppSelect
+                            id="dashboard-activity-per-page"
+                            v-model.number="perPage"
+                            class="admin-field w-auto!"
+                            :disabled="loading"
+                            @change="requestPage()"
+                        >
+                            <AppSelectOption
+                                v-for="size in [10, 20, 50]"
+                                :key="size"
+                                :value="size"
+                                >{{ size }}</AppSelectOption
+                            >
+                        </AppSelect>
+                    </label>
+                    <NumberPagination
+                        class="ml-auto"
+                        :current-page="pagination.current_page"
+                        :total-pages="pagination.last_page"
+                        :disabled="loading"
+                        label="Pagination aktivitas lapangan"
+                        @change="requestPage"
+                    />
+                </div>
             </footer>
         </article>
 
@@ -368,7 +455,8 @@ function activityLabel(status: string): string {
                     :variant="selectedOfficerId === null ? 'default' : 'ghost'"
                     class="dashboard-officer-option w-full justify-start rounded-xl text-left whitespace-normal"
                     :aria-pressed="selectedOfficerId === null"
-                    @click="selectedOfficerId = null"
+                    :disabled="loading"
+                    @click="selectOfficer(null)"
                     ><span
                         class="grid size-10 shrink-0 place-items-center rounded-full bg-background/20 text-xs font-bold"
                         ><Users :size="18" aria-hidden="true" /></span
@@ -377,7 +465,7 @@ function activityLabel(status: string): string {
                             >Semua petugas</span
                         ><span
                             class="block text-sm leading-5 font-semibold opacity-90"
-                            >{{ activities.length }} aktivitas terbaru</span
+                            >{{ pagination.scope_total }} aktivitas</span
                         ></span
                     ></Button
                 >
@@ -390,7 +478,8 @@ function activityLabel(status: string): string {
                     "
                     class="dashboard-officer-option w-full justify-start rounded-xl text-left whitespace-normal"
                     :aria-pressed="selectedOfficerId === officer.id"
-                    @click="selectedOfficerId = officer.id"
+                    :disabled="loading"
+                    @click="selectOfficer(officer.id)"
                     ><Avatar class="size-10 shrink-0 rounded-full"
                         ><AvatarImage
                             v-if="officer.avatarUrl"
@@ -419,7 +508,7 @@ function activityLabel(status: string): string {
                     class="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground"
                 >
                     Belum ada petugas aktif yang dapat ditampilkan untuk cakupan
-                    kebun ini.
+                    lahan ini.
                 </div>
             </div>
         </aside>
