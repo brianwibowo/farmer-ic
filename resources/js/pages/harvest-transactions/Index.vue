@@ -126,14 +126,8 @@ function rowSubblock(row: HarvestTransactionRow): string {
         <TransactionSummaryCards
             mode="harvest"
             :subblocks="summary.subblocks"
-            :reports="summary.reports"
             :area-ha="summary.area_ha"
             :primary-metric-value="summary.weight_ton"
-            :row-areas="
-                transactions.data.map(
-                    (row) => Number(row.harvested_area_ha) || 0,
-                )
-            "
         />
 
         <section class="admin-card overflow-hidden rounded-xl bg-card">
@@ -174,7 +168,7 @@ function rowSubblock(row: HarvestTransactionRow): string {
                                     class="admin-field pl-10!"
                                     type="search"
                                     maxlength="100"
-                                    placeholder="Kebun, blok, varietas, atau petugas…"
+                                    placeholder="Lahan, blok, varietas, atau petugas…"
                                     :disabled="filters.processing"
                                     :aria-invalid="!!filters.errors.search"
                                     :aria-describedby="

@@ -143,7 +143,7 @@ class PlantingActivityService
                 $availableM2 = min($farmRemaining, $blockRemaining);
                 $addedArea = LandArea::squareMetres(is_float($data['area_ha']) ? number_format($data['area_ha'], 4, '.', '') : $data['area_ha']);
                 if ($addedArea === null || $addedArea < 1 || $addedArea > $availableM2) {
-                    throw ValidationException::withMessages([($data['schema'] ?? null) === 'taxonomy' ? 'area' : 'area_ha' => 'Akumulasi luas penanaman tidak boleh melebihi sisa kapasitas blok atau kebun.']);
+                    throw ValidationException::withMessages([($data['schema'] ?? null) === 'taxonomy' ? 'area' : 'area_ha' => 'Akumulasi luas penanaman tidak boleh melebihi sisa kapasitas blok atau lahan.']);
                 }
                 $totalArea = $addedArea + (LandArea::squareMetres($cycle->planted_area_ha ?? 0) ?? 0);
                 $variety = CropVariety::visibleTo($actor, $team)->whereKey($data['variety_id'])->first();

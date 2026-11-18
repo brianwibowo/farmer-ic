@@ -144,7 +144,7 @@ function reset(): void {
                 {{
                     farm
                         ? `Tugas dari SOP · ${farm.name}`
-                        : 'Belum ada penugasan kebun'
+                        : 'Belum ada penugasan lahan'
                 }}
             </p>
         </header>
@@ -291,7 +291,7 @@ function reset(): void {
                 {{
                     farm
                         ? 'Tidak ada tugas pada pilihan ini'
-                        : 'Belum ada penugasan kebun'
+                        : 'Belum ada penugasan lahan'
                 }}
             </h2>
             <p class="mt-2 text-sm text-muted-foreground">

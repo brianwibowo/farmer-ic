@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SummaryStatCard from '@/components/SummaryStatCard.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     AlertTriangle,
@@ -69,13 +70,11 @@ const summaryMetrics = computed(() => [
     {
         label: 'Status template',
         value: props.template.is_active ? 'Aktif' : 'Nonaktif',
-        unit: props.template.is_active ? 'dipakai' : 'arsip',
         icon: CheckCircle2,
     },
     {
         label: 'Total versi',
         value: props.template.versions.length,
-        unit: 'versi',
         icon: ClipboardList,
     },
     {
@@ -83,9 +82,6 @@ const summaryMetrics = computed(() => [
         value: publishedVersion.value
             ? `v${publishedVersion.value.version}`
             : 'Belum ada',
-        unit: publishedVersion.value
-            ? `${publishedVersion.value.tasks.length} langkah`
-            : 'draft',
         icon: Send,
     },
 ]);
@@ -234,36 +230,9 @@ function statusClass(status: SopVersion['status']): string {
             </div>
         </header>
 
-        <div class="grid grid-cols-3 gap-2 sm:gap-4">
-            <section
-                v-for="metric in summaryMetrics"
-                :key="metric.label"
-                class="admin-card min-w-0 rounded-xl bg-card p-3 sm:p-5"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <h2
-                        class="min-h-10 text-xs leading-5 text-muted-foreground sm:min-h-0 sm:text-sm"
-                    >
-                        {{ metric.label }}
-                    </h2>
-                    <component
-                        :is="metric.icon"
-                        class="hidden size-5 shrink-0 text-primary sm:block"
-                        aria-hidden="true"
-                    />
-                </div>
-                <p
-                    class="admin-metric-value mt-2 text-xl! tracking-tight sm:mt-4 sm:text-3xl!"
-                >
-                    {{ metric.value }}
-                    <span
-                        class="ml-1 text-xs font-medium text-muted-foreground sm:ml-2 sm:text-sm"
-                    >
-                        {{ metric.unit }}
-                    </span>
-                </p>
-            </section>
-        </div>
+        <section class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="Ringkasan SOP">
+            <SummaryStatCard v-for="metric in summaryMetrics" :key="metric.label" :label="metric.label" :value="metric.value" :icon="metric.icon" />
+        </section>
 
         <div
             v-if="!template.versions.length"

@@ -33,6 +33,13 @@ Read this document before implementing or changing any UI.
 
 ## Application name
 
+Use **lahan** as the Indonesian product term across navigation, headings,
+buttons, filters, validation, notifications and assistant copy. Preserve legacy
+route URLs, component/file names, API/data keys and record identifiers containing
+`kebun`; they are technical contracts. Persisted user-entered names/history are
+data and must not be rewritten as part of a wording change. AI intent matching
+must continue accepting both `kebun` and `lahan`.
+
 The system display name comes from Laravel `config('app.name')`, which reads
 `APP_NAME` and defaults to **Bumi Hijauan**. Vue components use `useAppName()`
 from the shared Inertia `name` prop. The initial HTML exposes the same value in
@@ -248,6 +255,23 @@ Pop-ups support both horizontal and vertical button layouts. Content patterns in
 
 Use a real dialog or modal pattern, keep the action order predictable, and make the close and primary actions keyboard accessible.
 
+Unsaved-change confirmations use SweetAlert2 through the shared
+`ConfirmationDialog` mounted in `AppShell`, with admin tokens, a 20px card,
+warning icon, concise title/message,
+and 44px-or-larger actions. Keep its overlay/content above an already-open
+editor. Focus the safe cancel action first. Cancel and Escape preserve typed
+values; ignore outside clicks. Leaving/discarding requires an
+explicit destructive action. Use the same dialog for Inertia form navigation
+and closing block, subblock, or legality editors. Prevent duplicate decisions
+and resume an approved navigation only once. SweetAlert2 joins the existing
+Reka focus stack and uses its own elevated overlay above editors.
+Render the body Teleport only after client mount so SSR hydration never walks
+unrelated body elements. Close SweetAlert before Vue removes its target and
+finish body/ARIA cleanup without waiting for a closing animation.
+Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
+installed npm package, never a CDN. Keep the native `beforeunload`
+warning for refresh/tab closure, where browsers do not allow a custom dialog.
+
 ## Pagination
 
 Pagination includes text and icon items with these states:
@@ -259,6 +283,32 @@ Pagination includes text and icon items with these states:
 - Disabled
 
 Use buttons or links for page items, expose the current page with `aria-current="page"`, and provide accessible labels for previous and next icon controls.
+
+Admin Dashboard's Aktivitas lapangan uses server pagination (10/20/50 rows),
+scoped before filtering/counts. Show the range, total, current page and previous/
+next controls on desktop and mobile. Search and Petugas filters reset to page
+one and search all matching records, not a recent preview. Preserve the farm and
+chart period through Inertia visits, keep scrolling stable, disable controls
+while loading and provide retry feedback. Activity filters must not change
+dashboard metric/chart/officer totals.
+
+Use `NumberPagination` for pagination throughout Admin, Owner and Petugas pages:
+borderless page numbers,
+a filled circular active page (`bg-primary text-primary-foreground`) and icon-only
+chevron navigation. Other pages use muted text with a soft primary hover state.
+Use compact 32px visual circles, 12px numbers, 16px chevrons and 4px gaps. Keep
+44px transparent hit targets on coarse pointers, visible keyboard focus and
+`aria-current="page"`. Show up to three consecutive numbers on phones and four
+on wider screens, always including the current page. Hide unavailable arrows
+at either end and disable all controls while loading. Use semantic tokens in
+both themes; do not replace the existing backend pagination/filter flow.
+Align pagination at the footer's right edge, after the page-size selector when
+present. Retain record totals/ranges without repeating the current/last page as
+plain text. Use `InertiaPagination` for route-based Laravel paginators; it keeps
+the current query filters and scroll position, disables controls during the
+visit and reports loading errors. Pages with existing request handlers use
+`NumberPagination` directly so their loading/error/filter flow is preserved.
+Omit the Kelola lahan shortcut from the activity footer.
 
 ## Tabs
 
@@ -1088,6 +1138,16 @@ a successful Inertia request. Show validation errors and applied filter chips.
 Place page size and pagination in the table footer. Preserve detail/edit/delete
 permissions and workflows. Detail and create/edit forms use the same admin-panel
 surfaces, emerald titles and 18px gaps; keep the cascading address selectors.
+
+### Stat cards outside dashboards
+
+Use `SummaryStatCard` for non-dashboard summary metrics. Each card contains
+only its label, primary value and one icon. Omit descriptive footnotes, badges,
+secondary counts, mini charts, gauges, progress bars and decorative graphics.
+Put measurement units in the label (for example Luas terdaftar (ha)) so the
+value remains unambiguous. Retain scoped backend totals, semantic theme colors,
+20px corners, bold metric typography and responsive grids. This rule does not
+change Admin/Owner/Petugas dashboard or Executive Summary cards.
 
 ### User Management pages
 

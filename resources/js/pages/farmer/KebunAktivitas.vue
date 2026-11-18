@@ -180,7 +180,7 @@ onMounted(async () => {
                     <Link
                         :href="backHref"
                         class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        aria-label="Kembali ke Detail Kebun"
+                        aria-label="Kembali ke Detail Lahan"
                     >
                         <ArrowLeft :size="18" :stroke-width="1.8" />
                     </Link>
@@ -202,7 +202,7 @@ onMounted(async () => {
             <!-- Search & Activity Type Filter Row -->
             <div class="mt-4 flex gap-2">
                 <label class="relative min-w-0 flex-1">
-                    <span class="sr-only">Cari aktivitas kebun</span>
+                    <span class="sr-only">Cari aktivitas lahan</span>
                     <input
                         v-model="searchQuery"
                         type="search"
@@ -231,7 +231,7 @@ onMounted(async () => {
                 v-if="isLoading"
                 class="mt-6 space-y-6"
                 aria-live="polite"
-                aria-label="Memuat data aktivitas kebun"
+                aria-label="Memuat data aktivitas lahan"
             >
                 <div
                     v-for="index in 5"

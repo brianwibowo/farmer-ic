@@ -49,7 +49,7 @@ function photoFailed(id: string): void {
                         :href="`/kebun/${activity.farm.id}`"
                         class="rounded text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
                         >{{ activity.farm.name }}</Link
-                    ><span v-else>Kebun tidak tersedia</span>
+                    ><span v-else>Lahan tidak tersedia</span>
                 </p>
                 <p class="flex items-start gap-2">
                     <UserRound
@@ -173,7 +173,7 @@ function photoFailed(id: string): void {
                             :alt="
                                 photo.caption ||
                                 photo.label ||
-                                'Dokumentasi aktivitas kebun'
+                                'Dokumentasi aktivitas lahan'
                             "
                             loading="lazy"
                             decoding="async"

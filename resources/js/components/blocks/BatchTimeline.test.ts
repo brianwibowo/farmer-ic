@@ -1,6 +1,6 @@
 import { renderToString } from '@vue/server-renderer';
 import { h } from 'vue';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { BatchGrowth, BatchStage } from '@/types/blocks';
 import BatchTimeline from './BatchTimeline.vue';
 

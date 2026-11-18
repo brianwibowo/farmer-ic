@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { requestConfirmation } from '@/composables/useConfirmation';
 import { Sprout } from '@lucide/vue';
 import { useTemplateRef } from 'vue';
 import BatchForm from './BatchForm.vue';
@@ -21,14 +22,19 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 const fields = useTemplateRef<InstanceType<typeof BatchForm>>('fields');
-function close(open: boolean): void {
+async function close(open: boolean): Promise<void> {
     if (!open && fields.value?.processing()) return;
     if (
         !open &&
         fields.value?.isDirty() &&
-        !window.confirm('Tutup dan buang perubahan yang belum disimpan?')
+        !(await requestConfirmation({
+            description: 'Perubahan subblok belum disimpan. Tutup editor dan buang perubahan ini?',
+            confirmLabel: 'Buang perubahan',
+            cancelLabel: 'Lanjut mengedit',
+        }))
     )
         return;
+    if (fields.value?.processing()) return;
     emit('update:open', open);
 }
 </script>

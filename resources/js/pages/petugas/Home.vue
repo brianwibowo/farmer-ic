@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import InertiaPagination from '@/components/InertiaPagination.vue';
+import { Head } from '@inertiajs/vue3';
 import { Sprout, Tractor, Wheat } from '@lucide/vue';
 import { computed } from 'vue';
 import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
 import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
-import { Button } from '@/components/ui/button';
 import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
 import HomeSopTask from '@/components/petugas/HomeSopTask.vue';
 import HomeIncidentAlerts from '@/components/petugas/HomeIncidentAlerts.vue';
@@ -40,7 +40,7 @@ const cards = computed(() => [
     <Head title="Beranda · Petugas" />
     <div class="petugas-home">
         <h1 class="sr-only">Beranda petugas</h1>
-        <section class="petugas-home-hero" aria-label="Ringkasan kebun">
+        <section class="petugas-home-hero" aria-label="Ringkasan lahan">
             <DashboardHeader
                 dashboard-theme
                 :show-brand="false"
@@ -54,7 +54,7 @@ const cards = computed(() => [
             </DashboardHeader>
             <section
                 class="petugas-home-hero-metrics grid grid-cols-3 px-6"
-                aria-label="Ringkasan batch kebun"
+                aria-label="Ringkasan batch lahan"
             >
                 <article
                     v-for="card in cards"
@@ -119,9 +119,9 @@ const cards = computed(() => [
                 />
             </div>
             <div v-if="!home.farm" class="px-2 py-10 text-center">
-                <h3 class="text-sm font-medium">Belum ada kebun penugasan</h3>
+                <h3 class="text-sm font-medium">Belum ada lahan penugasan</h3>
                 <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                    Hubungi admin untuk penugasan kebun.
+                    Hubungi admin untuk penugasan lahan.
                 </p>
             </div>
             <div v-else-if="!home.tasks.total" class="px-2 py-10 text-center">
@@ -135,38 +135,12 @@ const cards = computed(() => [
                         <HomeSopTask :task="task" />
                     </li>
                 </ul>
-                <nav
+                <InertiaPagination
                     v-if="home.tasks.last_page > 1"
-                    class="flex flex-wrap items-center justify-between gap-2 pt-1 [&_a]:h-11 [&_a]:rounded-xl [&_button]:h-11 [&_button]:rounded-xl"
-                    aria-label="Halaman tugas hari ini"
-                >
-                    <Button
-                        v-if="home.tasks.prev_page_url"
-                        as-child
-                        variant="outline"
-                        size="sm"
-                        ><Link :href="home.tasks.prev_page_url" preserve-scroll
-                            >Sebelumnya</Link
-                        ></Button
-                    ><Button v-else variant="outline" size="sm" disabled
-                        >Sebelumnya</Button
-                    ><span
-                        class="text-xs text-muted-foreground"
-                        aria-current="page"
-                        >{{ home.tasks.current_page }} /
-                        {{ home.tasks.last_page }}</span
-                    ><Button
-                        v-if="home.tasks.next_page_url"
-                        as-child
-                        variant="outline"
-                        size="sm"
-                        ><Link :href="home.tasks.next_page_url" preserve-scroll
-                            >Berikutnya</Link
-                        ></Button
-                    ><Button v-else variant="outline" size="sm" disabled
-                        >Berikutnya</Button
-                    >
-                </nav>
+                    :paginator="home.tasks"
+                    label="Pagination tugas hari ini"
+                    class="ml-auto justify-end pt-1"
+                />
             </template>
         </section>
         <ActivityAddButton :categories="categories" />

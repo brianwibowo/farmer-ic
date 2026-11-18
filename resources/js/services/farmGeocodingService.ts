@@ -47,7 +47,7 @@ export async function searchFarmLocation(
     if (!response.ok) {
         const messages: Record<number, string> = {
             401: 'Sesi berakhir. Masuk kembali untuk mencari lokasi.',
-            403: 'Anda tidak memiliki izin mencari lokasi untuk kebun ini.',
+            403: 'Anda tidak memiliki izin mencari lokasi untuk lahan ini.',
             419: 'Sesi berakhir. Muat ulang halaman sebelum mencari lokasi.',
             422: 'Periksa alamat dan pilih kecamatan dari daftar wilayah.',
             429: 'Pencarian sedang sibuk. Tunggu sebentar lalu coba lagi atau pilih pin manual.',

@@ -45,7 +45,7 @@ const rupiah = (value: number) =>
                 >
                 <DialogClose
                     class="absolute top-4 right-4 flex size-9 items-center justify-center rounded-full bg-muted text-card-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                    aria-label="Tutup ringkasan kebun"
+                    aria-label="Tutup ringkasan lahan"
                     ><X :size="18" aria-hidden="true"
                 /></DialogClose>
             </header>
@@ -88,7 +88,7 @@ const rupiah = (value: number) =>
                 </section>
                 <section
                     class="rounded-2xl bg-muted p-4"
-                    aria-label="Proyeksi pendapatan kebun"
+                    aria-label="Proyeksi pendapatan lahan"
                 >
                     <h3
                         class="flex items-center gap-2 text-xs font-medium text-muted-foreground"
@@ -97,7 +97,7 @@ const rupiah = (value: number) =>
                             :size="17"
                             class="text-success"
                             aria-hidden="true"
-                        />Proyeksi pendapatan kebun
+                        />Proyeksi pendapatan lahan
                     </h3>
                     <p class="mt-2 text-2xl font-semibold text-success">
                         {{ rupiah(kebun.projectedRevenue) }}
@@ -110,7 +110,7 @@ const rupiah = (value: number) =>
                     :href="`/kebun/detail?id=${encodeURIComponent(kebun.id)}`"
                     class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     @click="open = false"
-                    >Detail kebun<ArrowRight :size="18" aria-hidden="true"
+                    >Detail lahan<ArrowRight :size="18" aria-hidden="true"
                 /></Link>
             </div>
         </DialogContent>

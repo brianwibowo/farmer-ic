@@ -43,6 +43,9 @@ const {
     updatedLabel,
     number,
 } = useExecutiveSummary();
+// Keep commercial summary sections in the codebase, but hide them from the
+// Executive Summary until the business content is ready to be shown again.
+const showCommercialSections = false;
 const selectedMapId = ref<string | null>(null);
 const selectedMapRow = computed(() =>
     rows.value.find((row) => row.farm.id === selectedMapId.value),
@@ -159,6 +162,7 @@ function focusFarm(id: string) {
                 :partner-count="partnerSummary.length"
                 :month="monthlyLabel"
                 :snapshot-label="snapshotLabel"
+                :show-commercial-card="showCommercialSections"
                 loading
             />
             <div class="h-72 rounded-xl bg-muted motion-safe:animate-pulse" />
@@ -170,6 +174,7 @@ function focusFarm(id: string) {
                 :partner-count="partnerSummary.length"
                 :month="monthlyLabel"
                 :snapshot-label="snapshotLabel"
+                :show-commercial-card="showCommercialSections"
             />
             <div
                 v-if="!rows.length"
@@ -181,7 +186,7 @@ function focusFarm(id: string) {
                     aria-hidden="true"
                 />
                 <h2 class="text-lg font-semibold">
-                    Tidak ada kebun yang sesuai
+                    Tidak ada lahan yang sesuai
                 </h2>
                 <p class="mt-2 text-sm text-muted-foreground">
                     Ubah kombinasi filter untuk melihat ringkasan.
@@ -197,7 +202,11 @@ function focusFarm(id: string) {
                     :selected="filters.partner"
                     @select="filters.partner = $event"
                 />
-                <ExecutiveSales :clients="clients" :month="monthlyLabel" />
+                <ExecutiveSales
+                    v-if="showCommercialSections"
+                    :clients="clients"
+                    :month="monthlyLabel"
+                />
                 <ExecutiveCommoditySummary
                     :commodities="commodities"
                     :selected="filters.commodity"
@@ -209,13 +218,14 @@ function focusFarm(id: string) {
                     @select="focusFarm"
                 />
                 <ExecutiveFinance
+                    v-if="showCommercialSections"
                     :rows="rows"
                     :annual="filters.cycle === 'all'"
                 />
                 <ExecutivePanel
                     id="peta-kebun"
-                    title="Sebaran lokasi kebun"
-                    description="Pilih titik untuk membuka ringkasan kebun."
+                    title="Sebaran lokasi lahan"
+                    description="Pilih titik untuk membuka ringkasan lahan."
                     ><DashboardFarmMap
                         :farms="mapFarms"
                         selectable
@@ -270,7 +280,7 @@ function focusFarm(id: string) {
                 ><Button
                     class="min-h-12 w-full"
                     @click="focusFarm(selectedMapFarm.id)"
-                    >Lihat ringkasan kebun ini</Button
+                    >Lihat ringkasan lahan ini</Button
                 ></template
             >
         </OwnerDashboardFarmPreview>

@@ -1,6 +1,6 @@
 import { createSSRApp } from 'vue';
 import { renderToString } from '@vue/server-renderer';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import OwnerDistributionChart from './OwnerDistributionChart.vue';
 import OwnerDashboardCommodityChart from './dashboard/OwnerDashboardCommodityChart.vue';
 

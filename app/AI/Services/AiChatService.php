@@ -1179,9 +1179,9 @@ class AiChatService
     protected function deterministicResponse(AiRouteDecision $decision): ?string
     {
         return match ($decision->reason) {
-            'unsupported_topic' => 'Topik itu belum tersedia di Asisten Kebun. Saya fokus pada data dan aktivitas Farmer IC, perawatan tanaman, serta panduan pertanian.',
+            'unsupported_topic' => 'Topik itu belum tersedia di Asisten Lahan. Saya fokus pada data dan aktivitas Farmer IC, perawatan tanaman, serta panduan pertanian.',
             'general_question' => $decision->needsClarification
-                ? 'Saya belum menangkap tujuan pertanyaannya. Sebutkan kebun, komoditas, periode, atau tujuan Anda agar saya dapat memilih data, panduan, atau gambar yang tepat.'
+                ? 'Saya belum menangkap tujuan pertanyaannya. Sebutkan lahan, komoditas, periode, atau tujuan Anda agar saya dapat memilih data, panduan, atau gambar yang tepat.'
                 : null,
             default => null,
         };
@@ -1355,7 +1355,7 @@ class AiChatService
                 $this->userFacingImageError(new LlmException('', 429)),
                 $this->userFacingImageError(new LlmException('', 408)),
                 'Laporan keuangan tidak dapat dirender.',
-                'Gambar kebun tidak dapat dirender.',
+                'Gambar lahan tidak dapat dirender.',
             ];
             $error = in_array($message->error_message, $safeErrors, true)
                 ? $message->error_message

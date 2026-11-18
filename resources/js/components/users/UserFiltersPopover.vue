@@ -149,9 +149,9 @@ watch(teamId, () => {
                         </UserField>
                         <UserField
                             id="user-filter-farm"
-                            label="Kebun tugas"
+                            label="Lahan tugas"
                             :error="errors.farm_id"
-                            hint="Menampilkan pengguna yang ditugaskan langsung ke kebun."
+                            hint="Menampilkan pengguna yang ditugaskan langsung ke lahan."
                             v-slot="field"
                         >
                             <AppSelect
@@ -163,7 +163,7 @@ watch(teamId, () => {
                                 :aria-describedby="field.description"
                             >
                                 <AppSelectOption value=""
-                                    >Semua kebun</AppSelectOption
+                                    >Semua lahan</AppSelectOption
                                 >
                                 <AppSelectOption
                                     v-for="farm in farms"

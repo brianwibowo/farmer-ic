@@ -16,7 +16,10 @@ import PendingInvitationsModal from '@/components/PendingInvitationsModal.vue';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/lib/toast';
 import type { DashboardInvitation } from '@/types';
-import type { AdminDashboardData } from '@/types/dashboard';
+import type {
+    AdminDashboardData,
+    DashboardActivityFilters,
+} from '@/types/dashboard';
 
 defineOptions({ inheritAttrs: false });
 const page = usePage();
@@ -49,6 +52,45 @@ const period = ref(props.dashboard.filters.period);
 const refreshing = ref(false);
 const feedback = ref('');
 const failed = ref(false);
+const activityError = ref('');
+function activityParams(filters: DashboardActivityFilters, page = 1) {
+    return {
+        activity_search: filters.search,
+        activity_officer_id: filters.officer_id,
+        activity_per_page: filters.per_page,
+        activity_page: page,
+    };
+}
+function loadActivities(filters: DashboardActivityFilters, page: number): void {
+    if (refreshing.value) return;
+    refreshing.value = true;
+    activityError.value = '';
+    const onFailure = (): false => {
+        activityError.value =
+            'Aktivitas belum dapat dimuat. Silakan coba lagi.';
+        return false;
+    };
+    router.get(
+        '/admin/dashboard',
+        {
+            farm_id: props.dashboard.filters.farm_id,
+            period: props.dashboard.filters.period,
+            ...activityParams(filters, page),
+        },
+        {
+            only: ['dashboard'],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onError: onFailure,
+            onHttpException: onFailure,
+            onNetworkError: onFailure,
+            onFinish: () => {
+                refreshing.value = false;
+            },
+        },
+    );
+}
 watch(
     () => props.dashboard.filters,
     (filters) => {
@@ -68,11 +110,19 @@ function loadDashboard(): void {
     refreshing.value = true;
     feedback.value = '';
     failed.value = false;
+    activityError.value = '';
     router.get(
         '/admin/dashboard',
         {
             ...(farmId.value ? { farm_id: farmId.value } : {}),
             period: period.value,
+            ...activityParams({
+                ...props.dashboard.activityFilters,
+                officer_id:
+                    (farmId.value || null) === props.dashboard.filters.farm_id
+                        ? props.dashboard.activityFilters.officer_id
+                        : null,
+            }),
         },
         {
             only: ['dashboard'],
@@ -123,14 +173,14 @@ function loadDashboard(): void {
                 class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:flex sm:w-auto sm:flex-wrap"
             >
                 <label class="col-span-2 min-w-0 flex-1 sm:flex-none"
-                    ><span class="sr-only">Kebun</span
+                    ><span class="sr-only">Lahan</span
                     ><AppSelect
                         v-model="farmId"
                         class="admin-field dashboard-filter w-full sm:max-w-56"
                         :disabled="refreshing"
                         @change="loadDashboard"
                     >
-                        <AppSelectOption value="">Semua kebun</AppSelectOption>
+                        <AppSelectOption value="">Semua lahan</AppSelectOption>
                         <AppSelectOption
                             v-for="farm in dashboard.farmOptions"
                             :key="farm.id"
@@ -179,7 +229,7 @@ function loadDashboard(): void {
             class="text-xs"
             :class="failed ? 'text-error' : 'text-muted-foreground'"
         >
-            {{ refreshing ? 'Memuat ringkasan kebun…' : feedback }}
+            {{ refreshing ? 'Memuat ringkasan lahan…' : feedback }}
         </p>
         <DashboardMetricCards :dashboard="dashboard" />
         <section
@@ -203,10 +253,10 @@ function loadDashboard(): void {
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h2 id="map-heading" class="admin-section-title">
-                            Denah kebun
+                            Denah lahan
                         </h2>
                         <p class="mt-1 text-sm text-muted-foreground">
-                            Lokasi kebun dari koordinat yang tersimpan, sesuai
+                            Lokasi lahan dari koordinat yang tersimpan, sesuai
                             filter dan cakupan akses.
                         </p>
                     </div>
@@ -216,7 +266,7 @@ function loadDashboard(): void {
                         variant="outline"
                         size="sm"
                         ><Link href="/admin/farm-management"
-                            >Kelola kebun</Link
+                            >Kelola lahan</Link
                         ></Button
                     >
                 </div>
@@ -229,8 +279,8 @@ function loadDashboard(): void {
                 <p class="mt-3 text-xs leading-5 text-muted-foreground">
                     {{
                         dashboard.landMap.hasCoordinates
-                            ? 'Marker menunjukkan lokasi kebun, bukan batas bidang atau subblok.'
-                            : 'Lengkapi latitude dan longitude pada data kebun untuk menampilkan lokasi.'
+                            ? 'Marker menunjukkan lokasi lahan, bukan batas bidang atau subblok.'
+                            : 'Lengkapi latitude dan longitude pada data lahan untuk menampilkan lokasi.'
                     }}
                 </p>
             </section>
@@ -242,6 +292,11 @@ function loadDashboard(): void {
         <DashboardActivities
             :activities="dashboard.activities"
             :officers="dashboard.officers"
+            :filters="dashboard.activityFilters"
+            :pagination="dashboard.activityPagination"
+            :loading="refreshing"
+            :error="activityError"
+            @change="loadActivities"
         />
         <DashboardFarmPreview
             v-if="selectedMapFarm"

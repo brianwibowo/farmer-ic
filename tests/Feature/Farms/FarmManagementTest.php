@@ -167,7 +167,7 @@ class FarmManagementTest extends TestCase
         $farm = $this->farm();
         DB::table('users')->where('id', $this->creatorId)->update(['assigned_farm_id' => $farm->id]);
         $this->deleteJson('/api/kebun/'.$farm->id)->assertConflict()->assertJsonPath('message',
-            'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.');
+            'Lahan tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.');
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
         $this->assertDatabaseHas('users', ['id' => $this->creatorId, 'assigned_farm_id' => $farm->id]);
         $destination = $this->farm(['name' => 'Kebun Tujuan']);
@@ -185,7 +185,7 @@ class FarmManagementTest extends TestCase
             'budget_amount' => '1500000', 'created_by' => $this->adminId, 'created_at' => now(),
         ]);
         $this->deleteJson('/api/kebun/'.$farm->id)->assertConflict()->assertJsonPath('message',
-            'Kebun tidak dapat dihapus karena masih memiliki: anggaran keuangan. Histori operasional tetap dipertahankan.');
+            'Lahan tidak dapat dihapus karena masih memiliki: anggaran keuangan. Histori operasional tetap dipertahankan.');
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
         $this->assertDatabaseHas('financial_budgets', ['id' => $budgetId, 'farm_id' => $farm->id]);
     }

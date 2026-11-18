@@ -159,10 +159,10 @@ function synchronize(id: string): void {
                 selectedBlockId
                     ? 'Belum ada subblok pada blok ini.'
                     : hasAvailableBlock
-                      ? 'Belum ada subblok untuk kebun penugasan Anda. Tambah subblok baru pada blok aktif untuk mulai mencatat penanaman.'
+                      ? 'Belum ada subblok untuk lahan penugasan Anda. Tambah subblok baru pada blok aktif untuk mulai mencatat penanaman.'
                       : canCreateSubblok
                         ? 'Belum ada subblok dan seluruh kapasitas blok aktif sudah penuh.'
-                        : 'Belum ada subblok atau blok aktif untuk kebun penugasan Anda. Hubungi Admin atau PIC kebun untuk menyiapkannya.'
+                        : 'Belum ada subblok atau blok aktif untuk lahan penugasan Anda. Hubungi Admin atau PIC lahan untuk menyiapkannya.'
             }}
         </p>
         <article
@@ -253,7 +253,7 @@ function synchronize(id: string): void {
             </div>
         </article>
         <Button as-child variant="outline" class="min-h-11 w-full rounded-xl"
-            ><Link href="/petugas/aktivitas">Lihat to-do kebun</Link></Button
+            ><Link href="/petugas/aktivitas">Lihat to-do lahan</Link></Button
         >
         <SubblokCreateDialog
             v-model:open="createOpen"

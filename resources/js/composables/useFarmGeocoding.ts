@@ -108,7 +108,7 @@ export function useFarmGeocoding(options: {
         focus.value = null;
         options.location.value = point;
         message.value = point
-            ? 'Posisi pin manual digunakan. Simpan kebun untuk menyimpan titik ini.'
+            ? 'Posisi pin manual digunakan. Simpan lahan untuk menyimpan titik ini.'
             : 'Pin dihapus. Pilih titik manual atau cari ulang dari alamat untuk memasangnya kembali.';
     }
 
@@ -145,7 +145,7 @@ export function useFarmGeocoding(options: {
                 } else {
                     candidates.value = results;
                     message.value = results.length
-                        ? 'Pilih hasil yang sesuai dengan alamat dan wilayah kebun.'
+                        ? 'Pilih hasil yang sesuai dengan alamat dan wilayah lahan.'
                         : 'Lokasi tidak ditemukan. Perjelas alamat atau pilih pin secara manual.';
                     if (!results.length) options.notify?.(message.value);
                 }

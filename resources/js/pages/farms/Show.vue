@@ -1,21 +1,17 @@
 <script setup lang="ts">
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { ownerFarmOrigin } from '@/lib/ownerFarmNavigation';
 import {
     ArrowLeft,
-    ClipboardList,
     LandPlot,
     MapPin,
     Target,
     Sprout,
-    Pencil,
-    Trash2,
 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import FarmBlocksTable from '@/components/blocks/FarmBlocksTable.vue';
-import DeleteFarmDialog from '@/components/farms/DeleteFarmDialog.vue';
 import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
 import {
     hectares,
@@ -35,7 +31,7 @@ const backUrl = computed(() =>
     fromMonitoring.value ? '/monitoring-lahan' : indexUrl.value,
 );
 const backLabel = computed(() =>
-    fromMonitoring.value ? 'Kembali ke Monitoring Lahan' : 'Daftar kebun',
+    fromMonitoring.value ? 'Kembali ke Monitoring Lahan' : 'Daftar lahan',
 );
 const props = defineProps<{
     farm: ManagedFarm;
@@ -58,7 +54,6 @@ const props = defineProps<{
         createBlock: boolean;
     };
 }>();
-const deleting = ref(false);
 const contractLabel = computed(() => {
     const contract = props.ownerSummary?.contract;
     if (!contract) return 'Tidak tersedia';
@@ -134,32 +129,11 @@ const coordinates = computed<[number, number] | null>(() =>
                     {{ farm.name }}
                 </h1>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <Link
-                    v-if="can.dailyLogs"
-                    :href="`/kebun/${farm.id}/daily-logs`"
-                    class="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
-                    ><ClipboardList class="size-4" />Logbook</Link
-                >
-                <Button v-if="can.update" as-child variant="outline"
-                    ><Link :href="`/admin/farm-management/${farm.id}/edit`"
-                        ><Pencil />Ubah kebun</Link
-                    ></Button
-                >
-                <Button
-                    v-if="can.delete"
-                    variant="destructive-ghost"
-                    size="icon"
-                    aria-label="Hapus kebun"
-                    @click="deleting = true"
-                    ><Trash2
-                /></Button>
-            </div>
         </header>
         <section class="overflow-hidden rounded-xl bg-card">
             <header class="px-5 pt-4 sm:px-6 sm:pt-5">
                 <h2 class="admin-section-title text-primary">
-                    Ringkasan kebun
+                    Ringkasan lahan
                 </h2>
             </header>
             <dl
@@ -172,7 +146,7 @@ const coordinates = computed<[number, number] | null>(() =>
                         <LandPlot
                             class="size-4 shrink-0 text-primary"
                             aria-hidden="true"
-                        />Luas kebun
+                        />Luas lahan
                     </dt>
                     <dd class="admin-metric-value mt-2 text-foreground">
                         {{ hectares(farm.total_area_ha) }}
@@ -180,9 +154,6 @@ const coordinates = computed<[number, number] | null>(() =>
                             >ha</span
                         >
                     </dd>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                        Total luas lahan terdaftar.
-                    </p>
                 </div>
                 <div>
                     <dt
@@ -191,7 +162,7 @@ const coordinates = computed<[number, number] | null>(() =>
                         <MapPin
                             class="size-4 shrink-0 text-primary"
                             aria-hidden="true"
-                        />Lokasi kebun
+                        />Lokasi lahan
                     </dt>
                     <dd
                         class="mt-2 text-xl leading-snug font-bold text-foreground"
@@ -228,9 +199,6 @@ const coordinates = computed<[number, number] | null>(() =>
                             >Belum diisi</span
                         >
                     </dd>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                        Target hasil panen yang ditetapkan.
-                    </p>
                 </div>
                 <div>
                     <dt
@@ -253,7 +221,7 @@ const coordinates = computed<[number, number] | null>(() =>
                 class="grid gap-x-6 gap-y-4 border-t border-border bg-muted/20 px-5 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-3"
             >
                 <div>
-                    <dt class="text-xs text-muted-foreground">PIC kebun</dt>
+                    <dt class="text-xs text-muted-foreground">PIC lahan</dt>
                     <dd class="mt-1 text-sm font-semibold">
                         {{ farm.pic_name ?? 'Belum ditentukan' }}
                     </dd>
@@ -334,12 +302,8 @@ const coordinates = computed<[number, number] | null>(() =>
             <Link
                 :href="`/admin/farm-management/${farm.id}/force-delete`"
                 class="inline-flex min-h-11 items-center text-xs text-error underline underline-offset-4"
-                >Hapus permanen kebun dan data terkait</Link
+                >Hapus permanen lahan dan data terkait</Link
             >
         </div>
     </div>
-    <DeleteFarmDialog
-        :farm="deleting ? farm : null"
-        @close="deleting = false"
-    />
 </template>

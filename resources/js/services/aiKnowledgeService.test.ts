@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { queryKnowledge, retrieveKnowledge } from './aiKnowledgeService';
 
 describe('ai knowledge retrieval', () => {

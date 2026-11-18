@@ -17,7 +17,7 @@ defineProps<{ farm: LogbookFarm; log: LogbookDetail }>();
         <Link
             :href="'/admin/logbook/' + farm.id"
             class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
-            ><ArrowLeft class="size-4" />Kembali ke logbook kebun</Link
+            ><ArrowLeft class="size-4" />Kembali ke logbook lahan</Link
         >
         <header>
             <p
@@ -80,7 +80,7 @@ defineProps<{ farm: LogbookFarm; log: LogbookDetail }>();
             <aside class="admin-panel space-y-5">
                 <div class="flex items-center gap-2">
                     <LandPlot class="size-5 text-primary" />
-                    <h2 class="admin-section-title">Kebun laporan</h2>
+                    <h2 class="admin-section-title">Lahan laporan</h2>
                 </div>
                 <p class="text-base font-semibold">{{ farm.name }}</p>
                 <p class="text-sm leading-6 text-muted-foreground">
@@ -89,7 +89,7 @@ defineProps<{ farm: LogbookFarm; log: LogbookDetail }>();
                 <Link
                     :href="'/admin/farm-management/' + farm.id"
                     class="inline-flex text-sm font-semibold text-primary underline underline-offset-4"
-                    >Lihat kebun</Link
+                    >Lihat lahan</Link
                 >
                 <dl class="space-y-4 border-t border-border pt-4 text-xs">
                     <div>

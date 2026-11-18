@@ -33,8 +33,8 @@ class ForceDeleteFarmRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'confirmation_name.required' => 'Ketik nama kebun untuk mengonfirmasi.',
-            'confirmation_name.in' => 'Nama konfirmasi harus sama persis dengan nama kebun.',
+            'confirmation_name.required' => 'Ketik nama lahan untuk mengonfirmasi.',
+            'confirmation_name.in' => 'Nama konfirmasi harus sama persis dengan nama lahan.',
             'reason.required' => 'Alasan penghapusan wajib diisi.',
             'reason.min' => 'Jelaskan alasan penghapusan, minimal 5 karakter.',
             'reason.max' => 'Alasan maksimal 2.000 karakter.',

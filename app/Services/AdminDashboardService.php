@@ -19,16 +19,18 @@ use Illuminate\Support\Collection;
 
 class AdminDashboardService
 {
+    private const RISK_PREVIEW_LIMIT = 10;
+
     /**
      * Build a read-only dashboard from the same scoped records used elsewhere
      * in the admin portal. The service intentionally returns presentation-ready
      * values, while authorization remains at the route/controller boundary.
      *
-     * @param  array{farm_id?: string|null, period?: string|int}  $filters
+     * @param  array{farm_id?: string|null, period?: string|int, activity_search?: string|null, activity_officer_id?: string|null, activity_per_page?: int, activity_page?: int}  $filters
      * @param  int|null  $commodityLimit  Null returns every scoped commodity for complete charts.
      * @return array<string, mixed>
      */
-    public function summary(User $actor, Team $team, array $filters = [], ?int $commodityLimit = 3, bool $includeMapPreviews = false): array
+    public function summary(User $actor, Team $team, array $filters = [], ?int $commodityLimit = 3, bool $includeMapPreviews = false, bool $paginateActivities = false): array
     {
         $farmId = $filters['farm_id'] ?? null;
         $period = (int) ($filters['period'] ?? 7);
@@ -57,21 +59,41 @@ class AdminDashboardService
                 $query->whereNull('status')
                     ->orWhereNotIn('status', ['resolved', 'closed']);
             });
+        $openIncidents = $this->openIncidentReports($activityQuery, $actor, $team);
         $financialTransactions = FinancialTransaction::query()->visibleTo($actor, $team)->whereIn('farm_id', $farmIds);
         $currentProjections = FinancialProjection::query()
             ->visibleTo($actor, $team)
             ->whereIn('farm_id', $farmIds)
             ->whereDate('period_start', '<=', CarbonImmutable::today())
             ->whereDate('period_end', '>=', CarbonImmutable::today());
+        $activityFilters = [
+            'search' => trim($filters['activity_search'] ?? ''),
+            'officer_id' => $filters['activity_officer_id'] ?? null,
+            'per_page' => (int) ($filters['activity_per_page'] ?? 10),
+        ];
         $recentActivities = (clone $activityQuery)
             ->with([
                 'farm' => fn ($farms) => $farms->visibleTo($actor, $team)->select(['id', 'name']),
                 'performer' => fn ($users) => $users->visibleTo($actor, $team)->select(['id', 'name', 'avatar_url']),
                 'activityType' => fn ($types) => $types->visibleTo($actor, $team)->select(['id', 'name']),
             ])
-            ->orderByDesc('activity_date')
-            ->limit(30)
-            ->get();
+            ->orderByDesc('activity_date')->orderByDesc('id');
+        $activityPagination = null;
+        if ($paginateActivities) {
+            $scopeTotal = (clone $activityQuery)->count();
+            $paginator = $this->filterActivityFeed($recentActivities, $actor, $team, $activityFilters)
+                ->paginate($activityFilters['per_page'], ['*'], 'activity_page', (int) ($filters['activity_page'] ?? 1))
+                ->appends($filters);
+            $activityPagination = [
+                'total' => $paginator->total(), 'scope_total' => $scopeTotal,
+                'current_page' => $paginator->currentPage(), 'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(), 'from' => $paginator->firstItem(), 'to' => $paginator->lastItem(),
+            ];
+            $recentActivities = $paginator->getCollection();
+        } else {
+            // Owner monitoring retains its existing recent-activity preview contract.
+            $recentActivities = $recentActivities->limit(30)->get();
+        }
         $activityTotalsByOfficer = (clone $activityQuery)
             ->selectRaw('performed_by, COUNT(*) as activity_count, MAX(activity_date) as latest_activity_at')
             ->groupBy('performed_by')
@@ -114,7 +136,7 @@ class AdminDashboardService
             ->map(fn (OperationalTarget $task): array => [
                 'id' => (string) $task->id,
                 'title' => $task->task_name,
-                'farm' => $task->farm->name ?? 'Kebun tidak tersedia',
+                'farm' => $task->farm->name ?? 'Lahan tidak tersedia',
                 'assignee' => $task->creator->name ?? 'Belum ditentukan',
                 'date' => $task->target_date?->settings(['locale' => 'id'])->isoFormat('D MMM YYYY') ?? 'Tanpa tenggat',
                 'status' => $this->taskStatus($task->status),
@@ -200,18 +222,47 @@ class AdminDashboardService
         $riskItems = (clone $openRisks)
             ->orderByDesc('detected_at')
             ->orderByDesc('id')
+            ->limit(self::RISK_PREVIEW_LIMIT)
             ->get(['id', 'risk_description', 'detected_at'])
             ->map(fn (FarmRisk $risk): array => [
                 'id' => (string) $risk->id,
                 'title' => $risk->risk_description,
+                'sortAt' => $risk->detected_at->getTimestamp(),
                 'detectedAt' => $risk->detected_at
                     ->settings(['locale' => 'id'])
                     ->isoFormat('HH:mm · D MMMM YYYY'),
+            ])->toBase();
+        $incidentItems = (clone $openIncidents)
+            ->with(['incidentDetail' => fn ($details) => $details->visibleTo($actor, $team)])
+            ->orderByDesc('activity_date')->orderByDesc('id')
+            ->limit(self::RISK_PREVIEW_LIMIT)
+            ->get(['id', 'farm_id', 'activity_date', 'daily_activity_log_id', 'description', 'task_details'])
+            ->map(function (FarmActivity $activity): array {
+                $details = json_decode((string) $activity->getAttribute('task_details'), true);
+
+                return [
+                    'id' => 'incident:'.$activity->id,
+                    'title' => data_get($details, 'description') ?: $activity->description
+                        ?: $activity->incidentDetail?->incident_category ?: 'Insiden lahan dilaporkan',
+                    'sortAt' => $activity->activity_date->getTimestamp(),
+                    'detectedAt' => $activity->activity_date->setTimezone('Asia/Jakarta')
+                        ->settings(['locale' => 'id'])->isoFormat(
+                            $activity->daily_activity_log_id === null ? 'HH:mm · D MMMM YYYY' : 'D MMMM YYYY'
+                        ),
+                ];
+            });
+        $riskTotal = (clone $openRisks)->count() + (clone $openIncidents)->count();
+        $riskItems = $riskItems->concat($incidentItems)
+            ->sortBy([['sortAt', 'desc'], ['id', 'desc']])
+            ->take(self::RISK_PREVIEW_LIMIT)
+            ->map(fn (array $risk): array => [
+                'id' => $risk['id'], 'title' => $risk['title'], 'detectedAt' => $risk['detectedAt'],
             ])
             ->values()
             ->all();
 
         return [
+            ...($paginateActivities ? ['activityFilters' => $activityFilters, 'activityPagination' => $activityPagination] : []),
             'filters' => ['farm_id' => $farmId, 'period' => (string) $period],
             'farmOptions' => $farmOptions->map(fn (Farm $farm): array => ['id' => (string) $farm->id, 'name' => $farm->name])->all(),
             'trend' => $trend,
@@ -224,25 +275,25 @@ class AdminDashboardService
                 'withoutTimeline' => $timelineUnknown,
             ],
             'risks' => [
-                'total' => (clone $openRisks)->count(),
+                'total' => $riskTotal,
                 'items' => $riskItems,
             ],
             'generatedAt' => CarbonImmutable::now()->settings(['locale' => 'id'])->isoFormat('D MMMM YYYY'),
             'metrics' => [
-                ['key' => 'farms', 'label' => 'Total kebun', 'value' => (clone $farms)->count(), 'unit' => 'kebun', 'note' => 'Kebun dalam cakupan akses Anda.'],
+                ['key' => 'farms', 'label' => 'Total lahan', 'value' => (clone $farms)->count(), 'unit' => 'lahan', 'note' => 'Lahan dalam cakupan akses Anda.'],
                 [
                     'key' => 'area',
                     'label' => 'Luas terkelola',
                     'value' => $this->decimal($totalArea),
                     'unit' => 'ha',
-                    'note' => 'Akumulasi luas kebun yang dapat dipantau.',
+                    'note' => 'Akumulasi luas lahan yang dapat dipantau.',
                     'breakdown' => [
                         'blocks' => $mappedBlocks,
                         'subBlocks' => (clone $cycles)->whereNotNull('block_id')->count(),
                     ],
                 ],
                 ['key' => 'cycles', 'label' => 'Batch berjalan', 'value' => $runningCount, 'unit' => 'batch', 'note' => $this->decimal($activeArea).' ha pada batch aktif.'],
-                ['key' => 'risks', 'label' => 'Risiko terbuka', 'value' => (clone $openRisks)->count(), 'unit' => 'risiko', 'note' => 'Perlu ditinjau sebelum status ditutup.'],
+                ['key' => 'risks', 'label' => 'Risiko terbuka', 'value' => $riskTotal, 'unit' => 'risiko', 'note' => 'Risiko lahan dan laporan insiden yang belum ditutup.'],
             ],
             'activity' => [
                 'total' => $activitiesThisWeek,
@@ -263,7 +314,7 @@ class AdminDashboardService
                 'id' => (string) $activity->id,
                 'title' => $activity->activityType->name ?? 'Aktivitas lapangan',
                 'description' => $activity->description,
-                'farm' => $activity->farm->name ?? 'Kebun tidak tersedia',
+                'farm' => $activity->farm->name ?? 'Lahan tidak tersedia',
                 'officerId' => (string) $activity->performed_by,
                 'officerName' => $activity->performer->name ?? 'Petugas tidak tersedia',
                 'date' => $activity->activity_date->settings(['locale' => 'id'])->isoFormat('D MMM YYYY'),
@@ -272,6 +323,53 @@ class AdminDashboardService
             'officers' => $officers,
             'tasks' => $tasks,
         ];
+    }
+
+    /**
+     * Filter only the feed; dashboard metrics, trend and officer totals keep their full scope.
+     *
+     * @param  Builder<FarmActivity>  $query
+     * @param  array{search: string, officer_id: ?string, per_page: int}  $filters
+     * @return Builder<FarmActivity>
+     */
+    private function filterActivityFeed(Builder $query, User $actor, Team $team, array $filters): Builder
+    {
+        if ($filters['officer_id'] !== null) {
+            $query->where('performed_by', $filters['officer_id'])
+                ->whereHas('performer', fn ($users) => $users->visibleTo($actor, $team));
+        }
+        if ($filters['search'] !== '') {
+            $term = '%'.addcslashes($filters['search'], '\\%_').'%';
+            $query->where(fn (Builder $search) => $search
+                ->where('description', 'ilike', $term)
+                ->orWhereHas('activityType', fn ($types) => $types->visibleTo($actor, $team)->where('name', 'ilike', $term))
+                ->orWhereHas('farm', fn ($farms) => $farms->visibleTo($actor, $team)->where('name', 'ilike', $term))
+                ->orWhereHas('performer', fn ($users) => $users->visibleTo($actor, $team)->where('name', 'ilike', $term)));
+        }
+
+        return $query;
+    }
+
+    /**
+     * Read the existing incident report, not a duplicate FarmRisk record.
+     * Legacy reports use status; voluntary forms retain incident_status in JSONB.
+     * An explicit activity status takes precedence over that input snapshot.
+     *
+     * @param  Builder<FarmActivity>  $activities  Already scoped to the visible, selected farms.
+     * @return Builder<FarmActivity>
+     */
+    private function openIncidentReports(Builder $activities, User $actor, Team $team): Builder
+    {
+        return (clone $activities)
+            ->whereHas('incidentDetail', fn ($details) => $details->visibleTo($actor, $team))
+            ->where('activity_date', '<=', CarbonImmutable::now('Asia/Jakarta'))
+            ->whereRaw(<<<'SQL'
+LOWER(REPLACE(COALESCE(
+    NULLIF(BTRIM(farm_activities.status), ''),
+    NULLIF(BTRIM(farm_activities.task_details->>'incident_status'), ''),
+    'open'
+), ' ', '_')) IN (?, ?, ?, ?, ?)
+SQL, ['open', 'progress', 'in_progress', 'pending', 'reported']);
     }
 
     /**

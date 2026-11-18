@@ -162,7 +162,7 @@ describe('task list presentation', () => {
                 defaultSopMissing: true,
             }),
         );
-        expect(html).toContain('Belum ada penugasan kebun');
+        expect(html).toContain('Belum ada penugasan lahan');
         expect(html).toContain('Hubungi Admin');
         expect(html).not.toContain('Pemupukan susulan');
     });

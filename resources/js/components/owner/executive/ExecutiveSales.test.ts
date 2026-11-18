@@ -1,7 +1,7 @@
 import { createSSRApp, effectScope, nextTick, ref } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import ExecutiveSales from './ExecutiveSales.vue';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { useExecutiveClientFocus } from '@/composables/useExecutiveClientFocus';
 
 const clients = [

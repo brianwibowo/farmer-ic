@@ -67,8 +67,15 @@ defineProps<{ risks: DashboardData['risks'] }>();
                 Tidak ada risiko terbuka saat ini
             </p>
             <p class="mt-1 max-w-56 text-xs leading-5 text-muted-foreground">
-                Risiko kebun yang perlu ditinjau akan muncul di sini.
+                Risiko lahan yang perlu ditinjau akan muncul di sini.
             </p>
         </div>
+        <p
+            v-if="risks.total > risks.items.length"
+            class="mt-3 text-xs text-muted-foreground"
+        >
+            Menampilkan {{ risks.items.length }} dari {{ risks.total }} risiko,
+            diurutkan dari yang terbaru.
+        </p>
     </article>
 </template>

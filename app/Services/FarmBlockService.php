@@ -264,7 +264,7 @@ class FarmBlockService
         }
         if (($data['is_active'] ?? true) && (clone $others)->where('is_active', true)
             ->selectRaw('COALESCE(SUM(area_ha), 0) + CAST(? AS numeric) > CAST(? AS numeric) AS exceeds', [$data['area_ha'], $farm->total_area_ha])->value('exceeds')) {
-            throw ValidationException::withMessages(['area_ha' => 'Total luas blok aktif melebihi luas kebun.']);
+            throw ValidationException::withMessages(['area_ha' => 'Total luas blok aktif melebihi luas lahan.']);
         }
         if ($block) {
             $running = DB::table('planting_cycles as c')
@@ -328,7 +328,7 @@ class FarmBlockService
             }
             $capacity = $this->batchCapacity($farm, $locked, DB::table('planting_cycles'));
             if ((LandArea::squareMetres($capacity['available_ha']) ?? 0) < 1) {
-                throw ValidationException::withMessages(['subblock_label' => 'Kapasitas lahan pada blok atau kebun sudah penuh. Subblok baru dapat dibuat setelah siklus berjalan selesai.']);
+                throw ValidationException::withMessages(['subblock_label' => 'Kapasitas lahan pada blok atau lahan sudah penuh. Subblok baru dapat dibuat setelah siklus berjalan selesai.']);
             }
             $labels = PlantingCycle::visibleTo($actor, $team)->where('block_id', $locked->id)->pluck('subblock_label')->all();
             $label = $data['subblock_label'] ?? null;

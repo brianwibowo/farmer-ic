@@ -57,7 +57,7 @@ const getDonutSegments = () => {
                 'report-print-document',
                 { 'export-mode': props.exportMode },
             ]"
-            aria-label="Dokumen laporan kebun"
+            aria-label="Dokumen laporan lahan"
         >
             <header class="print-header">
                 <div>
@@ -78,7 +78,7 @@ const getDonutSegments = () => {
                             - Referensi historis · bukan laporan operasional
                         </p>
                     </div>
-                    <h1>Laporan Kebun</h1>
+                    <h1>Laporan Lahan</h1>
                     <p>{{ report.periodLabel }} · {{ report.scopeLabel }}</p>
                 </div>
                 <div class="print-meta">
@@ -91,11 +91,11 @@ const getDonutSegments = () => {
 
             <section class="print-section">
                 <h2 class="print-section-title">
-                    <Sprout :size="17" /> Ringkasan kebun
+                    <Sprout :size="17" /> Ringkasan lahan
                 </h2>
                 <div class="print-metrics">
                     <div class="metric-green">
-                        <span><Sprout :size="14" /> Total kebun</span
+                        <span><Sprout :size="14" /> Total lahan</span
                         ><strong>{{ report.summary.totalKebun }}</strong>
                     </div>
                     <div class="metric-blue">
@@ -169,7 +169,7 @@ const getDonutSegments = () => {
                 <table>
                     <thead>
                         <tr>
-                            <th>Kebun</th>
+                            <th>Lahan</th>
                             <th>Komoditas · fase</th>
                             <th>Pendapatan</th>
                             <th>OPEX</th>
@@ -230,7 +230,7 @@ const getDonutSegments = () => {
                                     report.growthTimeline?.observedKebunCount ||
                                     report.summary.totalKebun
                                 }}</strong>
-                                <span>Kebun</span>
+                                <span>Lahan</span>
                             </div>
                         </div>
                     </div>
@@ -253,7 +253,7 @@ const getDonutSegments = () => {
                                 <span class="legend-title">{{
                                     stage.label
                                 }}</span>
-                                <strong>{{ stage.count }} kebun </strong>
+                                <strong>{{ stage.count }} lahan </strong>
                             </div>
                         </div>
                     </div>

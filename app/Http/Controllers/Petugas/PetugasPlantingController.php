@@ -27,7 +27,7 @@ class PetugasPlantingController extends Controller
     public function index(Request $request, PlantingActivityService $planting, ActivitySequenceService $sequence, FarmBlockService $blockService): Response
     {
         $farm = $request->user()->assignedFarm;
-        abort_unless($farm instanceof Farm, 403, 'Anda belum memiliki penugasan kebun.');
+        abort_unless($farm instanceof Farm, 403, 'Anda belum memiliki penugasan lahan.');
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [PlantingCycle::class, $farm->team]);
         $blockId = $request->validate(['block' => ['nullable', 'uuid']])['block'] ?? null;

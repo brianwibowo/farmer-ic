@@ -59,7 +59,7 @@ async function loadKebun(): Promise<void> {
     try {
         kebun.value = await listMappedKebun();
     } catch {
-        errorMessage.value = 'Data kebun belum dapat dimuat. Coba lagi.';
+        errorMessage.value = 'Data lahan belum dapat dimuat. Coba lagi.';
     } finally {
         isLoading.value = false;
     }
@@ -71,10 +71,10 @@ onMounted(() => {
 </script>
 
 <template> 
-    <section class="mt-1" aria-label="Ringkasan kondisi kebun">
+    <section class="mt-1" aria-label="Ringkasan kondisi lahan">
         <div class="flex items-center justify-between rounded-2xl border border-primary/20 bg-surface/35 p-4">
             <div>
-                <p class="text-xs text-muted-foreground">Total kebun terdaftar</p>
+                <p class="text-xs text-muted-foreground">Total lahan terdaftar</p>
                 <p class="mt-1 text-3xl leading-9 font-semibold text-secondary">{{ filteredKebun.length }}</p>
             </div>
             <span class="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">

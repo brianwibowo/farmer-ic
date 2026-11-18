@@ -14,7 +14,7 @@ class TaskGenerationFeedback
             'missing_sop' => 'Tugas belum dibuat: SOP default blok belum diatur atau blok tidak tersedia.',
             'inactive_sop' => 'Tugas belum dibuat: SOP default tidak aktif atau tidak dapat diakses.',
             'missing_published_version' => 'Tugas belum dibuat: versi SOP published belum tersedia atau versi tersimpan tidak valid.',
-            'invalid_sop_tenant' => 'Tugas belum dibuat: SOP tidak sesuai tenant kebun. Hubungi admin.',
+            'invalid_sop_tenant' => 'Tugas belum dibuat: SOP tidak sesuai tenant lahan. Hubungi admin.',
             'commodity_mismatch' => 'Tugas belum dibuat: komoditas varietas tidak sesuai SOP default. Hubungi admin.',
             'no_tasks' => 'SOP tidak memiliki tugas lanjutan untuk dibuat.',
             'closed_cycle' => 'Subblok sudah ditutup; tugas tidak diubah.',

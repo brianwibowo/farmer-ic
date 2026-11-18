@@ -205,7 +205,7 @@ onBeforeUnmount(() => {
     <section
         v-if="compact"
         class="flex min-w-0 items-center gap-2"
-        aria-label="Cuaca kebun"
+        aria-label="Cuaca lahan"
         :aria-busy="loading"
         aria-live="polite"
     >
@@ -239,13 +239,13 @@ onBeforeUnmount(() => {
         </div>
         <p v-else-if="loading" class="text-xs leading-5">Memuat cuaca…</p>
         <p v-else-if="!selectedFarm" class="text-xs leading-5">
-            Belum ada kebun
+            Belum ada lahan
         </p>
         <p
             v-else-if="weather?.status === 'missing_coordinates'"
             class="text-xs leading-5"
         >
-            Koordinat kebun belum diisi
+            Koordinat lahan belum diisi
         </p>
         <button
             v-else
@@ -290,13 +290,13 @@ onBeforeUnmount(() => {
         </div>
         <div v-if="farms.length > 1" class="mt-3">
             <label for="weather-farm" class="sr-only"
-                >Kebun untuk prakiraan cuaca</label
+                >Lahan untuk prakiraan cuaca</label
             >
             <AppSelect
                 id="weather-farm"
                 v-model="selectedId"
                 class="admin-field w-full"
-                aria-label="Kebun untuk prakiraan cuaca"
+                aria-label="Lahan untuk prakiraan cuaca"
             >
                 <AppSelectOption
                     v-for="farm in farms"
@@ -339,9 +339,9 @@ onBeforeUnmount(() => {
             <p class="text-sm text-muted-foreground">
                 {{
                     !selectedFarm
-                        ? 'Belum ada kebun untuk ditampilkan.'
+                        ? 'Belum ada lahan untuk ditampilkan.'
                         : weather?.status === 'missing_coordinates'
-                          ? 'Lengkapi koordinat kebun untuk melihat cuaca.'
+                          ? 'Lengkapi koordinat lahan untuk melihat cuaca.'
                           : error || 'Cuaca belum tersedia. Silakan coba lagi.'
                 }}
             </p>

@@ -121,7 +121,7 @@ const progressSummary = computed(() => {
                     >
                     <MetricInfoTooltip
                         label="Sisa kapasitas penanaman"
-                        :description="`Sisa blok ${hectares(block.batch_capacity.block_remaining_ha)} ha. Sisa kebun ${hectares(block.batch_capacity.farm_remaining_ha)} ha. Penanaman baru mengikuti nilai terkecil dari keduanya.`"
+                        :description="`Sisa blok ${hectares(block.batch_capacity.block_remaining_ha)} ha. Sisa lahan ${hectares(block.batch_capacity.farm_remaining_ha)} ha. Penanaman baru mengikuti nilai terkecil dari keduanya.`"
                         example="Sisa blok 6 ha dan sisa kebun 4 ha berarti laporan tanam baru maksimal 4 ha."
                         :content-class="theme"
                         touch-target

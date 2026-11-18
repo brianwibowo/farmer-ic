@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { computed, effectScope, reactive } from 'vue';
 import { useFarmGeocoding } from './useFarmGeocoding';
 import {

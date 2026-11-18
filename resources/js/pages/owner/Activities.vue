@@ -80,11 +80,11 @@ function apply(): void {
 </script>
 
 <template>
-    <Head title="Aktivitas kebun" />
+    <Head title="Aktivitas lahan" />
     <div class="space-y-5" :aria-busy="loading">
         <OwnerPageHeader
             title="Aktivitas"
-            description="Ikuti pekerjaan lapangan yang sudah dicatat pada kebun Anda."
+            description="Ikuti pekerjaan lapangan yang sudah dicatat pada lahan Anda."
             back-href="/lainnya"
         />
 
@@ -113,14 +113,14 @@ function apply(): void {
                         class="size-4 text-primary"
                         aria-hidden="true"
                     />
-                    Filter kebun, petugas, dan periode
+                    Filter lahan, petugas, dan periode
                 </summary>
                 <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div class="min-w-0 space-y-1.5">
                         <label
                             for="owner-activity-farm"
                             class="text-xs font-medium"
-                            >Kebun</label
+                            >Lahan</label
                         >
                         <AppSelect
                             id="owner-activity-farm"
@@ -128,7 +128,7 @@ function apply(): void {
                             :disabled="loading"
                         >
                             <AppSelectOption value=""
-                                >Semua kebun</AppSelectOption
+                                >Semua lahan</AppSelectOption
                             >
                             <AppSelectOption
                                 v-for="farm in farms"
@@ -276,7 +276,7 @@ function apply(): void {
                         <MapPin
                             class="mt-0.5 size-3.5 shrink-0"
                             aria-hidden="true"
-                        />{{ activity.farm?.name ?? 'Kebun tidak tersedia'
+                        />{{ activity.farm?.name ?? 'Lahan tidak tersedia'
                         }}<span v-if="activity.block_name"> · {{ activity.block_name }}</span><span v-if="activity.cycle">
                             · {{ activity.cycle.label }}</span
                         >
@@ -308,7 +308,7 @@ function apply(): void {
             :description="
                 hasFilters
                     ? 'Coba kurangi filter atau pilih periode lain.'
-                    : 'Catatan pekerjaan akan muncul setelah aktivitas tersimpan pada kebun dalam cakupan Anda.'
+                    : 'Catatan pekerjaan akan muncul setelah aktivitas tersimpan pada lahan dalam cakupan Anda.'
             "
         />
         <OwnerPagination :paginator="activities" />

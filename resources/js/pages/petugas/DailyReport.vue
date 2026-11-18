@@ -43,7 +43,7 @@ function changeDate(event: Event): void {
                 Aktivitas harian
             </h1>
             <p class="mt-2 text-sm text-muted-foreground">
-                {{ farm?.name ?? 'Belum ada penugasan kebun' }} · Satu laporan
+                {{ farm?.name ?? 'Belum ada penugasan lahan' }} · Satu laporan
                 bersama per hari.
             </p>
         </header>
@@ -51,7 +51,7 @@ function changeDate(event: Event): void {
             v-if="!farm"
             class="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground"
         >
-            Anda belum memiliki penugasan kebun. Hubungi Admin untuk mulai
+            Anda belum memiliki penugasan lahan. Hubungi Admin untuk mulai
             mencatat aktivitas.
         </p>
         <label v-if="farm" class="block space-y-2 text-sm"

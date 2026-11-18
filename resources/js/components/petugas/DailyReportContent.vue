@@ -28,8 +28,8 @@ const adding = ref(false);
         >
             <h2 class="text-lg font-semibold">Ringkasan harian</h2>
             <p class="text-xs leading-5 text-muted-foreground">
-                Laporan bersama seluruh Petugas kebun. Dibuat pertama oleh
-                {{ log.recorder_name ?? 'Petugas kebun' }}.
+                Laporan bersama seluruh Petugas lahan. Dibuat pertama oleh
+                {{ log.recorder_name ?? 'Petugas lahan' }}.
             </p>
         </section>
         <p
@@ -64,7 +64,7 @@ const adding = ref(false);
                         {{ activity.name }}
                     </h3>
                     <p class="mt-1 text-xs leading-5 text-muted-foreground">
-                        {{ activity.performer_name ?? 'Petugas kebun'
+                        {{ activity.performer_name ?? 'Petugas lahan'
                         }}<template v-if="activity.worker_count !== null">
                             · {{ activity.worker_count }} pekerja</template
                         ><template v-if="activity.subblok">

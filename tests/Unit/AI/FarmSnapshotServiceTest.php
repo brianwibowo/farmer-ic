@@ -16,7 +16,7 @@ class FarmSnapshotServiceTest extends TestCase
 
         $this->assertIsArray($snapshot);
         $this->assertSame('kebun-002', $snapshot['id']);
-        $this->assertSame('Kebun Tani Lestari', $snapshot['name']);
+        $this->assertSame('Lahan Tani Lestari', $snapshot['name']);
         $this->assertSame('Parakan', $snapshot['district']);
         $this->assertSame('Temanggung', $snapshot['city']);
         $this->assertSame(180, $snapshot['used_hectare']);
@@ -41,7 +41,8 @@ class FarmSnapshotServiceTest extends TestCase
 
         $svg = (new FarmImageRenderer)->render($snapshot);
 
-        $this->assertStringContainsString('Kebun Tani Lestari', $svg);
+        $this->assertStringContainsString('Lahan Tani Lestari', $svg);
+        $this->assertStringNotContainsString('Lahan Lahan', $svg);
         $this->assertStringContainsString('Parakan, Temanggung', $svg);
         $this->assertStringContainsString('Jl. Parakan-Ngadirejo No. 27', $svg);
         $this->assertStringContainsString('180 ha', $svg);
@@ -50,5 +51,15 @@ class FarmSnapshotServiceTest extends TestCase
         $this->assertStringContainsString('Sehat', $svg);
         $this->assertStringNotContainsString('2 hektar', $svg);
         $this->assertStringNotContainsString('Sukamaju', $svg);
+    }
+
+    public function test_lahan_wording_and_legacy_kebun_prompts_resolve_the_same_record(): void
+    {
+        $service = new FarmSnapshotService;
+        foreach (['Lahan Tani Lestari', 'Kebun Tani Lestari'] as $name) {
+            $snapshot = $service->resolve('Buatkan infografis '.$name);
+            $this->assertSame('kebun-002', $snapshot['id']);
+            $this->assertSame('Lahan Tani Lestari', $snapshot['name']);
+        }
     }
 }
