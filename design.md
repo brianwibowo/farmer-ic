@@ -14,8 +14,10 @@ Read this document before implementing or changing any UI.
   for legacy Farmer and AI screens. Owner portal pages use the admin profile
   described below at every viewport size.
 - **Petugas/mobile profile:** retain the phone-width shell and four-item bottom
-  navigation, while sharing the admin dashboard's palette, Plus Jakarta Sans,
+  navigation, using **Poppins** while sharing the admin dashboard's palette,
   component surfaces, typography hierarchy, and 20px content-card corners.
+  Apply the same Poppins font to forms, teleported menus, dialogs and alerts
+  throughout the Petugas layout, in both themes.
 - **Desktop admin profile:** use the desktop layout, extended palette, and
   desktop typography for admin dashboards with dense operational data, including
   land management and warehousing. Adapt these pages to smaller viewports using
@@ -657,8 +659,12 @@ Use high-contrast translucent controls; preserve
 the live unread count, profile dropdown, settings link, and normal logout flow;
 retain the four-destination bottom navigation. Other Petugas pages keep their
 normal header and content insets. The to-do panel scrolls naturally with the page
-and has a concise unboxed empty state. Use the shared Petugas/admin font,
+and has a concise unboxed empty state. Use the Petugas Poppins font, shared
 status styles, and task-link components described above.
+When the assigned farm has no tasks today, center the local illustration
+`/images/vector/no-todo.png` above the semibold **Belum ada tugas hari ini** label.
+Keep the illustration compact (160px, 176px on wider screens), responsive and
+decorative for screen readers; retain the separate unassigned-farm empty state.
 Keep the initial view concise: no descriptive sentences below the stat numbers
 or task heading. Use short status labels, a compact completed/total count, and
 one-line empty messages. Keep SOP instructions and required markers on the
@@ -975,9 +981,10 @@ Tipografi didasarkan pada skala _Golden Ratio_ (~1.618) menggunakan **Plus Jakar
 | **Caption 1**      |  `12px`   |      `16px`      | Medium/Reg | Metadata, Helper text, Tooltips, Status trend   |
 | **Caption 2**      |  `10px`   |      `14px`      | Medium     | Label super kecil (jarang digunakan)            |
 
-The application loads Plus Jakarta Sans through vite.config.ts. The scoped
-admin font token uses this family while the Farmer/mobile profile keeps its
-existing font configuration.
+The application loads Plus Jakarta Sans and Poppins through vite.config.ts.
+The scoped admin font token uses Plus Jakarta Sans; Petugas overrides it with
+Poppins (400/500/600/700), including teleported surfaces while its layout is
+active. The legacy Farmer/mobile profile keeps its existing font configuration.
 
 ### Shared admin theme — all pages
 
