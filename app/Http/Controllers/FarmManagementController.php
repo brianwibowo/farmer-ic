@@ -116,6 +116,8 @@ class FarmManagementController extends Controller
             'blockCapacity' => Gate::allows('create', [FarmBlock::class, $farm]) ? $this->blocks->formCapacity($farm, $request->user(), $farm->team) : null,
             'blockOptions' => $this->blocks->configurationOptions($request->user(), $farm->team),
             'farmCycleOptions' => app(\App\Services\FarmCycleService::class)->options($farm, $request->user(), $farm->team),
+            'farmCyclesUrl' => Gate::allows('viewAny', [\App\Models\FarmCycle::class, $farm->team])
+                ? route($request->routeIs('owner.farms.show') ? 'owner.farm-cycles.index' : 'farm-management.cycles.index', $farm, false) : null,
             'canCreateFarmCycle' => Gate::allows('create', [\App\Models\FarmCycle::class, $farm]),
             'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [

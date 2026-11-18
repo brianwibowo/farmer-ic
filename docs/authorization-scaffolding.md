@@ -14,10 +14,19 @@ Manual land cycles use `FarmCycle` (`farm_cycles`) to group the existing
 POST actions authorize batch creation, cycle listing, and either viewing the
 selected persisted cycle or creating a cycle under the trusted Farm. Cycle
 options, batch counts and actual harvest totals are scoped with `visibleTo`
-before aggregation. No new endpoint or approval step is introduced. Petugas
+before aggregation. Creation uses the existing endpoints without an approval step. Petugas
 is restricted to the assigned farm; Owner cannot create cycles or batches.
 Update/delete/configure for cycles remain undefined and denied. Existing batch
 edits cannot reassign cycles. No new cycle routes or queries remain unprotected.
+
+Read-only cycle detail listings use GET `/petugas/kebun/siklus`,
+`/admin/farm-management/{farm}/siklus`, and `/kebun/{farm}/siklus` (Owner).
+Each Controller action authorizes the persisted Farm and `FarmCycle::viewAny`
+with its trusted Team before calling the service. Petugas derives the farm
+from `assignedFarm`, never from query input. Owner also retains the current-team
+boundary used by the farm detail page. `FarmCycleService` scopes cycles before
+pagination and scopes batches, activities and harvest details before computing
+batch counts and tonnage. These routes introduce no mutation grants.
 
 Migration `2026_11_18_000001_create_farm_cycles.php` groups existing batches in
 Siklus 1 per farm because historical boundaries cannot be inferred. The final

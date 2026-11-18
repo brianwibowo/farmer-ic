@@ -281,10 +281,44 @@ Default to the newest visible cycle, or **Buat siklus baru** for the first cycle
 Offer a new cycle only from the server's `canCreateFarmCycle` capability. Creating
 a cycle is committed with the subblock, with its number assigned by Laravel.
 Show the cycle number on batch summaries and as read-only context on planting
-reports. A compact **Siklus lahan** summary displays batch counts and actual
+reports. A compact **Siklus lahan** summary displays cycle numbers and actual
 harvest tonnage from scoped backend data. Keep existing theme tokens, 20px content
 cards, mobile spacing and dark-mode support. Never use planted area to switch
 cycles automatically or expose cycle reassignment on existing batch edits.
+The Petugas **Tambah subblok** dialog has a title-only visible header and no
+horizontal dividers below the header or above its actions. Use the same card
+surface for header, form and footer; keep an accessible, visually hidden dialog
+description and all existing validation/loading states.
+Present cycle summaries as centered metrics on the shared card, without filled
+inner cards. Use large bold harvest values with a small green `ton` unit aligned
+near the top, then only the cycle number below; omit batch counts from these
+summary captions. Put a **Detail cycle** Inertia link with a right chevron beside
+the section title when the backend permits cycle listing. Separate columns with thin
+neutral vertical rules. Use two columns in narrow containers and up to three
+above 640px of actual card content width; a single cycle fills the row. Size
+numbers from each column's available width, not the viewport. Limit this summary
+to the two newest cycles in Petugas and three newest cycles in Admin/Owner,
+ordered by cycle number descending. Keep the full cycle choices in subblock
+forms; this display limit does not alter stored records or harvest totals.
+Keep labels and units together in both themes.
+The summary card uses a small, thin three-arrow cycle motif (Lucide `Recycle`)
+in the bottom-right corner, with a faint primary-color stroke. Keep it static,
+behind the content, decorative for screen readers and non-interactive. Avoid
+additional patterns, unrelated icons or bright fills.
+
+The **Detail cycle** page lists all visible cycles for the current farm, newest
+first, with six cards per page and the shared pagination. Each plain card shows
+its cycle number, creation date, actual harvest tonnage and total batch count
+from scoped backend data. Use **Panen aktual** and **Jumlah batch** as the two
+centered metrics. Omit a footer with repeated counts or batch statuses.
+Do not add patterns or decorative backgrounds to these detail cards.
+Use one column on mobile, two in medium containers and three in wide containers;
+retain semantic theme colors in both themes. Include back navigation and empty
+states. Never invent a closed cycle status from individual batch statuses.
+The page header is one row: a 36px circular primary-colored icon-only back link
+within a 44px tap target, beside **Detail cycle** at 18px/28px and medium weight
+(500), overriding the default Petugas heading scale. Give the link an accessible label; omit visible back
+text and the farm-name/total-cycle subtitle.
 
 ## Pagination
 
@@ -699,9 +733,25 @@ The `/petugas/kebun` page reads the authenticated user's persisted assigned farm
 Assignment currently applies to a farm, so its visible blocks and subblok/batches
 follow that boundary; do not invent block-level or batch-level assignments.
 Keep the mobile shell, shared Petugas/admin components, and concise copy at all widths.
-Show the farm name, land tenure, address/location, area, block count, and batch
-count. Use compact Inertia links to select a block, then display its area,
-description, land-clearing dates, and paginated subblok cards. Retain the selected
+Use a decorative 28px Lucide `LandPlot` icon in a 44px slot beside the farm
+name, without a colored background. Show the persisted address directly below
+the name in the small muted subtitle style with a map-pin icon. Omit the
+land-tenure subtitle and the separate address/
+district/city/province rows in this card. Show area, block count, and batch
+count. Match the cycle summary's centered metric style for area, blocks and
+subblocks: three columns, bold values above muted captions, thin neutral vertical
+separators, and a small green `ha` unit beside the area. Size values from each
+column's available width and retain semantic description-list markup.
+The Petugas location map opens centered on its saved point at zoom 18. Omit
+the pin-versus-boundary helper text in this read-only card; keep map controls,
+attribution, loading/error states and location-editor instructions intact.
+Use **Blok** as the section heading. Place compact Inertia block-selection links
+above a capacity card showing **Total luas blok** and **Sisa luas blok** from
+the selected block's backend `area_ha` and `available_ha` values. Match the cycle
+summary's two centered metrics, green `ha` units and thin neutral divider.
+Follow with the subblok toolbar and paginated subblok cards; omit the duplicate
+remaining-area text in that toolbar. Omit the separate selected-block summary
+card with its name, area, description and land-clearing dates. Retain the selected
 block in pagination links. Scope every related query and total to the assigned
 farm and its team, with controller authorization before service reads.
 

@@ -154,7 +154,7 @@ const fieldClass =
             @interact-outside.prevent
         >
             <DialogHeader
-                class="flex-row items-start gap-3 border-b border-border bg-muted/30 px-5 py-4 pr-12 text-left"
+                class="flex-row items-center gap-3 px-5 py-4 pr-12 text-left"
             >
                 <div
                     class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-secondary dark:text-primary"
@@ -165,9 +165,8 @@ const fieldClass =
                     <DialogTitle class="text-lg leading-6 font-semibold">
                         Tambah subblok
                     </DialogTitle>
-                    <DialogDescription class="text-xs leading-5">
-                        Buat subblok baru pada blok aktif. Luas subblok akan
-                        mengikuti laporan penanaman aktual.
+                    <DialogDescription class="sr-only">
+                        Isi siklus lahan, label subblok, dan rencana tanggal tanam.
                     </DialogDescription>
                 </div>
             </DialogHeader>
@@ -330,7 +329,7 @@ const fieldClass =
                 </div>
 
                 <DialogFooter
-                    class="flex-row flex-wrap items-center justify-end gap-2 border-t border-border bg-muted/20 px-5 py-3"
+                    class="flex-row flex-wrap items-center justify-end gap-2 px-5 py-3"
                 >
                     <Button
                         type="button"

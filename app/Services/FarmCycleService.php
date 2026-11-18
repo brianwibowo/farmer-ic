@@ -9,6 +9,8 @@ use App\Models\HarvestDetail;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 class FarmCycleService
@@ -55,11 +57,31 @@ class FarmCycleService
     public function options(Farm $farm, User $actor, Team $team): array
     {
         $cycles = FarmCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->orderByDesc('cycle_number')->get();
+
+        return $this->summaries($farm, $actor, $team, $cycles);
+    }
+
+    public function paginate(Farm $farm, User $actor, Team $team, int $page = 1): LengthAwarePaginator
+    {
+        $cycles = FarmCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
+            ->orderByDesc('cycle_number')->paginate(6, ['*'], 'page', $page)->withQueryString();
+        $summaries = collect($this->summaries($farm, $actor, $team, $cycles->getCollection()))->keyBy('id');
+
+        return $cycles->through(fn (FarmCycle $cycle): array => [
+            ...$summaries[$cycle->id],
+            'created_at' => $cycle->getAttribute('created_at')?->toIso8601String(),
+        ]);
+    }
+
+    /** @param Collection<int, FarmCycle> $cycles */
+    private function summaries(Farm $farm, User $actor, Team $team, Collection $cycles): array
+    {
         if ($cycles->isEmpty()) {
             return [];
         }
         $batches = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('farm_cycle_id', $cycles->modelKeys());
-        $counts = (clone $batches)->selectRaw('farm_cycle_id, COUNT(*) as total')->groupBy('farm_cycle_id')->pluck('total', 'farm_cycle_id');
+        $counts = (clone $batches)->selectRaw('farm_cycle_id, COUNT(*) as total')
+            ->groupBy('farm_cycle_id')->pluck('total', 'farm_cycle_id');
         $activities = FarmActivity::visibleTo($actor, $team)->whereIn('planting_cycle_id', (clone $batches)->select('id'));
         $harvests = HarvestDetail::visibleTo($actor, $team)
             ->whereIn('harvest_details.activity_id', $activities->select('id'))
@@ -70,7 +92,7 @@ class FarmCycleService
 
         return $cycles->map(fn (FarmCycle $cycle): array => [
             'id' => $cycle->id, 'cycle_number' => $cycle->cycle_number,
-            'batch_count' => (int) ($counts[$cycle->id] ?? 0),
+            'batch_count' => (int) ($counts->get($cycle->id) ?? 0),
             'harvested_ton' => (string) ($harvests[$cycle->id] ?? '0.000'),
         ])->all();
     }

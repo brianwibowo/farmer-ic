@@ -133,9 +133,11 @@ const stageStatuses = {
                 </dt>
                 <dd class="mt-1 font-medium">
                     {{
-                        gardenDate(
-                            batch.planted_at ?? batch.planned_planting_at,
-                        )
+                        batch.planted_at || batch.planned_planting_at
+                            ? gardenDate(
+                                  batch.planted_at ?? batch.planned_planting_at,
+                              )
+                            : '-'
                     }}<span
                         v-if="batch.hst !== null"
                         class="mt-0.5 block font-normal text-muted-foreground"
@@ -157,7 +159,7 @@ const stageStatuses = {
                             ? 'Panen selesai'
                             : batch.estimated_harvest_at
                               ? gardenDate(batch.estimated_harvest_at)
-                              : 'Belum ada estimasi'
+                              : '-'
                     }}
                     <span
                         v-if="

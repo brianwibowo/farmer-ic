@@ -13,6 +13,7 @@ use App\Http\Controllers\AI\AiVoiceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardWeatherController;
 use App\Http\Controllers\FarmBlockController;
+use App\Http\Controllers\FarmCycleController;
 use App\Http\Controllers\FarmLegalityController;
 use App\Http\Controllers\FarmLegalityDocumentController;
 use App\Http\Controllers\FarmManagementController;
@@ -62,6 +63,7 @@ Route::middleware(['auth', 'verified', 'can:owner.access'])->group(function (): 
     Route::get('kebun/aktivitas', fn (Request $request) => to_route('aktivitas',
         Str::isUuid((string) $request->query('id', '')) ? ['farm_id' => $request->query('id')] : []))->name('kebun.aktivitas');
     Route::get('kebun/{farm}', [FarmManagementController::class, 'show'])->whereUuid('farm')->name('owner.farms.show');
+    Route::get('kebun/{farm}/siklus', [FarmCycleController::class, 'index'])->whereUuid('farm')->name('owner.farm-cycles.index');
     Route::get('kebun/{farm}/legalitas', [OwnerController::class, 'legality'])->whereUuid('farm')->name('owner.farms.legality');
     Route::get('kebun/{farm}/blok/{block}', [OwnerController::class, 'block'])
         ->whereUuid(['farm', 'block'])->name('owner.blocks.show');
@@ -87,6 +89,7 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::get('weather/{farm}', DashboardWeatherController::class)
         ->whereUuid('farm')->middleware('throttle:30,1')->name('weather');
     Route::get('kebun', PetugasGardenController::class)->name('kebun');
+    Route::get('kebun/siklus', [FarmCycleController::class, 'petugas'])->name('farm-cycles.index');
     Route::post('blocks/{block}/subbloks', PetugasSubblokController::class)->whereUuid('block')->name('subbloks.store');
     Route::get('penanaman', [PetugasPlantingController::class, 'index'])->name('planting.index');
     Route::get('subbloks/{cycle}/penanaman', [PetugasPlantingController::class, 'show'])->whereUuid('cycle')->name('planting.show');
@@ -185,6 +188,7 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
         ->whereUuid('farm')->middleware('throttle:20,1')->name('farm-management.geocode-update');
     Route::get('farm-management/{farm}/legalitas', [FarmLegalityController::class, 'show'])
         ->whereUuid('farm')->name('farm-management.legality.show');
+    Route::get('farm-management/{farm}/siklus', [FarmCycleController::class, 'index'])->whereUuid('farm')->name('farm-management.cycles.index');
     Route::post('farm-management/{farm}/legality', [FarmLegalityController::class, 'store'])
         ->whereUuid('farm')->name('farm-management.legality.store');
     Route::put('farm-management/{farm}/legality/{legality}', [FarmLegalityController::class, 'update'])

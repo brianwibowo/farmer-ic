@@ -215,9 +215,89 @@ class FarmCycleTest extends TestCase
         $options = app(FarmCycleService::class)->options($this->farm, $this->admin, $this->team);
         $this->assertSame('8.750', $options[0]['harvested_ton']);
         $this->assertSame('6.625', $options[1]['harvested_ton']);
+        $this->get('/admin/farm-management/'.$this->farm->id.'/siklus')->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Cycles')->where('cycles.total', 2)
+            ->where('cycles.data.0.harvested_ton', '8.750')
+            ->where('cycles.data.1.harvested_ton', '6.625')
+            ->where('cycles.data.1.batch_count', 2));
         $grants = config('access.roles.admin');
         unset($grants['harvest_details.view']);
         config(['access.roles.admin' => $grants]);
         $this->assertSame('0.000', app(FarmCycleService::class)->options($this->farm, $this->admin, $this->team)[0]['harvested_ton']);
+        $this->get('/admin/farm-management/'.$this->farm->id.'/siklus')->assertInertia(fn (Assert $page) => $page
+            ->where('cycles.data.0.harvested_ton', '0.000'));
+    }
+
+    public function test_cycle_detail_pagination_is_newest_first_and_excludes_other_farms(): void
+    {
+        for ($number = 1; $number <= 8; $number++) {
+            FarmCycle::create(['farm_id' => $this->farm->id, 'cycle_number' => $number, 'created_by' => $this->admin->id, 'created_at' => now()]);
+        }
+        $other = $this->farm('Lahan Lain');
+        FarmCycle::create(['farm_id' => $other->id, 'cycle_number' => 99, 'created_by' => $this->admin->id, 'created_at' => now()]);
+        $url = '/admin/farm-management/'.$this->farm->id.'/siklus';
+        $this->actingAs($this->admin)->get($url)->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Cycles')->where('farm.id', $this->farm->id)
+            ->where('cycles.total', 8)->where('cycles.last_page', 2)->has('cycles.data', 6)
+            ->where('cycles.data.0.cycle_number', 8)->where('cycles.data.5.cycle_number', 3)
+            ->where('cycles.data.0.batch_count', 0)
+            ->where('backUrl', '/admin/farm-management/'.$this->farm->id));
+        $this->get($url.'?page=2')->assertInertia(fn (Assert $page) => $page
+            ->has('cycles.data', 2)->where('cycles.data.0.cycle_number', 2)->where('cycles.data.1.cycle_number', 1));
+        $this->get($url.'?page=3')->assertInertia(fn (Assert $page) => $page
+            ->has('cycles.data', 0)->where('cycles.total', 8));
+        $foreignTeam = Team::create(['name' => 'Tenant Lain', 'is_personal' => false]);
+        $other->forceFill(['team_id' => $foreignTeam->id])->save();
+        $this->get('/admin/farm-management/'.$other->id.'/siklus')->assertForbidden();
+    }
+
+    public function test_petugas_cycle_details_use_only_the_persisted_assignment(): void
+    {
+        $this->create(['create_farm_cycle' => true]);
+        $other = $this->farm('Lahan Tidak Ditugaskan');
+        FarmCycle::create(['farm_id' => $other->id, 'cycle_number' => 99, 'created_by' => $this->admin->id, 'created_at' => now()]);
+        $this->actingAs($this->petugas)->get('/petugas/kebun')->assertInertia(fn (Assert $page) => $page
+            ->where('farmCyclesUrl', '/petugas/kebun/siklus'));
+        $this->get('/petugas/kebun/siklus?farm_id='.$other->id.'&team_id=999')->assertInertia(fn (Assert $page) => $page
+            ->component('petugas/Cycles')->where('farm.id', $this->farm->id)
+            ->where('cycles.total', 1)->where('cycles.data.0.cycle_number', 1)
+            ->where('backUrl', '/petugas/kebun'));
+        $this->get('/admin/farm-management/'.$this->farm->id.'/siklus')->assertForbidden();
+        $this->petugas->forceFill(['assigned_farm_id' => null])->save();
+        $this->get('/petugas/kebun/siklus')->assertForbidden();
+    }
+
+    public function test_cycle_listing_denies_missing_grant_and_validates_page(): void
+    {
+        $url = '/admin/farm-management/'.$this->farm->id.'/siklus';
+        $this->get($url)->assertRedirect('/login');
+        $this->actingAs($this->admin)->get($url)->assertInertia(fn (Assert $page) => $page
+            ->where('cycles.total', 0)->has('cycles.data', 0));
+        foreach (['0', '-1', 'abc', '100001'] as $page) {
+            $this->getJson($url.'?page='.$page)->assertUnprocessable();
+        }
+        $grants = config('access.roles.admin');
+        unset($grants['farm_cycles.view']);
+        config(['access.roles.admin' => $grants]);
+        $this->get($url)->assertForbidden();
+    }
+
+    public function test_owner_cycle_details_keep_the_existing_current_team_boundary(): void
+    {
+        $this->create(['create_farm_cycle' => true]);
+        $owner = User::factory()->create(['role' => 'owner']);
+        $this->team->members()->attach($owner, ['role' => 'member']);
+        $owner->forceFill(['current_team_id' => $this->team->id])->save();
+        $url = '/kebun/'.$this->farm->id.'/siklus';
+        $this->actingAs($owner)->get($url)->assertInertia(fn (Assert $page) => $page
+            ->component('farms/Cycles')->where('cycles.total', 1)
+            ->where('backUrl', '/kebun/'.$this->farm->id));
+        $this->get('/admin/farm-management/'.$this->farm->id.'/siklus')->assertForbidden();
+        $foreignTeam = Team::create(['name' => 'Tenant Asing', 'is_personal' => false]);
+        $other = $this->farm('Lahan Tenant Asing');
+        $other->forceFill(['team_id' => $foreignTeam->id])->save();
+        $this->get('/kebun/'.$other->id.'/siklus')->assertForbidden();
+        $foreignTeam->members()->attach($owner, ['role' => 'member']);
+        $this->get('/kebun/'.$other->id.'/siklus')->assertNotFound();
     }
 }
