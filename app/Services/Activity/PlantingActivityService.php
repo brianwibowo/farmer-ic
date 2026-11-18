@@ -52,6 +52,7 @@ class PlantingActivityService
 
         return [
             ...$cycle->only(['id', 'batch_number', 'subblock_label', 'status', 'reserved_area_ha', 'planted_area_ha', 'planting_started_on']),
+            'farm_cycle_number' => \App\Models\FarmCycle::visibleTo($actor, $team)->where('farm_id', $cycle->farm_id)->whereKey($cycle->getAttribute('farm_cycle_id'))->value('cycle_number'),
             'planned_planting_at' => $cycle->planned_planting_at?->toDateString(), 'planted_at' => $cycle->planted_at?->toDateString(),
             'block' => $block->only(['id', 'name']), 'variety' => $variety?->only(['id', 'name']),
         ];

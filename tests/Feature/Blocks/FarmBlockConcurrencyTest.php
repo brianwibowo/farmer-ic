@@ -64,6 +64,8 @@ class FarmBlockConcurrencyTest extends TestCase
             $this->assertSame(2, PlantingCycle::where('farm_id', $farm->id)->count());
             $this->assertSame([1, 2], PlantingCycle::where('farm_id', $farm->id)->orderBy('batch_number')->pluck('batch_number')->all());
             $this->assertSame(['A', 'B'], PlantingCycle::where('farm_id', $farm->id)->orderBy('batch_number')->pluck('subblock_label')->all());
+            $this->assertSame(1, \App\Models\FarmCycle::where('farm_id', $farm->id)->count());
+            $this->assertSame(1, PlantingCycle::where('farm_id', $farm->id)->distinct()->count('farm_cycle_id'));
             $this->assertSame(['0.0000', '0.0000'], PlantingCycle::where('farm_id', $farm->id)->orderBy('batch_number')->pluck('planted_area_ha')->all());
         } finally {
             foreach ($workers as $worker) {
@@ -79,6 +81,7 @@ class FarmBlockConcurrencyTest extends TestCase
                 $cycles = DB::table('planting_cycles')->where('farm_id', $farm->id)->pluck('id');
                 DB::table('planting_cycle_stages')->whereIn('planting_cycle_id', $cycles)->delete();
                 DB::table('planting_cycles')->where('farm_id', $farm->id)->delete();
+                DB::table('farm_cycles')->where('farm_id', $farm->id)->delete();
                 DB::table('farm_blocks')->where('farm_id', $farm->id)->delete();
                 DB::table('farms')->where('id', $farm->id)->delete();
                 $personal = $actor->teams()->where('is_personal', true)->pluck('teams.id');

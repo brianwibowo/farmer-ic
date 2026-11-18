@@ -146,9 +146,23 @@ Table crop_varieties {
   indexes { (commodity_id, name) [unique] }
 }
 
+Table farm_cycles {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  cycle_number int [not null, note: 'Positive sequence per farm, allocated under a farm lock']
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+  indexes {
+    (farm_id, cycle_number) [unique]
+    (id, farm_id) [unique]
+  }
+  Note: 'Manual grouping chosen by Admin/Petugas when creating a subblock. No area-triggered rollover.'
+}
+
 Table planting_cycles {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
+  farm_cycle_id uuid [ref: > farm_cycles.id, note: 'Composite FK with farm_id enforces the same farm; nullable for legacy imports only']
   variety_id uuid [ref: > crop_varieties.id, note: 'Nullable only for a zero-area preparation batch']
   planted_at date [note: 'Acuan H+0 HST (satu hari setelah penanaman pertama); nullable hanya untuk persiapan tanam tanpa luas']
   estimated_harvest_at date

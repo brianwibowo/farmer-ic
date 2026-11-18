@@ -43,6 +43,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class FarmDeletionService
 {
     private const LABELS = [
+        'farm_cycles' => 'Siklus lahan',
         'farm_blocks' => 'Blok lahan', 'planting_cycle_stages' => 'Timeline batch',
         'planting_cycle_tasks' => 'Tugas SOP subblok',
         'farm_legalities' => 'Legalitas lahan', 'farm_legality_documents' => 'Draft PDF legalitas',
@@ -113,7 +114,7 @@ class FarmDeletionService
                     'block_mapping_details', 'planting_details', 'fertilization_details', 'irrigation_details',
                     'pesticide_details', 'incident_details', 'harvest_details', 'land_cleaning_details',
                     'loosening_details', 'weeding_details', 'bed_preparation_details', 'liming_details', 'other_details',
-                    'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'farm_blocks',
+                    'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'farm_cycles', 'farm_blocks',
                 ] as $table) {
                     $key = str_ends_with($table, '_details') ? 'activity_id' : 'id';
                     DB::table($table)->whereIn($key, $graph[$table])->delete();
@@ -144,6 +145,7 @@ class FarmDeletionService
         $team = $farm->team;
         $graph = [];
         foreach ([
+            'farm_cycles' => \App\Models\FarmCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_blocks' => FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_legalities' => FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'planting_cycles' => PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),

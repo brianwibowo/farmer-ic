@@ -14,8 +14,10 @@ Read this document before implementing or changing any UI.
   for legacy Farmer and AI screens. Owner portal pages use the admin profile
   described below at every viewport size.
 - **Petugas/mobile profile:** retain the phone-width shell and four-item bottom
-  navigation, while sharing the admin dashboard's palette, Plus Jakarta Sans,
+  navigation, using **Poppins** while sharing the admin dashboard's palette,
   component surfaces, typography hierarchy, and 20px content-card corners.
+  Apply the same Poppins font to forms, teleported menus, dialogs and alerts
+  throughout the Petugas layout, in both themes.
 - **Desktop admin profile:** use the desktop layout, extended palette, and
   desktop typography for admin dashboards with dense operational data, including
   land management and warehousing. Adapt these pages to smaller viewports using
@@ -271,6 +273,52 @@ finish body/ARIA cleanup without waiting for a closing animation.
 Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
 installed npm package, never a CDN. Keep the native `beforeunload`
 warning for refresh/tab closure, where browsers do not allow a custom dialog.
+
+## Manual land cycles
+
+Subblock creation in Admin and Petugas includes a shared **Siklus lahan** field.
+Default to the newest visible cycle, or **Buat siklus baru** for the first cycle.
+Offer a new cycle only from the server's `canCreateFarmCycle` capability. Creating
+a cycle is committed with the subblock, with its number assigned by Laravel.
+Show the cycle number on batch summaries and as read-only context on planting
+reports. A compact **Siklus lahan** summary displays cycle numbers and actual
+harvest tonnage from scoped backend data. Keep existing theme tokens, 20px content
+cards, mobile spacing and dark-mode support. Never use planted area to switch
+cycles automatically or expose cycle reassignment on existing batch edits.
+The Petugas **Tambah subblok** dialog has a title-only visible header and no
+horizontal dividers below the header or above its actions. Use the same card
+surface for header, form and footer; keep an accessible, visually hidden dialog
+description and all existing validation/loading states.
+Present cycle summaries as centered metrics on the shared card, without filled
+inner cards. Use large bold harvest values with a small green `ton` unit aligned
+near the top, then only the cycle number below; omit batch counts from these
+summary captions. Put a **Detail cycle** Inertia link with a right chevron beside
+the section title when the backend permits cycle listing. Separate columns with thin
+neutral vertical rules. Use two columns in narrow containers and up to three
+above 640px of actual card content width; a single cycle fills the row. Size
+numbers from each column's available width, not the viewport. Limit this summary
+to the two newest cycles in Petugas and three newest cycles in Admin/Owner,
+ordered by cycle number descending. Keep the full cycle choices in subblock
+forms; this display limit does not alter stored records or harvest totals.
+Keep labels and units together in both themes.
+The summary card uses a small, thin three-arrow cycle motif (Lucide `Recycle`)
+in the bottom-right corner, with a faint primary-color stroke. Keep it static,
+behind the content, decorative for screen readers and non-interactive. Avoid
+additional patterns, unrelated icons or bright fills.
+
+The **Detail cycle** page lists all visible cycles for the current farm, newest
+first, with six cards per page and the shared pagination. Each plain card shows
+its cycle number, creation date, actual harvest tonnage and total batch count
+from scoped backend data. Use **Panen aktual** and **Jumlah batch** as the two
+centered metrics. Omit a footer with repeated counts or batch statuses.
+Do not add patterns or decorative backgrounds to these detail cards.
+Use one column on mobile, two in medium containers and three in wide containers;
+retain semantic theme colors in both themes. Include back navigation and empty
+states. Never invent a closed cycle status from individual batch statuses.
+The page header is one row: a 36px circular primary-colored icon-only back link
+within a 44px tap target, beside **Detail cycle** at 18px/28px and medium weight
+(500), overriding the default Petugas heading scale. Give the link an accessible label; omit visible back
+text and the farm-name/total-cycle subtitle.
 
 ## Pagination
 
@@ -645,8 +693,12 @@ Use high-contrast translucent controls; preserve
 the live unread count, profile dropdown, settings link, and normal logout flow;
 retain the four-destination bottom navigation. Other Petugas pages keep their
 normal header and content insets. The to-do panel scrolls naturally with the page
-and has a concise unboxed empty state. Use the shared Petugas/admin font,
+and has a concise unboxed empty state. Use the Petugas Poppins font, shared
 status styles, and task-link components described above.
+When the assigned farm has no tasks today, center the local illustration
+`/images/vector/no-todo.png` above the semibold **Belum ada tugas hari ini** label.
+Keep the illustration compact (160px, 176px on wider screens), responsive and
+decorative for screen readers; retain the separate unassigned-farm empty state.
 Keep the initial view concise: no descriptive sentences below the stat numbers
 or task heading. Use short status labels, a compact completed/total count, and
 one-line empty messages. Keep SOP instructions and required markers on the
@@ -681,9 +733,25 @@ The `/petugas/kebun` page reads the authenticated user's persisted assigned farm
 Assignment currently applies to a farm, so its visible blocks and subblok/batches
 follow that boundary; do not invent block-level or batch-level assignments.
 Keep the mobile shell, shared Petugas/admin components, and concise copy at all widths.
-Show the farm name, land tenure, address/location, area, block count, and batch
-count. Use compact Inertia links to select a block, then display its area,
-description, land-clearing dates, and paginated subblok cards. Retain the selected
+Use a decorative 28px Lucide `LandPlot` icon in a 44px slot beside the farm
+name, without a colored background. Show the persisted address directly below
+the name in the small muted subtitle style with a map-pin icon. Omit the
+land-tenure subtitle and the separate address/
+district/city/province rows in this card. Show area, block count, and batch
+count. Match the cycle summary's centered metric style for area, blocks and
+subblocks: three columns, bold values above muted captions, thin neutral vertical
+separators, and a small green `ha` unit beside the area. Size values from each
+column's available width and retain semantic description-list markup.
+The Petugas location map opens centered on its saved point at zoom 18. Omit
+the pin-versus-boundary helper text in this read-only card; keep map controls,
+attribution, loading/error states and location-editor instructions intact.
+Use **Blok** as the section heading. Place compact Inertia block-selection links
+above a capacity card showing **Total luas blok** and **Sisa luas blok** from
+the selected block's backend `area_ha` and `available_ha` values. Match the cycle
+summary's two centered metrics, green `ha` units and thin neutral divider.
+Follow with the subblok toolbar and paginated subblok cards; omit the duplicate
+remaining-area text in that toolbar. Omit the separate selected-block summary
+card with its name, area, description and land-clearing dates. Retain the selected
 block in pagination links. Scope every related query and total to the assigned
 farm and its team, with controller authorization before service reads.
 
@@ -977,9 +1045,10 @@ Tipografi didasarkan pada skala _Golden Ratio_ (~1.618) menggunakan **Plus Jakar
 | **Caption 1**      |  `12px`   |      `16px`      | Medium/Reg | Metadata, Helper text, Tooltips, Status trend   |
 | **Caption 2**      |  `10px`   |      `14px`      | Medium     | Label super kecil (jarang digunakan)            |
 
-The application loads Plus Jakarta Sans through vite.config.ts. The scoped
-admin font token uses this family while the Farmer/mobile profile keeps its
-existing font configuration.
+The application loads Plus Jakarta Sans and Poppins through vite.config.ts.
+The scoped admin font token uses Plus Jakarta Sans; Petugas overrides it with
+Poppins (400/500/600/700), including teleported surfaces while its layout is
+active. The legacy Farmer/mobile profile keeps its existing font configuration.
 
 ### Shared admin theme — all pages
 

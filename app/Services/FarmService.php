@@ -108,6 +108,10 @@ class FarmService
         if (\App\Models\FarmLegality::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()) {
             $blockers[] = 'legalitas lahan';
         }
+        if (! PlantingCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()
+            && \App\Models\FarmCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()) {
+            $blockers[] = 'siklus lahan';
+        }
         if (User::visibleTo($user, $team)->where('assigned_farm_id', $farm->id)->exists()) {
             $blockers[] = 'penugasan Petugas';
         }
@@ -297,6 +301,10 @@ class FarmService
                     if (DB::table($table)->where('farm_id', $locked->id)->exists()) {
                         $blockers[] = $label;
                     }
+                }
+                if (! DB::table('planting_cycles')->where('farm_id', $locked->id)->exists()
+                    && DB::table('farm_cycles')->where('farm_id', $locked->id)->exists()) {
+                    $blockers[] = 'siklus lahan';
                 }
                 if ($blockers !== []) {
                     $message = 'Lahan tidak dapat dihapus karena masih memiliki: '.implode(', ', $blockers).'.';
