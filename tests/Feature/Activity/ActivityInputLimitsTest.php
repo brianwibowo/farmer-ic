@@ -40,7 +40,7 @@ class ActivityInputLimitsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('local');
+        Storage::fake('activity');
         $this->team = Team::factory()->create(['is_personal' => false]);
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->petugas = User::factory()->create(['role' => 'petugas']);

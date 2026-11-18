@@ -72,7 +72,8 @@ class DemoOwnerPortfolioSeeder extends Seeder
                     'name' => $site['name'], 'land_tenure' => $site['land_tenure'], 'address' => $site['address'],
                     'city' => $site['city'], 'district' => $site['district'], 'province' => $site['province'],
                     'total_area_ha' => $site['area_ha'], 'latitude' => $site['latitude'], 'longitude' => $site['longitude'],
-                    'target_volume_ton' => $site['target_volume_ton'], 'image_url' => '/images/kebun-placeholder.svg',
+                    'target_volume_ton' => $site['target_volume_ton'],
+                    'image_url' => \Database\Seeders\Support\DemoUpload::image('farm', 'farms/'.$id.'/demo.jpg'),
                 ])->save();
                 $this->blocksAndBatches($actor, $team, $farm, $variety, $template, $site);
             }

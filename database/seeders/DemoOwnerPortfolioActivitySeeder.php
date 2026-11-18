@@ -131,7 +131,8 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $this->record(ActivityPhoto::class, DemoOwnerPortfolioData::id($team, 'photo:'.$key), [
             'activity_id' => $observation->id, 'label' => 'Ilustrasi lahan',
             'caption' => 'Ilustrasi lokal untuk contoh portofolio '.$site['name'].'; bukan foto lapangan aktual.',
-            'image_url' => '/images/kebun-placeholder.svg', 'uploaded_at' => $this->at($observed),
+            'image_url' => \Database\Seeders\Support\DemoUpload::image('activity', 'farms/'.$farm->id.'/'.$observation->id.'/demo.jpg'),
+            'uploaded_at' => $this->at($observed),
         ], $observation, $actor, $team);
         if ($batch['status'] === 'harvested') {
             $this->activity($farm, $cycle, $key, 'harvest', 'harvest', $batch['harvested_at'],

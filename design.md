@@ -1065,6 +1065,19 @@ for maintenance and other activities. Do not display fabricated trend deltas.
 
 ### Farm Management pages
 
+The Dokumentasi lahan section in the create/edit form uploads one optional JPEG,
+PNG or WebP image (10 MB maximum), replacing the former photo URL input. Reuse
+FarmField/admin-field, inline errors and the linked error summary. Show the
+current/selected image preview, an explicit Hapus foto action applied on save,
+an honest empty/failed-preview state and labeled upload progress. Keep an
+existing image when no replacement is selected. The control and preview must
+fit phones and remain readable in both themes. Upload through the existing
+Inertia form; server-side validation and authorization remain authoritative.
+Match the legality upload layout: title with muted optional text, format/size
+help above an upload-icon label, and an admin-field file input with the shared
+muted file-selector button. Keep validation below the input and the image
+preview/removal controls below the upload group.
+
 Batch timeline status labels differ by text color only: Selesai uses
 `text-stage-completed` (`#4ADD82`), Sekarang uses `text-stage-current`
 (`#425B9A`), and Belum dimulai uses `text-stage-upcoming` (`#C5C1C1`).

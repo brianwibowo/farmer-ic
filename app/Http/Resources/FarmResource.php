@@ -27,7 +27,7 @@ class FarmResource extends JsonResource
             'total_area_ha' => $this->total_area_ha,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
-            'image_url' => $this->image_url,
+            'image_url' => \App\Support\FarmImageFile::url($this->resource),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

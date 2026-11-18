@@ -96,7 +96,7 @@ class TaskActivityService
                     default => null,
                 };
                 foreach ($data['photos'] as $photo) {
-                    $path = $photo->store('task-activities/'.$activity->id, 'local');
+                    $path = $photo->store('farms/'.$activity->farm_id.'/'.$activity->id, 'activity');
                     if ($path === false) {
                         throw new \RuntimeException('Foto tidak berhasil disimpan.');
                     }
@@ -114,7 +114,7 @@ class TaskActivityService
                 return $activity;
             });
         } catch (Throwable $exception) {
-            Storage::disk('local')->delete($paths);
+            Storage::disk('activity')->delete($paths);
             throw $exception;
         }
     }

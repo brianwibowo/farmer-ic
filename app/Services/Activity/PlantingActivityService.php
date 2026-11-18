@@ -188,7 +188,7 @@ class PlantingActivityService
                 }
                 $activity->plantingDetail()->create(['seed_name' => $data['seed_name'], 'quantity_kg' => $data['quantity_kg'], 'area_ha' => $data['area_ha']]);
                 foreach ($data['photos'] as $photo) {
-                    $path = $photo->store('task-activities/'.$activity->id, 'local');
+                    $path = $photo->store('farms/'.$activity->farm_id.'/'.$activity->id, 'activity');
                     if ($path === false) {
                         throw new \RuntimeException('Foto tidak berhasil disimpan.');
                     }
@@ -200,7 +200,7 @@ class PlantingActivityService
                 return $this->tasks->generateForSubblok($cycle, $actor, 'work_date', $anchorChanged);
             });
         } catch (Throwable $exception) {
-            Storage::disk('local')->delete($paths);
+            Storage::disk('activity')->delete($paths);
             throw $exception;
         }
     }

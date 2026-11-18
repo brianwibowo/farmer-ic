@@ -106,6 +106,10 @@ class FarmDeletionService
                         ->map(fn (FarmLegalityDocument $document): string => $document->path)
                         ->all(),
                 );
+                $activityPaths = ActivityPhoto::visibleTo($actor, $farm->team)
+                    ->whereIn('id', $graph['activity_photos'])->get()
+                    ->filter(fn (ActivityPhoto $photo): bool => str_starts_with($photo->image_url, 'farms/'.$farm->id.'/'.$photo->activity_id.'/') && ! str_contains($photo->image_url, '..'))
+                    ->pluck('image_url')->all();
                 foreach ([
                     'farm_legality_documents', 'farm_legalities',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
@@ -119,7 +123,18 @@ class FarmDeletionService
                     DB::table($table)->whereIn($key, $graph[$table])->delete();
                 }
                 $snapshot = $farm->only(['id', 'name', 'team_id', 'land_tenure', 'total_area_ha']);
+                $imagePath = \App\Support\FarmImageFile::valid($farm) ? $farm->image_url : null;
                 $farm->delete();
+                DB::afterCommit(fn () => app(FarmImageService::class)->delete($imagePath));
+                DB::afterCommit(function () use ($activityPaths): void {
+                    try {
+                        if ($activityPaths !== []) {
+                            \Illuminate\Support\Facades\Storage::disk('activity')->delete($activityPaths);
+                        }
+                    } catch (\Throwable $exception) {
+                        report($exception);
+                    }
+                });
                 app(FarmLegalityService::class)->cleanupAfterCommit($documentPaths);
                 AuditLog::query()->create([
                     'user_id' => $actor->id, 'table_name' => 'farms', 'record_id' => $farm->id,

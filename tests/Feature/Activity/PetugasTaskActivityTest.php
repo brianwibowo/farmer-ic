@@ -41,7 +41,7 @@ class PetugasTaskActivityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('local');
+        Storage::fake('activity');
         $this->team = Team::factory()->create();
         $admin = User::factory()->create(['role' => 'admin']);
         $this->team->members()->attach($admin, ['role' => TeamRole::Member->value]);
@@ -844,7 +844,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertSame('in_progress', $this->task->refresh()->status);
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
         $photo = ActivityPhoto::firstOrFail();
-        Storage::disk('local')->assertExists($photo->image_url);
+        Storage::disk('activity')->assertExists($photo->image_url);
         $this->get('/petugas/aktivitas/'.$activity->id.'/foto/'.$photo->id)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
         $this->get('/petugas/tasks/'.$this->task->id)->assertInertia(fn (Assert $page) => $page->has('reports', 1)->where('task.linked_activities_count', 1));
     }
@@ -959,7 +959,7 @@ class PetugasTaskActivityTest extends TestCase
         $photos = ActivityPhoto::where('activity_id', $activity->id)->orderBy('uploaded_at')->orderBy('id')->get();
         $missing = $photos[0];
         $present = $photos[1];
-        Storage::disk('local')->delete($missing->image_url);
+        Storage::disk('activity')->delete($missing->image_url);
         $photoUrl = fn ($photo) => route('daily-logs.photos', ['farm' => $this->farm, 'activity' => $activity, 'photo' => $photo]);
 
         $this->get('/petugas/laporan')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -1298,7 +1298,7 @@ class PetugasTaskActivityTest extends TestCase
         $bad['details']['area_ha'] = '3';
         $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $bad)->assertSessionHasErrors('details.area_ha');
         $this->assertDatabaseCount('farm_activities', 0);
-        $this->assertSame([], Storage::disk('local')->allFiles());
+        $this->assertSame([], Storage::disk('activity')->allFiles());
         $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertRedirect();
         $photo = ActivityPhoto::firstOrFail();
         $this->actor->forceFill(['assigned_farm_id' => null])->save();

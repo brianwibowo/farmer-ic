@@ -551,3 +551,15 @@ of one farm and its operational graph. Admin, Owner, and Petugas receive HTTP
 must use `Gate::forUser($actor)->authorize('forceDelete', $farm)` before calling
 `FarmDeletionService`. The permission uses the existing developer `Gate::before`
 only, without a static grant for other roles. The normal delete guard is kept.
+
+
+### Private farm images
+
+`GET /farms/{farm}/image` uses auth/verified middleware. FarmImageController
+calls `Gate::authorize('view', $farm)`, resolves the record through
+`Farm::visibleTo($actor, $farm->team)`, and only serves a disk-relative image
+key below that persisted farm's `farms/<farm-id>/` prefix on the `farm` disk.
+Create/replace/remove use the existing Farm Management create/update abilities.
+No new grant or role bypass is introduced. Storage paths and credentials are
+not accepted from browser input. The current task adds no unprotected upload
+or download routes; this is not a retrospective audit of unrelated routes.
