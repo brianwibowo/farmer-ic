@@ -23,7 +23,12 @@ export type FarmBlock = {
 };
 export type BlockOptions = {
     commodities: { id: string; name: string }[];
-    sops: { id: string; name: string; commodity_id: string; is_active: boolean }[];
+    sops: {
+        id: string;
+        name: string;
+        commodity_id: string;
+        is_active: boolean;
+    }[];
 };
 export type BatchStage = {
     code: string;
@@ -33,6 +38,8 @@ export type BatchStage = {
     completed_at: string | null;
 };
 export type PreparationBatch = {
+    farm_cycle_id?: string | null;
+    farm_cycle_number?: number | null;
     id: string;
     batch_number: number;
     subblock_label: string;

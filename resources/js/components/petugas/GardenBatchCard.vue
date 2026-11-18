@@ -57,6 +57,11 @@ const stageStatuses = {
                         class="mt-1 text-xs leading-5 break-words text-muted-foreground"
                     >
                         Subblok {{ batch.subblock_label }}
+                        <span
+                            v-if="batch.farm_cycle_number"
+                            class="ml-1 text-xs font-medium text-muted-foreground"
+                            >· Siklus {{ batch.farm_cycle_number }}</span
+                        >
                     </p>
                 </div>
             </div>
@@ -155,7 +160,10 @@ const stageStatuses = {
                               : 'Belum ada estimasi'
                     }}
                     <span
-                        v-if="batch.status === 'harvested' && batch.estimated_harvest_at"
+                        v-if="
+                            batch.status === 'harvested' &&
+                            batch.estimated_harvest_at
+                        "
                         class="mt-0.5 block text-muted-foreground"
                     >
                         Estimasi sebelumnya:

@@ -6,6 +6,7 @@ import { ref } from 'vue';
 import GardenFarmCard from '@/components/petugas/GardenFarmCard.vue';
 import GardenBatchCard from '@/components/petugas/GardenBatchCard.vue';
 import SubblokCreateDialog from '@/components/petugas/SubblokCreateDialog.vue';
+import FarmCycleSummary from '@/components/blocks/FarmCycleSummary.vue';
 import { Button } from '@/components/ui/button';
 import type { PetugasGarden } from '@/types/petugas-garden';
 import { gardenArea, gardenDate } from '@/types/petugas-garden';
@@ -37,6 +38,7 @@ const createOpen = ref(false);
             </p>
         </section>
         <template v-else>
+            <FarmCycleSummary />
             <GardenFarmCard :farm="garden.farm" :summary="garden.summary" />
             <section aria-labelledby="garden-blocks" class="space-y-4">
                 <h2 id="garden-blocks" class="admin-section-title">

@@ -272,6 +272,18 @@ Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
 installed npm package, never a CDN. Keep the native `beforeunload`
 warning for refresh/tab closure, where browsers do not allow a custom dialog.
 
+## Manual land cycles
+
+Subblock creation in Admin and Petugas includes a shared **Siklus lahan** field.
+Default to the newest visible cycle, or **Buat siklus baru** for the first cycle.
+Offer a new cycle only from the server's `canCreateFarmCycle` capability. Creating
+a cycle is committed with the subblock, with its number assigned by Laravel.
+Show the cycle number on batch summaries and as read-only context on planting
+reports. A compact **Siklus lahan** summary displays batch counts and actual
+harvest tonnage from scoped backend data. Keep existing theme tokens, 20px content
+cards, mobile spacing and dark-mode support. Never use planted area to switch
+cycles automatically or expose cycle reassignment on existing batch edits.
+
 ## Pagination
 
 Pagination includes text and icon items with these states:

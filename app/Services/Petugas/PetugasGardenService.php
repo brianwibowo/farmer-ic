@@ -39,6 +39,7 @@ class PetugasGardenService
             $block->setAttribute('land_clearing_completed_at', $clearing[$block->id]['completed_at'] ?? null);
         }
         $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereNotNull('block_id');
+        $cycleNumbers = \App\Models\FarmCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->pluck('cycle_number', 'id');
         $blockCounts = (clone $cycles)->selectRaw('block_id, COUNT(*) AS total')->groupBy('block_id')->pluck('total', 'block_id');
         $capacities = $this->blocks->capacitiesForBlocks($farm, $actor, $team, $blocks);
         $selected = $selected === null ? $blocks->first() : $blocks->firstWhere('id', $selected->id);
@@ -58,12 +59,13 @@ class PetugasGardenService
                 ->with(['stages' => fn ($stages) => $stages->visibleTo($actor, $team)->orderBy('position')])
                 ->orderByRaw("CASE WHEN status IN ('planned', 'active') THEN 0 ELSE 1 END")
                 ->orderByDesc('batch_number')->orderBy('id')->paginate(6, ['*'], 'page', max(1, min($page, $lastPage)))->appends(['block' => $selected->id]);
-            $batches = $batches->through(function (PlantingCycle $batch) use ($today): array {
+            $batches = $batches->through(function (PlantingCycle $batch) use ($today, $cycleNumbers): array {
                 $stages = $batch->stages;
                 $current = $stages->firstWhere('status', 'in_progress') ?? $stages->where('status', 'completed')->last();
 
                 return [
                     ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
+                    'farm_cycle_number' => $cycleNumbers[$batch->getAttribute('farm_cycle_id')] ?? null,
                     'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
                     'planted_at' => $batch->planted_at?->toDateString(),
                     'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),

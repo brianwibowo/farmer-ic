@@ -7,10 +7,12 @@ use App\Http\Requests\Blocks\SaveFarmBlockRequest;
 use App\Http\Requests\Blocks\StorePreparationBatchRequest;
 use App\Models\Farm;
 use App\Models\FarmBlock;
+use App\Models\FarmCycle;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Services\Activity\HarvestClosureService;
 use App\Services\FarmBlockService;
+use App\Services\FarmCycleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -49,6 +51,8 @@ class FarmBlockController extends Controller
             'summary' => $this->blocks->summary($farm, $request->user(), $team),
             'blockCapacity' => $this->blocks->formCapacity($farm, $request->user(), $team),
             'blockOptions' => $this->blocks->configurationOptions($request->user(), $team),
+            'farmCycleOptions' => app(FarmCycleService::class)->options($farm, $request->user(), $team),
+            'canCreateFarmCycle' => Gate::allows('create', [FarmCycle::class, $farm]),
             'filters' => array_replace(['search' => '', 'status' => 'all', 'per_page' => 15], $request->validated()),
             'can' => ['create' => Gate::allows('create', [FarmBlock::class, $farm])],
         ]);
@@ -117,7 +121,13 @@ class FarmBlockController extends Controller
     {
         $this->matchFarm($farm, $block);
         Gate::authorize('create', [PlantingCycle::class, $block]);
-        $result = $this->blocks->prepareBatch($block, $request->user(), $this->team($farm), $request->validated());
+        $team = $this->team($farm);
+        Gate::authorize('viewAny', [FarmCycle::class, $team]);
+        $selection = app(FarmCycleService::class)->selection($farm, $request->user(), $team, $request->validated());
+        Gate::authorize($selection === null ? 'create' : 'view', $selection ?? [FarmCycle::class, $farm]);
+        $result = $this->blocks->prepareBatch($block, $request->user(), $team, [
+            ...$request->validated(), 'farm_cycle_id' => $selection?->id, 'create_farm_cycle' => $selection === null,
+        ]);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Subblok/batch dibuat. '.\App\Support\TaskGenerationFeedback::message($result['generation'])]);
 
         return $this->returnToFarm($request, $farm) ?? to_route('blocks.index', $farm);

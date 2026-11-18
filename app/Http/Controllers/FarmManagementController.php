@@ -115,6 +115,8 @@ class FarmManagementController extends Controller
                 ->with('farm.team')->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('configure', $batch)]),
             'blockCapacity' => Gate::allows('create', [FarmBlock::class, $farm]) ? $this->blocks->formCapacity($farm, $request->user(), $farm->team) : null,
             'blockOptions' => $this->blocks->configurationOptions($request->user(), $farm->team),
+            'farmCycleOptions' => app(\App\Services\FarmCycleService::class)->options($farm, $request->user(), $farm->team),
+            'canCreateFarmCycle' => Gate::allows('create', [\App\Models\FarmCycle::class, $farm]),
             'deletionBlockers' => Gate::allows('delete', $farm) ? $this->farms->deletionBlockers($farm, $request->user(), $farm->team) : [],
             'can' => [
                 'update' => Gate::allows('update', $farm),

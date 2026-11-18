@@ -759,18 +759,18 @@ class FarmBlockTest extends TestCase
         $batch = PlantingCycle::firstOrFail();
         $other = $this->farm();
         $invalidWrites = [
-            fn () => DB::table('farm_blocks')->where('id', $block->id)->update(['area_ha' => '10.0001']),
-            fn () => DB::table('planting_cycles')->where('id', $batch->id)->update(['farm_id' => $other->id]),
-            fn () => DB::table('planting_cycle_stages')->where('planting_cycle_id', $batch->id)->where('code', 'harvest')->delete(),
+            ['23514', fn () => DB::table('farm_blocks')->where('id', $block->id)->update(['area_ha' => '10.0001'])],
+            ['23503', fn () => DB::table('planting_cycles')->where('id', $batch->id)->update(['farm_id' => $other->id])],
+            ['23514', fn () => DB::table('planting_cycle_stages')->where('planting_cycle_id', $batch->id)->where('code', 'harvest')->delete()],
         ];
-        foreach ($invalidWrites as $write) {
+        foreach ($invalidWrites as [$sqlState, $write]) {
             DB::beginTransaction();
             try {
                 $write();
                 DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
                 $this->fail('Database accepted an invalid block/batch write.');
             } catch (QueryException $exception) {
-                $this->assertSame('23514', $exception->getCode());
+                $this->assertSame($sqlState, $exception->getCode());
             } finally {
                 DB::rollBack();
             }

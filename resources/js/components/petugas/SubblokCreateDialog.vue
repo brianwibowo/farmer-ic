@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { focusFormErrors } from '@/composables/useFormRecovery';
 import { gardenArea } from '@/types/petugas-garden';
+import FarmCycleField from '@/components/blocks/FarmCycleField.vue';
+import { useFarmCycles } from '@/composables/useFarmCycles';
 
 export type SubblokBlockOption = {
     id: string;
@@ -41,9 +43,11 @@ const eligibleBlocks = computed(() =>
 );
 
 const chosenBlockId = ref('');
+const { defaults: cycleDefaults } = useFarmCycles();
 const clientBlockError = ref('');
 
 const form = useForm({
+    ...cycleDefaults(),
     return_to: props.returnTo,
     work_date: props.workDate ?? null,
     subblock_label: '',
@@ -87,6 +91,7 @@ watch(
         form.work_date = props.workDate ?? null;
         form.subblock_label = '';
         form.planned_planting_at = '';
+        Object.assign(form, cycleDefaults());
         form.clearErrors();
         form.defaults();
     },
@@ -117,7 +122,10 @@ function submit(): void {
         void focusFormErrors();
         return;
     }
-    if (!canSubmitBlock.value) {
+    if (
+        !canSubmitBlock.value ||
+        (!form.farm_cycle_id && !form.create_farm_cycle)
+    ) {
         clientBlockError.value =
             'Kapasitas blok terpilih penuh atau blok belum aktif.';
         void focusFormErrors();
@@ -192,6 +200,14 @@ const fieldClass =
                     <FormErrorSummary
                         :errors="errors"
                         :fields="{
+                            farm_cycle_id: {
+                                id: 'petugas-farm-cycle',
+                                label: 'Siklus lahan',
+                            },
+                            create_farm_cycle: {
+                                id: 'petugas-farm-cycle',
+                                label: 'Siklus lahan',
+                            },
                             block_id: {
                                 id: 'petugas-subblok-block',
                                 label: 'Blok',
@@ -208,6 +224,16 @@ const fieldClass =
                     />
 
                     <fieldset :disabled="form.processing" class="space-y-4">
+                        <FarmCycleField
+                            id="petugas-farm-cycle"
+                            v-model="form.farm_cycle_id"
+                            v-model:create="form.create_farm_cycle"
+                            :disabled="form.processing"
+                            :error="
+                                form.errors.farm_cycle_id ||
+                                form.errors.create_farm_cycle
+                            "
+                        />
                         <div v-if="!lockBlock" class="space-y-2">
                             <label
                                 for="petugas-subblok-block"
@@ -318,7 +344,11 @@ const fieldClass =
                     <Button
                         type="submit"
                         class="min-h-11 rounded-xl"
-                        :disabled="form.processing || !canSubmitBlock"
+                        :disabled="
+                            form.processing ||
+                            !canSubmitBlock ||
+                            (!form.farm_cycle_id && !form.create_farm_cycle)
+                        "
                     >
                         <LoaderCircle
                             v-if="form.processing"

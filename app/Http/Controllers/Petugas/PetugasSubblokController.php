@@ -8,11 +8,13 @@ use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
+use App\Models\FarmCycle;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Activity\ActivitySequenceService;
 use App\Services\FarmBlockService;
+use App\Services\FarmCycleService;
 use App\Support\TaskGenerationFeedback;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -30,7 +32,12 @@ class PetugasSubblokController extends Controller
         abort_unless($block->farm_id === $farm->id, 403);
         Gate::authorize('create', [PlantingCycle::class, $block]);
 
-        $result = $blocks->prepareBatch($block, $request->user(), $team, $request->validated());
+        Gate::authorize('viewAny', [FarmCycle::class, $team]);
+        $selection = app(FarmCycleService::class)->selection($farm, $request->user(), $team, $request->validated());
+        Gate::authorize($selection === null ? 'create' : 'view', $selection ?? [FarmCycle::class, $farm]);
+        $result = $blocks->prepareBatch($block, $request->user(), $team, [
+            ...$request->validated(), 'farm_cycle_id' => $selection?->id, 'create_farm_cycle' => $selection === null,
+        ]);
         $workDate = $request->validated('work_date');
 
         if ($request->validated('return_to') === 'penanaman') {
