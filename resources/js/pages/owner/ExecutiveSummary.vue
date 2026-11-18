@@ -176,19 +176,13 @@ function focusFarm(id: string) {
                 <ExecutiveLandSummary
                     :partners="partnerSummary"
                     :categories="landCategories"
-                    :selected="filters.partner"
-                    @select="filters.partner = $event"
                 />
                 <ExecutiveSales
                     v-if="showCommercialSections"
                     :clients="clients"
                     :month="monthlyLabel"
                 />
-                <ExecutiveCommoditySummary
-                    :commodities="commodities"
-                    :selected="filters.commodity"
-                    @select="filters.commodity = $event"
-                />
+                <ExecutiveCommoditySummary :commodities="commodities" />
                 <ExecutiveHarvest
                     :rows="rows"
                     :period="periodLabel"

@@ -69,9 +69,12 @@ describe('Shared Owner distribution chart', () => {
                             {
                                 'legend-overflow': ({
                                     count,
+                                    items: allPartners,
                                 }: {
                                     count: number;
-                                }) => `${count} mitra lainnya`,
+                                    items: { name: string }[];
+                                }) =>
+                                    `${count} mitra lainnya: ${allPartners.map((item) => item.name).join(', ')}`,
                             },
                         ),
                 }),
@@ -81,7 +84,9 @@ describe('Shared Owner distribution chart', () => {
         expect(html).toContain('Total luas lahan 30 Ha.');
         expect(html).toContain('Mitra 5, 2 Ha, 6,7%');
         expect(html.match(/aria-pressed="false"/g)).toHaveLength(3);
-        expect(html).toContain('2 mitra lainnya');
+        expect(html).toContain(
+            '2 mitra lainnya: Mitra 1, Mitra 2, Mitra 3, Mitra 4, Mitra 5',
+        );
 
         expect(await render(items.slice(0, 3))).not.toContain('mitra lainnya');
     });

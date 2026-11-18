@@ -36,7 +36,7 @@ const props = withDefaults(
         floorCenterValue: false,
     },
 );
-const selectedId = defineModel<string | null>('selected', { default: null });
+const selectedId = ref<string | null>(null);
 const headingId = useId();
 const previewId = ref<string | null>(null);
 const areaFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 4 });
@@ -141,9 +141,7 @@ const selectionAnnouncement = computed(() =>
 );
 
 watch(slices, (items) => {
-    // A shared legend can select a crop with zero value in one of its diagrams.
-    const selectable = props.showLegend ? items : props.items;
-    if (!selectable.some((crop) => crop.id === selectedId.value))
+    if (!items.some((crop) => crop.id === selectedId.value))
         selectedId.value = null;
     if (!items.some((crop) => crop.id === previewId.value))
         previewId.value = null;
@@ -397,6 +395,7 @@ function clearSelection(): void {
                         <slot
                             name="legend-overflow"
                             :count="remainingLegendCount"
+                            :items="slices"
                         />
                     </li>
                 </ul>
@@ -455,7 +454,7 @@ function clearSelection(): void {
 .owner-commodity-body {
     display: grid;
     flex: 1;
-    align-items: center;
+    align-items: start;
     gap: 16px;
     margin-top: 16px;
 }

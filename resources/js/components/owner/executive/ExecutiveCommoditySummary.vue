@@ -10,9 +10,7 @@ import {
 
 const props = defineProps<{
     commodities: ReturnType<typeof executiveCommodities>;
-    selected: string;
 }>();
-const emit = defineEmits<{ select: [id: string] }>();
 const byId = computed(
     () => new Map(props.commodities.map((crop) => [crop.id, crop])),
 );
@@ -62,7 +60,6 @@ const cards = computed(() => [
             <OwnerDistributionChart
                 :title="card.title"
                 :items="card.items"
-                :selected="selected || null"
                 :unit="card.unit"
                 :total-label="card.label"
                 :floor-center-value="card.id === 'harvested'"
@@ -70,7 +67,6 @@ const cards = computed(() => [
                 embedded
                 compact
                 :show-footer="false"
-                @update:selected="emit('select', $event ?? '')"
             >
                 <template #item="{ item }"
                     ><span class="min-w-0 flex-1"

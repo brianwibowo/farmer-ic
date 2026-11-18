@@ -241,22 +241,16 @@ const harvestByCommodity = computed(() =>
                     >
                 </p>
                 <div class="mt-auto border-t border-border pt-3">
-                    <h3 class="flex items-center gap-2 text-sm font-semibold">
+                    <!-- <h3 class="flex items-center gap-2 text-sm font-semibold">
                         <Package
                             class="size-4 shrink-0 text-primary"
                             aria-hidden="true"
                         />
                         Stok panen per komoditas
-                    </h3>
-                    <p
-                        v-if="harvestByCommodity.length"
-                        class="mt-1 text-xs leading-5 text-muted-foreground"
-                    >
-                        Total panen tercatat sebelum pengiriman.
-                    </p>
+                    </h3> -->
                     <dl
                         v-if="harvestByCommodity.length"
-                        class="mt-2 divide-y divide-border"
+                        class="divide-y divide-border"
                     >
                         <div
                             v-for="crop in harvestByCommodity"

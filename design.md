@@ -556,13 +556,23 @@ keyboard-accessible legend, selection, semantic colors, and empty state.
 Keep the center unit on its own line below the total so long values fit inside
 the donut without pushing the unit into its sectors.
 Executive panels use its compact embedded mode and contextual legend slots.
+Align distribution plots and legends to the top of their rows. Give paired
+charts equal content widths so responsive plot sizes and top edges match even
+when one legend has more rows.
 Place two compact land donuts side by side: explicit land categories
 (PKS — Kerja sama, BHI — Milik sendiri, Plasma — Koperasi) and partners.
-Keep partner selection connected to global filters; category selection highlights
-its donut locally. The partner donut includes all groups in its total and slices.
+Each donut owns its selection. Clicking an arc or legend entry highlights that
+donut only, and clicking it again restores the total. Use the filter toolbar
+to change the executive page scope. The partner donut includes all groups in its
+total and slices.
 Show at most three partner detail cards, ordered by area, followed by a fading
-overview card with the remaining count and Lihat lainnya link to Monitoring Lahan
-when needed. Stack the two diagrams on smaller viewports. Remove the
+overview card with the remaining count when needed. Lihat lainnya opens a
+wide dialog with the full partner donut and all partner cards within the active
+filters, including area, farm count and share. Show the donut beside the list on
+wide screens and above it on phones. Keep the dialog scrollable, and highlight
+the matching slice when a partner is selected without changing global filters.
+The dialog's Lihat detail action uses the same Monitoring Lahan route as the
+section action. Stack the two diagrams on smaller viewports. Remove the
 separate Pemanfaatan lahan card and give sales the full content width. Combine
 commodity composition with three concise commodity summaries. Show two separate
 cards side by side: planted hectares and actual harvest tonnes. Each card has

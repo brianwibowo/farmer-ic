@@ -29,7 +29,6 @@ describe('Executive summary database cards', () => {
         );
         expect((html.match(/<article/g) ?? []).length).toBe(2);
         expect(html).toContain('Stok panen per komoditas');
-        expect(html).toContain('Total panen tercatat sebelum pengiriman.');
         expect(html).toMatch(/Rumput<\/span><\/dt><dd[^>]*>34,8\s+<span/);
         expect(html).toMatch(/Jagung<\/span><\/dt><dd[^>]*>0\s+<span/);
         expect(html).toContain('1 Januari–31 Desember 2026');
