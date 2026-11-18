@@ -43,4 +43,15 @@ describe('activity task input controls', () => {
         expect(html).toContain('foto-5.jpg');
         expect(html).toContain('5/5');
     });
+
+    it('anchors the visually hidden photo input inside its picker', async () => {
+        const html = await renderToString(
+            h(ActivityPhotoPicker, { photos: [], invalid: false }),
+        );
+
+        expect(html).toContain('<div class="relative space-y-3">');
+        expect(html).toMatch(
+            /<input id="activity-photos"[^>]*class="peer sr-only"/,
+        );
+    });
 });

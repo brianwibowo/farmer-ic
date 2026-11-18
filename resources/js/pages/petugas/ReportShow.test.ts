@@ -30,7 +30,9 @@ const activity = {
     notes: 'Pemantauan dilakukan.',
     task_id: 'task-a',
     details: [
-        { label: 'Luas input', value: '100' },
+        { label: 'Luas (ha)', value: '0.0005' },
+        { label: 'Luas input', value: '5' },
+        { label: 'Satuan luas', value: 'm²' },
         { label: 'Hama', value: 'Tidak ditemukan' },
     ],
     photos: [{ id: 'photo-a', url: '/foto-a', available: false }],
@@ -49,7 +51,7 @@ beforeEach(() => {
         '/petugas/laporan/activity-a?back=%2Fpetugas%2Flaporan%3Fsource%3Dsop%26page%3D2';
 });
 describe('report detail presentation', () => {
-    it('shows real metadata, all details, notes, photo state, and the filtered back link', async () => {
+    it('shows the requested metadata, one area in m², notes, photo state, and the filtered back link', async () => {
         const html = await renderToString(
             h(ReportShow, {
                 farm: { id: 'farm-a', name: 'Kebun Utara' },
@@ -58,21 +60,25 @@ describe('report detail presentation', () => {
             }),
         );
         for (const text of [
-            'Rincian aktivitas',
-            'Kebun Utara',
             'Blok Utara · Subblok B',
             '17 November 2026',
             'Petugas A',
             '3 orang',
-            'Luas input',
-            '100',
+            '5 m²',
             'Indikasi gangguan',
             'Tidak ditemukan',
             'Pemantauan dilakukan.',
             'Foto 1 tidak tersedia',
-            'Aktivitas ke-5',
         ])
             expect(html).toContain(text);
+        expect(html).toContain('<h1 class="sr-only">Rincian aktivitas</h1>');
+        expect(html).not.toContain('Kebun Utara');
+        expect(html).not.toContain('Laporan harian bersama');
+        expect(html).not.toContain('Aktivitas ke-5');
+        expect(html).not.toContain('Luas (ha)');
+        expect(html).not.toContain('Luas input');
+        expect(html).not.toContain('Satuan luas');
+        expect(html).not.toContain('0.0005');
         expect(html).toContain('href="/petugas/laporan?source=sop&amp;page=2"');
         expect(html).not.toContain('src="/foto-a"');
     });

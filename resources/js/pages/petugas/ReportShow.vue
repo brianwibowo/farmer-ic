@@ -11,7 +11,7 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import ReportPhotoGallery from '@/components/petugas/ReportPhotoGallery.vue';
-import { formatReportDate } from '@/lib/petugasReport';
+import { formatReportDate, formatReportDetails } from '@/lib/petugasReport';
 import type { DailyReport, DailyReportActivity } from '@/types/daily-activity';
 
 defineOptions({ inheritAttrs: false });
@@ -50,11 +50,12 @@ const indicators = computed(
             ['Hama', 'Penyakit'].includes(detail.label),
         ) ?? [],
 );
-const details = computed(
-    () =>
+const details = computed(() =>
+    formatReportDetails(
         activity.value?.details.filter(
             (detail) => !['Hama', 'Penyakit'].includes(detail.label),
         ) ?? [],
+    ),
 );
 </script>
 
@@ -68,7 +69,7 @@ const details = computed(
                 class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 ><ArrowLeft class="size-5" aria-hidden="true"
             /></Link>
-            <h1 class="min-w-0">Rincian aktivitas</h1>
+            <h1 class="sr-only">Rincian aktivitas</h1>
         </header>
 
         <template v-if="activity">
@@ -93,11 +94,8 @@ const details = computed(
                             {{ activity.task_id ? 'SOP' : 'Mandiri' }}
                         </span>
                     </div>
-                    <h2 class="mt-3 text-xl leading-6 font-semibold">
-                        {{ farm.name }}
-                    </h2>
                     <p
-                        class="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground"
+                        class="mt-3 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground"
                     >
                         <MapPin
                             class="mt-0.5 size-3.5 shrink-0 text-primary"
@@ -137,18 +135,7 @@ const details = computed(
                     </div>
                 </dl>
                 <p
-                    v-if="log"
-                    class="border-t border-border px-4 py-3 text-xs leading-5 text-muted-foreground"
-                >
-                    Laporan harian bersama<template
-                        v-if="activity.position !== null"
-                    >
-                        · Aktivitas ke-{{ activity.position }}</template
-                    >. Dibuat pertama oleh
-                    {{ log.recorder_name ?? 'Petugas kebun' }}.
-                </p>
-                <p
-                    v-else
+                    v-if="!log"
                     class="border-t border-border px-4 py-3 text-xs leading-5 text-muted-foreground"
                 >
                     Ringkasan logbook harian tidak tersedia untuk aktivitas ini.

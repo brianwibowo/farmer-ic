@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Activity\ListPetugasReportsRequest;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
@@ -18,11 +19,11 @@ use Inertia\Response;
 
 class PetugasDailyActivityController extends Controller
 {
-    public function history(Request $request, PetugasReportReadService $reports, VoluntaryActivityCategoryService $categories): Response
+    public function history(ListPetugasReportsRequest $request, PetugasReportReadService $reports, VoluntaryActivityCategoryService $categories): Response
     {
-        $filters = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'type' => ['nullable', 'string', 'max:50'],
-            'source' => ['nullable', 'in:sop,mandiri'], 'date' => ['nullable', 'date_format:Y-m-d'], 'mine' => ['nullable', 'boolean']]);
+        $filters = $request->validated();
         $filters['mine'] = $request->boolean('mine');
+        $filters['per_page'] = (int) ($filters['per_page'] ?? 10);
         $farm = $request->user()->assignedFarm;
         if (! $farm instanceof Farm) {
             return Inertia::render('petugas/Laporan', ['farm' => null, 'reports' => null, 'stats' => ['sop' => 0, 'mandiri' => 0], 'filters' => $filters, 'types' => [], 'categories' => []]);

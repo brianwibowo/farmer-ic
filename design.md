@@ -705,7 +705,16 @@ the Petugas shell, theme, floating add action, search, date, category, source,
 personal filter, and server pagination. Start the visible content with the
 summary tiles: do not show the page title, farm name, or a daily-report link
 above them. Keep a screen-reader heading and the work-date filter; the existing
-daily-report route remains unchanged. Tiles show the filtered total, SOP
+daily-report route remains unchanged. Apply changes automatically: debounce
+typed search briefly, apply other filters immediately, return to the first
+result page, and preserve the current filters in the URL and detail back link.
+Do not show Apply or Reset buttons; users clear each control directly. Keep
+loading, retry, and empty feedback while the server updates scoped results.
+The report footer matches the admin activity footer: show the filtered range and
+total, a 10/20/50 per-page selector (10 by default), and shared numbered
+pagination. Wrap these controls as needed on phones; changing the page size
+returns to page one without clearing the other filters.
+Tiles show the filtered total, SOP
 reports, and independent reports from scoped database
 queries, not reference-only farm or attention totals. Use the activity type as
 the card title and SOP/Mandiri as the badge; do not repeat the assigned farm
@@ -722,14 +731,19 @@ server-provided date headings in `YYYY-MM-DD` format, newest date first, while
 retaining the existing card content and order within each date. When a date
 spans pages, repeat its heading on each page.
 
-Individual reports use the reference detail hierarchy: back navigation, a
-metadata card with activity type, farm, location, date, and officer, a divided
-report-detail card, and a separate photo gallery with accessible enlargement.
-Show recorded worker count, notes, daily-log context, and every available
-detail; show pest/disease panels only when those values actually exist. State
-when legacy daily-log data or evidence is missing. Preserve the active list
-filters and page in the back link. Reference-only reset, mock data, and
-unavailable metrics are not part of the operational screen.
+Individual reports use the reference detail hierarchy: icon-only back
+navigation with a screen-reader page heading, a metadata card with activity
+type, location, date, and officer, a divided report-detail card, and a separate
+photo gallery with accessible enlargement. Omit the farm name and shared
+daily-log attribution from the visible detail page. Show recorded worker count,
+notes, and available details; show pest/disease panels only when those values
+actually exist. Display each recorded area once in square metres, preferring
+the entered value and its recorded unit, or converting stored hectares for
+older records. Do not show separate input, hectare, and unit rows. State when
+the area cannot be converted or legacy daily-log data or evidence is missing.
+Preserve the active list filters and page in the back link. Reference-only
+reset, mock data, and unavailable metrics are not part of the operational
+screen.
 
 ### Petugas tasks
 
