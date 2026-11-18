@@ -465,8 +465,9 @@ navigation indicator, request loading feedback, keyboard focus, and both themes.
 ### Owner executive summary
 
 The `/ringkasan-eksekutif` page is a compact, read-only executive overview in
-the existing Owner profile. Its current JSON dataset is illustrative and stays
-separate from operational records. Keep the period controls visible; collapse
+the existing Owner profile. Read its operational data from the database through
+the authorized Owner controller and scoped executive summary service. Do not use
+a JSON dataset, demo fallback, or artificial request delay. Keep the period controls visible; collapse
 partner, region, farm, and commodity filters behind a Filter button with an
 active count and removable selections.
 
@@ -475,7 +476,16 @@ intended destination and the brand/home link. The former Owner Dashboard is
 **Monitoring Lahan** at `/monitoring-lahan`, retaining its live, scoped tenant
 data. Order the Owner navigation as Ringkasan Eksekutif, Monitoring Lahan,
 Proyeksi, and Lahan. Admin and Petugas keep their existing landing destinations.
-Keep the illustrative data label visible near the executive page header.
+Keep the database refresh timestamp visible in the executive page footer.
+The sticky navbar owns the section heading on Owner summary, monitoring and
+projection pages and desktop settings. Omit duplicate content headings while
+preserving descriptions, back links, filters, Refresh and record-specific titles.
+Place executive Refresh as an icon-only button at the far right of the global
+filter toolbar. Vertically center Refresh and the selected-farm count within
+the toolbar row. Keep its accessible name and tooltip. Monitoring Refresh and the projection period selector
+use the Owner page header actions slot on the same row as the back link. Keep
+44px controls and truncate long back labels on narrow phones with their full
+accessible name retained; do not add a separate empty heading or action row.
 
 The Cycle selector includes **Semua cycle**, covering 1 January–31 December
 of the selected year (Asia/Jakarta). Sum actual production by harvest date and
@@ -483,14 +493,20 @@ projections by scheduled harvest date, with one result per farm. Land area,
 active planted hectares, stock balances, agreements, and monthly sales must not
 be multiplied by the number of cycles. Active planted hectares count actual
 planting with active status; preparation and closed/harvested planting are
-excluded. Show the selected year's snapshot date beside active land and stock.
+excluded. Show the current snapshot date beside active land. Historical land snapshots
+and stock balances are unavailable unless persisted; label current land positions
+explicitly and show unavailable stock as — with an explanation.
 Stock remains a position after dispatch and adjustments, not annual harvest
 minus dispatch with an assumed zero opening balance. Sales retain the explicitly
 labelled reference month. If a numbered cycle is absent after changing year,
 select Semua cycle. Default to Semua cycle on first load and after Reset;
 numbered cycles remain available for a specific cycle's production.
-The illustrative executive adapter keeps separate dated production records and
-land/stock positions; database-backed pages retain their existing data sources.
+Actual harvest uses completed harvest records and their Jakarta activity dates.
+Projections use persisted estimated weight and scheduled harvest dates, with
+missing estimates explicitly unavailable. Cycle options identify real persisted
+planting cycles (farm and subblock/date), never an invented ordinal or batch number.
+Production follows the selected year/cycle; current active planted area is a
+separate position and is never summed across successive historical cycles.
 
 Use three summary cards in a four-column desktop grid with spans **1 + 1 + 2**.
 Stack total land area, planted area and utilization in Ringkasan lahan, including
@@ -502,8 +518,8 @@ cards from this top row. Align card heights without forcing fixed widths. On
 tablets, place the two compact cards side by side and stock full width below;
 stack all three on phones. Loading skeletons follow the same three-card grid.
 The Kerja sama & luas lahan section has a Lihat detail Inertia link to Monitoring
-Lahan; Panen aktual vs proyeksi per kebun links to Proyeksi. These page-level
-links do not send illustrative farm IDs into database-backed routes.
+Lahan; Panen aktual vs proyeksi per kebun links to Proyeksi. These page-level links preserve the existing scoped Owner routes. Map and
+farm detail links use persisted farm IDs.
 
 Client selection in the sales panel is local to that panel. Clicking a client
 name or its chart bars shows only that client's contract/reality comparison,
@@ -554,17 +570,16 @@ omit revenue from both cards, and do not use a measure dropdown. Stack the cards
 on smaller viewports.
 Avoid adjacent tall chart/table panels and stretched blank surfaces.
 
-Harvest charts remain visible while the farm table starts collapsed. Financial
-projections use per-commodity prices from the dataset, aggregate actual monetary
-amounts before computing the gross-margin percentage, and provide no simulator
-inputs. Use vertical grouped bars per commodity, with HPP, Transport and
+Harvest charts remain visible while the farm table starts collapsed. Commercial and financial sections remain hidden until their authoritative
+records are available. Do not substitute demo prices, clients, contracts or
+revenue estimates. When supported, aggregate actual monetary amounts before
+computing the gross-margin percentage; provide no simulator inputs. Use vertical grouped bars per commodity, with HPP, Transport and
 Laba kotor as three separate bars. Show the numeric axis in Rp juta and full
 rupiah amounts in tooltips. Prioritize revenue, total costs, and gross profit. Do not reintroduce the
 operational detail table, pagination, or its exports on this overview.
 
 Map markers open `OwnerDashboardFarmPreview`, shared with Beranda. Its summary
-and footer slots adapt the executive context without sending dummy IDs to real
-farm-detail routes. Existing Beranda popup content and navigation remain the
+and footer slots adapt the executive context using scoped persisted farm IDs. Existing Beranda popup content and navigation remain the
 defaults.
 
 ### Shared dashboard components for Petugas

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Handshake, LandPlot, Package } from '@lucide/vue';
-import { executiveNumber as number } from '@/services/ownerExecutiveDemoService';
+import { executiveNumber as number } from '@/services/ownerExecutiveSummary';
 import type {
     executiveCommodities,
     executiveTotals,
-} from '@/services/ownerExecutiveDemoService';
+} from '@/services/ownerExecutiveSummary';
 
 const props = withDefaults(
     defineProps<{
@@ -40,7 +40,9 @@ const utilization = computed(() =>
                 v-for="index in showCommercialCard ? 3 : 2"
                 :key="index"
                 class="admin-card min-h-72 bg-muted motion-safe:animate-pulse"
-                :class="showCommercialCard && index === 3 ? 'md:col-span-2' : ''"
+                :class="
+                    showCommercialCard && index === 3 ? 'md:col-span-2' : ''
+                "
                 aria-hidden="true"
             />
         </template>
@@ -77,7 +79,7 @@ const utilization = computed(() =>
                     </div>
                     <div class="border-t border-border pt-3">
                         <dt class="text-xs leading-5 text-muted-foreground">
-                            Luas tanam aktif
+                            Luas tanam aktif · posisi hari ini
                         </dt>
                         <dd class="mt-1 flex flex-wrap items-baseline gap-x-2">
                             <span class="text-2xl font-semibold tabular-nums">{{
@@ -200,10 +202,14 @@ const utilization = computed(() =>
                     <span class="admin-metric-value tabular-nums">{{
                         number(totals.stock)
                     }}</span
-                    ><span class="text-sm font-medium">ton</span>
+                    ><span
+                        v-if="totals.stock !== null"
+                        class="text-sm font-medium"
+                        >ton</span
+                    >
                 </p>
                 <ul
-                    v-if="commodities.length"
+                    v-if="totals.stock !== null && commodities.length"
                     class="mt-4 divide-y divide-border border-t border-border"
                     aria-label="Stok panen per komoditas"
                 >
@@ -231,7 +237,8 @@ const utilization = computed(() =>
                     role="status"
                     class="mt-4 text-sm text-muted-foreground"
                 >
-                    Belum ada stok untuk filter ini.
+                    Belum tersedia. Saldo stok setelah pengiriman dan
+                    penyesuaian belum tercatat.
                 </p>
                 <!-- <p class="mt-auto pt-3 text-xs leading-5 text-muted-foreground">
                     Stok tersedia setelah pengiriman dan penyesuaian<span

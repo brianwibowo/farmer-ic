@@ -5,7 +5,7 @@ import { ArrowUpRight } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import OwnerDistributionChart from '@/components/owner/OwnerDistributionChart.vue';
 import ExecutivePanel from './ExecutivePanel.vue';
-import { executiveNumber as number } from '@/services/ownerExecutiveDemoService';
+import { executiveNumber as number } from '@/services/ownerExecutiveSummary';
 
 const props = defineProps<{
     partners: { id: string; name: string; area: number; farmCount: number }[];

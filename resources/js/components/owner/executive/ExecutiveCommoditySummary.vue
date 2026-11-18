@@ -5,7 +5,7 @@ import ExecutivePanel from './ExecutivePanel.vue';
 import {
     executiveCommodities,
     executiveNumber as number,
-} from '@/services/ownerExecutiveDemoService';
+} from '@/services/ownerExecutiveSummary';
 
 const props = defineProps<{
     commodities: ReturnType<typeof executiveCommodities>;
@@ -97,9 +97,7 @@ const cards = computed(() => [
                                 >Proyeksi<strong
                                     class="block font-semibold text-foreground"
                                     >{{
-                                        number(
-                                            byId.get(item.id)?.projected ?? 0,
-                                        )
+                                        number(byId.get(item.id)?.projected)
                                     }}
                                     ton</strong
                                 ></span

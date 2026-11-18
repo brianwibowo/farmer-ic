@@ -13,14 +13,15 @@ class ExecutiveSummaryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_owner_can_open_the_isolated_json_demo_without_operational_props(): void
+    public function test_owner_receives_scoped_database_summary_without_demo_props(): void
     {
         $owner = User::factory()->create(['role' => 'owner']);
-        $this->actingAs($owner)->get('/ringkasan-eksekutif?team_id=999&farm_id=foreign')
+        $this->actingAs($owner)->get('/ringkasan-eksekutif?team_id=999')
             ->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/ExecutiveSummary')
             ->where('navigation.owner', true)
             ->where('navigation.admin', false)
+            ->has('summary.rows', 0)->has('summary.farms', 0)
             ->missing('dashboard')->missing('farms')->missing('contracts'));
     }
 

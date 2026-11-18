@@ -1,11 +1,5 @@
-import {
-    computed,
-    onBeforeUnmount,
-    onMounted,
-    reactive,
-    ref,
-    watch,
-} from 'vue';
+import { router } from '@inertiajs/vue3';
+import { computed, reactive, ref, watch } from 'vue';
 import { toast } from '@/lib/toast';
 import {
     executiveMoney as money,
@@ -13,111 +7,95 @@ import {
     executiveCommodities,
     executiveClients,
     executiveLandCategories,
-    executiveRows,
-    executiveYears,
-    executiveCycleForYear,
-    executiveSnapshotDate,
     executiveTotals,
-    loadExecutiveDemo,
-} from '@/services/ownerExecutiveDemoService';
-import type {
-    ExecutiveDemoData,
-    ExecutiveFilters,
-} from '@/types/owner-executive';
+} from '@/services/ownerExecutiveSummary';
+import type { ExecutiveSummaryData } from '@/types/owner-executive';
 
-export function useExecutiveSummary() {
-    const data = ref<ExecutiveDemoData>();
-    const loading = ref(true);
+export function useExecutiveSummary(source: () => ExecutiveSummaryData) {
+    const data = computed(source);
+    const loading = ref(false);
     const error = ref('');
     const feedback = ref('');
-    const filters = reactive<ExecutiveFilters>({
-        year: 2026,
-        cycle: 'all',
-        partner: '',
-        region: '',
-        farm: '',
-        commodity: '',
-    });
-    watch(
-        filters,
-        () => {
-            feedback.value = '';
-        },
-        { flush: 'sync' },
-    );
-    let disposed = false;
-    async function load(refresh = false) {
-        loading.value = true;
+    const filters = reactive({ ...data.value.filters });
+    watch(data, (value) => Object.assign(filters, value.filters));
+    function load(refresh = false) {
+        if (loading.value) return;
         error.value = '';
         feedback.value = '';
-        try {
-            const result = await loadExecutiveDemo();
-            if (disposed) return;
-            data.value = result;
-            if (!refresh) {
-                filters.year = result.defaultYear;
-                filters.cycle = 'all';
-            }
-            if (refresh)
-                void toast.success(
-                    'Data contoh berhasil dimuat ulang. Filter tetap diterapkan.',
-                );
-        } catch {
-            if (!disposed) {
-                const message =
-                    'Data contoh belum berhasil dimuat. Periksa koneksi lalu coba lagi.';
-                error.value = message;
-                void toast.error(message);
-            }
-        } finally {
-            if (!disposed) loading.value = false;
-        }
+        const fail = () => {
+            error.value =
+                'Data belum berhasil dimuat. Periksa koneksi lalu coba lagi.';
+            void toast.error(error.value);
+            return false;
+        };
+        router.get(
+            '/ringkasan-eksekutif',
+            { ...filters },
+            {
+                only: ['summary'],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onStart: () => {
+                    loading.value = true;
+                },
+                onSuccess: () => {
+                    if (refresh)
+                        void toast.success(
+                            'Data database berhasil diperbarui. Filter tetap diterapkan.',
+                        );
+                },
+                onError: (errors) => {
+                    error.value =
+                        Object.values(errors).join(' ') ||
+                        'Periksa filter lalu coba lagi.';
+                    void toast.error(error.value);
+                },
+                onHttpException: fail,
+                onNetworkError: fail,
+                onFinish: () => {
+                    loading.value = false;
+                },
+            },
+        );
     }
-    onMounted(() => void load());
-    onBeforeUnmount(() => {
-        disposed = true;
-    });
-    const rows = computed(() =>
-        data.value ? executiveRows(data.value, filters) : [],
-    );
+    const rows = computed(() => data.value.rows);
     const totals = computed(() => executiveTotals(rows.value));
-    const years = computed(() =>
-        data.value ? executiveYears(data.value) : [],
-    );
-    const cycles = computed(() =>
+    const years = computed(() => data.value.years);
+    const cycles = computed(() => data.value.cycles);
+    const regions = computed(() =>
         [
             ...new Set(
-                data.value?.operations
-                    .filter((row) => row.year === filters.year)
-                    .map((row) => row.cycle),
+                data.value.farms.map((farm) => farm.region).filter(Boolean),
             ),
-        ].sort((a, b) => a - b),
+        ].sort((a, b) => a.localeCompare(b, 'id')),
     );
-    const regions = computed(() =>
-        [...new Set(data.value?.farms.map((farm) => farm.region))].sort(
-            (a, b) => a.localeCompare(b, 'id'),
+    const farmOptions = computed(() =>
+        data.value.farms.filter(
+            (farm) =>
+                (!filters.partner || farm.partnerId === filters.partner) &&
+                (!filters.region || farm.region === filters.region) &&
+                (!filters.commodity ||
+                    farm.commodityIds.includes(filters.commodity)),
         ),
     );
-    watch(cycles, (available) => {
-        if (data.value)
-            filters.cycle = executiveCycleForYear(filters.cycle, available);
-    });
-    const farmOptions = computed(
-        () =>
-            data.value?.farms.filter(
-                (farm) =>
-                    (!filters.partner || farm.partnerId === filters.partner) &&
-                    (!filters.region || farm.region === filters.region) &&
-                    (!filters.commodity ||
-                        farm.commodityId === filters.commodity),
-            ) ?? [],
-    );
-    watch(farmOptions, (farms) => {
-        if (filters.farm && !farms.some((farm) => farm.id === filters.farm))
+    watch(filters, () => {
+        if (
+            filters.farm &&
+            !farmOptions.value.some((farm) => farm.id === filters.farm)
+        ) {
             filters.farm = '';
+        }
+        if (JSON.stringify(filters) !== JSON.stringify(data.value.filters))
+            load();
     });
-    const partnerSummary = computed(() =>
-        (data.value?.partners ?? [])
+    const partnerSummary = computed(() => {
+        const partners = [
+            ...new Map(
+                rows.value.map((row) => [row.partner.id, row.partner]),
+            ).values(),
+        ];
+        return partners
             .map((partner) => {
                 const group = rows.value.filter(
                     (row) => row.partner.id === partner.id,
@@ -128,66 +106,67 @@ export function useExecutiveSummary() {
                     area: summary.area,
                     planted: summary.planted,
                     utilization: summary.utilization,
-                    farmCount: group.length,
+                    farmCount: new Set(group.map((row) => row.farm.id)).size,
                 };
             })
             .filter((partner) => partner.area > 0)
-            .sort((a, b) => b.area - a.area),
-    );
+            .sort((a, b) => b.area - a.area);
+    });
     const commodities = computed(() => executiveCommodities(rows.value));
     const landCategories = computed(() => executiveLandCategories(rows.value));
     const clients = computed(() =>
-        executiveClients(rows.value, data.value?.clients ?? []),
+        executiveClients(rows.value, data.value.clients),
     );
-    const mapFarms = computed(() =>
-        rows.value.map(({ farm }) => ({
-            ...farm,
-            location: `${farm.city}, ${farm.region}`,
-            area: number(farm.areaHa),
-        })),
-    );
+    const mapFarms = computed(() => [
+        ...new Map(
+            rows.value.map(({ farm }) => [
+                farm.id,
+                {
+                    ...farm,
+                    location:
+                        [farm.city, farm.region].filter(Boolean).join(', ') ||
+                        'Lokasi belum tercatat',
+                    area: number(farm.areaHa),
+                },
+            ]),
+        ).values(),
+    ]);
     function reset() {
         Object.assign(filters, {
-            year: data.value?.defaultYear ?? 2026,
+            year: data.value.defaultYear,
             cycle: 'all',
             partner: '',
             region: '',
             farm: '',
             commodity: '',
         });
-        void toast.info('Filter dikembalikan ke pilihan awal.');
     }
     const periodLabel = computed(() =>
-        filters.cycle === 'all'
-            ? `1 Januari–31 Desember ${filters.year}`
-            : `Cycle ${filters.cycle} · ${filters.year}`,
+        data.value.filters.cycle === 'all'
+            ? `1 Januari–31 Desember ${data.value.filters.year}`
+            : `${data.value.cycles.find((cycle) => cycle.id === data.value.filters.cycle)?.name ?? 'Cycle terpilih'} · ${data.value.filters.year}`,
     );
-    const snapshotLabel = computed(() => {
-        const date =
-            data.value && executiveSnapshotDate(data.value, filters.year);
-        return date
-            ? new Intl.DateTimeFormat('id-ID', {
-                  dateStyle: 'medium',
-                  timeZone: 'Asia/Jakarta',
-              }).format(new Date(date))
-            : 'belum tersedia';
-    });
+    const snapshotLabel = computed(() =>
+        new Intl.DateTimeFormat('id-ID', {
+            dateStyle: 'medium',
+            timeZone: 'Asia/Jakarta',
+        }).format(new Date(data.value.snapshotAt)),
+    );
     const monthlyLabel = computed(() =>
         new Intl.DateTimeFormat('id-ID', {
             month: 'long',
             year: 'numeric',
         }).format(
-            new Date(filters.year, (data.value?.referenceMonth ?? 11) - 1, 1),
+            new Date(data.value.defaultYear, data.value.referenceMonth - 1, 1),
         ),
     );
-    const updatedLabel = computed(() =>
-        data.value
-            ? new Intl.DateTimeFormat('id-ID', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                  timeZone: 'Asia/Jakarta',
-              }).format(new Date(data.value.updatedAt)) + ' WIB'
-            : '—',
+    const updatedLabel = computed(
+        () =>
+            new Intl.DateTimeFormat('id-ID', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+                timeZone: 'Asia/Jakarta',
+            }).format(new Date(data.value.updatedAt)) + ' WIB',
     );
     return {
         data,

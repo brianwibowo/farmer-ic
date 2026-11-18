@@ -9,7 +9,7 @@ import ExecutiveTable from './ExecutiveTable.vue';
 import {
     executiveNumber as number,
     executiveTotals,
-} from '@/services/ownerExecutiveDemoService';
+} from '@/services/ownerExecutiveSummary';
 import type { ExecutiveColumn, ExecutiveRow } from '@/types/owner-executive';
 
 const props = defineProps<{ rows: ExecutiveRow[]; period: string }>();
@@ -17,9 +17,11 @@ defineEmits<{ select: [id: string] }>();
 const unit = 'ton';
 const totals = computed(() => executiveTotals(props.rows));
 const achievement = computed(() =>
-    totals.value.projected
-        ? (totals.value.harvested / totals.value.projected) * 100
-        : 0,
+    totals.value.projected === null
+        ? null
+        : totals.value.projected
+          ? (totals.value.harvested / totals.value.projected) * 100
+          : 0,
 );
 const columns: ExecutiveColumn[] = [
     { key: 'farm', label: 'Lahan' },
@@ -31,13 +33,20 @@ const columns: ExecutiveColumn[] = [
 ];
 const table = computed(() =>
     props.rows.map((row) => ({
-        id: row.farm.id,
+        id: row.id,
+        farmId: row.farm.id,
         farm: row.farm.name,
         crop: row.commodity.name,
         projected: number(row.projectedTon),
         actual: number(row.harvestedTon),
-        difference: number(row.harvestedTon - row.projectedTon),
-        achievement: `${number(row.projectedTon ? (row.harvestedTon / row.projectedTon) * 100 : 0)}%`,
+        difference:
+            row.projectedTon === null
+                ? '—'
+                : number(row.harvestedTon - row.projectedTon),
+        achievement:
+            row.projectedTon === null
+                ? '—'
+                : `${number(row.projectedTon ? (row.harvestedTon / row.projectedTon) * 100 : 0)}%`,
     })),
 );
 </script>
@@ -85,14 +94,24 @@ const table = computed(() =>
                 <dd
                     class="mt-1 text-base font-semibold text-secondary tabular-nums sm:text-xl dark:text-primary"
                 >
-                    {{ number(achievement) }}%
+                    {{ achievement === null ? '—' : `${number(achievement)}%` }}
                 </dd>
             </div>
         </dl>
+        <p
+            v-if="rows.some((row) => row.projectionMissing)"
+            role="status"
+            class="mb-3 text-xs text-muted-foreground"
+        >
+            Sebagian jadwal atau estimasi bobot panen belum tercatat; proyeksi
+            ditampilkan — agar tidak dianggap lengkap.
+        </p>
         <ExecutiveChart
             title="Perbandingan panen aktual dan proyeksi per lahan"
             kind="grouped"
-            :labels="rows.map((row) => row.farm.name.replace('Lahan ', ''))"
+            :labels="
+                rows.map((row) => `${row.farm.name} · ${row.commodity.name}`)
+            "
             :series="[
                 {
                     label: 'Proyeksi',
@@ -114,7 +133,9 @@ const table = computed(() =>
                 <span
                     >Lihat rincian panen
                     <span class="ml-1 font-normal text-muted-foreground"
-                        >· {{ rows.length }} lahan</span
+                        >·
+                        {{ new Set(rows.map((row) => row.farm.id)).size }}
+                        lahan</span
                     ></span
                 ><ChevronDown
                     class="size-4 group-open:rotate-180"
@@ -127,7 +148,7 @@ const table = computed(() =>
                     :rows="table"
                     :caption="`Rincian panen ${period}`"
                     selectable
-                    @select="$emit('select', String($event.id))"
+                    @select="$emit('select', String($event.farmId))"
                 />
             </div>
         </details>
