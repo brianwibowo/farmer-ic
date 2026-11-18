@@ -512,7 +512,10 @@ Lead with Ringkasan lahan and Panen aktual. Give the land card a slightly
 wider column on desktop, a subtle primary tint, and faint contour lines confined
 to the upper-right corner. Make total area the largest number. Group utilization
 with a green active segment, a pale green remainder, and labeled active and
-unused hectares. The harvest card shows actual tonnage and its selected period,
+unused hectares. Use a soft green wash and a corn-stalk motif with upright stems and long,
+arching leaves at the upper right of the harvest card. Keep the tonnage and
+commodity breakdown clear of decoration.
+The harvest card shows actual tonnage and its selected period,
 followed by the recorded harvest breakdown per commodity. Stack the cards on phones and
 match the loading skeleton to the grid. Keep the commercial card hidden until
 authoritative data is available.

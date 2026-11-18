@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { RefreshCw, SlidersHorizontal, X } from '@lucide/vue';
-import { computed, ref, useId } from 'vue';
-import { Button } from '@/components/ui/button';
-import AppSelect from '@/components/selects/AppSelect.vue';
-import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import { RefreshCw, SlidersHorizontal, X } from "@lucide/vue";
+import { computed, ref, useId } from "vue";
+import { Button } from "@/components/ui/button";
+import AppSelect from "@/components/selects/AppSelect.vue";
+import AppSelectOption from "@/components/selects/AppSelectOption.vue";
 import type {
     ExecutiveSummaryData,
     ExecutiveFilters,
-} from '@/types/owner-executive';
+} from "@/types/owner-executive";
 
 const props = defineProps<{
     filters: ExecutiveFilters;
@@ -15,7 +15,7 @@ const props = defineProps<{
     years: number[];
     cycles: { id: string; name: string }[];
     regions: string[];
-    farmOptions: ExecutiveSummaryData['farms'];
+    farmOptions: ExecutiveSummaryData["farms"];
     loading: boolean;
     count: number;
 }>();
@@ -29,20 +29,20 @@ const panelId = useId();
 const chips = computed(() =>
     [
         {
-            key: 'partner',
+            key: "partner",
             label: props.data.partners.find(
                 (item) => item.id === props.filters.partner,
             )?.name,
         },
-        { key: 'region', label: props.filters.region },
+        { key: "region", label: props.filters.region },
         {
-            key: 'farm',
+            key: "farm",
             label: props.data.farms.find(
                 (item) => item.id === props.filters.farm,
             )?.name,
         },
         {
-            key: 'commodity',
+            key: "commodity",
             label: props.data.commodities.find(
                 (item) => item.id === props.filters.commodity,
             )?.name,
@@ -53,19 +53,19 @@ const changed = computed(
     () =>
         chips.value.length > 0 ||
         props.filters.year !== props.data.defaultYear ||
-        props.filters.cycle !== 'all',
+        props.filters.cycle !== "all",
 );
 function set<K extends keyof ExecutiveFilters>(
     key: K,
     value: ExecutiveFilters[K],
 ) {
-    emit('change', {
+    emit("change", {
         ...props.filters,
         [key]: value,
     });
 }
 function clear(key: string) {
-    emit('change', { ...props.filters, [key]: '' });
+    emit("change", { ...props.filters, [key]: "" });
 }
 </script>
 

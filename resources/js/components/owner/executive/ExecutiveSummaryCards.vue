@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Handshake, LandPlot, Package, Wheat } from '@lucide/vue';
+import { computed } from "vue";
+import { Handshake, LandPlot, Package, Wheat } from "@lucide/vue";
 import {
     executiveCommodityColor,
     executiveNumber as number,
-} from '@/services/ownerExecutiveSummary';
-import type { executiveTotals } from '@/services/ownerExecutiveSummary';
+} from "@/services/ownerExecutiveSummary";
+import type { executiveTotals } from "@/services/ownerExecutiveSummary";
 
 const props = withDefaults(
     defineProps<{
@@ -25,7 +25,7 @@ const utilization = computed(() =>
 const harvestByCommodity = computed(() =>
     props.commodities
         .filter((crop) => crop.id || crop.harvested > 0)
-        .sort((left, right) => left.name.localeCompare(right.name, 'id')),
+        .sort((left, right) => left.name.localeCompare(right.name, "id")),
 );
 </script>
 
@@ -199,8 +199,8 @@ const harvestByCommodity = computed(() =>
                         <dd class="mt-1 flex flex-wrap items-baseline gap-x-2">
                             <span class="text-2xl font-semibold tabular-nums">{{
                                 number(totals.contracts)
-                            }}</span
-                            ><span class="text-xs text-muted-foreground"
+                            }}</span>
+                            <span class="text-xs text-muted-foreground"
                                 >ton/bulan</span
                             >
                         </dd>
@@ -211,10 +211,53 @@ const harvestByCommodity = computed(() =>
                 </dl>
             </article>
             <article
-                class="admin-card flex min-w-0 flex-col border border-border bg-card p-4 lg:p-[18px]"
+                class="executive-harvest-card admin-card relative isolate flex min-w-0 flex-col overflow-hidden border border-border bg-card p-4 lg:p-[18px]"
                 :class="showCommercialCard ? 'md:col-span-2' : ''"
                 aria-labelledby="executive-harvest-heading"
             >
+                <svg
+                    viewBox="0 0 176 116"
+                    class="executive-harvest-corn pointer-events-none absolute top-0 right-0 -z-10 h-auto w-[43%] max-w-44"
+                    fill="currentColor"
+                    aria-hidden="true"
+                    focusable="false"
+                >
+                    <g opacity="0.45">
+                        <path
+                            d="M47 116C51 87 49 60 45 33L48 30C55 63 56 91 52 116Z"
+                        />
+                        <path d="M50 76C37 63 31 50 10 49C29 43 43 53 50 69Z" />
+                        <path d="M52 86C58 66 71 63 83 65C67 70 65 84 52 91Z" />
+                        <path
+                            d="M135 116C138 91 143 69 151 42L154 40C147 71 143 96 140 116Z"
+                        />
+                        <path
+                            d="M146 74C141 60 128 54 116 44C131 46 144 56 147 68Z"
+                        />
+                        <path
+                            d="M144 86C152 66 165 60 182 60C169 66 159 71 153 81C150 85 146 88 144 86Z"
+                        />
+                    </g>
+                    <path
+                        d="M99 116C98 82 101 49 111 12L114 9C107 48 105 83 106 116Z"
+                    />
+                    <path d="M110 21C105 10 106 2 111-5C111 4 115 9 110 21Z" />
+                    <path
+                        d="M107 38C112 17 130 9 154 10C140 13 130 20 124 28C118 34 114 37 107 38Z"
+                    />
+                    <path
+                        d="M105 51C96 43 90 29 77 21C68 15 61 16 54 19C71 5 90 17 99 31C104 39 106 46 105 51Z"
+                    />
+                    <path
+                        d="M103 67C113 48 126 39 144 38C158 36 168 37 176 34C164 44 150 43 138 48C125 54 123 64 103 67Z"
+                    />
+                    <path
+                        d="M102 80C87 71 77 56 64 51C50 46 43 50 35 52C56 34 77 45 89 58C96 66 101 74 102 80Z"
+                    />
+                    <path
+                        d="M102 94C111 81 126 75 143 78C154 81 161 81 170 78C157 89 143 83 133 86C121 89 116 97 102 94Z"
+                    />
+                </svg>
                 <header class="flex items-center gap-2">
                     <Wheat
                         class="size-4 shrink-0 text-primary"
@@ -299,5 +342,17 @@ const harvestByCommodity = computed(() =>
         black 30%,
         transparent 76%
     );
+}
+.executive-harvest-card {
+    background-image: radial-gradient(
+        ellipse 72% 8rem at 100% 0,
+        color-mix(in oklab, var(--commodity-grass) 13%, transparent),
+        transparent
+    );
+}
+.executive-harvest-corn {
+    color: var(--commodity-grass);
+    opacity: 0.31;
+    mask-image: linear-gradient(to bottom left, black 40%, transparent 92%);
 }
 </style>
