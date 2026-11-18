@@ -19,7 +19,6 @@ import { gardenArea } from '@/types/petugas-garden';
 
 export type SubblokBlockOption = {
     id: string;
-    code: string;
     name: string;
     is_active: boolean;
     available_ha: string;
@@ -175,7 +174,6 @@ const fieldClass =
                             <p
                                 class="text-xs font-medium text-muted-foreground"
                             >
-                                {{ selectedBlock.code }} ·
                                 {{ selectedBlock.name }}
                             </p>
                             <p class="mt-0.5 text-xs text-muted-foreground">
@@ -230,7 +228,7 @@ const fieldClass =
                                     :value="block.id"
                                     :disabled="Number(block.available_ha) <= 0"
                                 >
-                                    {{ block.code }} · {{ block.name }} ({{
+                                    {{ block.name }} ({{
                                         Number(block.available_ha) > 0
                                             ? `sisa ${gardenArea(block.available_ha)} ha`
                                             : 'penuh'

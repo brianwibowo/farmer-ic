@@ -101,7 +101,7 @@ type ActivityForm = {
 
 type Props = {
     farm: Farm;
-    blocks: { id: string; code: string; name: string }[];
+    blocks: { id: string; name: string }[];
     logs: PaginatedLogs;
     filters: Record<string, string | number | null>;
     recorder: { id: string; name: string };
@@ -426,7 +426,7 @@ function detailUrl(log: DailyLog): string {
                                             :key="block.id"
                                             :value="block.id"
                                         >
-                                            {{ block.code }} · {{ block.name }}
+                                            {{ block.name }}
                                         </AppSelectOption>
                                     </AppSelect>
                                     <span

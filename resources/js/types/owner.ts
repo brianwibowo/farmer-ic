@@ -20,7 +20,6 @@ export type OwnerFarmRow = {
 };
 export type OwnerBlock = {
     id: string;
-    code: string;
     name: string;
     area_ha: string;
     description: string | null;

@@ -114,7 +114,7 @@ class DashboardSummaryTest extends TestCase
     {
         $farm = $this->farm('Kebun Timeline');
         Gate::forUser($this->admin)->authorize('create', [FarmBlock::class, $farm]);
-        $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => 5]);
+        $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => 5]);
         $this->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page->where('dashboard.cycles.running', 0));
         Gate::forUser($this->admin)->authorize('create', [PlantingCycle::class, $block]);
         app(FarmBlockService::class)->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => 1]);
@@ -146,7 +146,7 @@ class DashboardSummaryTest extends TestCase
     {
         $farm = $this->farm('Kebun Pupuk');
         $service = app(FarmBlockService::class);
-        $block = $service->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => 5]);
+        $block = $service->create($farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => 5]);
         $batch = $service->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => 1]);
         $batch->stages()->where('code', 'soil_preparation')->update(['status' => 'upcoming', 'started_at' => null]);
         $stage = $batch->stages()->where('code', 'basic_fertilizer')->firstOrFail();

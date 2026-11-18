@@ -63,7 +63,7 @@ class PetugasGardenTest extends TestCase
     private function block(Farm $farm, string $code = 'B01', ?User $actor = null): FarmBlock
     {
         return app(FarmBlockService::class)->create($farm, $actor ?? $this->admin, $farm->team, [
-            'code' => $code, 'name' => 'Blok '.$code, 'area_ha' => '5.0000',
+            'name' => 'Blok '.$code, 'area_ha' => '5.0000',
         ]);
     }
 

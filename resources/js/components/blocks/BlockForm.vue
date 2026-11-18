@@ -31,7 +31,6 @@ const options = computed(() => usePage().props.blockOptions as BlockOptions);
 const base = `/kebun/${props.farm.id}/blocks`;
 const form = useForm({
     return_to: props.returnTo ?? '',
-    code: props.block?.code ?? '',
     name: props.block?.name ?? '',
     area_value: props.block?.area_ha ?? '',
     area_unit: 'ha' as AreaUnit,
@@ -94,7 +93,6 @@ const noCapacity = computed(
             Number(props.capacity.minimum_area_ha),
 );
 const errorFields = {
-    code: { id: 'block-code', label: 'Kode blok' },
     name: { id: 'block-name', label: 'Nama blok' },
     area_ha: { id: 'block-area', label: 'Luas blok' },
     area_value: { id: 'block-area', label: 'Luas blok' },
@@ -202,28 +200,11 @@ function submit(): void {
                     Perubahan berlaku untuk penanaman baru. Subblok yang sudah ditanam tetap memakai varietas dan versi SOP yang telah tersimpan.
                 </p>
                 <FarmField
-                    id="block-code"
-                    label="Kode blok"
-                    required
-                    :error="form.errors.code"
-                    hint="Contoh: B01. Unik dalam kebun ini."
-                    v-slot="field"
-                    ><input
-                        :id="field.id"
-                        v-model="form.code"
-                        placeholder="Contoh: B03"
-                        :class="fieldClass"
-                        required
-                        maxlength="30"
-                        pattern="[A-Za-z0-9][A-Za-z0-9_\-]*"
-                        :aria-invalid="field.invalid"
-                        :aria-describedby="field.description"
-                /></FarmField>
-                <FarmField
                     id="block-name"
                     label="Nama blok"
                     required
                     :error="form.errors.name"
+                    hint="Unik dalam kebun ini."
                     v-slot="field"
                     ><input
                         :id="field.id"

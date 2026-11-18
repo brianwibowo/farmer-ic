@@ -45,7 +45,6 @@ class TaskManagementTest extends TestCase
             'created_by' => $this->admin->id,
         ])->save();
         $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
-            'code' => 'B01',
             'name' => 'Blok Utara',
             'area_ha' => '5.0000',
         ]);
@@ -94,7 +93,6 @@ class TaskManagementTest extends TestCase
             'completed_at' => now(),
         ]);
         $secondBlock = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
-            'code' => 'B02',
             'name' => 'Blok Selatan',
             'area_ha' => '4.0000',
         ]);
@@ -112,8 +110,8 @@ class TaskManagementTest extends TestCase
                 ->where('filters.view', 'actionable')
                 ->where('tasks.total', 2)
                 ->has('blocks', 2)
-                ->where('blocks.0.code', 'B01')
-                ->where('blocks.1.code', 'B02')
+                ->where('blocks.0.name', 'Blok Selatan')
+                ->where('blocks.1.name', 'Blok Utara')
                 ->has('subbloks', 2)
                 ->where('subbloks.0.id', $this->subblok->id)
                 ->where('subbloks.0.label', 'A')
@@ -243,7 +241,6 @@ class TaskManagementTest extends TestCase
             'created_by' => $this->admin->id,
         ])->save();
         $otherBlock = app(FarmBlockService::class)->create($otherFarm, $this->admin, $this->team, [
-            'code' => 'C01',
             'name' => 'Blok Barat',
             'area_ha' => '4.0000',
         ]);
@@ -305,7 +302,7 @@ class TaskManagementTest extends TestCase
                 ->component('tasks/Show')
                 ->where('task.id', $task->id)
                 ->where('task.farm.name', 'Kebun Tugas Admin')
-                ->where('task.block.code', 'B01')
+                ->where('task.block.name', 'Blok Utara')
                 ->where('task.can.update', true));
     }
 
@@ -377,7 +374,6 @@ class TaskManagementTest extends TestCase
             'created_by' => $otherAdmin->id,
         ])->save();
         $otherBlock = app(FarmBlockService::class)->create($otherFarm, $otherAdmin, $otherTeam, [
-            'code' => 'B01',
             'name' => 'Blok Lain',
             'area_ha' => '5.0000',
         ]);

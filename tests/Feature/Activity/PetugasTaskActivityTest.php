@@ -48,7 +48,7 @@ class PetugasTaskActivityTest extends TestCase
         $admin->forceFill(['current_team_id' => $this->team->id])->save();
         $this->farm = new Farm(['name' => 'Kebun Pelaporan SOP', 'land_tenure' => 'owned', 'total_area_ha' => '10']);
         $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $admin->id])->save();
-        $block = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+        $block = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '5']);
         $this->cycle = app(FarmBlockService::class)->createBatch($block, $admin, $this->team, ['reserved_area_ha' => '2', 'planned_planting_at' => today()->subDays(21)->toDateString()]);
         $commodity = Commodity::create(['name' => 'Jagung']);
         $block->forceFill(['commodity_id' => $commodity->id])->save();
@@ -197,7 +197,7 @@ class PetugasTaskActivityTest extends TestCase
     {
         $admin = User::findOrFail($this->farm->created_by);
         $block = $this->cycle->block;
-        $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['code' => 'B02', 'name' => 'Blok Selatan', 'area_ha' => '4']);
+        $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['name' => 'Blok Selatan', 'area_ha' => '4']);
         $second = app(FarmBlockService::class)->createBatch($block, $admin, $this->team, ['reserved_area_ha' => '1', 'planned_planting_at' => today()->toDateString()]);
         $sequence = app(\App\Services\Activity\ActivitySequenceService::class);
         $this->actingAs($this->actor);
@@ -229,7 +229,7 @@ class PetugasTaskActivityTest extends TestCase
         $admin = User::findOrFail($this->farm->created_by);
         $block = $this->cycle->block;
         $second = app(FarmBlockService::class)->createBatch($block, $admin, $this->team, ['reserved_area_ha' => '1']);
-        $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['code' => 'B02', 'name' => 'Blok Selatan', 'area_ha' => '4']);
+        $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['name' => 'Blok Selatan', 'area_ha' => '4']);
         $otherCycle = app(FarmBlockService::class)->createBatch($other, $admin, $this->team, ['reserved_area_ha' => '1']);
         $timeline = fn ($cycle) => $cycle->stages()->get()->keyBy('code');
         $this->assertSame('upcoming', $timeline($second)['basic_fertilizer']->status);
@@ -319,7 +319,7 @@ class PetugasTaskActivityTest extends TestCase
         $admin = User::findOrFail($this->farm->created_by);
         $otherFarm = new Farm(['name' => 'Kebun Selatan', 'land_tenure' => 'owned', 'total_area_ha' => '5']);
         $otherFarm->forceFill(['team_id' => $this->team->id, 'created_by' => $admin->id])->save();
-        $block = app(FarmBlockService::class)->create($otherFarm, $admin, $this->team, ['code' => 'S01', 'name' => 'Blok Selatan', 'area_ha' => '4']);
+        $block = app(FarmBlockService::class)->create($otherFarm, $admin, $this->team, ['name' => 'Blok Selatan', 'area_ha' => '4']);
         $this->actingAs($this->actor)->post('/petugas/aktivitas/mandiri/land_cleaning', [...$this->payload(), 'block_id' => $block->id,
             'details' => ['area' => 100, 'area_unit' => 'm²']])->assertForbidden();
         $this->assertDatabaseCount('farm_activities', 0);
@@ -345,7 +345,7 @@ class PetugasTaskActivityTest extends TestCase
     public function test_database_rejects_activity_block_that_disagrees_with_cycle(): void
     {
         $admin = User::findOrFail($this->farm->created_by);
-        $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['code' => 'B02', 'name' => 'Blok Selatan', 'area_ha' => '4']);
+        $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['name' => 'Blok Selatan', 'area_ha' => '4']);
         $this->actingAs($this->actor)->post('/petugas/aktivitas/mandiri/incident', [...$this->payload(), 'cycle_id' => $this->cycle->id,
             'details' => ['area' => 100, 'area_unit' => 'm²', 'incident_category' => 'Cuaca', 'description' => 'Hujan lebat', 'severity' => 'Ringan']])->assertSessionHasNoErrors();
         $activity = FarmActivity::firstOrFail();

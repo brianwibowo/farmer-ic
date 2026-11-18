@@ -96,7 +96,7 @@ class CariuBaruSeeder extends Seeder
             $performer = $this->performer($actor, $team, $farm);
             Gate::forUser($actor)->authorize('create', [FarmBlock::class, $farm]);
             $block = app(FarmBlockService::class)->create($farm, $actor, $team, [
-                'code' => 'PM-DEMO', 'name' => 'Lahan PM — blok agregat SIMULASI', 'area_ha' => '1.3900',
+                'name' => 'Lahan PM — blok agregat SIMULASI', 'area_ha' => '1.3900',
                 'commodity_id' => $commodity->id, 'default_sop_template_id' => $template->id,
                 'description' => 'Blok agregat untuk skenario; bukan batas 13 atau 6 blok asli yang disebutkan pada logbook.', 'is_active' => true,
             ]);

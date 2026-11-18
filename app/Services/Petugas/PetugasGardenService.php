@@ -32,7 +32,7 @@ class PetugasGardenService
             return $empty;
         }
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
-            ->orderByDesc('is_active')->orderBy('code')->orderBy('id')->get();
+            ->orderByDesc('is_active')->orderBy('name')->orderBy('id')->get();
         $clearing = app(\App\Services\Activity\BlockPreparationTimeline::class)->clearingForBlocks($actor, $team, collect($blocks->modelKeys()));
         foreach ($blocks as $block) {
             $block->setAttribute('land_clearing_started_at', $clearing[$block->id]['started_at'] ?? null);
@@ -43,7 +43,7 @@ class PetugasGardenService
         $capacities = $this->blocks->capacitiesForBlocks($farm, $actor, $team, $blocks);
         $selected = $selected === null ? $blocks->first() : $blocks->firstWhere('id', $selected->id);
         $blockPayload = fn (FarmBlock $block): array => [
-            ...$block->only(['id', 'code', 'name', 'area_ha', 'description', 'is_active']),
+            ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active']),
             'batches_count' => (int) ($blockCounts[$block->id] ?? 0),
             'available_ha' => $capacities[$block->id]['available_ha'] ?? '0.0000',
             'can_create_batch' => Gate::forUser($actor)->allows('create', [PlantingCycle::class, $block]),

@@ -40,7 +40,7 @@ export type AdminTask = {
     completion_note: string | null;
     created_at: string | null;
     farm: { id: string; name: string } | null;
-    block: { id: string; code: string; name: string } | null;
+    block: { id: string; name: string } | null;
     subblok: {
         id: string;
         number: number;
@@ -82,7 +82,6 @@ export type AdminTaskFarmOption = {
 export type AdminTaskBlockOption = {
     id: string;
     farm_id: string;
-    code: string;
     name: string;
 };
 

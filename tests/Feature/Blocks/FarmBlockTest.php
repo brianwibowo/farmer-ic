@@ -62,13 +62,13 @@ class FarmBlockTest extends TestCase
         return $farm;
     }
 
-    private function block(string $code = 'B01', string $area = '5.0000', ?Farm $farm = null): FarmBlock
+    private function block(string $name = 'Blok Utara', string $area = '5.0000', ?Farm $farm = null): FarmBlock
     {
         $farm ??= $this->farm;
 
         $creator = $farm->team_id === $this->team->id ? $this->admin : User::factory()->create(['role' => 'superadmin']);
 
-        return app(FarmBlockService::class)->create($farm, $creator, $farm->team, ['code' => $code, 'name' => 'Blok Utara', 'area_ha' => $area]);
+        return app(FarmBlockService::class)->create($farm, $creator, $farm->team, ['name' => $name, 'area_ha' => $area]);
     }
 
     private function url(?FarmBlock $block = null, ?Farm $farm = null): string
@@ -89,8 +89,8 @@ class FarmBlockTest extends TestCase
         $sop = app(\App\Services\SopTemplateService::class)->create($this->admin, $this->team, [
             'commodity_id' => $corn->id, 'name' => 'SOP Jagung', 'is_active' => true,
         ]);
-        $first = $this->block('B01', '4');
-        $second = $this->block('B02', '4');
+        $first = $this->block('Blok Pertama', '4');
+        $second = $this->block('Blok Kedua', '4');
         $this->patch($this->url($first), ['commodity_id' => $corn->id, 'default_sop_template_id' => $sop->id])->assertSessionHasNoErrors();
         $this->patch($this->url($second), ['commodity_id' => $soy->id, 'default_sop_template_id' => $sop->id])->assertSessionHasErrors('default_sop_template_id');
         $this->patch($this->url($second), ['commodity_id' => $soy->id, 'default_sop_template_id' => null])->assertSessionHasNoErrors();
@@ -130,7 +130,7 @@ class FarmBlockTest extends TestCase
         $latest = PlantObservation::create(['planting_cycle_id' => $batch->id, 'observed_by' => $this->admin->id, 'observed_at' => '2026-11-09 08:00:00', 'growth_phase' => 'Vegetatif', 'growth_percentage' => 42.5]);
 
         $otherFarm = $this->farm();
-        $otherBlock = $this->block('B02', '2', $otherFarm);
+        $otherBlock = $this->block('Blok Lain', '2', $otherFarm);
         $this->post($this->url($otherBlock, $otherFarm).'/batches', [])->assertRedirect();
         $otherBatch = PlantingCycle::where('farm_id', $otherFarm->id)->firstOrFail();
         PlantObservation::create(['planting_cycle_id' => $otherBatch->id, 'observed_by' => $this->admin->id, 'observed_at' => '2026-11-10 08:00:00', 'growth_phase' => 'Panen', 'growth_percentage' => 99]);
@@ -256,7 +256,7 @@ class FarmBlockTest extends TestCase
             $batches[] = $batch;
         }
         $otherFarm = $this->farm();
-        $otherBlock = $this->block('B02', '2', $otherFarm);
+        $otherBlock = $this->block('Blok Lain', '2', $otherFarm);
         $this->post($this->url($otherBlock, $otherFarm).'/batches', [])->assertRedirect();
 
         $url = '/admin/farm-management/'.$this->farm->id;
@@ -301,7 +301,7 @@ class FarmBlockTest extends TestCase
 
     public function test_preparation_batch_edit_persists_without_changing_progress_and_rejects_manual_area(): void
     {
-        $block = $this->block('B01', '5');
+        $block = $this->block('Blok Utara', '5');
         $this->post($this->url($block).'/batches', [])->assertRedirect();
         $batch = PlantingCycle::firstOrFail();
         $this->assertSame('0.0000', $batch->planted_area_ha);
@@ -351,7 +351,7 @@ class FarmBlockTest extends TestCase
         $this->post($this->url($block).'/batches', ['subblock_label' => 'B'])->assertRedirect();
         $url = $this->url($block).'/batches/'.$batch->id;
         $this->put($url, ['subblock_label' => 'B'])->assertSessionHasErrors('subblock_label');
-        $other = $this->block('B02');
+        $other = $this->block('Blok Selatan');
         $this->put($this->url($other).'/batches/'.$batch->id, ['subblock_label' => 'C'])->assertNotFound();
         $foreign = User::factory()->create(['role' => 'admin']);
         $this->actingAs($foreign)->put($url, ['subblock_label' => 'C', 'team_id' => $this->team->id])->assertSessionHasErrors('team_id');
@@ -378,9 +378,9 @@ class FarmBlockTest extends TestCase
             ->where('blocks.0.batches.0.stages.1.status', 'upcoming')->where('batchPermissions.'.$batch->id, true));
         $this->put($base.'/'.$batch->id, ['subblock_label' => 'C', 'return_to' => 'farm'])->assertSessionHasNoErrors()->assertRedirect($farmDetail);
         $this->assertSame('C', $batch->fresh()->getAttribute('subblock_label'));
-        $other = $this->block('B02');
+        $other = $this->block('Blok Selatan');
         $this->post($this->url($other).'/batches', ['return_to' => 'blocks'])->assertRedirect($this->url());
-        $this->get($this->url().'?search=B02')->assertInertia(fn (Assert $page) => $page
+        $this->get($this->url().'?search=Selatan')->assertInertia(fn (Assert $page) => $page
             ->has('blocks.data', 1)->where('blocks.data.0.id', $other->id)->has('blocks.data.0.batches', 1)
             ->where('blocks.data.0.batches.0.subblock_label', 'A')->has('blocks.data.0.batches.0.stages', 6));
         $this->post($base, ['return_to' => 'https://example.invalid'])->assertSessionHasErrors('return_to');
@@ -391,8 +391,8 @@ class FarmBlockTest extends TestCase
 
     public function test_block_area_units_are_converted_on_create_and_update(): void
     {
-        $this->post($this->url(), ['code' => 'M01', 'name' => 'Blok Konversi', 'area_value' => '12500', 'area_unit' => 'm2'])->assertRedirect();
-        $block = FarmBlock::where('code', 'M01')->firstOrFail();
+        $this->post($this->url(), ['name' => 'Blok Konversi', 'area_value' => '12500', 'area_unit' => 'm2'])->assertRedirect();
+        $block = FarmBlock::where('name', 'Blok Konversi')->firstOrFail();
         $this->assertSame('1.2500', $block->area_ha);
 
         $this->patch($this->url($block), ['area_value' => '0,5001', 'area_unit' => 'ha'])->assertRedirect();
@@ -414,19 +414,19 @@ class FarmBlockTest extends TestCase
             ['area_unit' => 'm2'],
             ['area_value' => '10000', 'area_unit' => 'm2', 'area_ha' => '2'],
         ] as $area) {
-            $this->post($this->url(), ['code' => 'M01', 'name' => 'Blok Konversi', ...$area])->assertSessionHasErrors();
-            $this->assertDatabaseMissing('farm_blocks', ['code' => 'M01']);
+            $this->post($this->url(), ['name' => 'Blok Konversi', ...$area])->assertSessionHasErrors();
+            $this->assertDatabaseMissing('farm_blocks', ['name' => 'Blok Konversi']);
         }
-        $this->post($this->url(), ['code' => 'M01', 'name' => 'Blok Konversi', 'area_value' => '100001', 'area_unit' => 'm2'])->assertSessionHasErrors('area_ha');
-        $this->assertDatabaseMissing('farm_blocks', ['code' => 'M01']);
+        $this->post($this->url(), ['name' => 'Blok Konversi', 'area_value' => '100001', 'area_unit' => 'm2'])->assertSessionHasErrors('area_ha');
+        $this->assertDatabaseMissing('farm_blocks', ['name' => 'Blok Konversi']);
     }
 
-    public function test_admin_crud_normalizes_code_and_starts_land_clearing(): void
+    public function test_admin_crud_trims_name_and_starts_land_clearing(): void
     {
         $this->get($this->url().'/create')->assertInertia(fn (Assert $page) => $page->component('farmer/blocks/Form')->where('block', null));
-        $this->post($this->url(), ['code' => ' b01 ', 'name' => 'Blok Utara', 'area_ha' => '3.1250'])->assertRedirect();
+        $this->post($this->url(), ['name' => ' Blok Utara ', 'area_ha' => '3.1250'])->assertRedirect();
         $block = FarmBlock::firstOrFail();
-        $this->assertSame('B01', $block->code);
+        $this->assertSame('Blok Utara', $block->name);
         $this->assertSame('3.1250', $block->area_ha);
         $this->assertSame($this->admin->id, $block->created_by);
         $this->assertNotNull($block->land_clearing_started_at);
@@ -461,7 +461,7 @@ class FarmBlockTest extends TestCase
                 ->where('blocks.data.0.can.update', false)->where('blocks.data.0.can.delete', false));
             $this->get($this->url().'/create')->assertForbidden();
             $this->get($this->url($block).'/edit')->assertForbidden();
-            $this->post($this->url(), ['code' => 'DENIED', 'name' => 'Blok Terlarang', 'area_ha' => '1'])->assertForbidden();
+            $this->post($this->url(), ['name' => 'Blok Terlarang', 'area_ha' => '1'])->assertForbidden();
             $this->patch($this->url($block), ['name' => 'Tidak Boleh'])->assertForbidden();
             $this->delete($this->url($block))->assertForbidden();
             $this->assertTrue(Gate::forUser($actor)->allows('view', $block));
@@ -485,7 +485,7 @@ class FarmBlockTest extends TestCase
         $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.can.update', $mutates));
         $this->assertSame($mutates, Gate::forUser($actor)->allows('create', [FarmBlock::class, $this->farm]));
         $this->assertFalse($role !== 'superadmin' && Gate::forUser($actor)->allows('configure', $block));
-        $payload = ['code' => 'B02', 'name' => 'Blok Selatan', 'area_ha' => '1'];
+        $payload = ['name' => 'Blok Selatan', 'area_ha' => '1'];
         if ($mutates) {
             $this->post($this->url(), $payload)->assertRedirect();
             $this->patch($this->url($block), ['name' => 'Blok Revisi'])->assertRedirect();
@@ -536,7 +536,7 @@ class FarmBlockTest extends TestCase
         $this->post($this->url($block).'/batches', [])->assertRedirect();
         PlantingCycle::query()->update(['status' => 'cancelled']);
         $this->post($this->url($block).'/batches', [])->assertRedirect();
-        $other = $this->block('B02');
+        $other = $this->block('Blok Selatan');
         $this->post($this->url($other).'/batches', [])->assertRedirect();
         $this->assertSame([1, 2, 3], PlantingCycle::orderBy('batch_number')->pluck('batch_number')->all());
         $this->assertSame(['A', 'B', 'A'], PlantingCycle::orderBy('batch_number')->pluck('subblock_label')->all());
@@ -545,9 +545,9 @@ class FarmBlockTest extends TestCase
 
     public function test_capacity_guards_resize_deactivation_reactivation_and_history(): void
     {
-        $block = $this->block('B01', '6');
-        $other = $this->block('B02', '4');
-        $this->post($this->url(), ['code' => 'B03', 'name' => 'Berlebih', 'area_ha' => '.0001'])->assertSessionHasErrors('area_ha');
+        $block = $this->block('Blok Utara', '6');
+        $other = $this->block('Blok Selatan', '4');
+        $this->post($this->url(), ['name' => 'Berlebih', 'area_ha' => '.0001'])->assertSessionHasErrors('area_ha');
         $this->patch($this->url($other), ['is_active' => false])->assertRedirect();
         $this->patch($this->url($block), ['area_ha' => '10'])->assertRedirect();
         $this->patch($this->url($other), ['is_active' => true])->assertSessionHasErrors('area_ha');
@@ -567,7 +567,7 @@ class FarmBlockTest extends TestCase
 
     public function test_rejected_batch_creation_rolls_back_transition_and_sequence(): void
     {
-        $block = $this->block('B01', '2');
+        $block = $this->block('Blok Utara', '2');
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '1'])->assertSessionHasErrors('reserved_area_ha');
         $this->assertNull($block->refresh()->land_clearing_completed_at);
         $this->assertDatabaseCount('planting_cycles', 0);
@@ -587,7 +587,7 @@ class FarmBlockTest extends TestCase
         PlantingCycle::create(['farm_id' => $this->farm->id, 'variety_id' => $variety->id,
             'planted_at' => '2026-10-01', 'planted_area_ha' => '8.5000', 'status' => 'active']);
 
-        return $this->block('B01', '10');
+        return $this->block('Blok Utara', '10');
     }
 
     public function test_capacity_summary_reflects_active_planting_and_blocks_new_subblock_when_full(): void
@@ -639,12 +639,12 @@ class FarmBlockTest extends TestCase
 
     public function test_scoped_lists_totals_search_and_directory_do_not_expose_other_farms(): void
     {
-        $this->block('B01', '2');
-        $this->block('B02', '3');
+        $this->block('Blok Utara', '2');
+        $this->block('Blok Selatan', '3');
         $other = $this->farm();
-        $this->block('B03', '9', $other);
+        $this->block('Blok Timur', '9', $other);
         $this->get($this->url().'?per_page=1')->assertInertia(fn (Assert $page) => $page->where('blocks.total', 2)->has('blocks.data', 1)->where('summary.total', 2)->where('summary.active_area_ha', '5.0000'));
-        $this->get($this->url().'?search=B02')->assertInertia(fn (Assert $page) => $page->where('blocks.total', 1));
+        $this->get($this->url().'?search=Selatan')->assertInertia(fn (Assert $page) => $page->where('blocks.total', 1));
         $this->get($this->url().'?search=%25')->assertInertia(fn (Assert $page) => $page->where('blocks.total', 0));
         $actor = User::factory()->create(['role' => 'petugas']);
         $this->join($actor);
@@ -658,7 +658,7 @@ class FarmBlockTest extends TestCase
         $block = $this->block();
         $foreignTeam = Team::factory()->create();
         $foreign = $this->farm($foreignTeam);
-        $foreignBlock = $this->block('B99', '5', $foreign);
+        $foreignBlock = $this->block('Blok Luar', '5', $foreign);
         $this->get($this->url($foreignBlock, $foreign))->assertForbidden();
         $this->patch($this->url($foreignBlock, $foreign), ['name' => 'Bocor'])->assertForbidden();
         $this->post($this->url($foreignBlock, $foreign).'/batches', ['subblock_label' => 'X'])->assertForbidden();
@@ -677,8 +677,8 @@ class FarmBlockTest extends TestCase
     public function test_validation_rejects_forged_server_fields_and_invalid_values(): void
     {
         $block = $this->block();
-        $this->post($this->url(), ['code' => 'b01', 'name' => 'Duplikat', 'area_ha' => '1'])->assertSessionHasErrors('code');
-        $this->post($this->url(), ['code' => 'B 02', 'name' => '', 'area_ha' => '1.00001', 'farm_id' => $this->farm->id, 'created_by' => $this->admin->id])->assertSessionHasErrors(['code', 'name', 'area_ha', 'farm_id', 'created_by']);
+        $this->post($this->url(), ['name' => ' blok utara ', 'area_ha' => '1'])->assertSessionHasErrors('name');
+        $this->post($this->url(), ['name' => '', 'area_ha' => '1.00001', 'farm_id' => $this->farm->id, 'created_by' => $this->admin->id])->assertSessionHasErrors(['name', 'area_ha', 'farm_id', 'created_by']);
         $this->patch($this->url($block), ['land_clearing_completed_at' => now()->toISOString(), 'current_stage' => 'harvest'])->assertSessionHasErrors(['land_clearing_completed_at', 'current_stage']);
         $this->post($this->url($block).'/batches', ['reserved_area_ha' => '-1', 'farm_id' => $this->farm->id, 'batch_number' => 99, 'status' => 'active', 'stages' => ['harvest'], 'planned_planting_at' => '15-11-2026'])->assertSessionHasErrors(['reserved_area_ha', 'farm_id', 'batch_number', 'status', 'stages', 'planned_planting_at']);
         $this->getJson($this->url().'?per_page=101')->assertUnprocessable();
@@ -705,7 +705,7 @@ class FarmBlockTest extends TestCase
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoFarmBlockSeeder::class]);
         $demo = Farm::where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $this->assertSame('80.000', $demo->getAttribute('target_volume_ton'));
-        $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), FarmBlock::where('farm_id', $demo->id)->where('code', 'B01')->value('commodity_id'));
+        $this->assertSame(Commodity::where('name', 'Jagung')->value('id'), FarmBlock::where('farm_id', $demo->id)->where('name', 'Blok Utara')->value('commodity_id'));
         $ids = FarmBlock::where('farm_id', $demo->id)->pluck('id')->all();
         $batchIds = PlantingCycle::where('farm_id', $demo->id)->orderBy('batch_number')->pluck('id')->all();
         $this->assertCount(3, $batchIds);
@@ -754,7 +754,7 @@ class FarmBlockTest extends TestCase
 
     public function test_database_constraints_reject_bypassed_capacity_cross_farm_and_incomplete_timeline(): void
     {
-        $block = $this->block('B01', '10');
+        $block = $this->block('Blok Utara', '10');
         $this->post($this->url($block).'/batches', [])->assertRedirect();
         $batch = PlantingCycle::firstOrFail();
         $other = $this->farm();

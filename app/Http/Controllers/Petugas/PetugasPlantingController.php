@@ -43,7 +43,7 @@ class PetugasPlantingController extends Controller
         $blocks = FarmBlock::visibleTo($request->user(), $farm->team)
             ->where('farm_id', $farm->id)
             ->orderByDesc('is_active')
-            ->orderBy('code')
+            ->orderBy('name')
             ->orderBy('id')
             ->get();
         $capacities = $blockService->capacitiesForBlocks($farm, $request->user(), $farm->team, $blocks);
@@ -57,7 +57,7 @@ class PetugasPlantingController extends Controller
         return Inertia::render('petugas/PlantingIndex', [
             'farm' => $farm->only(['id', 'name']),
             'blocks' => $blocks->map(fn (FarmBlock $block): array => [
-                ...$block->only(['id', 'code', 'name', 'area_ha', 'is_active']),
+                ...$block->only(['id', 'name', 'area_ha', 'is_active']),
                 'available_ha' => $capacities[$block->id]['available_ha'] ?? '0.0000',
                 'can_create_batch' => Gate::allows('create', [PlantingCycle::class, $block]),
                 'cycles_count' => (int) ($blockCounts[$block->id] ?? 0),

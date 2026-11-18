@@ -146,7 +146,7 @@ class OwnerPortalTest extends TestCase
             ->component('farms/Show')->where('farm.id', $this->farm->id)
             ->has('blocks', 2)->where('can.update', false)->where('can.delete', false));
 
-        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
+        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('name', 'Blok Utara')->firstOrFail();
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Block')->where('block.id', $block->id)
             ->has('cycles', 2)->has('cycles.0.stages', 6)->has('cycles.1.stages', 6)
@@ -409,7 +409,7 @@ class OwnerPortalTest extends TestCase
     {
         $this->revoke(['activity_photos.view', 'planting_cycle_stages.view', 'planting_cycle_tasks.view', 'sop_template_versions.view']);
         $activity = FarmActivity::query()->where('description', 'Penanaman Blok 1')->firstOrFail();
-        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
+        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('name', 'Blok Utara')->firstOrFail();
         $sop = SopTemplate::query()->where('team_id', $this->team->id)->firstOrFail();
 
         $this->get('/aktivitas/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page->has('activity.photos', 0));
@@ -450,7 +450,7 @@ class OwnerPortalTest extends TestCase
     public function test_revoked_variety_grant_hides_its_nested_commodity_from_dashboard_and_batches(): void
     {
         $this->revoke(['crop_varieties.view']);
-        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
+        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('name', 'Blok Utara')->firstOrFail();
 
         $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page->has('dashboard.commodities', 0));
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page

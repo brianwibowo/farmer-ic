@@ -19,7 +19,7 @@ class DailyActivityLogService
     /** @return \Illuminate\Support\Collection<int, FarmBlock> */
     public function blockOptions(Farm $farm, User $actor, Team $team): \Illuminate\Support\Collection
     {
-        return FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
+        return FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
     }
 
     /** Actor names are a minimal projection of an authorized report, not a user-directory grant.

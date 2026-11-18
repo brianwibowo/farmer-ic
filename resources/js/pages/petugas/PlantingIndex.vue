@@ -143,8 +143,8 @@ function synchronize(id: string): void {
                 :aria-current="
                     block.id === selectedBlockId ? 'page' : undefined
                 "
-                :aria-label="`${block.code}, ${block.name}, ${block.cycles_count} subblok${block.is_active ? '' : ', nonaktif'}`"
-                >{{ block.code
+                :aria-label="`${block.name}, ${block.cycles_count} subblok${block.is_active ? '' : ', nonaktif'}`"
+                >{{ block.name
                 }}<span
                     class="rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-foreground"
                     >{{ block.cycles_count }}</span

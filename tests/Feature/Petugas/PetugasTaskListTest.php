@@ -76,7 +76,6 @@ class PetugasTaskListTest extends TestCase
         ])->save();
 
         $block = app(FarmBlockService::class)->create($farm, $actor, $team, [
-            'code' => $code,
             'name' => 'Blok '.$code,
             'area_ha' => '5.0000',
         ]);

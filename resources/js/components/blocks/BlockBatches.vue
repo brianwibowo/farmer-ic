@@ -202,7 +202,7 @@ const progressSummary = computed(() => {
                         <h5
                             class="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-bold [overflow-wrap:anywhere] text-foreground"
                         >
-                            Sub blok {{ block.code }}{{ batch.subblock_label }}
+                            Sub blok {{ batch.subblock_label }}
                             <span
                                 v-if="returnTo === 'farm' && batch.age"
                                 class="rounded-lg bg-primary/10 px-2 py-1 text-xs font-semibold text-primary tabular-nums"
@@ -226,7 +226,7 @@ const progressSummary = computed(() => {
                             variant="outline"
                             size="sm"
                             class="block-action"
-                            :aria-label="`Tutup panen sub blok ${block.code}${batch.subblock_label}`"
+                            :aria-label="`Tutup panen sub blok ${batch.subblock_label}`"
                             @click="
                                 closing = batch;
                                 closeForm.clearErrors();
@@ -238,7 +238,7 @@ const progressSummary = computed(() => {
                             variant="ghost"
                             size="sm"
                             class="block-action"
-                            :aria-label="`Ubah sub blok ${block.code}${batch.subblock_label}`"
+                            :aria-label="`Ubah sub blok ${batch.subblock_label}`"
                             @click="open(batch)"
                             ><Pencil class="size-4" />Ubah</Button
                         >
@@ -298,7 +298,7 @@ const progressSummary = computed(() => {
                         :stages="batch.stages"
                         :growth="batch.growth"
                         :theme="theme"
-                        :growth-context="`Sub blok ${block.code}${batch.subblock_label} · Batch ${batch.batch_number}`"
+                        :growth-context="`Sub blok ${batch.subblock_label} · Batch ${batch.batch_number}`"
                     >
                         <template
                             v-if="
@@ -330,7 +330,7 @@ const progressSummary = computed(() => {
     </section>
     <BatchDialog
         v-model:open="editing"
-        :context="`${farm.name} / ${block.code}`"
+        :context="`${farm.name} / ${block.name}`"
         :base="base"
         :capacity="block.batch_capacity"
         :batch="selected"
@@ -357,8 +357,7 @@ const progressSummary = computed(() => {
         >
             <DialogHeader>
                 <DialogTitle>
-                    Tutup panen sub blok {{ block.code
-                    }}{{ closing?.subblock_label }}?
+                    Tutup panen sub blok {{ closing?.subblock_label }}?
                 </DialogTitle>
                 <DialogDescription>
                     Pastikan laporan panen sudah lengkap. Subblok akan selesai

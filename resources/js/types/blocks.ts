@@ -12,7 +12,6 @@ export type BatchCapacity = {
 export type FarmBlock = {
     id: string;
     farm_id: string;
-    code: string;
     name: string;
     area_ha: string;
     description: string | null;

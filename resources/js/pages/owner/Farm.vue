@@ -237,7 +237,7 @@ const severity: Record<string, string> = {
                 class="block rounded-xl border border-border p-4 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
                 ><div class="flex justify-between gap-3">
                     <h3 class="text-sm font-semibold">
-                        {{ block.code }} · {{ block.name }}
+                        {{ block.name }}
                     </h3>
                     <ArrowUpRight
                         class="size-4 shrink-0 text-secondary dark:text-primary"

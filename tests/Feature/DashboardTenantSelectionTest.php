@@ -164,7 +164,7 @@ class DashboardTenantSelectionTest extends TestCase
     private function records(Farm $farm, User $worker, int $expense, int $income): void
     {
         $this->createLog($farm, $worker, today()->toDateString());
-        $block = app(FarmBlockService::class)->create($farm, $this->superadmin, $farm->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '4']);
+        $block = app(FarmBlockService::class)->create($farm, $this->superadmin, $farm->team, ['name' => 'Blok Utara', 'area_ha' => '4']);
         $cycle = app(FarmBlockService::class)->createBatch($block, $this->superadmin, $farm->team, ['reserved_area_ha' => '1']);
         FarmRisk::create(['planting_cycle_id' => $cycle->id, 'risk_description' => 'Drainase perlu diperiksa', 'status' => 'open', 'detected_at' => now()]);
         $category = FinancialCategory::firstOrCreate(['name' => 'Biaya lapangan', 'transaction_type' => 'expense']);

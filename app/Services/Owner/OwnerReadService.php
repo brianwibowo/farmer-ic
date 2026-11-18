@@ -307,7 +307,7 @@ class OwnerReadService
         $cycles = $this->cycleQuery($actor, $team)->where('farm_id', $farm->id);
         $active = (clone $cycles)->where('status', 'active');
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
-            ->orderBy('code')->get();
+            ->orderBy('name')->get();
         $cycleCounts = PlantingCycle::visibleTo($actor, $team)
             ->where('farm_id', $farm->id)
             ->whereNotNull('block_id')
@@ -342,7 +342,7 @@ class OwnerReadService
                 'harvest_weight_ton' => (string) $harvest,
             ],
             'blocks' => $blocks->map(fn (FarmBlock $block): array => [
-                ...$block->only(['id', 'code', 'name', 'area_ha', 'is_active', 'description']),
+                ...$block->only(['id', 'name', 'area_ha', 'is_active', 'description']),
                 'cycles_count' => $cycleCounts->get($block->id, collect())->count(),
             ])->values()->all(),
             'legacyCycles' => (clone $cycles)->whereNull('block_id')->orderByDesc('created_at')
@@ -401,7 +401,7 @@ class OwnerReadService
         return [
             'farm' => $farm->only(['id', 'name']),
             'block' => [
-                ...$block->only(['id', 'code', 'name', 'area_ha', 'description', 'is_active']),
+                ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active']),
                 'land_clearing_started_at' => $this->timestamp($block->getAttribute('land_clearing_started_at')),
                 'land_clearing_completed_at' => $this->timestamp($block->getAttribute('land_clearing_completed_at')),
             ],

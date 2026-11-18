@@ -54,7 +54,7 @@ class ActivityInputLimitsTest extends TestCase
         $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
         $this->petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $blocks = app(FarmBlockService::class);
-        $this->block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5', 'commodity_id' => $commodity->id]);
+        $this->block = $blocks->create($this->farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '5', 'commodity_id' => $commodity->id]);
         $this->cycle = $blocks->createBatch($this->block, $this->admin, $this->team);
         $this->cycle->forceFill(['planted_at' => today()->subDays(21), 'reserved_area_ha' => '2', 'planted_area_ha' => '2', 'variety_id' => $variety->id, 'status' => 'active'])->save();
         ActivityType::firstOrCreate(['code' => 'harvest'], ['name' => 'Panen']);
@@ -100,7 +100,7 @@ class ActivityInputLimitsTest extends TestCase
     {
         $other = new Farm(['name' => 'Kebun Lain', 'land_tenure' => 'owned', 'total_area_ha' => '3']);
         $other->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
-        $foreignBlock = app(FarmBlockService::class)->create($other, $this->admin, $this->team, ['code' => 'B02', 'name' => 'Blok Lain', 'area_ha' => '3']);
+        $foreignBlock = app(FarmBlockService::class)->create($other, $this->admin, $this->team, ['name' => 'Blok Lain', 'area_ha' => '3']);
         $this->actingAs($this->petugas)->get('/petugas/aktivitas/mandiri/incident')->assertInertia(fn (Assert $page) => $page
             ->component('petugas/VoluntaryCreate')
             ->where('blocks', fn ($blocks) => collect($blocks)->contains(fn ($block) => $block['id'] === $this->block->id && $block['area_limit_m2'] === 50000)

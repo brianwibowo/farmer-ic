@@ -69,7 +69,7 @@ class PetugasHomeTest extends TestCase
         $team = $farm->team;
         $block = FarmBlock::where('farm_id', $farm->id)->first()
             ?? app(FarmBlockService::class)->create($farm, $actor, $team, [
-                'code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '10.0000',
+                'name' => 'Blok Utara', 'area_ha' => '10.0000',
             ]);
         $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
             'reserved_area_ha' => '1.0000', 'planned_planting_at' => '2026-10-28',

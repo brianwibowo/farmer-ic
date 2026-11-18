@@ -62,7 +62,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->farm = new Farm(['name' => 'Kebun Realisasi Jagung', 'land_tenure' => 'owned', 'total_area_ha' => '10']);
         $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
         $this->actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
-        $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+        $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '5']);
         $this->cycle = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team, ['reserved_area_ha' => '2', 'planned_planting_at' => now('Asia/Jakarta')->subDays(5)->toDateString()]);
         $commodity = Commodity::create(['name' => 'Jagung']);
         $this->block->forceFill(['commodity_id' => $commodity->id])->save();
@@ -619,9 +619,12 @@ class PetugasPlantingActivityTest extends TestCase
             ->component('petugas/PlantingIndex')
             ->where('selectedBlockId', null)
             ->has('blocks', 3)
+            ->where('blocks.0.id', $secondBlock->id)
             ->where('blocks.0.cycles_count', 2)
-            ->where('blocks.1.cycles_count', 2)
-            ->where('blocks.2.cycles_count', 0)
+            ->where('blocks.1.id', $emptyBlock->id)
+            ->where('blocks.1.cycles_count', 0)
+            ->where('blocks.2.id', $this->block->id)
+            ->where('blocks.2.cycles_count', 2)
             ->has('cycles', 4)
             ->where('cycles.0.id', $newestOverall->id)
             ->where('cycles.1.id', $newestFirst->id)
@@ -630,8 +633,12 @@ class PetugasPlantingActivityTest extends TestCase
 
         $this->get('/petugas/penanaman?block='.$secondBlock->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('selectedBlockId', $secondBlock->id)
+            ->where('blocks.0.id', $secondBlock->id)
             ->where('blocks.0.cycles_count', 2)
-            ->where('blocks.1.cycles_count', 2)
+            ->where('blocks.1.id', $emptyBlock->id)
+            ->where('blocks.1.cycles_count', 0)
+            ->where('blocks.2.id', $this->block->id)
+            ->where('blocks.2.cycles_count', 2)
             ->has('cycles', 2)
             ->where('cycles.0.id', $newestOverall->id)
             ->where('cycles.1.id', $olderSecond->id));

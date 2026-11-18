@@ -20,9 +20,9 @@ const origin = computed(() => ownerFarmOrigin(page.url));
 </script>
 
 <template>
-    <Head :title="`${block.code} · ${block.name}`" />
+    <Head :title="block.name" />
     <OwnerPageHeader
-        :title="`${block.code} · ${block.name}`"
+        :title="block.name"
         :description="farm.name"
         :back-href="withOwnerFarmOrigin(`/kebun/${farm.id}`, origin)"
         back-label="Detail kebun"

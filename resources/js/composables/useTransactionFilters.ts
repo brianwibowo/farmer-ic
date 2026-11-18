@@ -97,7 +97,7 @@ export function useTransactionFilters(options: {
             chips.push({
                 key: 'block_id',
                 label: block
-                    ? `Blok: ${block.code} · ${block.name}`
+                    ? `Blok: ${block.name}`
                     : 'Blok: Tidak tersedia',
             });
         }

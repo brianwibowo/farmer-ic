@@ -13,8 +13,8 @@ class SaveFarmBlockRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if (is_string($this->input('code'))) {
-            $this->merge(['code' => strtoupper(trim($this->input('code')))]);
+        if (is_string($this->input('name'))) {
+            $this->merge(['name' => trim($this->input('name'))]);
         }
         if ($this->exists('area_value') || $this->exists('area_unit')) {
             $this->conflictingArea = $this->exists('area_ha');
@@ -40,7 +40,6 @@ class SaveFarmBlockRequest extends FormRequest
         $metres = $this->input('area_unit') === 'm2';
 
         return [
-            'code' => [...$presence, 'string', 'max:30', 'regex:/^[A-Z0-9][A-Z0-9_-]*$/'],
             'name' => [...$presence, 'string', 'max:150'],
             'area_ha' => [...$presence, 'numeric', 'decimal:0,4', 'between:0.0001,99999999.9999'],
             'area_value' => [Rule::requiredIf($unitInput), 'numeric', $metres ? 'decimal:0' : 'decimal:0,4', $metres ? 'between:1,999999999999' : 'between:0.0001,99999999.9999'],

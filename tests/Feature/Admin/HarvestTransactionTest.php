@@ -69,7 +69,7 @@ class HarvestTransactionTest extends TestCase
     private function block(Farm $farm, Team $team, User $actor, string $code): FarmBlock
     {
         return app(FarmBlockService::class)->create($farm, $actor, $team, [
-            'code' => $code, 'name' => 'Blok '.$code, 'area_ha' => '5.0000',
+            'name' => 'Blok '.$code, 'area_ha' => '5.0000',
         ]);
     }
 
@@ -104,7 +104,7 @@ class HarvestTransactionTest extends TestCase
             'activity_type_id' => $type->id,
             'performed_by' => $actor->id,
             'activity_date' => CarbonImmutable::parse($date.' 09:00', 'Asia/Jakarta'),
-            'description' => 'Panen '.$block->code.' '.$date,
+            'description' => 'Panen '.$block->name.' '.$date,
             'status' => 'completed',
             'daily_activity_log_id' => $log->id,
             'position' => 1,
@@ -155,7 +155,7 @@ class HarvestTransactionTest extends TestCase
             ->has('summary', 4)
             ->where('transactions.total', 2)->has('transactions.data', 2)
             ->where('transactions.data.0.farm.name', 'Kebun Panen B')
-            ->where('transactions.data.0.block.code', 'B02')
+            ->where('transactions.data.0.block.name', 'Blok B02')
             ->where('transactions.data.0.variety.name', 'Bisi 18')
             ->where('transactions.data.0.harvested_area_ha', '0.5000')
             ->where('transactions.data.0.gross_weight_ton', '2.500')
