@@ -60,6 +60,7 @@ const items = computed(() =>
                     unit="Ha"
                     total-label="Luas lahan"
                     category-label="mitra"
+                    :legend-limit="3"
                     embedded
                     compact
                     :show-footer="false"
@@ -86,6 +87,26 @@ const items = computed(() =>
                                 · {{ item.detail }}</span
                             >
                         </span>
+                    </template>
+                    <template #legend-overflow="{ count }">
+                        <Link
+                            href="/monitoring-lahan"
+                            :aria-label="`Lihat ${count} mitra lainnya di Monitoring Lahan`"
+                            class="flex min-h-[60px] flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-border border-b-transparent bg-linear-to-b from-primary/8 to-transparent px-3 py-2 text-sm hover:from-primary/14 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        >
+                            <span class="text-xs text-muted-foreground"
+                                >{{ count }} mitra lainnya</span
+                            >
+                            <span
+                                class="inline-flex items-center gap-1.5 font-semibold text-primary"
+                            >
+                                Lihat lainnya
+                                <ArrowUpRight
+                                    class="size-4 shrink-0"
+                                    aria-hidden="true"
+                                />
+                            </span>
+                        </Link>
                     </template>
                 </OwnerDistributionChart>
             </div>

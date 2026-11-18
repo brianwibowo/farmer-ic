@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Handshake, LandPlot, Package } from '@lucide/vue';
-import { executiveNumber as number } from '@/services/ownerExecutiveSummary';
-import type {
-    executiveCommodities,
-    executiveTotals,
+import { Handshake, LandPlot, Package, Wheat } from '@lucide/vue';
+import {
+    executiveCommodityColor,
+    executiveNumber as number,
 } from '@/services/ownerExecutiveSummary';
+import type { executiveTotals } from '@/services/ownerExecutiveSummary';
 
 const props = withDefaults(
     defineProps<{
         totals: ReturnType<typeof executiveTotals>;
-        commodities: ReturnType<typeof executiveCommodities>;
+        commodities: { id: string; name: string; harvested: number }[];
         partnerCount: number;
         month: string;
-        snapshotLabel?: string;
+        period: string;
         showCommercialCard?: boolean;
         loading?: boolean;
     }>(),
@@ -22,13 +22,22 @@ const props = withDefaults(
 const utilization = computed(() =>
     Math.min(100, Math.max(0, props.totals.utilization)),
 );
+const harvestByCommodity = computed(() =>
+    props.commodities
+        .filter((crop) => crop.id || crop.harvested > 0)
+        .sort((left, right) => left.name.localeCompare(right.name, 'id')),
+);
 </script>
 
 <template>
     <div
         id="ringkasan-kpi"
         class="grid min-w-0 grid-cols-1 items-stretch gap-[18px] md:grid-cols-2"
-        :class="showCommercialCard ? 'xl:grid-cols-4' : 'xl:grid-cols-2'"
+        :class="
+            showCommercialCard
+                ? 'xl:grid-cols-4'
+                : 'md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]'
+        "
         aria-label="Indikator utama"
         :aria-busy="loading"
     >
@@ -39,7 +48,7 @@ const utilization = computed(() =>
             <div
                 v-for="index in showCommercialCard ? 3 : 2"
                 :key="index"
-                class="admin-card min-h-72 bg-muted motion-safe:animate-pulse"
+                class="admin-card min-h-52 bg-muted motion-safe:animate-pulse"
                 :class="
                     showCommercialCard && index === 3 ? 'md:col-span-2' : ''
                 "
@@ -48,86 +57,106 @@ const utilization = computed(() =>
         </template>
         <template v-else>
             <article
-                class="admin-card min-w-0 bg-card p-4 lg:p-[18px]"
+                class="admin-card relative isolate min-w-0 overflow-hidden border border-primary/15 bg-card bg-linear-to-bl from-primary/8 via-card to-card p-4 lg:p-[18px]"
                 aria-labelledby="executive-land-heading"
             >
-                <header class="mb-5 flex items-start justify-between gap-2">
-                    <h2
-                        id="executive-land-heading"
-                        class="text-sm font-semibold text-foreground"
-                    >
-                        Ringkasan lahan
-                    </h2>
+                <svg
+                    viewBox="0 0 240 118"
+                    class="executive-land-contours pointer-events-none absolute top-0 right-0 -z-10 h-24 w-40 text-primary sm:h-28 sm:w-56"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.15"
+                    aria-hidden="true"
+                    focusable="false"
+                >
+                    <path
+                        d="M245 104C214 105 197 94 172 93S131 106 108 100 84 80 58 76 20 57 21 37 38 3 65-5M245 90C214 92 196 80 175 80S136 93 115 87 94 68 68 63 34 51 35 35 49 7 88-5M245 76C218 79 200 68 180 67S144 80 123 75 105 56 79 50 49 43 50 31 73 4 115-5M245 64C222 67 204 56 186 55S153 69 132 65 118 45 93 39 66 35 67 25 97 2 144-5M245 51C224 54 211 45 192 43S162 58 143 54 131 35 110 29 85 27 86 19 123 0 170-5M245 38C228 42 214 32 199 31S175 46 157 43 147 26 130 20 107 18 110 11 145 0 195-5"
+                    />
+                </svg>
+                <header class="flex items-center gap-2">
                     <LandPlot
                         class="size-4 shrink-0 text-primary"
                         aria-hidden="true"
                     />
+                    <h2 id="executive-land-heading" class="admin-section-title">
+                        Ringkasan lahan
+                    </h2>
                 </header>
-                <dl class="space-y-4">
+                <dl class="mt-4">
                     <div>
                         <dt class="text-xs leading-5 text-muted-foreground">
                             Total luas lahan
                         </dt>
-                        <dd class="mt-1 flex flex-wrap items-baseline gap-x-2">
-                            <span class="text-3xl font-semibold tabular-nums">{{
-                                number(totals.area)
-                            }}</span
-                            ><span class="text-xs text-muted-foreground"
-                                >Ha</span
+                        <dd
+                            class="mt-0.5 flex flex-wrap items-baseline gap-x-2"
+                        >
+                            <span
+                                class="text-4xl leading-tight font-bold tracking-tight tabular-nums sm:text-5xl"
+                                >{{ number(totals.area, 4) }}</span
+                            >
+                            <span
+                                class="text-sm font-medium text-muted-foreground"
+                                >ha</span
                             >
                         </dd>
-                    </div>
-                    <div class="border-t border-border pt-3">
-                        <dt class="text-xs leading-5 text-muted-foreground">
-                            Luas tanam aktif · posisi hari ini
-                        </dt>
-                        <dd class="mt-1 flex flex-wrap items-baseline gap-x-2">
-                            <span class="text-2xl font-semibold tabular-nums">{{
-                                number(totals.planted)
-                            }}</span
-                            ><span class="text-xs text-muted-foreground"
-                                >Ha</span
-                            >
-                        </dd>
-                    </div>
-                    <div class="border-t border-border pt-3">
-                        <div
-                            class="flex flex-wrap items-baseline justify-between gap-2"
-                        >
-                            <dt class="text-xs text-muted-foreground">
-                                Utilisasi lahan
-                            </dt>
-                            <dd
-                                class="text-lg font-semibold text-primary tabular-nums"
-                            >
-                                {{ number(totals.utilization) }}%
-                            </dd>
-                        </div>
-                        <div
-                            class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
-                            role="progressbar"
-                            aria-label="Utilisasi lahan"
-                            :aria-valuenow="utilization"
-                            aria-valuemin="0"
-                            aria-valuemax="100"
-                            :aria-valuetext="`${number(totals.utilization)}% lahan tertanam`"
-                        >
-                            <div
-                                class="h-full rounded-full bg-primary"
-                                :style="{ width: `${utilization}%` }"
-                            />
-                        </div>
                     </div>
                 </dl>
-                <p class="mt-2 text-xs leading-5 text-muted-foreground">
-                    {{ number(totals.unused) }} Ha belum ditanam
-                </p>
-                <!-- <p
-                    v-if="snapshotLabel"
-                    class="mt-1 text-xs leading-5 text-muted-foreground"
-                >
-                    Posisi {{ snapshotLabel }}
-                </p> -->
+                <div class="mt-4">
+                    <div
+                        class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+                    >
+                        <p class="text-xs font-medium text-muted-foreground">
+                            Utilisasi lahan saat ini
+                        </p>
+                        <p
+                            class="text-base font-bold text-primary tabular-nums"
+                        >
+                            {{ number(totals.utilization) }}%
+                        </p>
+                    </div>
+                    <div
+                        class="mt-2 h-2 overflow-hidden rounded-full bg-primary/18"
+                        role="meter"
+                        aria-label="Utilisasi lahan saat ini"
+                        :aria-valuenow="utilization"
+                        :aria-valuemin="0"
+                        :aria-valuemax="100"
+                        :aria-valuetext="`${number(totals.planted, 4)} hektare tanam aktif dari ${number(totals.area, 4)} hektare`"
+                    >
+                        <div
+                            class="h-full bg-primary"
+                            :style="{ width: `${utilization}%` }"
+                        />
+                    </div>
+                    <div
+                        class="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs leading-5 text-muted-foreground"
+                    >
+                        <span class="inline-flex items-center gap-1.5">
+                            <span
+                                class="size-2 shrink-0 rounded-full bg-primary"
+                                aria-hidden="true"
+                            />
+                            <span
+                                ><strong class="font-semibold text-foreground"
+                                    >{{ number(totals.planted, 4) }} ha</strong
+                                >
+                                tanam aktif</span
+                            >
+                        </span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <span
+                                class="size-2 shrink-0 rounded-full border border-primary/30 bg-primary/18"
+                                aria-hidden="true"
+                            />
+                            <span
+                                ><strong class="font-semibold text-foreground"
+                                    >{{ number(totals.unused, 4) }} ha</strong
+                                >
+                                belum ditanam</span
+                            >
+                        </span>
+                    </div>
+                </div>
             </article>
             <article
                 v-if="showCommercialCard"
@@ -182,72 +211,99 @@ const utilization = computed(() =>
                 </dl>
             </article>
             <article
-                class="admin-card flex min-w-0 flex-col bg-card p-4 lg:p-[18px]"
+                class="admin-card flex min-w-0 flex-col border border-border bg-card p-4 lg:p-[18px]"
                 :class="showCommercialCard ? 'md:col-span-2' : ''"
-                aria-labelledby="executive-stock-heading"
+                aria-labelledby="executive-harvest-heading"
             >
-                <header class="mb-3 flex items-start justify-between gap-2">
-                    <h2
-                        id="executive-stock-heading"
-                        class="text-sm font-semibold text-foreground"
-                    >
-                        Stok panen tersedia
-                    </h2>
-                    <Package
+                <header class="flex items-center gap-2">
+                    <Wheat
                         class="size-4 shrink-0 text-primary"
                         aria-hidden="true"
                     />
+                    <h2
+                        id="executive-harvest-heading"
+                        class="admin-section-title"
+                    >
+                        Panen aktual
+                    </h2>
                 </header>
-                <p class="flex flex-wrap items-baseline gap-x-2 text-primary">
+                <p
+                    class="mt-4 text-xs leading-5 break-words text-muted-foreground"
+                >
+                    {{ period }}
+                </p>
+                <p class="mt-0.5 mb-4 flex flex-wrap items-baseline gap-x-2">
                     <span class="admin-metric-value tabular-nums">{{
-                        number(totals.stock)
-                    }}</span
-                    ><span
-                        v-if="totals.stock !== null"
-                        class="text-sm font-medium"
+                        number(totals.harvested, 3)
+                    }}</span>
+                    <span class="text-sm font-medium text-muted-foreground"
                         >ton</span
                     >
                 </p>
-                <ul
-                    v-if="totals.stock !== null && commodities.length"
-                    class="mt-4 divide-y divide-border border-t border-border"
-                    aria-label="Stok panen per komoditas"
-                >
-                    <li
-                        v-for="commodity in commodities"
-                        :key="commodity.id"
-                        class="flex min-w-0 items-baseline justify-between gap-4 py-3"
+                <div class="mt-auto border-t border-border pt-3">
+                    <h3 class="flex items-center gap-2 text-sm font-semibold">
+                        <Package
+                            class="size-4 shrink-0 text-primary"
+                            aria-hidden="true"
+                        />
+                        Stok panen per komoditas
+                    </h3>
+                    <p
+                        v-if="harvestByCommodity.length"
+                        class="mt-1 text-xs leading-5 text-muted-foreground"
                     >
-                        <span
-                            class="min-w-0 text-sm break-words text-muted-foreground"
-                            >{{ commodity.name }}</span
-                        >
-                        <span
-                            class="shrink-0 text-base font-semibold tabular-nums"
-                            >{{ number(commodity.stock) }}
-                            <span
-                                class="text-xs font-normal text-muted-foreground"
-                                >ton</span
-                            ></span
-                        >
-                    </li>
-                </ul>
-                <p
-                    v-else
-                    role="status"
-                    class="mt-4 text-sm text-muted-foreground"
-                >
-                    Belum tersedia. Saldo stok setelah pengiriman dan
-                    penyesuaian belum tercatat.
-                </p>
-                <!-- <p class="mt-auto pt-3 text-xs leading-5 text-muted-foreground">
-                    Stok tersedia setelah pengiriman dan penyesuaian<span
-                        v-if="snapshotLabel"
+                        Total panen tercatat sebelum pengiriman.
+                    </p>
+                    <dl
+                        v-if="harvestByCommodity.length"
+                        class="mt-2 divide-y divide-border"
                     >
-                        · posisi {{ snapshotLabel }}</span
-                    >.
-                </p> -->
+                        <div
+                            v-for="crop in harvestByCommodity"
+                            :key="crop.id"
+                            class="flex min-w-0 items-baseline justify-between gap-3 py-1.5 text-sm"
+                        >
+                            <dt class="flex min-w-0 items-center gap-2">
+                                <span
+                                    class="size-2 shrink-0 rounded-full bg-muted-foreground"
+                                    :style="{
+                                        backgroundColor:
+                                            executiveCommodityColor(crop.name),
+                                    }"
+                                    aria-hidden="true"
+                                />
+                                <span class="min-w-0 break-words">{{
+                                    crop.name
+                                }}</span>
+                            </dt>
+                            <dd class="shrink-0 font-semibold tabular-nums">
+                                {{ number(crop.harvested, 3) }}
+                                <span
+                                    class="text-xs font-normal text-muted-foreground"
+                                    >ton</span
+                                >
+                            </dd>
+                        </div>
+                    </dl>
+                    <p
+                        v-else
+                        class="mt-1 text-xs leading-5 text-muted-foreground"
+                    >
+                        Belum ada panen per komoditas pada periode ini.
+                    </p>
+                </div>
             </article>
         </template>
     </div>
 </template>
+
+<style scoped>
+.executive-land-contours {
+    opacity: 0.26;
+    mask-image: radial-gradient(
+        ellipse at top right,
+        black 30%,
+        transparent 76%
+    );
+}
+</style>

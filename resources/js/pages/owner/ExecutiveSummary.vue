@@ -138,7 +138,7 @@ function focusFarm(id: string) {
                 :commodities="commodities"
                 :partner-count="partnerSummary.length"
                 :month="monthlyLabel"
-                :snapshot-label="snapshotLabel"
+                :period="periodLabel"
                 :show-commercial-card="showCommercialSections"
                 loading
             />
@@ -150,7 +150,7 @@ function focusFarm(id: string) {
                 :commodities="commodities"
                 :partner-count="partnerSummary.length"
                 :month="monthlyLabel"
-                :snapshot-label="snapshotLabel"
+                :period="periodLabel"
                 :show-commercial-card="showCommercialSections"
             />
             <div
@@ -219,7 +219,7 @@ function focusFarm(id: string) {
                 proyeksi memakai estimasi bobot dan jadwal panen yang tercatat.
                 Luas lahan dan tanam aktif menunjukkan posisi saat ini ({{
                     snapshotLabel
-                }}), bukan riwayat tahunan. Saldo stok belum tersedia.
+                }}), bukan riwayat tahunan.
             </footer>
         </template>
         <OwnerDashboardFarmPreview

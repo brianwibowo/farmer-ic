@@ -9,6 +9,7 @@ const props = withDefaults(
             name: string;
             value: number;
             detail?: string;
+            color?: string;
         }>;
         title?: string;
         description?: string;
@@ -19,6 +20,7 @@ const props = withDefaults(
         compact?: boolean;
         showFooter?: boolean;
         showLegend?: boolean;
+        legendLimit?: number;
         floorCenterValue?: boolean;
     }>(),
     {
@@ -52,7 +54,7 @@ const crops = computed(() =>
     props.items
         .map((crop, index) => ({
             ...crop,
-            color: colors[index % colors.length],
+            color: crop.color ?? colors[index % colors.length],
         }))
         .filter((crop) => Number.isFinite(crop.value) && crop.value > 0),
 );
@@ -105,12 +107,18 @@ const slices = computed(() => {
     });
 });
 const activeId = computed(() => previewId.value ?? selectedId.value);
+const legendItems = computed(() => slices.value.slice(0, props.legendLimit));
+const remainingLegendCount = computed(
+    () => slices.value.length - legendItems.value.length,
+);
 const activeSlice = computed(() =>
     slices.value.find((crop) => crop.id === activeId.value),
 );
 const centerValue = computed(() => {
     const value = activeSlice.value?.value ?? total.value;
-    return areaFormat.format(props.floorCenterValue ? Math.floor(value) : value);
+    return areaFormat.format(
+        props.floorCenterValue ? Math.floor(value) : value,
+    );
 });
 const selectedSlice = computed(() =>
     slices.value.find((crop) => crop.id === selectedId.value),
@@ -286,7 +294,8 @@ function clearSelection(): void {
                         <p
                             class="mt-1 text-[30px] leading-9 font-bold tracking-tight tabular-nums"
                         >
-                            {{ centerValue }}<span
+                            {{ centerValue
+                            }}<span
                                 class="block text-xs leading-4 font-medium tracking-normal text-muted-foreground"
                                 >{{ unit }}</span
                             >
@@ -305,7 +314,7 @@ function clearSelection(): void {
                     class="min-w-0 space-y-1.5"
                     :aria-label="`Pilih ${categoryLabel}`"
                 >
-                    <li v-for="crop in slices" :key="crop.id">
+                    <li v-for="crop in legendItems" :key="crop.id">
                         <button
                             type="button"
                             class="owner-commodity-choice flex min-h-16 w-full items-center gap-3 rounded-xl border p-2.5 text-left hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-safe:transition-colors"
@@ -378,6 +387,17 @@ function clearSelection(): void {
                                     </span> </span
                             ></slot>
                         </button>
+                    </li>
+                    <li
+                        v-if="
+                            remainingLegendCount > 0 &&
+                            $slots['legend-overflow']
+                        "
+                    >
+                        <slot
+                            name="legend-overflow"
+                            :count="remainingLegendCount"
+                        />
                     </li>
                 </ul>
             </div>

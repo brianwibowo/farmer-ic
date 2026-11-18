@@ -495,9 +495,9 @@ be multiplied by the number of cycles. Active planted hectares count actual
 planting with active status; preparation and closed/harvested planting are
 excluded. Show the current snapshot date beside active land. Historical land snapshots
 and stock balances are unavailable unless persisted; label current land positions
-explicitly and show unavailable stock as — with an explanation.
-Stock remains a position after dispatch and adjustments, not annual harvest
-minus dispatch with an assumed zero opening balance. Sales retain the explicitly
+explicitly. Until the warehouse module records dispatch and adjusts stock,
+show gross recorded harvest by commodity for the selected filters. Label it
+as recorded harvest before dispatch. Sales retain the explicitly
 labelled reference month. If a numbered cycle is absent after changing year,
 select Semua cycle. Default to Semua cycle on first load and after Reset;
 numbered cycles remain available for a specific cycle's production.
@@ -508,15 +508,14 @@ planting cycles (farm and subblock/date), never an invented ordinal or batch num
 Production follows the selected year/cycle; current active planted area is a
 separate position and is never summed across successive historical cycles.
 
-Use three summary cards in a four-column desktop grid with spans **1 + 1 + 2**.
-Stack total land area, planted area and utilization in Ringkasan lahan, including
-a compact utilization bar and unused hectares. Combine active agreements/partner
-count and monthly sales-contract tonnage in Kerja sama & penjualan. Give Stok
-panen tersedia two columns with a prominent total and commodity stock breakdown
-using the same globally filtered snapshot. Remove revenue and gross-profit KPI
-cards from this top row. Align card heights without forcing fixed widths. On
-tablets, place the two compact cards side by side and stock full width below;
-stack all three on phones. Loading skeletons follow the same three-card grid.
+Lead with Ringkasan lahan and Panen aktual. Give the land card a slightly
+wider column on desktop, a subtle primary tint, and faint contour lines confined
+to the upper-right corner. Make total area the largest number. Group utilization
+with a green active segment, a pale green remainder, and labeled active and
+unused hectares. The harvest card shows actual tonnage and its selected period,
+followed by the recorded harvest breakdown per commodity. Stack the cards on phones and
+match the loading skeleton to the grid. Keep the commercial card hidden until
+authoritative data is available.
 The Kerja sama & luas lahan section has a Lihat detail Inertia link to Monitoring
 Lahan; Panen aktual vs proyeksi per kebun links to Proyeksi. These page-level links preserve the existing scoped Owner routes. Map and
 farm detail links use persisted farm IDs.
@@ -560,13 +559,16 @@ Executive panels use its compact embedded mode and contextual legend slots.
 Place two compact land donuts side by side: explicit land categories
 (PKS — Kerja sama, BHI — Milik sendiri, Plasma — Koperasi) and partners.
 Keep partner selection connected to global filters; category selection highlights
-its donut locally. Stack the two diagrams on smaller viewports. Remove the
+its donut locally. The partner donut includes all groups in its total and slices.
+Show at most three partner detail cards, ordered by area, followed by a fading
+overview card with the remaining count and Lihat lainnya link to Monitoring Lahan
+when needed. Stack the two diagrams on smaller viewports. Remove the
 separate Pemanfaatan lahan card and give sales the full content width. Combine
 commodity composition with three concise commodity summaries. Show two separate
 cards side by side: planted hectares and actual harvest tonnes. Each card has
 its own donut and keyboard-accessible commodity summary showing only planted
-area, actual harvest, and projected harvest. Keep matching commodity colors,
-omit revenue from both cards, and do not use a measure dropdown. Stack the cards
+area, actual harvest, and projected harvest. Use golden yellow for Jagung, green for Rumput, and warm brown for Sorgum
+in both donuts and their legends, even when the filters change. Omit revenue and the measure dropdown from both cards. Stack the cards
 on smaller viewports.
 Avoid adjacent tall chart/table panels and stretched blank surfaces.
 

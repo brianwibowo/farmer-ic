@@ -74,6 +74,16 @@ export const executiveMoney = (value: number, compact = false) =>
         ...(compact ? { notation: 'compact' as const } : {}),
     }).format(value);
 
+const commodityColors = new Map([
+    ['jagung', 'var(--commodity-corn)'],
+    ['rumput', 'var(--commodity-grass)'],
+    ['sorgum', 'var(--executive-commodity-sorghum)'],
+]);
+
+export function executiveCommodityColor(name: string): string | undefined {
+    return commodityColors.get(name.trim().toLocaleLowerCase('id-ID'));
+}
+
 export function executiveLandCategories(rows: ExecutiveRow[]) {
     return [
         { id: 'owned', name: 'Milik sendiri' },
