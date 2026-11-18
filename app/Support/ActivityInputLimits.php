@@ -25,6 +25,8 @@ final class ActivityInputLimits
 
     public const SOP_TOLERANCE = 365;
 
+    public const SOP_HOK = 32767;
+
     /** @return array<string, int|float> */
     public static function common(): array
     {
@@ -54,6 +56,6 @@ final class ActivityInputLimits
     /** @return array<string, int> */
     public static function sop(): array
     {
-        return ['offsetDays' => self::SOP_OFFSET, 'toleranceDays' => self::SOP_TOLERANCE];
+        return ['offsetDays' => self::SOP_OFFSET, 'toleranceDays' => self::SOP_TOLERANCE, 'hok' => self::SOP_HOK];
     }
 }

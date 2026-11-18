@@ -540,6 +540,7 @@ class OwnerReadService
                     'activity_category',
                     'offset_days',
                     'tolerance_days',
+                    'hok',
                     'is_required',
                 ]))->all(),
             ])->all(),
@@ -617,7 +618,7 @@ class OwnerReadService
                 'completed_at' => $this->timestamp($stage->getAttribute('completed_at')),
             ])->all(),
             'tasks' => $cycle->tasks->map(fn ($task): array => [
-                ...$task->only(['id', 'name', 'status', 'instructions', 'offset_days', 'tolerance_days', 'is_required', 'activity_category']),
+                ...$task->only(['id', 'name', 'status', 'instructions', 'offset_days', 'tolerance_days', 'hok', 'is_required', 'activity_category']),
                 'scheduled_date' => $task->scheduled_date?->toDateString(),
                 'effective_scheduled_date' => $task->effectiveScheduledDate()?->toDateString(),
                 'due_date' => $task->due_date?->toDateString(),

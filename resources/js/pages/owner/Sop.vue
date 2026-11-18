@@ -10,8 +10,10 @@ import {
     type OwnerSopTask,
 } from '@/types/owner-secondary';
 import {
+    formatHok,
     hstLabel,
     sopActivityCategoryLabels,
+    sumTaskHok,
 } from '@/types/sop';
 
 defineProps<{ template: OwnerSopDetail }>();
@@ -82,7 +84,14 @@ function category(task: OwnerSopTask): string {
                             </h3>
                             <p class="mt-1 text-xs text-muted-foreground">
                                 {{ ownerReadStatus(version.status) }} ·
-                                {{ version.tasks.length }} langkah
+                                {{ version.tasks.length }} langkah<template
+                                    v-if="sumTaskHok(version.tasks) > 0"
+                                >
+                                    ·
+                                    {{
+                                        formatHok(sumTaskHok(version.tasks))
+                                    }}</template
+                                >
                             </p>
                         </div>
                         <ChevronDown
@@ -131,10 +140,10 @@ function category(task: OwnerSopTask): string {
                                     {{ index + 1 }}. {{ task.name }}
                                 </h4>
                                 <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ category(task) }} ·
-                                    {{
-                                        task.is_required ? 'Wajib' : 'Opsional'
-                                    }}
+                                    {{ category(task)
+                                    }}<template v-if="task.hok != null">
+                                        · {{ formatHok(task.hok) }}</template
+                                    >
                                 </p>
                                 <p
                                     v-if="task.instructions"

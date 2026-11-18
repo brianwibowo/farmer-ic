@@ -224,7 +224,7 @@ Table planting_cycle_tasks {
   tolerance_days int [not null, default: 0]
   scheduled_date date [note: 'Null when the subblok has no planted_at or planned_planting_at']
   due_date date [note: 'Jadwal berlaku + toleransi; constraint mempertahankan kompatibilitas data lama']
-  is_required boolean [not null, default: true]
+  is_required boolean [not null, default: true, note: 'Selalu wajib untuk seluruh langkah SOP']
   status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | completed | skipped; skipped means deliberately not done']
   completed_at timestamptz
   skip_reason text
@@ -236,6 +236,7 @@ Table planting_cycle_tasks {
   rescheduled_at timestamptz
   completed_by uuid [ref: > users.id]
   completion_note text
+  hok int [note: 'Estimasi Hari Orang Kerja (>= 1), opsional']
   indexes {
     (planting_cycle_id, sop_template_task_id) [unique]
     (id, planting_cycle_id) [unique]
@@ -290,11 +291,12 @@ Table sop_template_tasks {
   instructions text
   offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); SOP dimulai pada H+0']
   tolerance_days int [not null, default: 0, note: 'due_date = jadwal berlaku + tolerance_days']
-  is_required boolean [not null, default: true]
+  is_required boolean [not null, default: true, note: 'Selalu wajib untuk seluruh langkah SOP']
   created_at timestamptz
   updated_at timestamptz
   activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not an SOP step']
   activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP tidak lagi menggunakan subkategori']
+  hok int [note: 'Estimasi Hari Orang Kerja (>= 1), opsional']
   indexes {
     (sop_template_version_id, offset_days)
     (sop_template_version_id, activity_category)

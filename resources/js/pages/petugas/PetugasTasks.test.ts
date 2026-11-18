@@ -177,7 +177,8 @@ describe('task detail presentation', () => {
             'Kebun Utara',
             'Blok Utara',
             'Bisi 18',
-            '21 HST',
+            'Estimasi HOK',
+            'Tidak ditetapkan',
             'HST 21',
             'Jendela pelaporan',
             '17 November 2026',
@@ -247,15 +248,18 @@ describe('task detail presentation', () => {
         );
         for (const text of [
             'Dilewati',
-            'Opsional',
+            'Wajib',
             'Subblok 2',
             'Belum dijadwalkan',
-            'Belum ditanam',
+            'Estimasi HOK',
+            'Tidak ditetapkan',
             'Tidak ada instruksi tambahan.',
             'Pencatatan belum tersedia.',
             'Tanggal kerja tidak tercatat',
         ])
             expect(html).toContain(text);
+        expect(html).not.toContain('Opsional');
+        expect(html).not.toContain('Umur tanaman');
         expect(html).not.toContain(
             'href="/petugas/tasks/task-a/aktivitas/buat',
         );
@@ -297,5 +301,28 @@ describe('task detail presentation', () => {
         expect(html).toContain('Tugas selesai');
         expect(html).toContain('Pekerjaan tuntas.');
         expect(html).not.toContain('Catatan penyelesaian (opsional)');
+    });
+
+    it('displays Estimasi HOK in place of Umur tanaman with fallback when null', async () => {
+        const withHok = await renderToString(
+            h(TaskShow, {
+                ...detailProps,
+                task: { ...task, hok: 5 },
+            }),
+        );
+        expect(withHok).toContain('Estimasi HOK');
+        expect(withHok).toContain('5 HOK');
+        expect(withHok).not.toContain('Umur tanaman');
+        expect(withHok).not.toContain('Tidak ditetapkan');
+
+        const withoutHok = await renderToString(
+            h(TaskShow, {
+                ...detailProps,
+                task: { ...task, hok: null },
+            }),
+        );
+        expect(withoutHok).toContain('Estimasi HOK');
+        expect(withoutHok).toContain('Tidak ditetapkan');
+        expect(withoutHok).not.toContain('Umur tanaman');
     });
 });

@@ -108,9 +108,9 @@ class PlantingCycleTaskService
                     'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $stages->get($source->activity_category)->id,
                     'sop_template_task_id' => $source->id, 'activity_category' => $source->activity_category,
                     'activity_subcategory' => null, 'name' => $source->name, 'instructions' => $source->instructions,
-                    'offset_days' => $source->offset_days, 'tolerance_days' => $source->tolerance_days,
+                    'offset_days' => $source->offset_days, 'tolerance_days' => $source->tolerance_days, 'hok' => $source->hok,
                     'scheduled_date' => $date->toDateString(), 'due_date' => $date->addDays($source->tolerance_days)->toDateString(),
-                    'is_required' => $source->is_required, 'status' => 'pending',
+                    'is_required' => true, 'status' => 'pending',
                 ]);
                 $created++;
             }

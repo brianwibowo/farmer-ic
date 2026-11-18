@@ -132,13 +132,20 @@ class ActivityInputLimitsTest extends TestCase
         $this->actingAs($this->admin)->get('/admin/sops/'.$sop->id)
             ->assertInertia(fn (Assert $page) => $page->component('sops/Show')
                 ->where('numericLimits.offsetDays', ActivityInputLimits::SOP_OFFSET)
-                ->where('numericLimits.toleranceDays', ActivityInputLimits::SOP_TOLERANCE));
+                ->where('numericLimits.toleranceDays', ActivityInputLimits::SOP_TOLERANCE)
+                ->where('numericLimits.hok', ActivityInputLimits::SOP_HOK));
         $url = '/admin/sops/'.$sop->id.'/versions/'.$version->id.'/tasks';
-        $payload = ['activity_category' => 'maintenance', 'name' => 'Perawatan rutin',
-            'offset_days' => ActivityInputLimits::SOP_OFFSET + 1, 'tolerance_days' => ActivityInputLimits::SOP_TOLERANCE + 1];
-        $this->post($url, $payload)->assertSessionHasErrors(['offset_days', 'tolerance_days']);
+        $payload = [
+            'activity_category' => 'maintenance',
+            'name' => 'Perawatan rutin',
+            'offset_days' => ActivityInputLimits::SOP_OFFSET + 1,
+            'tolerance_days' => ActivityInputLimits::SOP_TOLERANCE + 1,
+            'hok' => ActivityInputLimits::SOP_HOK + 1,
+        ];
+        $this->post($url, $payload)->assertSessionHasErrors(['offset_days', 'tolerance_days', 'hok']);
         $payload['offset_days'] = ActivityInputLimits::SOP_OFFSET;
         $payload['tolerance_days'] = ActivityInputLimits::SOP_TOLERANCE;
+        $payload['hok'] = ActivityInputLimits::SOP_HOK;
         $this->post($url, $payload)->assertSessionHasNoErrors();
     }
 

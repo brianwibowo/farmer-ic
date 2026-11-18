@@ -35,7 +35,7 @@ import {
     type AdminTaskSummary,
     type AdminTaskView,
 } from '@/types/tasks';
-import { sopActivityCategoryLabels } from '@/types/sop';
+import { formatHok, sopActivityCategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
@@ -104,9 +104,7 @@ const appliedFilters = computed(() => {
         );
         items.push({
             key: 'block_id',
-            label: block
-                ? `Blok: ${block.name}`
-                : 'Blok: Tidak tersedia',
+            label: block ? `Blok: ${block.name}` : 'Blok: Tidak tersedia',
         });
     }
 
@@ -431,7 +429,11 @@ function reset(): void {
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ adminTaskCategoryLabel(task) }}
+                                        {{ adminTaskCategoryLabel(task)
+                                        }}<template v-if="task.hok != null">
+                                            ·
+                                            {{ formatHok(task.hok) }}</template
+                                        >
                                     </p>
                                 </td>
                                 <td>
@@ -560,8 +562,11 @@ function reset(): void {
                             />
                         </Link>
                         <p class="text-xs text-muted-foreground">
-                            {{ adminTaskCategoryLabel(task) }} ·
-                            {{ task.farm?.name ?? '-' }} ·
+                            {{ adminTaskCategoryLabel(task)
+                            }}<template v-if="task.hok != null">
+                                · {{ formatHok(task.hok) }}</template
+                            >
+                            · {{ task.farm?.name ?? '-' }} ·
                             {{ task.block?.name ?? '-' }}
                             <template v-if="task.subblok?.label">
                                 · {{ task.subblok.label }}</template

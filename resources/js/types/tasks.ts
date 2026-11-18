@@ -27,6 +27,7 @@ export type AdminTask = {
     overdue_days: number | null;
     activity_category: AdminTaskCategory;
     offset_days: number;
+    hok?: number | null;
     scheduled_date: string | null;
     due_date: string | null;
     effective_scheduled_date: string | null;

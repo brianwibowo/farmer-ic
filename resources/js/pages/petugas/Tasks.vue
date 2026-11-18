@@ -224,9 +224,7 @@ function statusClass(status: PetugasTask['status']): string {
                             >
                                 {{ categoryLabel(task) }}
                             </span>
-                            <span
-                                v-if="task.is_required"
-                                class="text-[11px] font-medium text-warning"
+                            <span class="text-[11px] font-medium text-warning"
                                 >Wajib</span
                             >
                         </div>

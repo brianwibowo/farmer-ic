@@ -16,6 +16,7 @@ export type PetugasTask = {
     urgency: PetugasTaskUrgency;
     activity_category: PetugasTaskCategory;
     offset_days: number;
+    hok?: number | null;
     scheduled_date: string | null;
     due_date: string | null;
     reporting_window: { start: string; end: string } | null;
