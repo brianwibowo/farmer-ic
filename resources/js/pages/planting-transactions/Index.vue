@@ -365,7 +365,6 @@ function rowSubblock(row: PlantingTransactionRow): string {
                                         <p
                                             class="mt-1 text-xs text-muted-foreground"
                                         >
-                                            {{ row.block?.code ?? '-' }} ·
                                             {{
                                                 row.block?.name ??
                                                 'Blok belum diisi'
@@ -456,7 +455,7 @@ function rowSubblock(row: PlantingTransactionRow): string {
                         <div>
                             <p class="font-semibold">
                                 {{ row.farm?.name ?? '-' }} ·
-                                {{ row.block?.code ?? '-' }}
+                                {{ row.block?.name ?? '-' }}
                             </p>
                             <p class="mt-1 text-xs text-muted-foreground">
                                 {{ rowSubblock(row) }}

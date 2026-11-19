@@ -45,7 +45,7 @@ const search = ref('');
 const currentPage = ref(1);
 const filtered = computed(() =>
     props.blocks.filter((block) =>
-        `${block.code} ${block.name}`
+        block.name
             .toLocaleLowerCase('id')
             .includes(search.value.trim().toLocaleLowerCase('id')),
     ),
@@ -108,7 +108,7 @@ function remove(): void {
                     v-model="search"
                     class="admin-field block-field pl-10"
                     type="search"
-                    placeholder="Cari nama atau kode blok"
+                    placeholder="Cari nama blok"
             /></label>
         </div>
         <div v-if="blocks.length" class="overflow-x-auto">
@@ -153,14 +153,10 @@ function remove(): void {
                             >
                                 {{ block.name }}
                             </h3>
-                            <p class="text-xs text-muted-foreground">
-                                {{ block.code
-                                }}<span class="sm:hidden">
-                                    ·
-                                    {{
-                                        block.is_active ? 'Aktif' : 'Nonaktif'
-                                    }}</span
-                                >
+                            <p class="text-xs text-muted-foreground sm:hidden">
+                                {{
+                                    block.is_active ? 'Aktif' : 'Nonaktif'
+                                }}
                             </p>
                             <p class="mt-1 text-xs text-muted-foreground">
                                 {{

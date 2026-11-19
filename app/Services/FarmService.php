@@ -108,6 +108,10 @@ class FarmService
         if (\App\Models\FarmLegality::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()) {
             $blockers[] = 'legalitas lahan';
         }
+        if (! PlantingCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()
+            && \App\Models\FarmCycle::visibleTo($user, $team)->where('farm_id', $farm->id)->exists()) {
+            $blockers[] = 'siklus lahan';
+        }
         if (User::visibleTo($user, $team)->where('assigned_farm_id', $farm->id)->exists()) {
             $blockers[] = 'penugasan Petugas';
         }
@@ -130,6 +134,7 @@ class FarmService
 
         return [
             ...$visible->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'owner_id', 'address', 'city', 'district', 'province', 'district_code', 'total_area_ha', 'latitude', 'longitude', 'image_url', 'target_volume_ton']),
+            'image_url' => \App\Support\FarmImageFile::url($visible),
             'region' => $visible->getAttribute('district_code') ? app(AdministrativeRegionService::class)->district($visible->getAttribute('district_code'), $user, $team) : null,
             'owner_restricted' => $visible->owner_id !== null && $owner === null,
             'capacity' => $this->capacity($visible, $user, $team),
@@ -176,23 +181,30 @@ class FarmService
     {
         $actor = is_string($user) ? User::query()->findOrFail($user) : $user;
 
-        return DB::transaction(function () use ($data, $actor, $team): Farm {
-            $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'pic_user_id', 'land_tenure_party']));
-            $farm->forceFill(\Illuminate\Support\Arr::only($data, ['target_volume_ton']));
-            if (array_key_exists('district_code', $data)) {
-                $farm->forceFill(['district_code' => $data['district_code']]);
-            }
-            if ($team instanceof Team) {
-                $farm->team()->associate($team);
-            }
-            $this->setLandTenureParty($farm, $data);
-            $farm->created_by = $actor->getKey();
-            $farm->save();
+        $newImage = null;
+        try {
+            return DB::transaction(function () use ($data, $actor, $team, &$newImage): Farm {
+                $farm = new Farm(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'pic_user_id', 'land_tenure_party', 'image', 'remove_image', 'image_url']));
+                $farm->forceFill(\Illuminate\Support\Arr::only($data, ['target_volume_ton']));
+                if (array_key_exists('district_code', $data)) {
+                    $farm->forceFill(['district_code' => $data['district_code']]);
+                }
+                if ($team instanceof Team) {
+                    $farm->team()->associate($team);
+                }
+                $this->setLandTenureParty($farm, $data);
+                $farm->created_by = $actor->getKey();
+                $farm->save();
 
-            $this->savePic($farm, $data);
+                $this->savePic($farm, $data);
+                $this->saveImage($farm, $data, $newImage);
 
-            return $farm->refresh();
-        });
+                return $farm->refresh();
+            });
+        } catch (\Throwable $exception) {
+            app(FarmImageService::class)->delete($newImage);
+            throw $exception;
+        }
     }
 
     public function find(string $id): Farm
@@ -203,41 +215,64 @@ class FarmService
     /** @param array<string, mixed> $data Validated farm attributes. */
     public function update(Farm $farm, array $data): Farm
     {
-        return DB::transaction(function () use ($farm, $data): Farm {
-            $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
-            if (isset($data['total_area_ha'])) {
-                $blockCapacity = DB::table('farm_blocks')->where('farm_id', $locked->id)->where('is_active', true)
-                    ->selectRaw('COALESCE(SUM(area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
-                if ($blockCapacity) {
-                    throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh kurang dari total luas blok aktif.']);
+        $newImage = null;
+        try {
+            return DB::transaction(function () use ($farm, $data, &$newImage): Farm {
+                $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
+                if (isset($data['total_area_ha'])) {
+                    $blockCapacity = DB::table('farm_blocks')->where('farm_id', $locked->id)->where('is_active', true)
+                        ->selectRaw('COALESCE(SUM(area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
+                    if ($blockCapacity) {
+                        throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh kurang dari total luas blok aktif.']);
+                    }
+                    $reservationCapacity = DB::table('planting_cycles')->where('farm_id', $locked->id)
+                        ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('block_id')->where('status', 'active'))
+                            ->orWhere(fn ($batch) => $batch->whereNotNull('block_id')->whereIn('status', ['planned', 'active'])))
+                        ->selectRaw('COALESCE(SUM(planted_area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
+                    if ($reservationCapacity) {
+                        throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh kurang dari total luas tanam berjalan.']);
+                    }
+                    $exceedsArea = DB::table('planting_cycles')->where('farm_id', $locked->id)
+                        ->where('status', 'active')
+                        ->selectRaw('COALESCE(SUM(planted_area_ha), 0) > CAST(? AS numeric) AS exceeds_area', [$data['total_area_ha']])
+                        ->value('exceeds_area');
+                    if ($exceedsArea) {
+                        throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh lebih kecil dari total luas tanam aktif.']);
+                    }
                 }
-                $reservationCapacity = DB::table('planting_cycles')->where('farm_id', $locked->id)
-                    ->where(fn ($query) => $query->where(fn ($legacy) => $legacy->whereNull('block_id')->where('status', 'active'))
-                        ->orWhere(fn ($batch) => $batch->whereNotNull('block_id')->whereIn('status', ['planned', 'active'])))
-                    ->selectRaw('COALESCE(SUM(planted_area_ha), 0) > CAST(? AS numeric) AS exceeds', [$data['total_area_ha']])->value('exceeds');
-                if ($reservationCapacity) {
-                    throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh kurang dari total luas tanam berjalan.']);
+                $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'land_tenure_party', 'image', 'remove_image', 'image_url']));
+                $locked->forceFill(\Illuminate\Support\Arr::only($data, ['target_volume_ton']));
+                if (array_key_exists('district_code', $data)) {
+                    $locked->forceFill(['district_code' => $data['district_code']]);
                 }
-                $exceedsArea = DB::table('planting_cycles')->where('farm_id', $locked->id)
-                    ->where('status', 'active')
-                    ->selectRaw('COALESCE(SUM(planted_area_ha), 0) > CAST(? AS numeric) AS exceeds_area', [$data['total_area_ha']])
-                    ->value('exceeds_area');
-                if ($exceedsArea) {
-                    throw ValidationException::withMessages(['total_area_ha' => 'Luas lahan tidak boleh lebih kecil dari total luas tanam aktif.']);
-                }
-            }
-            $locked->fill(\Illuminate\Support\Arr::except($data, ['commodity_id', 'target_volume_ton', 'land_tenure_party']));
-            $locked->forceFill(\Illuminate\Support\Arr::only($data, ['target_volume_ton']));
-            if (array_key_exists('district_code', $data)) {
-                $locked->forceFill(['district_code' => $data['district_code']]);
-            }
-            $this->setLandTenureParty($locked, $data);
-            $locked->save();
+                $this->setLandTenureParty($locked, $data);
+                $locked->save();
 
-            $this->savePic($locked, $data);
+                $this->savePic($locked, $data);
+                $this->saveImage($locked, $data, $newImage);
 
-            return $locked->refresh();
-        });
+                return $locked->refresh();
+            });
+        } catch (\Throwable $exception) {
+            app(FarmImageService::class)->delete($newImage);
+            throw $exception;
+        }
+    }
+
+    /** @param array<string, mixed> $data */
+    private function saveImage(Farm $farm, array $data, ?string &$newImage): void
+    {
+        $image = $data['image'] ?? null;
+        if (! $image instanceof \Illuminate\Http\UploadedFile && ! ($data['remove_image'] ?? false)) {
+            return;
+        }
+        $previous = \App\Support\FarmImageFile::valid($farm) ? $farm->image_url : null;
+        $newImage = $image instanceof \Illuminate\Http\UploadedFile
+            ? app(FarmImageService::class)->store($farm, $image) : null;
+        $farm->forceFill(['image_url' => $newImage])->save();
+        if ($previous !== null) {
+            DB::afterCommit(fn () => app(FarmImageService::class)->delete($previous));
+        }
     }
 
     /** @param array<string, mixed> $data */
@@ -298,6 +333,10 @@ class FarmService
                         $blockers[] = $label;
                     }
                 }
+                if (! DB::table('planting_cycles')->where('farm_id', $locked->id)->exists()
+                    && DB::table('farm_cycles')->where('farm_id', $locked->id)->exists()) {
+                    $blockers[] = 'siklus lahan';
+                }
                 if ($blockers !== []) {
                     $message = 'Lahan tidak dapat dihapus karena masih memiliki: '.implode(', ', $blockers).'.';
                     if ($hasAssignments) {
@@ -308,7 +347,9 @@ class FarmService
                     }
                     throw new ConflictHttpException($message);
                 }
+                $imagePath = \App\Support\FarmImageFile::valid($locked) ? $locked->image_url : null;
                 $locked->delete();
+                DB::afterCommit(fn () => app(FarmImageService::class)->delete($imagePath));
             });
         } catch (QueryException $exception) {
             if ($exception->getCode() !== '23503') {

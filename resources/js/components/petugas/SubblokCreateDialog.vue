@@ -16,10 +16,11 @@ import {
 } from '@/components/ui/dialog';
 import { focusFormErrors } from '@/composables/useFormRecovery';
 import { gardenArea } from '@/types/petugas-garden';
+import FarmCycleField from '@/components/blocks/FarmCycleField.vue';
+import { useFarmCycles } from '@/composables/useFarmCycles';
 
 export type SubblokBlockOption = {
     id: string;
-    code: string;
     name: string;
     is_active: boolean;
     available_ha: string;
@@ -32,6 +33,7 @@ const props = defineProps<{
     selectedBlockId?: string | null;
     lockBlock?: boolean;
     returnTo: 'kebun' | 'penanaman';
+    workDate?: string | null;
 }>();
 
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
@@ -41,10 +43,13 @@ const eligibleBlocks = computed(() =>
 );
 
 const chosenBlockId = ref('');
+const { defaults: cycleDefaults } = useFarmCycles();
 const clientBlockError = ref('');
 
 const form = useForm({
+    ...cycleDefaults(),
     return_to: props.returnTo,
+    work_date: props.workDate ?? null,
     subblock_label: '',
     planned_planting_at: '',
 });
@@ -52,9 +57,7 @@ const form = useForm({
 const selectedBlock = computed(
     () =>
         props.blocks.find((block) => block.id === chosenBlockId.value) ??
-        eligibleBlocks.value.find(
-            (block) => Number(block.available_ha) > 0,
-        ) ??
+        eligibleBlocks.value.find((block) => Number(block.available_ha) > 0) ??
         eligibleBlocks.value[0] ??
         null,
 );
@@ -85,8 +88,10 @@ watch(
         chosenBlockId.value = preferred;
         clientBlockError.value = '';
         form.return_to = props.returnTo;
+        form.work_date = props.workDate ?? null;
         form.subblock_label = '';
         form.planned_planting_at = '';
+        Object.assign(form, cycleDefaults());
         form.clearErrors();
         form.defaults();
     },
@@ -117,7 +122,10 @@ function submit(): void {
         void focusFormErrors();
         return;
     }
-    if (!canSubmitBlock.value) {
+    if (
+        !canSubmitBlock.value ||
+        (!form.farm_cycle_id && !form.create_farm_cycle)
+    ) {
         clientBlockError.value =
             'Kapasitas blok terpilih penuh atau blok belum aktif.';
         void focusFormErrors();
@@ -146,7 +154,7 @@ const fieldClass =
             @interact-outside.prevent
         >
             <DialogHeader
-                class="flex-row items-start gap-3 border-b border-border bg-muted/30 px-5 py-4 pr-12 text-left"
+                class="flex-row items-center gap-3 px-5 py-4 pr-12 text-left"
             >
                 <div
                     class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-secondary dark:text-primary"
@@ -157,9 +165,8 @@ const fieldClass =
                     <DialogTitle class="text-lg leading-6 font-semibold">
                         Tambah subblok
                     </DialogTitle>
-                    <DialogDescription class="text-xs leading-5">
-                        Buat subblok baru pada blok aktif. Luas subblok akan
-                        mengikuti laporan penanaman aktual.
+                    <DialogDescription class="sr-only">
+                        Isi siklus lahan, label subblok, dan rencana tanggal tanam.
                     </DialogDescription>
                 </div>
             </DialogHeader>
@@ -171,8 +178,10 @@ const fieldClass =
                         class="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3"
                     >
                         <div class="min-w-0">
-                            <p class="text-xs font-medium text-muted-foreground">
-                                {{ selectedBlock.code }} · {{ selectedBlock.name }}
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                {{ selectedBlock.name }}
                             </p>
                             <p class="mt-0.5 text-xs text-muted-foreground">
                                 Sisa lahan untuk penanaman
@@ -190,7 +199,18 @@ const fieldClass =
                     <FormErrorSummary
                         :errors="errors"
                         :fields="{
-                            block_id: { id: 'petugas-subblok-block', label: 'Blok' },
+                            farm_cycle_id: {
+                                id: 'petugas-farm-cycle',
+                                label: 'Siklus lahan',
+                            },
+                            create_farm_cycle: {
+                                id: 'petugas-farm-cycle',
+                                label: 'Siklus lahan',
+                            },
+                            block_id: {
+                                id: 'petugas-subblok-block',
+                                label: 'Blok',
+                            },
                             subblock_label: {
                                 id: 'petugas-subblok-label',
                                 label: 'Label subblok',
@@ -203,6 +223,16 @@ const fieldClass =
                     />
 
                     <fieldset :disabled="form.processing" class="space-y-4">
+                        <FarmCycleField
+                            id="petugas-farm-cycle"
+                            v-model="form.farm_cycle_id"
+                            v-model:create="form.create_farm_cycle"
+                            :disabled="form.processing"
+                            :error="
+                                form.errors.farm_cycle_id ||
+                                form.errors.create_farm_cycle
+                            "
+                        />
                         <div v-if="!lockBlock" class="space-y-2">
                             <label
                                 for="petugas-subblok-block"
@@ -223,7 +253,7 @@ const fieldClass =
                                     :value="block.id"
                                     :disabled="Number(block.available_ha) <= 0"
                                 >
-                                    {{ block.code }} · {{ block.name }} ({{
+                                    {{ block.name }} ({{
                                         Number(block.available_ha) > 0
                                             ? `sisa ${gardenArea(block.available_ha)} ha`
                                             : 'penuh'
@@ -299,7 +329,7 @@ const fieldClass =
                 </div>
 
                 <DialogFooter
-                    class="flex-row flex-wrap items-center justify-end gap-2 border-t border-border bg-muted/20 px-5 py-3"
+                    class="flex-row flex-wrap items-center justify-end gap-2 px-5 py-3"
                 >
                     <Button
                         type="button"
@@ -313,7 +343,11 @@ const fieldClass =
                     <Button
                         type="submit"
                         class="min-h-11 rounded-xl"
-                        :disabled="form.processing || !canSubmitBlock"
+                        :disabled="
+                            form.processing ||
+                            !canSubmitBlock ||
+                            (!form.farm_cycle_id && !form.create_farm_cycle)
+                        "
                     >
                         <LoaderCircle
                             v-if="form.processing"

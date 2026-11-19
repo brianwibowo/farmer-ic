@@ -26,7 +26,7 @@ const props = defineProps<{
     open: boolean;
     version: SopVersion;
     task: SopTask | null;
-    numericLimits: { offsetDays: number; toleranceDays: number };
+    numericLimits: { offsetDays: number; toleranceDays: number; hok?: number };
 }>();
 const emit = defineEmits<{ 'update:open': [boolean] }>();
 
@@ -41,7 +41,7 @@ const form = useForm({
     instructions: '',
     offset_days: 0,
     tolerance_days: 2,
-    is_required: true,
+    hok: null as number | string | null,
 });
 
 const offsetError = computed(() =>
@@ -60,6 +60,19 @@ const toleranceError = computed(() =>
         'hari',
     ),
 );
+const hokLimit = computed(() => props.numericLimits.hok ?? 32767);
+const hokError = computed(() => {
+    if (form.hok === '' || form.hok === null || form.hok === undefined) {
+        return undefined;
+    }
+    const numeric = Number(form.hok);
+    if (!Number.isInteger(numeric) || numeric < 1) {
+        return 'Estimasi HOK harus bilangan bulat minimal 1.';
+    }
+
+    return maximumError(numeric, hokLimit.value, 'Estimasi HOK', 'HOK');
+});
+
 watch(
     () => form.offset_days,
     () => form.clearErrors('offset_days'),
@@ -67,6 +80,10 @@ watch(
 watch(
     () => form.tolerance_days,
     () => form.clearErrors('tolerance_days'),
+);
+watch(
+    () => form.hok,
+    () => form.clearErrors('hok'),
 );
 
 function reset(): void {
@@ -76,7 +93,7 @@ function reset(): void {
     form.instructions = props.task?.instructions ?? '';
     form.offset_days = props.task?.offset_days ?? 0;
     form.tolerance_days = props.task?.tolerance_days ?? 2;
-    form.is_required = props.task?.is_required ?? true;
+    form.hok = props.task?.hok ?? null;
 }
 
 watch(
@@ -91,18 +108,31 @@ function close(): void {
 }
 
 function submit(): void {
-    if (form.processing || offsetError.value || toleranceError.value) return;
+    if (
+        form.processing ||
+        offsetError.value ||
+        toleranceError.value ||
+        hokError.value
+    )
+        return;
     const options = {
         preserveScroll: true,
         onSuccess: () => close(),
     };
+    const submitted = form.transform((data) => ({
+        ...data,
+        hok:
+            data.hok === '' || data.hok === null || data.hok === undefined
+                ? null
+                : Number(data.hok),
+    }));
     if (props.task) {
-        form.put(
+        submitted.put(
             `/admin/sops/${props.version.sop_template_id}/versions/${props.version.id}/tasks/${props.task.id}`,
             options,
         );
     } else {
-        form.post(
+        submitted.post(
             `/admin/sops/${props.version.sop_template_id}/versions/${props.version.id}/tasks`,
             options,
         );
@@ -155,7 +185,6 @@ function submit(): void {
                             label="Kategori aktivitas"
                             required
                             :error="form.errors.activity_category"
-                            class="sm:col-span-2"
                             v-slot="field"
                         >
                             <AppSelect
@@ -174,6 +203,26 @@ function submit(): void {
                                     {{ label }}
                                 </AppSelectOption>
                             </AppSelect>
+                        </FarmField>
+                        <FarmField
+                            id="task-hok"
+                            label="Estimasi HOK (Hari Orang Kerja)"
+                            :error="hokError ?? form.errors.hok"
+                            :hint="`Opsional, bilangan bulat minimal 1 (maksimal ${formatActivityNumber(hokLimit)} HOK).`"
+                            v-slot="field"
+                        >
+                            <input
+                                :id="field.id"
+                                v-model.number="form.hok"
+                                class="admin-field"
+                                type="number"
+                                min="1"
+                                :max="hokLimit"
+                                step="1"
+                                placeholder="Contoh: 2"
+                                :aria-invalid="field.invalid"
+                                :aria-describedby="field.description"
+                            />
                         </FarmField>
                         <FarmField
                             id="task-offset"
@@ -237,19 +286,6 @@ function submit(): void {
                                 :aria-describedby="field.description"
                             />
                         </FarmField>
-                        <label
-                            for="task-is-required"
-                            class="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-3 text-sm transition-colors hover:bg-muted/30 sm:col-span-2"
-                        >
-                            <input
-                                id="task-is-required"
-                                v-model="form.is_required"
-                                type="checkbox"
-                                class="size-4 accent-primary"
-                            />
-                            Wajib diselesaikan sebelum tahap batch terkait
-                            dianggap selesai
-                        </label>
                     </div>
 
                     <p
@@ -274,7 +310,10 @@ function submit(): void {
                         type="submit"
                         class="rounded-xl"
                         :disabled="
-                            form.processing || !!offsetError || !!toleranceError
+                            form.processing ||
+                            !!offsetError ||
+                            !!toleranceError ||
+                            !!hokError
                         "
                     >
                         <LoaderCircle

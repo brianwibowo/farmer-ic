@@ -189,7 +189,7 @@ watch(blockId, (next, prev) => {
                                     v-for="block in blockOptions"
                                     :key="block.id"
                                     :value="block.id"
-                                    >{{ block.code }} · {{ block.name }}</AppSelectOption
+                                    >{{ block.name }}</AppSelectOption
                                 >
                             </AppSelect>
                         </FarmField>

@@ -1,5 +1,29 @@
 <?php
 
+$s3 = [
+    'driver' => 's3',
+    'key' => env('AWS_ACCESS_KEY_ID'),
+    'secret' => env('AWS_SECRET_ACCESS_KEY'),
+    'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    'bucket' => env('AWS_BUCKET'),
+    'endpoint' => env('AWS_ENDPOINT'),
+    'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
+    'visibility' => 'private',
+    'throw' => true,
+];
+
+$privateDisk = static function (string $prefix, string $driverVariable) use ($s3): array {
+    $driver = env($driverVariable, env('OPERATIONAL_FILESYSTEM_DRIVER', 'local'));
+    if (! in_array($driver, ['local', 's3'], true)) {
+        throw new InvalidArgumentException($driverVariable.' must be local or s3.');
+    }
+
+    return $driver === 's3'
+        ? [...$s3, 'root' => $prefix]
+        : ['driver' => 'local', 'root' => storage_path('app/private/'.$prefix),
+            'visibility' => 'private', 'serve' => false, 'throw' => true];
+};
+
 return [
 
     /*
@@ -30,13 +54,9 @@ return [
 
     'disks' => [
 
-        'legality' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private/legality'),
-            'visibility' => 'private',
-            'serve' => false,
-            'throw' => true,
-        ],
+        'activity' => $privateDisk('task-activities', 'ACTIVITY_FILESYSTEM_DRIVER'),
+        'legality' => $privateDisk('legality', 'LEGALITY_FILESYSTEM_DRIVER'),
+        'farm' => $privateDisk('farm-images', 'FARM_FILESYSTEM_DRIVER'),
 
         'local' => [
             'driver' => 'local',

@@ -8,7 +8,6 @@ use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\Team;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,7 +19,7 @@ class DailyActivityLogService
     /** @return \Illuminate\Support\Collection<int, FarmBlock> */
     public function blockOptions(Farm $farm, User $actor, Team $team): \Illuminate\Support\Collection
     {
-        return FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
+        return FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
     }
 
     /** Actor names are a minimal projection of an authorized report, not a user-directory grant.
@@ -78,8 +77,8 @@ class DailyActivityLogService
                 throw ValidationException::withMessages(['activities' => 'Referensi Pemetaan Blok belum tersedia. Jalankan BlockMappingActivityTypeSeeder.']);
             }
 
-            $log = $this->headers->resolve($farm, $recorder, [...$data, 'daily_notes' => $data['notes'] ?? null]);
-            $startedAt = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
+            $log = $this->headers->resolve($farm, $recorder, $data['work_date']);
+            $startedAt = $this->headers->activityTimestamp($data['work_date']);
             $position = $this->headers->nextPosition($log, $recorder);
             foreach ($data['activities'] as $index => $item) {
                 $block = null;

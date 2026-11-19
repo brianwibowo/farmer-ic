@@ -22,7 +22,7 @@ trait CreatesNotificationTasks
             if ($block === null) {
                 $block = new FarmBlock;
                 $block->forceFill(['farm_id' => $farm->id, 'created_by' => $farm->getAttribute('created_by'),
-                    'code' => 'B'.strtoupper(str()->random(8)), 'name' => 'Blok Utara', 'area_ha' => 1, 'is_active' => true,
+                    'name' => 'Blok Utara', 'area_ha' => 1, 'is_active' => true,
                     'land_clearing_started_at' => now()->subDays(40)])->save();
             }
             $cycle = new PlantingCycle;

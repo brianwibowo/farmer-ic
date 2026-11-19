@@ -94,24 +94,28 @@ class DashboardIncidentReportsTest extends TestCase
             'name' => 'Pelaporan insiden', 'detail_key' => 'incident', 'is_selectable' => true, 'is_active' => true,
         ]);
 
-        foreach (['Open', 'Resolved'] as $status) {
+        foreach ([
+            ['incident_status' => 'Perlu penanganan'],
+            ['incident_status' => 'Sudah ditangani langsung', 'immediate_action' => 'Drainase darurat dibersihkan.'],
+        ] as $case) {
             $this->actingAs($petugas)->post('/petugas/aktivitas/mandiri/incident', [
-                'work_date' => today()->toDateString(), 'start_time' => '07:00', 'worker_count' => 2,
+                'work_date' => today()->toDateString(), 'worker_count' => 2,
                 'notes' => 'Tim sedang memeriksa drainase',
                 'details' => ['incident_category' => 'Cuaca', 'description' => 'Tanaman rebah akibat angin',
-                    'area' => 100, 'area_unit' => 'm²', 'severity' => 'Darurat', 'incident_status' => $status],
+                    'area' => 100, 'area_unit' => 'm²', 'severity' => 'Darurat', ...$case],
                 'photos' => [UploadedFile::fake()->image('laporan-insiden.jpg')],
             ])->assertSessionHasNoErrors()->assertRedirect();
         }
         $this->assertDatabaseCount('incident_details', 2);
+        $this->assertDatabaseCount('incident_tickets', 2);
         $this->assertDatabaseCount('farm_risks', 0);
-        $open = FarmActivity::where('task_details->incident_status', 'Open')->firstOrFail();
+        $open = FarmActivity::where('status', 'open')->firstOrFail();
 
         $this->actingAs($this->admin)->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.3.value', 1)->where('dashboard.risks.total', 1)
             ->has('dashboard.risks.items', 1)->where('dashboard.risks.items.0.id', 'incident:'.$open->id)
             ->where('dashboard.risks.items.0.title', 'Tanaman rebah akibat angin')
-            ->where('dashboard.risks.items.0.detectedAt', '07:00 · 17 November 2026'));
+            ->where('dashboard.risks.items.0.detectedAt', '17 November 2026'));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
@@ -155,7 +159,8 @@ class DashboardIncidentReportsTest extends TestCase
             ->where('dashboard.metrics.3.value', 2)->where('dashboard.risks.total', 2)->has('dashboard.risks.items', 2));
         $this->get('/admin/dashboard?farm_id='.$first->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.3.value', 1)->where('dashboard.risks.total', 1)->has('dashboard.risks.items', 1)
-            ->where('dashboard.risks.items.0.id', 'incident:'.$visible->id));
+            ->where('dashboard.risks.items.0.id', 'incident:'.$visible->id)
+            ->where('dashboard.risks.items.0.detectedAt', '11:00 · 17 November 2026'));
         $this->get('/admin/dashboard?farm_id='.$foreign->id)->assertForbidden();
 
         $petugas = User::factory()->create(['role' => 'petugas', 'assigned_farm_id' => $first->id]);

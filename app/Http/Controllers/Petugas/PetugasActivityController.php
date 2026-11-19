@@ -11,6 +11,7 @@ use App\Services\Activity\ActivityFormLimits;
 use App\Services\Activity\TaskActivityService;
 use App\Services\PetugasTaskReadService;
 use App\Support\ActivityInputLimits;
+use App\Support\ActivityPhotoFile;
 use App\Support\TaskActivityFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,8 +61,9 @@ class PetugasActivityController extends Controller
         abort_unless($photo->activity_id === $activity->id && $activity->farm_id === $request->user()->assigned_farm_id, 403);
         $team = $activity->farm->team;
         $photo = ActivityPhoto::visibleTo($request->user(), $team)->where('activity_id', $activity->id)->findOrFail($photo->id);
-        abort_unless(str_starts_with($photo->image_url, 'task-activities/'.$activity->id.'/'), 404);
+        abort_unless(str_starts_with($photo->image_url, 'farms/'.$activity->farm_id.'/'.$activity->id.'/'), 404);
+        abort_unless(ActivityPhotoFile::available($photo), 404);
 
-        return Storage::disk('local')->response($photo->image_url, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+        return Storage::disk('activity')->response($photo->image_url, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 }

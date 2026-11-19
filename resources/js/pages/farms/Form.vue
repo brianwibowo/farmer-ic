@@ -2,16 +2,12 @@
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import {
-    ArrowLeft,
-    LandPlot,
-    LoaderCircle,
-    Save,
-} from '@lucide/vue';
+import { ArrowLeft, LandPlot, LoaderCircle, Save } from '@lucide/vue';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import FarmField from '@/components/farms/FarmField.vue';
+import FarmImageUpload from '@/components/farms/FarmImageUpload.vue';
 import FormErrorSummary from '@/components/farms/FormErrorSummary.vue';
 import FarmRegionFields from '@/components/farms/FarmRegionFields.vue';
 import {
@@ -21,11 +17,7 @@ import {
 import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
 import FarmGeocodingFeedback from '@/components/farms/FarmGeocodingFeedback.vue';
 import { useFarmGeocoding } from '@/composables/useFarmGeocoding';
-import {
-    hectares,
-    type LandTenure,
-    type ManagedFarm,
-} from '@/types/farms';
+import { hectares, type LandTenure, type ManagedFarm } from '@/types/farms';
 
 defineOptions({ inheritAttrs: false });
 
@@ -52,7 +44,8 @@ const form = useForm({
     district_code: props.farm?.district_code ?? '',
     latitude: props.farm?.latitude ?? '',
     longitude: props.farm?.longitude ?? '',
-    image_url: props.farm?.image_url ?? '',
+    image: null as File | null,
+    remove_image: false,
 });
 const errorFields = computed<Record<string, { id: string; label: string }>>(
     () => ({
@@ -64,13 +57,17 @@ const errorFields = computed<Record<string, { id: string; label: string }>>(
             label: 'Target volume panen',
         },
         land_tenure: { id: 'farm-tenure', label: 'Status lahan' },
-        land_tenure_party: { id: 'farm-tenure-party', label: 'Nama pihak terkait' },
+        land_tenure_party: {
+            id: 'farm-tenure-party',
+            label: 'Nama pihak terkait',
+        },
         district_code: {
             id: regionFields.value?.firstIncompleteId() ?? 'farm-province',
             label: 'Wilayah',
         },
         address: { id: 'farm-address', label: 'Alamat' },
-        image_url: { id: 'farm-image', label: 'Tautan foto' },
+        image: { id: 'farm-image', label: 'Foto lahan' },
+        remove_image: { id: 'farm-image', label: 'Foto lahan' },
     }),
 );
 useUnsavedChanges(() => form.isDirty && !form.processing);
@@ -130,6 +127,10 @@ const backUrl = props.farm
     : '/admin/farm-management';
 async function submit(): Promise<void> {
     if (form.processing || waitingForLocation.value) return;
+    if (form.errors.image) {
+        void focusFormErrors();
+        return;
+    }
     if (requiresLandTenureParty.value && !form.land_tenure_party.trim()) {
         form.setError(
             'land_tenure_party',
@@ -166,9 +167,15 @@ async function submit(): Promise<void> {
         onSuccess: () => form.defaults(),
     };
     if (props.farm) {
-        form.put(`/admin/farm-management/${props.farm.id}`, options);
+        form.transform((data) => ({ ...data, _method: 'put' })).post(
+            `/admin/farm-management/${props.farm.id}`,
+            { ...options, forceFormData: true },
+        );
     } else {
-        form.post('/admin/farm-management', options);
+        form.post('/admin/farm-management', {
+            ...options,
+            forceFormData: true,
+        });
     }
 }
 </script>
@@ -356,9 +363,7 @@ async function submit(): Promise<void> {
                         </FarmField>
                     </div>
                 </section>
-                <section
-                    class="admin-card rounded-xl bg-card p-5 md:p-6"
-                >
+                <section class="admin-card rounded-xl bg-card p-5 md:p-6">
                     <h2 class="admin-section-title">Lokasi lahan</h2>
                     <p class="mt-1 mb-6 text-xs text-muted-foreground">
                         Detail alamat membantu petugas mengenali lokasi lahan.
@@ -439,22 +444,34 @@ async function submit(): Promise<void> {
                 </section>
                 <section class="admin-card rounded-xl bg-card p-5 md:p-6">
                     <h2 class="admin-section-title mb-5">Dokumentasi lahan</h2>
-                    <FarmField
-                        id="farm-image"
-                        label="Tautan foto (opsional)"
-                        :error="form.errors.image_url"
-                        hint="Tautan HTTP/HTTPS. Field ini menyimpan referensi foto, bukan mengunggah file."
-                        v-slot="field"
-                        ><input
-                            :id="field.id"
-                            v-model="form.image_url"
-                            type="url"
-                            class="admin-field"
-                            maxlength="2048"
-                            placeholder="https://…"
-                            :aria-invalid="field.invalid"
-                            :aria-describedby="field.description"
-                    /></FarmField>
+                    <FarmImageUpload
+                        v-model="form.image"
+                        v-model:remove="form.remove_image"
+                        :current-url="farm?.image_url ?? null"
+                        :error="form.errors.image"
+                        @validation-error="
+                            (message) =>
+                                message
+                                    ? form.setError('image', message)
+                                    : form.clearErrors('image')
+                        "
+                    />
+                    <div
+                        v-if="form.progress"
+                        class="mt-4 space-y-1"
+                        role="status"
+                        aria-live="polite"
+                    >
+                        <progress
+                            class="h-2 w-full accent-primary"
+                            :value="form.progress.percentage ?? 0"
+                            max="100"
+                            aria-label="Progres unggahan foto"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Mengunggah {{ form.progress.percentage ?? 0 }}%
+                        </p>
+                    </div>
                 </section>
             </fieldset>
             <div class="flex flex-wrap justify-end gap-3">

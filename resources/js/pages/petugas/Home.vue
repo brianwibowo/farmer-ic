@@ -125,7 +125,15 @@ const cards = computed(() => [
                 </p>
             </div>
             <div v-else-if="!home.tasks.total" class="px-2 py-10 text-center">
-                <h3 class="text-sm text-muted-foreground">
+                <img
+                    src="/images/vector/no-todo.png"
+                    alt=""
+                    width="160"
+                    height="160"
+                    decoding="async"
+                    class="mx-auto mb-4 size-40 max-w-full object-contain sm:size-44"
+                />
+                <h3 class="text-sm font-semibold text-muted-foreground">
                     Belum ada tugas hari ini
                 </h3>
             </div>

@@ -280,7 +280,7 @@ class OwnerReadService
     public function farms(User $actor, Team $team, array $filters): array
     {
         return [
-            'farms' => $this->farms->paginate($actor, $team, $filters)->through(fn (Farm $farm): array => $farm->only([
+            'farms' => $this->farms->paginate($actor, $team, $filters)->through(fn (Farm $farm): array => [...$farm->only([
                 'id',
                 'name',
                 'city',
@@ -293,7 +293,7 @@ class OwnerReadService
                 'latitude',
                 'longitude',
                 'image_url',
-            ])),
+            ]), 'image_url' => \App\Support\FarmImageFile::url($farm)]),
             'summary' => $this->farms->summary($actor, $team),
             'locationOptions' => $this->farms->locationOptions($actor, $team),
             'filters' => $filters,
@@ -307,7 +307,7 @@ class OwnerReadService
         $cycles = $this->cycleQuery($actor, $team)->where('farm_id', $farm->id);
         $active = (clone $cycles)->where('status', 'active');
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
-            ->orderBy('code')->get();
+            ->orderBy('name')->get();
         $cycleCounts = PlantingCycle::visibleTo($actor, $team)
             ->where('farm_id', $farm->id)
             ->whereNotNull('block_id')
@@ -333,6 +333,7 @@ class OwnerReadService
         return [
             'farm' => [
                 ...$farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
+                'image_url' => \App\Support\FarmImageFile::url($farm),
                 'legality_url' => '/kebun/'.$farm->id.'/legalitas',
                 'owner_name' => $owner?->name,
                 'team_name' => $team->name,
@@ -342,7 +343,7 @@ class OwnerReadService
                 'harvest_weight_ton' => (string) $harvest,
             ],
             'blocks' => $blocks->map(fn (FarmBlock $block): array => [
-                ...$block->only(['id', 'code', 'name', 'area_ha', 'is_active', 'description']),
+                ...$block->only(['id', 'name', 'area_ha', 'is_active', 'description']),
                 'cycles_count' => $cycleCounts->get($block->id, collect())->count(),
             ])->values()->all(),
             'legacyCycles' => (clone $cycles)->whereNull('block_id')->orderByDesc('created_at')
@@ -401,7 +402,7 @@ class OwnerReadService
         return [
             'farm' => $farm->only(['id', 'name']),
             'block' => [
-                ...$block->only(['id', 'code', 'name', 'area_ha', 'description', 'is_active']),
+                ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active']),
                 'land_clearing_started_at' => $this->timestamp($block->getAttribute('land_clearing_started_at')),
                 'land_clearing_completed_at' => $this->timestamp($block->getAttribute('land_clearing_completed_at')),
             ],
@@ -497,7 +498,7 @@ class OwnerReadService
             'photos' => $activity->photos->map(fn ($photo): array => [...$photo->only(['id', 'caption', 'label']), 'image_url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id])])->all(),
             'details' => $details,
             'log' => $log === null ? null : [
-                ...$log->only(['id', 'start_time', 'end_time', 'notes']),
+                'id' => $log->id,
                 'work_date' => $log->work_date->toDateString(),
             ],
         ];
@@ -540,6 +541,7 @@ class OwnerReadService
                     'activity_category',
                     'offset_days',
                     'tolerance_days',
+                    'hok',
                     'is_required',
                 ]))->all(),
             ])->all(),
@@ -617,7 +619,7 @@ class OwnerReadService
                 'completed_at' => $this->timestamp($stage->getAttribute('completed_at')),
             ])->all(),
             'tasks' => $cycle->tasks->map(fn ($task): array => [
-                ...$task->only(['id', 'name', 'status', 'instructions', 'offset_days', 'tolerance_days', 'is_required', 'activity_category']),
+                ...$task->only(['id', 'name', 'status', 'instructions', 'offset_days', 'tolerance_days', 'hok', 'is_required', 'activity_category']),
                 'scheduled_date' => $task->scheduled_date?->toDateString(),
                 'effective_scheduled_date' => $task->effectiveScheduledDate()?->toDateString(),
                 'due_date' => $task->due_date?->toDateString(),

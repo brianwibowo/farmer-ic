@@ -35,9 +35,6 @@ export type OwnerActivityDetail = OwnerActivityRow & {
     log: {
         id: string;
         work_date: string;
-        start_time: string;
-        end_time: string | null;
-        notes: string | null;
     } | null;
     obstacle_status: string | null;
     obstacles: string | null;
@@ -52,6 +49,7 @@ export type OwnerSopTask = {
     activity_category: string;
     offset_days: number;
     tolerance_days: number;
+    hok?: number | null;
     is_required: boolean;
 };
 

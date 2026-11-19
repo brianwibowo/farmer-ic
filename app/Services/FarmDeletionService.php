@@ -19,6 +19,7 @@ use App\Models\FinancialProjection;
 use App\Models\FinancialTransaction;
 use App\Models\HarvestDetail;
 use App\Models\IncidentDetail;
+use App\Models\IncidentTicket;
 use App\Models\IrrigationDetail;
 use App\Models\LandCleaningDetail;
 use App\Models\LimingDetail;
@@ -43,6 +44,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class FarmDeletionService
 {
     private const LABELS = [
+        'farm_cycles' => 'Siklus lahan',
         'farm_blocks' => 'Blok lahan', 'planting_cycle_stages' => 'Timeline batch',
         'planting_cycle_tasks' => 'Tugas SOP subblok',
         'farm_legalities' => 'Legalitas lahan', 'farm_legality_documents' => 'Draft PDF legalitas',
@@ -52,7 +54,7 @@ class FarmDeletionService
         'activity_photos' => 'Referensi foto kegiatan', 'block_mapping_details' => 'Detail pemetaan blok',
         'planting_details' => 'Detail penanaman', 'fertilization_details' => 'Detail pemupukan',
         'irrigation_details' => 'Detail penyiraman', 'pesticide_details' => 'Detail pestisida',
-        'incident_details' => 'Detail kejadian', 'harvest_details' => 'Detail panen',
+        'incident_tickets' => 'Tiket insiden', 'incident_details' => 'Detail kejadian', 'harvest_details' => 'Detail panen',
         'land_cleaning_details' => 'Detail pembersihan lahan', 'loosening_details' => 'Detail penggemburan',
         'weeding_details' => 'Detail pendangiran', 'bed_preparation_details' => 'Detail pembuatan bedengan',
         'liming_details' => 'Detail penebaran dolomit', 'other_details' => 'Detail aktivitas lainnya',
@@ -106,20 +108,35 @@ class FarmDeletionService
                         ->map(fn (FarmLegalityDocument $document): string => $document->path)
                         ->all(),
                 );
+                $activityPaths = ActivityPhoto::visibleTo($actor, $farm->team)
+                    ->whereIn('id', $graph['activity_photos'])->get()
+                    ->filter(fn (ActivityPhoto $photo): bool => str_starts_with($photo->image_url, 'farms/'.$farm->id.'/'.$photo->activity_id.'/') && ! str_contains($photo->image_url, '..'))
+                    ->pluck('image_url')->all();
                 foreach ([
                     'farm_legality_documents', 'farm_legalities',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
-                    'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos',
+                    'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos', 'incident_tickets',
                     'block_mapping_details', 'planting_details', 'fertilization_details', 'irrigation_details',
                     'pesticide_details', 'incident_details', 'harvest_details', 'land_cleaning_details',
                     'loosening_details', 'weeding_details', 'bed_preparation_details', 'liming_details', 'other_details',
-                    'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'farm_blocks',
+                    'farm_activities', 'planting_cycle_tasks', 'planting_cycle_stages', 'daily_activity_logs', 'weather_records', 'planting_cycles', 'farm_cycles', 'farm_blocks',
                 ] as $table) {
                     $key = str_ends_with($table, '_details') ? 'activity_id' : 'id';
                     DB::table($table)->whereIn($key, $graph[$table])->delete();
                 }
                 $snapshot = $farm->only(['id', 'name', 'team_id', 'land_tenure', 'total_area_ha']);
+                $imagePath = \App\Support\FarmImageFile::valid($farm) ? $farm->image_url : null;
                 $farm->delete();
+                DB::afterCommit(fn () => app(FarmImageService::class)->delete($imagePath));
+                DB::afterCommit(function () use ($activityPaths): void {
+                    try {
+                        if ($activityPaths !== []) {
+                            \Illuminate\Support\Facades\Storage::disk('activity')->delete($activityPaths);
+                        }
+                    } catch (\Throwable $exception) {
+                        report($exception);
+                    }
+                });
                 app(FarmLegalityService::class)->cleanupAfterCommit($documentPaths);
                 AuditLog::query()->create([
                     'user_id' => $actor->id, 'table_name' => 'farms', 'record_id' => $farm->id,
@@ -144,11 +161,13 @@ class FarmDeletionService
         $team = $farm->team;
         $graph = [];
         foreach ([
+            'farm_cycles' => \App\Models\FarmCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_blocks' => FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_legalities' => FarmLegality::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'planting_cycles' => PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'daily_activity_logs' => DailyActivityLog::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_activities' => FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id),
+            'incident_tickets' => IncidentTicket::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'weather_records' => WeatherRecord::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'financial_transactions' => FinancialTransaction::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'financial_projections' => FinancialProjection::visibleTo($actor, $team)->where('farm_id', $farm->id),
@@ -199,6 +218,10 @@ class FarmDeletionService
             ['farm_activities', 'planting_cycle_id', 'planting_cycles'],
             ['farm_activities', 'planting_cycle_task_id', 'planting_cycle_tasks'],
             ['farm_activities', 'daily_activity_log_id', 'daily_activity_logs'],
+            ['incident_tickets', 'activity_id', 'farm_activities'],
+            ['incident_tickets', 'resolved_activity_id', 'farm_activities'],
+            ['incident_tickets', 'planting_cycle_id', 'planting_cycles'],
+            ['incident_tickets', 'block_id', 'farm_blocks'],
             ['plant_observations', 'planting_cycle_id', 'planting_cycles'],
             ['plant_observations', 'activity_id', 'farm_activities'],
             ['farm_risks', 'planting_cycle_id', 'planting_cycles'],

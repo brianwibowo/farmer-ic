@@ -31,7 +31,6 @@ const options = computed(() => usePage().props.blockOptions as BlockOptions);
 const base = `/kebun/${props.farm.id}/blocks`;
 const form = useForm({
     return_to: props.returnTo ?? '',
-    code: props.block?.code ?? '',
     name: props.block?.name ?? '',
     area_value: props.block?.area_ha ?? '',
     area_unit: 'ha' as AreaUnit,
@@ -40,10 +39,24 @@ const form = useForm({
     commodity_id: props.block?.commodity_id ?? '',
     default_sop_template_id: props.block?.default_sop_template_id ?? '',
 });
-const filteredSops = computed(() => options.value.sops.filter((sop) => sop.commodity_id === form.commodity_id && (sop.is_active || sop.id === props.block?.default_sop_template_id)));
-watch(() => form.commodity_id, () => {
-    if (!filteredSops.value.some((sop) => sop.id === form.default_sop_template_id)) form.default_sop_template_id = '';
-});
+const filteredSops = computed(() =>
+    options.value.sops.filter(
+        (sop) =>
+            sop.commodity_id === form.commodity_id &&
+            (sop.is_active || sop.id === props.block?.default_sop_template_id),
+    ),
+);
+watch(
+    () => form.commodity_id,
+    () => {
+        if (
+            !filteredSops.value.some(
+                (sop) => sop.id === form.default_sop_template_id,
+            )
+        )
+            form.default_sop_template_id = '';
+    },
+);
 useUnsavedChanges(() => form.isDirty && !form.processing);
 const enteredMetres = computed(() =>
     squareMetres(form.area_value, form.area_unit),
@@ -94,7 +107,6 @@ const noCapacity = computed(
             Number(props.capacity.minimum_area_ha),
 );
 const errorFields = {
-    code: { id: 'block-code', label: 'Kode blok' },
     name: { id: 'block-name', label: 'Nama blok' },
     area_ha: { id: 'block-area', label: 'Luas blok' },
     area_value: { id: 'block-area', label: 'Luas blok' },
@@ -186,44 +198,66 @@ function submit(): void {
                 :disabled="form.processing"
                 class="grid gap-5 disabled:opacity-70 sm:grid-cols-2"
             >
-                <FarmField id="block-commodity" label="Komoditas blok" :error="form.errors.commodity_id" v-slot="field">
-                    <AppSelect :id="field.id" v-model="form.commodity_id" :class="fieldClass" :aria-invalid="field.invalid">
-                        <AppSelectOption value="">Belum ditentukan</AppSelectOption>
-                        <AppSelectOption v-for="commodity in options.commodities" :key="commodity.id" :value="commodity.id">{{ commodity.name }}</AppSelectOption>
-                    </AppSelect>
-                </FarmField>
-                <FarmField id="block-sop" label="SOP default blok" :error="form.errors.default_sop_template_id" v-slot="field">
-                    <AppSelect :id="field.id" v-model="form.default_sop_template_id" :class="fieldClass" :disabled="!form.commodity_id" :aria-invalid="field.invalid">
-                        <AppSelectOption value="">Belum ditentukan</AppSelectOption>
-                        <AppSelectOption v-for="sop in filteredSops" :key="sop.id" :value="sop.id">{{ sop.name }}</AppSelectOption>
-                    </AppSelect>
-                </FarmField>
-                <p class="text-xs leading-5 text-muted-foreground sm:col-span-2">
-                    Perubahan berlaku untuk penanaman baru. Subblok yang sudah ditanam tetap memakai varietas dan versi SOP yang telah tersimpan.
-                </p>
                 <FarmField
-                    id="block-code"
-                    label="Kode blok"
-                    required
-                    :error="form.errors.code"
-                    hint="Contoh: B01. Unik dalam lahan ini."
+                    id="block-commodity"
+                    label="Komoditas blok"
+                    :error="form.errors.commodity_id"
                     v-slot="field"
-                    ><input
+                >
+                    <AppSelect
                         :id="field.id"
-                        v-model="form.code"
-                        placeholder="Contoh: B03"
+                        v-model="form.commodity_id"
                         :class="fieldClass"
-                        required
-                        maxlength="30"
-                        pattern="[A-Za-z0-9][A-Za-z0-9_\-]*"
                         :aria-invalid="field.invalid"
-                        :aria-describedby="field.description"
-                /></FarmField>
+                    >
+                        <AppSelectOption value=""
+                            >Belum ditentukan</AppSelectOption
+                        >
+                        <AppSelectOption
+                            v-for="commodity in options.commodities"
+                            :key="commodity.id"
+                            :value="commodity.id"
+                            >{{ commodity.name }}</AppSelectOption
+                        >
+                    </AppSelect>
+                </FarmField>
+                <FarmField
+                    id="block-sop"
+                    label="SOP default blok"
+                    :error="form.errors.default_sop_template_id"
+                    v-slot="field"
+                >
+                    <AppSelect
+                        :id="field.id"
+                        v-model="form.default_sop_template_id"
+                        :class="fieldClass"
+                        :disabled="!form.commodity_id"
+                        :aria-invalid="field.invalid"
+                    >
+                        <AppSelectOption value=""
+                            >Belum ditentukan</AppSelectOption
+                        >
+                        <AppSelectOption
+                            v-for="sop in filteredSops"
+                            :key="sop.id"
+                            :value="sop.id"
+                            >{{ sop.name }}</AppSelectOption
+                        >
+                    </AppSelect>
+                </FarmField>
+                <p
+                    class="text-xs leading-5 text-muted-foreground sm:col-span-2"
+                >
+                    Perubahan berlaku untuk penanaman baru. Subblok yang sudah
+                    ditanam tetap memakai varietas dan versi SOP yang telah
+                    tersimpan.
+                </p>
                 <FarmField
                     id="block-name"
                     label="Nama blok"
                     required
                     :error="form.errors.name"
+                    hint="Unik dalam kebun ini."
                     v-slot="field"
                     ><input
                         :id="field.id"

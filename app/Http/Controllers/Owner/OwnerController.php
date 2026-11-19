@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Owner\ExecutiveSummaryRequest;
 use App\Http\Requests\Owner\HarvestProjectionRequest;
 use App\Http\Requests\Owner\OwnerReadRequest;
 use App\Models\Farm;
@@ -12,6 +13,7 @@ use App\Models\FarmLegality;
 use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Owner\ExecutiveSummaryService;
 use App\Services\Owner\HarvestProjectionService;
 use App\Services\Owner\OwnerReadService;
 use Illuminate\Http\Request;
@@ -112,11 +114,17 @@ class OwnerController extends Controller
         return Inertia::render('owner/User', ['managedUser' => $this->reads->user($request->user(), $this->team($request), $managedUser)]);
     }
 
-    public function executiveSummary(): Response
+    public function executiveSummary(ExecutiveSummaryRequest $request, ExecutiveSummaryService $summary): Response
     {
-        // This explicitly labelled JSON demo does not read operational/tenant records.
-        // Admission is enforced by the owner.access route middleware.
-        return Inertia::render('owner/ExecutiveSummary');
+        $team = $this->team($request);
+        Gate::authorize('viewAny', [Farm::class, $team]);
+        if ($request->filled('farm')) {
+            $farm = Farm::query()->whereKey($request->validated('farm'))->firstOrFail();
+            Gate::authorize('view', $farm);
+            abort_unless((int) $farm->team_id === (int) $team->id, 404);
+        }
+
+        return Inertia::render('owner/ExecutiveSummary', ['summary' => $summary->summary($request->user(), $team, $request->validated())]);
     }
 
     public function more(): Response

@@ -12,13 +12,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $farm_id
  * @property string $recorded_by
  * @property CarbonImmutable $work_date
- * @property string $start_time
- * @property string|null $end_time
- * @property string|null $notes
  * @property CarbonImmutable $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['farm_id', 'recorded_by', 'work_date', 'start_time', 'end_time', 'notes'])]
+#[Fillable(['farm_id', 'recorded_by', 'work_date'])]
 class DailyActivityLog extends FarmerModel
 {
     public $timestamps = true;

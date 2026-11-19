@@ -30,10 +30,16 @@ class PlantingActivityService
     ) {}
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, PlantingCycle> */
-    public function cycles(User $actor, Farm $farm): \Illuminate\Database\Eloquent\Collection
+    public function cycles(User $actor, Farm $farm, ?FarmBlock $block = null): \Illuminate\Database\Eloquent\Collection
     {
-        return PlantingCycle::visibleTo($actor, $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
-            ->orderBy('batch_number')->get();
+        return PlantingCycle::visibleTo($actor, $farm->team)
+            ->where('farm_id', $farm->id)
+            ->whereNotNull('block_id')
+            ->when($block !== null, fn ($query) => $query->where('block_id', $block->id))
+            ->orderByDesc('created_at')
+            ->orderByDesc('batch_number')
+            ->orderByDesc('id')
+            ->get();
     }
 
     /** @return array<string, mixed> */
@@ -46,6 +52,7 @@ class PlantingActivityService
 
         return [
             ...$cycle->only(['id', 'batch_number', 'subblock_label', 'status', 'reserved_area_ha', 'planted_area_ha', 'planting_started_on']),
+            'farm_cycle_number' => \App\Models\FarmCycle::visibleTo($actor, $team)->where('farm_id', $cycle->farm_id)->whereKey($cycle->getAttribute('farm_cycle_id'))->value('cycle_number'),
             'planned_planting_at' => $cycle->planned_planting_at?->toDateString(), 'planted_at' => $cycle->planted_at?->toDateString(),
             'block' => $block->only(['id', 'name']), 'variety' => $variety?->only(['id', 'name']),
         ];
@@ -163,13 +170,13 @@ class PlantingActivityService
                 if ($type === null) {
                     throw ValidationException::withMessages(['cycle' => 'Referensi aktivitas Penanaman belum tersedia. Hubungi admin.']);
                 }
-                $anchor = CarbonImmutable::parse($dates[1] ?? $dates[0]);
+                $anchor = $this->anchorDate($dates[0]);
                 $anchorChanged = $cycle->planted_at?->toDateString() !== $anchor->toDateString();
                 $estimate = $this->estimates->forPlantingDate($actor, $team, $cycle, $anchor);
                 $cycle->forceFill(['planting_started_on' => $dates[0], 'planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate, 'planting_window_checked_at' => null,
                     'variety_id' => $variety->id, 'planted_area_ha' => LandArea::hectares($totalArea), 'reserved_area_ha' => LandArea::hectares($totalArea), 'status' => 'active'])->save();
-                $log = $this->headers->resolve($farm, $actor, $data);
-                $started = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
+                $log = $this->headers->resolve($farm, $actor, $data['work_date']);
+                $started = $this->headers->activityTimestamp($data['work_date']);
                 $activity = FarmActivity::create([
                     'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'activity_type_id' => $type->id,
                     'performed_by' => $actor->id, 'activity_date' => $started, 'daily_activity_log_id' => $log->id,
@@ -182,7 +189,7 @@ class PlantingActivityService
                 }
                 $activity->plantingDetail()->create(['seed_name' => $data['seed_name'], 'quantity_kg' => $data['quantity_kg'], 'area_ha' => $data['area_ha']]);
                 foreach ($data['photos'] as $photo) {
-                    $path = $photo->store('task-activities/'.$activity->id, 'local');
+                    $path = $photo->store('farms/'.$activity->farm_id.'/'.$activity->id, 'activity');
                     if ($path === false) {
                         throw new \RuntimeException('Foto tidak berhasil disimpan.');
                     }
@@ -194,7 +201,7 @@ class PlantingActivityService
                 return $this->tasks->generateForSubblok($cycle, $actor, 'work_date', $anchorChanged);
             });
         } catch (Throwable $exception) {
-            Storage::disk('local')->delete($paths);
+            Storage::disk('activity')->delete($paths);
             throw $exception;
         }
     }
@@ -230,14 +237,20 @@ class PlantingActivityService
             if (! $dates || ! in_array($cycle->status, ['planned', 'active'], true)) {
                 return;
             }
-            $anchor = CarbonImmutable::parse($dates[1] ?? $dates[0]);
+            $anchor = $this->anchorDate($dates[0]);
             $anchorChanged = $cycle->planted_at?->toDateString() !== $anchor->toDateString();
             $estimate = $this->estimates->forPlantingDate($actor, $team, $cycle, $anchor);
-            $cycle->forceFill(['planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate])->save();
+            $cycle->forceFill(['planting_started_on' => $dates[0], 'planted_at' => $anchor->toDateString(), 'estimated_harvest_at' => $estimate])->save();
             $this->tasks->generateForSubblok($cycle, $actor, 'status', $anchorChanged);
             if (now('Asia/Jakarta')->toDateString() > CarbonImmutable::parse($dates[0])->addDays(2)->toDateString()) {
                 $cycle->forceFill(['planting_window_checked_at' => now()])->save();
             }
         });
+    }
+
+    /** HST H+0 is always set to the day after the earliest recorded planting date. */
+    private function anchorDate(string $firstWorkDate): CarbonImmutable
+    {
+        return CarbonImmutable::parse($firstWorkDate)->addDay();
     }
 }

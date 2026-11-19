@@ -79,10 +79,10 @@ alur aplikasi yang membatasi penanaman tiga hari kalender dapat didemokan:
 
 | Subblok simulasi | Tanggal laporan tanam | Luas tersimpan | Panen simulasi |
 | --- | --- | --- | --- |
-| A | 29 dan 31 Oktober | 0,1800 ha | 29 Januari 2027 |
+| A | 29 dan 31 Oktober | 0,1800 ha | 28 Januari 2027 |
 | B | 1–3 November | 0,2940 ha | 31 Januari 2027 |
 | C | 4–5 November | 0,3930 ha | 3 Februari 2027 |
-| D | 7 November | 0,2356 ha | 5 Februari 2027 |
+| D | 7 November | 0,2356 ha | 6 Februari 2027 |
 
 Untuk D, angka 2.356 m² adalah **asumsi skenario**, dibulatkan dari sisa
 2.356,45 m² yang disebut pada 5 November; sumber 7 November menulis `...`,

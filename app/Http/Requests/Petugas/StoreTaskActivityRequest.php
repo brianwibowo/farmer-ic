@@ -37,10 +37,7 @@ class StoreTaskActivityRequest extends FormRequest
         $fields = $task instanceof PlantingCycleTask ? TaskActivityFields::forTask($task) : [];
         $rules = [
             'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()],
-            'start_time' => ['nullable', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
             'worker_count' => ['required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
-            'daily_notes' => ['nullable', 'string', 'max:5000'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'photos' => ['required', 'array', 'min:1', 'max:5'],
             'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],

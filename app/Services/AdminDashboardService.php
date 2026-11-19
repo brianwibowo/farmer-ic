@@ -236,7 +236,7 @@ class AdminDashboardService
             ->with(['incidentDetail' => fn ($details) => $details->visibleTo($actor, $team)])
             ->orderByDesc('activity_date')->orderByDesc('id')
             ->limit(self::RISK_PREVIEW_LIMIT)
-            ->get(['id', 'farm_id', 'activity_date', 'description', 'task_details'])
+            ->get(['id', 'farm_id', 'activity_date', 'daily_activity_log_id', 'description', 'task_details'])
             ->map(function (FarmActivity $activity): array {
                 $details = json_decode((string) $activity->getAttribute('task_details'), true);
 
@@ -246,7 +246,9 @@ class AdminDashboardService
                         ?: $activity->incidentDetail?->incident_category ?: 'Insiden lahan dilaporkan',
                     'sortAt' => $activity->activity_date->getTimestamp(),
                     'detectedAt' => $activity->activity_date->setTimezone('Asia/Jakarta')
-                        ->settings(['locale' => 'id'])->isoFormat('HH:mm · D MMMM YYYY'),
+                        ->settings(['locale' => 'id'])->isoFormat(
+                            $activity->daily_activity_log_id === null ? 'HH:mm · D MMMM YYYY' : 'D MMMM YYYY'
+                        ),
                 ];
             });
         $riskTotal = (clone $openRisks)->count() + (clone $openIncidents)->count();

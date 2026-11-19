@@ -24,7 +24,7 @@ export type PlantingTransactionRow = {
     last_activity_date: string | null;
     planted_at: string | null;
     farm: { id: string; name: string } | null;
-    block: { id: string; code: string; name: string } | null;
+    block: { id: string; name: string } | null;
     cycle: {
         id: string;
         batch_number: number | null;
@@ -72,7 +72,6 @@ export type PlantingTransactionFarmOption = { id: string; name: string };
 export type PlantingTransactionBlockOption = {
     id: string;
     farm_id: string;
-    code: string;
     name: string;
     farm?: { id: string; name: string } | null;
 };

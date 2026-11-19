@@ -155,7 +155,7 @@ class DashboardTenantSelectionTest extends TestCase
     private function createLog(Farm $farm, User $worker, string $date): void
     {
         $this->actingAs($worker)->postJson('/kebun/'.$farm->id.'/daily-logs', [
-            'work_date' => $date, 'start_time' => '08:00', 'end_time' => '09:00', 'worker_count' => 1,
+            'work_date' => $date, 'worker_count' => 1,
             'activities' => [['type' => 'block_mapping', 'obstacle_status' => 'none', 'notes' => 'Pemetaan '.$farm->name,
                 'block_mapping' => ['block_name' => 'Area pemetaan', 'length_m' => 10, 'width_m' => 10]]],
         ])->assertCreated();
@@ -164,7 +164,7 @@ class DashboardTenantSelectionTest extends TestCase
     private function records(Farm $farm, User $worker, int $expense, int $income): void
     {
         $this->createLog($farm, $worker, today()->toDateString());
-        $block = app(FarmBlockService::class)->create($farm, $this->superadmin, $farm->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '4']);
+        $block = app(FarmBlockService::class)->create($farm, $this->superadmin, $farm->team, ['name' => 'Blok Utara', 'area_ha' => '4']);
         $cycle = app(FarmBlockService::class)->createBatch($block, $this->superadmin, $farm->team, ['reserved_area_ha' => '1']);
         FarmRisk::create(['planting_cycle_id' => $cycle->id, 'risk_description' => 'Drainase perlu diperiksa', 'status' => 'open', 'detected_at' => now()]);
         $category = FinancialCategory::firstOrCreate(['name' => 'Biaya lapangan', 'transaction_type' => 'expense']);

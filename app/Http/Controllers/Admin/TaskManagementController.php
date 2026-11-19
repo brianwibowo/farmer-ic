@@ -53,12 +53,11 @@ class TaskManagementController extends Controller
                 ->get(['id', 'name']),
             'blocks' => FarmBlock::query()
                 ->visibleTo($user, $team)
-                ->orderBy('code')
-                ->get(['id', 'farm_id', 'code', 'name'])
+                ->orderBy('name')
+                ->get(['id', 'farm_id', 'name'])
                 ->map(fn (FarmBlock $block): array => [
                     'id' => $block->id,
                     'farm_id' => $block->farm_id,
-                    'code' => $block->code,
                     'name' => $block->name,
                 ])->all(),
             'subbloks' => PlantingCycle::query()
@@ -151,8 +150,7 @@ class TaskManagementController extends Controller
                         ->where('subblock_label', 'ilike', $search)
                         ->orWhereHas('farm', fn (Builder $farm) => $farm->where('name', 'ilike', $search))
                         ->orWhereHas('block', fn (Builder $block) => $block
-                            ->where('name', 'ilike', $search)
-                            ->orWhere('code', 'ilike', $search)));
+                            ->where('name', 'ilike', $search)));
             });
         }
 
@@ -288,6 +286,7 @@ class TaskManagementController extends Controller
             'overdue_days' => $overdueDays,
             'activity_category' => $task->activity_category,
             'offset_days' => $task->offset_days,
+            'hok' => $task->hok,
             'scheduled_date' => $task->scheduled_date?->toDateString(),
             'due_date' => $task->due_date?->toDateString(),
             'effective_scheduled_date' => $effective?->toDateString(),
@@ -301,7 +300,7 @@ class TaskManagementController extends Controller
             'completion_note' => $task->getAttribute('completion_note'),
             'created_at' => $task->created_at?->toISOString(),
             'farm' => $cycle?->farm?->only(['id', 'name']),
-            'block' => $block?->only(['id', 'code', 'name']),
+            'block' => $block?->only(['id', 'name']),
             'subblok' => $cycle === null ? null : [
                 'id' => $cycle->id,
                 'number' => $cycle->batch_number,
@@ -344,7 +343,7 @@ class TaskManagementController extends Controller
     {
         return [
             'plantingCycle.farm:id,name,team_id',
-            'plantingCycle.block:id,code,name',
+            'plantingCycle.block:id,name',
             'plantingCycle.variety:id,name',
             'plantingCycle.sopTemplateVersion:id,version',
             'stage:id,code',

@@ -17,12 +17,9 @@ class DailyActivityLogResource extends JsonResource
             'id' => $this->id,
             'farm_id' => $this->farm_id,
             'work_date' => $this->work_date->format('Y-m-d'),
-            'start_time' => substr($this->start_time, 0, 5),
-            'end_time' => $this->end_time === null ? null : substr($this->end_time, 0, 5),
             'timezone' => 'Asia/Jakarta',
             'recorded_by' => $this->recorded_by,
             'recorder_name' => $this->recorder?->name,
-            'notes' => $this->notes,
             'activities' => $this->activities->map(fn (FarmActivity $activity): array => [
                 'id' => $activity->id,
                 'type' => $activity->activityType?->code,

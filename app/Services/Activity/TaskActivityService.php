@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Support\ActivityInputLimits;
 use App\Support\TaskActivityFields;
 use App\Support\VoluntaryActivityFields;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -81,9 +80,8 @@ class TaskActivityService
                 if (($details['quantity_kg'] ?? 0) > ActivityInputLimits::NORMALIZED_QUANTITY_KG) {
                     throw ValidationException::withMessages(['details.quantity' => 'Jumlah terlalu besar setelah konversi satuan.']);
                 }
-                $log = $this->headers->resolve($farm, $actor, $data);
-                // Timestamp inherits the shared day start, not per-activity hours.
-                $date = CarbonImmutable::parse($data['work_date'].' '.$log->start_time, 'Asia/Jakarta');
+                $log = $this->headers->resolve($farm, $actor, $data['work_date']);
+                $date = $this->headers->activityTimestamp($data['work_date']);
                 $activity = new FarmActivity([
                     'farm_id' => $farm->id, 'planting_cycle_id' => $cycle->id, 'activity_type_id' => $type->id,
                     'performed_by' => $actor->id, 'activity_date' => $date, 'daily_activity_log_id' => $log->id,
@@ -98,7 +96,7 @@ class TaskActivityService
                     default => null,
                 };
                 foreach ($data['photos'] as $photo) {
-                    $path = $photo->store('task-activities/'.$activity->id, 'local');
+                    $path = $photo->store('farms/'.$activity->farm_id.'/'.$activity->id, 'activity');
                     if ($path === false) {
                         throw new \RuntimeException('Foto tidak berhasil disimpan.');
                     }
@@ -116,7 +114,7 @@ class TaskActivityService
                 return $activity;
             });
         } catch (Throwable $exception) {
-            Storage::disk('local')->delete($paths);
+            Storage::disk('activity')->delete($paths);
             throw $exception;
         }
     }

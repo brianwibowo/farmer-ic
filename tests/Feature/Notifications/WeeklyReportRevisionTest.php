@@ -166,7 +166,7 @@ class WeeklyReportRevisionTest extends TestCase
         $message = $notification->toInApp()['message'];
         $this->assertStringNotContainsString('Kebun Aktivitas', $notification->toWhatsAppText());
         $this->assertStringContainsString('Perawatan 2 kali', $message);
-        $this->assertStringContainsString('Cuaca (Berat) 2 kejadian', $message);
+        $this->assertStringContainsString('Cuaca (Darurat) 2 kejadian', $message);
         $this->assertStringContainsString('Alat rusak (Ringan) 1 kejadian', $message);
         $this->assertStringContainsString('Hambatan: 2 laporan.', $message);
         $this->assertStringNotContainsString(str_repeat('Catatan panjang ', 30), $message);
@@ -181,7 +181,7 @@ class WeeklyReportRevisionTest extends TestCase
         $this->assertSame(2, $content['farms'][0]['blocks'][0]['obstacle_count']);
         $this->assertSame([
             ['label' => 'Alat rusak (Ringan)', 'count' => 1],
-            ['label' => 'Cuaca (Berat)', 'count' => 2],
+            ['label' => 'Cuaca (Darurat)', 'count' => 2],
         ], $content['farms'][0]['blocks'][0]['incidents']);
     }
 

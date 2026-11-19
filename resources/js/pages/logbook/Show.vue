@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import {
-    ArrowLeft,
-    CalendarDays,
-    Clock3,
-    LandPlot,
-    UserRound,
-} from '@lucide/vue';
+import { ArrowLeft, CalendarDays, LandPlot, UserRound } from '@lucide/vue';
 import LogbookActivities from '@/components/logbook/LogbookActivities.vue';
 import {
     logbookDate,
@@ -58,11 +52,6 @@ defineProps<{ farm: LogbookFarm; log: LogbookDetail }>();
                                     icon: CalendarDays,
                                 },
                                 {
-                                    label: 'Waktu kerja (WIB)',
-                                    value: log.start_time + '-' + (log.end_time ?? 'Belum diisi'),
-                                    icon: Clock3,
-                                },
-                                {
                                     label: 'Pelapor',
                                     value:
                                         log.recorder_name ??
@@ -85,14 +74,6 @@ defineProps<{ farm: LogbookFarm; log: LogbookDetail }>();
                             </dd>
                         </div>
                     </dl>
-                </section>
-                <section class="admin-panel">
-                    <h2 class="admin-section-title">Catatan harian</h2>
-                    <p
-                        class="mt-3 text-sm leading-7 whitespace-pre-wrap text-muted-foreground"
-                    >
-                        {{ log.notes || 'Tidak ada catatan harian tambahan.' }}
-                    </p>
                 </section>
                 <LogbookActivities :activities="log.activities" />
             </div>

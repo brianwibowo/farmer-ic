@@ -249,7 +249,8 @@ class SopTemplateService
             'instructions' => $data['instructions'] ?? null,
             'offset_days' => (int) ($data['offset_days'] ?? 0),
             'tolerance_days' => (int) ($data['tolerance_days'] ?? 0),
-            'is_required' => (bool) ($data['is_required'] ?? true),
+            'hok' => isset($data['hok']) && $data['hok'] !== '' ? (int) $data['hok'] : null,
+            'is_required' => true,
         ];
     }
 }

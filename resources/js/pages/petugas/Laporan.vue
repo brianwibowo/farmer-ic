@@ -1,238 +1,321 @@
 <script setup lang="ts">
-import InertiaPagination from '@/components/InertiaPagination.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ClipboardList, ChevronRight, Search } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import {
+    Activity,
+    ClipboardCheck,
+    ClipboardList,
+    NotebookPen,
+    Search,
+} from '@lucide/vue';
+import { computed } from 'vue';
+import NumberPagination from '@/components/NumberPagination.vue';
 import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
+import ReportCard from '@/components/petugas/ReportCard.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import {
+    usePetugasReportFilters,
+    type PetugasReportFilters,
+} from '@/composables/usePetugasReportFilters';
 import type { PetugasActivityCategory } from '@/types/petugas-activity';
+import type { PetugasReportSummary } from '@/types/petugas-report';
 
 defineOptions({ inheritAttrs: false });
-
-type Report = {
-    id: string;
-    name: string;
-    date: string;
-    location: string;
-    source: string;
-    notes: string | null;
-    photo: string | null;
-};
 const props = defineProps<{
     farm: { id: string; name: string } | null;
     reports: {
-        data: Report[];
+        data: PetugasReportSummary[];
         total: number;
+        from: number | null;
+        to: number | null;
         current_page: number;
         last_page: number;
-        prev_page_url: string | null;
-        next_page_url: string | null;
     } | null;
-    filters: {
-        q?: string;
-        type?: string;
-        date?: string;
-        source?: string;
-        mine?: boolean;
-    };
+    stats: { sop: number; mandiri: number };
+    filters: PetugasReportFilters;
     types: { code: string; name: string }[];
     categories: PetugasActivityCategory[];
 }>();
-const filter = reactive({
-    q: props.filters.q ?? '',
-    type: props.filters.type ?? '',
-    date: props.filters.date ?? '',
-    source: props.filters.source ?? '',
-    mine: !!props.filters.mine,
-});
-const loading = ref(false);
+const page = usePage();
+const { filter, loading, error, applyNow, retry, requestPage } =
+    usePetugasReportFilters(
+        () => props.filters,
+        () => !!props.farm,
+    );
 const emptyDescription = computed(() => {
-    if (!props.farm) return 'Hubungi Admin untuk penugasan lahan.';
-
+    if (!props.farm) return 'Hubungi Admin untuk penugasan kebun.';
     return props.categories.length
         ? 'Coba ubah filter atau ketuk tombol + untuk mencatat aktivitas mandiri.'
         : 'Coba ubah filter untuk melihat laporan lain.';
 });
-function apply(): void {
-    router.get(
-        '/petugas/laporan',
-        { ...filter, mine: filter.mine ? 1 : 0 },
-        {
-            preserveState: true,
-            preserveScroll: true,
-            onStart: () => (loading.value = true),
-            onFinish: () => (loading.value = false),
-        },
+const listUrl = computed(() =>
+    /^\/petugas\/laporan(?:\?|$)/.test(page.url)
+        ? page.url
+        : '/petugas/laporan',
+);
+const reportGroups = computed(() => {
+    const groups = new Map<string, PetugasReportSummary[]>();
+
+    for (const report of props.reports?.data ?? []) {
+        const reports = groups.get(report.date) ?? [];
+        reports.push(report);
+        groups.set(report.date, reports);
+    }
+
+    return Array.from(groups, ([date, reports]) => ({ date, reports })).sort(
+        (a, b) => b.date.localeCompare(a.date),
     );
-}
-function reset(): void {
-    Object.assign(filter, {
-        q: '',
-        type: '',
-        date: '',
-        source: '',
-        mine: false,
-    });
-    apply();
+});
+function detailHref(id: string): string {
+    return `/petugas/laporan/${id}?${new URLSearchParams({ back: listUrl.value })}`;
 }
 </script>
+
 <template>
     <Head title="Laporan" />
-    <div class="space-y-4 pb-28" :aria-busy="loading">
-        <header>
-            <h1 class="text-xl font-semibold">Laporan</h1>
-            <p class="mt-1 text-sm text-muted-foreground">
-                Riwayat pekerjaan ·
-                {{ farm?.name ?? 'Belum ada penugasan lahan' }}
-            </p>
-        </header>
-        <div
-            class="flex items-center justify-between rounded-xl border border-primary/25 bg-primary/10 px-4 py-3"
+    <h1 class="sr-only">Laporan</h1>
+    <div class="min-w-0 space-y-4 pb-28 text-foreground" :aria-busy="loading">
+        <Link
+            v-if="farm"
+            href="/petugas/incidents"
+            class="petugas-card flex min-h-12 items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-            <div>
-                <p class="text-xl font-semibold">{{ reports?.total ?? 0 }}</p>
-                <p class="text-xs text-muted-foreground">Aktivitas tercatat</p>
-            </div>
-            <Link
-                v-if="farm"
-                href="/petugas/laporan/harian"
-                class="inline-flex min-h-11 items-center text-xs font-semibold text-secondary underline"
-                >Info kerja harian</Link
+            <span class="flex items-center gap-2.5">
+                <span
+                    class="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning"
+                >
+                    <ClipboardCheck class="size-4" aria-hidden="true" />
+                </span>
+                <span>
+                    <span class="block leading-tight">Tiket Insiden</span>
+                    <span
+                        class="mt-0.5 block text-xs font-normal text-muted-foreground"
+                    >
+                        Pantau arahan admin & tindak lanjut insiden
+                    </span>
+                </span>
+            </span>
+            <span class="text-xs font-semibold text-primary">Buka</span>
+        </Link>
+        <section
+            class="grid grid-cols-3 gap-2"
+            aria-label="Ringkasan laporan sesuai filter"
+        >
+            <div
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
             >
-        </div>
-        <form v-if="farm" class="space-y-2" @submit.prevent="apply">
-            <label class="relative block"
-                ><span class="sr-only">Cari laporan</span
-                ><input
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                    ><Activity class="size-4" aria-hidden="true"
+                /></span>
+                <p class="text-lg font-semibold">
+                    {{ loading || error ? '—' : (reports?.total ?? 0) }}
+                </p>
+                <p class="text-xs text-muted-foreground">Aktivitas</p>
+            </div>
+            <div
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
+            >
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-info/10 text-info"
+                    ><ClipboardCheck class="size-4" aria-hidden="true"
+                /></span>
+                <p class="text-lg font-semibold">
+                    {{ loading || error ? '—' : stats.sop }}
+                </p>
+                <p class="text-xs text-muted-foreground">SOP</p>
+            </div>
+            <div
+                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
+            >
+                <span
+                    class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                    ><NotebookPen class="size-4" aria-hidden="true"
+                /></span>
+                <p class="text-lg font-semibold">
+                    {{ loading || error ? '—' : stats.mandiri }}
+                </p>
+                <p class="text-xs text-muted-foreground">Mandiri</p>
+            </div>
+        </section>
+
+        <form v-if="farm" class="space-y-3" @submit.prevent="applyNow">
+            <label class="relative block">
+                <span class="sr-only">Cari laporan</span>
+                <input
                     v-model="filter.q"
                     type="search"
+                    maxlength="100"
                     placeholder="Cari aktivitas atau subblok"
-                    class="min-h-11 w-full rounded-xl border border-primary bg-card px-3 pr-10 text-sm focus-visible:outline-2 focus-visible:outline-ring" /><Search
-                    class="pointer-events-none absolute top-3 right-3 size-5 text-primary"
-            /></label>
+                    class="petugas-field min-h-11 w-full rounded-xl border border-border px-3 pr-10 text-foreground"
+                />
+                <Search
+                    class="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-primary"
+                    aria-hidden="true"
+                />
+            </label>
             <div class="grid grid-cols-2 gap-2">
-                <label class="space-y-1 text-xs"
-                    ><span>Tanggal kerja</span
-                    ><input
+                <label class="min-w-0 space-y-1 text-xs">
+                    <span>Tanggal kerja</span>
+                    <input
                         v-model="filter.date"
                         type="date"
-                        class="min-h-11 w-full min-w-0 rounded-xl border border-border bg-card px-2 text-sm [color-scheme:light] dark:[color-scheme:dark]" /></label
-                ><label class="space-y-1 text-xs"
-                    ><span>Kategori</span
-                    ><AppSelect
+                        class="petugas-field min-h-11 w-full min-w-0 rounded-xl border border-border px-2 text-foreground [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                </label>
+                <div class="min-w-0 space-y-1 text-xs">
+                    <label for="report-type">Kategori</label>
+                    <AppSelect
+                        id="report-type"
                         v-model="filter.type"
                         aria-label="Kategori laporan"
                         class="min-h-11"
-                        ><AppSelectOption value=""
+                    >
+                        <AppSelectOption value=""
                             >Semua kategori</AppSelectOption
-                        ><AppSelectOption
+                        >
+                        <AppSelectOption
                             v-for="type in types"
                             :key="type.code"
                             :value="type.code"
                             >{{ type.name }}</AppSelectOption
-                        ></AppSelect
-                    ></label
-                >
+                        >
+                    </AppSelect>
+                </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <AppSelect
-                    v-model="filter.source"
-                    aria-label="Asal aktivitas"
-                    class="min-h-11 flex-1"
-                    ><AppSelectOption value="">Semua sumber</AppSelectOption
-                    ><AppSelectOption value="sop">Dari SOP</AppSelectOption
-                    ><AppSelectOption value="mandiri"
-                        >Mandiri</AppSelectOption
-                    ></AppSelect
-                ><label class="flex min-h-11 items-center gap-2 text-xs"
-                    ><input v-model="filter.mine" type="checkbox" />Input
-                    saya</label
-                >
-            </div>
-            <div class="flex gap-2">
-                <button
-                    type="submit"
-                    :disabled="loading"
-                    class="min-h-11 flex-1 rounded-xl bg-secondary px-3 text-sm font-medium text-secondary-foreground disabled:opacity-50"
-                >
-                    {{ loading ? 'Memuat…' : 'Terapkan filter' }}</button
-                ><button
-                    type="button"
-                    class="min-h-11 rounded-xl border border-border px-3 text-sm"
-                    :disabled="loading"
-                    @click="reset"
-                >
-                    Reset
-                </button>
+            <div class="flex flex-wrap items-end gap-2">
+                <div class="min-w-36 flex-1 space-y-1 text-xs">
+                    <label for="report-source">Sumber laporan</label>
+                    <AppSelect
+                        id="report-source"
+                        v-model="filter.source"
+                        aria-label="Asal aktivitas"
+                        class="min-h-11"
+                    >
+                        <AppSelectOption value="">Semua sumber</AppSelectOption>
+                        <AppSelectOption value="sop">Dari SOP</AppSelectOption>
+                        <AppSelectOption value="mandiri"
+                            >Mandiri</AppSelectOption
+                        >
+                    </AppSelect>
+                </div>
+                <label class="flex min-h-11 items-center gap-2 text-xs">
+                    <input
+                        v-model="filter.mine"
+                        type="checkbox"
+                        class="size-4 accent-primary"
+                    />Input saya
+                </label>
             </div>
         </form>
+
+        <p v-if="loading" role="status" class="text-sm text-muted-foreground">
+            Memuat laporan…
+        </p>
         <div
-            v-if="!reports?.data.length"
+            v-else-if="error"
+            role="alert"
+            class="petugas-card space-y-2 p-4 text-sm text-error"
+        >
+            <p>{{ error }}</p>
+            <button
+                type="button"
+                class="min-h-11 rounded-xl font-semibold underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                @click="retry"
+            >
+                Coba lagi
+            </button>
+        </div>
+        <div
+            v-else-if="!reports?.data.length"
             class="petugas-card petugas-empty bg-muted/40 px-5 py-10 text-center"
         >
-            <ClipboardList class="mx-auto size-9 text-primary" />
+            <ClipboardList
+                class="mx-auto size-9 text-primary"
+                aria-hidden="true"
+            />
             <h2 class="mt-3 font-semibold">
-                Belum ada laporan yang ditampilkan
+                {{
+                    farm
+                        ? 'Belum ada laporan yang ditampilkan'
+                        : 'Belum ada penugasan kebun'
+                }}
             </h2>
             <p class="mt-2 text-sm text-muted-foreground">
                 {{ emptyDescription }}
             </p>
         </div>
-        <ul v-else class="space-y-3" aria-label="Riwayat aktivitas">
-            <li v-for="(report, index) in reports.data" :key="report.id">
+        <div
+            v-else-if="reportGroups.length"
+            class="space-y-5"
+            role="group"
+            aria-label="Riwayat aktivitas"
+        >
+            <section
+                v-for="group in reportGroups"
+                :key="group.date"
+                :aria-labelledby="`report-date-${group.date}`"
+                class="space-y-2"
+            >
                 <h2
-                    v-if="
-                        index === 0 ||
-                        reports.data[index - 1].date !== report.date
-                    "
-                    class="mt-4 mb-2 text-xs font-semibold text-muted-foreground"
+                    :id="`report-date-${group.date}`"
+                    class="text-xs font-semibold text-muted-foreground"
                 >
-                    {{ report.date }}
+                    <time :datetime="group.date">{{ group.date }}</time>
                 </h2>
-                <Link
-                    :href="`/petugas/laporan/${report.id}`"
-                    class="petugas-card flex gap-3 p-3 hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-ring"
-                    ><img
-                        v-if="report.photo"
-                        :src="report.photo"
-                        alt="Dokumentasi aktivitas"
-                        loading="lazy"
-                        class="size-20 shrink-0 rounded-xl object-cover" /><span
-                        v-else
-                        class="flex size-20 shrink-0 items-center justify-center rounded-xl bg-primary/10"
-                        ><ClipboardList class="size-7 text-primary"
-                    /></span>
-                    <div class="min-w-0 flex-1">
-                        <span
-                            class="rounded-md bg-primary/10 px-2 py-1 text-[10px] font-semibold text-secondary"
-                            >{{ report.source }}</span
+                <ul class="space-y-3">
+                    <li v-for="report in group.reports" :key="report.id">
+                        <ReportCard
+                            :report="report"
+                            :href="detailHref(report.id)"
+                        />
+                    </li>
+                </ul>
+            </section>
+        </div>
+        <footer
+            v-if="reports && !error"
+            class="petugas-card flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-xs text-muted-foreground"
+        >
+            <span role="status" aria-live="polite" aria-atomic="true">
+                <template v-if="loading">Memuat laporan…</template>
+                <template v-else>
+                    Menampilkan {{ reports.from ?? 0 }}–{{
+                        reports.to ?? 0
+                    }}
+                    dari {{ reports.total }} aktivitas.
+                </template>
+            </span>
+            <div
+                class="ml-auto flex w-full flex-wrap items-center justify-between gap-3"
+            >
+                <label for="report-per-page" class="flex items-center gap-2">
+                    Per halaman
+                    <AppSelect
+                        id="report-per-page"
+                        v-model.number="filter.per_page"
+                        class="admin-field w-auto!"
+                        :disabled="loading"
+                        aria-label="Jumlah aktivitas per halaman"
+                    >
+                        <AppSelectOption
+                            v-for="size in [10, 20, 50]"
+                            :key="size"
+                            :value="size"
+                            >{{ size }}</AppSelectOption
                         >
-                        <h3 class="mt-2 text-sm font-semibold">
-                            {{ report.name }}
-                        </h3>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            {{ report.location }}
-                        </p>
-                        <p
-                            v-if="report.notes"
-                            class="mt-1 line-clamp-1 text-xs text-muted-foreground"
-                        >
-                            {{ report.notes }}
-                        </p>
-                    </div>
-                    <ChevronRight
-                        class="mt-2 size-4 shrink-0 text-muted-foreground"
-                /></Link>
-            </li>
-        </ul>
-        <InertiaPagination
-            v-if="reports && reports.last_page > 1"
-            :paginator="reports"
-            label="Pagination laporan"
-            class="ml-auto justify-end"
-            :disabled="loading"
-        />
+                    </AppSelect>
+                </label>
+                <NumberPagination
+                    class="ml-auto"
+                    :current-page="reports.current_page"
+                    :total-pages="reports.last_page"
+                    :disabled="loading"
+                    label="Pagination laporan"
+                    @change="requestPage"
+                />
+            </div>
+        </footer>
         <ActivityAddButton :categories="categories" />
     </div>
 </template>

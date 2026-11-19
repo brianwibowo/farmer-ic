@@ -72,7 +72,8 @@ class DemoOwnerPortfolioSeeder extends Seeder
                     'name' => $site['name'], 'land_tenure' => $site['land_tenure'], 'address' => $site['address'],
                     'city' => $site['city'], 'district' => $site['district'], 'province' => $site['province'],
                     'total_area_ha' => $site['area_ha'], 'latitude' => $site['latitude'], 'longitude' => $site['longitude'],
-                    'target_volume_ton' => $site['target_volume_ton'], 'image_url' => '/images/kebun-placeholder.svg',
+                    'target_volume_ton' => $site['target_volume_ton'],
+                    'image_url' => \Database\Seeders\Support\DemoUpload::image('farm', 'farms/'.$id.'/demo.jpg'),
                 ])->save();
                 $this->blocksAndBatches($actor, $team, $farm, $variety, $template, $site);
             }
@@ -99,7 +100,7 @@ class DemoOwnerPortfolioSeeder extends Seeder
         $batchData = DemoOwnerPortfolioData::megamendungActiveBatch();
 
         $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
-            ->where('code', $batchData['block_code'])->firstOrFail();
+            ->where('name', $batchData['block_name'])->firstOrFail();
         $existing = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
             ->where('subblock_label', $batchData['subblock_label'])
             ->where('block_id', $block->id)->first();
@@ -214,10 +215,10 @@ class DemoOwnerPortfolioSeeder extends Seeder
                 ...$data, 'description' => 'Blok fisik pada skenario portofolio '.$site['name'].', snapshot 5 November 2026.', 'is_active' => true,
                 'commodity_id' => $variety->commodity_id, 'default_sop_template_id' => $template->id,
             ]);
-            $blocks[$data['code']] = $block;
+            $blocks[$data['name']] = $block;
         }
         foreach ($site['batches'] as $data) {
-            $block = $blocks[$data['block_code']];
+            $block = $blocks[$data['block_name']];
             Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
             $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
                 'reserved_area_ha' => $data['reserved_area_ha'], 'subblock_label' => $data['subblock_label'],

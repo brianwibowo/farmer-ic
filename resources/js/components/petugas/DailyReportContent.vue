@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Link, useForm } from '@inertiajs/vue3';
-import { LoaderCircle, Pencil, Plus } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { Link } from '@inertiajs/vue3';
+import { Plus } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import type { DailyReport, DailyReportActivity } from '@/types/daily-activity';
 
@@ -9,156 +9,35 @@ const props = defineProps<{
     farm: { id: string; name: string };
     date: string;
     log: DailyReport | null;
-    canUpdate: boolean;
     canRecord: boolean;
     legacyActivity?: DailyReportActivity | null;
 }>();
 const activities = computed(() =>
-    props.legacyActivity ? [props.legacyActivity] : (props.log?.activities ?? []),
+    props.legacyActivity
+        ? [props.legacyActivity]
+        : (props.log?.activities ?? []),
 );
-const editing = ref(false);
 const adding = ref(false);
-const header = useForm({
-    start_time: '',
-    end_time: '',
-    daily_notes: '',
-});
-const fieldClass =
-    'block min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-error [color-scheme:light] dark:[color-scheme:dark]';
-watch(
-    () => props.log,
-    (log) => {
-        if (!log) return;
-        header.defaults({
-            start_time: log.start_time,
-            end_time: log.end_time ?? '',
-            daily_notes: log.notes ?? '',
-        });
-        header.reset();
-        editing.value = false;
-    },
-    { immediate: true },
-);
-function save(): void {
-    if (!props.log || header.processing) return;
-    header.clearErrors();
-    if (header.end_time && header.end_time <= header.start_time) {
-        header.setError('end_time', 'Waktu selesai harus setelah waktu mulai.');
-        return;
-    }
-    header.patch(`/kebun/${props.farm.id}/daily-logs/${props.log.id}`, {
-        preserveScroll: true,
-    });
-}
 </script>
 
 <template>
     <div class="space-y-5 text-foreground">
         <section
             v-if="log"
-            class="space-y-4 rounded-xl border border-border bg-card p-4"
+            class="space-y-2 rounded-xl border border-border bg-card p-4"
         >
-            <div class="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                    <h2 class="text-lg font-semibold">Ringkasan harian</h2>
-                    <p class="mt-1 text-xs leading-5 text-muted-foreground">
-                        Laporan bersama seluruh Petugas lahan. Dibuat pertama
-                        oleh {{ log.recorder_name ?? 'Petugas lahan' }}.
-                    </p>
-                </div>
-                <Button
-                    v-if="canUpdate"
-                    type="button"
-                    variant="outline"
-                    class="min-h-11 rounded-xl"
-                    :disabled="header.processing"
-                    :aria-expanded="editing"
-                    @click="editing = !editing"
-                    ><Pencil class="size-4" aria-hidden="true" />{{
-                        editing ? 'Tutup' : 'Ubah'
-                    }}</Button
-                >
-            </div>
-            <p class="text-base font-semibold">
-                {{ log.start_time }}–{{ log.end_time ?? 'Belum diisi' }} WIB
+            <h2 class="text-lg font-semibold">Ringkasan harian</h2>
+            <p class="text-xs leading-5 text-muted-foreground">
+                Laporan bersama seluruh Petugas lahan. Dibuat pertama oleh
+                {{ log.recorder_name ?? 'Petugas lahan' }}.
             </p>
-            <p
-                v-if="log.notes"
-                class="text-sm leading-6 whitespace-pre-line text-muted-foreground"
-            >
-                {{ log.notes }}
-            </p>
-            <form
-                v-if="editing && canUpdate"
-                class="space-y-3 border-t border-border pt-4"
-                @submit.prevent="save"
-            >
-                <p class="text-xs leading-5 text-muted-foreground">
-                    Perubahan berlaku untuk header bersama, bukan jam atau
-                    jumlah pekerja per aktivitas.
-                </p>
-                <fieldset :disabled="header.processing" class="space-y-3">
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="space-y-2 text-sm"
-                            ><span>Mulai kerja harian</span
-                            ><input
-                                v-model="header.start_time"
-                                required
-                                type="time"
-                                :class="fieldClass"
-                                :aria-invalid="
-                                    !!header.errors.start_time
-                                " /></label
-                        ><label class="space-y-2 text-sm"
-                            ><span>Selesai kerja harian</span
-                            ><input
-                                v-model="header.end_time"
-                                type="time"
-                                :class="fieldClass"
-                                :aria-invalid="!!header.errors.end_time"
-                        /></label>
-                    </div>
-                    <label class="block space-y-2 text-sm"
-                        ><span>Catatan umum hari ini</span
-                        ><textarea
-                            v-model="header.daily_notes"
-                            rows="3"
-                            maxlength="5000"
-                            :class="fieldClass"
-                            :aria-invalid="!!header.errors.daily_notes"
-                        />
-                    </label>
-                </fieldset>
-                <p
-                    v-for="(message, key) in header.errors"
-                    :key="key"
-                    role="alert"
-                    class="text-sm text-error"
-                >
-                    {{ message }}
-                </p>
-                <Button
-                    type="submit"
-                    class="min-h-12 w-full rounded-xl"
-                    :disabled="header.processing"
-                    ><LoaderCircle
-                        v-if="header.processing"
-                        class="size-4 animate-spin motion-reduce:animate-none"
-                        aria-hidden="true"
-                    />{{
-                        header.processing
-                            ? 'Menyimpan…'
-                            : 'Simpan informasi harian'
-                    }}</Button
-                >
-            </form>
         </section>
         <p
             v-else-if="legacyActivity"
             role="status"
             class="rounded-xl border border-border bg-card p-5 text-sm leading-6 text-muted-foreground"
         >
-            Informasi harian dan jam kerja tidak tersedia untuk aktivitas ini.
+            Ringkasan logbook harian tidak tersedia untuk aktivitas ini.
         </p>
         <p
             v-else
@@ -217,19 +96,30 @@ function save(): void {
                     v-if="activity.photos.length"
                     class="grid grid-cols-2 gap-2"
                 >
-                    <a
+                    <template
                         v-for="(photo, index) in activity.photos"
                         :key="photo.id"
-                        :href="photo.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        ><img
-                            :src="photo.url"
-                            :alt="`Bukti ${activity.name}, foto ${index + 1}`"
-                            class="aspect-square w-full rounded-xl object-cover"
-                            loading="lazy"
-                    /></a>
+                    >
+                        <a
+                            v-if="photo.available !== false"
+                            :href="photo.url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            ><img
+                                :src="photo.url"
+                                :alt="`Bukti ${activity.name}, foto ${index + 1}`"
+                                class="aspect-square w-full rounded-xl object-cover"
+                                loading="lazy"
+                        /></a>
+                        <div
+                            v-else
+                            role="status"
+                            class="flex aspect-square items-center justify-center rounded-xl bg-muted p-3 text-center text-xs text-muted-foreground"
+                        >
+                            Foto {{ index + 1 }} tidak tersedia
+                        </div>
+                    </template>
                 </div>
                 <Link
                     v-if="activity.task_id && canRecord"

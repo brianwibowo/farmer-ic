@@ -16,6 +16,7 @@ export type PetugasTask = {
     urgency: PetugasTaskUrgency;
     activity_category: PetugasTaskCategory;
     offset_days: number;
+    hok?: number | null;
     scheduled_date: string | null;
     due_date: string | null;
     reporting_window: { start: string; end: string } | null;
@@ -87,11 +88,9 @@ export type TaskActivityField = {
 export type TaskActivityReport = {
     id: string;
     performer_name: string | null;
-    work_date: string;
-    start_time: string;
-    end_time: string | null;
-    worker_count: number;
+    work_date: string | null;
+    worker_count: number | null;
     notes: string | null;
-    details: Record<string, string | number | null>;
-    photos: { id: string; url: string }[];
+    details: Record<string, string | number | null> | null;
+    photos: { id: string; url: string; available: boolean }[];
 };

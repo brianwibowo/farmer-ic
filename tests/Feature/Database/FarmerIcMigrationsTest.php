@@ -434,7 +434,21 @@ SQL, [$table]), 'columns');
         }
         $farmTeamAlreadyDocumented = in_array('team_id', array_column($this->definition['farms'], 'name'), true);
         $this->assertSame($simpleForeignKeys + ($farmTeamAlreadyDocumented ? 0 : 1), (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
-        $this->assertSame(12, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
+        $this->assertSame(13, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
+        // Verify the ordered column pairs, not just the number of constraints.
+        $this->assertSame(1, (int) $this->database->scalar(<<<'SQL'
+SELECT COUNT(*) FROM pg_constraint c
+WHERE c.contype = 'f' AND c.conrelid = 'planting_cycles'::regclass
+AND c.confrelid = 'farm_cycles'::regclass
+AND (SELECT array_agg(a.attname::text ORDER BY key.position)
+     FROM unnest(c.conkey) WITH ORDINALITY AS key(number, position)
+     JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = key.number)
+    = ARRAY['farm_cycle_id', 'farm_id']::text[]
+AND (SELECT array_agg(a.attname::text ORDER BY key.position)
+     FROM unnest(c.confkey) WITH ORDINALITY AS key(number, position)
+     JOIN pg_attribute a ON a.attrelid = c.confrelid AND a.attnum = key.number)
+    = ARRAY['id', 'farm_id']::text[]
+SQL));
     }
 
     /** @param array<string, mixed> $overrides
@@ -648,6 +662,11 @@ SQL, [$table]), 'columns');
 
     private function assertCrossTableIntegrity(): void
     {
+        $farmCycle = $this->insert('farm_cycles');
+        $this->database->table('planting_cycles')->where('id', $this->ids['planting_cycles'])->update(['farm_cycle_id' => $farmCycle]);
+        $this->reject(fn () => $this->database->table('planting_cycles')->where('id', $this->ids['other_cycle'])->update(['farm_cycle_id' => $farmCycle]), '23503');
+        // Legacy batches may still have no grouping; a valid grouping must belong to their farm.
+        $this->database->table('planting_cycles')->where('id', $this->ids['planting_cycles'])->update(['farm_cycle_id' => null]);
         $this->reject(fn () => $this->activity('maintenance', ['planting_cycle_id' => $this->ids['other_cycle']]), '23503');
         foreach (['financial_projections', 'operational_targets'] as $table) {
             $this->reject(fn () => $this->insert($table, ['planting_cycle_id' => $this->ids['other_cycle']]), '23503');

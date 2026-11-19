@@ -49,7 +49,6 @@ class PlantingCycleTaskGenerationTest extends TestCase
             'created_by' => $this->admin->id,
         ])->save();
         $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
-            'code' => 'B01',
             'name' => 'Blok Utara',
             'area_ha' => '5.0000',
         ]);
@@ -283,5 +282,67 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertSame('already_generated', $result['status']);
         $this->assertCount(2, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->get());
         $this->assertSame($first->versions()->where('status', 'published')->value('id'), $subblok->refresh()->sop_template_version_id);
+    }
+
+    public function test_snapshots_sop_task_hok_and_enforces_positive_check_constraint(): void
+    {
+        $sop = app(SopTemplateService::class);
+        $template = $sop->create($this->admin, $this->team, [
+            'commodity_id' => $this->commodity->id,
+            'name' => 'SOP HOK Snapshot',
+            'description' => null,
+            'is_active' => true,
+        ]);
+        $version = $template->versions()->firstOrFail();
+        $sop->createTask($version, [
+            'activity_category' => 'maintenance',
+            'name' => 'Pemupukan HOK',
+            'offset_days' => 7,
+            'tolerance_days' => 2,
+            'is_required' => true,
+            'hok' => 5,
+            'instructions' => null,
+        ]);
+        $sop->createTask($version, [
+            'activity_category' => 'harvest',
+            'name' => 'Panen Opsional HOK',
+            'offset_days' => 85,
+            'tolerance_days' => 3,
+            'is_required' => true,
+            'hok' => null,
+            'instructions' => null,
+        ]);
+        $sop->publish($version, $this->admin);
+        $this->useDefaultSop($template);
+
+        $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-01'])->save();
+
+        $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
+        $this->assertSame('generated', $result['status']);
+
+        $tasks = $subblok->tasks()->get();
+        $this->assertSame(5, $tasks[0]->hok);
+        $this->assertNull($tasks[1]->hok);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        $tasks[0]->update(['hok' => 0]);
+    }
+
+    public function test_generated_tasks_are_always_required_at_service_and_database_layers(): void
+    {
+        $template = $this->publishedSop();
+        $this->useDefaultSop($template);
+        $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-01'])->save();
+
+        app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
+
+        $tasks = $subblok->tasks()->get();
+        $this->assertCount(2, $tasks);
+        $this->assertTrue($tasks->every(fn (PlantingCycleTask $task): bool => $task->is_required === true));
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        $tasks[0]->update(['is_required' => false]);
     }
 }

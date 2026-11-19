@@ -305,7 +305,6 @@ class DemoOwnerPortfolioSeederTest extends TestCase
         $this->assertNotNull($log);
         $companion = FarmActivity::query()->where('daily_activity_log_id', $log->id)->where('id', '!=', $legacy->id)->firstOrFail();
         $companion->forceFill(['position' => 50])->save();
-        $log->forceFill(['start_time' => '07:15', 'end_time' => '15:45', 'notes' => 'Catatan harian yang sudah disesuaikan.'])->save();
         $headerBefore = $log->refresh()->getRawOriginal();
         $legacy->forceFill(['description' => 'Catatan irigasi yang sudah disesuaikan.', 'daily_activity_log_id' => null, 'position' => null])->save();
 

@@ -11,4 +11,12 @@ class StorePetugasSubblokRequest extends StorePreparationBatchRequest
     {
         return ['kebun', 'penanaman'];
     }
+
+    /** @return array<string, array<mixed>> */
+    public function rules(): array
+    {
+        return parent::rules() + [
+            'work_date' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()],
+        ];
+    }
 }

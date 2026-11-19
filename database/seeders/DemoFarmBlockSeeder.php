@@ -24,11 +24,11 @@ class DemoFarmBlockSeeder extends Seeder
             $farm = Farm::visibleTo($actor, $team)->whereIn('name', DemoFarmSeeder::FARM_NAMES)->lockForUpdate()->firstOrFail();
             Gate::forUser($actor)->authorize('create', [FarmBlock::class, $farm]);
             foreach ([
-                ['B01', 'Blok Utara', '10.0000', '2026-05-17 07:00:00', '2026-05-19 16:00:00'],
-                ['B02', 'Blok Selatan', '2.5000', '2026-09-20 07:00:00', '2026-09-22 16:00:00'],
-            ] as [$code, $name, $area, $clearingStarted, $clearingCompleted]) {
-                if (! FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $code)->exists()) {
-                    $created = app(FarmBlockService::class)->create($farm, $actor, $team, ['code' => $code, 'name' => $name,
+                ['Blok Utara', '10.0000', '2026-05-17 07:00:00', '2026-05-19 16:00:00'],
+                ['Blok Selatan', '2.5000', '2026-09-20 07:00:00', '2026-09-22 16:00:00'],
+            ] as [$name, $area, $clearingStarted, $clearingCompleted]) {
+                if (! FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('name', $name)->exists()) {
+                    $created = app(FarmBlockService::class)->create($farm, $actor, $team, ['name' => $name,
                         'area_ha' => $area, 'description' => 'Blok permanen lahan percontohan Cileuksa.',
                         'commodity_id' => CropVariety::visibleTo($actor, $team)->where('name', 'Bisi 18')->value('commodity_id')]);
                     $created->forceFill(['land_clearing_started_at' => $clearingStarted, 'land_clearing_completed_at' => $clearingCompleted])->save();
@@ -48,8 +48,8 @@ class DemoFarmBlockSeeder extends Seeder
             }
 
             $variety = CropVariety::visibleTo($actor, $team)->where('name', 'Bisi 18')->firstOrFail();
-            $b01 = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', 'B01')->firstOrFail();
-            $b02 = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', 'B02')->firstOrFail();
+            $b01 = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('name', 'Blok Utara')->firstOrFail();
+            $b02 = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('name', 'Blok Selatan')->firstOrFail();
 
             // A completed previous cycle keeps a real Petugas harvest report
             // available for admin harvest transactions.

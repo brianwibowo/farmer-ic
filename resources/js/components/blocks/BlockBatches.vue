@@ -77,7 +77,7 @@ const statusLabels: Record<string, string> = {
 const ageLabels: Record<string, string> = {
     available: 'HST belum tersedia',
     not_planted: 'Belum tanam',
-    future: 'Tanggal tanam mendatang',
+    future: 'HST belum dimulai',
     cancelled: 'Dibatalkan',
 };
 function currentStage(batch: PreparationBatch): string {
@@ -202,7 +202,7 @@ const progressSummary = computed(() => {
                         <h5
                             class="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-bold [overflow-wrap:anywhere] text-foreground"
                         >
-                            Sub blok {{ block.code }}{{ batch.subblock_label }}
+                            Sub blok {{ batch.subblock_label }}
                             <span
                                 v-if="returnTo === 'farm' && batch.age"
                                 class="rounded-lg bg-primary/10 px-2 py-1 text-xs font-semibold text-primary tabular-nums"
@@ -217,6 +217,9 @@ const progressSummary = computed(() => {
                         </h5>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Batch {{ batch.batch_number }} ·
+                            <template v-if="batch.farm_cycle_number"
+                                >Siklus {{ batch.farm_cycle_number }} ·
+                            </template>
                             {{ statusLabels[batch.status] ?? batch.status }}
                         </p>
                     </div>
@@ -226,7 +229,7 @@ const progressSummary = computed(() => {
                             variant="outline"
                             size="sm"
                             class="block-action"
-                            :aria-label="`Tutup panen sub blok ${block.code}${batch.subblock_label}`"
+                            :aria-label="`Tutup panen sub blok ${batch.subblock_label}`"
                             @click="
                                 closing = batch;
                                 closeForm.clearErrors();
@@ -238,7 +241,7 @@ const progressSummary = computed(() => {
                             variant="ghost"
                             size="sm"
                             class="block-action"
-                            :aria-label="`Ubah sub blok ${block.code}${batch.subblock_label}`"
+                            :aria-label="`Ubah sub blok ${batch.subblock_label}`"
                             @click="open(batch)"
                             ><Pencil class="size-4" />Ubah</Button
                         >
@@ -298,7 +301,7 @@ const progressSummary = computed(() => {
                         :stages="batch.stages"
                         :growth="batch.growth"
                         :theme="theme"
-                        :growth-context="`Sub blok ${block.code}${batch.subblock_label} · Batch ${batch.batch_number}`"
+                        :growth-context="`Sub blok ${batch.subblock_label} · Batch ${batch.batch_number}`"
                     >
                         <template
                             v-if="
@@ -330,7 +333,7 @@ const progressSummary = computed(() => {
     </section>
     <BatchDialog
         v-model:open="editing"
-        :context="`${farm.name} / ${block.code}`"
+        :context="`${farm.name} / ${block.name}`"
         :base="base"
         :capacity="block.batch_capacity"
         :batch="selected"
@@ -339,34 +342,50 @@ const progressSummary = computed(() => {
     />
     <Dialog
         :open="!!closing"
-        @update:open="(value) => { if (!value && !closeForm.processing) closing = null; }"
+        @update:open="
+            (value) => {
+                if (!value && !closeForm.processing) closing = null;
+            }
+        "
     >
         <DialogContent
             :class="theme"
             :show-close-button="!closeForm.processing"
             @interact-outside.prevent
-            @escape-key-down="(event) => { if (closeForm.processing) event.preventDefault(); }"
+            @escape-key-down="
+                (event) => {
+                    if (closeForm.processing) event.preventDefault();
+                }
+            "
         >
             <DialogHeader>
                 <DialogTitle>
-                    Tutup panen sub blok {{ block.code }}{{ closing?.subblock_label }}?
+                    Tutup panen sub blok {{ closing?.subblock_label }}?
                 </DialogTitle>
                 <DialogDescription>
-                    Pastikan laporan panen sudah lengkap. Subblok akan selesai
-                    dan tidak dapat menerima laporan panen tambahan. Tugas panen
-                    yang masih terbuka akan ditandai selesai. Penutupan tidak
-                    mengharuskan seluruh luas tanam sudah dipanen.
+                    Pastikan seluruh tugas SOP perawatan dan panen sudah
+                    dilaporkan atau ditandai tidak dikerjakan. Subblok akan
+                    selesai dan tugas panen yang sudah dilaporkan akan ditandai
+                    selesai. Penutupan tidak mengharuskan seluruh luas tanam
+                    sudah dipanen.
                 </DialogDescription>
             </DialogHeader>
             <p v-if="closeError" role="alert" class="text-sm text-error">
                 {{ closeError }}
             </p>
             <DialogFooter>
-                <Button variant="outline" :disabled="closeForm.processing" @click="closing = null">
+                <Button
+                    variant="outline"
+                    :disabled="closeForm.processing"
+                    @click="closing = null"
+                >
                     Batal
                 </Button>
                 <Button :disabled="closeForm.processing" @click="closeHarvest">
-                    <LoaderCircle v-if="closeForm.processing" class="animate-spin" />
+                    <LoaderCircle
+                        v-if="closeForm.processing"
+                        class="animate-spin"
+                    />
                     {{ closeForm.processing ? 'Menutup…' : 'Ya, tutup panen' }}
                 </Button>
             </DialogFooter>

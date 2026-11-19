@@ -12,6 +12,16 @@ export function formatActivityNumber(value: number): string {
     }).format(value);
 }
 
+export function stepWorkerCount(
+    value: number | string,
+    step: -1 | 1,
+    maximum: number,
+): number {
+    const number = Number(value);
+    const current = Number.isFinite(number) ? number : 0;
+    return Math.min(maximum, Math.max(1, Math.trunc(current) + step));
+}
+
 export function maximumError(
     value: string | number | null | undefined,
     maximum: number | null | undefined,

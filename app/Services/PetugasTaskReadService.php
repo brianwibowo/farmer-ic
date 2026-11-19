@@ -12,6 +12,7 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
 use App\Services\Activity\TaskReportingWindow;
+use App\Support\ActivityPhotoFile;
 use Carbon\CarbonImmutable;
 
 class PetugasTaskReadService
@@ -53,7 +54,7 @@ class PetugasTaskReadService
         };
 
         return [
-            ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'offset_days', 'is_required']),
+            ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'offset_days', 'hok', 'is_required']),
             'scheduled_date' => $effective,
             'reporting_window' => $window,
             'due_date' => $window['end'] ?? null, 'urgency' => $urgency,
@@ -65,7 +66,9 @@ class PetugasTaskReadService
             'subblok' => [
                 'id' => $cycle->id, 'number' => $cycle->getAttribute('batch_number'), 'label' => $cycle->getAttribute('subblock_label'),
                 'planned_planting_at' => $cycle->planned_planting_at?->toDateString(), 'planted_at' => $cycle->planted_at?->toDateString(),
-                'hst' => $cycle->planted_at ? (int) $cycle->planted_at->startOfDay()->diffInDays($today, false) : null,
+                'hst' => $cycle->planted_at !== null && $cycle->planted_at->toDateString() <= $today->toDateString()
+                    ? (int) CarbonImmutable::parse($cycle->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today)
+                    : null,
                 'farm' => $farm->only(['id', 'name']), 'block' => $block->only(['id', 'name']),
                 'variety' => $variety?->only(['id', 'name']) ?? ['id' => '', 'name' => 'Belum ditentukan'],
             ],
@@ -84,10 +87,11 @@ class PetugasTaskReadService
                 return [
                     'id' => $activity->id, 'work_date' => $log?->work_date->toDateString(),
                     'performer_name' => $activity->performer?->name,
-                    'start_time' => $log?->start_time, 'end_time' => $log?->end_time, 'worker_count' => $activity->worker_count,
+                    'worker_count' => $activity->worker_count,
                     'notes' => $activity->description, 'details' => json_decode((string) $activity->getAttribute('task_details'), true),
                     'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn ($photo) => [
                         'id' => $photo->id, 'url' => route('petugas.aktivitas.photos', ['activity' => $activity->id, 'photo' => $photo->id]),
+                        'available' => ActivityPhotoFile::available($photo),
                     ])->all(),
                 ];
             })->all());

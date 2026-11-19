@@ -57,7 +57,7 @@ class DemoPetugasTodoSeeder extends Seeder
             $planted = $today->subDays(14);
             $commodity = Commodity::visibleTo($actor, $team)->where('name', 'Jagung')->firstOrFail();
             $variety = CropVariety::visibleTo($actor, $team)->where('commodity_id', $commodity->id)->where('name', 'Bisi 18')->firstOrFail();
-            $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', 'B01')->firstOrFail();
+            $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('name', 'Blok Utara')->firstOrFail();
             $sops = app(SopTemplateService::class);
             $gate->authorize('create', [SopTemplate::class, $team]);
             $template = $sops->create($actor, $team, [

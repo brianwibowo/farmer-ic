@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $instructions
  * @property int $offset_days
  * @property int $tolerance_days
+ * @property int|null $hok
  * @property CarbonImmutable|null $scheduled_date
  * @property CarbonImmutable|null $due_date
  * @property bool $is_required
@@ -36,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'planting_cycle_id', 'planting_cycle_stage_id', 'sop_template_task_id',
     'activity_category', 'activity_subcategory', 'name', 'instructions',
-    'offset_days', 'tolerance_days', 'scheduled_date', 'due_date',
+    'offset_days', 'tolerance_days', 'hok', 'scheduled_date', 'due_date',
     'is_required', 'status', 'completed_at', 'completed_by', 'completion_note',
     'skip_reason', 'rescheduled_date', 'reschedule_reason', 'rescheduled_by', 'rescheduled_at',
 ])]
@@ -56,6 +57,7 @@ class PlantingCycleTask extends FarmerModel
         return [
             'offset_days' => 'integer',
             'tolerance_days' => 'integer',
+            'hok' => 'integer',
             'scheduled_date' => 'immutable_date',
             'due_date' => 'immutable_date',
             'is_required' => 'boolean',

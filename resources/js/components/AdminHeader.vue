@@ -21,6 +21,11 @@ const page = usePage();
 const isSectionIndex = computed(() =>
     [
         'Dashboard',
+        'owner/ExecutiveSummary',
+        'owner/Dashboard',
+        'owner/Projection',
+        'owner/Farms',
+        'settings/Profile',
         'farms/Index',
         'users/Index',
         'sops/Index',

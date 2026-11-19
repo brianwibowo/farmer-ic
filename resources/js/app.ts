@@ -6,6 +6,7 @@ import UserManagementLayout from '@/layouts/UserManagementLayout.vue';
 import LogbookLayout from '@/layouts/LogbookLayout.vue';
 import SopManagementLayout from '@/layouts/SopManagementLayout.vue';
 import TaskManagementLayout from '@/layouts/TaskManagementLayout.vue';
+import IncidentManagementLayout from '@/layouts/IncidentManagementLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import PetugasLayout from '@/layouts/PetugasLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -44,6 +45,8 @@ void createInertiaApp({
                 return SopManagementLayout;
             case name.startsWith('tasks/'):
                 return TaskManagementLayout;
+            case name.startsWith('incidents/'):
+                return IncidentManagementLayout;
             case name.startsWith('users/'):
                 return UserManagementLayout;
             case name.startsWith('logbook/'):

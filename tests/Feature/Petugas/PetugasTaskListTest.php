@@ -76,7 +76,6 @@ class PetugasTaskListTest extends TestCase
         ])->save();
 
         $block = app(FarmBlockService::class)->create($farm, $actor, $team, [
-            'code' => $code,
             'name' => 'Blok '.$code,
             'area_ha' => '5.0000',
         ]);
@@ -253,5 +252,28 @@ class PetugasTaskListTest extends TestCase
         foreach (['owner', 'admin'] as $role) {
             $this->actingAs(User::factory()->create(['role' => $role]))->get('/petugas/tasks')->assertForbidden();
         }
+    }
+
+    public function test_petugas_task_detail_exposes_hok_when_present(): void
+    {
+        $petugas = $this->petugas($this->farm);
+        $withHok = $this->task($this->subblok, 'Pemupukan HOK', ['hok' => 7]);
+        $withoutHok = $this->task($this->subblok, 'Pemupukan Opsional HOK', ['hok' => null]);
+
+        $this->actingAs($petugas)
+            ->get('/petugas/tasks/'.$withHok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('petugas/TaskShow')
+                ->where('task.id', $withHok->id)
+                ->where('task.hok', 7));
+
+        $this->actingAs($petugas)
+            ->get('/petugas/tasks/'.$withoutHok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('petugas/TaskShow')
+                ->where('task.id', $withoutHok->id)
+                ->where('task.hok', null));
     }
 }
