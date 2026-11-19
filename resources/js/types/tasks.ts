@@ -16,7 +16,10 @@ export type AdminTaskView =
     | 'completed'
     | 'all';
 
-export type AdminTaskCategory = 'maintenance' | 'harvest';
+export type AdminTaskCategory =
+    | 'maintenance'
+    | 'growth_observation'
+    | 'harvest';
 
 export type AdminTask = {
     id: string;
@@ -132,6 +135,7 @@ export const adminTaskViewOptions: [AdminTaskView, string][] = [
 
 export const adminTaskCategoryOptions: [AdminTaskCategory, string][] = [
     ['maintenance', sopActivityCategoryLabels.maintenance],
+    ['growth_observation', sopActivityCategoryLabels.growth_observation],
     ['harvest', sopActivityCategoryLabels.harvest],
 ];
 

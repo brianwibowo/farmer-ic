@@ -10,6 +10,9 @@ export type ActivityField = {
     type: string;
     optional?: boolean;
     options?: string[];
+    optionLabels?: Record<string, string>;
+    hint?: string;
+    placeholder?: string;
     step?: string;
     max?: number;
     when?: [string, string];
@@ -135,15 +138,24 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
                             ]"
                             :aria-invalid="!!errors[`details.${field.key}`]"
                             :aria-describedby="
-                                errors[`details.${field.key}`]
-                                    ? `detail-error-${field.key}`
-                                    : undefined
+                                [
+                                    field.hint
+                                        ? `detail-hint-${field.key}`
+                                        : null,
+                                    errors[`details.${field.key}`]
+                                        ? `detail-error-${field.key}`
+                                        : null,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' ') || undefined
                             "
                             ><AppSelectOption
                                 v-for="option in field.options"
                                 :key="option"
                                 :value="option"
-                                >{{ option }}</AppSelectOption
+                                >{{
+                                    field.optionLabels?.[option] ?? option
+                                }}</AppSelectOption
                             ></AppSelect
                         >
                         <textarea
@@ -191,9 +203,10 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
                             :max="fieldMaximum(field)"
                             :maxlength="field.type === 'text' ? 100 : undefined"
                             :placeholder="
-                                compact && field.type === 'number'
+                                field.placeholder ??
+                                (compact && field.type === 'number'
                                     ? '0'
-                                    : undefined
+                                    : undefined)
                             "
                             :inputmode="
                                 field.type === 'number' ? 'decimal' : undefined
@@ -205,8 +218,9 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
                             :aria-invalid="!!errors[`details.${field.key}`]"
                             :aria-describedby="
                                 [
-                                    field.type === 'number' &&
-                                    fieldMaximum(field) != null
+                                    field.hint ||
+                                    (field.type === 'number' &&
+                                        fieldMaximum(field) != null)
                                         ? `detail-hint-${field.key}`
                                         : null,
                                     errors[`details.${field.key}`]
@@ -218,7 +232,14 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
                             "
                         />
                         <p
-                            v-if="
+                            v-if="field.hint"
+                            :id="`detail-hint-${field.key}`"
+                            class="text-xs text-muted-foreground"
+                        >
+                            {{ field.hint }}
+                        </p>
+                        <p
+                            v-else-if="
                                 field.type === 'number' &&
                                 fieldMaximum(field) != null
                             "

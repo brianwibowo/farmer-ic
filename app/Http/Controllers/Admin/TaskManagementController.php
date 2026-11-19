@@ -236,7 +236,7 @@ class TaskManagementController extends Controller
             )
             ->orderByRaw('COALESCE(rescheduled_date, scheduled_date) ASC NULLS LAST')
             ->orderBy('offset_days')
-            ->orderByRaw("CASE activity_category WHEN 'planting' THEN 1 WHEN 'maintenance' THEN 2 WHEN 'harvest' THEN 3 ELSE 4 END")
+            ->orderByRaw(PlantingCycleTask::CATEGORY_ORDER_SQL)
             ->orderBy('created_at')
             ->orderBy('id');
     }

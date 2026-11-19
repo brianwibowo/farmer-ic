@@ -2,22 +2,27 @@
 
 namespace App\Services;
 
+use App\Models\ActivityPhoto;
 use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\Farm;
+use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
+use App\Models\PlantingCycleTask;
 use App\Models\PlantObservation;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Activity\BlockPreparationTimeline;
+use App\Support\ActivityPhotoFile;
 use App\Support\LandArea;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class FarmBlockService
@@ -145,37 +150,145 @@ class FarmBlockService
                 && $timeline->contains(fn (PlantingCycleStage $stage): bool => $stage->code === 'planting' && $stage->status === 'completed')
                 && $timeline->contains(fn (PlantingCycleStage $stage): bool => $stage->code === 'maintenance' && in_array($stage->status, ['in_progress', 'completed'], true));
         })->keyBy('id');
-        $observations = PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $eligible->modelKeys())
-            ->orderByDesc('observed_at')->orderByDesc('id')
-            ->get(['id', 'planting_cycle_id', 'observed_at', 'growth_phase', 'growth_percentage'])
-            ->unique('planting_cycle_id')->keyBy('planting_cycle_id');
-        $varieties = CropVariety::visibleTo($actor, $team)->whereIn('id', $eligible->pluck('variety_id')->filter())
-            ->get(['id', 'commodity_id', 'name'])->keyBy('id');
+        $eligibleIds = $eligible->modelKeys();
+        $canViewObservations = $eligibleIds !== [] && Gate::forUser($actor)->allows('viewAny', [PlantObservation::class, $team]);
+        $canViewActivities = $eligibleIds !== [] && Gate::forUser($actor)->allows('viewAny', [FarmActivity::class, $team]);
+        $canViewPhotos = $eligibleIds !== [] && Gate::forUser($actor)->allows('viewAny', [ActivityPhoto::class, $team]);
+        $canViewTasks = $eligibleIds !== [] && Gate::forUser($actor)->allows('viewAny', [PlantingCycleTask::class, $team]);
+        $isAdmin = Gate::forUser($actor)->allows('admin.access');
+
+        $observations = $canViewObservations
+            ? PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $eligibleIds)
+                ->with([
+                    'observer:id,name',
+                    ...($canViewActivities ? [
+                        'activity' => fn ($activities) => $activities->visibleTo($actor, $team)->select(['id', 'farm_id', 'planting_cycle_task_id', 'description']),
+                        ...($canViewPhotos ? ['activity.photos' => fn ($photos) => $photos->visibleTo($actor, $team)->orderBy('uploaded_at')->orderBy('id')] : []),
+                    ] : []),
+                ])
+                ->orderByDesc('observed_at')->orderByDesc('id')
+                ->get()
+            : collect();
+        $observationsByCycle = $observations->groupBy('planting_cycle_id');
+
+        $tasks = $canViewTasks
+            ? PlantingCycleTask::visibleTo($actor, $team)
+                ->whereIn('planting_cycle_id', $eligibleIds)
+                ->where('activity_category', 'growth_observation')
+                ->orderBy('offset_days')->orderBy('scheduled_date')->orderBy('id')
+                ->get()
+            : collect();
+        $tasksByCycle = $tasks->groupBy('planting_cycle_id');
+        $tasksById = $tasks->keyBy('id');
+        $extraTaskIds = $canViewTasks && $canViewActivities
+            ? $observations->map(fn (PlantObservation $obs) => $obs->activity?->getAttribute('planting_cycle_task_id'))
+                ->filter(fn ($id): bool => is_string($id) && $id !== '' && ! $tasksById->has($id))
+                ->unique()->values()->all()
+            : [];
+        if ($extraTaskIds !== []) {
+            $tasksById = $tasksById->merge(PlantingCycleTask::visibleTo($actor, $team)->whereIn('id', $extraTaskIds)->get()->keyBy('id'));
+        }
+
+        $varieties = $eligibleIds !== []
+            ? CropVariety::visibleTo($actor, $team)->whereIn('id', $eligible->pluck('variety_id')->filter())->get(['id', 'commodity_id', 'name'])->keyBy('id')
+            : collect();
         $blockCommodities = FarmBlock::visibleTo($actor, $team)->whereIn('id', $batches->pluck('block_id')->filter())->pluck('commodity_id', 'id');
         $commodities = Commodity::visibleTo($actor, $team)->whereIn('id', $varieties->pluck('commodity_id')->merge($blockCommodities->values())->filter())
             ->pluck('name', 'id');
 
-        return $batches->mapWithKeys(function (PlantingCycle $batch) use ($blockCommodities, $observations, $varieties, $commodities, $eligible, $today): array {
-            if (! $eligible->has($batch->id)) {
+        return $batches->mapWithKeys(function (PlantingCycle $batch) use (
+            $actor,
+            $farm,
+            $blockCommodities,
+            $observationsByCycle,
+            $tasksByCycle,
+            $tasksById,
+            $varieties,
+            $commodities,
+            $eligible,
+            $today,
+            $isAdmin,
+            $canViewActivities,
+            $canViewPhotos,
+        ): array {
+            if (! $eligible->has($batch->id) || $batch->planted_at === null) {
                 return [$batch->id => ['available' => false, 'as_of' => $today->toDateString(), 'hst' => null,
-                    'commodity' => null, 'variety' => null, 'estimated_harvest_at' => null, 'observation' => null]];
+                    'hst_percentage' => null, 'commodity' => null, 'variety' => null, 'estimated_harvest_at' => null,
+                    'observation' => null, 'observations' => [], 'tasks' => []]];
             }
-            $observation = $observations->get($batch->id);
+            $cycleObservations = $observationsByCycle->get($batch->id, collect());
+            $latest = $cycleObservations->first();
             $variety = $varieties->get($batch->variety_id);
+            $plantedDay = CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta');
+            $hst = (int) $plantedDay->diffInDays($today);
+            $hstPercentage = null;
+            if ($batch->estimated_harvest_at !== null) {
+                $harvestDay = CarbonImmutable::parse($batch->estimated_harvest_at->toDateString(), 'Asia/Jakarta');
+                $totalDays = (int) $plantedDay->diffInDays($harvestDay, false);
+                if ($totalDays > 0) {
+                    $hstPercentage = min(100.0, max(0.0, round(($hst / $totalDays) * 100, 1)));
+                }
+            }
+
+            $observationItems = $cycleObservations->map(function (PlantObservation $obs) use ($farm, $tasksById, $actor, $isAdmin, $canViewActivities, $canViewPhotos): array {
+                $activity = $canViewActivities && $obs->relationLoaded('activity') ? $obs->activity : null;
+                $canActivity = $activity instanceof FarmActivity && Gate::forUser($actor)->allows('view', $activity);
+                $linkedTaskId = $canActivity ? $activity->getAttribute('planting_cycle_task_id') : null;
+                $linkedTask = is_string($linkedTaskId) ? $tasksById->get($linkedTaskId) : null;
+                $canTask = $linkedTask instanceof PlantingCycleTask && Gate::forUser($actor)->allows('view', $linkedTask);
+
+                $photos = $canActivity && $canViewPhotos && $activity->relationLoaded('photos')
+                    ? $activity->photos->filter(fn (ActivityPhoto $photo): bool => Gate::forUser($actor)->allows('view', $photo))
+                        ->map(fn (ActivityPhoto $photo): array => [
+                            'id' => $photo->id,
+                            'url' => route('daily-logs.photos', ['farm' => $farm->id, 'activity' => $activity->id, 'photo' => $photo->id], false),
+                            'available' => ActivityPhotoFile::available($photo),
+                        ])->values()->all()
+                    : [];
+
+                return [
+                    'id' => $obs->id,
+                    'observed_at' => $obs->observed_at->toISOString(),
+                    'observer_name' => $obs->observer?->name,
+                    'phase' => $obs->growth_phase,
+                    'notes' => $obs->notes ?? ($canActivity ? $activity->description : null),
+                    'task_id' => $canTask ? $linkedTask->id : null,
+                    'task_name' => $canTask ? $linkedTask->name : null,
+                    'task_url' => $canTask && $isAdmin ? route('tasks.show', $linkedTask, false) : null,
+                    'activity_url' => $canActivity && $isAdmin ? route('admin.logbook.activity', $activity, false) : null,
+                    'photos' => $photos,
+                ];
+            })->values()->all();
+
+            $taskItems = $tasksByCycle->get($batch->id, collect())
+                ->filter(fn (PlantingCycleTask $task): bool => Gate::forUser($actor)->allows('view', $task))
+                ->map(fn (PlantingCycleTask $task): array => [
+                    'id' => $task->id,
+                    'name' => $task->name,
+                    'status' => $task->status,
+                    'offset_days' => $task->offset_days,
+                    'scheduled_date' => $task->effectiveScheduledDate()?->toDateString(),
+                    'due_date' => $task->due_date?->toDateString(),
+                    'completed_at' => $task->completed_at?->toISOString(),
+                    'url' => $isAdmin ? route('tasks.show', $task, false) : null,
+                ])->values()->all();
 
             return [$batch->id => [
                 'available' => true,
                 'as_of' => $today->toDateString(),
-                'hst' => (int) CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today),
+                'hst' => $hst,
+                'hst_percentage' => $hstPercentage,
                 'commodity' => $commodities->get($variety->commodity_id ?? $blockCommodities->get($batch->block_id)),
                 'variety' => $variety?->name,
                 'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
-                'observation' => $observation === null ? null : [
-                    'id' => $observation->id,
-                    'observed_at' => $observation->observed_at->toISOString(),
-                    'phase' => $observation->growth_phase,
-                    'percentage' => $observation->growth_percentage === null ? null : (float) $observation->growth_percentage,
+                'observation' => ! $latest instanceof PlantObservation ? null : [
+                    'id' => $latest->id,
+                    'observed_at' => $latest->observed_at->toISOString(),
+                    'phase' => $latest->growth_phase,
+                    'percentage' => $latest->growth_percentage === null ? null : (float) $latest->growth_percentage,
                 ],
+                'observations' => $observationItems,
+                'tasks' => $taskItems,
             ]];
         })->all();
     }

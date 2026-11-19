@@ -25,7 +25,7 @@ class PetugasTaskController extends Controller
 
     public function index(Request $request): Response
     {
-        $filters = $request->validate(['block_id' => ['nullable', 'uuid'], 'category' => ['nullable', \Illuminate\Validation\Rule::in(['maintenance', 'harvest'])]]);
+        $filters = $request->validate(['block_id' => ['nullable', 'uuid'], 'category' => ['nullable', \Illuminate\Validation\Rule::in(PlantingCycleTask::CATEGORIES)]]);
         $farm = $request->user()->assignedFarm;
         $status = $request->query('status', 'all');
         if (! is_string($status) || ! in_array($status, ['all', 'active', 'overdue', 'today', 'upcoming', 'completed'], true)) {

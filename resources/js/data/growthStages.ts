@@ -638,6 +638,41 @@ export function getGrowthStageAtHst(
     );
 }
 
+export function resolveGrowthSeedType(
+    commodity: string | null | undefined,
+): SeedType | null {
+    const name = commodity?.toLocaleLowerCase('id') ?? '';
+    if (name.includes('jagung')) return 'Jagung';
+    if (name.includes('kedelai')) return 'Kedelai';
+    if (name.includes('rumput')) return 'Rumput';
+    return null;
+}
+
+export function resolveGrowthProfile(
+    commodity: string | null | undefined,
+    variety?: string | null,
+): GrowthProfile | null {
+    const seedType = resolveGrowthSeedType(commodity);
+    return seedType ? getGrowthProfile(seedType, variety ?? undefined) : null;
+}
+
+export function findObservedGrowthStage(
+    profile: GrowthProfile | null,
+    phase: string | null | undefined,
+): GrowthStage | null {
+    if (!profile || !phase) return null;
+    const normalized = phase.toLocaleLowerCase('id').trim();
+    if (!normalized) return null;
+
+    return (
+        profile.stages.find(
+            (stage) =>
+                stage.label.toLocaleLowerCase('id') === normalized ||
+                stage.shortLabel.toLocaleLowerCase('id') === normalized,
+        ) ?? null
+    );
+}
+
 export function getGrowthStageAtPercent(
     profile: GrowthProfile,
     growth: number,

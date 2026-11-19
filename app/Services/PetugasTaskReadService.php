@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ActivityPhoto;
+use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
@@ -10,10 +11,12 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
+use App\Models\PlantObservation;
 use App\Models\User;
 use App\Services\Activity\TaskReportingWindow;
 use App\Support\ActivityPhotoFile;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Gate;
 
 class PetugasTaskReadService
 {
@@ -42,6 +45,8 @@ class PetugasTaskReadService
         $farm = Farm::visibleTo($actor, $team)->findOrFail($cycle->farm_id);
         $block = FarmBlock::visibleTo($actor, $team)->findOrFail($cycle->block_id);
         $variety = CropVariety::visibleTo($actor, $team)->find($cycle->variety_id);
+        $commodityId = $variety === null ? $block->commodity_id : $variety->commodity_id;
+        $commodity = $commodityId !== null ? Commodity::visibleTo($actor, $team)->find($commodityId) : null;
         $today = CarbonImmutable::today('Asia/Jakarta');
         $window = app(TaskReportingWindow::class)->range($task, $cycle);
         $effective = $window['start'] ?? null;
@@ -70,6 +75,7 @@ class PetugasTaskReadService
                     ? (int) CarbonImmutable::parse($cycle->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today)
                     : null,
                 'farm' => $farm->only(['id', 'name']), 'block' => $block->only(['id', 'name']),
+                'commodity' => $commodity?->only(['id', 'name']),
                 'variety' => $variety?->only(['id', 'name']) ?? ['id' => '', 'name' => 'Belum ditentukan'],
             ],
         ];
@@ -79,16 +85,28 @@ class PetugasTaskReadService
     public function reports(User $actor, PlantingCycleTask $task): array
     {
         $team = $task->plantingCycle->farm->team;
+        $canViewObservations = Gate::forUser($actor)->allows('viewAny', [PlantObservation::class, $team]);
 
-        return array_values(FarmActivity::visibleTo($actor, $team)->where('planting_cycle_task_id', $task->id)->with('performer:id,name')->orderByDesc('activity_date')->get()
-            ->map(function (FarmActivity $activity) use ($actor, $team): array {
+        return array_values(FarmActivity::visibleTo($actor, $team)->where('planting_cycle_task_id', $task->id)
+            ->with([
+                'performer:id,name',
+                ...($canViewObservations ? ['observation' => fn ($q) => $q->visibleTo($actor, $team)] : []),
+            ])
+            ->orderByDesc('activity_date')->get()
+            ->map(function (FarmActivity $activity) use ($actor, $team, $canViewObservations): array {
                 $log = DailyActivityLog::visibleTo($actor, $team)->find($activity->daily_activity_log_id);
+                $decoded = json_decode((string) $activity->getAttribute('task_details'), true);
+                $details = is_array($decoded) ? $decoded : [];
+                $observation = $canViewObservations ? $activity->observation : null;
+                if ($observation instanceof PlantObservation && $observation->growth_phase !== null) {
+                    $details = ['growth_phase' => $observation->growth_phase] + $details;
+                }
 
                 return [
                     'id' => $activity->id, 'work_date' => $log?->work_date->toDateString(),
                     'performer_name' => $activity->performer?->name,
                     'worker_count' => $activity->worker_count,
-                    'notes' => $activity->description, 'details' => json_decode((string) $activity->getAttribute('task_details'), true),
+                    'notes' => $activity->description, 'details' => $details === [] ? null : $details,
                     'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn ($photo) => [
                         'id' => $photo->id, 'url' => route('petugas.aktivitas.photos', ['activity' => $activity->id, 'photo' => $photo->id]),
                         'available' => str_starts_with($photo->image_url, 'task-activities/'.$activity->id.'/') && ActivityPhotoFile::available($photo),

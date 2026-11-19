@@ -6,7 +6,10 @@ export type PetugasTaskStatus =
 
 export type PetugasTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
-export type PetugasTaskCategory = 'maintenance' | 'harvest';
+export type PetugasTaskCategory =
+    | 'maintenance'
+    | 'growth_observation'
+    | 'harvest';
 
 export type PetugasTask = {
     id: string;
@@ -38,6 +41,7 @@ export type PetugasTask = {
         hst: number | null;
         farm: { id: string; name: string };
         block: { id: string; name: string };
+        commodity?: { id: string; name: string } | null;
         variety: { id: string; name: string };
     };
 };
@@ -45,7 +49,7 @@ export type PetugasTask = {
 export type PetugasTaskFilters = {
     block_id?: string | null;
     status: 'all' | 'active' | PetugasTaskUrgency;
-    category?: 'maintenance' | 'harvest' | null;
+    category?: PetugasTaskCategory | null;
 };
 
 export type PetugasDefaultSop = {

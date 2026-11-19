@@ -234,8 +234,8 @@ Table planting_cycle_tasks {
   planting_cycle_id uuid [not null, ref: > planting_cycles.id]
   planting_cycle_stage_id uuid [not null, note: 'Composite FK to a stage of the same subblok']
   sop_template_task_id uuid [ref: > sop_template_tasks.id]
-  activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not a task']
-  activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP memakai kategori maintenance atau harvest']
+  activity_category varchar(30) [not null, note: 'maintenance | growth_observation | harvest; planting is the HST anchor, not a task']
+  activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP memakai kategori maintenance, growth_observation, atau harvest']
   name varchar(200) [not null]
   instructions text
   offset_days int [not null, default: 0]
@@ -312,7 +312,7 @@ Table sop_template_tasks {
   is_required boolean [not null, default: true, note: 'Selalu wajib untuk seluruh langkah SOP']
   created_at timestamptz
   updated_at timestamptz
-  activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not an SOP step']
+  activity_category varchar(30) [not null, note: 'maintenance | growth_observation | harvest; planting is the HST anchor, not an SOP step']
   activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP tidak lagi menggunakan subkategori']
   hok int [note: 'Estimasi Hari Orang Kerja (>= 1), opsional']
   indexes {

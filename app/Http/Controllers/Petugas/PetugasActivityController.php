@@ -27,8 +27,14 @@ class PetugasActivityController extends Controller
     {
         $this->authorizeRecord($request, $task);
 
+        $code = TaskActivityFields::activityCode($task);
+
         return Inertia::render('petugas/ActivityCreate', [
-            'task' => $tasks->detail($request->user(), $task), 'fields' => \App\Support\VoluntaryActivityFields::forCode(TaskActivityFields::activityCode($task) ?? ''),
+            'task' => $tasks->detail($request->user(), $task),
+            'fields' => $code === 'growth_observation'
+                ? TaskActivityFields::forTask($task)
+                : \App\Support\VoluntaryActivityFields::forCode($code ?? ''),
+            'requiresWorkerCount' => TaskActivityFields::requiresWorkerCount($task),
             'areaLimitM2' => $limits->taskArea($request->user(), $task),
             'numericLimits' => ActivityInputLimits::common(),
             'today' => now('Asia/Jakarta')->toDateString(),
