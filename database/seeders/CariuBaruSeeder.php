@@ -91,7 +91,7 @@ class CariuBaruSeeder extends Seeder
                 'id' => $id, 'team_id' => $team->id, 'owner_id' => $owner->id, 'created_by' => $actor->id,
                 'name' => 'Kebun Cariu Baru', 'total_area_ha' => '1.3900', 'city' => 'Kabupaten Bogor', 'district' => 'Cariu',
                 'province' => 'Jawa Barat', 'address' => 'Lahan PM, Cariu — luas poligon sementara; subblok dan riwayat lanjutan SIMULASI.',
-                'image_url' => '/images/kebun-placeholder.svg',
+                'image_url' => \Database\Seeders\Support\DemoUpload::image('farm', 'farms/'.$id.'/demo.jpg'),
             ])->save();
             $performer = $this->performer($actor, $team, $farm);
             Gate::forUser($actor)->authorize('create', [FarmBlock::class, $farm]);

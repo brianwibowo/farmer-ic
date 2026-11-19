@@ -117,13 +117,15 @@ class AdminLogbookTest extends TestCase
 
     public function test_activity_detail_displays_modern_typed_details_photos_and_isolates_tenants(): void
     {
-        Storage::fake('local');
+        Storage::fake('activity');
         $petugas = User::factory()->create(['role' => 'petugas']);
         $petugas->teams()->attach($this->admin->currentTeam, ['role' => TeamRole::Member->value]);
         $petugas->forceFill(['assigned_farm_id' => $this->farm->id, 'current_team_id' => $this->admin->current_team_id])->save();
 
         $activity = $this->sopHarvestActivity($this->farm, $petugas, '2026-10-27');
-        $photo = ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => '/images/kebun-placeholder.svg']);
+        $photoPath = 'farms/'.$this->farm->id.'/'.$activity->id.'/report.jpg';
+        Storage::disk('activity')->put($photoPath, 'photo');
+        $photo = ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $photoPath]);
 
         [$foreign, $other] = $this->foreignFarm();
         $foreignActivity = $this->incidentReport($foreign, $other, '2026-10-27');

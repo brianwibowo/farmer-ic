@@ -47,7 +47,7 @@ class HarvestEstimateTest extends TestCase
     {
         parent::setUp();
         $this->travelTo(CarbonImmutable::parse('2026-11-13 12:00', 'Asia/Jakarta'));
-        Storage::fake('local');
+        Storage::fake('activity');
         $this->team = Team::factory()->create(['is_personal' => false]);
         $this->admin = User::factory()->create(['role' => 'admin', 'is_active' => true]);
         $this->petugas = User::factory()->create(['role' => 'petugas', 'is_active' => true]);

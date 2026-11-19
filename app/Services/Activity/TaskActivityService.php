@@ -110,7 +110,7 @@ class TaskActivityService
                     $activity->harvestDetail()->create(['harvested_area_ha' => $details['area_ha'], 'gross_weight_ton' => $details['weight_ton']]);
                 }
                 foreach ($data['photos'] as $photo) {
-                    $path = $photo->store('task-activities/'.$activity->id, 'local');
+                    $path = $photo->store('farms/'.$activity->farm_id.'/'.$activity->id, 'activity');
                     if ($path === false) {
                         throw new \RuntimeException('Foto tidak berhasil disimpan.');
                     }
@@ -128,7 +128,7 @@ class TaskActivityService
                 return $activity;
             });
         } catch (Throwable $exception) {
-            Storage::disk('local')->delete($paths);
+            Storage::disk('activity')->delete($paths);
             throw $exception;
         }
     }

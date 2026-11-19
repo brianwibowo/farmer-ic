@@ -51,7 +51,7 @@ class PetugasPlantingActivityTest extends TestCase
             $mock->shouldReceive('ensureAllowed')->andReturnNull()->byDefault();
             $mock->shouldReceive('blockedReason')->andReturnNull()->byDefault();
         });
-        Storage::fake('local');
+        Storage::fake('activity');
         $this->team = Team::factory()->create(['is_personal' => false]);
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->actor = User::factory()->create(['role' => 'petugas']);
@@ -212,7 +212,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertDatabaseCount('farm_activities', 0);
         $this->assertDatabaseCount('planting_details', 0);
         $this->assertDatabaseCount('planting_cycle_tasks', 0);
-        $this->assertSame([], Storage::disk('local')->allFiles());
+        $this->assertSame([], Storage::disk('activity')->allFiles());
     }
 
     public function test_missing_farm_commodity_disables_variety_selection_and_rejects_submission(): void
@@ -316,7 +316,7 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertSame(2, $cycle->tasks()->count());
         $this->assertSame($anchor->addDays(7)->toDateString(), $cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail()->scheduled_date->toDateString());
         $photo = ActivityPhoto::firstOrFail();
-        Storage::disk('local')->assertExists($photo->image_url);
+        Storage::disk('activity')->assertExists($photo->image_url);
         $this->get('/petugas/aktivitas/'.$activity->id.'/foto/'.$photo->id)->assertOk();
         $this->get($this->url())->assertInertia(fn (Assert $page) => $page->where('canRecord', true)->has('reports', 1));
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
@@ -734,6 +734,6 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertDatabaseCount('farm_activities', 0);
         $this->assertDatabaseCount('daily_activity_logs', 0);
         $this->assertDatabaseCount('planting_details', 0);
-        $this->assertSame([], Storage::disk('local')->allFiles());
+        $this->assertSame([], Storage::disk('activity')->allFiles());
     }
 }

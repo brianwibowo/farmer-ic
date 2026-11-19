@@ -9,15 +9,11 @@ class ActivityPhotoFile
 {
     public static function available(ActivityPhoto $photo): bool
     {
-        if ($photo->image_url === '/images/kebun-placeholder.svg') {
-            return is_file(public_path('images/kebun-placeholder.svg'));
-        }
-
-        if (! str_starts_with($photo->image_url, 'task-activities/'.$photo->activity_id.'/')
+        if (! str_starts_with($photo->image_url, 'farms/'.$photo->activity->farm_id.'/'.$photo->activity_id.'/')
             || str_contains($photo->image_url, '..')) {
             return false;
         }
 
-        return Storage::disk('local')->exists($photo->image_url);
+        return Storage::disk('activity')->exists($photo->image_url);
     }
 }

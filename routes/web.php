@@ -116,6 +116,8 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('farms/{farm}/image', \App\Http\Controllers\FarmImageController::class)
+        ->whereUuid('farm')->name('farms.image');
     Route::get('farm-legality-documents/{document}/download', FarmLegalityDocumentController::class)
         ->whereUuid('document')->name('farm-legality-documents.download');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
