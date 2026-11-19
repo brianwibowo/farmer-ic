@@ -76,6 +76,7 @@ function select(key: FarmerNavKey): void {
 
             <main
                 class="farmer-shell-main min-h-0 flex-1 overscroll-y-contain"
+                :scroll-region="props.dashboardTheme ? '' : undefined"
                 :class="
                     props.activeKey === 'ai'
                         ? 'overflow-hidden pb-0'
