@@ -16,7 +16,7 @@ class ExecutiveSummaryRequest extends FormRequest
     {
         return [
             'year' => ['sometimes', 'required', 'integer', 'between:2000,2100'],
-            'cycle' => ['sometimes', 'required', Rule::when($this->input('cycle') !== 'all', ['uuid'])],
+            'quarter' => ['sometimes', 'required', Rule::in(['all', 'Q1', 'Q2', 'Q3', 'Q4'])],
             'partner' => ['sometimes', 'nullable', 'string', 'max:255'],
             'region' => ['sometimes', 'nullable', 'string', 'max:255'],
             'farm' => ['sometimes', 'nullable', 'uuid'],

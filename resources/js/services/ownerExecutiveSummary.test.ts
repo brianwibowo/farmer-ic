@@ -12,7 +12,7 @@ export function row(overrides: Partial<ExecutiveRow> = {}): ExecutiveRow {
         id: 'farm:corn',
         farmId: 'farm',
         year: 2026,
-        cycle: 'all',
+        quarter: 'all',
         farm: {
             id: 'farm',
             name: 'Lahan Bogor',

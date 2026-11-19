@@ -487,26 +487,26 @@ use the Owner page header actions slot on the same row as the back link. Keep
 44px controls and truncate long back labels on narrow phones with their full
 accessible name retained; do not add a separate empty heading or action row.
 
-The Cycle selector includes **Semua cycle**, covering 1 January–31 December
-of the selected year (Asia/Jakarta). Sum actual production by harvest date and
-projections by scheduled harvest date, with one result per farm. Land area,
-active planted hectares, stock balances, agreements, and monthly sales must not
-be multiplied by the number of cycles. Active planted hectares count actual
+The reporting period selector uses **Semua kuartal**, Q1 (January–March),
+Q2 (April–June), Q3 (July–September), and Q4 (October–December) in Asia/Jakarta.
+Default to the full year on first load and Reset. Actual harvest follows the
+harvest date and projections follow the scheduled harvest date. The year
+options always include the current Jakarta calendar year plus years in scoped
+records and the selected year, so a new calendar year appears automatically.
+Physical land and current planted area are counted once.
+Active planted hectares count actual
 planting with active status; preparation and closed/harvested planting are
 excluded. Show the current snapshot date beside active land. Historical land snapshots
 and stock balances are unavailable unless persisted; label current land positions
 explicitly. Until the warehouse module records dispatch and adjusts stock,
 show gross recorded harvest by commodity for the selected filters. Label it
 as recorded harvest before dispatch. Sales retain the explicitly
-labelled reference month. If a numbered cycle is absent after changing year,
-select Semua cycle. Default to Semua cycle on first load and after Reset;
-numbered cycles remain available for a specific cycle's production.
-Actual harvest uses completed harvest records and their Jakarta activity dates.
-Projections use persisted estimated weight and scheduled harvest dates, with
-missing estimates explicitly unavailable. Cycle options identify real persisted
-planting cycles (farm and subblock/date), never an invented ordinal or batch number.
-Production follows the selected year/cycle; current active planted area is a
-separate position and is never summed across successive historical cycles.
+labelled reference month.
+Actual harvest uses completed harvest records. Projections use persisted
+estimated weight and scheduled harvest dates, with missing estimates explicitly
+unavailable. Cycles are groups of batches per farm. Cycle filtering is deferred
+until the business grouping is supported. Production follows the selected
+year/quarter; current active planted area is a separate position.
 
 Lead with Ringkasan lahan and Panen aktual. Give the land card a slightly
 wider column on desktop, a subtle primary tint, and faint contour lines confined

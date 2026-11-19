@@ -20,7 +20,7 @@ class ExecutiveSummaryService
     {
         $now = CarbonImmutable::now('Asia/Jakarta');
         $year = (int) ($input['year'] ?? $now->year);
-        $filters = array_merge(['year' => $year, 'cycle' => 'all', 'partner' => '', 'region' => '', 'farm' => '', 'commodity' => ''], $input);
+        $filters = array_merge(['year' => $year, 'quarter' => 'all', 'partner' => '', 'region' => '', 'farm' => '', 'commodity' => ''], $input);
         $filters['year'] = $year;
         foreach (['partner', 'region', 'farm', 'commodity'] as $key) {
             $filters[$key] = $filters[$key] ?? '';
@@ -49,11 +49,12 @@ class ExecutiveSummaryService
             ->merge($cycles->flatMap(fn($cycle) => [$cycle->planted_at?->year, $cycle->estimated_harvest_at?->year]))
             ->merge($harvests->map(fn($detail) => $activities[$detail->activity_id]->activity_date->setTimezone('Asia/Jakarta')->year))
             ->filter()->unique()->sortDesc()->values();
-        $periodCycles = $cycles->filter(fn($cycle) => $cycle->planted_at?->year === $year || $cycle->estimated_harvest_at?->year === $year
-            || $harvests->contains(fn($detail) => $activities[$detail->activity_id]->planting_cycle_id === $cycle->id
-                && $activities[$detail->activity_id]->activity_date->setTimezone('Asia/Jakarta')->year === $year));
-        if ($filters['cycle'] !== 'all' && !$periodCycles->contains('id', $filters['cycle'])) {
-            $filters['cycle'] = 'all';
+        $periodStart = CarbonImmutable::create($year, 1, 1, 0, 0, 0, 'Asia/Jakarta');
+        $periodEnd = $periodStart->addYear();
+        if ($filters['quarter'] !== 'all') {
+            $quarter = (int) substr($filters['quarter'], 1);
+            $periodStart = $periodStart->addMonths(($quarter - 1) * 3);
+            $periodEnd = $periodStart->addMonths(3);
         }
         $farmOptions = $farms->map(function ($farm) use ($legalities, $cycles, $commodities, $harvests, $activities, $blocks) {
             $party = trim((string) ($farm->land_tenure_party ?: $legalities->get($farm->id)?->institution));
@@ -103,24 +104,26 @@ class ExecutiveSummaryService
                 if ($cropId === '') {
                     $group = $farmCycles->filter(fn($cycle) => $cycle->variety?->commodity === null);
                 }
-                $productionCycles = $group->filter(fn($cycle) => $filters['cycle'] === 'all' || $cycle->id === $filters['cycle']);
-                $projected = $productionCycles->filter(fn($cycle) => $cycle->estimated_harvest_at?->year === $year);
+                $projected = $group->filter(fn ($cycle) => $cycle->estimated_harvest_at !== null
+                    && $cycle->estimated_harvest_at->toDateString() >= $periodStart->toDateString()
+                    && $cycle->estimated_harvest_at->toDateString() < $periodEnd->toDateString());
                 $missing = $projected->whereNull('estimated_weight_ton')->count()
-                    + $productionCycles->filter(fn($cycle) => $cycle->estimated_harvest_at === null && ($cycle->planted_at?->year === $year || $cycle->status === 'planned'))->count();
-                $actual = $farmHarvests->filter(function ($detail) use ($activities, $cycleById, $farm, $cropId, $filters, $year) {
+                    + $group->filter(fn($cycle) => $cycle->estimated_harvest_at === null && ($cycle->planted_at?->year === $year || $cycle->status === 'planned'))->count();
+                $actual = $farmHarvests->filter(function ($detail) use ($activities, $cycleById, $farm, $cropId, $periodStart, $periodEnd) {
                     $activity = $activities[$detail->activity_id];
                     $cycle = $cycleById->get($activity->planting_cycle_id);
                     $activityCrop = $cycle ? ($cycle->variety?->commodity?->id ?? '') : (count($farm['commodityIds']) === 1 ? $farm['commodityIds'][0] : '');
 
-                    return $activityCrop === $cropId && $activity->activity_date->setTimezone('Asia/Jakarta')->year === $year
-                        && ($filters['cycle'] === 'all' || $activity->planting_cycle_id === $filters['cycle']);
+                    return $activityCrop === $cropId
+                        && $activity->activity_date->greaterThanOrEqualTo($periodStart)
+                        && $activity->activity_date->lessThan($periodEnd);
                 });
                 $planted = $group->filter(fn($cycle) => $cycle->status === 'active' && $cycle->planted_at !== null && $cycle->planted_at->toDateString() <= $now->toDateString())->sum('planted_area_ha');
                 $rows[] = [
                     'id' => $farm['id'] . ':' . $cropId,
                     'farmId' => $farm['id'],
                     'year' => $year,
-                    'cycle' => $filters['cycle'],
+                    'quarter' => $filters['quarter'],
                     'farm' => $farm,
                     'partner' => ['id' => $farm['partnerId'], 'name' => $farm['partnerName']],
                     'commodity' => ['id' => $cropId, 'name' => $crop?->name ?? 'Belum teridentifikasi', 'pricing' => null],
@@ -142,10 +145,6 @@ class ExecutiveSummaryService
             'referenceMonth' => $now->month,
             'filters' => $filters,
             'years' => $years->all(),
-            'cycles' => $periodCycles->map(fn($cycle) => [
-                'id' => $cycle->id,
-                'name' => $farms->find($cycle->farm_id)->name . ' · ' . ($cycle->subblock_label ?: ($cycle->planted_at?->format('d M Y') ?? 'Belum ditanam')),
-            ])->values()->all(),
             'farms' => $farmOptions->values()->all(),
             'partners' => $farmOptions->map(fn($farm) => ['id' => $farm['partnerId'], 'name' => $farm['partnerName']])->unique('id')->values()->all(),
             'commodities' => $commodities->only($farmOptions->flatMap(fn($farm) => $farm['commodityIds'])->all())->map(fn($crop) => ['id' => $crop->id, 'name' => $crop->name])->values()->all(),

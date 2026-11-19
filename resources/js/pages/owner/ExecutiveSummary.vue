@@ -29,7 +29,6 @@ const {
     rows,
     totals,
     years,
-    cycles,
     regions,
     farmOptions,
     partnerSummary,
@@ -123,7 +122,6 @@ function focusFarm(id: string) {
             :filters="filters"
             :data="data"
             :years="years"
-            :cycles="cycles"
             :regions="regions"
             :farm-options="farmOptions"
             :loading="loading"
@@ -191,7 +189,7 @@ function focusFarm(id: string) {
                 <ExecutiveFinance
                     v-if="showCommercialSections"
                     :rows="rows"
-                    :annual="filters.cycle === 'all'"
+                    :annual="filters.quarter === 'all'"
                 />
                 <ExecutivePanel
                     id="peta-kebun"

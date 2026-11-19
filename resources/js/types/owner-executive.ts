@@ -1,6 +1,6 @@
 export type ExecutiveFilters = {
     year: number;
-    cycle: string;
+    quarter: 'all' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
     partner: string;
     region: string;
     farm: string;
@@ -29,7 +29,7 @@ export type ExecutiveRow = {
     id: string;
     farmId: string;
     year: number;
-    cycle: string;
+    quarter: 'all' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
     farm: ExecutiveFarm;
     partner: { id: string; name: string };
     commodity: { id: string; name: string; pricing: ExecutivePricing | null };
@@ -50,7 +50,6 @@ export type ExecutiveSummaryData = {
     referenceMonth: number;
     filters: ExecutiveFilters;
     years: number[];
-    cycles: { id: string; name: string }[];
     farms: ExecutiveFarm[];
     commodities: { id: string; name: string }[];
     partners: { id: string; name: string }[];

@@ -62,7 +62,6 @@ export function useExecutiveSummary(source: () => ExecutiveSummaryData) {
     const rows = computed(() => data.value.rows);
     const totals = computed(() => executiveTotals(rows.value));
     const years = computed(() => data.value.years);
-    const cycles = computed(() => data.value.cycles);
     const regions = computed(() =>
         [
             ...new Set(
@@ -134,18 +133,24 @@ export function useExecutiveSummary(source: () => ExecutiveSummaryData) {
     function reset() {
         Object.assign(filters, {
             year: data.value.defaultYear,
-            cycle: 'all',
+            quarter: 'all',
             partner: '',
             region: '',
             farm: '',
             commodity: '',
         });
     }
-    const periodLabel = computed(() =>
-        data.value.filters.cycle === 'all'
-            ? `1 Januari–31 Desember ${data.value.filters.year}`
-            : `${data.value.cycles.find((cycle) => cycle.id === data.value.filters.cycle)?.name ?? 'Cycle terpilih'} · ${data.value.filters.year}`,
-    );
+    const periodLabel = computed(() => {
+        const { quarter, year } = data.value.filters;
+        if (quarter === 'all') return `1 Januari–31 Desember ${year}`;
+        const months = {
+            Q1: 'Januari–Maret',
+            Q2: 'April–Juni',
+            Q3: 'Juli–September',
+            Q4: 'Oktober–Desember',
+        };
+        return `${quarter} · ${months[quarter]} ${year}`;
+    });
     const snapshotLabel = computed(() =>
         new Intl.DateTimeFormat('id-ID', {
             dateStyle: 'medium',
@@ -177,7 +182,6 @@ export function useExecutiveSummary(source: () => ExecutiveSummaryData) {
         rows,
         totals,
         years,
-        cycles,
         regions,
         farmOptions,
         partnerSummary,

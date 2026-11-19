@@ -89,18 +89,51 @@ class ExecutiveSummaryDataTest extends TestCase
             ->where('summary.rows.0.plantedHa', 2));
     }
 
-    public function test_real_cycle_selection_limits_production_and_resets_when_year_has_no_cycle(): void
+    public function test_quarters_use_harvest_and_projection_dates_with_jakarta_boundaries(): void
     {
-        $farm = $this->farm('Lahan Beberapa Cycle', 10);
+        $farm = $this->farm('Lahan Kuartal', 10);
+        $q1 = $this->cycle($farm, 'Jagung', 2, 12);
+        $q1->update(['planted_at' => '2026-01-01', 'estimated_harvest_at' => '2026-03-31']);
+        $q2 = $this->cycle($farm, 'Jagung', 3, 20);
+        $q2->update(['planted_at' => '2026-01-01', 'estimated_harvest_at' => '2026-04-01']);
+        $q3 = $this->cycle($farm, 'Jagung', 1, 8);
+        $q3->update(['planted_at' => '2026-01-01', 'estimated_harvest_at' => '2026-07-01']);
+        $this->harvest($q1, 5, '2026-03-31 16:59:59+00');
+        $this->harvest($q2, 7, '2026-03-31 17:00:00+00');
+        $this->harvest($q3, 9, '2026-07-01 00:00:00+07');
+        foreach (['Q1' => [5, 12], 'Q2' => [7, 20], 'Q3' => [9, 8], 'Q4' => [0, 0], 'all' => [21, 40]] as $quarter => [$actual, $projection]) {
+            $this->get('/ringkasan-eksekutif?year=2026&quarter='.$quarter)->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('summary.filters.quarter', $quarter)
+                ->where('summary.rows.0.harvestedTon', $actual)
+                ->where('summary.rows.0.projectedTon', $projection)
+                ->where('summary.rows.0.plantedHa', 6)
+                ->where('summary.rows.0.farm.areaHa', 10)
+                ->missing('summary.cycles'));
+        }
+    }
+
+    public function test_calendar_year_is_added_automatically_at_jakarta_new_year(): void
+    {
+        $this->cycle($this->farm('Lahan Tahun Sebelumnya', 10), 'Jagung', 2, 12);
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-12-31 17:00:00+00'));
+        $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('summary.defaultYear', 2027)
+            ->where('summary.filters.year', 2027)
+            ->where('summary.filters.quarter', 'all')
+            ->where('summary.years', [2027, 2026]));
+    }
+
+    public function test_legacy_cycle_query_no_longer_limits_production(): void
+    {
+        $farm = $this->farm('Lahan Semua Batch', 10);
         $a = $this->cycle($farm, 'Jagung', 2, 12);
         $b = $this->cycle($farm, 'Jagung', 3, 20);
         $this->harvest($a, 5);
         $this->harvest($b, 7);
-        $this->get('/ringkasan-eksekutif?cycle='.$a->id)->assertInertia(fn (Assert $page) => $page
-            ->where('summary.filters.cycle', $a->id)->where('summary.rows.0.harvestedTon', 5)
-            ->where('summary.rows.0.projectedTon', 12)->where('summary.rows.0.plantedHa', 5));
-        $this->get('/ringkasan-eksekutif?year=2025&cycle='.$a->id)->assertInertia(fn (Assert $page) => $page
-            ->where('summary.filters.cycle', 'all')->has('summary.cycles', 0));
+        $this->get('/ringkasan-eksekutif?cycle='.$a->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('summary.filters.quarter', 'all')
+            ->where('summary.rows.0.harvestedTon', 12)
+            ->missing('summary.filters.cycle')->missing('summary.cycles'));
     }
 
     public function test_cross_tenant_records_never_enter_rows_options_or_totals(): void
@@ -114,9 +147,8 @@ class ExecutiveSummaryDataTest extends TestCase
         $this->get('/ringkasan-eksekutif?team_id='.$otherTeam->id)->assertInertia(fn (Assert $page) => $page
             ->has('summary.farms', 1)->has('summary.rows', 1)->has('summary.commodities', 1)
             ->has('summary.partners', 1)->where('summary.partners.0.name', 'Belum tercatat')
-            ->has('summary.cycles', 1)->where('summary.rows.0.farm.id', $visible->id));
+            ->missing('summary.cycles')->where('summary.rows.0.farm.id', $visible->id));
         $this->get('/ringkasan-eksekutif?farm='.$foreign->id)->assertForbidden();
-        $this->get('/ringkasan-eksekutif?cycle='.$foreignCycle->id)->assertForbidden();
         $this->team->members()->detach($this->owner);
         $this->get('/ringkasan-eksekutif')->assertForbidden();
     }
@@ -148,8 +180,8 @@ class ExecutiveSummaryDataTest extends TestCase
 
     public function test_bad_filters_have_validation_errors(): void
     {
-        $this->get('/ringkasan-eksekutif?year=invalid&cycle=2&farm=invalid&commodity=invalid')
-            ->assertSessionHasErrors(['year', 'cycle', 'farm', 'commodity']);
+        $this->get('/ringkasan-eksekutif?year=invalid&quarter=Q5&farm=invalid&commodity=invalid')
+            ->assertSessionHasErrors(['year', 'quarter', 'farm', 'commodity']);
     }
 
     public function test_block_commodity_without_any_planting_cycle_is_included(): void

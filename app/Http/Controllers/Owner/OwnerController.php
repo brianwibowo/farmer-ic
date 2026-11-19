@@ -10,7 +10,6 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\FarmLegality;
-use App\Models\PlantingCycle;
 use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
@@ -119,13 +118,10 @@ class OwnerController extends Controller
     {
         $team = $this->team($request);
         Gate::authorize('viewAny', [Farm::class, $team]);
-        foreach (['farm' => Farm::class, 'cycle' => PlantingCycle::class] as $key => $model) {
-            if ($request->filled($key) && $request->input($key) !== 'all') {
-                $record = $model::query()->findOrFail($request->validated($key));
-                Gate::authorize('view', $record);
-                $farm = $record instanceof Farm ? $record : $record->farm;
-                abort_unless((int) $farm?->team_id === (int) $team->id, 404);
-            }
+        if ($request->filled('farm')) {
+            $farm = Farm::query()->findOrFail($request->validated('farm'));
+            Gate::authorize('view', $farm);
+            abort_unless((int) $farm->team_id === (int) $team->id, 404);
         }
 
         return Inertia::render('owner/ExecutiveSummary', ['summary' => $summary->summary($request->user(), $team, $request->validated())]);
