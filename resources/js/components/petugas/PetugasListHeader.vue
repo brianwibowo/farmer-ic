@@ -31,6 +31,7 @@ defineProps<{
             </Button>
         </div>
         <dl
+            v-if="metrics.length"
             class="petugas-card grid grid-cols-3 divide-x divide-border py-3 text-center"
             :aria-label="summaryLabel"
         >

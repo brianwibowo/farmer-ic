@@ -239,11 +239,15 @@ class FarmBlockService
 
                 $photos = $canActivity && $canViewPhotos && $activity->relationLoaded('photos')
                     ? $activity->photos->filter(fn (ActivityPhoto $photo): bool => Gate::forUser($actor)->allows('view', $photo))
-                        ->map(fn (ActivityPhoto $photo): array => [
-                            'id' => $photo->id,
-                            'url' => route('daily-logs.photos', ['farm' => $farm->id, 'activity' => $activity->id, 'photo' => $photo->id], false),
-                            'available' => ActivityPhotoFile::available($photo),
-                        ])->values()->all()
+                        ->map(function (ActivityPhoto $photo) use ($farm, $activity): array {
+                            $photo->setRelation('activity', $activity);
+
+                            return [
+                                'id' => $photo->id,
+                                'url' => route('daily-logs.photos', ['farm' => $farm->id, 'activity' => $activity->id, 'photo' => $photo->id], false),
+                                'available' => ActivityPhotoFile::available($photo),
+                            ];
+                        })->values()->all()
                     : [];
 
                 return [

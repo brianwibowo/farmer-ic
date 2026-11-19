@@ -15,17 +15,19 @@ use App\Models\PlantObservation;
 use App\Models\User;
 use App\Services\Activity\TaskReportingWindow;
 use App\Support\ActivityPhotoFile;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Gate;
 
 class PetugasTaskReadService
 {
     /** @return array<string, mixed> */
-    public function listing(User $actor, Farm $farm, string $status): array
+    public function listing(User $actor, Farm $farm, string $status, string $view = 'running'): array
     {
         $team = $farm->team;
         $tasks = PlantingCycleTask::visibleTo($actor, $team)
-            ->whereHas('plantingCycle', fn ($query) => $query->where('farm_id', $farm->id))
+            ->whereHas('plantingCycle', fn ($query) => $query->visibleTo($actor, $team)
+                ->where('farm_id', $farm->id)->whereIn('status', SubblockLifecycle::statuses($view)))
             ->get()->map(fn (PlantingCycleTask $task): array => $this->detail($actor, $task));
         $summary = collect(['overdue', 'today', 'upcoming', 'completed'])->mapWithKeys(fn ($key) => [$key => $tasks->where('urgency', $key)->count()])->all();
 
@@ -70,6 +72,7 @@ class PetugasTaskReadService
             'can' => ['record' => false, 'complete' => false],
             'subblok' => [
                 'id' => $cycle->id, 'number' => $cycle->getAttribute('batch_number'), 'label' => $cycle->getAttribute('subblock_label'),
+                'status' => $cycle->status,
                 'planned_planting_at' => $cycle->planned_planting_at?->toDateString(), 'planted_at' => $cycle->planted_at?->toDateString(),
                 'hst' => $cycle->planted_at !== null && $cycle->planted_at->toDateString() <= $today->toDateString()
                     ? (int) CarbonImmutable::parse($cycle->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today)

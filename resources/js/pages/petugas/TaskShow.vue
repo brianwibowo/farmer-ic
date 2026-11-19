@@ -63,7 +63,11 @@ function completedAtLabel(value: string): string {
     >
         <PetugasDetailHeader
             title="Detail tugas"
-            :back-href="`/petugas/aktivitas${activityDate}`"
+            :back-href="
+                ['harvested', 'cancelled'].includes(task.subblok.status ?? '')
+                    ? '/petugas/aktivitas?view=history'
+                    : `/petugas/aktivitas${activityDate}`
+            "
             back-label="Kembali ke daftar tugas"
         />
 
@@ -117,6 +121,11 @@ function completedAtLabel(value: string): string {
                     class="mt-3"
                     :status="task.status"
                     :urgency="task.urgency"
+                    :closed="
+                        ['harvested', 'cancelled'].includes(
+                            task.subblok.status ?? '',
+                        )
+                    "
                 />
             </div>
             <dl

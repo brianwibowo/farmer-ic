@@ -25,6 +25,7 @@ import {
     adminTaskStatusLabels,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
+    taskSubblockClosed,
     type AdminTaskBlockOption,
     type AdminTaskCategory,
     type AdminTaskFarmOption,
@@ -466,7 +467,10 @@ function reset(): void {
                                         }}
                                     </p>
                                     <p
-                                        v-if="task.urgency === 'overdue'"
+                                        v-if="
+                                            !taskSubblockClosed(task) &&
+                                            task.urgency === 'overdue'
+                                        "
                                         class="mt-1 text-xs font-medium text-error"
                                     >
                                         {{
@@ -476,7 +480,10 @@ function reset(): void {
                                         }}
                                     </p>
                                     <p
-                                        v-else-if="task.urgency === 'today'"
+                                        v-else-if="
+                                            !taskSubblockClosed(task) &&
+                                            task.urgency === 'today'
+                                        "
                                         class="mt-1 text-xs font-medium text-warning"
                                     >
                                         Hari ini
@@ -506,6 +513,7 @@ function reset(): void {
                                             }}
                                         </span>
                                         <span
+                                            v-if="!taskSubblockClosed(task)"
                                             class="rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap"
                                             :class="
                                                 adminTaskUrgencyClass(
@@ -519,6 +527,11 @@ function reset(): void {
                                                 ]
                                             }}
                                         </span>
+                                        <span
+                                            v-else
+                                            class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                                            >Subblok ditutup</span
+                                        >
                                     </div>
                                 </td>
                                 <td class="text-right">
@@ -580,11 +593,17 @@ function reset(): void {
                                 {{ adminTaskStatusLabels[task.status] }}
                             </span>
                             <span
+                                v-if="!taskSubblockClosed(task)"
                                 class="rounded-full px-2.5 py-1 text-xs font-medium"
                                 :class="adminTaskUrgencyClass(task.urgency)"
                             >
                                 {{ adminTaskUrgencyLabels[task.urgency] }}
                             </span>
+                            <span
+                                v-else
+                                class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                                >Subblok ditutup</span
+                            >
                             <span
                                 class="inline-flex items-center gap-1 text-xs text-muted-foreground"
                             >
@@ -594,7 +613,10 @@ function reset(): void {
                                 }}
                             </span>
                             <span
-                                v-if="task.urgency === 'overdue'"
+                                v-if="
+                                    !taskSubblockClosed(task) &&
+                                    task.urgency === 'overdue'
+                                "
                                 class="text-xs font-medium text-error"
                             >
                                 {{

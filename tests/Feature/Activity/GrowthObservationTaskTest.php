@@ -48,7 +48,7 @@ class GrowthObservationTaskTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('local');
+        Storage::fake('activity');
         $this->travelTo(CarbonImmutable::parse('2026-11-19 09:00:00', 'Asia/Jakarta'));
 
         $this->team = Team::factory()->create();

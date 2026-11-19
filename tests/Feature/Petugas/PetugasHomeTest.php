@@ -127,8 +127,8 @@ class PetugasHomeTest extends TestCase
             ->component('petugas/Home')
             ->where('home.date', '2026-11-04')->where('home.farm.id', $this->farm->id)
             ->where('home.summary', ['pre_planting' => 1, 'planting' => 1, 'harvest' => 1])
-            ->where('home.task_summary', ['total' => 4, 'completed' => 1])
-            ->where('home.tasks.total', 4)->has('home.tasks.data', 4)
+            ->where('home.task_summary', ['total' => 3, 'completed' => 0])
+            ->where('home.tasks.total', 3)->has('home.tasks.data', 3)
             ->where('home.tasks.data.0.id', $running->id)
             ->where('home.tasks.data.1.id', $pending->id)
             ->where('home.tasks.data.1.hst', 7)
@@ -137,7 +137,6 @@ class PetugasHomeTest extends TestCase
             ->where('home.tasks.data.1.stage', 'maintenance')
             ->where('home.tasks.data.1.instructions', $pending->instructions)
             ->where('home.tasks.data.2.hst', null)
-            ->where('home.tasks.data.3.status', 'completed')
             ->where('categories', fn ($categories) => collect($categories)->pluck('code')->contains('incident')));
     }
 

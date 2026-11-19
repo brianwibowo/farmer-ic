@@ -8,6 +8,7 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
 
 /** Maintains persisted stages from authorized, persisted activity reports. */
@@ -36,7 +37,8 @@ class PlantingCycleStageService
         if ($stage === null) {
             return;
         }
-        $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $activity->farm_id);
+        $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $activity->farm_id)
+            ->whereIn('status', SubblockLifecycle::RUNNING);
         if (in_array($type->code, self::BLOCK_CODES, true)) {
             if ($activity->getAttribute('block_id') === null) {
                 return;

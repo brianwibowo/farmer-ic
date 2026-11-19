@@ -50,11 +50,16 @@ export type AdminTask = {
         number: number;
         label: string | null;
         planted_at: string | null;
+        status?: 'planned' | 'active' | 'harvested' | 'cancelled';
     } | null;
     stage: { code: string } | null;
     sop_version: { id: string; version: number } | null;
     can: { update: boolean };
 };
+
+export function taskSubblockClosed(task: AdminTask): boolean {
+    return ['harvested', 'cancelled'].includes(task.subblok?.status ?? '');
+}
 
 export type AdminTaskPage = {
     data: AdminTask[];

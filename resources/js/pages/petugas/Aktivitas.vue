@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useRemember } from '@inertiajs/vue3';
+import { Head, Link, useRemember } from '@inertiajs/vue3';
 import { ClipboardList, Search, SlidersHorizontal } from '@lucide/vue';
 import { computed, reactive, ref, unref, useId, watch } from 'vue';
 import PetugasListHeader from '@/components/petugas/PetugasListHeader.vue';
@@ -13,6 +13,7 @@ import { sopActivityCategoryLabels } from '@/types/sop';
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps<PetugasTaskPageProps>();
+const isHistory = computed(() => props.filters.view === 'history');
 const filter = reactive(
     unref(
         useRemember<{
@@ -24,17 +25,18 @@ const filter = reactive(
         }>(
             {
                 q: '',
-                status:
-                    props.filters.status === 'all' ||
-                    props.filters.status === 'overdue' ||
-                    props.filters.status === 'today'
-                        ? 'active'
-                        : props.filters.status,
+                status: isHistory.value
+                    ? 'all'
+                    : props.filters.status === 'all' ||
+                        props.filters.status === 'overdue' ||
+                        props.filters.status === 'today'
+                      ? 'active'
+                      : props.filters.status,
                 category: '',
                 block: '',
                 subblok: '',
             },
-            'petugas-activities',
+            `petugas-activities-${props.filters.view ?? 'running'}`,
         ),
     ),
 );
@@ -42,6 +44,19 @@ if (filter.status === 'overdue' || filter.status === 'today') {
     filter.status = 'active';
 }
 filter.subblok ??= '';
+watch(
+    () => props.filters.view,
+    (view, previous) => {
+        if (view === previous) return;
+        Object.assign(filter, {
+            q: '',
+            status: view === 'history' ? 'all' : 'active',
+            category: '',
+            block: '',
+            subblok: '',
+        });
+    },
+);
 // Explicit navigation from the inbox overrides remembered local filters.
 watch(
     () =>
@@ -129,7 +144,7 @@ const advancedCount = computed(
 function reset(): void {
     Object.assign(filter, {
         q: '',
-        status: 'active',
+        status: isHistory.value ? 'all' : 'active',
         category: '',
         block: '',
         subblok: '',
@@ -144,12 +159,45 @@ function reset(): void {
             title="Tugas"
             :show-incidents="!!farm"
             summary-label="Ringkasan tugas"
-            :metrics="[
-                { label: 'Terlambat', value: summary.overdue },
-                { label: 'Hari ini', value: summary.today },
-                { label: 'Mendatang', value: summary.upcoming },
-            ]"
+            :metrics="
+                isHistory
+                    ? []
+                    : [
+                          { label: 'Terlambat', value: summary.overdue },
+                          { label: 'Hari ini', value: summary.today },
+                          { label: 'Mendatang', value: summary.upcoming },
+                      ]
+            "
         />
+        <nav aria-label="Tampilan tugas" class="flex gap-2 overflow-x-auto">
+            <Link
+                href="/petugas/aktivitas?view=running"
+                preserve-scroll
+                :aria-current="!isHistory ? 'page' : undefined"
+                class="inline-flex min-h-11 shrink-0 items-center rounded-xl border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                :class="
+                    !isHistory
+                        ? 'border-secondary bg-secondary text-secondary-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                "
+                >Tugas berjalan</Link
+            >
+            <Link
+                href="/petugas/aktivitas?view=history"
+                preserve-scroll
+                :aria-current="isHistory ? 'page' : undefined"
+                class="inline-flex min-h-11 shrink-0 items-center rounded-xl border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                :class="
+                    isHistory
+                        ? 'border-secondary bg-secondary text-secondary-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                "
+                >Riwayat subblok</Link
+            >
+        </nav>
+        <p v-if="isHistory" class="text-sm text-muted-foreground">
+            Tugas dari subblok selesai atau dibatalkan hanya dapat dilihat.
+        </p>
         <section v-if="farm" class="space-y-2" aria-label="Filter tugas">
             <label class="relative block">
                 <span class="sr-only">Cari tugas</span>
@@ -164,8 +212,14 @@ function reset(): void {
                     aria-hidden="true"
                 />
             </label>
-            <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <div
+                class="grid gap-2"
+                :class="
+                    isHistory ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_auto]'
+                "
+            >
                 <AppSelect
+                    v-if="!isHistory"
                     v-model="filter.status"
                     aria-label="Status tugas"
                     class="min-h-11 min-w-0"
@@ -247,7 +301,9 @@ function reset(): void {
         </p>
         <div v-if="farm" class="flex items-center justify-between gap-3">
             <div>
-                <h2 class="text-base font-semibold">Daftar tugas</h2>
+                <h2 class="text-base font-semibold">
+                    {{ isHistory ? 'Riwayat tugas' : 'Daftar tugas' }}
+                </h2>
                 <p role="status" class="mt-1 text-xs text-muted-foreground">
                     {{ tasks.length }} tugas ditampilkan
                 </p>
@@ -258,7 +314,7 @@ function reset(): void {
                     filter.category ||
                     filter.block ||
                     filter.subblok ||
-                    filter.status !== 'active'
+                    filter.status !== (isHistory ? 'all' : 'active')
                 "
                 type="button"
                 class="min-h-11 rounded-xl px-2 text-xs font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

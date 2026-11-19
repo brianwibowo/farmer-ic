@@ -549,7 +549,8 @@ class FarmBlockTest extends TestCase
         }
         $actor->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $this->actingAs($actor);
-        $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page->where('can.create', $mutates));
+        $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('can.create', $mutates)->where('filterBatches', $role !== 'owner'));
         $this->get($this->url())->assertOk()->assertInertia(fn (Assert $page) => $page->where('blocks.data.0.can.update', $mutates));
         $this->assertSame($mutates, Gate::forUser($actor)->allows('create', [FarmBlock::class, $this->farm]));
         $this->assertFalse($role !== 'superadmin' && Gate::forUser($actor)->allows('configure', $block));

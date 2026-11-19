@@ -739,7 +739,9 @@ or invented statistics to occupy space.
 
 Below the cards, show today's persisted SOP tasks for the assigned farm, using
 the Asia/Jakarta calendar date. Include pending, in-progress, submitted, and
-completed tasks; omit skipped/cancelled tasks and cancelled batches. Each task
+completed tasks on `planned` or `active` subblocks; omit skipped/cancelled tasks
+and tasks on `harvested` or `cancelled` subblocks. The three batch metrics retain
+their existing definitions, including the historical `harvested` Panen count. Each task
 shows its status, block/batch, and actual HST when a planting date exists.
 Render each task as a full-card Inertia link with a trailing right arrow,
 keyboard focus, and a subtle hover state; do not use an accordion or dropdown.
@@ -784,6 +786,16 @@ remaining-area text in that toolbar. Omit the separate selected-block summary
 card with its name, area, description and land-clearing dates. Retain the selected
 block in pagination links. Scope every related query and total to the assigned
 farm and its team, with controller authorization before service reads.
+
+Show **Berjalan / Riwayat** navigation for the selected block. Berjalan contains
+`planned` and `active` subblocks; Riwayat contains `harvested` and `cancelled`.
+The selected view applies to garden subblock counts and pagination. Retain the
+selected block while switching views and show an honest empty state for each.
+On the Tugas page, provide a separate Riwayat Subblok view; retain each task's
+real status, omit urgency indicators for closed subblocks, and make historical
+tasks and reports read-only. Admin block tables provide a default Berjalan
+filter and Selesai panen, Dibatalkan, and Semua options without hiding empty
+blocks or changing capacity, dashboard, or historical-report calculations.
 
 Subblok cards distinguish reserved area from actual planted area and show batch
 number, subblok label, planting round, status, actual/planned planting date, HST,
