@@ -25,9 +25,11 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {
+    formatHok,
     hstLabel,
     sopDate,
     sopTaskCategoryLabel,
+    sumTaskHok,
     type SopCan,
     type SopTask,
     type SopTemplateDetail,
@@ -39,7 +41,7 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps<{
     template: SopTemplateDetail;
     can: SopCan;
-    numericLimits: { offsetDays: number; toleranceDays: number };
+    numericLimits: { offsetDays: number; toleranceDays: number; hok?: number };
 }>();
 
 const taskDialogOpen = ref(false);
@@ -230,8 +232,17 @@ function statusClass(status: SopVersion['status']): string {
             </div>
         </header>
 
-        <section class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4" aria-label="Ringkasan SOP">
-            <SummaryStatCard v-for="metric in summaryMetrics" :key="metric.label" :label="metric.label" :value="metric.value" :icon="metric.icon" />
+        <section
+            class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
+            aria-label="Ringkasan SOP"
+        >
+            <SummaryStatCard
+                v-for="metric in summaryMetrics"
+                :key="metric.label"
+                :label="metric.label"
+                :value="metric.value"
+                :icon="metric.icon"
+            />
         </section>
 
         <div
@@ -280,6 +291,12 @@ function statusClass(status: SopVersion['status']): string {
                             class="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
                         >
                             {{ version.tasks.length }} langkah
+                        </span>
+                        <span
+                            v-if="sumTaskHok(version.tasks) > 0"
+                            class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground tabular-nums"
+                        >
+                            Total {{ formatHok(sumTaskHok(version.tasks)) }}
                         </span>
                     </div>
                     <p
@@ -360,7 +377,7 @@ function statusClass(status: SopVersion['status']): string {
                                     Kategori
                                 </th>
                                 <th scope="col" class="px-5 py-3 font-semibold">
-                                    Wajib
+                                    HOK
                                 </th>
                                 <th
                                     v-if="
@@ -405,17 +422,10 @@ function statusClass(status: SopVersion['status']): string {
                                 <td class="px-5 py-4 whitespace-nowrap">
                                     {{ sopTaskCategoryLabel(task) }}
                                 </td>
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    <span
-                                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                        :class="
-                                            task.is_required
-                                                ? 'bg-primary/10 text-primary'
-                                                : 'bg-muted text-muted-foreground'
-                                        "
-                                    >
-                                        {{ task.is_required ? 'Ya' : 'Tidak' }}
-                                    </span>
+                                <td
+                                    class="px-5 py-4 whitespace-nowrap tabular-nums"
+                                >
+                                    {{ formatHok(task.hok) }}
                                 </td>
                                 <td
                                     v-if="
@@ -480,14 +490,10 @@ function statusClass(status: SopVersion['status']): string {
                                 {{ sopTaskCategoryLabel(task) }}
                             </span>
                             <span
-                                class="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                :class="
-                                    task.is_required
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'bg-muted text-muted-foreground'
-                                "
+                                v-if="task.hok != null"
+                                class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground tabular-nums"
                             >
-                                {{ task.is_required ? 'Wajib' : 'Opsional' }}
+                                {{ formatHok(task.hok) }}
                             </span>
                         </div>
                         <div

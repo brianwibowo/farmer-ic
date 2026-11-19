@@ -286,6 +286,7 @@ class TaskManagementController extends Controller
             'overdue_days' => $overdueDays,
             'activity_category' => $task->activity_category,
             'offset_days' => $task->offset_days,
+            'hok' => $task->hok,
             'scheduled_date' => $task->scheduled_date?->toDateString(),
             'due_date' => $task->due_date?->toDateString(),
             'effective_scheduled_date' => $effective?->toDateString(),

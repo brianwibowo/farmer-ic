@@ -23,7 +23,8 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="space-y-3">
+    <div class="relative space-y-3">
+        <!-- Keep the hidden input positioned within the form's scrollable content. -->
         <input
             id="activity-photos"
             type="file"

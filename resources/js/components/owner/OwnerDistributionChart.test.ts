@@ -1,4 +1,4 @@
-import { createSSRApp } from 'vue';
+import { createSSRApp, h } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { describe, expect, it } from 'vite-plus/test';
 import OwnerDistributionChart from './OwnerDistributionChart.vue';
@@ -48,5 +48,46 @@ describe('Shared Owner distribution chart', () => {
         expect(html).toContain('Jagung, 400 ton, 100%');
         expect(html).not.toContain('hektar');
         expect(html).not.toContain('NaN');
+    });
+    it('keeps all partner areas in the chart while limiting the detail cards', async () => {
+        const items = [10, 8, 6, 4, 2].map((area, index) => ({
+            id: String(index),
+            name: `Mitra ${index + 1}`,
+            value: area,
+        }));
+        const render = (visibleItems: typeof items) =>
+            renderToString(
+                createSSRApp({
+                    render: () =>
+                        h(
+                            OwnerDistributionChart,
+                            {
+                                items: visibleItems,
+                                legendLimit: 3,
+                                totalLabel: 'Luas lahan',
+                            },
+                            {
+                                'legend-overflow': ({
+                                    count,
+                                    items: allPartners,
+                                }: {
+                                    count: number;
+                                    items: { name: string }[];
+                                }) =>
+                                    `${count} mitra lainnya: ${allPartners.map((item) => item.name).join(', ')}`,
+                            },
+                        ),
+                }),
+            );
+
+        const html = await render(items);
+        expect(html).toContain('Total luas lahan 30 Ha.');
+        expect(html).toContain('Mitra 5, 2 Ha, 6,7%');
+        expect(html.match(/aria-pressed="false"/g)).toHaveLength(3);
+        expect(html).toContain(
+            '2 mitra lainnya: Mitra 1, Mitra 2, Mitra 3, Mitra 4, Mitra 5',
+        );
+
+        expect(await render(items.slice(0, 3))).not.toContain('mitra lainnya');
     });
 });

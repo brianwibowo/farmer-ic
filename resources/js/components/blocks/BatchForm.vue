@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
+import FarmCycleField from './FarmCycleField.vue';
+import { useFarmCycles } from '@/composables/useFarmCycles';
 import { LoaderCircle, Save } from '@lucide/vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import FormErrorSummary from '@/components/farms/FormErrorSummary.vue';
@@ -19,7 +21,9 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ saved: []; cancel: [] }>();
 const base = props.base;
+const { defaults: cycleDefaults } = useFarmCycles();
 const batchForm = useForm({
+    ...cycleDefaults(),
     return_to: props.returnTo ?? 'blocks',
     subblock_label: props.batch?.subblock_label ?? '',
     planned_planting_at: props.batch?.planned_planting_at?.slice(0, 10) ?? '',
@@ -35,7 +39,15 @@ function submit(): void {
         onError: focusFormErrors,
     };
     if (props.batch)
-        batchForm.put(`${base}/batches/${props.batch.id}`, options);
+        batchForm
+            .transform(
+                ({
+                    farm_cycle_id: _cycle,
+                    create_farm_cycle: _create,
+                    ...data
+                }) => data,
+            )
+            .put(`${base}/batches/${props.batch.id}`, options);
     else batchForm.post(`${base}/batches`, options);
 }
 
@@ -79,6 +91,14 @@ defineExpose({
             <FormErrorSummary
                 :errors="batchForm.errors"
                 :fields="{
+                    farm_cycle_id: {
+                        id: 'batch-farm-cycle',
+                        label: 'Siklus lahan',
+                    },
+                    create_farm_cycle: {
+                        id: 'batch-farm-cycle',
+                        label: 'Siklus lahan',
+                    },
                     subblock_label: {
                         id: 'batch-label',
                         label: 'Label sub blok',
@@ -93,6 +113,18 @@ defineExpose({
                 :disabled="batchForm.processing"
                 class="grid gap-4 sm:grid-cols-2"
             >
+                <FarmCycleField
+                    v-if="!batch"
+                    id="batch-farm-cycle"
+                    v-model="batchForm.farm_cycle_id"
+                    v-model:create="batchForm.create_farm_cycle"
+                    class="sm:col-span-2"
+                    :disabled="batchForm.processing"
+                    :error="
+                        batchForm.errors.farm_cycle_id ||
+                        batchForm.errors.create_farm_cycle
+                    "
+                />
                 <FarmField
                     id="batch-label"
                     label="Label sub blok (opsional)"
@@ -138,7 +170,7 @@ defineExpose({
                 v-if="dialog"
                 class="hidden text-xs text-muted-foreground sm:block"
             >
-                Semua isian bersifat opsional
+                Pilih siklus lahan untuk subblok baru
             </p>
             <div class="flex items-center gap-2">
                 <Button
@@ -152,6 +184,9 @@ defineExpose({
                     class="block-action h-10"
                     :disabled="
                         batchForm.processing ||
+                        (!batch &&
+                            !batchForm.farm_cycle_id &&
+                            !batchForm.create_farm_cycle) ||
                         (!batch && Number(props.capacity.available_ha) <= 0)
                     "
                     ><LoaderCircle

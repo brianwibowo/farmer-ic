@@ -3,6 +3,7 @@
 return [
     'roles' => [
         'owner' => [
+            'farm_cycles.view' => 'any',
             'administrative_regions.view' => 'any',
             'farm_blocks.view' => 'any',
             'planting_cycle_stages.view' => 'any',
@@ -36,6 +37,7 @@ return [
             'financial_transactions.view' => 'any',
             'harvest_details.view' => 'any',
             'incident_details.view' => 'any',
+            'incident_tickets.view' => 'any',
             'irrigation_details.view' => 'any',
             'land_cleaning_details.view' => 'any',
             'liming_details.view' => 'any',
@@ -74,6 +76,8 @@ return [
         ],
 
         'admin' => [
+            'farm_cycles.view' => 'any',
+            'farm_cycles.create' => 'any',
             'administrative_regions.view' => 'any',
             'farm_blocks.view' => 'any',
             'farm_blocks.create' => 'any',
@@ -173,6 +177,8 @@ return [
             'incident_details.create' => 'any',
             'incident_details.update' => 'any',
             'incident_details.delete' => 'any',
+            'incident_tickets.view' => 'any',
+            'incident_tickets.update' => 'any',
             'irrigation_details.view' => 'any',
             'irrigation_details.create' => 'any',
             'irrigation_details.update' => 'any',
@@ -240,6 +246,8 @@ return [
         ],
 
         'petugas' => [
+            'farm_cycles.view' => 'own',
+            'farm_cycles.create' => 'own',
             'administrative_regions.view' => 'any',
             'activity_types.view' => 'any',
             'commodities.view' => 'any',
@@ -305,6 +313,9 @@ return [
             'incident_details.create' => 'own',
             'incident_details.update' => 'own',
             'incident_details.delete' => 'own',
+            'incident_tickets.view' => 'own',
+            'incident_tickets.create' => 'own',
+            'incident_tickets.update' => 'own',
             'harvest_details.view' => 'own',
             'harvest_details.create' => 'own',
             'harvest_details.update' => 'own',

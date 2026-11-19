@@ -55,11 +55,11 @@ class DemoSopSeeder extends Seeder
 
             $tasks = [
                 // Planting is the HST anchor and planting activity, not a follow-up SOP task.
-                ['category' => 'maintenance', 'name' => 'Pengairan awal', 'offset' => 7, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
-                ['category' => 'maintenance', 'name' => 'Pemupukan susulan pertama', 'offset' => 14, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
-                ['category' => 'maintenance', 'name' => 'Pengendalian hama dan penyakit', 'offset' => 30, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
-                ['category' => 'maintenance', 'name' => 'Pemupukan lanjutan', 'offset' => 45, 'instructions' => 'Berikan pupuk susulan sesuai fase pertumbuhan dan hasil pengamatan.'],
-                ['category' => 'harvest', 'name' => 'Panen', 'offset' => 90, 'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.'],
+                ['category' => 'maintenance', 'name' => 'Pengairan awal', 'offset' => 7, 'hok' => 2, 'instructions' => 'Pastikan kelembapan tanah cukup setelah tanam; hindari genangan.'],
+                ['category' => 'maintenance', 'name' => 'Pemupukan susulan pertama', 'offset' => 14, 'hok' => 3, 'instructions' => 'Aplikasikan NPK sesuai dosis anjuran dan hindari kontak langsung dengan batang.'],
+                ['category' => 'maintenance', 'name' => 'Pengendalian hama dan penyakit', 'offset' => 30, 'hok' => 2, 'instructions' => 'Lakukan pengamatan dan aplikasikan pengendalian hanya jika ditemukan serangan.'],
+                ['category' => 'maintenance', 'name' => 'Pemupukan lanjutan', 'offset' => 45, 'hok' => 3, 'instructions' => 'Berikan pupuk susulan sesuai fase pertumbuhan dan hasil pengamatan.'],
+                ['category' => 'harvest', 'name' => 'Panen', 'offset' => 90, 'hok' => 6, 'instructions' => 'Panen saat tongkol matang fisiologis; catat luas, berat, dan kualitas hasil.'],
             ];
 
             foreach ($tasks as $task) {
@@ -70,6 +70,7 @@ class DemoSopSeeder extends Seeder
                     'instructions' => $task['instructions'],
                     'offset_days' => $task['offset'],
                     'tolerance_days' => 2,
+                    'hok' => $task['hok'],
                     'is_required' => true,
                 ]);
             }

@@ -1,25 +1,28 @@
 <script setup lang="ts">
-import { SlidersHorizontal, X } from '@lucide/vue';
+import { RefreshCw, SlidersHorizontal, X } from '@lucide/vue';
 import { computed, ref, useId } from 'vue';
 import { Button } from '@/components/ui/button';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import type {
-    ExecutiveDemoData,
+    ExecutiveSummaryData,
     ExecutiveFilters,
 } from '@/types/owner-executive';
 
 const props = defineProps<{
     filters: ExecutiveFilters;
-    data: ExecutiveDemoData;
+    data: ExecutiveSummaryData;
     years: number[];
-    cycles: number[];
     regions: string[];
-    farmOptions: ExecutiveDemoData['farms'];
+    farmOptions: ExecutiveSummaryData['farms'];
     loading: boolean;
     count: number;
 }>();
-const emit = defineEmits<{ change: [filters: ExecutiveFilters]; reset: [] }>();
+const emit = defineEmits<{
+    change: [filters: ExecutiveFilters];
+    reset: [];
+    refresh: [];
+}>();
 const expanded = ref(false);
 const panelId = useId();
 const chips = computed(() =>
@@ -49,7 +52,7 @@ const changed = computed(
     () =>
         chips.value.length > 0 ||
         props.filters.year !== props.data.defaultYear ||
-        props.filters.cycle !== 'all',
+        props.filters.quarter !== 'all',
 );
 function set<K extends keyof ExecutiveFilters>(
     key: K,
@@ -70,10 +73,12 @@ function clear(key: string) {
         aria-label="Filter global"
         class="rounded-xl border border-border bg-card px-4 py-3"
     >
-        <div class="flex flex-wrap items-center justify-between gap-3">
+        <div
+            class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-end gap-2 sm:flex sm:flex-wrap sm:gap-3"
+        >
             <fieldset
                 :disabled="loading"
-                class="grid w-full grid-cols-2 items-end gap-2 sm:w-auto sm:grid-cols-[7rem_10rem_auto]"
+                class="col-span-3 grid min-w-0 grid-cols-2 items-end gap-2 sm:w-auto sm:grid-cols-[7rem_10rem]"
             >
                 <legend class="sr-only">Periode ringkasan</legend>
                 <div class="exec-label">
@@ -95,53 +100,72 @@ function clear(key: string) {
                     </AppSelect>
                 </div>
                 <div class="exec-label">
-                    <label :for="`${panelId}-cycle`">Cycle</label>
+                    <label :for="`${panelId}-quarter`">Kuartal</label>
                     <AppSelect
-                        :id="`${panelId}-cycle`"
-                        :model-value="filters.cycle"
+                        :id="`${panelId}-quarter`"
+                        :model-value="filters.quarter"
                         :disabled="loading"
                         class="admin-field min-h-11!"
-                        @update:model-value="set('cycle', $event)"
+                        @update:model-value="set('quarter', $event)"
                     >
                         <AppSelectOption value="all"
-                            >Semua cycle</AppSelectOption
+                            >Semua kuartal</AppSelectOption
                         >
                         <AppSelectOption
-                            v-for="cycle in cycles"
-                            :key="cycle"
-                            :value="cycle"
+                            v-for="quarter in ['Q1', 'Q2', 'Q3', 'Q4'] as const"
+                            :key="quarter"
+                            :value="quarter"
                         >
-                            Cycle {{ cycle }}
+                            {{ quarter }}
                         </AppSelectOption>
                     </AppSelect>
                 </div>
-                <Button
-                    variant="outline"
-                    class="col-span-2 min-h-11 justify-self-start sm:col-span-1"
-                    :aria-expanded="expanded"
-                    :aria-controls="panelId"
-                    @click="expanded = !expanded"
-                    ><SlidersHorizontal
-                        class="size-4"
-                        aria-hidden="true"
-                    />Filter<span
-                        v-if="chips.length"
-                        class="rounded bg-primary/15 px-1.5 text-xs"
-                        >{{ chips.length }}</span
-                    ></Button
-                >
             </fieldset>
-            <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                <span aria-live="polite">{{ count }} lahan terpilih</span
-                ><button
+            <Button
+                type="button"
+                variant="outline"
+                class="min-h-11 justify-self-start"
+                :disabled="loading"
+                :aria-expanded="expanded"
+                :aria-controls="panelId"
+                @click="expanded = !expanded"
+            >
+                <SlidersHorizontal class="size-4" aria-hidden="true" />Filter
+                <span
+                    v-if="chips.length"
+                    class="rounded bg-primary/15 px-1.5 text-xs"
+                    >{{ chips.length }}</span
+                >
+            </Button>
+            <div
+                class="flex min-h-11 min-w-0 flex-wrap items-center justify-end gap-x-3 self-center text-xs text-muted-foreground sm:ml-auto"
+            >
+                <span aria-live="polite">{{ count }} lahan terpilih</span>
+                <button
                     v-if="changed"
                     type="button"
+                    :disabled="loading"
                     class="min-h-11 font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
                     @click="emit('reset')"
                 >
                     Reset filter
                 </button>
             </div>
+            <Button
+                type="button"
+                size="icon"
+                class="min-h-11 min-w-11 shrink-0 self-center"
+                :disabled="loading"
+                aria-label="Perbarui ringkasan eksekutif"
+                title="Refresh"
+                @click="emit('refresh')"
+            >
+                <RefreshCw
+                    class="size-4"
+                    :class="loading ? 'motion-safe:animate-spin' : ''"
+                    aria-hidden="true"
+                />
+            </Button>
         </div>
         <fieldset
             v-if="expanded"

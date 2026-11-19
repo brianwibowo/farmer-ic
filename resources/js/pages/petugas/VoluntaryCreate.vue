@@ -11,6 +11,7 @@ import {
     LoaderCircle,
     MapPin,
     Save,
+    ShieldAlert,
     SquarePen,
 } from '@lucide/vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
@@ -25,6 +26,7 @@ import { useErrorDisclosure } from '@/composables/useErrorDisclosure';
 import { useVoluntaryLocation } from '@/composables/useVoluntaryLocation';
 import {
     activityDetailMaximumErrors,
+    formatActivityNumber,
     maximumError,
 } from '@/lib/activityInputLimits';
 
@@ -56,10 +58,33 @@ const props = defineProps<{
         name: string;
         scheduled_date: string | null;
     }[];
+    incidentTicket?: {
+        id: string;
+        incident_category: string | null;
+        severity: 'light' | 'medium' | 'emergency';
+        severity_label: string;
+        description: string | null;
+        admin_note: string | null;
+        scope: 'cycle' | 'block' | 'farm';
+        cycle_id: string | null;
+        block_id: string | null;
+        location_label: string;
+    } | null;
 }>();
+const lockedTicketCycle = computed(() =>
+    props.incidentTicket?.scope === 'cycle'
+        ? props.cycles.find((c) => c.id === props.incidentTicket?.cycle_id)
+        : undefined,
+);
 const form = useForm({
-    cycle_id: '',
-    block_id: '',
+    cycle_id:
+        props.incidentTicket?.scope === 'cycle'
+            ? (props.incidentTicket.cycle_id ?? '')
+            : '',
+    block_id:
+        props.incidentTicket?.scope === 'block'
+            ? (props.incidentTicket.block_id ?? '')
+            : (lockedTicketCycle.value?.block.id ?? ''),
     work_date: props.today,
     worker_count: 1,
     notes: '',
@@ -70,12 +95,21 @@ const form = useForm({
                 ? 'm²'
                 : f.key === 'quantity_unit' || f.key === 'weight_unit'
                   ? 'kg'
-                  : '',
+                  : f.key === 'incident_status'
+                    ? 'Perlu penanganan'
+                    : '',
         ]),
     ) as Record<string, string>,
     photos: [] as File[],
 });
 const clientError = ref('');
+const isIncident = computed(() => props.type.code === 'incident');
+const showIncidentWorkerCount = computed(
+    () =>
+        isIncident.value &&
+        form.details.incident_status === 'Sudah ditangani langsung',
+);
+const incidentWorkerCount = ref<string | number>('');
 const blockOnly = computed(() =>
     ['land_cleaning', 'soil_preparation', 'base_fertilization'].includes(
         props.type.code,
@@ -98,11 +132,19 @@ const numericErrors = computed<Record<string, string>>(() => {
         areaLimitM2.value,
         props.numericLimits.quantityKg,
     );
-    const workerError = maximumError(
-        form.worker_count,
-        props.numericLimits.workerCount,
-        'Jumlah pekerja',
-    );
+    const workerError = !isIncident.value
+        ? maximumError(
+              form.worker_count,
+              props.numericLimits.workerCount,
+              'Jumlah pekerja',
+          )
+        : showIncidentWorkerCount.value
+          ? maximumError(
+                incidentWorkerCount.value,
+                props.numericLimits.workerCount,
+                'Jumlah pekerja',
+            )
+          : undefined;
     if (workerError) result.worker_count = workerError;
     return result;
 });
@@ -110,6 +152,12 @@ const errors = computed<Record<string, string>>(() => ({
     ...form.errors,
     ...numericErrors.value,
 }));
+const locationTicketError = computed(
+    () =>
+        errors.value.incident_ticket_id ||
+        errors.value.cycle_id ||
+        errors.value.block_id,
+);
 const photoErrors = computed(() =>
     Object.entries(form.errors).filter(
         ([key]) => key === 'photos' || key.startsWith('photos.'),
@@ -147,6 +195,16 @@ watch(
 watch(
     () => form.worker_count,
     () => form.clearErrors('worker_count'),
+);
+watch(incidentWorkerCount, () => form.clearErrors('worker_count'));
+watch(
+    () => form.details.incident_status,
+    (status) => {
+        if (status !== 'Sudah ditangani langsung') {
+            incidentWorkerCount.value = '';
+            form.clearErrors('worker_count');
+        }
+    },
 );
 watch(
     () => form.work_date,
@@ -220,6 +278,7 @@ function submit(): void {
         return;
     }
     form.transform((data) => {
+        const { worker_count, ...rest } = data;
         const details = Object.fromEntries(
             Object.entries(data.details).filter(([key]) => {
                 const f = props.fields.find((f) => f.key === key);
@@ -227,8 +286,24 @@ function submit(): void {
             }),
         );
         return {
-            ...data,
-            block_id: submittedBlockId(data.cycle_id, data.block_id),
+            ...rest,
+            ...(!isIncident.value
+                ? { worker_count }
+                : showIncidentWorkerCount.value &&
+                    String(incidentWorkerCount.value ?? '').trim() !== ''
+                  ? { worker_count: Number(incidentWorkerCount.value) }
+                  : {}),
+            cycle_id: props.incidentTicket
+                ? props.incidentTicket.scope === 'cycle'
+                    ? (props.incidentTicket.cycle_id ?? '')
+                    : ''
+                : data.cycle_id,
+            block_id: props.incidentTicket
+                ? props.incidentTicket.scope === 'block'
+                    ? (props.incidentTicket.block_id ?? '')
+                    : ''
+                : submittedBlockId(data.cycle_id, data.block_id),
+            incident_ticket_id: props.incidentTicket?.id ?? null,
             details,
         };
     }).post(`/petugas/aktivitas/mandiri/${props.type.code}`, {
@@ -242,18 +317,67 @@ function submit(): void {
     <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
             <Link
-                href="/petugas/laporan"
+                :href="
+                    incidentTicket
+                        ? `/petugas/incidents/${incidentTicket.id}`
+                        : '/petugas/laporan'
+                "
                 class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
-                laporan</Link
+                ><ArrowLeft class="size-4" aria-hidden="true" />{{
+                    incidentTicket
+                        ? 'Kembali ke tiket insiden'
+                        : 'Kembali ke laporan'
+                }}</Link
             >
             <h1 class="mt-2 text-xl leading-7 font-semibold">
-                Catat aktivitas
+                {{
+                    incidentTicket
+                        ? `Tindak lanjuti insiden · ${type.name}`
+                        : 'Catat aktivitas'
+                }}
             </h1>
             <p class="mt-1 text-sm leading-5 text-muted-foreground">
-                Laporkan pekerjaan mandiri di kebun.
+                {{
+                    incidentTicket
+                        ? 'Menyimpan aktivitas ini akan masuk ke logbook harian dan otomatis menyelesaikan tiket insiden.'
+                        : 'Laporkan pekerjaan mandiri di kebun.'
+                }}
             </p>
         </header>
+        <section
+            v-if="incidentTicket"
+            class="petugas-card space-y-2 border border-warning/35 bg-warning/10 p-4"
+            aria-label="Ringkasan tiket insiden yang ditindaklanjuti"
+        >
+            <div class="flex items-center justify-between gap-2">
+                <p
+                    class="flex items-center gap-2 text-xs font-semibold text-warning"
+                >
+                    <ShieldAlert class="size-4 shrink-0" aria-hidden="true" />
+                    Tindak lanjut tiket insiden
+                </p>
+                <span
+                    class="rounded-full bg-card px-2.5 py-0.5 text-[11px] font-semibold text-foreground"
+                    >{{ incidentTicket.severity_label }}</span
+                >
+            </div>
+            <p class="text-sm font-semibold text-foreground">
+                {{ incidentTicket.incident_category || 'Insiden lahan' }}
+            </p>
+            <p
+                v-if="incidentTicket.description"
+                class="text-xs leading-5 break-words text-muted-foreground"
+            >
+                {{ incidentTicket.description }}
+            </p>
+            <p
+                v-if="incidentTicket.admin_note"
+                class="rounded-xl bg-card/80 p-2.5 text-xs leading-5 text-foreground"
+            >
+                <span class="font-semibold">Arahan Admin:</span>
+                {{ incidentTicket.admin_note }}
+            </p>
+        </section>
         <section
             class="petugas-card overflow-hidden"
             aria-label="Aktivitas yang dilaporkan"
@@ -266,7 +390,11 @@ function submit(): void {
                 </span>
                 <div class="min-w-0">
                     <p class="text-xs font-semibold text-primary">
-                        Aktivitas mandiri
+                        {{
+                            incidentTicket
+                                ? 'Aktivitas tindak lanjut insiden'
+                                : 'Aktivitas mandiri'
+                        }}
                     </p>
                     <p class="mt-0.5 text-base leading-6 font-bold">
                         {{ type.name }}
@@ -333,173 +461,206 @@ function submit(): void {
                             Lokasi pekerjaan
                         </h2>
                     </div>
-                    <div v-if="blockOnly || optionalLocation" class="space-y-2">
-                        <label
-                            for="voluntary-block"
-                            class="text-sm font-medium"
+                    <template v-if="incidentTicket">
+                        <div
+                            class="space-y-1.5 rounded-xl border border-border bg-muted/40 p-3"
                         >
-                            Blok {{ blockOnly ? '*' : '(opsional)' }}
-                        </label>
-                        <AppSelect
-                            id="voluntary-block"
-                            v-model="form.block_id"
-                            :required="blockOnly"
-                            :disabled="form.processing"
-                            aria-label="Blok"
-                            placeholder="Pilih blok"
-                            class="petugas-activity-field"
-                            :aria-invalid="!!errors.block_id"
-                            :aria-describedby="
-                                errors.block_id
-                                    ? 'voluntary-block-error'
-                                    : undefined
-                            "
-                        >
-                            <AppSelectOption v-if="optionalLocation" value=""
-                                >Tidak dipilih</AppSelectOption
+                            <p
+                                class="text-xs font-semibold text-muted-foreground"
                             >
-                            <AppSelectOption
-                                v-for="block in blocks"
-                                :key="block.id"
-                                :value="block.id"
-                                >{{ block.name }}</AppSelectOption
-                            >
-                        </AppSelect>
+                                Lokasi dikunci sesuai tiket insiden
+                            </p>
+                            <p class="text-sm font-semibold text-foreground">
+                                {{ incidentTicket.location_label }}
+                            </p>
+                        </div>
                         <p
-                            v-if="errors.block_id"
-                            id="voluntary-block-error"
+                            v-if="locationTicketError"
+                            role="alert"
                             class="text-xs text-error"
-                            aria-live="polite"
                         >
-                            {{ errors.block_id }}
+                            {{ locationTicketError }}
                         </p>
-                    </div>
-                    <div v-if="!blockOnly" class="space-y-2">
-                        <label
-                            for="voluntary-cycle"
-                            class="text-sm font-medium"
-                            >{{
-                                optionalLocation
-                                    ? 'Subblok (opsional)'
-                                    : 'Blok / subblok *'
-                            }}</label
+                    </template>
+                    <template v-else>
+                        <div
+                            v-if="blockOnly || optionalLocation"
+                            class="space-y-2"
                         >
-                        <AppSelect
-                            id="voluntary-cycle"
-                            v-model="form.cycle_id"
-                            :required="!optionalLocation"
-                            :disabled="
-                                form.processing ||
-                                (optionalLocation &&
-                                    (!form.block_id || !availableCycles.length))
-                            "
-                            :aria-label="
-                                optionalLocation ? 'Subblok' : 'Blok / subblok'
-                            "
-                            placeholder="Pilih subblok"
-                            class="petugas-activity-field"
-                            :aria-invalid="!!errors.cycle_id"
-                            :aria-describedby="
-                                [
+                            <label
+                                for="voluntary-block"
+                                class="text-sm font-medium"
+                            >
+                                Blok {{ blockOnly ? '*' : '(opsional)' }}
+                            </label>
+                            <AppSelect
+                                id="voluntary-block"
+                                v-model="form.block_id"
+                                :required="blockOnly"
+                                :disabled="form.processing"
+                                aria-label="Blok"
+                                placeholder="Pilih blok"
+                                class="petugas-activity-field"
+                                :aria-invalid="!!errors.block_id"
+                                :aria-describedby="
+                                    errors.block_id
+                                        ? 'voluntary-block-error'
+                                        : undefined
+                                "
+                            >
+                                <AppSelectOption
+                                    v-if="optionalLocation"
+                                    value=""
+                                    >Tidak dipilih</AppSelectOption
+                                >
+                                <AppSelectOption
+                                    v-for="block in blocks"
+                                    :key="block.id"
+                                    :value="block.id"
+                                    >{{ block.name }}</AppSelectOption
+                                >
+                            </AppSelect>
+                            <p
+                                v-if="errors.block_id"
+                                id="voluntary-block-error"
+                                class="text-xs text-error"
+                                aria-live="polite"
+                            >
+                                {{ errors.block_id }}
+                            </p>
+                        </div>
+                        <div v-if="!blockOnly" class="space-y-2">
+                            <label
+                                for="voluntary-cycle"
+                                class="text-sm font-medium"
+                                >{{
                                     optionalLocation
-                                        ? 'voluntary-cycle-help'
-                                        : null,
-                                    errors.cycle_id
-                                        ? 'voluntary-cycle-error'
-                                        : null,
-                                ]
-                                    .filter(Boolean)
-                                    .join(' ') || undefined
-                            "
-                            ><AppSelectOption
+                                        ? 'Subblok (opsional)'
+                                        : 'Blok / subblok *'
+                                }}</label
+                            >
+                            <AppSelect
+                                id="voluntary-cycle"
+                                v-model="form.cycle_id"
+                                :required="!optionalLocation"
+                                :disabled="
+                                    form.processing ||
+                                    (optionalLocation &&
+                                        (!form.block_id ||
+                                            !availableCycles.length))
+                                "
+                                :aria-label="
+                                    optionalLocation
+                                        ? 'Subblok'
+                                        : 'Blok / subblok'
+                                "
+                                placeholder="Pilih subblok"
+                                class="petugas-activity-field"
+                                :aria-invalid="!!errors.cycle_id"
+                                :aria-describedby="
+                                    [
+                                        optionalLocation
+                                            ? 'voluntary-cycle-help'
+                                            : null,
+                                        errors.cycle_id
+                                            ? 'voluntary-cycle-error'
+                                            : null,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' ') || undefined
+                                "
+                                ><AppSelectOption
+                                    v-if="optionalLocation"
+                                    value=""
+                                    >{{
+                                        form.block_id
+                                            ? 'Seluruh blok'
+                                            : 'Pilih blok terlebih dahulu'
+                                    }}</AppSelectOption
+                                ><AppSelectOption
+                                    v-for="cycle in availableCycles"
+                                    :key="cycle.id"
+                                    :value="cycle.id"
+                                    >{{
+                                        optionalLocation
+                                            ? cycle.subblock_label
+                                            : `${cycle.block.name} · ${cycle.subblock_label}`
+                                    }}</AppSelectOption
+                                ></AppSelect
+                            >
+                            <p
                                 v-if="optionalLocation"
-                                value=""
-                                >{{
-                                    form.block_id
-                                        ? 'Seluruh blok'
-                                        : 'Pilih blok terlebih dahulu'
-                                }}</AppSelectOption
-                            ><AppSelectOption
-                                v-for="cycle in availableCycles"
-                                :key="cycle.id"
-                                :value="cycle.id"
-                                >{{
-                                    optionalLocation
-                                        ? cycle.subblock_label
-                                        : `${cycle.block.name} · ${cycle.subblock_label}`
-                                }}</AppSelectOption
-                            ></AppSelect
-                        >
-                        <p
-                            v-if="optionalLocation"
-                            id="voluntary-cycle-help"
-                            class="text-xs leading-5 text-muted-foreground"
-                            aria-live="polite"
-                        >
-                            <!-- {{
+                                id="voluntary-cycle-help"
+                                class="text-xs leading-5 text-muted-foreground"
+                                aria-live="polite"
+                            >
+                                <!-- {{
                                 !form.block_id
                                     ? 'Pilih blok terlebih dahulu untuk memilih subblok.'
                                     : !availableCycles.length
                                       ? 'Belum ada subblok aktif pada blok ini.'
                                       : 'Pilih subblok atau biarkan kosong untuk seluruh blok.'
                             }} -->
+                            </p>
+                            <p
+                                v-if="errors.cycle_id"
+                                id="voluntary-cycle-error"
+                                class="text-xs text-error"
+                                aria-live="polite"
+                            >
+                                {{ errors.cycle_id }}
+                            </p>
+                        </div>
+                        <p
+                            v-if="optionalLocation"
+                            class="text-xs leading-5 text-muted-foreground"
+                        >
+                            Tanpa blok, aktivitas berlaku untuk seluruh kebun.
+                            Tanpa subblok, aktivitas berlaku untuk seluruh blok
+                            yang dipilih.
                         </p>
                         <p
-                            v-if="errors.cycle_id"
-                            id="voluntary-cycle-error"
-                            class="text-xs text-error"
-                            aria-live="polite"
+                            v-if="
+                                blockOnly
+                                    ? !blocks.length
+                                    : !cycles.length && !optionalLocation
+                            "
+                            class="text-xs text-muted-foreground"
                         >
-                            {{ errors.cycle_id }}
+                            Belum ada
+                            {{ blockOnly ? 'blok' : 'subblok' }} aktif. Hubungi
+                            Admin untuk menyiapkannya.
                         </p>
-                    </div>
-                    <p
-                        v-if="optionalLocation"
-                        class="text-xs leading-5 text-muted-foreground"
-                    >
-                        Tanpa blok, aktivitas berlaku untuk seluruh kebun. Tanpa
-                        subblok, aktivitas berlaku untuk seluruh blok yang
-                        dipilih.
-                    </p>
-                    <p
-                        v-if="
-                            blockOnly
-                                ? !blocks.length
-                                : !cycles.length && !optionalLocation
-                        "
-                        class="text-xs text-muted-foreground"
-                    >
-                        Belum ada {{ blockOnly ? 'blok' : 'subblok' }} aktif.
-                        Hubungi Admin untuk menyiapkannya.
-                    </p>
-                    <p
-                        v-if="blockedReason"
-                        role="status"
-                        class="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm"
-                    >
-                        {{ blockedReason }}
-                    </p>
-                    <div
-                        v-if="matches.length"
-                        class="rounded-xl border border-primary/25 bg-primary/10 p-3"
-                    >
-                        <p class="text-xs leading-5">
-                            Ada tugas SOP sejenis untuk subblok ini. Buka tugas
-                            jika pekerjaan ini merupakan pelaksanaannya, atau
-                            lanjutkan sebagai aktivitas mandiri.
+                        <p
+                            v-if="blockedReason"
+                            role="status"
+                            class="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm"
+                        >
+                            {{ blockedReason }}
                         </p>
-                        <Link
-                            v-for="task in matches"
-                            :key="task.id"
-                            :href="`/petugas/tasks/${task.id}`"
-                            class="mt-1 flex min-h-11 items-center gap-2 rounded-xl text-sm font-medium text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                            >{{ task.name }} ·
-                            {{ scheduledDateLabel(task.scheduled_date) }}
-                            <ArrowRight
-                                class="size-4 shrink-0"
-                                aria-hidden="true"
-                        /></Link>
-                    </div>
+                        <div
+                            v-if="matches.length"
+                            class="rounded-xl border border-primary/25 bg-primary/10 p-3"
+                        >
+                            <p class="text-xs leading-5">
+                                Ada tugas SOP sejenis untuk subblok ini. Buka
+                                tugas jika pekerjaan ini merupakan
+                                pelaksanaannya, atau lanjutkan sebagai aktivitas
+                                mandiri.
+                            </p>
+                            <Link
+                                v-for="task in matches"
+                                :key="task.id"
+                                :href="`/petugas/tasks/${task.id}`"
+                                class="mt-1 flex min-h-11 items-center gap-2 rounded-xl text-sm font-medium text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                >{{ task.name }} ·
+                                {{ scheduledDateLabel(task.scheduled_date) }}
+                                <ArrowRight
+                                    class="size-4 shrink-0"
+                                    aria-hidden="true"
+                            /></Link>
+                        </div>
+                    </template>
                 </section>
                 <section class="petugas-card space-y-4 p-4">
                     <div class="flex items-center gap-3">
@@ -511,6 +672,7 @@ function submit(): void {
                         <h2 class="text-base font-semibold">Hasil pekerjaan</h2>
                     </div>
                     <ActivityWorkerCount
+                        v-if="!isIncident"
                         v-model="form.worker_count"
                         :maximum="numericLimits.workerCount"
                         :error="errors.worker_count"
@@ -522,6 +684,49 @@ function submit(): void {
                         :area-limit-m2="areaLimitM2"
                         compact
                     />
+                    <div v-if="showIncidentWorkerCount" class="space-y-2">
+                        <label
+                            for="activity-worker-count"
+                            class="text-sm font-medium"
+                        >
+                            Jumlah pekerja (opsional)
+                        </label>
+                        <input
+                            id="activity-worker-count"
+                            v-model="incidentWorkerCount"
+                            type="number"
+                            inputmode="numeric"
+                            min="1"
+                            :max="numericLimits.workerCount"
+                            step="1"
+                            placeholder="Kosongkan jika tidak perlu"
+                            class="petugas-activity-field block"
+                            :aria-invalid="!!errors.worker_count"
+                            :aria-describedby="
+                                errors.worker_count
+                                    ? 'worker-count-help error-worker_count'
+                                    : 'worker-count-help'
+                            "
+                        />
+                        <p
+                            id="worker-count-help"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Opsional · maksimal
+                            {{
+                                formatActivityNumber(numericLimits.workerCount)
+                            }}
+                            pekerja.
+                        </p>
+                        <p
+                            v-if="errors.worker_count"
+                            id="error-worker_count"
+                            class="text-xs text-error"
+                            aria-live="polite"
+                        >
+                            {{ errors.worker_count }}
+                        </p>
+                    </div>
                     <p v-if="noArea" role="status" class="text-sm text-warning">
                         Tidak ada luas yang dapat dilaporkan untuk lokasi ini.
                     </p>

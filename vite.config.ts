@@ -19,6 +19,9 @@ export default defineConfig({
                 bunny('Plus Jakarta Sans', {
                     weights: [400, 500, 600, 700],
                 }),
+                bunny('Poppins', {
+                    weights: [400, 500, 600, 700],
+                }),
             ],
         }),
         inertia(),

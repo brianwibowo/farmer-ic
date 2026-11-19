@@ -26,7 +26,7 @@ class PetugasReportReadService
     public function listing(User $actor, Farm $farm, array $filters): LengthAwarePaginator
     {
         return $this->filteredQuery($actor, $farm, $filters)
-            ->orderByDesc('activity_date')->orderByDesc('id')->paginate(15)->withQueryString()
+            ->orderByDesc('activity_date')->orderByDesc('id')->paginate((int) ($filters['per_page'] ?? 10))->withQueryString()
             ->through(fn ($activity) => $this->summary($actor, $farm, $activity));
     }
 

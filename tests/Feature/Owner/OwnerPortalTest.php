@@ -203,7 +203,9 @@ class OwnerPortalTest extends TestCase
             ->component('owner/Sops')->where('sops.total', 1)->where('sops.data.0.id', $sop->id));
         $this->get('/lainnya/sop/'.$sop->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Sop')->where('template.id', $sop->id)->has('template.versions', 1)
-            ->where('template.versions.0.status', 'published')->has('template.versions.0.tasks', 5));
+            ->where('template.versions.0.status', 'published')->has('template.versions.0.tasks', 5)
+            ->where('template.versions.0.tasks', fn ($tasks) => collect($tasks)->every(fn ($task) => is_int($task['hok']) && $task['hok'] >= 1)
+                && collect($tasks)->sum('hok') === 16));
         $this->get('/lainnya/pengguna')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Users')->where('users.total', 3)
             ->where('users.data', fn ($rows) => collect($rows)->every(fn ($row) => $row['role'] !== 'superadmin')));

@@ -14,8 +14,10 @@ Read this document before implementing or changing any UI.
   for legacy Farmer and AI screens. Owner portal pages use the admin profile
   described below at every viewport size.
 - **Petugas/mobile profile:** retain the phone-width shell and four-item bottom
-  navigation, while sharing the admin dashboard's palette, Plus Jakarta Sans,
+  navigation, using **Poppins** while sharing the admin dashboard's palette,
   component surfaces, typography hierarchy, and 20px content-card corners.
+  Apply the same Poppins font to forms, teleported menus, dialogs and alerts
+  throughout the Petugas layout, in both themes.
 - **Desktop admin profile:** use the desktop layout, extended palette, and
   desktop typography for admin dashboards with dense operational data, including
   land management and warehousing. Adapt these pages to smaller viewports using
@@ -272,6 +274,52 @@ Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
 installed npm package, never a CDN. Keep the native `beforeunload`
 warning for refresh/tab closure, where browsers do not allow a custom dialog.
 
+## Manual land cycles
+
+Subblock creation in Admin and Petugas includes a shared **Siklus lahan** field.
+Default to the newest visible cycle, or **Buat siklus baru** for the first cycle.
+Offer a new cycle only from the server's `canCreateFarmCycle` capability. Creating
+a cycle is committed with the subblock, with its number assigned by Laravel.
+Show the cycle number on batch summaries and as read-only context on planting
+reports. A compact **Siklus lahan** summary displays cycle numbers and actual
+harvest tonnage from scoped backend data. Keep existing theme tokens, 20px content
+cards, mobile spacing and dark-mode support. Never use planted area to switch
+cycles automatically or expose cycle reassignment on existing batch edits.
+The Petugas **Tambah subblok** dialog has a title-only visible header and no
+horizontal dividers below the header or above its actions. Use the same card
+surface for header, form and footer; keep an accessible, visually hidden dialog
+description and all existing validation/loading states.
+Present cycle summaries as centered metrics on the shared card, without filled
+inner cards. Use large bold harvest values with a small green `ton` unit aligned
+near the top, then only the cycle number below; omit batch counts from these
+summary captions. Put a **Detail cycle** Inertia link with a right chevron beside
+the section title when the backend permits cycle listing. Separate columns with thin
+neutral vertical rules. Use two columns in narrow containers and up to three
+above 640px of actual card content width; a single cycle fills the row. Size
+numbers from each column's available width, not the viewport. Limit this summary
+to the two newest cycles in Petugas and three newest cycles in Admin/Owner,
+ordered by cycle number descending. Keep the full cycle choices in subblock
+forms; this display limit does not alter stored records or harvest totals.
+Keep labels and units together in both themes.
+The summary card uses a small, thin three-arrow cycle motif (Lucide `Recycle`)
+in the bottom-right corner, with a faint primary-color stroke. Keep it static,
+behind the content, decorative for screen readers and non-interactive. Avoid
+additional patterns, unrelated icons or bright fills.
+
+The **Detail cycle** page lists all visible cycles for the current farm, newest
+first, with six cards per page and the shared pagination. Each plain card shows
+its cycle number, creation date, actual harvest tonnage and total batch count
+from scoped backend data. Use **Panen aktual** and **Jumlah batch** as the two
+centered metrics. Omit a footer with repeated counts or batch statuses.
+Do not add patterns or decorative backgrounds to these detail cards.
+Use one column on mobile, two in medium containers and three in wide containers;
+retain semantic theme colors in both themes. Include back navigation and empty
+states. Never invent a closed cycle status from individual batch statuses.
+The page header is one row: a 36px circular primary-colored icon-only back link
+within a 44px tap target, beside **Detail cycle** at 18px/28px and medium weight
+(500), overriding the default Petugas heading scale. Give the link an accessible label; omit visible back
+text and the farm-name/total-cycle subtitle.
+
 ## Pagination
 
 Pagination includes text and icon items with these states:
@@ -465,8 +513,9 @@ navigation indicator, request loading feedback, keyboard focus, and both themes.
 ### Owner executive summary
 
 The `/ringkasan-eksekutif` page is a compact, read-only executive overview in
-the existing Owner profile. Its current JSON dataset is illustrative and stays
-separate from operational records. Keep the period controls visible; collapse
+the existing Owner profile. Read its operational data from the database through
+the authorized Owner controller and scoped executive summary service. Do not use
+a JSON dataset, demo fallback, or artificial request delay. Keep the period controls visible; collapse
 partner, region, farm, and commodity filters behind a Filter button with an
 active count and removable selections.
 
@@ -475,35 +524,52 @@ intended destination and the brand/home link. The former Owner Dashboard is
 **Monitoring Lahan** at `/monitoring-lahan`, retaining its live, scoped tenant
 data. Order the Owner navigation as Ringkasan Eksekutif, Monitoring Lahan,
 Proyeksi, and Lahan. Admin and Petugas keep their existing landing destinations.
-Keep the illustrative data label visible near the executive page header.
+Keep the database refresh timestamp visible in the executive page footer.
+The sticky navbar owns the section heading on Owner summary, monitoring and
+projection pages and desktop settings. Omit duplicate content headings while
+preserving descriptions, back links, filters, Refresh and record-specific titles.
+Place executive Refresh as an icon-only button at the far right of the global
+filter toolbar. Vertically center Refresh and the selected-farm count within
+the toolbar row. Keep its accessible name and tooltip. Monitoring Refresh and the projection period selector
+use the Owner page header actions slot on the same row as the back link. Keep
+44px controls and truncate long back labels on narrow phones with their full
+accessible name retained; do not add a separate empty heading or action row.
 
-The Cycle selector includes **Semua cycle**, covering 1 January–31 December
-of the selected year (Asia/Jakarta). Sum actual production by harvest date and
-projections by scheduled harvest date, with one result per farm. Land area,
-active planted hectares, stock balances, agreements, and monthly sales must not
-be multiplied by the number of cycles. Active planted hectares count actual
+The reporting period selector uses **Semua kuartal**, Q1 (January–March),
+Q2 (April–June), Q3 (July–September), and Q4 (October–December) in Asia/Jakarta.
+Default to the full year on first load and Reset. Actual harvest follows the
+harvest date and projections follow the scheduled harvest date. The year
+options always include the current Jakarta calendar year plus years in scoped
+records and the selected year, so a new calendar year appears automatically.
+Physical land and current planted area are counted once.
+Active planted hectares count actual
 planting with active status; preparation and closed/harvested planting are
-excluded. Show the selected year's snapshot date beside active land and stock.
-Stock remains a position after dispatch and adjustments, not annual harvest
-minus dispatch with an assumed zero opening balance. Sales retain the explicitly
-labelled reference month. If a numbered cycle is absent after changing year,
-select Semua cycle. Default to Semua cycle on first load and after Reset;
-numbered cycles remain available for a specific cycle's production.
-The illustrative executive adapter keeps separate dated production records and
-land/stock positions; database-backed pages retain their existing data sources.
+excluded. Show the current snapshot date beside active land. Historical land snapshots
+and stock balances are unavailable unless persisted; label current land positions
+explicitly. Until the warehouse module records dispatch and adjusts stock,
+show gross recorded harvest by commodity for the selected filters. Label it
+as recorded harvest before dispatch. Sales retain the explicitly
+labelled reference month.
+Actual harvest uses completed harvest records. Projections use persisted
+estimated weight and scheduled harvest dates, with missing estimates explicitly
+unavailable. Cycles are groups of batches per farm. Cycle filtering is deferred
+until the business grouping is supported. Production follows the selected
+year/quarter; current active planted area is a separate position.
 
-Use three summary cards in a four-column desktop grid with spans **1 + 1 + 2**.
-Stack total land area, planted area and utilization in Ringkasan lahan, including
-a compact utilization bar and unused hectares. Combine active agreements/partner
-count and monthly sales-contract tonnage in Kerja sama & penjualan. Give Stok
-panen tersedia two columns with a prominent total and commodity stock breakdown
-using the same globally filtered snapshot. Remove revenue and gross-profit KPI
-cards from this top row. Align card heights without forcing fixed widths. On
-tablets, place the two compact cards side by side and stock full width below;
-stack all three on phones. Loading skeletons follow the same three-card grid.
+Lead with Ringkasan lahan and Panen aktual. Give the land card a slightly
+wider column on desktop, a subtle primary tint, and faint contour lines confined
+to the upper-right corner. Make total area the largest number. Group utilization
+with a green active segment, a pale green remainder, and labeled active and
+unused hectares. Use a soft green wash and a corn-stalk motif with upright stems and long,
+arching leaves at the upper right of the harvest card. Keep the tonnage and
+commodity breakdown clear of decoration.
+The harvest card shows actual tonnage and its selected period,
+followed by the recorded harvest breakdown per commodity. Stack the cards on phones and
+match the loading skeleton to the grid. Keep the commercial card hidden until
+authoritative data is available.
 The Kerja sama & luas lahan section has a Lihat detail Inertia link to Monitoring
-Lahan; Panen aktual vs proyeksi per kebun links to Proyeksi. These page-level
-links do not send illustrative farm IDs into database-backed routes.
+Lahan; Panen aktual vs proyeksi per kebun links to Proyeksi. These page-level links preserve the existing scoped Owner routes. Map and
+farm detail links use persisted farm IDs.
 
 Client selection in the sales panel is local to that panel. Clicking a client
 name or its chart bars shows only that client's contract/reality comparison,
@@ -541,30 +607,42 @@ keyboard-accessible legend, selection, semantic colors, and empty state.
 Keep the center unit on its own line below the total so long values fit inside
 the donut without pushing the unit into its sectors.
 Executive panels use its compact embedded mode and contextual legend slots.
+Align distribution plots and legends to the top of their rows. Give paired
+charts equal content widths so responsive plot sizes and top edges match even
+when one legend has more rows.
 Place two compact land donuts side by side: explicit land categories
 (PKS — Kerja sama, BHI — Milik sendiri, Plasma — Koperasi) and partners.
-Keep partner selection connected to global filters; category selection highlights
-its donut locally. Stack the two diagrams on smaller viewports. Remove the
+Each donut owns its selection. Clicking an arc or legend entry highlights that
+donut only, and clicking it again restores the total. Use the filter toolbar
+to change the executive page scope. The partner donut includes all groups in its
+total and slices.
+Show at most three partner detail cards, ordered by area, followed by a fading
+overview card with the remaining count when needed. Lihat lainnya opens a
+wide dialog with the full partner donut and all partner cards within the active
+filters, including area, farm count and share. Show the donut beside the list on
+wide screens and above it on phones. Keep the dialog scrollable, and highlight
+the matching slice when a partner is selected without changing global filters.
+The dialog's Lihat detail action uses the same Monitoring Lahan route as the
+section action. Stack the two diagrams on smaller viewports. Remove the
 separate Pemanfaatan lahan card and give sales the full content width. Combine
 commodity composition with three concise commodity summaries. Show two separate
 cards side by side: planted hectares and actual harvest tonnes. Each card has
 its own donut and keyboard-accessible commodity summary showing only planted
-area, actual harvest, and projected harvest. Keep matching commodity colors,
-omit revenue from both cards, and do not use a measure dropdown. Stack the cards
+area, actual harvest, and projected harvest. Use golden yellow for Jagung, green for Rumput, and warm brown for Sorgum
+in both donuts and their legends, even when the filters change. Omit revenue and the measure dropdown from both cards. Stack the cards
 on smaller viewports.
 Avoid adjacent tall chart/table panels and stretched blank surfaces.
 
-Harvest charts remain visible while the farm table starts collapsed. Financial
-projections use per-commodity prices from the dataset, aggregate actual monetary
-amounts before computing the gross-margin percentage, and provide no simulator
-inputs. Use vertical grouped bars per commodity, with HPP, Transport and
+Harvest charts remain visible while the farm table starts collapsed. Commercial and financial sections remain hidden until their authoritative
+records are available. Do not substitute demo prices, clients, contracts or
+revenue estimates. When supported, aggregate actual monetary amounts before
+computing the gross-margin percentage; provide no simulator inputs. Use vertical grouped bars per commodity, with HPP, Transport and
 Laba kotor as three separate bars. Show the numeric axis in Rp juta and full
 rupiah amounts in tooltips. Prioritize revenue, total costs, and gross profit. Do not reintroduce the
 operational detail table, pagination, or its exports on this overview.
 
 Map markers open `OwnerDashboardFarmPreview`, shared with Beranda. Its summary
-and footer slots adapt the executive context without sending dummy IDs to real
-farm-detail routes. Existing Beranda popup content and navigation remain the
+and footer slots adapt the executive context using scoped persisted farm IDs. Existing Beranda popup content and navigation remain the
 defaults.
 
 ### Shared dashboard components for Petugas
@@ -645,8 +723,12 @@ Use high-contrast translucent controls; preserve
 the live unread count, profile dropdown, settings link, and normal logout flow;
 retain the four-destination bottom navigation. Other Petugas pages keep their
 normal header and content insets. The to-do panel scrolls naturally with the page
-and has a concise unboxed empty state. Use the shared Petugas/admin font,
+and has a concise unboxed empty state. Use the Petugas Poppins font, shared
 status styles, and task-link components described above.
+When the assigned farm has no tasks today, center the local illustration
+`/images/vector/no-todo.png` above the semibold **Belum ada tugas hari ini** label.
+Keep the illustration compact (160px, 176px on wider screens), responsive and
+decorative for screen readers; retain the separate unassigned-farm empty state.
 Keep the initial view concise: no descriptive sentences below the stat numbers
 or task heading. Use short status labels, a compact completed/total count, and
 one-line empty messages. Keep SOP instructions and required markers on the
@@ -681,9 +763,25 @@ The `/petugas/kebun` page reads the authenticated user's persisted assigned farm
 Assignment currently applies to a farm, so its visible blocks and subblok/batches
 follow that boundary; do not invent block-level or batch-level assignments.
 Keep the mobile shell, shared Petugas/admin components, and concise copy at all widths.
-Show the farm name, land tenure, address/location, area, block count, and batch
-count. Use compact Inertia links to select a block, then display its area,
-description, land-clearing dates, and paginated subblok cards. Retain the selected
+Use a decorative 28px Lucide `LandPlot` icon in a 44px slot beside the farm
+name, without a colored background. Show the persisted address directly below
+the name in the small muted subtitle style with a map-pin icon. Omit the
+land-tenure subtitle and the separate address/
+district/city/province rows in this card. Show area, block count, and batch
+count. Match the cycle summary's centered metric style for area, blocks and
+subblocks: three columns, bold values above muted captions, thin neutral vertical
+separators, and a small green `ha` unit beside the area. Size values from each
+column's available width and retain semantic description-list markup.
+The Petugas location map opens centered on its saved point at zoom 18. Omit
+the pin-versus-boundary helper text in this read-only card; keep map controls,
+attribution, loading/error states and location-editor instructions intact.
+Use **Blok** as the section heading. Place compact Inertia block-selection links
+above a capacity card showing **Total luas blok** and **Sisa luas blok** from
+the selected block's backend `area_ha` and `available_ha` values. Match the cycle
+summary's two centered metrics, green `ha` units and thin neutral divider.
+Follow with the subblok toolbar and paginated subblok cards; omit the duplicate
+remaining-area text in that toolbar. Omit the separate selected-block summary
+card with its name, area, description and land-clearing dates. Retain the selected
 block in pagination links. Scope every related query and total to the assigned
 farm and its team, with controller authorization before service reads.
 
@@ -705,7 +803,16 @@ the Petugas shell, theme, floating add action, search, date, category, source,
 personal filter, and server pagination. Start the visible content with the
 summary tiles: do not show the page title, farm name, or a daily-report link
 above them. Keep a screen-reader heading and the work-date filter; the existing
-daily-report route remains unchanged. Tiles show the filtered total, SOP
+daily-report route remains unchanged. Apply changes automatically: debounce
+typed search briefly, apply other filters immediately, return to the first
+result page, and preserve the current filters in the URL and detail back link.
+Do not show Apply or Reset buttons; users clear each control directly. Keep
+loading, retry, and empty feedback while the server updates scoped results.
+The report footer matches the admin activity footer: show the filtered range and
+total, a 10/20/50 per-page selector (10 by default), and shared numbered
+pagination. Wrap these controls as needed on phones; changing the page size
+returns to page one without clearing the other filters.
+Tiles show the filtered total, SOP
 reports, and independent reports from scoped database
 queries, not reference-only farm or attention totals. Use the activity type as
 the card title and SOP/Mandiri as the badge; do not repeat the assigned farm
@@ -722,14 +829,19 @@ server-provided date headings in `YYYY-MM-DD` format, newest date first, while
 retaining the existing card content and order within each date. When a date
 spans pages, repeat its heading on each page.
 
-Individual reports use the reference detail hierarchy: back navigation, a
-metadata card with activity type, farm, location, date, and officer, a divided
-report-detail card, and a separate photo gallery with accessible enlargement.
-Show recorded worker count, notes, daily-log context, and every available
-detail; show pest/disease panels only when those values actually exist. State
-when legacy daily-log data or evidence is missing. Preserve the active list
-filters and page in the back link. Reference-only reset, mock data, and
-unavailable metrics are not part of the operational screen.
+Individual reports use the reference detail hierarchy: icon-only back
+navigation with a screen-reader page heading, a metadata card with activity
+type, location, date, and officer, a divided report-detail card, and a separate
+photo gallery with accessible enlargement. Omit the farm name and shared
+daily-log attribution from the visible detail page. Show recorded worker count,
+notes, and available details; show pest/disease panels only when those values
+actually exist. Display each recorded area once in square metres, preferring
+the entered value and its recorded unit, or converting stored hectares for
+older records. Do not show separate input, hectare, and unit rows. State when
+the area cannot be converted or legacy daily-log data or evidence is missing.
+Preserve the active list filters and page in the back link. Reference-only
+reset, mock data, and unavailable metrics are not part of the operational
+screen.
 
 ### Petugas tasks
 
@@ -963,9 +1075,10 @@ Tipografi didasarkan pada skala _Golden Ratio_ (~1.618) menggunakan **Plus Jakar
 | **Caption 1**      |  `12px`   |      `16px`      | Medium/Reg | Metadata, Helper text, Tooltips, Status trend   |
 | **Caption 2**      |  `10px`   |      `14px`      | Medium     | Label super kecil (jarang digunakan)            |
 
-The application loads Plus Jakarta Sans through vite.config.ts. The scoped
-admin font token uses this family while the Farmer/mobile profile keeps its
-existing font configuration.
+The application loads Plus Jakarta Sans and Poppins through vite.config.ts.
+The scoped admin font token uses Plus Jakarta Sans; Petugas overrides it with
+Poppins (400/500/600/700), including teleported surfaces while its layout is
+active. The legacy Farmer/mobile profile keeps its existing font configuration.
 
 ### Shared admin theme — all pages
 

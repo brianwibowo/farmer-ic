@@ -146,6 +146,20 @@ Table crop_varieties {
   indexes { (commodity_id, name) [unique] }
 }
 
+Table farm_cycles {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  cycle_number int [not null, note: 'Positive sequence per farm, allocated under a farm lock']
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+  indexes {
+    (farm_id, cycle_number) [unique]
+    (id, farm_id) [unique]
+    created_by
+  }
+  Note: 'Manual grouping chosen by Admin/Petugas when creating a subblock. No area-triggered rollover.'
+}
+
 Table planting_cycles {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
@@ -165,11 +179,15 @@ Table planting_cycles {
   planting_started_on date [note: 'Tanggal tanam pertama pada window tiga hari; acuan audit rekonsiliasi']
   planting_window_checked_at timestamptz [note: 'Waktu command rekonsiliasi menutup window penanaman']
   block_id uuid [ref: > farm_blocks.id, note: 'Direct block ownership; null only for legacy cycles']
+  farm_cycle_id uuid [note: 'Composite FK with farm_id enforces the same farm; nullable for legacy imports only']
   indexes {
+    farm_cycle_id
     (farm_id, batch_number) [unique]
   }
   Note: 'Satu kebun dapat memiliki banyak siklus tanam/subblok; luas subblok diturunkan dinamis dari realisasi tanam dalam kapasitas blok/kebun.'
 }
+
+Ref: planting_cycles.(farm_cycle_id, farm_id) > farm_cycles.(id, farm_id)
 
 Table farm_blocks {
   id uuid [pk]
@@ -224,7 +242,7 @@ Table planting_cycle_tasks {
   tolerance_days int [not null, default: 0]
   scheduled_date date [note: 'Null when the subblok has no planted_at or planned_planting_at']
   due_date date [note: 'Jadwal berlaku + toleransi; constraint mempertahankan kompatibilitas data lama']
-  is_required boolean [not null, default: true]
+  is_required boolean [not null, default: true, note: 'Selalu wajib untuk seluruh langkah SOP']
   status varchar(30) [not null, default: 'pending', note: 'pending | in_progress | completed | skipped; skipped means deliberately not done']
   completed_at timestamptz
   skip_reason text
@@ -236,6 +254,7 @@ Table planting_cycle_tasks {
   rescheduled_at timestamptz
   completed_by uuid [ref: > users.id]
   completion_note text
+  hok int [note: 'Estimasi Hari Orang Kerja (>= 1), opsional']
   indexes {
     (planting_cycle_id, sop_template_task_id) [unique]
     (id, planting_cycle_id) [unique]
@@ -290,11 +309,12 @@ Table sop_template_tasks {
   instructions text
   offset_days int [not null, default: 0, note: 'HST dari tanggal tanam (planted_at, atau planned_planting_at bila belum tanam); SOP dimulai pada H+0']
   tolerance_days int [not null, default: 0, note: 'due_date = jadwal berlaku + tolerance_days']
-  is_required boolean [not null, default: true]
+  is_required boolean [not null, default: true, note: 'Selalu wajib untuk seluruh langkah SOP']
   created_at timestamptz
   updated_at timestamptz
   activity_category varchar(30) [not null, note: 'maintenance | harvest; planting is the HST anchor, not an SOP step']
   activity_subcategory varchar(50) [note: 'Dipertahankan null; langkah SOP tidak lagi menggunakan subkategori']
+  hok int [note: 'Estimasi Hari Orang Kerja (>= 1), opsional']
   indexes {
     (sop_template_version_id, offset_days)
     (sop_template_version_id, activity_category)
@@ -433,6 +453,41 @@ Table incident_details {
   severity varchar(30)
   affected_area_ha decimal(12,4)
   proposed_solution text
+}
+
+Table incident_tickets {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  activity_id uuid [not null, unique, ref: > farm_activities.id]
+  planting_cycle_id uuid [ref: > planting_cycles.id]
+  block_id uuid [ref: > farm_blocks.id]
+  incident_category varchar(150)
+  severity varchar(30) [not null]
+  status varchar(30) [not null, default: 'open', note: 'open | in_progress | resolved']
+  admin_note text
+  responded_by uuid [ref: > users.id]
+  responded_at timestamptz
+  resolution_note text
+  resolved_by uuid [ref: > users.id]
+  resolved_at timestamptz
+  resolved_activity_id uuid [ref: > farm_activities.id]
+  reopen_reason text
+  reopened_by uuid [ref: > users.id]
+  reopened_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    farm_id
+    planting_cycle_id
+    block_id
+    responded_by
+    resolved_by
+    resolved_activity_id
+    reopened_by
+    (farm_id, status, severity)
+  }
+  Note: 'Siklus penanganan tiket insiden dari laporan awal petugas hingga penyelesaian atau pembukaan kembali.'
 }
 
 Table harvest_details {

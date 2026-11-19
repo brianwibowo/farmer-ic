@@ -2,6 +2,7 @@
 
 namespace App\Services\Activity;
 
+use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
@@ -44,9 +45,24 @@ class ActivityFormLimits
         return min($farmRemaining, $blockRemaining);
     }
 
-    public function voluntaryCycleArea(PlantingCycle $cycle): int
+    public function voluntaryCycleArea(PlantingCycle $cycle, ?FarmBlock $block = null, ?Farm $farm = null): int
     {
-        return max(0, LandArea::squareMetres($cycle->planted_area_ha) ?? 0);
+        $resolvedBlock = $block ?? $cycle->block;
+        $resolvedFarm = $farm ?? $cycle->farm;
+
+        foreach ([
+            $cycle->planted_area_ha,
+            $cycle->getAttribute('reserved_area_ha'),
+            $resolvedBlock instanceof FarmBlock ? $resolvedBlock->area_ha : null,
+            $resolvedFarm instanceof Farm ? $resolvedFarm->total_area_ha : null,
+        ] as $areaHa) {
+            $m2 = LandArea::squareMetres($areaHa);
+            if ($m2 !== null && $m2 > 0) {
+                return $m2;
+            }
+        }
+
+        return 0;
     }
 
     public function voluntaryBlockArea(FarmBlock $block): int

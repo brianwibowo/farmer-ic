@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     Activity,
     ClipboardCheck,
@@ -7,11 +7,16 @@ import {
     NotebookPen,
     Search,
 } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
+import { computed } from 'vue';
+import NumberPagination from '@/components/NumberPagination.vue';
 import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
 import ReportCard from '@/components/petugas/ReportCard.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import {
+    usePetugasReportFilters,
+    type PetugasReportFilters,
+} from '@/composables/usePetugasReportFilters';
 import type { PetugasActivityCategory } from '@/types/petugas-activity';
 import type { PetugasReportSummary } from '@/types/petugas-report';
 
@@ -21,31 +26,22 @@ const props = defineProps<{
     reports: {
         data: PetugasReportSummary[];
         total: number;
+        from: number | null;
+        to: number | null;
         current_page: number;
         last_page: number;
-        prev_page_url: string | null;
-        next_page_url: string | null;
     } | null;
     stats: { sop: number; mandiri: number };
-    filters: {
-        q?: string;
-        type?: string;
-        date?: string;
-        source?: string;
-        mine?: boolean;
-    };
+    filters: PetugasReportFilters;
     types: { code: string; name: string }[];
     categories: PetugasActivityCategory[];
 }>();
 const page = usePage();
-const filter = reactive({
-    q: props.filters.q ?? '',
-    type: props.filters.type ?? '',
-    date: props.filters.date ?? '',
-    source: props.filters.source ?? '',
-    mine: !!props.filters.mine,
-});
-const loading = ref(false);
+const { filter, loading, error, applyNow, retry, requestPage } =
+    usePetugasReportFilters(
+        () => props.filters,
+        () => !!props.farm,
+    );
 const emptyDescription = computed(() => {
     if (!props.farm) return 'Hubungi Admin untuk penugasan kebun.';
     return props.categories.length
@@ -73,34 +69,34 @@ const reportGroups = computed(() => {
 function detailHref(id: string): string {
     return `/petugas/laporan/${id}?${new URLSearchParams({ back: listUrl.value })}`;
 }
-function apply(): void {
-    router.get(
-        '/petugas/laporan',
-        { ...filter, mine: filter.mine ? 1 : 0 },
-        {
-            preserveState: true,
-            preserveScroll: true,
-            onStart: () => (loading.value = true),
-            onFinish: () => (loading.value = false),
-        },
-    );
-}
-function reset(): void {
-    Object.assign(filter, {
-        q: '',
-        type: '',
-        date: '',
-        source: '',
-        mine: false,
-    });
-    apply();
-}
 </script>
 
 <template>
     <Head title="Laporan" />
     <h1 class="sr-only">Laporan</h1>
     <div class="min-w-0 space-y-4 pb-28 text-foreground" :aria-busy="loading">
+        <Link
+            v-if="farm"
+            href="/petugas/incidents"
+            class="petugas-card flex min-h-12 items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+            <span class="flex items-center gap-2.5">
+                <span
+                    class="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning"
+                >
+                    <ClipboardCheck class="size-4" aria-hidden="true" />
+                </span>
+                <span>
+                    <span class="block leading-tight">Tiket Insiden</span>
+                    <span
+                        class="mt-0.5 block text-xs font-normal text-muted-foreground"
+                    >
+                        Pantau arahan admin & tindak lanjut insiden
+                    </span>
+                </span>
+            </span>
+            <span class="text-xs font-semibold text-primary">Buka</span>
+        </Link>
         <section
             class="grid grid-cols-3 gap-2"
             aria-label="Ringkasan laporan sesuai filter"
@@ -112,7 +108,9 @@ function reset(): void {
                     class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
                     ><Activity class="size-4" aria-hidden="true"
                 /></span>
-                <p class="text-lg font-semibold">{{ reports?.total ?? 0 }}</p>
+                <p class="text-lg font-semibold">
+                    {{ loading || error ? '—' : (reports?.total ?? 0) }}
+                </p>
                 <p class="text-xs text-muted-foreground">Aktivitas</p>
             </div>
             <div
@@ -122,7 +120,9 @@ function reset(): void {
                     class="inline-flex size-8 items-center justify-center rounded-xl bg-info/10 text-info"
                     ><ClipboardCheck class="size-4" aria-hidden="true"
                 /></span>
-                <p class="text-lg font-semibold">{{ stats.sop }}</p>
+                <p class="text-lg font-semibold">
+                    {{ loading || error ? '—' : stats.sop }}
+                </p>
                 <p class="text-xs text-muted-foreground">SOP</p>
             </div>
             <div
@@ -132,12 +132,14 @@ function reset(): void {
                     class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
                     ><NotebookPen class="size-4" aria-hidden="true"
                 /></span>
-                <p class="text-lg font-semibold">{{ stats.mandiri }}</p>
+                <p class="text-lg font-semibold">
+                    {{ loading || error ? '—' : stats.mandiri }}
+                </p>
                 <p class="text-xs text-muted-foreground">Mandiri</p>
             </div>
         </section>
 
-        <form v-if="farm" class="space-y-3" @submit.prevent="apply">
+        <form v-if="farm" class="space-y-3" @submit.prevent="applyNow">
             <label class="relative block">
                 <span class="sr-only">Cari laporan</span>
                 <input
@@ -205,30 +207,27 @@ function reset(): void {
                     />Input saya
                 </label>
             </div>
-            <div class="flex gap-2">
-                <button
-                    type="submit"
-                    :disabled="loading"
-                    class="min-h-11 flex-1 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
-                >
-                    {{ loading ? 'Memuat…' : 'Terapkan filter' }}
-                </button>
-                <button
-                    type="button"
-                    :disabled="loading"
-                    class="min-h-11 rounded-xl border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
-                    @click="reset"
-                >
-                    Reset
-                </button>
-            </div>
         </form>
 
         <p v-if="loading" role="status" class="text-sm text-muted-foreground">
             Memuat laporan…
         </p>
         <div
-            v-if="!reports?.data.length && !loading"
+            v-else-if="error"
+            role="alert"
+            class="petugas-card space-y-2 p-4 text-sm text-error"
+        >
+            <p>{{ error }}</p>
+            <button
+                type="button"
+                class="min-h-11 rounded-xl font-semibold underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                @click="retry"
+            >
+                Coba lagi
+            </button>
+        </div>
+        <div
+            v-else-if="!reports?.data.length"
             class="petugas-card petugas-empty bg-muted/40 px-5 py-10 text-center"
         >
             <ClipboardList
@@ -274,30 +273,49 @@ function reset(): void {
                 </ul>
             </section>
         </div>
-        <nav
-            v-if="reports && reports.last_page > 1"
-            class="flex items-center justify-between gap-2 text-sm"
-            aria-label="Halaman laporan"
+        <footer
+            v-if="reports && !error"
+            class="petugas-card flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-xs text-muted-foreground"
         >
-            <Link
-                v-if="reports.prev_page_url"
-                :href="reports.prev_page_url"
-                class="inline-flex min-h-11 items-center rounded-xl px-2 text-primary focus-visible:outline-2 focus-visible:outline-ring"
-                >← Sebelumnya</Link
+            <span role="status" aria-live="polite" aria-atomic="true">
+                <template v-if="loading">Memuat laporan…</template>
+                <template v-else>
+                    Menampilkan {{ reports.from ?? 0 }}–{{
+                        reports.to ?? 0
+                    }}
+                    dari {{ reports.total }} aktivitas.
+                </template>
+            </span>
+            <div
+                class="ml-auto flex w-full flex-wrap items-center justify-between gap-3"
             >
-            <span v-else class="min-h-11" aria-hidden="true" />
-            <span
-                >Halaman {{ reports.current_page }} /
-                {{ reports.last_page }}</span
-            >
-            <Link
-                v-if="reports.next_page_url"
-                :href="reports.next_page_url"
-                class="inline-flex min-h-11 items-center rounded-xl px-2 text-primary focus-visible:outline-2 focus-visible:outline-ring"
-                >Berikutnya →</Link
-            >
-            <span v-else class="min-h-11" aria-hidden="true" />
-        </nav>
+                <label for="report-per-page" class="flex items-center gap-2">
+                    Per halaman
+                    <AppSelect
+                        id="report-per-page"
+                        v-model.number="filter.per_page"
+                        class="admin-field w-auto!"
+                        :disabled="loading"
+                        aria-label="Jumlah aktivitas per halaman"
+                    >
+                        <AppSelectOption
+                            v-for="size in [10, 20, 50]"
+                            :key="size"
+                            :value="size"
+                            >{{ size }}</AppSelectOption
+                        >
+                    </AppSelect>
+                </label>
+                <NumberPagination
+                    class="ml-auto"
+                    :current-page="reports.current_page"
+                    :total-pages="reports.last_page"
+                    :disabled="loading"
+                    label="Pagination laporan"
+                    @change="requestPage"
+                />
+            </div>
+        </footer>
         <ActivityAddButton :categories="categories" />
     </div>
 </template>

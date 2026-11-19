@@ -568,7 +568,14 @@ class PetugasTaskActivityTest extends TestCase
         $this->actingAs($admin)->get('/admin/farm-management/'.$this->farm->id)->assertInertia(fn (Assert $page) => $page
             ->where('harvestPermissions.'.$this->cycle->id, true)
             ->where('blocks.0.batches.0.stages.5.status', 'in_progress'));
-        $this->post($url, ['return_to' => 'farm'])->assertSessionHasNoErrors()->assertRedirect('/admin/farm-management/'.$this->farm->id);
+        // Open harvest task with zero reports cannot be closed silently.
+        $this->post($url, ['return_to' => 'farm'])->assertSessionHasErrors('harvest');
+        $this->assertSame('active', $this->cycle->fresh()->status);
+
+        $this->actingAs($this->actor)->post('/petugas/tasks/'.$otherHarvest->id.'/aktivitas', [...$this->payload(), 'work_date' => $late,
+            'details' => ['area_ha' => '0.2500', 'weight_ton' => '0.300']])->assertSessionHasNoErrors();
+
+        $this->actingAs($admin)->post($url, ['return_to' => 'farm'])->assertSessionHasNoErrors()->assertRedirect('/admin/farm-management/'.$this->farm->id);
         $this->assertSame('harvested', $this->cycle->fresh()->status);
         $this->assertSame('completed', $stage->fresh()->status);
         $this->assertSame($late, $stage->fresh()->completed_at->setTimezone('Asia/Jakarta')->toDateString());
@@ -585,7 +592,7 @@ class PetugasTaskActivityTest extends TestCase
             'details' => ['area_ha' => '0.1', 'weight_ton' => '0.1']])->assertForbidden();
         $this->post('/petugas/aktivitas/mandiri/harvest', [...$this->payload(), 'cycle_id' => $this->cycle->id,
             'details' => ['area' => '0.1', 'area_unit' => 'Ha', 'weight' => '100', 'weight_unit' => 'kg']])->assertForbidden();
-        $this->assertDatabaseCount('harvest_details', 2);
+        $this->assertDatabaseCount('harvest_details', 3);
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
@@ -639,6 +646,8 @@ class PetugasTaskActivityTest extends TestCase
         $second = $this->newHarvestTask();
         $this->actingAs($this->actor)->post('/petugas/tasks/'.$first->id.'/aktivitas', [...$this->payload(),
             'details' => ['area_ha' => '0.25', 'weight_ton' => '0.5']])->assertSessionHasNoErrors();
+        $this->actingAs($this->actor)->post('/petugas/tasks/'.$second->id.'/aktivitas', [...$this->payload(),
+            'details' => ['area_ha' => '0.25', 'weight_ton' => '0.5']])->assertSessionHasNoErrors();
         $ordered = collect([$first, $second])->sortBy('id')->values();
         $failingId = $ordered[1]->id;
         PlantingCycleTask::saving(function (PlantingCycleTask $task) use ($failingId): void {
@@ -659,8 +668,42 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertSame('active', $this->cycle->fresh()->status);
         $this->assertSame('in_progress', $this->cycle->stages()->where('code', 'harvest')->value('status'));
         $this->assertSame('in_progress', $first->fresh()->status);
-        $this->assertSame('pending', $second->fresh()->status);
+        $this->assertSame('in_progress', $second->fresh()->status);
         $this->assertNull($first->fresh()->completed_at);
+    }
+
+    public function test_harvest_closure_requires_maintenance_resolved_and_harvest_tasks_reported_or_skipped(): void
+    {
+        $admin = User::findOrFail($this->farm->created_by);
+        $this->task->forceFill(['status' => 'completed', 'completed_at' => now()])->save();
+        $firstHarvest = $this->newHarvestTask();
+        $secondHarvest = $this->newHarvestTask();
+        $this->actingAs($this->actor)->post('/petugas/tasks/'.$firstHarvest->id.'/aktivitas', [...$this->payload(),
+            'details' => ['area_ha' => '0.50', 'weight_ton' => '1.0']])->assertSessionHasNoErrors();
+
+        $extraMaintenance = $this->newTask(['name' => 'Pemupukan susulan wajib']);
+        $url = '/kebun/'.$this->farm->id.'/blocks/'.$this->cycle->block_id.'/batches/'.$this->cycle->id.'/close-harvest';
+
+        // Blocked when an open maintenance task exists.
+        $this->actingAs($admin)->post($url)->assertSessionHasErrors('harvest');
+        $this->assertSame('active', $this->cycle->fresh()->status);
+
+        // Emergency skip by Admin resolves the maintenance blocker.
+        $this->post('/admin/tasks/'.$extraMaintenance->id.'/skip', ['reason' => 'Kendala banjir di subblok.'])
+            ->assertRedirect();
+
+        // Still blocked while second harvest task has no report and is not skipped.
+        $this->post($url)->assertSessionHasErrors('harvest');
+        $this->assertSame('active', $this->cycle->fresh()->status);
+
+        // Emergency skip on the second harvest task allows closure with the reported harvest task.
+        $this->post('/admin/tasks/'.$secondHarvest->id.'/skip', ['reason' => 'Sisa tanaman gagal panen.'])
+            ->assertRedirect();
+
+        $this->post($url)->assertSessionHasNoErrors();
+        $this->assertSame('harvested', $this->cycle->fresh()->status);
+        $this->assertSame('completed', $firstHarvest->fresh()->status);
+        $this->assertSame('skipped', $secondHarvest->fresh()->status);
     }
 
     public function test_stage_tracking_reports_require_visibility_but_unrelated_reports_remain_available(): void
@@ -1013,7 +1056,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->team->members()->attach($otherOfficer, ['role' => TeamRole::Member->value]);
         $otherOfficer->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $this->farm->id])->save();
         $type = ActivityType::where('code', 'maintenance')->firstOrFail();
-        for ($index = 0; $index < 18; $index++) {
+        for ($index = 0; $index < 23; $index++) {
             $activity = new FarmActivity([
                 'farm_id' => $this->farm->id, 'planting_cycle_id' => $this->cycle->id,
                 'activity_type_id' => $type->id, 'performed_by' => $index === 0 ? $otherOfficer->id : $this->actor->id,
@@ -1033,15 +1076,32 @@ class PetugasTaskActivityTest extends TestCase
         ]);
 
         $this->actingAs($this->actor);
-        foreach ([1, 2] as $pageNumber) {
+        foreach ([1 => [1, 10], 2 => [11, 20], 3 => [21, 23]] as $pageNumber => [$from, $to]) {
             $this->get('/petugas/laporan?page='.$pageNumber)->assertOk()->assertInertia(fn (Assert $page) => $page
-                ->where('reports.total', 18)->where('reports.current_page', $pageNumber)
-                ->where('stats.sop', 9)->where('stats.mandiri', 9));
+                ->where('reports.total', 23)->where('reports.current_page', $pageNumber)
+                ->where('reports.per_page', 10)->where('reports.last_page', 3)
+                ->where('reports.from', $from)->where('reports.to', $to)
+                ->where('filters.per_page', 10)
+                ->where('stats.sop', 9)->where('stats.mandiri', 14));
         }
         $this->get('/petugas/laporan?source=mandiri')->assertInertia(fn (Assert $page) => $page
-            ->where('reports.total', 9)->where('stats.sop', 0)->where('stats.mandiri', 9));
+            ->where('reports.total', 14)->where('stats.sop', 0)->where('stats.mandiri', 14));
         $this->get('/petugas/laporan?mine=1')->assertInertia(fn (Assert $page) => $page
-            ->where('reports.total', 17)->where('stats.sop', 8)->where('stats.mandiri', 9));
+            ->where('reports.total', 22)->where('stats.sop', 8)->where('stats.mandiri', 14));
+
+        $this->get('/petugas/laporan?per_page=20&page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('reports.total', 23)->where('reports.per_page', 20)->where('reports.last_page', 2)
+            ->where('reports.from', 21)->where('reports.to', 23)->has('reports.data', 3)
+            ->where('filters.per_page', 20)->where('stats.sop', 9)->where('stats.mandiri', 14));
+        $this->get('/petugas/laporan?per_page=50')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('reports.total', 23)->where('reports.per_page', 50)->where('reports.last_page', 1)
+            ->where('reports.from', 1)->where('reports.to', 23)->has('reports.data', 23));
+        $this->get('/petugas/laporan?source=mandiri&per_page=10&page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('filters.source', 'mandiri')->where('filters.per_page', 10)
+            ->where('reports.total', 14)->where('reports.from', 11)->where('reports.to', 14)
+            ->where('stats.sop', 0)->where('stats.mandiri', 14));
+        $this->getJson('/petugas/laporan?per_page=15')->assertUnprocessable()->assertJsonValidationErrors('per_page');
+        $this->getJson('/petugas/laporan?per_page=1000')->assertUnprocessable()->assertJsonValidationErrors('per_page');
     }
 
     public function test_report_highlights_use_scoped_persisted_details_for_each_category(): void

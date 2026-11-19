@@ -217,6 +217,9 @@ const progressSummary = computed(() => {
                         </h5>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Batch {{ batch.batch_number }} ·
+                            <template v-if="batch.farm_cycle_number"
+                                >Siklus {{ batch.farm_cycle_number }} ·
+                            </template>
                             {{ statusLabels[batch.status] ?? batch.status }}
                         </p>
                     </div>
@@ -360,10 +363,11 @@ const progressSummary = computed(() => {
                     Tutup panen sub blok {{ closing?.subblock_label }}?
                 </DialogTitle>
                 <DialogDescription>
-                    Pastikan laporan panen sudah lengkap. Subblok akan selesai
-                    dan tidak dapat menerima laporan panen tambahan. Tugas panen
-                    yang masih terbuka akan ditandai selesai. Penutupan tidak
-                    mengharuskan seluruh luas tanam sudah dipanen.
+                    Pastikan seluruh tugas SOP perawatan dan panen sudah
+                    dilaporkan atau ditandai tidak dikerjakan. Subblok akan
+                    selesai dan tugas panen yang sudah dilaporkan akan ditandai
+                    selesai. Penutupan tidak mengharuskan seluruh luas tanam
+                    sudah dipanen.
                 </DialogDescription>
             </DialogHeader>
             <p v-if="closeError" role="alert" class="text-sm text-error">

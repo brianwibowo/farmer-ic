@@ -23,7 +23,7 @@ import type {
     TaskActivityField,
     TaskActivityReport,
 } from '@/types/petugas-task';
-import { sopTaskCategoryLabel } from '@/types/sop';
+import { formatHok, sopTaskCategoryLabel } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
@@ -98,7 +98,7 @@ function completedAtLabel(value: string): string {
                         <span
                             class="rounded-xl bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground"
                         >
-                            {{ task.is_required ? 'Wajib' : 'Opsional' }}
+                            Wajib
                         </span>
                     </div>
                 </div>
@@ -173,14 +173,12 @@ function completedAtLabel(value: string): string {
                     </dd>
                 </div>
                 <div class="min-w-0 p-3.5">
-                    <dt class="text-xs text-muted-foreground">Umur tanaman</dt>
-                    <dd class="mt-1.5 text-sm font-semibold">
+                    <dt class="text-xs text-muted-foreground">Estimasi HOK</dt>
+                    <dd class="mt-1.5 text-sm font-semibold tabular-nums">
                         {{
-                            task.subblok.hst === null
-                                ? task.subblok.planted_at
-                                    ? 'HST belum dimulai'
-                                    : 'Belum ditanam'
-                                : `${task.subblok.hst} HST`
+                            task.hok != null
+                                ? formatHok(task.hok)
+                                : 'Tidak ditetapkan'
                         }}
                     </dd>
                 </div>

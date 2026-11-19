@@ -301,8 +301,10 @@ function submit(): void {
                             aria-hidden="true"
                         />
                         <span
-                            >{{ farm.name }} · Batch
-                            {{ cycle.batch_number }}</span
+                            >{{ farm.name }} · Batch {{ cycle.batch_number
+                            }}<template v-if="cycle.farm_cycle_number">
+                                · Siklus {{ cycle.farm_cycle_number }}</template
+                            ></span
                         >
                     </p>
                 </div>

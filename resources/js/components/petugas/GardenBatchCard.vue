@@ -57,6 +57,11 @@ const stageStatuses = {
                         class="mt-1 text-xs leading-5 break-words text-muted-foreground"
                     >
                         Subblok {{ batch.subblock_label }}
+                        <span
+                            v-if="batch.farm_cycle_number"
+                            class="ml-1 text-xs font-medium text-muted-foreground"
+                            >· Siklus {{ batch.farm_cycle_number }}</span
+                        >
                     </p>
                 </div>
             </div>
@@ -128,9 +133,11 @@ const stageStatuses = {
                 </dt>
                 <dd class="mt-1 font-medium">
                     {{
-                        gardenDate(
-                            batch.planted_at ?? batch.planned_planting_at,
-                        )
+                        batch.planted_at || batch.planned_planting_at
+                            ? gardenDate(
+                                  batch.planted_at ?? batch.planned_planting_at,
+                              )
+                            : '-'
                     }}<span
                         v-if="batch.hst !== null"
                         class="mt-0.5 block font-normal text-muted-foreground"
@@ -152,10 +159,13 @@ const stageStatuses = {
                             ? 'Panen selesai'
                             : batch.estimated_harvest_at
                               ? gardenDate(batch.estimated_harvest_at)
-                              : 'Belum ada estimasi'
+                              : '-'
                     }}
                     <span
-                        v-if="batch.status === 'harvested' && batch.estimated_harvest_at"
+                        v-if="
+                            batch.status === 'harvested' &&
+                            batch.estimated_harvest_at
+                        "
                         class="mt-0.5 block text-muted-foreground"
                     >
                         Estimasi sebelumnya:

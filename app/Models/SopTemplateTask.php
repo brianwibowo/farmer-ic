@@ -15,11 +15,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $instructions
  * @property int $offset_days
  * @property int $tolerance_days
+ * @property int|null $hok
  * @property bool $is_required
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['sop_template_version_id', 'activity_category', 'activity_subcategory', 'name', 'instructions', 'offset_days', 'tolerance_days', 'is_required'])]
+#[Fillable(['sop_template_version_id', 'activity_category', 'activity_subcategory', 'name', 'instructions', 'offset_days', 'tolerance_days', 'hok', 'is_required'])]
 class SopTemplateTask extends FarmerModel
 {
     /** @var array<string, string> */
@@ -38,6 +39,7 @@ class SopTemplateTask extends FarmerModel
         return [
             'offset_days' => 'integer',
             'tolerance_days' => 'integer',
+            'hok' => 'integer',
             'is_required' => 'boolean',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',

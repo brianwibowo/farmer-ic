@@ -83,6 +83,12 @@ class Farm extends FarmerModel
         return $this->hasMany(PlantingCycle::class, 'farm_id');
     }
 
+    /** @return HasMany<FarmCycle, $this> */
+    public function farmCycles(): HasMany
+    {
+        return $this->hasMany(FarmCycle::class);
+    }
+
     /** @return HasMany<FarmBlock, $this> */
     public function blocks(): HasMany
     {

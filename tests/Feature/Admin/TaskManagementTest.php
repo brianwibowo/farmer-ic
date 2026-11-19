@@ -417,4 +417,28 @@ class TaskManagementTest extends TestCase
         $this->actingAs($petugas)->get('/admin/tasks')->assertForbidden();
         $this->actingAs($owner)->get('/admin/tasks')->assertForbidden();
     }
+
+    public function test_admin_task_index_and_detail_expose_hok(): void
+    {
+        $withHok = $this->task(['name' => 'Pemupukan ber-HOK', 'hok' => 4]);
+        $withoutHok = $this->task(['name' => 'Tugas tanpa HOK', 'hok' => null]);
+
+        $this->get('/admin/tasks')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.data', fn ($rows) => collect($rows)->contains(fn ($r) => $r['id'] === $withHok->id && $r['hok'] === 4)
+                    && collect($rows)->contains(fn ($r) => $r['id'] === $withoutHok->id && $r['hok'] === null)));
+
+        $this->get('/admin/tasks/'.$withHok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('tasks/Show')
+                ->where('task.hok', 4));
+
+        $this->get('/admin/tasks/'.$withoutHok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('tasks/Show')
+                ->where('task.hok', null));
+    }
 }

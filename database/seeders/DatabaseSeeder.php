@@ -36,5 +36,6 @@ class DatabaseSeeder extends Seeder
         } elseif (app()->environment('local', 'testing')) {
             $this->command->warn('Seed Cariu Baru dilewati: memerlukan koneksi PostgreSQL.');
         }
+        $this->call(FarmCycleSeeder::class);
     }
 }

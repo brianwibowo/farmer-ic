@@ -49,6 +49,7 @@ export type OwnerSopTask = {
     activity_category: string;
     offset_days: number;
     tolerance_days: number;
+    hok?: number | null;
     is_required: boolean;
 };
 
