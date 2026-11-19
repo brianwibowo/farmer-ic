@@ -60,13 +60,20 @@ class PetugasVoluntaryActivityController extends Controller
             $incidentTicket = $tickets->followUpContext($request->user(), $farm, $ticket);
         }
 
+        $blocks = FarmBlock::visibleTo($request->user(), $farm->team)
+            ->where('farm_id', $farm->id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $blocksById = $blocks->keyBy('id');
+
         return Inertia::render('petugas/VoluntaryCreate', [
             'farm' => $farm->only(['id', 'name']), 'type' => $type->only(['id', 'code', 'name']),
             'fields' => VoluntaryActivityFields::forCode($type->code),
             'numericLimits' => ActivityInputLimits::common(),
-            'blocks' => FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->orderBy('name')->get()->map(fn ($block) => [...$block->only(['id', 'name']), 'area_limit_m2' => $limits->voluntaryBlockArea($block), 'blocked_reason' => null])->all(),
+            'blocks' => $blocks->map(fn ($block) => [...$block->only(['id', 'name']), 'area_limit_m2' => $limits->voluntaryBlockArea($block), 'blocked_reason' => null])->all(),
             'cycles' => $planting->cycles($request->user(), $farm)->filter(fn ($cycle) => in_array($cycle->status, ['planned', 'active'], true))
-                ->map(fn ($cycle) => [...$planting->context($request->user(), $cycle), 'area_limit_m2' => $limits->voluntaryCycleArea($cycle), 'blocked_reason' => $sequence->blockedReason($request->user(), $cycle, $type->code)])->values()->all(),
+                ->map(fn ($cycle) => [...$planting->context($request->user(), $cycle), 'area_limit_m2' => $limits->voluntaryCycleArea($cycle, $cycle->block_id !== null ? $blocksById->get($cycle->block_id) : null, $farm), 'blocked_reason' => $sequence->blockedReason($request->user(), $cycle, $type->code)])->values()->all(),
             'matchingTasks' => PlantingCycleTask::visibleTo($request->user(), $farm->team)
                 ->whereHas('plantingCycle', fn ($q) => $q->visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id))
                 ->whereIn('status', ['pending', 'in_progress'])

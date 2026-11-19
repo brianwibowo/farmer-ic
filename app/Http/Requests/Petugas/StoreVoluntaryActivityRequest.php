@@ -38,7 +38,7 @@ class StoreVoluntaryActivityRequest extends FormRequest
 
         return [
             'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()],
-            'worker_count' => ['required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
+            'worker_count' => [$code === 'incident' ? 'nullable' : 'required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
             'notes' => ['nullable', 'string', 'max:5000'],
             'cycle_id' => $blockOnly
                 ? ['prohibited']

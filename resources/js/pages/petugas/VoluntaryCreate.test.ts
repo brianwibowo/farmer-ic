@@ -221,4 +221,47 @@ describe('voluntary activity form presentation', () => {
         expect(html).not.toContain('id="voluntary-cycle"');
         expect(html).not.toContain('id="voluntary-block"');
     });
+
+    it('hides worker_count for open incidents and shows it optionally when resolved immediately', async () => {
+        const incidentFields = [
+            ...areaFields,
+            {
+                key: 'incident_status',
+                label: 'Status awal',
+                type: 'select',
+                options: ['Perlu penanganan', 'Sudah ditangani langsung'],
+            },
+        ];
+
+        const openHtml = await renderToString(
+            h(VoluntaryCreate, {
+                ...props,
+                fields: incidentFields,
+                type: { id: '3', code: 'incident', name: 'Pelaporan Insiden' },
+            }),
+        );
+        expect(openHtml).not.toContain('id="activity-worker-count"');
+
+        formState.initial = {
+            details: {
+                area: '',
+                area_unit: 'm²',
+                incident_status: 'Sudah ditangani langsung',
+            },
+        };
+        const resolvedHtml = await renderToString(
+            h(VoluntaryCreate, {
+                ...props,
+                fields: incidentFields,
+                type: { id: '3', code: 'incident', name: 'Pelaporan Insiden' },
+            }),
+        );
+        expect(resolvedHtml).toContain('Jumlah pekerja (opsional)');
+        expect(resolvedHtml).toContain('id="activity-worker-count"');
+        const workerInput = resolvedHtml.match(
+            /<input(?=[^>]*id="activity-worker-count")[^>]*>/,
+        )?.[0];
+        expect(workerInput).toBeDefined();
+        expect(workerInput).not.toContain('required');
+    });
 });

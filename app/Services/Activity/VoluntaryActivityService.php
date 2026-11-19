@@ -13,6 +13,7 @@ use App\Models\IncidentTicket;
 use App\Models\PlantingCycle;
 use App\Models\User;
 use App\Services\IncidentTicketService;
+use App\Support\LandArea;
 use App\Support\VoluntaryActivityFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -25,6 +26,7 @@ class VoluntaryActivityService
         private readonly DailyActivityHeaderService $headers,
         private readonly ActivitySequenceService $sequence,
         private readonly IncidentTicketService $tickets,
+        private readonly ActivityFormLimits $limits,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -64,8 +66,14 @@ class VoluntaryActivityService
                     $this->tickets->assertFollowUpTargetMatches($actor, $farm, $ticket, $type, $cycle, $submittedBlock);
                 }
                 $d = VoluntaryActivityFields::normalized($data['details']);
-                if (isset($d['area_ha']) && ($d['area_ha'] <= 0 || ($cycle && $d['area_ha'] > (float) $cycle->planted_area_ha) || (! $cycle && $block && $d['area_ha'] > (float) $block->area_ha))) {
-                    throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi luas lokasi yang dipilih.']);
+                if (isset($d['area_ha'])) {
+                    $submittedAreaM2 = LandArea::squareMetres(number_format((float) $d['area_ha'], 4, '.', ''));
+                    $maxAreaM2 = $cycle !== null
+                        ? $this->limits->voluntaryCycleArea($cycle, $block, $farm)
+                        : ($block !== null ? $this->limits->voluntaryBlockArea($block) : null);
+                    if ($submittedAreaM2 === null || $submittedAreaM2 <= 0 || ($maxAreaM2 !== null && $submittedAreaM2 > $maxAreaM2)) {
+                        throw ValidationException::withMessages(['details.area' => 'Luas harus minimal 1 m² dan tidak melebihi luas lokasi yang dipilih.']);
+                    }
                 }
                 $log = $this->headers->resolve($farm, $actor, $data['work_date']);
                 $isIncident = $type->detail_key === 'incident';
@@ -78,12 +86,15 @@ class VoluntaryActivityService
                 $immediateAction = $isIncident && filled($d['immediate_action'] ?? null)
                     ? trim((string) $d['immediate_action'])
                     : null;
+                $workerCount = $isIncident && $incidentStatus !== 'resolved'
+                    ? null
+                    : (isset($data['worker_count']) && $data['worker_count'] !== '' ? (int) $data['worker_count'] : null);
 
                 $date = $this->headers->activityTimestamp($data['work_date']);
                 $activity = new FarmActivity([
                     'farm_id' => $farm->id, 'planting_cycle_id' => $cycle?->id, 'activity_type_id' => $type->id,
                     'performed_by' => $actor->id, 'activity_date' => $date, 'daily_activity_log_id' => $log->id,
-                    'position' => $this->headers->nextPosition($log, $actor), 'worker_count' => (int) $data['worker_count'],
+                    'position' => $this->headers->nextPosition($log, $actor), 'worker_count' => $workerCount,
                     'description' => $isIncident && ! filled($data['notes'] ?? null) ? ($d['description'] ?? null) : ($data['notes'] ?? null),
                     'obstacle_status' => 'none',
                 ]);

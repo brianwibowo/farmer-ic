@@ -121,7 +121,7 @@ class IncidentTicketWorkflowTest extends TestCase
             ])
             ->assertSessionHasErrors(['details.immediate_action']);
 
-        // Immediate resolution WITH immediate_action creates a resolved ticket + synced FarmActivity.
+        // Immediate resolution WITH immediate_action and worker_count creates a resolved ticket + synced FarmActivity.
         $this->actingAs($this->petugas)
             ->post('/petugas/aktivitas/mandiri/incident', [
                 'work_date' => '2026-11-18',
@@ -141,18 +141,62 @@ class IncidentTicketWorkflowTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
-        $ticket = IncidentTicket::firstOrFail();
+        $ticket = IncidentTicket::orderByDesc('id')->firstOrFail();
         $this->assertSame('resolved', $ticket->status);
         $this->assertSame('light', $ticket->severity);
         $this->assertSame('Mengganti sambungan selang baru.', $ticket->resolution_note);
         $this->assertSame('resolved', $ticket->activity->status);
+        $this->assertSame(2, $ticket->activity->worker_count);
         $this->assertSame('light', $ticket->activity->incidentDetail->severity);
 
-        // Omitting incident_status defaults to open ('Perlu penanganan').
+        // Immediate resolution WITHOUT worker_count succeeds and stores null.
+        $this->travel(1)->seconds();
         $this->actingAs($this->petugas)
             ->post('/petugas/aktivitas/mandiri/incident', [
                 'work_date' => '2026-11-18',
-                'worker_count' => 3,
+                'cycle_id' => $this->cycle->id,
+                'details' => [
+                    'incident_category' => 'Alat rusak',
+                    'description' => 'Kran air kendor.',
+                    'area' => 20,
+                    'area_unit' => 'm²',
+                    'severity' => 'Ringan',
+                    'incident_status' => 'Sudah ditangani langsung',
+                    'immediate_action' => 'Dikencangkan kembali.',
+                ],
+                'photos' => [UploadedFile::fake()->image('valve-fixed.jpg')],
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $resolvedNoWorkers = IncidentTicket::orderByDesc('id')->firstOrFail();
+        $this->assertSame('resolved', $resolvedNoWorkers->status);
+        $this->assertNull($resolvedNoWorkers->activity->worker_count);
+
+        // Invalid worker_count (0) is rejected even on incident reports.
+        $this->actingAs($this->petugas)
+            ->post('/petugas/aktivitas/mandiri/incident', [
+                'work_date' => '2026-11-18',
+                'worker_count' => 0,
+                'cycle_id' => $this->cycle->id,
+                'details' => [
+                    'incident_category' => 'Alat rusak',
+                    'description' => 'Pipa bocor.',
+                    'area' => 10,
+                    'area_unit' => 'm²',
+                    'severity' => 'Ringan',
+                    'incident_status' => 'Sudah ditangani langsung',
+                    'immediate_action' => 'Ditambal.',
+                ],
+                'photos' => [UploadedFile::fake()->image('pipe.jpg')],
+            ])
+            ->assertSessionHasErrors('worker_count');
+
+        // Omitting incident_status and worker_count defaults to open ('Perlu penanganan') with null worker_count.
+        $this->travel(1)->seconds();
+        $this->actingAs($this->petugas)
+            ->post('/petugas/aktivitas/mandiri/incident', [
+                'work_date' => '2026-11-18',
                 'cycle_id' => $this->cycle->id,
                 'details' => [
                     'incident_category' => 'Banjir',
@@ -166,11 +210,46 @@ class IncidentTicketWorkflowTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
-        $openTicket = IncidentTicket::where('status', 'open')->firstOrFail();
+        $openTicket = IncidentTicket::orderByDesc('id')->firstOrFail();
+        $this->assertSame('open', $openTicket->status);
         $this->assertSame('emergency', $openTicket->severity);
         $this->assertSame('open', $openTicket->activity->status);
+        $this->assertNull($openTicket->activity->worker_count);
         $this->assertSame('emergency', $openTicket->activity->incidentDetail->severity);
         $this->assertSame('Genangan air di sisi barat subblok.', $openTicket->activity->description);
+
+        // Sending worker_count on an open incident still normalizes stored worker_count to null.
+        $this->travel(1)->seconds();
+        $this->actingAs($this->petugas)
+            ->post('/petugas/aktivitas/mandiri/incident', [
+                'work_date' => '2026-11-18',
+                'worker_count' => 3,
+                'cycle_id' => $this->cycle->id,
+                'details' => [
+                    'incident_category' => 'Cuaca',
+                    'description' => 'Angin kencang di blok selatan.',
+                    'area' => 100,
+                    'area_unit' => 'm²',
+                    'severity' => 'Sedang',
+                    'incident_status' => 'Perlu penanganan',
+                ],
+                'photos' => [UploadedFile::fake()->image('wind.jpg')],
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $openWithWorkers = IncidentTicket::orderByDesc('id')->firstOrFail();
+        $this->assertSame('open', $openWithWorkers->status);
+        $this->assertNull($openWithWorkers->activity->worker_count);
+
+        // Non-incident voluntary activities still require worker_count.
+        $this->actingAs($this->petugas)
+            ->post('/petugas/aktivitas/mandiri/other', [
+                'work_date' => '2026-11-18',
+                'details' => ['description' => 'Pembersihan gudang alat.'],
+                'photos' => [UploadedFile::fake()->image('shed.jpg')],
+            ])
+            ->assertSessionHasErrors('worker_count');
 
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
@@ -458,6 +537,69 @@ class IncidentTicketWorkflowTest extends TestCase
         config(['access.roles' => $roles]);
         $this->actingAs($this->petugas)->get('/petugas/incidents')->assertForbidden();
         $this->actingAs($this->petugas)->get('/petugas/incidents/'.$ticket->id)->assertForbidden();
+    }
+
+    public function test_unplanted_subblock_incident_uses_block_area_limit_instead_of_zero(): void
+    {
+        $unplanted = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team);
+        $this->assertSame('planned', $unplanted->status);
+        $this->assertSame('0.0000', (string) $unplanted->planted_area_ha);
+        $this->assertSame('0.0000', (string) $unplanted->getAttribute('reserved_area_ha'));
+
+        $this->actingAs($this->petugas)
+            ->get('/petugas/aktivitas/mandiri/incident')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('cycles', function ($cycles) use ($unplanted): bool {
+                    $plannedCycle = collect($cycles)->firstWhere('id', $unplanted->id);
+                    $plantedCycle = collect($cycles)->firstWhere('id', $this->cycle->id);
+
+                    return is_array($plannedCycle)
+                        && $plannedCycle['area_limit_m2'] === 40000
+                        && is_array($plantedCycle)
+                        && $plantedCycle['area_limit_m2'] === 20000;
+                }));
+
+        // Exceeding the 4 ha (40,000 m²) block area limit still fails validation.
+        $this->actingAs($this->petugas)
+            ->post('/petugas/aktivitas/mandiri/incident', [
+                'work_date' => '2026-11-18',
+                'cycle_id' => $unplanted->id,
+                'details' => [
+                    'incident_category' => 'Banjir',
+                    'description' => 'Air meluap melebihi blok.',
+                    'area' => 40001,
+                    'area_unit' => 'm²',
+                    'severity' => 'Darurat',
+                    'incident_status' => 'Perlu penanganan',
+                ],
+                'photos' => [UploadedFile::fake()->image('too-big.jpg')],
+            ])
+            ->assertSessionHasErrors('details.area');
+
+        // Valid area within the block limit succeeds on the unplanted subblock.
+        $this->actingAs($this->petugas)
+            ->post('/petugas/aktivitas/mandiri/incident', [
+                'work_date' => '2026-11-18',
+                'cycle_id' => $unplanted->id,
+                'details' => [
+                    'incident_category' => 'Banjir',
+                    'description' => 'Genangan sebelum penanaman pada subblok baru.',
+                    'area' => 500,
+                    'area_unit' => 'm²',
+                    'severity' => 'Sedang',
+                    'incident_status' => 'Perlu penanganan',
+                ],
+                'photos' => [UploadedFile::fake()->image('unplanted.jpg')],
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $ticket = IncidentTicket::orderByDesc('id')->firstOrFail();
+        $this->assertSame($unplanted->id, $ticket->planting_cycle_id);
+        $this->assertSame('0.0500', (string) $ticket->activity->incidentDetail->affected_area_ha);
+
+        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
     private function createOpenTicket(string $scope): IncidentTicket

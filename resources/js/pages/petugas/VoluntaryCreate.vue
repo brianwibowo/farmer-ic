@@ -26,6 +26,7 @@ import { useErrorDisclosure } from '@/composables/useErrorDisclosure';
 import { useVoluntaryLocation } from '@/composables/useVoluntaryLocation';
 import {
     activityDetailMaximumErrors,
+    formatActivityNumber,
     maximumError,
 } from '@/lib/activityInputLimits';
 
@@ -102,6 +103,13 @@ const form = useForm({
     photos: [] as File[],
 });
 const clientError = ref('');
+const isIncident = computed(() => props.type.code === 'incident');
+const showIncidentWorkerCount = computed(
+    () =>
+        isIncident.value &&
+        form.details.incident_status === 'Sudah ditangani langsung',
+);
+const incidentWorkerCount = ref<string | number>('');
 const blockOnly = computed(() =>
     ['land_cleaning', 'soil_preparation', 'base_fertilization'].includes(
         props.type.code,
@@ -124,11 +132,19 @@ const numericErrors = computed<Record<string, string>>(() => {
         areaLimitM2.value,
         props.numericLimits.quantityKg,
     );
-    const workerError = maximumError(
-        form.worker_count,
-        props.numericLimits.workerCount,
-        'Jumlah pekerja',
-    );
+    const workerError = !isIncident.value
+        ? maximumError(
+              form.worker_count,
+              props.numericLimits.workerCount,
+              'Jumlah pekerja',
+          )
+        : showIncidentWorkerCount.value
+          ? maximumError(
+                incidentWorkerCount.value,
+                props.numericLimits.workerCount,
+                'Jumlah pekerja',
+            )
+          : undefined;
     if (workerError) result.worker_count = workerError;
     return result;
 });
@@ -179,6 +195,16 @@ watch(
 watch(
     () => form.worker_count,
     () => form.clearErrors('worker_count'),
+);
+watch(incidentWorkerCount, () => form.clearErrors('worker_count'));
+watch(
+    () => form.details.incident_status,
+    (status) => {
+        if (status !== 'Sudah ditangani langsung') {
+            incidentWorkerCount.value = '';
+            form.clearErrors('worker_count');
+        }
+    },
 );
 watch(
     () => form.work_date,
@@ -252,6 +278,7 @@ function submit(): void {
         return;
     }
     form.transform((data) => {
+        const { worker_count, ...rest } = data;
         const details = Object.fromEntries(
             Object.entries(data.details).filter(([key]) => {
                 const f = props.fields.find((f) => f.key === key);
@@ -259,7 +286,13 @@ function submit(): void {
             }),
         );
         return {
-            ...data,
+            ...rest,
+            ...(!isIncident.value
+                ? { worker_count }
+                : showIncidentWorkerCount.value &&
+                    String(incidentWorkerCount.value ?? '').trim() !== ''
+                  ? { worker_count: Number(incidentWorkerCount.value) }
+                  : {}),
             cycle_id: props.incidentTicket
                 ? props.incidentTicket.scope === 'cycle'
                     ? (props.incidentTicket.cycle_id ?? '')
@@ -639,6 +672,7 @@ function submit(): void {
                         <h2 class="text-base font-semibold">Hasil pekerjaan</h2>
                     </div>
                     <ActivityWorkerCount
+                        v-if="!isIncident"
                         v-model="form.worker_count"
                         :maximum="numericLimits.workerCount"
                         :error="errors.worker_count"
@@ -650,6 +684,49 @@ function submit(): void {
                         :area-limit-m2="areaLimitM2"
                         compact
                     />
+                    <div v-if="showIncidentWorkerCount" class="space-y-2">
+                        <label
+                            for="activity-worker-count"
+                            class="text-sm font-medium"
+                        >
+                            Jumlah pekerja (opsional)
+                        </label>
+                        <input
+                            id="activity-worker-count"
+                            v-model="incidentWorkerCount"
+                            type="number"
+                            inputmode="numeric"
+                            min="1"
+                            :max="numericLimits.workerCount"
+                            step="1"
+                            placeholder="Kosongkan jika tidak perlu"
+                            class="petugas-activity-field block"
+                            :aria-invalid="!!errors.worker_count"
+                            :aria-describedby="
+                                errors.worker_count
+                                    ? 'worker-count-help error-worker_count'
+                                    : 'worker-count-help'
+                            "
+                        />
+                        <p
+                            id="worker-count-help"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Opsional · maksimal
+                            {{
+                                formatActivityNumber(numericLimits.workerCount)
+                            }}
+                            pekerja.
+                        </p>
+                        <p
+                            v-if="errors.worker_count"
+                            id="error-worker_count"
+                            class="text-xs text-error"
+                            aria-live="polite"
+                        >
+                            {{ errors.worker_count }}
+                        </p>
+                    </div>
                     <p v-if="noArea" role="status" class="text-sm text-warning">
                         Tidak ada luas yang dapat dilaporkan untuk lokasi ini.
                     </p>
