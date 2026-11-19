@@ -13,7 +13,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('farm_id')->constrained('farms')->restrictOnDelete();
             $table->unsignedInteger('cycle_number');
-            $table->foreignUuid('created_by')->index()->constrained('users')->restrictOnDelete();
+            $table->foreignUuid('created_by')->constrained('users')->restrictOnDelete();
             $table->timestampTz('created_at');
             $table->unique(['farm_id', 'cycle_number']);
             $table->unique(['id', 'farm_id']);

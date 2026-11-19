@@ -119,7 +119,7 @@ class OwnerController extends Controller
         $team = $this->team($request);
         Gate::authorize('viewAny', [Farm::class, $team]);
         if ($request->filled('farm')) {
-            $farm = Farm::query()->findOrFail($request->validated('farm'));
+            $farm = Farm::query()->whereKey($request->validated('farm'))->firstOrFail();
             Gate::authorize('view', $farm);
             abort_unless((int) $farm->team_id === (int) $team->id, 404);
         }

@@ -153,10 +153,9 @@ Table farm_cycles {
   created_by uuid [not null, ref: > users.id]
   created_at timestamptz [not null]
   indexes {
-    farm_id
-    created_by
     (farm_id, cycle_number) [unique]
     (id, farm_id) [unique]
+    created_by
   }
   Note: 'Manual grouping chosen by Admin/Petugas when creating a subblock. No area-triggered rollover.'
 }

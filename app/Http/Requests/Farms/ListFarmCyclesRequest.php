@@ -11,6 +11,7 @@ class ListFarmCyclesRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string>> */
     public function rules(): array
     {
         return ['page' => ['sometimes', 'integer', 'min:1', 'max:100000']];

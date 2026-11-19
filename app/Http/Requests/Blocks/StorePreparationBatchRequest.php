@@ -42,6 +42,7 @@ class StorePreparationBatchRequest extends FormRequest
         ];
     }
 
+    /** @return list<\Closure(\Illuminate\Validation\Validator): void> */
     public function after(): array
     {
         return [function (\Illuminate\Validation\Validator $validator): void {

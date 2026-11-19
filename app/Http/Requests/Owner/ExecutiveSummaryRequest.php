@@ -12,6 +12,7 @@ class ExecutiveSummaryRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, list<string|\Illuminate\Validation\Rules\In>> */
     public function rules(): array
     {
         return [

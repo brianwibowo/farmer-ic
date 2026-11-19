@@ -13,9 +13,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
+/** @phpstan-type CycleSummary array{id: string, cycle_number: int, batch_count: int, harvested_ton: string} */
 class FarmCycleService
 {
-    /** Resolve only a cycle in the actor's visible farm. Null means create a new cycle. */
+    /**
+     * Resolve only a cycle in the actor's visible farm. Null means create a new cycle.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function selection(Farm $farm, User $actor, Team $team, array $data): ?FarmCycle
     {
         if (! empty($data['create_farm_cycle'])) {
@@ -35,7 +40,11 @@ class FarmCycleService
         return $query->orderByDesc('cycle_number')->first();
     }
 
-    /** Called inside the batch transaction, after the farm row has been locked. */
+    /**
+     * Called inside the batch transaction, after the farm row has been locked.
+     *
+     * @param  array<string, mixed>  $data
+     */
     public function forBatch(Farm $farm, User $actor, Team $team, array $data): FarmCycle
     {
         $cycle = $this->selection($farm, $actor, $team, $data);
@@ -53,7 +62,11 @@ class FarmCycleService
         return $cycle;
     }
 
-    /** All aggregates use the same visible record boundary as the cycle selector. */
+    /**
+     * All aggregates use the same visible record boundary as the cycle selector.
+     *
+     * @return array<int, CycleSummary>
+     */
     public function options(Farm $farm, User $actor, Team $team): array
     {
         $cycles = FarmCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->orderByDesc('cycle_number')->get();
@@ -61,6 +74,7 @@ class FarmCycleService
         return $this->summaries($farm, $actor, $team, $cycles);
     }
 
+    /** @return LengthAwarePaginator<int, array{id: string, cycle_number: int, batch_count: int, harvested_ton: string, created_at: string|null}> */
     public function paginate(Farm $farm, User $actor, Team $team, int $page = 1): LengthAwarePaginator
     {
         $cycles = FarmCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)
@@ -68,12 +82,18 @@ class FarmCycleService
         $summaries = collect($this->summaries($farm, $actor, $team, $cycles->getCollection()))->keyBy('id');
 
         return $cycles->through(fn (FarmCycle $cycle): array => [
-            ...$summaries[$cycle->id],
-            'created_at' => $cycle->getAttribute('created_at')?->toIso8601String(),
+            'id' => $cycle->id,
+            'cycle_number' => $cycle->cycle_number,
+            'batch_count' => $summaries[$cycle->id]['batch_count'],
+            'harvested_ton' => $summaries[$cycle->id]['harvested_ton'],
+            'created_at' => $cycle->created_at?->toIso8601String(),
         ]);
     }
 
-    /** @param Collection<int, FarmCycle> $cycles */
+    /**
+     * @param  Collection<int, FarmCycle>  $cycles
+     * @return array<int, CycleSummary>
+     */
     private function summaries(Farm $farm, User $actor, Team $team, Collection $cycles): array
     {
         if ($cycles->isEmpty()) {

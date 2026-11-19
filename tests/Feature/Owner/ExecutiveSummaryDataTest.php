@@ -13,8 +13,10 @@ use App\Models\HarvestDetail;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Owner\ExecutiveSummaryService;
 use App\Support\RolePermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -156,6 +158,7 @@ class ExecutiveSummaryDataTest extends TestCase
     public function test_missing_estimates_and_hidden_relationships_never_fabricate_values_or_labels(): void
     {
         $cycle = $this->cycle($this->farm('Lahan Data Parsial', 10), 'Jagung', 2, null);
+        $this->harvest($cycle, 6);
         $this->get('/ringkasan-eksekutif')->assertInertia(fn (Assert $page) => $page
             ->where('summary.rows.0.projectedTon', null)->where('summary.rows.0.projectionMissing', 1));
         $roles = app(RolePermissions::class)->roles();
@@ -163,10 +166,26 @@ class ExecutiveSummaryDataTest extends TestCase
         config(['access.roles' => $roles]);
         $this->get('/ringkasan-eksekutif')->assertInertia(fn (Assert $page) => $page
             ->where('summary.rows.0.commodity.name', 'Belum teridentifikasi')->has('summary.commodities', 0)
-            ->where('summary.rows.0.plantedHa', 2));
+            ->where('summary.rows.0.plantedHa', 2)->where('summary.rows.0.harvestedTon', 6));
         unset($roles['owner']['farms.view']);
         config(['access.roles' => $roles]);
         $this->get('/ringkasan-eksekutif')->assertForbidden();
+    }
+
+    public function test_hidden_commodity_keeps_production_and_fallback_without_exposing_its_label(): void
+    {
+        $cycle = $this->cycle($this->farm('Lahan Komoditas Terbatas', 10), 'Jagung', 2, null);
+        $this->harvest($cycle, 6);
+        $roles = app(RolePermissions::class)->roles();
+        unset($roles['owner']['commodities.view']);
+        config(['access.roles' => $roles]);
+
+        $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('summary.rows', 1)->has('summary.commodities', 0)
+            ->where('summary.rows.0.commodity.id', '')
+            ->where('summary.rows.0.commodity.name', 'Belum teridentifikasi')
+            ->where('summary.rows.0.plantedHa', 2)->where('summary.rows.0.harvestedTon', 6)
+            ->where('summary.rows.0.projectedTon', null));
     }
 
     public function test_cancelled_and_future_planting_do_not_count_as_current_planted_area(): void
@@ -182,6 +201,9 @@ class ExecutiveSummaryDataTest extends TestCase
     {
         $this->get('/ringkasan-eksekutif?year=invalid&quarter=Q5&farm=invalid&commodity=invalid')
             ->assertSessionHasErrors(['year', 'quarter', 'farm', 'commodity']);
+        $this->getJson('/ringkasan-eksekutif?farm[]=00000000-0000-4000-8000-000000000000')
+            ->assertUnprocessable()->assertJsonValidationErrors('farm');
+        $this->get('/ringkasan-eksekutif?farm=00000000-0000-4000-8000-000000000000')->assertNotFound();
     }
 
     public function test_block_commodity_without_any_planting_cycle_is_included(): void
@@ -194,6 +216,37 @@ class ExecutiveSummaryDataTest extends TestCase
         $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('summary.rows', 1)->where('summary.rows.0.commodity.id', $crop->id)
             ->where('summary.rows.0.plantedHa', 0)->where('summary.rows.0.farm.areaHa', 5));
+    }
+
+    public function test_summary_query_count_does_not_grow_per_farm_or_crop(): void
+    {
+        $this->harvest($this->cycle($this->farm('Lahan Query 1', 10), 'Komoditas 1', 2, 12), 5);
+        $service = app(ExecutiveSummaryService::class);
+        // Warm the actor's authorization relations before comparing equal read paths.
+        $service->summary($this->owner, $this->team, []);
+        $measure = function () use ($service): array {
+            $connection = DB::connection();
+            $connection->flushQueryLog();
+            $connection->enableQueryLog();
+            try {
+                $summary = $service->summary($this->owner, $this->team, []);
+
+                return [$summary, count($connection->getQueryLog())];
+            } finally {
+                $connection->disableQueryLog();
+                $connection->flushQueryLog();
+            }
+        };
+        [$small, $smallCount] = $measure();
+        for ($number = 2; $number <= 8; $number++) {
+            $this->harvest($this->cycle($this->farm('Lahan Query '.$number, 10), 'Komoditas '.$number, 2, 12), 5);
+        }
+        [$large, $largeCount] = $measure();
+
+        $this->assertCount(1, $small['rows']);
+        $this->assertCount(8, $large['rows']);
+        $this->assertGreaterThan(0, $smallCount);
+        $this->assertSame($smallCount, $largeCount, 'Summary queries must remain constant as farms, varieties and harvests increase.');
     }
 
     private function farm(string $name, float $area, ?string $party = null, ?Team $team = null): Farm
