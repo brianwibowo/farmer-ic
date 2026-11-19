@@ -228,9 +228,12 @@ services:
         ports:
             - '80:80'
             - '443:443'
+            - '9000:9000'
+            - '9001:9001'
         restart: always
         volumes:
             - https-portal-data:/var/lib/https-portal
+            - ./docker/rustfs/rustfs-ssl.conf:/etc/nginx/conf.d/rustfs-ssl.conf:ro
         healthcheck:
             test: ['CMD', 'service', 'nginx', 'status']
             interval: 30s
