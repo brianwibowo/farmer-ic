@@ -132,7 +132,7 @@ class DemoActivitySeeder extends Seeder
                 'label' => 'Kondisi awal bedengan',
             ], [
                 'caption' => 'Dokumentasi kondisi awal bedengan Blok 1.',
-                'image_url' => '/images/kebun-placeholder.svg',
+                'image_url' => \Database\Seeders\Support\DemoUpload::image('activity', 'farms/'.$farm->id.'/'.$planting->id.'/demo.jpg'),
                 'uploaded_at' => now(),
             ]);
         }

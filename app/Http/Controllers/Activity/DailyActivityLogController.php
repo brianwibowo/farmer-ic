@@ -99,10 +99,6 @@ class DailyActivityLogController extends Controller
         $photo = ActivityPhoto::visibleTo($request->user(), $farm->team)->where('activity_id', $activity->id)->findOrFail($photo->id);
         abort_unless(ActivityPhotoFile::available($photo), 404);
 
-        if ($photo->image_url === '/images/kebun-placeholder.svg') {
-            return response()->stream(fn () => print file_get_contents(public_path('images/kebun-placeholder.svg')), 200, ['Content-Type' => 'image/svg+xml', 'Cache-Control' => 'private, no-store']);
-        }
-
-        return Storage::disk('local')->response($photo->image_url, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+        return Storage::disk('activity')->response($photo->image_url, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 }

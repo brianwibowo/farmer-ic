@@ -22,6 +22,9 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->withoutVite();
+        foreach (['activity', 'legality', 'farm'] as $disk) {
+            \Illuminate\Support\Facades\Storage::fake($disk);
+        }
     }
 
     protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void

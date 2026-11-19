@@ -122,7 +122,7 @@ class PlantingTransactionTest extends TestCase
             'activity_id' => $activity->id,
             'label' => 'Bukti tanam',
             'caption' => 'Foto penanaman '.$date,
-            'image_url' => '/images/kebun-placeholder.svg',
+            'image_url' => \Database\Seeders\Support\DemoUpload::image('activity', 'farms/'.$farm->id.'/'.$activity->id.'/evidence.jpg'),
             'uploaded_at' => now(),
         ]);
 

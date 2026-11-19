@@ -17,7 +17,12 @@ if (($argv[1] ?? '') === 'worker') {
     $actor = App\Models\User::findOrFail($argv[2]);
     $task = App\Models\PlantingCycleTask::findOrFail($argv[3]);
     Illuminate\Support\Facades\Gate::forUser($actor)->authorize('recordTask', [App\Models\FarmActivity::class, $task]);
-    config(['filesystems.disks.local.root' => storage_path('framework/testing/disks/daily-log-concurrency')]);
+    config(['filesystems.disks.activity' => [
+        'driver' => 'local',
+        'root' => storage_path('framework/testing/disks/daily-log-concurrency'),
+        'visibility' => 'private',
+        'throw' => true,
+    ]]);
     $activity = app(App\Services\Activity\TaskActivityService::class)->create($actor, $task, [
         'work_date' => now('Asia/Jakarta')->toDateString(), 'worker_count' => (int) $argv[4],
         'notes' => 'Pengairan dari worker paralel.',

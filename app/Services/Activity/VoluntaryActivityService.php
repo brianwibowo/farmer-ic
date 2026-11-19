@@ -121,7 +121,7 @@ class VoluntaryActivityService
                     };
                 }
                 foreach ($data['photos'] as $photo) {
-                    $path = $photo->store('task-activities/'.$activity->id, 'local');
+                    $path = $photo->store('farms/'.$activity->farm_id.'/'.$activity->id, 'activity');
                     if ($path === false) {
                         throw new \RuntimeException('Foto tidak berhasil disimpan.');
                     }
@@ -137,7 +137,7 @@ class VoluntaryActivityService
                 return $activity;
             });
         } catch (Throwable $e) {
-            Storage::disk('local')->delete($paths);
+            Storage::disk('activity')->delete($paths);
             throw $e;
         }
     }

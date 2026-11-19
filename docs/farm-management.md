@@ -54,9 +54,9 @@ existing authorization coverage outside this module is unchanged.
 ## Data and boundaries
 
 The form stores name, total area in hectares, optional owner, address,
-province/city/district, land tenure, paired coordinates, and an optional HTTP/HTTPS photo
-reference. The photo reference is a link; this feature does not upload files or
-load remote images.
+province/city/district, land tenure, paired coordinates, and an optional JPEG,
+PNG, or WebP photo upload (maximum 10 MB). The server stores its disk-relative
+object key and returns an authorized image URL; clients cannot submit storage paths.
 
 Land tenure (`farms.land_tenure`) is required for create and full update: `owned`
 (Milik sendiri), `rented` (Sewa), or `partnership` (Kerja sama). It describes land use/possession and is separate
@@ -427,3 +427,45 @@ kalimat pembuka lama dihapus. Tambah kebun berada di header Daftar kebun,
 sebelum pencarian/filter. Detail menggunakan label Status lahan, Komoditas yang
 ditanam, dan Panduan budidaya (SOP). Progres menjelaskan unit dan pekerjaan,
 misalnya 2 sub blok sedang dalam pengolahan tanah, bukan angka tanpa konteks.
+
+
+## Operational uploads: local or RustFS
+
+Farm Management creates/edits one optional farm image using a file upload, not
+an image URL. JPEG, PNG and WebP files are limited to 10 MB (10,240 KiB), validated
+on the server and previewed in the form. Leaving the upload empty on edit keeps
+the current image; selecting Hapus foto removes it when the form is saved.
+Updates use multipart POST with Laravel's `_method=PUT` handling.
+
+Three private logical disks use matching local directories and S3 prefixes:
+
+| Disk | Local root below `storage/app/private` | S3 prefix | Stored relative path |
+| --- | --- | --- | --- |
+| `activity` | `task-activities` | `task-activities` | `farms/<farm-id>/<activity-id>/<filename>` |
+| `legality` | `legality` | `legality` | `farms/<farm-id>/<filename>.pdf` |
+| `farm` | `farm-images` | `farm-images` | `farms/<farm-id>/<filename>` |
+
+Set `OPERATIONAL_FILESYSTEM_DRIVER=local` or `s3` in the runtime environment.
+Optional `ACTIVITY_FILESYSTEM_DRIVER`, `LEGALITY_FILESYSTEM_DRIVER`, and
+`FARM_FILESYSTEM_DRIVER` override individual categories. S3 uses the existing
+`AWS_*` credentials, region, bucket, endpoint and path-style settings. For the
+current LAN deployment, the endpoint is `http://192.168.1.11:9000`; enable
+`AWS_USE_PATH_STYLE_ENDPOINT=true`. Credentials remain server-side.
+
+The default disk, AI attachments, and generated AI image storage are independent.
+Both drivers use private storage and throwing writes. Store only disk-relative
+object keys in domain records: do not repeat the category prefix in the key.
+`farms.image` (`GET /farms/{farm}/image`) authorizes Farm view and scopes the read;
+activity and legality downloads retain their existing policy/scoped checks.
+The farm image response URL is generated for presentation, not saved as its key.
+Replacement cleanup runs after commit; failed writes preserve the previous image.
+
+Demo seeders copy the bundled farm photograph into these configured disks and
+persist uniform keys. Existing data is not migrated or normalized. Run seeders
+only in the authorized demo scope. The test suite fakes the three operational
+disks; adapter tests exercise real local and S3 drivers with simulated S3 HTTP
+transport. Live RustFS credentials/network access require a separate smoke test.
+After runtime environment changes, clear/rebuild config and restart long-lived
+processes; Compose deployments must recreate app/worker containers. No database
+migration is needed: the existing `farms.image_url` field now holds the farm
+image's disk-relative key and rejects client-supplied URL/path input.

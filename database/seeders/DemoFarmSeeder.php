@@ -49,6 +49,9 @@ class DemoFarmSeeder extends Seeder
             'longitude' => 106.9502000,
         ])->save();
         $farm->refresh();
+        if ($isNewFarm) {
+            $farm->forceFill(['image_url' => \Database\Seeders\Support\DemoUpload::image('farm', 'farms/'.$farm->id.'/demo.jpg')])->save();
+        }
 
         $petugas->forceFill(['assigned_farm_id' => $farm->id])->save();
 

@@ -280,7 +280,7 @@ class OwnerReadService
     public function farms(User $actor, Team $team, array $filters): array
     {
         return [
-            'farms' => $this->farms->paginate($actor, $team, $filters)->through(fn (Farm $farm): array => $farm->only([
+            'farms' => $this->farms->paginate($actor, $team, $filters)->through(fn (Farm $farm): array => [...$farm->only([
                 'id',
                 'name',
                 'city',
@@ -293,7 +293,7 @@ class OwnerReadService
                 'latitude',
                 'longitude',
                 'image_url',
-            ])),
+            ]), 'image_url' => \App\Support\FarmImageFile::url($farm)]),
             'summary' => $this->farms->summary($actor, $team),
             'locationOptions' => $this->farms->locationOptions($actor, $team),
             'filters' => $filters,
@@ -333,6 +333,7 @@ class OwnerReadService
         return [
             'farm' => [
                 ...$farm->only(['id', 'name', 'land_tenure', 'land_tenure_party', 'address', 'city', 'district', 'province', 'total_area_ha', 'latitude', 'longitude', 'image_url']),
+                'image_url' => \App\Support\FarmImageFile::url($farm),
                 'legality_url' => '/kebun/'.$farm->id.'/legalitas',
                 'owner_name' => $owner?->name,
                 'team_name' => $team->name,
