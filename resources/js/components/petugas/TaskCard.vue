@@ -88,7 +88,22 @@ defineProps<{ task: PetugasTask }>();
                         class="mt-3"
                         :status="task.status"
                         :urgency="task.urgency"
+                        :closed="
+                            ['harvested', 'cancelled'].includes(
+                                task.subblok.status ?? '',
+                            )
+                        "
                     />
+                    <p
+                        v-if="
+                            ['harvested', 'cancelled'].includes(
+                                task.subblok.status ?? '',
+                            )
+                        "
+                        class="mt-2 text-xs text-muted-foreground"
+                    >
+                        Subblok ditutup · hanya dapat dilihat
+                    </p>
                 </div>
             </div>
             <p

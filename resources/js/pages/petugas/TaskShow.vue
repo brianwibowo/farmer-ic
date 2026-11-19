@@ -61,7 +61,13 @@ function completedAtLabel(value: string): string {
     <div class="min-w-0 space-y-4 pb-8 text-foreground">
         <header class="flex items-center gap-2.5">
             <Link
-                :href="`/petugas/aktivitas${activityDate}`"
+                :href="
+                    ['harvested', 'cancelled'].includes(
+                        task.subblok.status ?? '',
+                    )
+                        ? '/petugas/aktivitas?view=history'
+                        : `/petugas/aktivitas${activityDate}`
+                "
                 aria-label="Kembali ke daftar tugas"
                 class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
@@ -125,6 +131,11 @@ function completedAtLabel(value: string): string {
                     class="mt-3"
                     :status="task.status"
                     :urgency="task.urgency"
+                    :closed="
+                        ['harvested', 'cancelled'].includes(
+                            task.subblok.status ?? '',
+                        )
+                    "
                 />
             </div>
             <dl

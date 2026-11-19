@@ -36,7 +36,9 @@ const props = defineProps<{
     harvestPermissions: Record<string, boolean>;
     theme: string;
     returnTo: 'farm' | 'blocks';
+    filtered?: boolean;
 }>();
+const emit = defineEmits<{ created: [] }>();
 const editing = ref(false);
 const expanded = ref(true);
 const contentId = useId();
@@ -322,11 +324,17 @@ const progressSummary = computed(() => {
                 v-if="!block.batches.length"
                 class="rounded-xl bg-muted/40 px-4 py-4 text-sm text-muted-foreground"
             >
-                Belum ada sub blok.
                 {{
-                    block.can.createBatch && block.is_active
+                    filtered
+                        ? 'Tidak ada sub blok pada pilihan ini.'
+                        : 'Belum ada sub blok.'
+                }}
+                {{
+                    !filtered && block.can.createBatch && block.is_active
                         ? 'Tambahkan sub blok untuk memulai pengolahan tanah.'
-                        : 'Sub blok akan tampil setelah dibuat.'
+                        : !filtered
+                          ? 'Sub blok akan tampil setelah dibuat.'
+                          : ''
                 }}
             </p>
         </div>
@@ -339,6 +347,7 @@ const progressSummary = computed(() => {
         :batch="selected"
         :theme="theme"
         :return-to="returnTo"
+        @saved="!selected && emit('created')"
     />
     <Dialog
         :open="!!closing"

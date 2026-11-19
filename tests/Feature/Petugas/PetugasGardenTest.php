@@ -77,6 +77,8 @@ class PetugasGardenTest extends TestCase
             $variety = CropVariety::firstOrCreate(['commodity_id' => $commodity->id, 'name' => 'Bisi 18']);
             $batch->forceFill(['status' => $status, 'planted_at' => '2026-10-28', 'planted_area_ha' => '0.5000',
                 'variety_id' => $variety->id, 'estimated_harvest_at' => '2027-01-26'])->save();
+        } elseif ($status === 'cancelled') {
+            $batch->forceFill(['status' => 'cancelled'])->save();
         }
 
         return $batch;
@@ -164,8 +166,44 @@ class PetugasGardenTest extends TestCase
         $this->assertSame(2, $next->batch_number);
 
         $this->actingAs($this->petugas)->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('garden.batches.total', 2)->where('garden.batches.data.0.batch_number', 2)
-            ->where('garden.batches.data.1.batch_number', 1)->where('garden.batches.data.1.status', 'harvested'));
+            ->where('garden.view', 'running')->where('garden.batches.total', 1)
+            ->where('garden.batches.data.0.batch_number', 2));
+        $this->get('/petugas/kebun?view=history')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('garden.view', 'history')->where('garden.batches.total', 1)
+            ->where('garden.batches.data.0.batch_number', 1)->where('garden.batches.data.0.status', 'harvested'));
+    }
+
+    public function test_history_counts_and_pagination_are_scoped_before_pagination(): void
+    {
+        $block = $this->block($this->farm);
+        $planned = $this->batch($block);
+        $active = $this->batch($block, 'active');
+        $harvested = $this->batch($block, 'harvested');
+        for ($index = 0; $index < 6; $index++) {
+            $this->batch($block, 'cancelled');
+        }
+        $otherFarm = $this->farm($this->team);
+        $this->batch($this->block($otherFarm), 'harvested');
+        $foreignTeam = Team::factory()->create(['is_personal' => false]);
+        $foreignAdmin = User::factory()->create(['role' => 'admin']);
+        $this->join($foreignAdmin, $foreignTeam);
+        $this->batch($this->block($this->farm($foreignTeam), actor: $foreignAdmin), 'harvested', $foreignAdmin);
+
+        $this->actingAs($this->petugas)->get('/petugas/kebun?block='.$block->id)
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('garden.view', 'running')->where('garden.summary.batches', 2)
+                ->where('garden.selected_block.batches_count', 2)->where('garden.batches.total', 2)
+                ->where('garden.batches.data.0.id', $active->id)->where('garden.batches.data.1.id', $planned->id));
+        $this->get('/petugas/kebun?view=history&block='.$block->id.'&farm_id='.$otherFarm->id)
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('garden.view', 'history')->where('garden.summary.batches', 7)
+                ->where('garden.selected_block.batches_count', 7)->where('garden.batches.total', 7)
+                ->where('garden.batches.last_page', 2)->has('garden.batches.data', 6)
+                ->where('garden.batches.next_page_url', fn ($url) => str_contains($url, 'view=history') && str_contains($url, 'block='.$block->id)));
+        $this->get('/petugas/kebun?view=history&block='.$block->id.'&page=99')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('garden.batches.current_page', 2)->where('garden.batches.data.0.id', $harvested->id));
+        $this->get('/petugas/kebun?view=invalid')->assertSessionHasErrors('view');
     }
 
     public function test_cross_farm_block_selection_and_lost_membership_return_403(): void

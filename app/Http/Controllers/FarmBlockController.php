@@ -53,6 +53,7 @@ class FarmBlockController extends Controller
             'blockOptions' => $this->blocks->configurationOptions($request->user(), $team),
             'farmCycleOptions' => app(FarmCycleService::class)->options($farm, $request->user(), $team),
             'canCreateFarmCycle' => Gate::allows('create', [FarmCycle::class, $farm]),
+            'filterBatches' => Gate::allows('update', $farm) || Gate::allows('create', [PlantingCycle::class, $farm]),
             'filters' => array_replace(['search' => '', 'status' => 'all', 'per_page' => 15], $request->validated()),
             'can' => ['create' => Gate::allows('create', [FarmBlock::class, $farm])],
         ]);

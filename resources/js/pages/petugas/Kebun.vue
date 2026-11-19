@@ -14,6 +14,11 @@ import type { PetugasGarden } from '@/types/petugas-garden';
 defineOptions({ inheritAttrs: false });
 defineProps<{ garden: PetugasGarden }>();
 const createOpen = ref(false);
+function gardenHref(view: PetugasGarden['view'], blockId?: string): string {
+    const params = new URLSearchParams({ view });
+    if (blockId) params.set('block', blockId);
+    return `/petugas/kebun?${params.toString()}`;
+}
 </script>
 
 <template>
@@ -62,7 +67,7 @@ const createOpen = ref(false);
                         <Link
                             v-for="block in garden.blocks"
                             :key="block.id"
-                            :href="`/petugas/kebun?block=${encodeURIComponent(block.id)}`"
+                            :href="gardenHref(garden.view, block.id)"
                             preserve-scroll
                             class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
                             :class="
@@ -81,6 +86,37 @@ const createOpen = ref(false);
                     </nav>
                     <template v-if="garden.selected_block">
                         <GardenBlockCapacity :block="garden.selected_block" />
+                        <nav
+                            aria-label="Tampilan subblok"
+                            class="flex gap-2 overflow-x-auto"
+                        >
+                            <Link
+                                v-for="view in [
+                                    { value: 'running', label: 'Berjalan' },
+                                    { value: 'history', label: 'Riwayat' },
+                                ] as const"
+                                :key="view.value"
+                                :href="
+                                    gardenHref(
+                                        view.value,
+                                        garden.selected_block.id,
+                                    )
+                                "
+                                preserve-scroll
+                                :aria-current="
+                                    garden.view === view.value
+                                        ? 'page'
+                                        : undefined
+                                "
+                                class="inline-flex min-h-11 shrink-0 items-center rounded-xl border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                                :class="
+                                    garden.view === view.value
+                                        ? 'border-secondary bg-secondary text-secondary-foreground'
+                                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                                "
+                                >{{ view.label }}</Link
+                            >
+                        </nav>
                         <div
                             class="flex flex-wrap items-center justify-between gap-3"
                         >
@@ -136,7 +172,11 @@ const createOpen = ref(false);
                                 aria-hidden="true"
                             />
                             <p class="mt-3 text-sm font-medium">
-                                Belum ada subblok pada blok ini
+                                {{
+                                    garden.view === 'history'
+                                        ? 'Belum ada riwayat subblok pada blok ini'
+                                        : 'Belum ada subblok berjalan pada blok ini'
+                                }}
                             </p>
                         </div>
                         <ul

@@ -166,9 +166,54 @@ describe('task list presentation', () => {
         expect(html).toContain('Hubungi Admin');
         expect(html).not.toContain('Pemupukan susulan');
     });
+
+    it('shows closed-subblock tasks in history with their real status and no urgency', async () => {
+        const historical: PetugasTask = {
+            ...task,
+            status: 'pending',
+            urgency: 'overdue',
+            can: { record: false, complete: false },
+            subblok: { ...task.subblok, status: 'cancelled' },
+        };
+        const html = await renderToString(
+            h(Aktivitas, {
+                ...listProps,
+                tasks: [historical],
+                filters: { status: 'all', view: 'history' },
+            }),
+        );
+        expect(html).toContain('Riwayat tugas');
+        expect(html).toContain('Pemupukan susulan');
+        expect(html).toContain('Terjadwal');
+        expect(html).toContain('Subblok ditutup · hanya dapat dilihat');
+        expect(html).not.toContain('Terlambat');
+    });
 });
 
 describe('task detail presentation', () => {
+    it('returns to history and keeps closed-subblock tasks read-only', async () => {
+        const historical: PetugasTask = {
+            ...task,
+            status: 'pending',
+            urgency: 'overdue',
+            can: { record: false, complete: false },
+            subblok: { ...task.subblok, status: 'harvested' },
+        };
+        const html = await renderToString(
+            h(TaskShow, {
+                ...detailProps,
+                task: historical,
+                canRecord: false,
+                completionGuidance: 'Subblok sudah ditutup.',
+            }),
+        );
+        expect(html).toContain('href="/petugas/aktivitas?view=history"');
+        expect(html).toContain('Terjadwal');
+        expect(html).not.toContain('Terlambat');
+        expect(html).not.toContain('Catat aktivitas tugas ini');
+        expect(html).not.toContain('Selesaikan tugas');
+    });
+
     it('keeps task context, instructions, actions, linked details and real photo states', async () => {
         const html = await renderToString(h(TaskShow, detailProps));
         for (const text of [

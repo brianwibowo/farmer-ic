@@ -4,7 +4,11 @@ import type {
     PetugasTaskUrgency,
 } from '@/types/petugas-task';
 
-defineProps<{ status: PetugasTaskStatus; urgency: PetugasTaskUrgency }>();
+defineProps<{
+    status: PetugasTaskStatus;
+    urgency: PetugasTaskUrgency;
+    closed?: boolean;
+}>();
 
 const statusLabels: Record<PetugasTaskStatus, string> = {
     pending: 'Terjadwal',
@@ -25,7 +29,7 @@ const urgencyLabels: Record<
 <template>
     <span class="flex flex-wrap items-center gap-1.5">
         <span
-            v-if="urgency !== 'completed'"
+            v-if="!closed && urgency !== 'completed'"
             class="rounded-full px-2.5 py-1 text-[11px] leading-4 font-semibold"
             :class="
                 urgency === 'overdue'

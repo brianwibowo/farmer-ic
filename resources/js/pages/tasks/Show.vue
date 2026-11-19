@@ -36,6 +36,7 @@ import {
     adminTaskStatusLabels,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
+    taskSubblockClosed,
     type AdminTask,
 } from '@/types/tasks';
 
@@ -52,13 +53,12 @@ const rescheduleForm = useForm({
     reschedule_reason: '',
 });
 
-const hasNotes = computed(
-    () =>
-        Boolean(
-            props.task.skip_reason ||
-                props.task.completion_note ||
-                props.task.reschedule_reason,
-        ),
+const hasNotes = computed(() =>
+    Boolean(
+        props.task.skip_reason ||
+        props.task.completion_note ||
+        props.task.reschedule_reason,
+    ),
 );
 
 const locationSummary = computed(() => {
@@ -85,8 +85,7 @@ function openSkip(): void {
 }
 
 function openReschedule(): void {
-    rescheduleForm.rescheduled_date =
-        props.task.effective_scheduled_date ?? '';
+    rescheduleForm.rescheduled_date = props.task.effective_scheduled_date ?? '';
     rescheduleForm.reschedule_reason = '';
     rescheduleForm.clearErrors();
     rescheduleOpen.value = true;
@@ -148,17 +147,28 @@ function submitReschedule(): void {
                             {{ adminTaskStatusLabels[task.status] }}
                         </span>
                         <span
+                            v-if="!taskSubblockClosed(task)"
                             class="rounded-full px-2.5 py-1 text-xs font-medium"
                             :class="adminTaskUrgencyClass(task.urgency)"
                         >
                             {{ adminTaskUrgencyLabels[task.urgency] }}
                         </span>
                         <span
-                            v-if="task.urgency === 'overdue' && task.overdue_days"
+                            v-if="
+                                !taskSubblockClosed(task) &&
+                                task.urgency === 'overdue' &&
+                                task.overdue_days
+                            "
                             class="inline-flex items-center gap-1 rounded-full bg-error/10 px-2.5 py-1 text-xs font-medium text-error"
                         >
                             <AlertTriangle class="size-3" aria-hidden="true" />
                             Terlambat {{ task.overdue_days }} hari
+                        </span>
+                        <span
+                            v-if="taskSubblockClosed(task)"
+                            class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                        >
+                            Subblok ditutup · hanya dapat dilihat
                         </span>
                     </div>
                 </div>
@@ -237,7 +247,11 @@ function submitReschedule(): void {
                                 />Sifat tugas
                             </dt>
                             <dd class="mt-1.5 font-medium">
-                                {{ task.is_required ? 'Wajib dikerjakan' : 'Opsional' }}
+                                {{
+                                    task.is_required
+                                        ? 'Wajib dikerjakan'
+                                        : 'Opsional'
+                                }}
                             </dd>
                         </div>
 
@@ -500,9 +514,8 @@ function submitReschedule(): void {
             <DialogHeader>
                 <DialogTitle>Jadwalkan ulang tugas</DialogTitle>
                 <DialogDescription>
-                    Tanggal SOP asli tetap disimpan. Tanggal baru menjadi
-                    jadwal berlaku dan tenggat dihitung ulang dari toleransi
-                    SOP.
+                    Tanggal SOP asli tetap disimpan. Tanggal baru menjadi jadwal
+                    berlaku dan tenggat dihitung ulang dari toleransi SOP.
                 </DialogDescription>
             </DialogHeader>
             <form class="space-y-4" @submit.prevent="submitReschedule">

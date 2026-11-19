@@ -12,6 +12,7 @@ use App\Services\Activity\TaskActivityService;
 use App\Services\PetugasTaskReadService;
 use App\Support\ActivityInputLimits;
 use App\Support\ActivityPhotoFile;
+use App\Support\SubblockLifecycle;
 use App\Support\TaskActivityFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,7 +52,9 @@ class PetugasActivityController extends Controller
         $farm = $task->plantingCycle->farm;
         abort_unless($farm->id === $request->user()->assigned_farm_id, 403);
         Gate::authorize('recordTask', [FarmActivity::class, $task]);
-        abort_unless(in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null, 403, 'Tugas belum ditanam, sedang direview, atau sudah ditutup.');
+        abort_unless(in_array($task->plantingCycle->status, SubblockLifecycle::RUNNING, true)
+            && in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null,
+            403, 'Tugas belum ditanam, sedang direview, atau sudah ditutup.');
     }
 
     public function photo(Request $request, FarmActivity $activity, ActivityPhoto $photo): StreamedResponse

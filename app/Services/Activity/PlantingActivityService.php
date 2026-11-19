@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\PlantingCycleTaskService;
 use App\Support\ActivityInputLimits;
 use App\Support\LandArea;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -35,6 +36,7 @@ class PlantingActivityService
         return PlantingCycle::visibleTo($actor, $farm->team)
             ->where('farm_id', $farm->id)
             ->whereNotNull('block_id')
+            ->whereIn('status', SubblockLifecycle::RUNNING)
             ->when($block !== null, fn ($query) => $query->where('block_id', $block->id))
             ->orderByDesc('created_at')
             ->orderByDesc('batch_number')

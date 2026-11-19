@@ -32,6 +32,7 @@ export type PetugasTask = {
         id: string;
         number: number;
         label: string | null;
+        status?: 'planned' | 'active' | 'harvested' | 'cancelled';
         planned_planting_at: string | null;
         planted_at: string | null;
         hst: number | null;
@@ -44,6 +45,7 @@ export type PetugasTask = {
 export type PetugasTaskFilters = {
     block_id?: string | null;
     status: 'all' | 'active' | PetugasTaskUrgency;
+    view?: 'running' | 'history';
     category?: 'maintenance' | 'harvest' | null;
 };
 
