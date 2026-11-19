@@ -82,6 +82,74 @@ class FarmBlockTest extends TestCase
         DB::statement('SET CONSTRAINTS ALL DEFERRED');
     }
 
+    public function test_block_index_query_count_is_constant_as_blocks_and_batches_increase(): void
+    {
+        config(['inertia.ssr.enabled' => false]);
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', [])->assertRedirect();
+        $this->get($this->url())->assertOk();
+        $measure = function (int $blocks, int $batches): int {
+            $connection = DB::connection();
+            $connection->flushQueryLog();
+            $connection->enableQueryLog();
+            try {
+                $response = $this->get($this->url())->assertOk();
+                $count = count($connection->getQueryLog());
+                $response->assertInertia(fn (Assert $page) => $page
+                    ->has('blocks.data', $blocks)->has('batchPermissions', $batches)
+                    ->has('harvestPermissions', $batches));
+
+                return $count;
+            } finally {
+                $connection->disableQueryLog();
+                $connection->flushQueryLog();
+            }
+        };
+        $smallCount = $measure(1, 1);
+        for ($number = 2; $number <= 8; $number++) {
+            $this->post($this->url($block).'/batches', [])->assertRedirect();
+        }
+        $this->block('Blok Timur', '1');
+        $this->block('Blok Selatan', '1');
+        $largeCount = $measure(3, 8);
+
+        $this->assertGreaterThan(0, $smallCount);
+        $this->assertSame($smallCount, $largeCount, 'Block and batch permission checks must not add queries per row.');
+    }
+
+    public function test_block_index_rechecks_persisted_memberships_between_requests(): void
+    {
+        $this->block();
+        $this->team->update(['is_personal' => false]);
+        $this->get($this->url())->assertOk();
+        // A loaded relation must not hide a new second tenant from the Admin limit.
+        $this->admin->load('teams');
+        $otherTeam = Team::factory()->create(['is_personal' => false]);
+        $otherTeam->members()->attach($this->admin, ['role' => TeamRole::Member->value]);
+        $this->get($this->url())->assertForbidden();
+        $otherTeam->members()->detach($this->admin);
+        $this->get($this->url())->assertOk();
+
+        $this->team->members()->detach($this->admin);
+        $this->get($this->url())->assertForbidden();
+    }
+
+    public function test_block_index_rechecks_permission_grants_between_requests(): void
+    {
+        $block = $this->block();
+        $this->post($this->url($block).'/batches', [])->assertRedirect();
+        $batch = PlantingCycle::firstOrFail();
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page
+            ->where('batchPermissions.'.$batch->id, true)->where('harvestPermissions.'.$batch->id, true));
+        $grants = config('access.roles.admin');
+        unset($grants['planting_cycles.update'], $grants['planting_cycles.configure']);
+        config(['access.roles.admin' => $grants]);
+        $this->get($this->url())->assertInertia(fn (Assert $page) => $page
+            ->where('batchPermissions.'.$batch->id, false)->where('harvestPermissions.'.$batch->id, false));
+        $this->put($this->url($block).'/batches/'.$batch->id, ['subblock_label' => 'Z'])->assertForbidden();
+        $this->post($this->url($block).'/batches/'.$batch->id.'/close-harvest')->assertForbidden();
+    }
+
     public function test_block_configuration_is_independent_and_rejects_mismatched_sop(): void
     {
         $corn = Commodity::create(['name' => 'Jagung']);

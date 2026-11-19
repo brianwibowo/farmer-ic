@@ -13,8 +13,10 @@ use App\Models\HarvestDetail;
 use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Owner\ExecutiveSummaryService;
 use App\Support\RolePermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -194,6 +196,37 @@ class ExecutiveSummaryDataTest extends TestCase
         $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('summary.rows', 1)->where('summary.rows.0.commodity.id', $crop->id)
             ->where('summary.rows.0.plantedHa', 0)->where('summary.rows.0.farm.areaHa', 5));
+    }
+
+    public function test_summary_query_count_does_not_grow_per_farm_or_crop(): void
+    {
+        $this->harvest($this->cycle($this->farm('Lahan Query 1', 10), 'Komoditas 1', 2, 12), 5);
+        $service = app(ExecutiveSummaryService::class);
+        // Warm the actor's authorization relations before comparing equal read paths.
+        $service->summary($this->owner, $this->team, []);
+        $measure = function () use ($service): array {
+            $connection = DB::connection();
+            $connection->flushQueryLog();
+            $connection->enableQueryLog();
+            try {
+                $summary = $service->summary($this->owner, $this->team, []);
+
+                return [$summary, count($connection->getQueryLog())];
+            } finally {
+                $connection->disableQueryLog();
+                $connection->flushQueryLog();
+            }
+        };
+        [$small, $smallCount] = $measure();
+        for ($number = 2; $number <= 8; $number++) {
+            $this->harvest($this->cycle($this->farm('Lahan Query '.$number, 10), 'Komoditas '.$number, 2, 12), 5);
+        }
+        [$large, $largeCount] = $measure();
+
+        $this->assertCount(1, $small['rows']);
+        $this->assertCount(8, $large['rows']);
+        $this->assertGreaterThan(0, $smallCount);
+        $this->assertSame($smallCount, $largeCount, 'Summary queries must remain constant as farms, varieties and harvests increase.');
     }
 
     private function farm(string $name, float $area, ?string $party = null, ?Team $team = null): Farm

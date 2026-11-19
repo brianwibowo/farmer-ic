@@ -155,6 +155,7 @@ Table farm_cycles {
   indexes {
     (farm_id, cycle_number) [unique]
     (id, farm_id) [unique]
+    created_by
   }
   Note: 'Manual grouping chosen by Admin/Petugas when creating a subblock. No area-triggered rollover.'
 }
@@ -162,7 +163,6 @@ Table farm_cycles {
 Table planting_cycles {
   id uuid [pk]
   farm_id uuid [not null, ref: > farms.id]
-  farm_cycle_id uuid [ref: > farm_cycles.id, note: 'Composite FK with farm_id enforces the same farm; nullable for legacy imports only']
   variety_id uuid [ref: > crop_varieties.id, note: 'Nullable only for a zero-area preparation batch']
   planted_at date [note: 'Acuan H+0 HST (satu hari setelah penanaman pertama); nullable hanya untuk persiapan tanam tanpa luas']
   estimated_harvest_at date
@@ -179,11 +179,14 @@ Table planting_cycles {
   planting_started_on date [note: 'Tanggal tanam pertama pada window tiga hari; acuan audit rekonsiliasi']
   planting_window_checked_at timestamptz [note: 'Waktu command rekonsiliasi menutup window penanaman']
   block_id uuid [ref: > farm_blocks.id, note: 'Direct block ownership; null only for legacy cycles']
+  farm_cycle_id uuid [note: 'Composite FK with farm_id enforces the same farm; nullable for legacy imports only']
   indexes {
     (farm_id, batch_number) [unique]
   }
   Note: 'Satu kebun dapat memiliki banyak siklus tanam/subblok; luas subblok diturunkan dinamis dari realisasi tanam dalam kapasitas blok/kebun.'
 }
+
+Ref: planting_cycles.(farm_cycle_id, farm_id) > farm_cycles.(id, farm_id)
 
 Table farm_blocks {
   id uuid [pk]
