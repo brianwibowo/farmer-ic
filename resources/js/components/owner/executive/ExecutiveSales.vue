@@ -10,7 +10,7 @@ import {
     useExecutiveClientFocus,
     type ExecutiveClient,
 } from '@/composables/useExecutiveClientFocus';
-import { executiveNumber as number } from '@/services/ownerExecutiveDemoService';
+import { executiveNumber as number } from '@/services/ownerExecutiveSummary';
 
 const props = defineProps<{
     clients: ExecutiveClient[];

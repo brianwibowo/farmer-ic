@@ -36,11 +36,20 @@ watch(
     <Head title="Lahan" />
     <OwnerPageHeader
         title="Lahan"
+        hide-title
         description="Lihat lahan, blok, dan perjalanan tanam pada tenant aktif."
     />
     <div class="grid grid-cols-2 gap-3">
-        <SummaryStatCard label="Total lahan" :value="summary.count" :icon="LandPlot" />
-        <SummaryStatCard label="Luas terdaftar (ha)" :value="ownerArea(summary.area_ha)" :icon="Ruler" />
+        <SummaryStatCard
+            label="Total lahan"
+            :value="summary.count"
+            :icon="LandPlot"
+        />
+        <SummaryStatCard
+            label="Luas terdaftar (ha)"
+            :value="ownerArea(summary.area_ha)"
+            :icon="Ruler"
+        />
     </div>
     <form
         class="space-y-3 rounded-xl border border-border p-4"

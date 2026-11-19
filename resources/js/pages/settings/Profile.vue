@@ -58,10 +58,7 @@ const breadcrumbs = [{ title: 'Pengaturan profil', href: edit() }];
 <template>
     <Head title="Pengaturan profil" />
 
-    <FarmerMobileShell
-        v-if="presentation.isMobile"
-        :show-navigation="false"
-    >
+    <FarmerMobileShell v-if="presentation.isMobile" :show-navigation="false">
         <MobileProfileForm
             :return-url="presentation.returnUrl"
             :profile="profile"
@@ -70,15 +67,10 @@ const breadcrumbs = [{ title: 'Pengaturan profil', href: edit() }];
 
     <AppLayout v-else :breadcrumbs="breadcrumbs">
         <SettingsLayout>
-            <header>
-                <h1 class="admin-page-title tracking-tight">Pengaturan</h1>
-                <p class="mt-1.5 text-sm text-muted-foreground">
-                    Perbarui informasi profil dan kata sandi akun Anda.
-                </p>
-            </header>
-
             <div class="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
-                <section class="flex h-full flex-col rounded-xl border border-border bg-card shadow-sm">
+                <section
+                    class="flex h-full flex-col rounded-xl border border-border bg-card shadow-sm"
+                >
                     <div class="border-b border-border px-5 py-4 sm:px-6">
                         <h2 class="admin-section-title">Profil</h2>
                         <p class="mt-1 text-sm text-muted-foreground">
@@ -135,7 +127,10 @@ const breadcrumbs = [{ title: 'Pengaturan profil', href: edit() }];
                                 maxlength="24"
                                 aria-describedby="phone-help"
                             />
-                            <p id="phone-help" class="text-xs text-muted-foreground">
+                            <p
+                                id="phone-help"
+                                class="text-xs text-muted-foreground"
+                            >
                                 Opsional. Format +6208…, 08…, atau 628… akan
                                 disimpan sebagai 628….
                             </p>
@@ -158,12 +153,14 @@ const breadcrumbs = [{ title: 'Pengaturan profil', href: edit() }];
                     </Form>
                 </section>
 
-                <section class="flex h-full flex-col rounded-xl border border-border bg-card shadow-sm">
+                <section
+                    class="flex h-full flex-col rounded-xl border border-border bg-card shadow-sm"
+                >
                     <div class="border-b border-border px-5 py-4 sm:px-6">
                         <h2 class="admin-section-title">Ubah kata sandi</h2>
                         <p class="mt-1 text-sm text-muted-foreground">
-                            Pastikan akun Anda menggunakan kata sandi yang kuat dan
-                            unik.
+                            Pastikan akun Anda menggunakan kata sandi yang kuat
+                            dan unik.
                         </p>
                     </div>
 
@@ -220,7 +217,9 @@ const breadcrumbs = [{ title: 'Pengaturan profil', href: edit() }];
                                 placeholder="Ulangi kata sandi baru"
                                 :passwordrules="props.passwordRules"
                             />
-                            <InputError :message="errors.password_confirmation" />
+                            <InputError
+                                :message="errors.password_confirmation"
+                            />
                         </div>
 
                         <div class="mt-auto flex items-center gap-3 pt-1">

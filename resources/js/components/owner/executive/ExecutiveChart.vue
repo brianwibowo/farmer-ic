@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Chart, registerables } from 'chart.js';
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { executiveNumber } from '@/services/ownerExecutiveDemoService';
+import { executiveNumber } from '@/services/ownerExecutiveSummary';
 
 Chart.register(...registerables);
 const props = withDefaults(
@@ -10,7 +10,7 @@ const props = withDefaults(
         labels: string[];
         series: {
             label: string;
-            values: number[];
+            values: (number | null)[];
             colorTokens?: string[];
             borderColorTokens?: string[];
             borderWidth?: number;
@@ -210,6 +210,8 @@ async function draw() {
                 tooltip: {
                     callbacks: {
                         label: (context) => {
+                            if (context.raw === null)
+                                return `${context.dataset.label}: belum tersedia`;
                             const value = Number(context.raw);
                             return `${context.dataset.label}: ${props.formatValue ? props.formatValue(value) : `${executiveNumber(value)} ${props.unit}`}`;
                         },
@@ -317,7 +319,9 @@ onBeforeUnmount(() => {
         <p
             v-if="
                 !series.some((series) =>
-                    series.values.some((value) => value !== 0),
+                    series.values.some(
+                        (value) => value !== null && value !== 0,
+                    ),
                 )
             "
             class="py-2 text-center text-sm text-muted-foreground"

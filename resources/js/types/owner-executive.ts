@@ -1,6 +1,6 @@
 export type ExecutiveFilters = {
     year: number;
-    cycle: number | 'all';
+    quarter: 'all' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
     partner: string;
     region: string;
     farm: string;
@@ -11,82 +11,50 @@ export type ExecutivePricing = {
     hpp: number;
     transport: number;
 };
-export type ExecutiveDemoData = {
+export type ExecutiveFarm = {
+    id: string;
+    name: string;
+    city: string;
+    region: string;
+    partnerId: string;
+    partnerName: string;
+    landCategory: string;
+    areaHa: number;
+    commodityIds: string[];
+    latitude: number | null;
+    longitude: number | null;
+    detail_url: string;
+};
+export type ExecutiveRow = {
+    id: string;
+    farmId: string;
+    year: number;
+    quarter: 'all' | 'Q1' | 'Q2' | 'Q3' | 'Q4';
+    farm: ExecutiveFarm;
+    partner: { id: string; name: string };
+    commodity: { id: string; name: string; pricing: ExecutivePricing | null };
+    plantedHa: number;
+    harvestedTon: number;
+    projectedTon: number | null;
+    projectionMissing: number;
+    stockTon: number | null;
+    monthlyDeliveredTon: number;
+    status: string;
+    contract?: { status: string; monthlyTon: number };
+    client?: { id: string; name: string };
+};
+export type ExecutiveSummaryData = {
     updatedAt: string;
+    snapshotAt: string;
     defaultYear: number;
     referenceMonth: number;
-    commodities: {
-        id: string;
-        name: string;
-        tonPerHa: number;
-        pricing: ExecutivePricing;
-    }[];
+    filters: ExecutiveFilters;
+    years: number[];
+    farms: ExecutiveFarm[];
+    commodities: { id: string; name: string }[];
     partners: { id: string; name: string }[];
     clients: { id: string; name: string }[];
-    farms: {
-        id: string;
-        name: string;
-        city: string;
-        region: string;
-        partnerId: string;
-        landCategory: string;
-        areaHa: number;
-        commodityId: string;
-        latitude: number;
-        longitude: number;
-        partnershipStatus: string;
-    }[];
-    contracts: {
-        id: string;
-        farmId: string;
-        clientId: string;
-        monthlyTon: number;
-        status: string;
-        startYear: number;
-        endYear: number;
-    }[];
-    // Illustrative positions, separate from production accumulated over cycles.
-    snapshots: {
-        farmId: string;
-        year: number;
-        capturedAt: string;
-        plantings: { status: string; plantedHa: number }[];
-        stockTon: number;
-        monthlyDeliveredTon: number;
-    }[];
-    operations: {
-        id: string;
-        farmId: string;
-        year: number;
-        cycle: number;
-        harvestedAt: string;
-        projectedHarvestAt: string;
-        plantedHa: number;
-        harvestedTon: number;
-        dispatchedTon: number;
-        adjustmentTon: number;
-        monthlyDeliveredTon: number;
-        status: string;
-    }[];
+    rows: ExecutiveRow[];
 };
-
-export type ExecutiveRow = Omit<
-    ExecutiveDemoData['operations'][number],
-    | 'cycle'
-    | 'harvestedAt'
-    | 'projectedHarvestAt'
-    | 'dispatchedTon'
-    | 'adjustmentTon'
-> & {
-    cycle: ExecutiveFilters['cycle'];
-    farm: ExecutiveDemoData['farms'][number];
-    partner: ExecutiveDemoData['partners'][number];
-    commodity: ExecutiveDemoData['commodities'][number];
-    contract: ExecutiveDemoData['contracts'][number] | undefined;
-    client: ExecutiveDemoData['clients'][number] | undefined;
-    projectedTon: number;
-    stockTon: number;
-};
-
 export type ExecutiveColumn = { key: string; label: string; numeric?: boolean };
 export type ExecutiveCellRow = Record<string, string | number>;

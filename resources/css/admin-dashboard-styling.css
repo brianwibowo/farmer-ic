@@ -61,6 +61,7 @@
     --commodity-grass-contract: #91bb9c;
     --commodity-grain: #8a5a2b;
     --commodity-grain-contract: #d9b99b;
+    --executive-commodity-sorghum: var(--commodity-grain);
     --admin-overview-background: var(--background);
     --admin-page-title-size: 1.75rem;
     --admin-section-title-size: 1rem;
@@ -98,6 +99,7 @@
 }
 
 .dark .admin-dashboard-theme {
+    --executive-commodity-sorghum: color-mix(in oklab, var(--commodity-grain) 65%, var(--commodity-grain-contract));
     --commodity-grass: #78c86e;
     --commodity-grass-contract: #bee4b8;
     --admin-chart-secondary: #059669;
