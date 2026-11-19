@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import { Head, Link, useRemember } from '@inertiajs/vue3';
-import {
-    CalendarDays,
-    CalendarClock,
-    CircleAlert,
-    ClipboardList,
-    Search,
-} from '@lucide/vue';
-import { computed, reactive, unref, watch } from 'vue';
+import { Head, useRemember } from '@inertiajs/vue3';
+import { ClipboardList, Search, SlidersHorizontal } from '@lucide/vue';
+import { computed, reactive, ref, unref, useId, watch } from 'vue';
+import PetugasListHeader from '@/components/petugas/PetugasListHeader.vue';
 import TaskCard from '@/components/petugas/TaskCard.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import { Button } from '@/components/ui/button';
 import type { PetugasTask, PetugasTaskPageProps } from '@/types/petugas-task';
 import { sopActivityCategoryLabels } from '@/types/sop';
 
@@ -124,6 +120,12 @@ function label(code: string): string {
 function changeBlock(): void {
     filter.subblok = '';
 }
+const advancedOpen = ref(false);
+const advancedId = useId();
+const advancedCount = computed(
+    () =>
+        [filter.category, filter.block, filter.subblok].filter(Boolean).length,
+);
 function reset(): void {
     Object.assign(filter, {
         q: '',
@@ -137,63 +139,18 @@ function reset(): void {
 
 <template>
     <Head title="Tugas" />
-    <div class="min-w-0 space-y-4 pb-16 text-foreground">
-        <header class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-                <h1>Tugas</h1>
-                <p class="mt-1 text-sm text-muted-foreground">
-                    {{
-                        farm
-                            ? `Tugas dari SOP · ${farm.name}`
-                            : 'Belum ada penugasan lahan'
-                    }}
-                </p>
-            </div>
-            <Link
-                v-if="farm"
-                href="/petugas/incidents"
-                class="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-primary/40 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-                <CircleAlert class="size-4 text-warning" aria-hidden="true" />
-                Tiket Insiden
-            </Link>
-        </header>
-        <section class="grid grid-cols-3 gap-2" aria-label="Ringkasan tugas">
-            <div
-                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
-            >
-                <span
-                    class="inline-flex size-8 items-center justify-center rounded-xl bg-warning/15 text-foreground"
-                >
-                    <CircleAlert class="size-4" aria-hidden="true" />
-                </span>
-                <p class="text-lg font-semibold">{{ summary.overdue }}</p>
-                <p class="text-xs text-muted-foreground">Terlambat</p>
-            </div>
-            <div
-                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
-            >
-                <span
-                    class="inline-flex size-8 items-center justify-center rounded-xl bg-info/10 text-info"
-                >
-                    <CalendarDays class="size-4" aria-hidden="true" />
-                </span>
-                <p class="text-lg font-semibold">{{ summary.today }}</p>
-                <p class="text-xs text-muted-foreground">Hari ini</p>
-            </div>
-            <div
-                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
-            >
-                <span
-                    class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
-                >
-                    <CalendarClock class="size-4" aria-hidden="true" />
-                </span>
-                <p class="text-lg font-semibold">{{ summary.upcoming }}</p>
-                <p class="text-xs text-muted-foreground">Mendatang</p>
-            </div>
-        </section>
-        <section class="space-y-2" aria-label="Filter tugas">
+    <div class="min-w-0 space-y-[var(--admin-content-gap)] text-foreground">
+        <PetugasListHeader
+            title="Tugas"
+            :show-incidents="!!farm"
+            summary-label="Ringkasan tugas"
+            :metrics="[
+                { label: 'Terlambat', value: summary.overdue },
+                { label: 'Hari ini', value: summary.today },
+                { label: 'Mendatang', value: summary.upcoming },
+            ]"
+        />
+        <section v-if="farm" class="space-y-2" aria-label="Filter tugas">
             <label class="relative block">
                 <span class="sr-only">Cari tugas</span>
                 <input
@@ -207,7 +164,48 @@ function reset(): void {
                     aria-hidden="true"
                 />
             </label>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                <AppSelect
+                    v-model="filter.status"
+                    aria-label="Status tugas"
+                    class="min-h-11 min-w-0"
+                    ><AppSelectOption
+                        v-for="option in options"
+                        :key="option.key"
+                        :value="option.key"
+                        >{{ option.label }}</AppSelectOption
+                    ></AppSelect
+                >
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="min-h-11 rounded-xl bg-card text-xs"
+                    :aria-expanded="advancedOpen"
+                    :aria-controls="advancedId"
+                    @click="advancedOpen = !advancedOpen"
+                >
+                    <SlidersHorizontal aria-hidden="true" />
+                    Filter
+                    <span v-if="advancedCount">({{ advancedCount }})</span>
+                </Button>
+            </div>
+            <div
+                v-show="advancedOpen"
+                :id="advancedId"
+                class="petugas-card grid gap-2 p-3"
+            >
+                <AppSelect
+                    v-model="filter.category"
+                    aria-label="Kategori tugas"
+                    class="min-h-11"
+                    ><AppSelectOption value="">Semua kategori</AppSelectOption
+                    ><AppSelectOption
+                        v-for="code in categoryOptions"
+                        :key="code"
+                        :value="code"
+                        >{{ label(code) }}</AppSelectOption
+                    ></AppSelect
+                >
                 <AppSelect
                     v-model="filter.block"
                     aria-label="Blok"
@@ -238,29 +236,6 @@ function reset(): void {
                         }}</AppSelectOption
                     ></AppSelect
                 >
-                <AppSelect
-                    v-model="filter.status"
-                    aria-label="Status tugas"
-                    class="col-span-2 min-h-11 min-[360px]:col-span-1"
-                    ><AppSelectOption
-                        v-for="option in options"
-                        :key="option.key"
-                        :value="option.key"
-                        >{{ option.label }}</AppSelectOption
-                    ></AppSelect
-                >
-                <AppSelect
-                    v-model="filter.category"
-                    aria-label="Kategori tugas"
-                    class="col-span-2 min-h-11 min-[360px]:col-span-1"
-                    ><AppSelectOption value="">Semua kategori</AppSelectOption
-                    ><AppSelectOption
-                        v-for="code in categoryOptions"
-                        :key="code"
-                        :value="code"
-                        >{{ label(code) }}</AppSelectOption
-                    ></AppSelect
-                >
             </div>
         </section>
         <p
@@ -270,10 +245,10 @@ function reset(): void {
             SOP default pada salah satu blok belum diatur. Hubungi Admin;
             aktivitas mandiri tetap dapat dicatat.
         </p>
-        <div class="flex items-center justify-between gap-3">
+        <div v-if="farm" class="flex items-center justify-between gap-3">
             <div>
                 <h2 class="text-base font-semibold">Daftar tugas</h2>
-                <p class="mt-1 text-xs text-muted-foreground">
+                <p role="status" class="mt-1 text-xs text-muted-foreground">
                     {{ tasks.length }} tugas ditampilkan
                 </p>
             </div>

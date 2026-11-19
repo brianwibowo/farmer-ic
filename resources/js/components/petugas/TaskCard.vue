@@ -20,11 +20,11 @@ defineProps<{ task: PetugasTask }>();
     <article class="petugas-card overflow-hidden">
         <Link
             :href="`/petugas/tasks/${task.id}`"
-            class="group block rounded-[inherit] p-4 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+            class="group block rounded-[inherit] p-4 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
         >
             <div class="flex items-start gap-3">
                 <span
-                    class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                    class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
                 >
                     <component
                         :is="
@@ -39,17 +39,19 @@ defineProps<{ task: PetugasTask }>();
                 <div class="min-w-0 flex-1">
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
-                            <p class="text-xs font-semibold text-primary">
-                                {{ sopTaskCategoryLabel(task) }}
-                            </p>
                             <h3
-                                class="mt-1 text-base leading-5 font-semibold break-words"
+                                class="text-base leading-6 font-semibold break-words"
                             >
                                 {{ task.name }}
                             </h3>
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                {{ sopTaskCategoryLabel(task) }}
+                            </p>
                         </div>
                         <ChevronRight
-                            class="mt-1 size-5 shrink-0 text-muted-foreground group-hover:text-primary"
+                            class="mt-1 size-4 shrink-0 text-muted-foreground group-hover:text-primary"
                             aria-hidden="true"
                         />
                     </div>

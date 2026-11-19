@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
-import {
-    Activity,
-    ClipboardCheck,
-    ClipboardList,
-    NotebookPen,
-    Search,
-} from '@lucide/vue';
+import { Head, usePage } from '@inertiajs/vue3';
+import { ClipboardList, Search } from '@lucide/vue';
 import { computed } from 'vue';
 import NumberPagination from '@/components/NumberPagination.vue';
 import ActivityAddButton from '@/components/petugas/ActivityAddButton.vue';
+import PetugasListHeader from '@/components/petugas/PetugasListHeader.vue';
 import ReportCard from '@/components/petugas/ReportCard.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
@@ -73,71 +68,26 @@ function detailHref(id: string): string {
 
 <template>
     <Head title="Laporan" />
-    <h1 class="sr-only">Laporan</h1>
-    <div class="min-w-0 space-y-4 pb-28 text-foreground" :aria-busy="loading">
-        <Link
-            v-if="farm"
-            href="/petugas/incidents"
-            class="petugas-card flex min-h-12 items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-            <span class="flex items-center gap-2.5">
-                <span
-                    class="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning"
-                >
-                    <ClipboardCheck class="size-4" aria-hidden="true" />
-                </span>
-                <span>
-                    <span class="block leading-tight">Tiket Insiden</span>
-                    <span
-                        class="mt-0.5 block text-xs font-normal text-muted-foreground"
-                    >
-                        Pantau arahan admin & tindak lanjut insiden
-                    </span>
-                </span>
-            </span>
-            <span class="text-xs font-semibold text-primary">Buka</span>
-        </Link>
-        <section
-            class="grid grid-cols-3 gap-2"
-            aria-label="Ringkasan laporan sesuai filter"
-        >
-            <div
-                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
-            >
-                <span
-                    class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
-                    ><Activity class="size-4" aria-hidden="true"
-                /></span>
-                <p class="text-lg font-semibold">
-                    {{ loading || error ? '—' : (reports?.total ?? 0) }}
-                </p>
-                <p class="text-xs text-muted-foreground">Aktivitas</p>
-            </div>
-            <div
-                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
-            >
-                <span
-                    class="inline-flex size-8 items-center justify-center rounded-xl bg-info/10 text-info"
-                    ><ClipboardCheck class="size-4" aria-hidden="true"
-                /></span>
-                <p class="text-lg font-semibold">
-                    {{ loading || error ? '—' : stats.sop }}
-                </p>
-                <p class="text-xs text-muted-foreground">SOP</p>
-            </div>
-            <div
-                class="petugas-card flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center"
-            >
-                <span
-                    class="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary"
-                    ><NotebookPen class="size-4" aria-hidden="true"
-                /></span>
-                <p class="text-lg font-semibold">
-                    {{ loading || error ? '—' : stats.mandiri }}
-                </p>
-                <p class="text-xs text-muted-foreground">Mandiri</p>
-            </div>
-        </section>
+    <div
+        class="min-w-0 space-y-[var(--admin-content-gap)] pb-28 text-foreground"
+        :aria-busy="loading"
+    >
+        <PetugasListHeader
+            title="Laporan"
+            :show-incidents="!!farm"
+            summary-label="Ringkasan laporan sesuai filter"
+            :metrics="[
+                {
+                    label: 'Aktivitas',
+                    value: loading || error ? '—' : (reports?.total ?? 0),
+                },
+                { label: 'SOP', value: loading || error ? '—' : stats.sop },
+                {
+                    label: 'Mandiri',
+                    value: loading || error ? '—' : stats.mandiri,
+                },
+            ]"
+        />
 
         <form v-if="farm" class="space-y-3" @submit.prevent="applyNow">
             <label class="relative block">
@@ -154,7 +104,7 @@ function detailHref(id: string): string {
                     aria-hidden="true"
                 />
             </label>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid gap-2 min-[360px]:grid-cols-2">
                 <label class="min-w-0 space-y-1 text-xs">
                     <span>Tanggal kerja</span>
                     <input
