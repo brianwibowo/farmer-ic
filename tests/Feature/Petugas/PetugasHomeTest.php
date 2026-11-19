@@ -203,7 +203,7 @@ class PetugasHomeTest extends TestCase
         return $activity;
     }
 
-    public function test_home_incident_alerts_follow_four_levels_and_prioritize_emergencies(): void
+    public function test_home_incident_alerts_follow_three_levels_and_prioritize_emergencies(): void
     {
         $this->incident('light');
         $this->incident('medium', 'progress');
@@ -218,10 +218,17 @@ class PetugasHomeTest extends TestCase
 
         $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('home.incidents.total', 4)->has('home.incidents.data', 4)
-            ->where('home.incidents.data.0.id', $emergency->id)->where('home.incidents.data.0.severity', 'emergency')
+            ->where('home.incidents.data.0.severity', 'emergency')
             ->where('home.incidents.data.0.severity_label', 'Darurat')
-            ->where('home.incidents.data.1.severity', 'heavy')->where('home.incidents.data.2.severity', 'medium')
-            ->where('home.incidents.data.2.status', 'in_progress')->where('home.incidents.data.3.severity', 'light'));
+            ->where('home.incidents.data.1.severity', 'emergency')
+            ->where('home.incidents.data.1.severity_label', 'Darurat')
+            ->where('home.incidents.data.2.severity', 'medium')
+            ->where('home.incidents.data.2.status', 'in_progress')
+            ->where('home.incidents.data.3.severity', 'light'));
+        $this->assertContains($emergency->id, [
+            $this->actingAs($this->petugas)->get('/petugas')->viewData('page')['props']['home']['incidents']['data'][0]['id'],
+            $this->actingAs($this->petugas)->get('/petugas')->viewData('page')['props']['home']['incidents']['data'][1]['id'],
+        ]);
     }
 
     public function test_incident_totals_and_alerts_exclude_other_farms_and_tenants(): void
@@ -248,7 +255,8 @@ class PetugasHomeTest extends TestCase
         }
         $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('home.incidents.total', 6)->has('home.incidents.data', 4)
-            ->where('home.incidents.data.0.severity', 'emergency')->where('home.incidents.data.1.severity', 'heavy'));
+            ->where('home.incidents.data.0.severity', 'emergency')->where('home.incidents.data.1.severity', 'emergency')
+            ->where('home.incidents.data.2.severity', 'medium'));
     }
 
     #[DataProvider('requiredPermissions')]

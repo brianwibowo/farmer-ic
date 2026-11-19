@@ -13,6 +13,7 @@ export type ActivityField = {
     step?: string;
     max?: number;
     when?: [string, string];
+    required_when?: { key: string; value: string };
 };
 const props = withDefaults(
     defineProps<{
@@ -46,11 +47,21 @@ const { open: optionalOpen, onToggle: syncOptionalOpen } = useErrorDisclosure(
     () =>
         visible.value.some(
             (field) =>
-                !!field.optional && !!props.errors[`details.${field.key}`],
+                isFieldOptional(field) &&
+                !!props.errors[`details.${field.key}`],
         ),
 );
 const fieldClass =
     'block min-h-12 w-full rounded-xl border border-border bg-card px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-error';
+function isFieldOptional(field: ActivityField): boolean {
+    if (field.required_when) {
+        return (
+            values.value[field.required_when.key] !== field.required_when.value
+        );
+    }
+
+    return !!field.optional;
+}
 function fieldMaximum(field: ActivityField): number | undefined {
     return field.key === 'area'
         ? areaMaximum(field.max, props.areaLimitM2, values.value.area_unit)
@@ -64,7 +75,7 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
         quantity: 'quantity_unit',
     };
     const group = visible.value.filter(
-        (other) => !!other.optional === optional,
+        (other) => isFieldOptional(other) === optional,
     );
     const index = group.findIndex((other) => other.key === field.key);
     const previous = group[index - 1];
@@ -80,7 +91,7 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
         <template v-for="group in [false, true]" :key="String(group)">
             <component
                 :is="group ? 'details' : 'div'"
-                v-if="visible.some((f) => !!f.optional === group)"
+                v-if="visible.some((f) => isFieldOptional(f) === group)"
                 class="space-y-4"
                 :open="group && optionalOpen ? true : undefined"
                 @toggle="syncOptionalOpen"
@@ -100,7 +111,7 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
                 >
                     <div
                         v-for="field in visible.filter(
-                            (f) => !!f.optional === group,
+                            (f) => isFieldOptional(f) === group,
                         )"
                         :key="field.key"
                         class="min-w-0 space-y-2"
@@ -110,13 +121,13 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
                             :for="`detail-${field.key}`"
                             class="text-sm font-medium"
                             >{{ field.label
-                            }}{{ !field.optional ? ' *' : '' }}</label
+                            }}{{ !isFieldOptional(field) ? ' *' : '' }}</label
                         >
                         <AppSelect
                             v-if="field.type === 'select'"
                             :id="`detail-${field.key}`"
                             v-model="values[field.key]"
-                            :required="!field.optional"
+                            :required="!isFieldOptional(field)"
                             :aria-label="field.label"
                             :class="[
                                 fieldClass,
@@ -145,7 +156,7 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
                             v-model="values[field.key]"
                             rows="3"
                             maxlength="5000"
-                            :required="!field.optional"
+                            :required="!isFieldOptional(field)"
                             :class="[
                                 fieldClass,
                                 { 'petugas-activity-field': compact },
@@ -162,7 +173,7 @@ function fieldLayout(field: ActivityField, optional: boolean): string {
                             :id="`detail-${field.key}`"
                             v-model="values[field.key]"
                             :type="field.type"
-                            :required="!field.optional"
+                            :required="!isFieldOptional(field)"
                             :min="
                                 field.key === 'area'
                                     ? values.area_unit === 'Ha'

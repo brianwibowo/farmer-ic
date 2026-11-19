@@ -114,4 +114,53 @@ describe('activity form numeric feedback', () => {
         expect(html).toMatch(/<details[^>]*\sopen/);
         expect(html).toContain('detail-error-description');
     });
+
+    it('promotes immediate_action to required when incident_status matches required_when', async () => {
+        const incidentFields = [
+            {
+                key: 'incident_status',
+                label: 'Status awal',
+                type: 'select',
+                options: ['Perlu penanganan', 'Sudah ditangani langsung'],
+            },
+            {
+                key: 'immediate_action',
+                label: 'Tindakan segera',
+                type: 'text',
+                optional: true,
+                required_when: {
+                    key: 'incident_status',
+                    value: 'Sudah ditangani langsung',
+                },
+            },
+        ];
+
+        const openHtml = await renderToString(
+            h(ActivityDetailFields, {
+                fields: incidentFields,
+                modelValue: {
+                    incident_status: 'Perlu penanganan',
+                    immediate_action: '',
+                },
+                errors: {},
+                areaLimitM2: null,
+            }),
+        );
+        expect(openHtml).toContain('Detail tambahan (opsional)');
+        expect(openHtml).not.toContain('Tindakan segera *');
+
+        const resolvedHtml = await renderToString(
+            h(ActivityDetailFields, {
+                fields: incidentFields,
+                modelValue: {
+                    incident_status: 'Sudah ditangani langsung',
+                    immediate_action: '',
+                },
+                errors: {},
+                areaLimitM2: null,
+            }),
+        );
+        expect(resolvedHtml).not.toContain('Detail tambahan (opsional)');
+        expect(resolvedHtml).toContain('Tindakan segera *');
+    });
 });

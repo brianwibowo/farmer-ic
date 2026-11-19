@@ -191,4 +191,34 @@ describe('voluntary activity form presentation', () => {
             html.match(/<button(?=[^>]*id="voluntary-cycle")[^>]*>/)?.[0],
         ).toContain('disabled');
     });
+
+    it('locks the location and displays incident context in follow-up mode', async () => {
+        const html = await renderToString(
+            h(VoluntaryCreate, {
+                ...props,
+                type: { id: '2', code: 'maintenance', name: 'Perawatan' },
+                incidentTicket: {
+                    id: 'ticket-123',
+                    incident_category: 'Hama',
+                    severity: 'emergency',
+                    severity_label: 'Darurat',
+                    description: 'Serangan ulat di baris selatan.',
+                    admin_note: 'Lakukan penyemprotan segera.',
+                    scope: 'cycle',
+                    cycle_id: 'cycle-a',
+                    block_id: null,
+                    location_label: 'Kebun Cileuksa · Blok Utara · Subblok A',
+                },
+            }),
+        );
+
+        expect(html).toContain('/petugas/incidents/ticket-123');
+        expect(html).toContain('Tindak lanjut tiket insiden');
+        expect(html).toContain('Serangan ulat di baris selatan.');
+        expect(html).toContain('Arahan Admin:');
+        expect(html).toContain('Lokasi dikunci sesuai tiket insiden');
+        expect(html).toContain('Kebun Cileuksa · Blok Utara · Subblok A');
+        expect(html).not.toContain('id="voluntary-cycle"');
+        expect(html).not.toContain('id="voluntary-block"');
+    });
 });

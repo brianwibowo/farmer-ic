@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useRemember } from '@inertiajs/vue3';
+import { Head, Link, useRemember } from '@inertiajs/vue3';
 import {
     CalendarDays,
     CalendarClock,
@@ -138,15 +138,25 @@ function reset(): void {
 <template>
     <Head title="Tugas" />
     <div class="min-w-0 space-y-4 pb-16 text-foreground">
-        <header>
-            <h1>Tugas</h1>
-            <p class="mt-1 text-sm text-muted-foreground">
-                {{
-                    farm
-                        ? `Tugas dari SOP · ${farm.name}`
-                        : 'Belum ada penugasan lahan'
-                }}
-            </p>
+        <header class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+                <h1>Tugas</h1>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    {{
+                        farm
+                            ? `Tugas dari SOP · ${farm.name}`
+                            : 'Belum ada penugasan lahan'
+                    }}
+                </p>
+            </div>
+            <Link
+                v-if="farm"
+                href="/petugas/incidents"
+                class="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-primary/40 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+                <CircleAlert class="size-4 text-warning" aria-hidden="true" />
+                Tiket Insiden
+            </Link>
         </header>
         <section class="grid grid-cols-3 gap-2" aria-label="Ringkasan tugas">
             <div

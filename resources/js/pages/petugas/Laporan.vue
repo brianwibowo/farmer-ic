@@ -101,6 +101,28 @@ function reset(): void {
     <Head title="Laporan" />
     <h1 class="sr-only">Laporan</h1>
     <div class="min-w-0 space-y-4 pb-28 text-foreground" :aria-busy="loading">
+        <Link
+            v-if="farm"
+            href="/petugas/incidents"
+            class="petugas-card flex min-h-12 items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+            <span class="flex items-center gap-2.5">
+                <span
+                    class="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning"
+                >
+                    <ClipboardCheck class="size-4" aria-hidden="true" />
+                </span>
+                <span>
+                    <span class="block leading-tight">Tiket Insiden</span>
+                    <span
+                        class="mt-0.5 block text-xs font-normal text-muted-foreground"
+                    >
+                        Pantau arahan admin & tindak lanjut insiden
+                    </span>
+                </span>
+            </span>
+            <span class="text-xs font-semibold text-primary">Buka</span>
+        </Link>
         <section
             class="grid grid-cols-3 gap-2"
             aria-label="Ringkasan laporan sesuai filter"

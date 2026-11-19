@@ -15,6 +15,19 @@ class StoreVoluntaryActivityRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $type = $this->route('type');
+        if ($type instanceof ActivityType && $type->code === 'incident') {
+            $details = $this->input('details');
+            if ($details === null || (is_array($details) && (! array_key_exists('incident_status', $details) || $details['incident_status'] === null || $details['incident_status'] === ''))) {
+                $details = is_array($details) ? $details : [];
+                $details['incident_status'] = 'Perlu penanganan';
+                $this->merge(['details' => $details]);
+            }
+        }
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
@@ -37,7 +50,8 @@ class StoreVoluntaryActivityRequest extends FormRequest
             'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'farm_id' => ['prohibited'], 'team_id' => ['prohibited'], 'performed_by' => ['prohibited'],
             'task_id' => ['prohibited'], 'planting_cycle_task_id' => ['prohibited'], 'daily_activity_log_id' => ['prohibited'],
-            ...VoluntaryActivityFields::rules($type instanceof ActivityType ? $type->code : ''),
+            'incident_ticket_id' => $code === 'incident' ? ['prohibited'] : ['nullable', 'uuid'],
+            ...VoluntaryActivityFields::rules($code),
         ];
     }
 

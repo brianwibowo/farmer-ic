@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\IncidentSeverity;
 use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
@@ -9,6 +10,7 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\HarvestDetail;
+use App\Models\IncidentTicket;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
@@ -208,6 +210,19 @@ class DemoActivitySeeder extends Seeder
             };
             if ($relation !== null) {
                 $activity->{$relation}()->create($detail);
+                if ($typeCode === 'incident') {
+                    IncidentTicket::query()->firstOrCreate(
+                        ['activity_id' => $activity->id],
+                        [
+                            'farm_id' => $farm->id,
+                            'planting_cycle_id' => $cycle->id,
+                            'block_id' => $cycle->block_id,
+                            'incident_category' => is_string($detail['incident_category'] ?? null) ? $detail['incident_category'] : null,
+                            'severity' => (IncidentSeverity::fromStored(is_string($detail['severity'] ?? null) ? $detail['severity'] : null) ?? IncidentSeverity::Medium)->value,
+                            'status' => 'open',
+                        ],
+                    );
+                }
             } elseif ($task === null) {
                 $activity->forceFill([
                     'task_details' => json_encode($detail, JSON_THROW_ON_ERROR),

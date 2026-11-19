@@ -3,6 +3,7 @@
 use App\Http\Controllers\Activity\AdminLogbookController;
 use App\Http\Controllers\Activity\DailyActivityLogController;
 use App\Http\Controllers\Admin\HarvestTransactionController;
+use App\Http\Controllers\Admin\IncidentController;
 use App\Http\Controllers\Admin\PlantingTransactionController;
 use App\Http\Controllers\Admin\TaskManagementController;
 use App\Http\Controllers\AI\AiAttachmentController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Owner\OwnerTenantController;
 use App\Http\Controllers\Petugas\PetugasActivityController;
 use App\Http\Controllers\Petugas\PetugasGardenController;
 use App\Http\Controllers\Petugas\PetugasHomeController;
+use App\Http\Controllers\Petugas\PetugasIncidentController;
 use App\Http\Controllers\Petugas\PetugasPlantingController;
 use App\Http\Controllers\Petugas\PetugasSubblokController;
 use App\Http\Controllers\Petugas\PetugasTaskController;
@@ -105,6 +107,9 @@ Route::prefix('petugas')->name('petugas.')->middleware(['auth', 'verified', 'can
     Route::get('laporan', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'history'])->name('laporan');
     Route::get('laporan/harian', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'index'])->name('laporan.daily');
     Route::get('laporan/{activity}', [\App\Http\Controllers\Petugas\PetugasDailyActivityController::class, 'show'])->whereUuid('activity')->name('laporan.show');
+    Route::get('incidents', [PetugasIncidentController::class, 'index'])->name('incidents.index');
+    Route::get('incidents/{incidentTicket}', [PetugasIncidentController::class, 'show'])->whereUuid('incidentTicket')->name('incidents.show');
+    Route::post('incidents/{incidentTicket}/reopen', [PetugasIncidentController::class, 'reopen'])->whereUuid('incidentTicket')->name('incidents.reopen');
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
@@ -177,6 +182,12 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::get('tasks/{task}', [TaskManagementController::class, 'show'])->whereUuid('task')->name('tasks.show');
     Route::post('tasks/{task}/skip', [TaskManagementController::class, 'skip'])->whereUuid('task')->name('tasks.skip');
     Route::post('tasks/{task}/reschedule', [TaskManagementController::class, 'reschedule'])->whereUuid('task')->name('tasks.reschedule');
+
+    Route::get('incidents', [IncidentController::class, 'index'])->name('incidents.index');
+    Route::get('incidents/{incidentTicket}', [IncidentController::class, 'show'])->whereUuid('incidentTicket')->name('incidents.show');
+    Route::post('incidents/{incidentTicket}/respond', [IncidentController::class, 'respond'])->whereUuid('incidentTicket')->name('incidents.respond');
+    Route::post('incidents/{incidentTicket}/resolve', [IncidentController::class, 'resolve'])->whereUuid('incidentTicket')->name('incidents.resolve');
+    Route::post('incidents/{incidentTicket}/reopen', [IncidentController::class, 'reopen'])->whereUuid('incidentTicket')->name('incidents.reopen');
 
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');
     Route::post('farm-management/geocode', \App\Http\Controllers\FarmGeocodingController::class)

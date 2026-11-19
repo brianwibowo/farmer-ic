@@ -437,6 +437,41 @@ Table incident_details {
   proposed_solution text
 }
 
+Table incident_tickets {
+  id uuid [pk]
+  farm_id uuid [not null, ref: > farms.id]
+  activity_id uuid [not null, unique, ref: > farm_activities.id]
+  planting_cycle_id uuid [ref: > planting_cycles.id]
+  block_id uuid [ref: > farm_blocks.id]
+  incident_category varchar(150)
+  severity varchar(30) [not null]
+  status varchar(30) [not null, default: 'open', note: 'open | in_progress | resolved']
+  admin_note text
+  responded_by uuid [ref: > users.id]
+  responded_at timestamptz
+  resolution_note text
+  resolved_by uuid [ref: > users.id]
+  resolved_at timestamptz
+  resolved_activity_id uuid [ref: > farm_activities.id]
+  reopen_reason text
+  reopened_by uuid [ref: > users.id]
+  reopened_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    farm_id
+    planting_cycle_id
+    block_id
+    responded_by
+    resolved_by
+    resolved_activity_id
+    reopened_by
+    (farm_id, status, severity)
+  }
+  Note: 'Siklus penanganan tiket insiden dari laporan awal petugas hingga penyelesaian atau pembukaan kembali.'
+}
+
 Table harvest_details {
   activity_id uuid [pk, ref: > farm_activities.id]
   harvested_area_ha decimal(12,4)

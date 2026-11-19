@@ -94,18 +94,22 @@ class DashboardIncidentReportsTest extends TestCase
             'name' => 'Pelaporan insiden', 'detail_key' => 'incident', 'is_selectable' => true, 'is_active' => true,
         ]);
 
-        foreach (['Open', 'Resolved'] as $status) {
+        foreach ([
+            ['incident_status' => 'Perlu penanganan'],
+            ['incident_status' => 'Sudah ditangani langsung', 'immediate_action' => 'Drainase darurat dibersihkan.'],
+        ] as $case) {
             $this->actingAs($petugas)->post('/petugas/aktivitas/mandiri/incident', [
                 'work_date' => today()->toDateString(), 'worker_count' => 2,
                 'notes' => 'Tim sedang memeriksa drainase',
                 'details' => ['incident_category' => 'Cuaca', 'description' => 'Tanaman rebah akibat angin',
-                    'area' => 100, 'area_unit' => 'm²', 'severity' => 'Darurat', 'incident_status' => $status],
+                    'area' => 100, 'area_unit' => 'm²', 'severity' => 'Darurat', ...$case],
                 'photos' => [UploadedFile::fake()->image('laporan-insiden.jpg')],
             ])->assertSessionHasNoErrors()->assertRedirect();
         }
         $this->assertDatabaseCount('incident_details', 2);
+        $this->assertDatabaseCount('incident_tickets', 2);
         $this->assertDatabaseCount('farm_risks', 0);
-        $open = FarmActivity::where('task_details->incident_status', 'Open')->firstOrFail();
+        $open = FarmActivity::where('status', 'open')->firstOrFail();
 
         $this->actingAs($this->admin)->get('/admin/dashboard')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('dashboard.metrics.3.value', 1)->where('dashboard.risks.total', 1)

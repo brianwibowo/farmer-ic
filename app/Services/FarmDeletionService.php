@@ -19,6 +19,7 @@ use App\Models\FinancialProjection;
 use App\Models\FinancialTransaction;
 use App\Models\HarvestDetail;
 use App\Models\IncidentDetail;
+use App\Models\IncidentTicket;
 use App\Models\IrrigationDetail;
 use App\Models\LandCleaningDetail;
 use App\Models\LimingDetail;
@@ -52,7 +53,7 @@ class FarmDeletionService
         'activity_photos' => 'Referensi foto kegiatan', 'block_mapping_details' => 'Detail pemetaan blok',
         'planting_details' => 'Detail penanaman', 'fertilization_details' => 'Detail pemupukan',
         'irrigation_details' => 'Detail penyiraman', 'pesticide_details' => 'Detail pestisida',
-        'incident_details' => 'Detail kejadian', 'harvest_details' => 'Detail panen',
+        'incident_tickets' => 'Tiket insiden', 'incident_details' => 'Detail kejadian', 'harvest_details' => 'Detail panen',
         'land_cleaning_details' => 'Detail pembersihan lahan', 'loosening_details' => 'Detail penggemburan',
         'weeding_details' => 'Detail pendangiran', 'bed_preparation_details' => 'Detail pembuatan bedengan',
         'liming_details' => 'Detail penebaran dolomit', 'other_details' => 'Detail aktivitas lainnya',
@@ -109,7 +110,7 @@ class FarmDeletionService
                 foreach ([
                     'farm_legality_documents', 'farm_legalities',
                     'financial_transactions', 'financial_projections', 'financial_budgets', 'operational_targets',
-                    'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos',
+                    'farm_risks', 'ai_insights', 'plant_observations', 'activity_photos', 'incident_tickets',
                     'block_mapping_details', 'planting_details', 'fertilization_details', 'irrigation_details',
                     'pesticide_details', 'incident_details', 'harvest_details', 'land_cleaning_details',
                     'loosening_details', 'weeding_details', 'bed_preparation_details', 'liming_details', 'other_details',
@@ -149,6 +150,7 @@ class FarmDeletionService
             'planting_cycles' => PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'daily_activity_logs' => DailyActivityLog::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'farm_activities' => FarmActivity::visibleTo($actor, $team)->where('farm_id', $farm->id),
+            'incident_tickets' => IncidentTicket::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'weather_records' => WeatherRecord::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'financial_transactions' => FinancialTransaction::visibleTo($actor, $team)->where('farm_id', $farm->id),
             'financial_projections' => FinancialProjection::visibleTo($actor, $team)->where('farm_id', $farm->id),
@@ -199,6 +201,10 @@ class FarmDeletionService
             ['farm_activities', 'planting_cycle_id', 'planting_cycles'],
             ['farm_activities', 'planting_cycle_task_id', 'planting_cycle_tasks'],
             ['farm_activities', 'daily_activity_log_id', 'daily_activity_logs'],
+            ['incident_tickets', 'activity_id', 'farm_activities'],
+            ['incident_tickets', 'resolved_activity_id', 'farm_activities'],
+            ['incident_tickets', 'planting_cycle_id', 'planting_cycles'],
+            ['incident_tickets', 'block_id', 'farm_blocks'],
             ['plant_observations', 'planting_cycle_id', 'planting_cycles'],
             ['plant_observations', 'activity_id', 'farm_activities'],
             ['farm_risks', 'planting_cycle_id', 'planting_cycles'],

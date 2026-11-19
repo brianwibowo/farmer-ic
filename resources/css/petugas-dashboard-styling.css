@@ -28,11 +28,6 @@
     flex: 1;
 }
 
-.petugas-incident-heavy {
-    color: var(--incident-heavy);
-    background: color-mix(in srgb, var(--incident-heavy) 10%, transparent);
-}
-
 .petugas-home {
     display: flex;
     flex: 1;
