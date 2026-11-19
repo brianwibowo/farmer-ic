@@ -46,6 +46,9 @@ class DatabaseSeederTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
+        $this->assertSame(0, PlantingCycle::query()->whereNull('farm_cycle_id')->count());
+        $this->assertGreaterThan(0, \App\Models\FarmCycle::query()->count());
+
         $team = Team::query()->where('slug', 'farm-ic-demo')->firstOrFail();
         $this->assertDatabaseCount('farms', 8);
         $this->assertDatabaseCount('financial_transactions', 24);

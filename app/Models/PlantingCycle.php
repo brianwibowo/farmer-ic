@@ -53,6 +53,12 @@ class PlantingCycle extends FarmerModel
         return $this->belongsTo(Farm::class, 'farm_id');
     }
 
+    /** @return BelongsTo<FarmCycle, $this> */
+    public function farmCycle(): BelongsTo
+    {
+        return $this->belongsTo(FarmCycle::class);
+    }
+
     /** @return BelongsTo<FarmBlock, $this> */
     public function block(): BelongsTo
     {

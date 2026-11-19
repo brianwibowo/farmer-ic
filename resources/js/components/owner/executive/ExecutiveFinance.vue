@@ -7,7 +7,7 @@ import {
     executiveMoney as money,
     executiveNumber as number,
     executiveTotals,
-} from '@/services/ownerExecutiveDemoService';
+} from '@/services/ownerExecutiveSummary';
 import type { ExecutiveRow } from '@/types/owner-executive';
 
 const props = defineProps<{ rows: ExecutiveRow[]; annual?: boolean }>();
@@ -96,8 +96,9 @@ const metrics = computed(() => [
                             <p
                                 class="mt-1 text-xs leading-5 text-muted-foreground"
                             >
-                                Jual {{ money(crop.pricing.sellingPrice) }}/kg ·
-                                margin {{ money(crop.marginPerKg) }}/kg
+                                Jual
+                                {{ money(crop.pricing?.sellingPrice ?? 0) }}/kg
+                                · margin {{ money(crop.marginPerKg) }}/kg
                             </p>
                         </div>
                         <div class="text-right">
@@ -112,8 +113,8 @@ const metrics = computed(() => [
                         </div>
                     </div>
                     <p class="mt-1 text-xs leading-5 text-muted-foreground">
-                        HPP {{ money(crop.pricing.hpp) }}/kg · transport
-                        {{ money(crop.pricing.transport) }}/kg · omzet
+                        HPP {{ money(crop.pricing?.hpp ?? 0) }}/kg · transport
+                        {{ money(crop.pricing?.transport ?? 0) }}/kg · omzet
                         {{ money(crop.revenue, true) }}
                     </p>
                 </li>

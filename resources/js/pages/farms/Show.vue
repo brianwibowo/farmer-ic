@@ -3,15 +3,10 @@ import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavi
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { ownerFarmOrigin } from '@/lib/ownerFarmNavigation';
-import {
-    ArrowLeft,
-    LandPlot,
-    MapPin,
-    Target,
-    Sprout,
-} from '@lucide/vue';
+import { ArrowLeft, LandPlot, MapPin, Target, Sprout } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import FarmBlocksTable from '@/components/blocks/FarmBlocksTable.vue';
+import FarmCycleSummary from '@/components/blocks/FarmCycleSummary.vue';
 import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
 import {
     hectares,
@@ -288,6 +283,7 @@ const coordinates = computed<[number, number] | null>(() =>
                 </p>
             </div>
         </section>
+        <FarmCycleSummary />
         <FarmBlocksTable
             v-if="can.blocks"
             :farm="farm"

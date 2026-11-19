@@ -36,6 +36,8 @@ const props = {
             },
         ],
         total: 16,
+        from: 11,
+        to: 16,
         current_page: 2,
         last_page: 2,
         prev_page_url: '/petugas/laporan?source=sop&page=1',
@@ -61,8 +63,16 @@ describe('report history presentation', () => {
         expect(html).not.toContain('Pemeriksaan rutin');
         expect(html).toContain('<time datetime="2026-11-17">2026-11-17</time>');
         expect(html).toContain('17 November 2026');
-        expect(html).toContain('Halaman 2 / 2');
-        expect(html).toContain('Terapkan filter');
+        expect(html).toContain('Menampilkan 11–16');
+        expect(html).toContain('dari 16 aktivitas.');
+        expect(html).toContain('Per halaman');
+        expect(html).toContain('aria-label="Jumlah aktivitas per halaman"');
+        expect(html).toContain('Pagination laporan');
+        expect(html).toContain('aria-label="Halaman sebelumnya"');
+        expect(html).toMatch(/aria-current="page"[^>]*aria-label="Halaman 2"/);
+        expect(html).not.toContain('Halaman 2 / 2');
+        expect(html).not.toContain('Terapkan filter');
+        expect(html).not.toContain('>Reset</button>');
         expect(html).toContain(
             '/petugas/laporan/activity-a?back=%2Fpetugas%2Flaporan%3Fsource%3Dsop%26page%3D2',
         );
@@ -79,7 +89,7 @@ describe('report history presentation', () => {
         expect(html).toContain('Tanggal kerja');
         expect(html).toContain('type="date"');
         expect(html).toContain('value="2026-11-17"');
-        expect(html).toContain('Terapkan filter');
+        expect(html).not.toContain('Terapkan filter');
     });
 
     it('groups reports by work date, newest first, without changing their order within a date', async () => {
@@ -159,7 +169,7 @@ describe('report history presentation', () => {
         expect(secondPage).toContain(dateHeading);
         expect(firstPage).toContain('/petugas/laporan/activity-page-one?');
         expect(secondPage).toContain('/petugas/laporan/activity-a?');
-        expect(secondPage).toContain('Halaman 2 / 2');
+        expect(secondPage).toContain('aria-label="Halaman 2"');
     });
 
     it('keeps the filtered empty state without rendering date headings', async () => {
@@ -170,9 +180,10 @@ describe('report history presentation', () => {
                     ...props.reports,
                     data: [],
                     total: 0,
+                    from: null,
+                    to: null,
                     current_page: 1,
                     last_page: 1,
-                    prev_page_url: null,
                 },
                 stats: { sop: 0, mandiri: 0 },
             }),
@@ -180,6 +191,9 @@ describe('report history presentation', () => {
 
         expect(html).toContain('Belum ada laporan yang ditampilkan');
         expect(html).not.toContain('<time datetime=');
+        expect(html).toContain('Menampilkan 0–0');
+        expect(html).toContain('dari 0 aktivitas.');
+        expect(html).toContain('Per halaman');
     });
 
     it('explains a missing farm assignment instead of inventing data', async () => {

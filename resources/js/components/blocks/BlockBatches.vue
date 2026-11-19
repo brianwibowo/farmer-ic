@@ -217,6 +217,9 @@ const progressSummary = computed(() => {
                         </h5>
                         <p class="mt-1 text-xs text-muted-foreground">
                             Batch {{ batch.batch_number }} ·
+                            <template v-if="batch.farm_cycle_number"
+                                >Siklus {{ batch.farm_cycle_number }} ·
+                            </template>
                             {{ statusLabels[batch.status] ?? batch.status }}
                         </p>
                     </div>

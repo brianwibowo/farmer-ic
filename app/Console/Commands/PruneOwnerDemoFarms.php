@@ -75,7 +75,7 @@ class PruneOwnerDemoFarms extends Command
                 ->whereNotIn('id', $keepIds)->orderBy('name')->lockForUpdate()->get();
             foreach ($farms as $farm) {
                 Gate::forUser($actor)->authorize('delete', $farm);
-                $this->deleteFarmAndOperationalRecords((string) $farm->id);
+                $this->deleteFarmAndOperationalRecords((string) $farm->id, $actor, $team);
             }
 
             return $farms->count();
@@ -139,7 +139,7 @@ class PruneOwnerDemoFarms extends Command
         return array_values(array_unique($ids));
     }
 
-    private function deleteFarmAndOperationalRecords(string $farmId): void
+    private function deleteFarmAndOperationalRecords(string $farmId, User $actor, Team $team): void
     {
         $cycleIds = DB::table('planting_cycles')->where('farm_id', $farmId)->pluck('id')->all();
 
@@ -155,6 +155,10 @@ class PruneOwnerDemoFarms extends Command
         DB::table('farm_activities')->where('farm_id', $farmId)->delete();
         DB::table('daily_activity_logs')->where('farm_id', $farmId)->delete();
         DB::table('planting_cycles')->where('farm_id', $farmId)->delete();
+        foreach (\App\Models\FarmCycle::visibleTo($actor, $team)->where('farm_id', $farmId)->get() as $cycle) {
+            Gate::forUser($actor)->authorize('delete', $cycle);
+            $cycle->delete();
+        }
         DB::table('farm_blocks')->where('farm_id', $farmId)->delete();
 
         $farm = Farm::query()->whereKey($farmId)->firstOrFail();

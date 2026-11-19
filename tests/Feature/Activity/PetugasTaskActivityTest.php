@@ -1056,7 +1056,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->team->members()->attach($otherOfficer, ['role' => TeamRole::Member->value]);
         $otherOfficer->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $this->farm->id])->save();
         $type = ActivityType::where('code', 'maintenance')->firstOrFail();
-        for ($index = 0; $index < 18; $index++) {
+        for ($index = 0; $index < 23; $index++) {
             $activity = new FarmActivity([
                 'farm_id' => $this->farm->id, 'planting_cycle_id' => $this->cycle->id,
                 'activity_type_id' => $type->id, 'performed_by' => $index === 0 ? $otherOfficer->id : $this->actor->id,
@@ -1076,15 +1076,32 @@ class PetugasTaskActivityTest extends TestCase
         ]);
 
         $this->actingAs($this->actor);
-        foreach ([1, 2] as $pageNumber) {
+        foreach ([1 => [1, 10], 2 => [11, 20], 3 => [21, 23]] as $pageNumber => [$from, $to]) {
             $this->get('/petugas/laporan?page='.$pageNumber)->assertOk()->assertInertia(fn (Assert $page) => $page
-                ->where('reports.total', 18)->where('reports.current_page', $pageNumber)
-                ->where('stats.sop', 9)->where('stats.mandiri', 9));
+                ->where('reports.total', 23)->where('reports.current_page', $pageNumber)
+                ->where('reports.per_page', 10)->where('reports.last_page', 3)
+                ->where('reports.from', $from)->where('reports.to', $to)
+                ->where('filters.per_page', 10)
+                ->where('stats.sop', 9)->where('stats.mandiri', 14));
         }
         $this->get('/petugas/laporan?source=mandiri')->assertInertia(fn (Assert $page) => $page
-            ->where('reports.total', 9)->where('stats.sop', 0)->where('stats.mandiri', 9));
+            ->where('reports.total', 14)->where('stats.sop', 0)->where('stats.mandiri', 14));
         $this->get('/petugas/laporan?mine=1')->assertInertia(fn (Assert $page) => $page
-            ->where('reports.total', 17)->where('stats.sop', 8)->where('stats.mandiri', 9));
+            ->where('reports.total', 22)->where('stats.sop', 8)->where('stats.mandiri', 14));
+
+        $this->get('/petugas/laporan?per_page=20&page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('reports.total', 23)->where('reports.per_page', 20)->where('reports.last_page', 2)
+            ->where('reports.from', 21)->where('reports.to', 23)->has('reports.data', 3)
+            ->where('filters.per_page', 20)->where('stats.sop', 9)->where('stats.mandiri', 14));
+        $this->get('/petugas/laporan?per_page=50')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('reports.total', 23)->where('reports.per_page', 50)->where('reports.last_page', 1)
+            ->where('reports.from', 1)->where('reports.to', 23)->has('reports.data', 23));
+        $this->get('/petugas/laporan?source=mandiri&per_page=10&page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('filters.source', 'mandiri')->where('filters.per_page', 10)
+            ->where('reports.total', 14)->where('reports.from', 11)->where('reports.to', 14)
+            ->where('stats.sop', 0)->where('stats.mandiri', 14));
+        $this->getJson('/petugas/laporan?per_page=15')->assertUnprocessable()->assertJsonValidationErrors('per_page');
+        $this->getJson('/petugas/laporan?per_page=1000')->assertUnprocessable()->assertJsonValidationErrors('per_page');
     }
 
     public function test_report_highlights_use_scoped_persisted_details_for_each_category(): void

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { RefreshCw, Sprout } from '@lucide/vue';
+import { Sprout } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
 import OwnerDashboardFarmPreview from '@/components/owner/dashboard/OwnerDashboardFarmPreview.vue';
@@ -14,9 +14,11 @@ import ExecutiveLandSummary from '@/components/owner/executive/ExecutiveLandSumm
 import ExecutivePanel from '@/components/owner/executive/ExecutivePanel.vue';
 import { Button } from '@/components/ui/button';
 import { useExecutiveSummary } from '@/composables/useExecutiveSummary';
+import type { ExecutiveSummaryData } from '@/types/owner-executive';
 import type { OwnerDashboardMapFarm } from '@/types/owner-dashboard';
 
 defineOptions({ inheritAttrs: false });
+const props = defineProps<{ summary: ExecutiveSummaryData }>();
 
 const {
     data,
@@ -27,7 +29,6 @@ const {
     rows,
     totals,
     years,
-    cycles,
     regions,
     farmOptions,
     partnerSummary,
@@ -42,7 +43,7 @@ const {
     monthlyLabel,
     updatedLabel,
     number,
-} = useExecutiveSummary();
+} = useExecutiveSummary(() => props.summary);
 // Keep commercial summary sections in the codebase, but hide them from the
 // Executive Summary until the business content is ready to be shown again.
 const showCommercialSections = false;
@@ -57,11 +58,15 @@ const selectedMapFarm = computed<OwnerDashboardMapFarm | undefined>(() => {
         ...row.farm,
         location: `${row.farm.city}, ${row.farm.region}`,
         area: number(row.farm.areaHa),
-        crops: [
-            { id: row.commodity.id, name: row.commodity.name, varieties: [] },
-        ],
+        crops: rows.value
+            .filter((item) => item.farm.id === row.farm.id && item.commodity.id)
+            .map((item) => ({
+                id: item.commodity.id,
+                name: item.commodity.name,
+                varieties: [],
+            })),
         pic: null,
-        detail_url: '/ringkasan-eksekutif',
+        detail_url: row.farm.detail_url,
     };
 });
 const mapPreviewOpen = computed({
@@ -91,28 +96,6 @@ function focusFarm(id: string) {
         class="executive-summary min-w-0 space-y-4 text-foreground lg:space-y-5"
         :aria-busy="loading"
     >
-        <header class="flex flex-wrap items-start justify-between gap-3">
-            <div class="min-w-0">
-                <h1
-                    class="text-2xl leading-tight font-semibold tracking-tight sm:text-3xl"
-                >
-                    Ringkasan Eksekutif
-                </h1>
-                <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                    Gambaran lahan, penjualan, dan potensi hasil usaha.
-                </p>
-                <!-- <p class="mt-1 text-xs text-muted-foreground">
-                    Data contoh · Data per {{ updatedLabel }}
-                </p> -->
-            </div>
-            <Button :disabled="loading" @click="load(true)"
-                ><RefreshCw
-                    class="size-4"
-                    :class="loading ? 'motion-safe:animate-spin' : ''"
-                    aria-hidden="true"
-                />{{ loading ? 'Memuat…' : 'Refresh' }}</Button
-            >
-        </header>
         <p
             v-if="feedback"
             role="status"
@@ -139,29 +122,21 @@ function focusFarm(id: string) {
             :filters="filters"
             :data="data"
             :years="years"
-            :cycles="cycles"
             :regions="regions"
             :farm-options="farmOptions"
             :loading="loading"
-            :count="rows.length"
+            :count="new Set(rows.map((row) => row.farm.id)).size"
             @change="Object.assign(filters, $event)"
             @reset="reset"
+            @refresh="load(true)"
         />
-        <p
-            v-if="data"
-            class="text-xs leading-5 text-muted-foreground"
-            role="status"
-        >
-            <!-- {{ periodLabel }}. Luas tanam aktif dan stok mengikuti posisi
-            {{ snapshotLabel }}; penjualan tetap bulanan ({{ monthlyLabel }}). -->
-        </p>
         <div v-if="loading" class="space-y-4">
             <ExecutiveSummaryCards
                 :totals="totals"
                 :commodities="commodities"
                 :partner-count="partnerSummary.length"
                 :month="monthlyLabel"
-                :snapshot-label="snapshotLabel"
+                :period="periodLabel"
                 :show-commercial-card="showCommercialSections"
                 loading
             />
@@ -173,7 +148,7 @@ function focusFarm(id: string) {
                 :commodities="commodities"
                 :partner-count="partnerSummary.length"
                 :month="monthlyLabel"
-                :snapshot-label="snapshotLabel"
+                :period="periodLabel"
                 :show-commercial-card="showCommercialSections"
             />
             <div
@@ -199,19 +174,13 @@ function focusFarm(id: string) {
                 <ExecutiveLandSummary
                     :partners="partnerSummary"
                     :categories="landCategories"
-                    :selected="filters.partner"
-                    @select="filters.partner = $event"
                 />
                 <ExecutiveSales
                     v-if="showCommercialSections"
                     :clients="clients"
                     :month="monthlyLabel"
                 />
-                <ExecutiveCommoditySummary
-                    :commodities="commodities"
-                    :selected="filters.commodity"
-                    @select="filters.commodity = $event"
-                />
+                <ExecutiveCommoditySummary :commodities="commodities" />
                 <ExecutiveHarvest
                     :rows="rows"
                     :period="periodLabel"
@@ -220,7 +189,7 @@ function focusFarm(id: string) {
                 <ExecutiveFinance
                     v-if="showCommercialSections"
                     :rows="rows"
-                    :annual="filters.cycle === 'all'"
+                    :annual="filters.quarter === 'all'"
                 />
                 <ExecutivePanel
                     id="peta-kebun"
@@ -237,10 +206,12 @@ function focusFarm(id: string) {
             <footer
                 class="border-t border-border pt-3 text-xs leading-5 text-muted-foreground"
             >
-                Data contoh · {{ updatedLabel }} · {{ periodLabel }}. Panen
-                tahunan mengikuti tanggal panen; proyeksi mengikuti jadwal
-                panen. Luas tanam aktif dan stok merupakan posisi
-                {{ snapshotLabel }}, bukan akumulasi antar-cycle.
+                Data database · diperbarui {{ updatedLabel }} ·
+                {{ periodLabel }}. Panen aktual mengikuti tanggal panen;
+                proyeksi memakai estimasi bobot dan jadwal panen yang tercatat.
+                Luas lahan dan tanam aktif menunjukkan posisi saat ini ({{
+                    snapshotLabel
+                }}), bukan riwayat tahunan.
             </footer>
         </template>
         <OwnerDashboardFarmPreview
@@ -265,13 +236,35 @@ function focusFarm(id: string) {
                             Luas tanam
                         </dt>
                         <dd class="mt-1 font-medium">
-                            {{ number(selectedMapRow.plantedHa) }} Ha
+                            {{
+                                number(
+                                    rows
+                                        .filter(
+                                            (row) =>
+                                                row.farm.id ===
+                                                selectedMapFarm?.id,
+                                        )
+                                        .reduce(
+                                            (sum, row) => sum + row.plantedHa,
+                                            0,
+                                        ),
+                                )
+                            }}
+                            Ha
                         </dd>
                     </div>
                     <div>
                         <dt class="text-xs text-muted-foreground">Status</dt>
                         <dd class="mt-1 font-medium">
-                            {{ selectedMapRow.status }}
+                            {{
+                                rows.some(
+                                    (row) =>
+                                        row.farm.id === selectedMapFarm?.id &&
+                                        row.plantedHa > 0,
+                                )
+                                    ? 'Tanam aktif'
+                                    : 'Tidak ada tanam aktif'
+                            }}
                         </dd>
                     </div>
                 </dl></template

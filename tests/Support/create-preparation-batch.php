@@ -22,6 +22,8 @@ DB::select("SELECT set_config('application_name', ?, false)", [$argv[3]]);
 $actor = User::findOrFail($argv[1]);
 $block = FarmBlock::visibleTo($actor, $actor->currentTeam)->findOrFail($argv[2]);
 Gate::forUser($actor)->authorize('create', [PlantingCycle::class, $block]);
+Gate::forUser($actor)->authorize('viewAny', [\App\Models\FarmCycle::class, $block->farm->team]);
+Gate::forUser($actor)->authorize('create', [\App\Models\FarmCycle::class, $block->farm]);
 try {
     app(FarmBlockService::class)->createBatch($block, $actor, $block->farm->team, []);
     echo 'created';

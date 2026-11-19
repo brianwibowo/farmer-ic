@@ -5,10 +5,11 @@ import { LandPlot, Layers, Plus, Sprout } from '@lucide/vue';
 import { ref } from 'vue';
 import GardenFarmCard from '@/components/petugas/GardenFarmCard.vue';
 import GardenBatchCard from '@/components/petugas/GardenBatchCard.vue';
+import GardenBlockCapacity from '@/components/petugas/GardenBlockCapacity.vue';
 import SubblokCreateDialog from '@/components/petugas/SubblokCreateDialog.vue';
+import FarmCycleSummary from '@/components/blocks/FarmCycleSummary.vue';
 import { Button } from '@/components/ui/button';
 import type { PetugasGarden } from '@/types/petugas-garden';
-import { gardenArea, gardenDate } from '@/types/petugas-garden';
 
 defineOptions({ inheritAttrs: false });
 defineProps<{ garden: PetugasGarden }>();
@@ -37,11 +38,10 @@ const createOpen = ref(false);
             </p>
         </section>
         <template v-else>
+            <FarmCycleSummary :limit="2" />
             <GardenFarmCard :farm="garden.farm" :summary="garden.summary" />
             <section aria-labelledby="garden-blocks" class="space-y-4">
-                <h2 id="garden-blocks" class="admin-section-title">
-                    Blok & subblok
-                </h2>
+                <h2 id="garden-blocks" class="admin-section-title">Blok</h2>
                 <div
                     v-if="!garden.blocks.length"
                     class="petugas-card petugas-empty px-5 py-8 text-center"
@@ -67,8 +67,8 @@ const createOpen = ref(false);
                             class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
                             :class="
                                 block.id === garden.selected_block?.id
-                                    ? 'border-primary/40 bg-primary/10 text-secondary dark:text-primary'
-                                    : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                                    ? 'border-secondary bg-secondary text-secondary-foreground hover:bg-secondary/90'
+                                    : 'border-border bg-card text-foreground hover:bg-muted'
                             "
                             :aria-current="
                                 block.id === garden.selected_block?.id
@@ -76,74 +76,18 @@ const createOpen = ref(false);
                                     : undefined
                             "
                             :aria-label="`${block.name}, ${block.batches_count} subblok${block.is_active ? '' : ', nonaktif'}`"
-                            >{{ block.name
-                            }}<span
-                                class="rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-foreground"
-                                >{{ block.batches_count }}</span
-                            ></Link
+                            >{{ block.name }}</Link
                         >
                     </nav>
                     <template v-if="garden.selected_block">
-                        <div class="petugas-card space-y-3 p-4">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <h3
-                                        class="text-base leading-6 font-semibold break-words"
-                                    >
-                                        {{ garden.selected_block.name }}
-                                    </h3>
-                                    <span
-                                        v-if="!garden.selected_block.is_active"
-                                        class="mt-1 inline-block text-xs text-muted-foreground"
-                                        >Nonaktif</span
-                                    >
-                                </div>
-                                <p
-                                    class="shrink-0 text-xl font-bold tabular-nums"
-                                >
-                                    {{
-                                        gardenArea(
-                                            garden.selected_block.area_ha,
-                                        )
-                                    }}
-                                    <span
-                                        class="text-xs font-normal text-muted-foreground"
-                                        >ha</span
-                                    >
-                                </p>
-                            </div>
-                            <p
-                                v-if="garden.selected_block.description"
-                                class="text-xs leading-5 text-muted-foreground"
-                            >
-                                {{ garden.selected_block.description }}
-                            </p>
-                            <p
-                                class="text-xs leading-5 text-secondary dark:text-primary"
-                            >
-                                Land clearing ·
-                                {{
-                                    garden.selected_block
-                                        .land_clearing_completed_at
-                                        ? `Laporan terakhir ${gardenDate(garden.selected_block.land_clearing_completed_at)}`
-                                        : 'Belum ada laporan'
-                                }}
-                            </p>
-                        </div>
+                        <GardenBlockCapacity :block="garden.selected_block" />
                         <div
                             class="flex flex-wrap items-center justify-between gap-3"
                         >
                             <div>
                                 <h3 class="text-base font-semibold">Subblok</h3>
                                 <p class="text-xs text-muted-foreground">
-                                    {{ garden.batches.total }} batch · Sisa
-                                    lahan
-                                    {{
-                                        gardenArea(
-                                            garden.selected_block.available_ha,
-                                        )
-                                    }}
-                                    ha
+                                    {{ garden.batches.total }} batch
                                 </p>
                             </div>
                             <Button
@@ -152,7 +96,7 @@ const createOpen = ref(false);
                                     garden.selected_block.is_active
                                 "
                                 type="button"
-                                variant="outline"
+                                variant="default"
                                 size="sm"
                                 class="min-h-11 rounded-xl"
                                 :disabled="

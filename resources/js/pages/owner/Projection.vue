@@ -38,47 +38,40 @@ function setPeriod(period: 'cycle' | 'year'): void {
     <Head title="Proyeksi Panen" />
     <OwnerPageHeader
         title="Total Proyeksi Panen"
+        hide-title
         :back-href="urls.home"
         back-label="Kembali ke Ringkasan Eksekutif"
     >
-        <template #heading>
-            <div class="flex min-w-0 items-center justify-between gap-3">
-                <h1
-                    id="total-projection-heading"
-                    class="admin-page-title min-w-0 break-words"
+        <template #actions>
+            <div
+                role="group"
+                aria-label="Periode proyeksi panen"
+                class="ml-auto inline-flex shrink-0 rounded-xl bg-muted p-1"
+            >
+                <button
+                    v-for="option in [
+                        { value: 'cycle', label: 'Per cycle' },
+                        { value: 'year', label: 'Tahun' },
+                    ] as const"
+                    :key="option.value"
+                    type="button"
+                    :aria-pressed="projection.period === option.value"
+                    :disabled="loading"
+                    class="min-h-11 rounded-lg px-4 text-sm font-medium transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none"
+                    :class="
+                        projection.period === option.value
+                            ? 'bg-card text-primary shadow-sm'
+                            : 'text-muted-foreground'
+                    "
+                    @click="setPeriod(option.value)"
                 >
-                    Total Proyeksi Panen
-                </h1>
-                <div
-                    role="group"
-                    aria-label="Periode proyeksi panen"
-                    class="ml-auto inline-flex shrink-0 rounded-xl bg-muted p-1"
-                >
-                    <button
-                        v-for="option in [
-                            { value: 'cycle', label: 'Per cycle' },
-                            { value: 'year', label: 'Tahun' },
-                        ] as const"
-                        :key="option.value"
-                        type="button"
-                        :aria-pressed="projection.period === option.value"
-                        :disabled="loading"
-                        class="min-h-11 rounded-lg px-4 text-sm font-medium transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none"
-                        :class="
-                            projection.period === option.value
-                                ? 'bg-card text-primary shadow-sm'
-                                : 'text-muted-foreground'
-                        "
-                        @click="setPeriod(option.value)"
-                    >
-                        {{ option.label }}
-                    </button>
-                </div>
+                    {{ option.label }}
+                </button>
             </div>
         </template>
     </OwnerPageHeader>
     <div class="min-w-0 space-y-5 lg:space-y-6" :aria-busy="loading">
-        <section aria-labelledby="total-projection-heading" class="space-y-4">
+        <section aria-label="Total proyeksi panen" class="space-y-4">
             <p
                 v-if="loading || error || feedback"
                 :role="error ? 'alert' : 'status'"
@@ -107,7 +100,11 @@ function setPeriod(period: 'cycle' | 'year'): void {
                     :icon="Sprout"
                 />
             </div>
-            <p v-if="projection.cards.some((card) => card.missing_count)" role="status" class="text-xs text-muted-foreground">
+            <p
+                v-if="projection.cards.some((card) => card.missing_count)"
+                role="status"
+                class="text-xs text-muted-foreground"
+            >
                 Sebagian data luas lahan belum tersedia.
             </p>
             <p

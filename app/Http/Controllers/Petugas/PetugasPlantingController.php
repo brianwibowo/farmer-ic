@@ -56,6 +56,8 @@ class PetugasPlantingController extends Controller
 
         return Inertia::render('petugas/PlantingIndex', [
             'farm' => $farm->only(['id', 'name']),
+            'farmCycleOptions' => app(\App\Services\FarmCycleService::class)->options($farm, $request->user(), $farm->team),
+            'canCreateFarmCycle' => Gate::allows('create', [\App\Models\FarmCycle::class, $farm]),
             'blocks' => $blocks->map(fn (FarmBlock $block): array => [
                 ...$block->only(['id', 'name', 'area_ha', 'is_active']),
                 'available_ha' => $capacities[$block->id]['available_ha'] ?? '0.0000',
