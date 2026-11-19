@@ -71,7 +71,7 @@ describe('report detail presentation', () => {
             'Foto 1 tidak tersedia',
         ])
             expect(html).toContain(text);
-        expect(html).toContain('<h1 class="sr-only">Rincian aktivitas</h1>');
+        expect(html).toMatch(/<h1[^>]*>Detail laporan<\/h1>/);
         expect(html).not.toContain('Kebun Utara');
         expect(html).not.toContain('Laporan harian bersama');
         expect(html).not.toContain('Aktivitas ke-5');

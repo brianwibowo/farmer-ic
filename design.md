@@ -739,7 +739,9 @@ or invented statistics to occupy space.
 
 Below the cards, show today's persisted SOP tasks for the assigned farm, using
 the Asia/Jakarta calendar date. Include pending, in-progress, submitted, and
-completed tasks; omit skipped/cancelled tasks and cancelled batches. Each task
+completed tasks on `planned` or `active` subblocks; omit skipped/cancelled tasks
+and tasks on `harvested` or `cancelled` subblocks. The three batch metrics retain
+their existing definitions, including the historical `harvested` Panen count. Each task
 shows its status, block/batch, and actual HST when a planting date exists.
 Render each task as a full-card Inertia link with a trailing right arrow,
 keyboard focus, and a subtle hover state; do not use an accordion or dropdown.
@@ -785,6 +787,16 @@ card with its name, area, description and land-clearing dates. Retain the select
 block in pagination links. Scope every related query and total to the assigned
 farm and its team, with controller authorization before service reads.
 
+Show **Berjalan / Riwayat** navigation for the selected block. Berjalan contains
+`planned` and `active` subblocks; Riwayat contains `harvested` and `cancelled`.
+The selected view applies to garden subblock counts and pagination. Retain the
+selected block while switching views and show an honest empty state for each.
+On the Tugas page, provide a separate Riwayat Subblok view; retain each task's
+real status, omit urgency indicators for closed subblocks, and make historical
+tasks and reports read-only. Admin block tables provide a default Berjalan
+filter and Selesai panen, Dibatalkan, and Semua options without hiding empty
+blocks or changing capacity, dashboard, or historical-report calculations.
+
 Subblok cards distinguish reserved area from actual planted area and show batch
 number, subblok label, planting round, status, actual/planned planting date, HST,
 and estimated harvest. Draw stage progress only from persisted stages; it is a
@@ -797,13 +809,13 @@ The Figma page includes both full-color and LoFi variants. Use the active state 
 
 ### Petugas activity reports
 
-Use the reference activity list's compact photo-led cards, metadata icons,
-source badge, and three summary tiles in `/petugas/laporan`, while retaining
+Use compact photo-led cards, metadata icons, a source badge, and a three-column
+summary in `/petugas/laporan`, while retaining
 the Petugas shell, theme, floating add action, search, date, category, source,
-personal filter, and server pagination. Start the visible content with the
-summary tiles: do not show the page title, farm name, or a daily-report link
-above them. Keep a screen-reader heading and the work-date filter; the existing
-daily-report route remains unchanged. Apply changes automatically: debounce
+personal filter, and server pagination. Match Tugas with a visible page title,
+a compact Tiket Insiden action, and a single summary card with centered values
+and vertical separators as in Lahan. Keep the work-date filter and the existing
+daily-report route. Apply changes automatically: debounce
 typed search briefly, apply other filters immediately, return to the first
 result page, and preserve the current filters in the URL and detail back link.
 Do not show Apply or Reset buttons; users clear each control directly. Keep
@@ -829,10 +841,11 @@ server-provided date headings in `YYYY-MM-DD` format, newest date first, while
 retaining the existing card content and order within each date. When a date
 spans pages, repeat its heading on each page.
 
-Individual reports use the reference detail hierarchy: icon-only back
-navigation with a screen-reader page heading, a metadata card with activity
-type, location, date, and officer, a divided report-detail card, and a separate
-photo gallery with accessible enlargement. Omit the farm name and shared
+Individual reports and tasks use the same visible detail heading with a labeled
+44px back button, a neutral summary card with a circular icon, and bordered
+metadata rows. Reports show the activity type, source, location, date, and
+officer, followed by a divided report-detail card and a separate photo gallery
+with accessible enlargement. Omit the farm name and shared
 daily-log attribution from the visible detail page. Show recorded worker count,
 notes, and available details; show pest/disease panels only when those values
 actually exist. Display each recorded area once in square metres, preferring
@@ -846,8 +859,10 @@ screen.
 ### Petugas tasks
 
 Use the report pages' mobile card hierarchy for `/petugas/aktivitas` and task
-details. Keep the existing summary counts and remembered search, status,
-category, block, and subblock filters. Task cards use category icons rather than
+details. Match Laporan's heading, incident shortcut and three-column summary.
+Keep search and status visible, with category, block and subblock under a
+Filter disclosure that shows the number of active selections. Keep the existing
+summary counts and remembered filters. Task cards use category icons rather than
 invented photos and show the real task name, location, schedule, target HST,
 urgency, work status, and linked-report count. On detail, group the persisted
 task and location, schedule, variety, actual HST, reporting window, and SOP

@@ -37,6 +37,7 @@ import {
     adminTaskStatusLabels,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
+    taskSubblockClosed,
     type AdminTask,
 } from '@/types/tasks';
 import { formatHok } from '@/types/sop';
@@ -148,6 +149,7 @@ function submitReschedule(): void {
                             {{ adminTaskStatusLabels[task.status] }}
                         </span>
                         <span
+                            v-if="!taskSubblockClosed(task)"
                             class="rounded-full px-2.5 py-1 text-xs font-medium"
                             :class="adminTaskUrgencyClass(task.urgency)"
                         >
@@ -155,12 +157,20 @@ function submitReschedule(): void {
                         </span>
                         <span
                             v-if="
-                                task.urgency === 'overdue' && task.overdue_days
+                                !taskSubblockClosed(task) &&
+                                task.urgency === 'overdue' &&
+                                task.overdue_days
                             "
                             class="inline-flex items-center gap-1 rounded-full bg-error/10 px-2.5 py-1 text-xs font-medium text-error"
                         >
                             <AlertTriangle class="size-3" aria-hidden="true" />
                             Terlambat {{ task.overdue_days }} hari
+                        </span>
+                        <span
+                            v-if="taskSubblockClosed(task)"
+                            class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                        >
+                            Subblok ditutup · hanya dapat dilihat
                         </span>
                     </div>
                 </div>

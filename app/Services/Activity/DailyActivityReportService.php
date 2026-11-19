@@ -11,10 +11,12 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
+use App\Models\PlantObservation;
 use App\Models\User;
 use App\Support\ActivityDetailMap;
 use App\Support\ActivityPhotoFile;
 use App\Support\VoluntaryActivityFields;
+use Illuminate\Support\Facades\Gate;
 
 class DailyActivityReportService
 {
@@ -51,6 +53,9 @@ class DailyActivityReportService
         $block = $blockId === null ? null : FarmBlock::visibleTo($actor, $team)->whereKey($blockId)->first();
         $detailClass = ActivityDetailMap::model($type?->detail_key);
         $detail = $detailClass === null ? null : $detailClass::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
+        if ($detail === null && $type?->code === 'maintenance' && Gate::forUser($actor)->allows('viewAny', [PlantObservation::class, $team])) {
+            $detail = PlantObservation::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
+        }
 
         return [
             'id' => $activity->id, 'code' => $type?->code, 'name' => $type->name ?? 'Aktivitas', 'position' => $activity->position,
@@ -80,7 +85,7 @@ class DailyActivityReportService
             'water_source' => 'Sumber air', 'irrigation_method' => 'Metode', 'duration_hours' => 'Durasi (jam)', 'machine_type' => 'Mesin',
             'fertilizer_type' => 'Pupuk', 'application_method' => 'Metode aplikasi', 'pesticide_category' => 'Kategori pengendalian',
             'purpose' => 'Sasaran', 'brand_name' => 'Produk', 'dosage_per_tank' => 'Dosis per tangki', 'tank_count' => 'Jumlah tangki',
-            'growth_phase' => 'Fase', 'average_height_cm' => 'Tinggi (cm)', 'pest_indication' => 'Hama', 'disease_indication' => 'Penyakit',
+            'growth_phase' => 'Fase pertumbuhan', 'average_height_cm' => 'Tinggi (cm)', 'pest_indication' => 'Hama', 'disease_indication' => 'Penyakit',
             'block_name' => 'Blok', 'length_m' => 'Panjang (m)', 'width_m' => 'Lebar (m)',
             'rows_per_bed' => 'Baris per bedeng', 'row_spacing_cm' => 'Jarak antarbaris (cm)', 'plant_spacing_cm' => 'Jarak tanam (cm)',
             'incident_category' => 'Kejadian', 'severity' => 'Tingkat', 'proposed_solution' => 'Usulan penanganan',

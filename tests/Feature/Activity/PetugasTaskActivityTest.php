@@ -21,6 +21,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /** Integration coverage against the guarded PostgreSQL schema, not SQLite fixtures. */
@@ -222,6 +223,42 @@ class PetugasTaskActivityTest extends TestCase
         $this->cycle->forceFill(['planted_at' => null, 'planted_area_ha' => 0, 'status' => 'planned'])->save();
         $this->assertNull($sequence->blockedReason($this->actor, $this->cycle, 'planting'));
         $this->assertNull($sequence->blockedReason($this->actor, $second, 'planting'));
+    }
+
+    #[DataProvider('closedSubblockStatuses')]
+    public function test_new_block_reports_do_not_change_closed_subblock_history(string $status): void
+    {
+        $admin = User::findOrFail($this->farm->created_by);
+        $block = $this->cycle->block;
+        $this->actingAs($this->actor);
+        $this->post('/petugas/aktivitas/mandiri/land_cleaning', [...$this->payload(),
+            'work_date' => now('Asia/Jakarta')->subDays(2)->toDateString(), 'block_id' => $block->id,
+            'details' => ['area' => 100, 'area_unit' => 'm²']])->assertSessionHasNoErrors();
+        $report = FarmActivity::query()->firstOrFail();
+        $reportBefore = $report->toArray();
+        $this->cycle->forceFill(['status' => $status])->save();
+        $stagesBefore = $this->cycle->stages()->orderBy('position')->get()->toArray();
+
+        $working = app(FarmBlockService::class)->createBatch($block, $admin, $this->team);
+        $working->forceFill(['status' => 'active', 'planted_at' => today()->subDays(2),
+            'planted_area_ha' => '0.5', 'variety_id' => $this->cycle->variety_id])->save();
+        $workingTask = $this->newTask([
+            'planting_cycle_id' => $working->id,
+            'planting_cycle_stage_id' => $working->stages()->where('code', 'maintenance')->firstOrFail()->id,
+        ]);
+
+        $this->get('/petugas/aktivitas/mandiri/maintenance')->assertInertia(fn (Assert $page) => $page
+            ->has('matchingTasks', 1)->where('matchingTasks.0.id', $workingTask->id)
+            ->has('cycles', 1)->where('cycles.0.id', $working->id));
+        $this->post('/petugas/aktivitas/mandiri/soil_preparation', [...$this->payload(),
+            'work_date' => now('Asia/Jakarta')->subDay()->toDateString(), 'block_id' => $block->id,
+            'details' => ['area' => 100, 'area_unit' => 'm²']])->assertSessionHasNoErrors();
+
+        $this->assertSame($stagesBefore, $this->cycle->stages()->orderBy('position')->get()->toArray());
+        $this->assertSame('in_progress', $working->stages()->where('code', 'soil_preparation')->value('status'));
+        $this->assertSame('pending', $this->task->fresh()->status);
+        $this->assertSame($reportBefore, $report->fresh()->toArray());
+        $this->assertDatabaseCount('farm_activities', 2);
     }
 
     public function test_base_fertilization_is_a_separate_block_level_timeline_shared_by_subblocks(): void
@@ -911,6 +948,35 @@ class PetugasTaskActivityTest extends TestCase
         $this->assertSame('Pekerjaan selesai dan lahan sudah diperiksa.', $task->getAttribute('completion_note'));
 
         $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertForbidden();
+    }
+
+    public static function closedSubblockStatuses(): array
+    {
+        return [['harvested'], ['cancelled']];
+    }
+
+    #[DataProvider('closedSubblockStatuses')]
+    public function test_petugas_cannot_complete_a_task_after_its_subblock_closes(string $status): void
+    {
+        $this->actingAs($this->actor)->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())
+            ->assertSessionHasNoErrors();
+        $report = FarmActivity::query()->firstOrFail();
+        $this->cycle->forceFill(['status' => $status])->save();
+
+        $this->get('/petugas/tasks/'.$this->task->id)->assertInertia(fn (Assert $page) => $page
+            ->where('task.subblok.status', $status)->where('task.can.complete', false)->where('canRecord', false)
+            ->where('blockedReason', 'Subblok sudah ditutup.')
+            ->has('reports', 1)->where('reports.0.id', $report->id));
+        $this->post('/petugas/tasks/'.$this->task->id.'/selesai', ['note' => 'Selesai.'])
+            ->assertSessionHasErrors('status');
+        $this->get('/petugas/tasks/'.$this->task->id.'/aktivitas/buat')->assertForbidden();
+        $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertForbidden();
+        $this->actingAs(User::findOrFail($this->farm->created_by))
+            ->get('/admin/logbook/aktivitas/'.$report->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('activity.id', $report->id)
+                ->where('activity.task.id', $this->task->id)->where('activity.task.status', 'in_progress'));
+        $this->assertSame('in_progress', $this->task->fresh()->status);
+        $this->assertDatabaseCount('farm_activities', 1);
     }
 
     public function test_completion_rejects_a_second_action_and_another_assigned_farm(): void

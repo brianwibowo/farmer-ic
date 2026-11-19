@@ -26,12 +26,12 @@ class ActivitySequenceService
             return null;
         }
         $team = $cycle->farm->team;
-        if ($cycle->planted_at === null && in_array($code, ['maintenance', 'harvest'], true)) {
+        if ($cycle->planted_at === null && in_array($code, ['maintenance', 'growth_observation', 'harvest'], true)) {
             return 'Catat penanaman pada subblok ini terlebih dahulu.';
         }
         if ($code === 'harvest') {
             $unfinished = PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)
-                ->where('activity_category', 'maintenance')->whereNotIn('status', ['completed', 'skipped'])->exists();
+                ->whereIn('activity_category', PlantingCycleTask::PRE_HARVEST_CATEGORIES)->whereNotIn('status', ['completed', 'skipped'])->exists();
             if ($unfinished) {
                 return 'Selesaikan seluruh tugas SOP perawatan atau minta Admin melewati tugas yang tidak diperlukan sebelum panen.';
             }

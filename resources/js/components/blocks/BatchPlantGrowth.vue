@@ -1,6 +1,17 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
+import {
+    Activity,
+    ArrowUpRight,
+    Camera,
+    ClipboardList,
+    Expand,
+    Eye,
+    ImageOff,
+    Sprout,
+    UserRound,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
-import { Activity, Expand, Sprout } from '@lucide/vue';
 import {
     Dialog,
     DialogContent,
@@ -8,37 +19,91 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { getGrowthProfile, getGrowthStageAtHst } from '@/data/growthStages';
-import type { SeedType } from '@/data/kebun';
-import { blockDate, type BatchGrowth } from '@/types/blocks';
+import {
+    findObservedGrowthStage,
+    getGrowthStageAtHst,
+    resolveGrowthProfile,
+} from '@/data/growthStages';
+import {
+    blockDate,
+    type BatchGrowth,
+    type BatchObservationItem,
+    type BatchObservationPhoto,
+} from '@/types/blocks';
+import { adminTaskStatusClass, adminTaskStatusLabels } from '@/types/tasks';
 
 const props = defineProps<{
     growth: BatchGrowth;
     plantedAt: string | null;
     theme: string;
 }>();
-const seedType = computed<SeedType | null>(() => {
-    const name = props.growth.commodity?.toLocaleLowerCase('id') ?? '';
-    if (name.includes('jagung')) return 'Jagung';
-    if (name.includes('kedelai')) return 'Kedelai';
-    if (name.includes('rumput')) return 'Rumput';
-    return null;
-});
 const profile = computed(() =>
-    seedType.value
-        ? getGrowthProfile(seedType.value, props.growth.variety ?? undefined)
-        : null,
+    resolveGrowthProfile(props.growth.commodity, props.growth.variety),
 );
 const previewOpen = ref(false);
+const selectedFieldPhoto = ref<{
+    photo: BatchObservationPhoto;
+    observation: BatchObservationItem;
+} | null>(null);
 const failedImages = ref(new Set<string>());
+const failedFieldPhotoIds = ref(new Set<string>());
 const selectedStage = computed(() =>
     profile.value ? getGrowthStageAtHst(profile.value, props.growth.hst) : null,
 );
-const percentage = computed(() =>
-    props.growth.observation?.percentage == null
-        ? null
-        : Math.min(100, Math.max(0, props.growth.observation.percentage)),
+const hstPercentage = computed(() => {
+    if (props.growth.hst_percentage != null) {
+        return Math.min(100, Math.max(0, props.growth.hst_percentage));
+    }
+    const hst = props.growth.hst;
+    const targetHst = profile.value?.stages.at(-1)?.throughHst;
+    if (hst == null || !targetHst || targetHst <= 0) {
+        return null;
+    }
+
+    return Math.min(
+        100,
+        Math.max(0, Math.round((hst / targetHst) * 1000) / 10),
+    );
+});
+const observations = computed(() => props.growth.observations ?? []);
+const tasks = computed(() => props.growth.tasks ?? []);
+const completedTasksCount = computed(
+    () => tasks.value.filter((task) => task.status === 'completed').length,
 );
+const latestObservation = computed(() => observations.value[0] ?? null);
+const latestObservedPhase = computed(
+    () =>
+        latestObservation.value?.phase ??
+        props.growth.observation?.phase ??
+        null,
+);
+const latestObservedAt = computed(
+    () =>
+        latestObservation.value?.observed_at ??
+        props.growth.observation?.observed_at ??
+        null,
+);
+const matchedObservedStage = computed(() =>
+    findObservedGrowthStage(profile.value, latestObservedPhase.value),
+);
+function observedDateTime(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Jakarta',
+    }).format(date);
+}
+function isFieldPhotoAvailable(photo: BatchObservationPhoto): boolean {
+    return photo.available && !failedFieldPhotoIds.value.has(photo.id);
+}
+function markFieldPhotoFailed(id: string): void {
+    failedFieldPhotoIds.value.add(id);
+}
 </script>
 
 <template>
@@ -54,16 +119,16 @@ const percentage = computed(() =>
                 />Perkembangan tanaman
             </h3>
             <span
-                v-if="percentage !== null"
+                v-if="hstPercentage !== null"
                 class="text-2xl font-bold text-primary tabular-nums"
                 >{{
                     new Intl.NumberFormat('id-ID', {
                         maximumFractionDigits: 1,
-                    }).format(percentage)
+                    }).format(hstPercentage)
                 }}<span class="ml-0.5 text-sm">%</span
                 ><span
                     class="block text-right text-[10px] font-medium text-muted-foreground"
-                    >Pengamatan terakhir</span
+                    >Progres umur (HST)</span
                 ></span
             >
             <span
@@ -75,29 +140,43 @@ const percentage = computed(() =>
             >
         </header>
         <div class="space-y-3 rounded-xl bg-growth-summary p-4 text-white">
-            <div
-                class="flex flex-wrap items-center justify-between gap-2 text-sm"
-            >
-                <span class="flex items-center gap-2 text-white/75"
-                    ><Activity class="size-4" aria-hidden="true" />Fase
-                    berdasarkan HST</span
+            <div class="space-y-2">
+                <div
+                    class="flex flex-wrap items-center justify-between gap-2 text-sm"
                 >
-                <strong class="font-semibold text-white">{{
-                    selectedStage?.label || 'Referensi fase belum tersedia'
-                }}</strong>
+                    <span class="flex items-center gap-2 text-white/75"
+                        ><Activity class="size-4" aria-hidden="true" />Fase
+                        berdasarkan HST</span
+                    >
+                    <strong class="font-semibold text-white">{{
+                        selectedStage?.label || 'Referensi fase belum tersedia'
+                    }}</strong>
+                </div>
+                <div
+                    v-if="latestObservedPhase"
+                    class="flex flex-wrap items-center justify-between gap-2 text-sm"
+                >
+                    <span class="flex items-center gap-2 text-white/75"
+                        ><Eye class="size-4" aria-hidden="true" />Fase hasil
+                        pengamatan</span
+                    >
+                    <strong class="font-semibold text-white">{{
+                        latestObservedPhase
+                    }}</strong>
+                </div>
             </div>
             <div
-                v-if="percentage !== null"
+                v-if="hstPercentage !== null"
                 role="progressbar"
-                aria-label="Pertumbuhan tercatat"
-                :aria-valuenow="percentage"
+                aria-label="Progres umur tanaman (HST)"
+                :aria-valuenow="hstPercentage"
                 :aria-valuemin="0"
                 :aria-valuemax="100"
                 class="h-2 overflow-hidden rounded-full bg-white/20"
             >
                 <div
                     class="h-full rounded-full bg-stage-completed"
-                    :style="{ width: `${percentage}%` }"
+                    :style="{ width: `${hstPercentage}%` }"
                 />
             </div>
             <dl class="flex flex-wrap gap-x-8 gap-y-2 text-xs">
@@ -108,9 +187,7 @@ const percentage = computed(() =>
                     </dd>
                 </div>
                 <div>
-                    <dt class="inline text-white/75">
-                        Estimasi awal panen:
-                    </dt>
+                    <dt class="inline text-white/75">Estimasi awal panen:</dt>
                     <dd class="inline font-semibold">
                         {{
                             growth.estimated_harvest_at
@@ -119,12 +196,10 @@ const percentage = computed(() =>
                         }}
                     </dd>
                 </div>
-                <div v-if="growth.observation">
-                    <dt class="inline text-white/75">
-                        Pengamatan terakhir:
-                    </dt>
+                <div v-if="latestObservedAt">
+                    <dt class="inline text-white/75">Pengamatan terakhir:</dt>
                     <dd class="inline font-semibold">
-                        {{ blockDate(growth.observation.observed_at) }}
+                        {{ blockDate(latestObservedAt) }}
                     </dd>
                 </div>
             </dl>
@@ -184,6 +259,16 @@ const percentage = computed(() =>
                     ><span class="mt-1 text-[10px] font-medium opacity-80">{{
                         stage.code
                     }}</span>
+                    <span
+                        v-if="matchedObservedStage?.number === stage.number"
+                        class="mt-1.5 inline-flex w-fit items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                        :class="
+                            stage.number === selectedStage.number
+                                ? 'bg-white/20 text-white'
+                                : 'bg-primary/10 text-primary'
+                        "
+                        >Teramati</span
+                    >
                 </li>
             </ol>
             <div
@@ -270,6 +355,178 @@ const percentage = computed(() =>
                     : 'Pilih komoditas blok untuk menampilkan panduan fase.'
             }}
         </p>
+
+        <div v-if="tasks.length" class="space-y-3 border-t border-border pt-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h4 class="flex items-center gap-2 text-sm font-semibold">
+                    <ClipboardList
+                        class="size-4 text-primary"
+                        aria-hidden="true"
+                    />Tugas SOP pengamatan pertumbuhan
+                </h4>
+                <span class="text-xs text-muted-foreground"
+                    >{{ completedTasksCount }} /
+                    {{ tasks.length }} selesai</span
+                >
+            </div>
+            <ul class="space-y-2">
+                <li
+                    v-for="task in tasks"
+                    :key="task.id"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5 text-sm"
+                >
+                    <div class="min-w-0 space-y-0.5">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-medium break-words">{{
+                                task.name
+                            }}</span>
+                            <span
+                                class="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                                >H{{ task.offset_days >= 0 ? '+' : ''
+                                }}{{ task.offset_days }}</span
+                            >
+                        </div>
+                        <p
+                            v-if="task.scheduled_date"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Jadwal {{ blockDate(task.scheduled_date)
+                            }}<template v-if="task.due_date">
+                                – {{ blockDate(task.due_date) }}</template
+                            >
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="rounded-full px-2.5 py-1 text-xs font-medium"
+                            :class="adminTaskStatusClass(task.status)"
+                            >{{ adminTaskStatusLabels[task.status] }}</span
+                        >
+                        <Link
+                            v-if="task.url"
+                            :href="task.url"
+                            class="inline-flex min-h-8 items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                            >Detail tugas
+                            <ArrowUpRight class="size-3.5" aria-hidden="true"
+                        /></Link>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="space-y-3 border-t border-border pt-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h4 class="flex items-center gap-2 text-sm font-semibold">
+                    <Camera class="size-4 text-primary" aria-hidden="true" />
+                    Riwayat pengamatan lapangan
+                </h4>
+                <span class="text-xs text-muted-foreground"
+                    >{{ observations.length }} laporan</span
+                >
+            </div>
+            <ul v-if="observations.length" class="space-y-3">
+                <li
+                    v-for="obs in observations"
+                    :key="obs.id"
+                    class="space-y-2.5 rounded-xl border border-border bg-muted/20 p-3.5 text-sm"
+                >
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-2"
+                    >
+                        <div class="min-w-0 space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span
+                                    v-if="obs.phase"
+                                    class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary"
+                                    >{{ obs.phase }}</span
+                                >
+                                <span class="text-xs text-muted-foreground">{{
+                                    observedDateTime(obs.observed_at)
+                                }}</span>
+                            </div>
+                            <p
+                                class="flex items-center gap-1.5 text-xs text-muted-foreground"
+                            >
+                                <UserRound
+                                    class="size-3.5 text-primary"
+                                    aria-hidden="true"
+                                />
+                                {{ obs.observer_name ?? 'Petugas kebun' }}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <Link
+                                v-if="obs.task_url"
+                                :href="obs.task_url"
+                                class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                                >{{ obs.task_name ?? 'Tugas SOP' }}
+                                <ArrowUpRight
+                                    class="size-3.5"
+                                    aria-hidden="true"
+                            /></Link>
+                            <Link
+                                v-if="obs.activity_url"
+                                :href="obs.activity_url"
+                                class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                                >Log aktivitas
+                                <ArrowUpRight
+                                    class="size-3.5"
+                                    aria-hidden="true"
+                            /></Link>
+                        </div>
+                    </div>
+                    <p
+                        v-if="obs.notes"
+                        class="text-sm leading-6 break-words whitespace-pre-line text-foreground"
+                    >
+                        {{ obs.notes }}
+                    </p>
+                    <div
+                        v-if="obs.photos.length"
+                        class="grid grid-cols-3 gap-2 sm:grid-cols-5"
+                    >
+                        <template
+                            v-for="(photo, index) in obs.photos"
+                            :key="photo.id"
+                        >
+                            <button
+                                v-if="isFieldPhotoAvailable(photo)"
+                                type="button"
+                                class="aspect-square overflow-hidden rounded-lg border border-border bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                                :aria-label="`Perbesar foto pengamatan ${index + 1}`"
+                                @click="
+                                    selectedFieldPhoto = {
+                                        photo,
+                                        observation: obs,
+                                    }
+                                "
+                            >
+                                <img
+                                    :src="photo.url"
+                                    :alt="`Foto pengamatan lapangan ${index + 1}`"
+                                    loading="lazy"
+                                    class="size-full object-cover"
+                                    @error="markFieldPhotoFailed(photo.id)"
+                                />
+                            </button>
+                            <div
+                                v-else
+                                class="flex aspect-square items-center justify-center rounded-lg border border-dashed border-border bg-muted text-muted-foreground"
+                            >
+                                <ImageOff class="size-4" aria-hidden="true" />
+                            </div>
+                        </template>
+                    </div>
+                </li>
+            </ul>
+            <p
+                v-else
+                class="rounded-xl border border-dashed border-border px-4 py-5 text-center text-xs text-muted-foreground"
+            >
+                Belum ada laporan pengamatan pertumbuhan dari petugas untuk
+                subblok ini.
+            </p>
+        </div>
     </section>
     <Dialog v-model:open="previewOpen"
         ><DialogContent
@@ -302,4 +559,46 @@ const percentage = computed(() =>
             </p></DialogContent
         ></Dialog
     >
+    <Dialog
+        :open="selectedFieldPhoto !== null"
+        @update:open="
+            (open) => {
+                if (!open) selectedFieldPhoto = null;
+            }
+        "
+    >
+        <DialogContent
+            :class="theme"
+            class="max-h-[90dvh] overflow-y-auto bg-card sm:max-w-3xl"
+        >
+            <DialogHeader>
+                <DialogTitle>{{
+                    selectedFieldPhoto?.observation.phase ??
+                    'Foto pengamatan lapangan'
+                }}</DialogTitle>
+                <DialogDescription v-if="selectedFieldPhoto">
+                    {{
+                        observedDateTime(
+                            selectedFieldPhoto.observation.observed_at,
+                        )
+                    }}
+                    ·
+                    {{
+                        selectedFieldPhoto.observation.observer_name ??
+                        'Petugas kebun'
+                    }}
+                </DialogDescription>
+            </DialogHeader>
+            <img
+                v-if="selectedFieldPhoto"
+                :src="selectedFieldPhoto.photo.url"
+                :alt="
+                    selectedFieldPhoto.observation.phase
+                        ? `Foto pengamatan ${selectedFieldPhoto.observation.phase}`
+                        : 'Foto pengamatan lapangan'
+                "
+                class="max-h-[70dvh] w-full rounded-xl object-contain"
+            />
+        </DialogContent>
+    </Dialog>
 </template>

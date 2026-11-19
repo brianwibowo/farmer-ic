@@ -13,9 +13,18 @@ class ActivityReportHighlightService
             'planting' => $this->planting($values),
             'harvest' => $this->harvest($values),
             'incident' => $this->incident($values),
-            'land_cleaning', 'soil_preparation', 'base_fertilization', 'maintenance', 'other' => $this->area($values),
+            'land_cleaning', 'soil_preparation', 'base_fertilization', 'other' => $this->area($values),
+            'maintenance' => $this->area($values) ?? $this->growthObservation($values),
             default => null,
         };
+    }
+
+    /** @param array<string, mixed> $values */
+    private function growthObservation(array $values): ?string
+    {
+        $phase = $this->text($values['growth_phase'] ?? null);
+
+        return $phase === null ? null : 'Fase pertumbuhan: '.$phase;
     }
 
     /** @param array<string, mixed> $values */

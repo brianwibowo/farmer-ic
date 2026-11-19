@@ -13,6 +13,7 @@ use App\Services\FarmBlockService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class TaskManagementTest extends TestCase
@@ -317,6 +318,51 @@ class TaskManagementTest extends TestCase
         $this->assertSame('Lahan tergenang setelah hujan.', $skip->skip_reason);
         $this->assertNull($skip->completed_at);
         $this->assertNull($skip->completed_by);
+    }
+
+    public static function closedSubblockStatuses(): array
+    {
+        return [['harvested'], ['cancelled']];
+    }
+
+    #[DataProvider('closedSubblockStatuses')]
+    public function test_closed_subblock_tasks_are_read_only_even_for_superadmin(string $status): void
+    {
+        $task = $this->task();
+        $commodity = \App\Models\Commodity::create(['name' => 'Jagung riwayat']);
+        $variety = \App\Models\CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Varietas riwayat']);
+        $this->subblok->forceFill(['status' => $status, 'planted_at' => '2026-11-05',
+            'planted_area_ha' => '1', 'variety_id' => $variety->id])->save();
+
+        $this->get('/admin/tasks')->assertInertia(fn (Assert $page) => $page
+            ->where('tasks.total', 0)->where('summary.open', 0)->where('summary.total', 1));
+        $this->get('/admin/tasks?view=all')->assertInertia(fn (Assert $page) => $page
+            ->where('tasks.total', 1)->where('tasks.data.0.id', $task->id)
+            ->where('tasks.data.0.subblok.status', $status)->where('tasks.data.0.can.update', false));
+        $this->get('/admin/tasks/'.$task->id)->assertInertia(fn (Assert $page) => $page
+            ->where('task.can.update', false));
+
+        foreach ([$this->admin, User::factory()->create(['role' => 'superadmin'])] as $actor) {
+            $this->actingAs($actor)->post('/admin/tasks/'.$task->id.'/skip', ['reason' => 'Tidak diperlukan.'])
+                ->assertSessionHasErrors('status');
+            $this->post('/admin/tasks/'.$task->id.'/reschedule', [
+                'rescheduled_date' => '2026-11-20', 'reschedule_reason' => 'Perubahan rencana.',
+            ])->assertSessionHasErrors('status');
+        }
+        $this->assertSame('pending', $task->fresh()->status);
+        $this->assertNull($task->fresh()->rescheduled_date);
+    }
+
+    public function test_task_rows_do_not_expose_subblock_status_without_cycle_visibility(): void
+    {
+        $this->task();
+        $roles = config('access.roles');
+        unset($roles['admin']['planting_cycles.view']);
+        config(['access.roles' => $roles]);
+
+        $this->get('/admin/tasks?view=all')->assertInertia(fn (Assert $page) => $page
+            ->where('tasks.total', 1)->where('tasks.data.0.subblok', null)
+            ->where('tasks.data.0.can.update', false)->where('summary.open', 0));
     }
 
     public function test_admin_can_reschedule_an_unfinished_task_without_changing_the_sop_date(): void
