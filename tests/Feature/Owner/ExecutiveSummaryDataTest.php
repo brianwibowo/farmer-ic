@@ -158,6 +158,7 @@ class ExecutiveSummaryDataTest extends TestCase
     public function test_missing_estimates_and_hidden_relationships_never_fabricate_values_or_labels(): void
     {
         $cycle = $this->cycle($this->farm('Lahan Data Parsial', 10), 'Jagung', 2, null);
+        $this->harvest($cycle, 6);
         $this->get('/ringkasan-eksekutif')->assertInertia(fn (Assert $page) => $page
             ->where('summary.rows.0.projectedTon', null)->where('summary.rows.0.projectionMissing', 1));
         $roles = app(RolePermissions::class)->roles();
@@ -165,10 +166,26 @@ class ExecutiveSummaryDataTest extends TestCase
         config(['access.roles' => $roles]);
         $this->get('/ringkasan-eksekutif')->assertInertia(fn (Assert $page) => $page
             ->where('summary.rows.0.commodity.name', 'Belum teridentifikasi')->has('summary.commodities', 0)
-            ->where('summary.rows.0.plantedHa', 2));
+            ->where('summary.rows.0.plantedHa', 2)->where('summary.rows.0.harvestedTon', 6));
         unset($roles['owner']['farms.view']);
         config(['access.roles' => $roles]);
         $this->get('/ringkasan-eksekutif')->assertForbidden();
+    }
+
+    public function test_hidden_commodity_keeps_production_and_fallback_without_exposing_its_label(): void
+    {
+        $cycle = $this->cycle($this->farm('Lahan Komoditas Terbatas', 10), 'Jagung', 2, null);
+        $this->harvest($cycle, 6);
+        $roles = app(RolePermissions::class)->roles();
+        unset($roles['owner']['commodities.view']);
+        config(['access.roles' => $roles]);
+
+        $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('summary.rows', 1)->has('summary.commodities', 0)
+            ->where('summary.rows.0.commodity.id', '')
+            ->where('summary.rows.0.commodity.name', 'Belum teridentifikasi')
+            ->where('summary.rows.0.plantedHa', 2)->where('summary.rows.0.harvestedTon', 6)
+            ->where('summary.rows.0.projectedTon', null));
     }
 
     public function test_cancelled_and_future_planting_do_not_count_as_current_planted_area(): void
@@ -184,6 +201,9 @@ class ExecutiveSummaryDataTest extends TestCase
     {
         $this->get('/ringkasan-eksekutif?year=invalid&quarter=Q5&farm=invalid&commodity=invalid')
             ->assertSessionHasErrors(['year', 'quarter', 'farm', 'commodity']);
+        $this->getJson('/ringkasan-eksekutif?farm[]=00000000-0000-4000-8000-000000000000')
+            ->assertUnprocessable()->assertJsonValidationErrors('farm');
+        $this->get('/ringkasan-eksekutif?farm=00000000-0000-4000-8000-000000000000')->assertNotFound();
     }
 
     public function test_block_commodity_without_any_planting_cycle_is_included(): void

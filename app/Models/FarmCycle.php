@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $id
  * @property string $farm_id
  * @property int $cycle_number
+ * @property CarbonImmutable|null $created_at
  */
 #[Fillable(['farm_id', 'cycle_number', 'created_by', 'created_at'])]
 class FarmCycle extends FarmerModel
@@ -19,11 +21,13 @@ class FarmCycle extends FarmerModel
         return ['cycle_number' => 'integer', 'created_at' => 'immutable_datetime'];
     }
 
+    /** @return BelongsTo<Farm, $this> */
     public function farm(): BelongsTo
     {
         return $this->belongsTo(Farm::class);
     }
 
+    /** @return HasMany<PlantingCycle, $this> */
     public function batches(): HasMany
     {
         return $this->hasMany(PlantingCycle::class, 'farm_cycle_id');

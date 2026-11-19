@@ -15,7 +15,12 @@ use Carbon\CarbonImmutable;
 
 class ExecutiveSummaryService
 {
-    /** All records and relationship labels are scoped before aggregation. */
+    /**
+     * All records and relationship labels are scoped before aggregation.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
     public function summary(User $actor, Team $team, array $input): array
     {
         $now = CarbonImmutable::now('Asia/Jakarta');
@@ -99,7 +104,7 @@ class ExecutiveSummaryService
                     continue;
                 }
                 $crop = $commodities->get($cropId);
-                $group = $farmCycles->filter(fn ($cycle) => ($cycle->variety?->commodity?->id ?? '') === $cropId);
+                $group = $farmCycles->filter(fn ($cycle) => ($cycle->variety?->commodity->id ?? '') === $cropId);
                 // Unidentified cycles remain explicit rather than being attributed to the farm's default crop.
                 if ($cropId === '') {
                     $group = $farmCycles->filter(fn ($cycle) => $cycle->variety?->commodity === null);
@@ -112,7 +117,7 @@ class ExecutiveSummaryService
                 $actual = $farmHarvests->filter(function ($detail) use ($activities, $cycleById, $farm, $cropId, $periodStart, $periodEnd) {
                     $activity = $activities[$detail->activity_id];
                     $cycle = $cycleById->get($activity->planting_cycle_id);
-                    $activityCrop = $cycle ? ($cycle->variety?->commodity?->id ?? '') : (count($farm['commodityIds']) === 1 ? $farm['commodityIds'][0] : '');
+                    $activityCrop = $cycle ? ($cycle->variety?->commodity->id ?? '') : (count($farm['commodityIds']) === 1 ? $farm['commodityIds'][0] : '');
 
                     return $activityCrop === $cropId
                         && $activity->activity_date->greaterThanOrEqualTo($periodStart)
@@ -126,7 +131,7 @@ class ExecutiveSummaryService
                     'quarter' => $filters['quarter'],
                     'farm' => $farm,
                     'partner' => ['id' => $farm['partnerId'], 'name' => $farm['partnerName']],
-                    'commodity' => ['id' => $cropId, 'name' => $crop?->name ?? 'Belum teridentifikasi', 'pricing' => null],
+                    'commodity' => ['id' => $cropId, 'name' => $crop->name ?? 'Belum teridentifikasi', 'pricing' => null],
                     'plantedHa' => (float) $planted,
                     'harvestedTon' => (float) $actual->sum('gross_weight_ton'),
                     'projectedTon' => $missing ? null : (float) $projected->sum('estimated_weight_ton'),
