@@ -174,7 +174,7 @@ class PetugasPlantingActivityTest extends TestCase
     private function payload(): array
     {
         return ['work_date' => now('Asia/Jakarta')->subDays(2)->toDateString(), 'worker_count' => 4,
-            'variety_id' => $this->variety->id, 'area_ha' => '1.5000', 'seed_name' => 'Benih Jagung Bisi 18', 'quantity_kg' => '12.500',
+            'variety_id' => $this->variety->id, 'area_ha' => '1.5000', 'quantity_kg' => '12.500',
             'notes' => 'Penanaman selesai dengan tanah cukup lembap.', 'photos' => [UploadedFile::fake()->image('tanam.jpg')]];
     }
 
@@ -311,7 +311,7 @@ class PetugasPlantingActivityTest extends TestCase
         $activity = FarmActivity::firstOrFail();
         $this->assertSame(4, $activity->worker_count);
         $this->assertNull($activity->getAttribute('planting_cycle_task_id'));
-        $this->assertDatabaseHas('planting_details', ['activity_id' => $activity->id, 'seed_name' => $data['seed_name']]);
+        $this->assertDatabaseHas('planting_details', ['activity_id' => $activity->id, 'seed_name' => $this->variety->name]);
         $this->assertDatabaseHas('planting_cycle_stages', ['planting_cycle_id' => $cycle->id, 'code' => 'planting', 'status' => 'in_progress']);
         $this->assertSame(2, $cycle->tasks()->count());
         $this->assertSame($anchor->addDays(7)->toDateString(), $cycle->tasks()->where('activity_category', 'maintenance')->firstOrFail()->scheduled_date->toDateString());
@@ -735,5 +735,56 @@ class PetugasPlantingActivityTest extends TestCase
         $this->assertDatabaseCount('daily_activity_logs', 0);
         $this->assertDatabaseCount('planting_details', 0);
         $this->assertSame([], Storage::disk('activity')->allFiles());
+    }
+
+    public function test_planting_index_marks_subblocks_past_the_three_day_window_while_allowing_in_window_additions(): void
+    {
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-20 09:00', 'Asia/Jakarta'));
+        $this->sop();
+        $this->actingAs($this->actor);
+
+        $this->post($this->url(), [...$this->payload(), 'work_date' => '2026-11-17', 'area_ha' => '0.5000'])->assertSessionHasNoErrors();
+        $this->cycle->forceFill(['created_at' => now()->subDays(4)])->saveQuietly();
+
+        $withinWindow = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team, ['subblock_label' => 'B']);
+        $this->post('/petugas/subbloks/'.$withinWindow->id.'/penanaman', [
+            ...$this->payload(),
+            'work_date' => '2026-11-18',
+            'area_ha' => '0.5000',
+        ])->assertSessionHasNoErrors();
+        $withinWindow->forceFill(['created_at' => now()->subDays(2)])->saveQuietly();
+
+        $unplanted = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team, ['subblock_label' => 'C']);
+        $unplanted->forceFill(['created_at' => now()->subDay()])->saveQuietly();
+
+        $legacyExpired = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team, ['subblock_label' => 'D']);
+        $legacyExpired->forceFill([
+            'status' => 'active',
+            'variety_id' => $this->variety->id,
+            'planted_at' => '2026-11-16',
+            'planted_area_ha' => '0.5000',
+            'reserved_area_ha' => '0.5000',
+            'planting_started_on' => null,
+            'created_at' => now(),
+        ])->saveQuietly();
+
+        $this->get('/petugas/penanaman')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('petugas/PlantingIndex')
+            ->has('cycles', 4)
+            ->where('cycles.0.id', $legacyExpired->id)
+            ->where('cycles.0.plantingWindow', ['starts_at' => '2026-11-16', 'ends_at' => '2026-11-18', 'expired' => true])
+            ->where('cycles.1.id', $unplanted->id)
+            ->where('cycles.1.plantingWindow', null)
+            ->where('cycles.2.id', $withinWindow->id)
+            ->where('cycles.2.canRecord', true)
+            ->where('cycles.2.plantingWindow', ['starts_at' => '2026-11-18', 'ends_at' => '2026-11-20', 'expired' => false])
+            ->where('cycles.3.id', $this->cycle->id)
+            ->where('cycles.3.canRecord', true)
+            ->where('cycles.3.plantingWindow', ['starts_at' => '2026-11-17', 'ends_at' => '2026-11-19', 'expired' => true]));
+
+        $this->post($this->url(), [...$this->payload(), 'work_date' => '2026-11-20', 'area_ha' => '0.2500'])
+            ->assertSessionHasErrors('work_date');
+        $this->post($this->url(), [...$this->payload(), 'work_date' => '2026-11-19', 'area_ha' => '0.2500'])
+            ->assertSessionHasNoErrors();
     }
 }

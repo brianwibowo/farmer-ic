@@ -95,7 +95,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->post($plantingUrl, $planting)->assertSessionHasNoErrors();
         $soil = [...$blockBase, 'details' => ['area' => 100, 'area_unit' => 'm²']];
         $this->post('/petugas/aktivitas/mandiri/soil_preparation', $soil)->assertSessionHasNoErrors();
-        $this->post('/petugas/aktivitas/mandiri/incident', [...$base, 'details' => ['area' => 100, 'area_unit' => 'm²', 'incident_category' => 'Cuaca', 'description' => 'Hujan lebat', 'severity' => 'Ringan']])->assertSessionHasNoErrors();
+        $this->post('/petugas/aktivitas/mandiri/incident', [...$base, 'details' => ['incident_category' => 'Lahan', 'severity' => 'Ringan', 'description' => 'Hujan lebat']])->assertSessionHasNoErrors();
         $this->post('/petugas/aktivitas/mandiri/land_cleaning', [...$blockBase, 'details' => ['area' => 100, 'area_unit' => 'm²']])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('farm_activities', ['block_id' => $blockBase['block_id'], 'planting_cycle_id' => null]);
         $reason = app(\App\Services\Activity\ActivitySequenceService::class)->blockedReason($this->actor, $this->cycle->refresh(), 'planting');
@@ -145,7 +145,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->actingAs($this->actor);
         $details = [
             'other' => ['description' => 'Memeriksa peralatan kebun.'],
-            'incident' => ['incident_category' => 'Cuaca', 'description' => 'Hujan lebat', 'area' => 100, 'area_unit' => 'm²', 'severity' => 'Ringan'],
+            'incident' => ['incident_category' => 'Lahan', 'severity' => 'Ringan', 'description' => 'Hujan lebat'],
         ];
 
         foreach ($details as $code => $fields) {
@@ -384,7 +384,7 @@ class PetugasTaskActivityTest extends TestCase
         $admin = User::findOrFail($this->farm->created_by);
         $other = app(FarmBlockService::class)->create($this->farm, $admin, $this->team, ['name' => 'Blok Selatan', 'area_ha' => '4']);
         $this->actingAs($this->actor)->post('/petugas/aktivitas/mandiri/incident', [...$this->payload(), 'cycle_id' => $this->cycle->id,
-            'details' => ['area' => 100, 'area_unit' => 'm²', 'incident_category' => 'Cuaca', 'description' => 'Hujan lebat', 'severity' => 'Ringan']])->assertSessionHasNoErrors();
+            'details' => ['incident_category' => 'Lahan', 'severity' => 'Ringan', 'description' => 'Hujan lebat']])->assertSessionHasNoErrors();
         $activity = FarmActivity::firstOrFail();
         $this->assertSame($this->cycle->block_id, $activity->getAttribute('block_id'));
         $this->expectException(QueryException::class);
@@ -780,7 +780,7 @@ class PetugasTaskActivityTest extends TestCase
             'soil_preparation' => $area,
             'base_fertilization' => $area,
             'maintenance' => $area,
-            'incident' => $area + ['incident_category' => 'Cuaca', 'description' => 'Tanaman rebah akibat angin.', 'severity' => 'Sedang', 'immediate_action' => 'Menopang batang.'],
+            'incident' => ['incident_category' => 'Tanaman', 'severity' => 'Sedang', 'description' => 'Tanaman rebah akibat angin.', 'immediate_action' => 'Menopang batang.'],
             'other' => ['description' => 'Membersihkan alat kerja.'],
         ];
         $this->actingAs($this->actor);

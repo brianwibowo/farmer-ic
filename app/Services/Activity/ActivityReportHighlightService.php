@@ -15,6 +15,7 @@ class ActivityReportHighlightService
             'incident' => $this->incident($values),
             'land_cleaning', 'soil_preparation', 'base_fertilization', 'other' => $this->area($values),
             'maintenance' => $this->area($values) ?? $this->growthObservation($values),
+            'growth_observation' => $this->growthObservation($values),
             default => null,
         };
     }

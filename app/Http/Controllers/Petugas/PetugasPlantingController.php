@@ -72,6 +72,7 @@ class PetugasPlantingController extends Controller
                 'canRecord' => in_array($cycle->status, ['planned', 'active'], true) && Gate::allows('recordPlanting', [FarmActivity::class, $cycle]),
                 'canSync' => in_array($cycle->status, ['planned', 'active'], true) && Gate::allows('synchronize', [PlantingCycleTask::class, $cycle]),
                 'blockedReason' => $sequence->blockedReason($request->user(), $cycle, 'planting'),
+                'plantingWindow' => $planting->plantingWindow($request->user(), $cycle),
             ])->all(),
         ]);
     }

@@ -205,7 +205,8 @@ class GrowthObservationTaskTest extends TestCase
 
         $activity = FarmActivity::query()->where('planting_cycle_task_id', $observationTask->id)->firstOrFail();
         $this->assertNull($activity->worker_count);
-        $this->assertSame('maintenance', $activity->activityType->code);
+        $this->assertSame('growth_observation', $activity->activityType->code);
+        $this->assertSame('Pengamatan Pertumbuhan', $activity->activityType->name);
         $photo = $activity->photos()->firstOrFail();
         $this->assertStringStartsWith('farms/'.$this->farm->id.'/'.$activity->id.'/', $photo->image_url);
         $this->assertSame([2048, 1024], array_slice(getimagesizefromstring(Storage::disk('activity')->get($photo->image_url)), 0, 2));
@@ -226,13 +227,48 @@ class GrowthObservationTaskTest extends TestCase
             ->get('/petugas/tasks/'.$harvestTask->id)
             ->assertInertia(fn (Assert $page) => $page->where('canRecord', false));
 
-        // Petugas task detail & daily report surface the observed growth phase cleanly.
+        // Petugas task detail, report listing, and report detail surface Pengamatan Pertumbuhan while staying SOP-only.
         $this->actingAs($this->petugas)
             ->get('/petugas/tasks/'.$observationTask->id)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('reports.0.worker_count', null)
                 ->where('reports.0.details.growth_phase', 'Vegetatif'));
+
+        $this->actingAs($this->petugas)
+            ->get('/petugas/laporan?type=growth_observation&q=Pengamatan')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('reports.total', 1)
+                ->where('reports.data.0.code', 'growth_observation')
+                ->where('reports.data.0.name', 'Pengamatan Pertumbuhan')
+                ->where('reports.data.0.source', 'SOP')
+                ->where('reports.data.0.highlight', 'Fase pertumbuhan: Vegetatif')
+                ->where('types', fn ($types) => collect($types)->contains(fn ($type) => $type['code'] === 'growth_observation' && $type['name'] === 'Pengamatan Pertumbuhan'))
+                ->where('categories', fn ($categories) => ! collect($categories)->pluck('code')->contains('growth_observation')));
+
+        $this->actingAs($this->petugas)
+            ->get('/petugas/laporan/'.$activity->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('log.activities.0.code', 'growth_observation')
+                ->where('log.activities.0.name', 'Pengamatan Pertumbuhan')
+                ->where('log.activities.0.details', fn ($details) => collect($details)->contains(
+                    fn ($detail) => $detail['label'] === 'Fase pertumbuhan' && $detail['value'] === 'Vegetatif',
+                )));
+
+        $this->actingAs($this->petugas)
+            ->get('/petugas/aktivitas/mandiri/growth_observation')
+            ->assertForbidden();
+
+        // Admin logbook indexes and filters Pengamatan Pertumbuhan separately from Perawatan.
+        $this->actingAs($this->admin)
+            ->get('/admin/logbook?activity_type=growth_observation&search=Pengamatan')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('activities.total', 1)
+                ->where('activities.data.0.code', 'growth_observation')
+                ->where('activities.data.0.name', 'Pengamatan Pertumbuhan'));
 
         // Admin Detail Lahan receives HST %, observed phase, observation history, photos, and SOP task links.
         $this->actingAs($this->admin)
@@ -284,6 +320,22 @@ class GrowthObservationTaskTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('blocks.0.batches.0.growth.observation', null)
                 ->has('blocks.0.batches.0.growth.observations', 0));
+
+        $petugasGrants = config('access.roles.petugas');
+        unset($petugasGrants['plant_observations.view']);
+        config(['access.roles.petugas' => $petugasGrants]);
+        $this->actingAs($this->petugas)
+            ->get('/petugas/laporan?type=growth_observation')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('reports.data.0.highlight', null));
+        $this->actingAs($this->petugas)
+            ->get('/petugas/laporan/'.$activity->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('log.activities.0.details', 0));
+        $this->actingAs($this->petugas)
+            ->get('/petugas/tasks/'.$observationTask->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('reports.0.details', null));
     }
 
     public function test_completing_growth_observation_task_unblocks_harvest_recording_and_closure(): void

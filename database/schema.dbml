@@ -327,18 +327,18 @@ Table sop_template_tasks {
 
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'land_cleaning | soil_preparation | base_fertilization | planting | maintenance | harvest | incident | other | block_mapping']
+  code varchar(50) [not null, unique, note: 'land_cleaning | soil_preparation | base_fertilization | planting | maintenance | growth_observation | harvest | incident | other | block_mapping']
   name varchar(100) [not null]
   description text
   parent_id uuid [ref: > activity_types.id, note: 'Null untuk kategori root']
   detail_key varchar(50) [note: 'Menentukan detail table; null jika memakai task_details / catatan']
-  is_selectable boolean [not null, default: true, note: 'False untuk block_mapping']
+  is_selectable boolean [not null, default: true, note: 'False untuk block_mapping dan growth_observation']
   sort_order smallint [not null, default: 0]
   is_active boolean [not null, default: true]
   indexes {
     parent_id
   }
-  Note: 'Kategori utama aktivitas (pembersihan lahan, pengolahan tanah, pemupukan kandang, penanaman, perawatan, panen, pelaporan insiden, lainnya) plus block_mapping.'
+  Note: 'Kategori utama aktivitas (pembersihan lahan, pengolahan tanah, pemupukan kandang, penanaman, perawatan, pengamatan pertumbuhan, panen, pelaporan insiden, lainnya) plus block_mapping.'
 }
 
 Table farm_activities {
