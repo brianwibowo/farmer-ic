@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     CalendarDays,
     CheckCircle2,
     ClipboardList,
@@ -13,6 +12,7 @@ import {
     Wheat,
 } from '@lucide/vue';
 import { computed } from 'vue';
+import PetugasDetailHeader from '@/components/petugas/PetugasDetailHeader.vue';
 import TaskReportCard from '@/components/petugas/TaskReportCard.vue';
 import TaskStatusBadges from '@/components/petugas/TaskStatusBadges.vue';
 import { Button } from '@/components/ui/button';
@@ -58,26 +58,27 @@ function completedAtLabel(value: string): string {
 
 <template>
     <Head title="Detail Tugas" />
-    <div class="min-w-0 space-y-4 pb-8 text-foreground">
-        <header class="flex items-center gap-2.5">
-            <Link
-                :href="`/petugas/aktivitas${activityDate}`"
-                aria-label="Kembali ke daftar tugas"
-                class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-                <ArrowLeft class="size-5" aria-hidden="true" />
-            </Link>
-            <h1>Detail tugas</h1>
-        </header>
+    <div
+        class="min-w-0 space-y-[var(--admin-content-gap)] pb-8 text-foreground"
+    >
+        <PetugasDetailHeader
+            title="Detail tugas"
+            :back-href="
+                ['harvested', 'cancelled'].includes(task.subblok.status ?? '')
+                    ? '/petugas/aktivitas?view=history'
+                    : `/petugas/aktivitas${activityDate}`
+            "
+            back-label="Kembali ke daftar tugas"
+        />
 
         <section
             class="petugas-card overflow-hidden"
             aria-label="Informasi tugas"
         >
-            <div class="bg-primary/5 p-4">
-                <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="p-4">
+                <div class="flex items-start gap-3">
                     <span
-                        class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
+                        class="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
                     >
                         <component
                             :is="
@@ -85,26 +86,21 @@ function completedAtLabel(value: string): string {
                                     ? Wheat
                                     : Sprout
                             "
-                            class="size-3.5"
+                            class="size-5"
                             aria-hidden="true"
                         />
-                        {{ sopTaskCategoryLabel(task) }}
                     </span>
-                    <div class="flex flex-wrap items-center gap-1.5">
-                        <span
-                            class="rounded-xl border border-primary/25 bg-card px-2.5 py-1.5 text-xs font-semibold text-primary"
-                            >SOP</span
+                    <div class="min-w-0 flex-1">
+                        <h2 class="text-lg leading-6 font-semibold break-words">
+                            {{ task.name }}
+                        </h2>
+                        <p
+                            class="mt-0.5 text-xs leading-5 text-muted-foreground"
                         >
-                        <span
-                            class="rounded-xl bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground"
-                        >
-                            Wajib
-                        </span>
+                            {{ sopTaskCategoryLabel(task) }} · SOP · Wajib
+                        </p>
                     </div>
                 </div>
-                <h2 class="mt-3 text-xl leading-6 font-semibold break-words">
-                    {{ task.name }}
-                </h2>
                 <p
                     class="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground"
                 >
@@ -125,12 +121,17 @@ function completedAtLabel(value: string): string {
                     class="mt-3"
                     :status="task.status"
                     :urgency="task.urgency"
+                    :closed="
+                        ['harvested', 'cancelled'].includes(
+                            task.subblok.status ?? '',
+                        )
+                    "
                 />
             </div>
             <dl
                 class="grid grid-cols-2 divide-x divide-border border-t border-border"
             >
-                <div class="min-w-0 p-3.5">
+                <div class="min-w-0 p-4">
                     <dt
                         class="flex items-center gap-1.5 text-xs text-muted-foreground"
                     >
@@ -148,7 +149,7 @@ function completedAtLabel(value: string): string {
                         }}
                     </dd>
                 </div>
-                <div class="min-w-0 p-3.5">
+                <div class="min-w-0 p-4">
                     <dt
                         class="flex items-center gap-1.5 text-xs text-muted-foreground"
                     >
@@ -166,13 +167,13 @@ function completedAtLabel(value: string): string {
             <dl
                 class="grid grid-cols-2 divide-x divide-border border-t border-border"
             >
-                <div class="min-w-0 p-3.5">
+                <div class="min-w-0 p-4">
                     <dt class="text-xs text-muted-foreground">Varietas</dt>
                     <dd class="mt-1.5 text-sm font-semibold break-words">
                         {{ task.subblok.variety.name }}
                     </dd>
                 </div>
-                <div class="min-w-0 p-3.5">
+                <div class="min-w-0 p-4">
                     <dt class="text-xs text-muted-foreground">Estimasi HOK</dt>
                     <dd class="mt-1.5 text-sm font-semibold tabular-nums">
                         {{

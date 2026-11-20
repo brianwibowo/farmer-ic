@@ -9,12 +9,14 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
+use App\Models\PlantObservation;
 use App\Models\User;
 use App\Support\ActivityDetailMap;
 use App\Support\ActivityPhotoFile;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Gate;
 
 class PetugasReportReadService
 {
@@ -134,6 +136,11 @@ class PetugasReportReadService
                 return null;
             }
             $values = array_filter($detail->attributesToArray(), fn ($value) => $value !== null && $value !== '') + $values;
+        } elseif ($code === 'maintenance' && Gate::forUser($actor)->allows('viewAny', [PlantObservation::class, $farm->team])) {
+            $observation = PlantObservation::visibleTo($actor, $farm->team)->where('activity_id', $activity->id)->first();
+            if ($observation !== null && $observation->growth_phase !== null && $observation->growth_phase !== '') {
+                $values['growth_phase'] = $observation->growth_phase;
+            }
         }
 
         return $this->highlights->format($code, $values);

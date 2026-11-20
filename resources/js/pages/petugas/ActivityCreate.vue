@@ -21,6 +21,7 @@ import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
 import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
+import { getGrowthStageAtHst, resolveGrowthProfile } from '@/data/growthStages';
 import type { PetugasTask } from '@/types/petugas-task';
 import {
     activityDetailMaximumErrors,
@@ -29,14 +30,65 @@ import {
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<{
-    task: PetugasTask;
-    fields: ActivityField[];
-    areaLimitM2: number;
-    numericLimits: { workerCount: number; quantityKg: number };
-    today: string;
-    workDate: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        task: PetugasTask;
+        fields: ActivityField[];
+        requiresWorkerCount?: boolean;
+        areaLimitM2: number;
+        numericLimits: { workerCount: number; quantityKg: number };
+        today: string;
+        workDate: string;
+    }>(),
+    { requiresWorkerCount: true },
+);
+const showWorkerCount = computed(
+    () =>
+        props.requiresWorkerCount &&
+        props.task.activity_category !== 'growth_observation',
+);
+const growthProfile = computed(() =>
+    resolveGrowthProfile(
+        props.task.subblok.commodity?.name,
+        props.task.subblok.variety?.name,
+    ),
+);
+const suggestedGrowthStage = computed(() =>
+    growthProfile.value
+        ? getGrowthStageAtHst(growthProfile.value, props.task.subblok.hst)
+        : null,
+);
+const resolvedFields = computed<ActivityField[]>(() =>
+    props.fields.map((field) => {
+        if (field.key !== 'growth_phase') {
+            return field;
+        }
+        const profile = growthProfile.value;
+        if (!profile) {
+            return {
+                ...field,
+                type: 'text',
+                placeholder: 'Contoh: Vegetatif, Pembungaan, Siap panen',
+            };
+        }
+        const suggested = suggestedGrowthStage.value;
+        return {
+            ...field,
+            type: 'select',
+            options: profile.stages.map((stage) => stage.label),
+            optionLabels: Object.fromEntries(
+                profile.stages.map((stage) => [
+                    stage.label,
+                    `${stage.number}. ${stage.label} (${stage.range})${stage.number === suggested?.number ? ' — Sesuai HST' : ''}`,
+                ]),
+            ),
+            hint:
+                suggested && props.task.subblok.hst !== null
+                    ? `Saran sesuai umur tanaman (${props.task.subblok.hst} HST): ${suggested.label}.`
+                    : undefined,
+        };
+    }),
+);
 const form = useForm({
     schema: 'taxonomy',
     work_date: props.workDate,
@@ -59,23 +111,27 @@ const { compressing, compressionStatus, fallbackNotice, preparePhotos } =
     usePhotoCompression(() => form.photos);
 const numericErrors = computed<Record<string, string>>(() => {
     const result = activityDetailMaximumErrors(
-        props.fields,
+        resolvedFields.value,
         form.details,
         props.areaLimitM2,
         props.numericLimits.quantityKg,
     );
-    const workerError = maximumError(
-        form.worker_count,
-        props.numericLimits.workerCount,
-        'Jumlah pekerja',
-    );
-    if (workerError) result.worker_count = workerError;
+    if (showWorkerCount.value) {
+        const workerError = maximumError(
+            form.worker_count,
+            props.numericLimits.workerCount,
+            'Jumlah pekerja',
+        );
+        if (workerError) result.worker_count = workerError;
+    }
     return result;
 });
 const noArea = computed(
     () =>
         props.areaLimitM2 === 0 &&
-        props.fields.some((field) => field.key === 'area' && !field.optional),
+        resolvedFields.value.some(
+            (field) => field.key === 'area' && !field.optional,
+        ),
 );
 const errors = computed<Record<string, string>>(() => ({
     ...form.errors,
@@ -167,7 +223,9 @@ function submit(): void {
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto bukti.';
     if (Object.keys(clientErrors.value).length) return;
-    form.post(`/petugas/tasks/${props.task.id}/aktivitas`, {
+    form.transform(({ worker_count, ...rest }) =>
+        showWorkerCount.value ? { worker_count, ...rest } : rest,
+    ).post(`/petugas/tasks/${props.task.id}/aktivitas`, {
         forceFormData: true,
         preserveScroll: true,
     });
@@ -320,13 +378,14 @@ function submit(): void {
                         <h2 class="text-base font-semibold">Hasil pekerjaan</h2>
                     </div>
                     <ActivityWorkerCount
+                        v-if="showWorkerCount"
                         v-model="form.worker_count"
                         :maximum="numericLimits.workerCount"
                         :error="errors.worker_count"
                     />
                     <ActivityDetailFields
                         v-model="form.details"
-                        :fields="fields"
+                        :fields="resolvedFields"
                         :errors="errors"
                         :area-limit-m2="areaLimitM2"
                         compact

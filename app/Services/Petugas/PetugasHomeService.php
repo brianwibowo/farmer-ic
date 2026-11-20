@@ -10,6 +10,7 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
 
 class PetugasHomeService
@@ -40,7 +41,7 @@ class PetugasHomeService
             ->whereHas('block', fn ($blocks) => $blocks->visibleTo($actor, $team)->where('farm_id', $visibleFarm->id));
         $counts = (clone $cycles)->selectRaw('status, COUNT(*) AS total')->groupBy('status')->pluck('total', 'status');
         $tasks = PlantingCycleTask::visibleTo($actor, $team)
-            ->whereIn('planting_cycle_id', (clone $cycles)->select('id'))
+            ->whereIn('planting_cycle_id', (clone $cycles)->whereIn('status', SubblockLifecycle::RUNNING)->select('id'))
             ->whereRaw('COALESCE(rescheduled_date, scheduled_date) = ?', [$today->toDateString()])
             ->whereIn('status', ['pending', 'in_progress', 'completed']);
         $total = (clone $tasks)->count();

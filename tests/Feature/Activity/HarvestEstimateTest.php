@@ -516,7 +516,7 @@ class HarvestEstimateTest extends TestCase
         $this->assertSame('harvested', $this->cycle->fresh()->status);
         $this->assertSame('completed', $task->fresh()->status);
         $this->assertSame('2027-02-10', $this->cycle->fresh()->estimated_harvest_at->toDateString());
-        $this->actingAs($this->petugas)->get('/petugas/kebun')->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($this->petugas)->get('/petugas/kebun?view=history')->assertInertia(fn (Assert $page) => $page
             ->where('garden.batches.data.0.status', 'harvested')
             ->where('garden.batches.data.0.estimated_harvest_at', '2027-02-10'));
     }

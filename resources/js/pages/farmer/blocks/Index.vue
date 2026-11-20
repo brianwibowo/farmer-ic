@@ -30,6 +30,7 @@ const props = defineProps<{
     blockCapacity: BlockFormCapacity;
     batchPermissions: Record<string, boolean>;
     harvestPermissions: Record<string, boolean>;
+    filterBatches: boolean;
     summary: { total: number; active: number; active_area_ha: string };
     filters: { search: string; status: string; per_page: number };
     can: { create: boolean };
@@ -147,6 +148,7 @@ function search(): void {
         :harvest-permissions="harvestPermissions"
         :capacity="blockCapacity"
         :can-create="can.create"
+        :enable-batch-filter="filterBatches"
         :theme="theme"
         :total="blocks.total"
         :client-pagination="false"

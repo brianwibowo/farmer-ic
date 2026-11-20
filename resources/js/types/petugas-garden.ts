@@ -34,6 +34,7 @@ export type GardenBatch = {
 };
 
 export type PetugasGarden = {
+    view: 'running' | 'history';
     farm: {
         id: string;
         name: string;

@@ -30,14 +30,24 @@ class StoreTaskActivityRequest extends FormRequest
         return $task instanceof PlantingCycleTask && Gate::allows('recordTask', [FarmActivity::class, $task]);
     }
 
+    protected function prepareForValidation(): void
+    {
+        $details = $this->input('details');
+        if (is_array($details) && is_string($details['growth_phase'] ?? null)) {
+            $details['growth_phase'] = trim($details['growth_phase']);
+            $this->merge(['details' => $details]);
+        }
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
         $task = $this->route('task');
         $fields = $task instanceof PlantingCycleTask ? TaskActivityFields::forTask($task) : [];
+        $requiresWorkerCount = ! ($task instanceof PlantingCycleTask) || TaskActivityFields::requiresWorkerCount($task);
         $rules = [
             'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()],
-            'worker_count' => ['required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
+            'worker_count' => [$requiresWorkerCount ? 'required' : 'nullable', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
             'notes' => ['nullable', 'string', 'max:5000'],
             'photos' => ['required', 'array', 'min:1', 'max:5'],
             'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
@@ -65,7 +75,7 @@ class StoreTaskActivityRequest extends FormRequest
         // Existing report clients retain their legacy canonical-unit contract.
         // The current UI uses the taxonomy form contract with explicit units.
         $rules['schema'] = ['nullable', 'in:taxonomy'];
-        if ($this->input('schema') === 'taxonomy' && $task instanceof PlantingCycleTask) {
+        if ($this->input('schema') === 'taxonomy' && $task instanceof PlantingCycleTask && TaskActivityFields::activityCode($task) !== 'growth_observation') {
             $rules = array_filter($rules, fn ($key) => $key !== 'details' && ! str_starts_with($key, 'details.'), ARRAY_FILTER_USE_KEY);
             $rules += \App\Support\VoluntaryActivityFields::rules(TaskActivityFields::activityCode($task) ?? '');
         }
