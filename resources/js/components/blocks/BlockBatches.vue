@@ -249,6 +249,21 @@ const progressSummary = computed(() => {
                         >
                     </div>
                 </header>
+                <div
+                    v-if="batch.cancellation_reason"
+                    class="mt-4 rounded-xl bg-muted/50 p-3 text-sm"
+                >
+                    <p class="font-semibold">Alasan penutupan</p>
+                    <p class="mt-1 break-words whitespace-pre-line">
+                        {{ batch.cancellation_reason }}
+                    </p>
+                    <p
+                        v-if="batch.cancelled_at"
+                        class="mt-1 text-xs text-muted-foreground"
+                    >
+                        Ditutup {{ blockDate(batch.cancelled_at) }}
+                    </p>
+                </div>
                 <dl
                     class="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3"
                 >

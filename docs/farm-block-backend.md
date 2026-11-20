@@ -61,10 +61,20 @@ dapat diselesaikan, dilewati, atau dijadwalkan ulang. Pemeriksaan ini dilakukan
 di service dalam transaksi dengan urutan kunci lahan, subblok, lalu tugas;
 penutupan panen yang sudah tersedia tetap menyelesaikan tugas panen terbuka
 sebagai bagian dari transaksinya. Riwayat tidak menciptakan tanggal atau pelaku
-penutupan yang tidak tercatat. Alur insiden/pembatalan dan pembukaan kembali
-subblok tidak termasuk implementasi ini. Integrasi pembatalan mendatang perlu
-mengunci lahan, subblok, lalu tugas dalam urutan yang sama agar selaras dengan
-penulisan laporan dan perubahan tugas.
+penutupan yang tidak tercatat. Pembukaan kembali subblok tidak tersedia.
+
+Admin dapat membatalkan seluruh subblok `planned`/`active` dari tiket insiden
+`emergency` yang belum selesai dan terhubung langsung ke subblok itu. Alasan
+wajib disimpan pada subblok bersama waktu dan pelaku. Semua tiket `open` atau
+`in_progress` pada subblok yang sama diselesaikan dengan alasan tersebut;
+penanda pada tiket membedakan pemicu dan tiket terkait serta mencegah keduanya
+dibuka kembali. Tiket yang sudah selesai sebelumnya tidak berubah. Tugas tidak
+ditulis ulang, laporan sebelumnya tetap tersimpan, dan kapasitas subblok
+dilepas. Panen aktual tetap dihitung; proyeksi subblok dibatalkan tidak dihitung.
+Petugas aktif yang ditugaskan pada lahan menerima satu notifikasi dalam aplikasi,
+tanpa WhatsApp/email; akses notifikasi mengikuti penugasan saat dibaca.
+Pembatalan mengunci lahan, subblok, tiket, lalu laporan dalam transaksi agar
+selaras dengan penulisan laporan dan perubahan tugas.
 
 ### Pembaruan tahap oleh laporan
 

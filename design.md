@@ -828,6 +828,13 @@ tasks and reports read-only. Admin block tables provide a default Berjalan
 filter and Selesai panen, Dibatalkan, and Semua options without hiding empty
 blocks or changing capacity, dashboard, or historical-report calculations.
 
+An Admin may cancel a running subblock from its unresolved emergency incident
+ticket. Use a destructive confirmation dialog with a required reason and a clear
+explanation that the whole subblock closes, open incident tickets are resolved,
+and capacity is released. Show the saved reason on authorized incident details
+and cancelled subblock history; automatically resolved tickets cannot reopen.
+An in-app notice links assigned Petugas to the triggering incident.
+
 Subblok cards distinguish reserved area from actual planted area and show batch
 number, subblok label, planting round, status, actual/planned planting date, HST,
 and estimated harvest. Draw stage progress only from persisted stages; it is a

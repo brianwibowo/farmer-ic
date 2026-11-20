@@ -58,6 +58,8 @@ export type PreparationBatch = {
     planned_planting_at: string | null;
     planted_at: string | null;
     status: string;
+    cancellation_reason?: string | null;
+    cancelled_at?: string | null;
     stages: BatchStage[];
     age?: BatchAge;
     growth?: BatchGrowth;

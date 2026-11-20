@@ -36,13 +36,14 @@ class ExecutiveSummaryService
         $commodities = Commodity::visibleTo($actor, $team)->orderBy('name')->get()->keyBy('id');
         $blocks = FarmBlock::visibleTo($actor, $team)->whereIn('farm_id', $farms->modelKeys())->get()->keyBy('id');
         $legalities = FarmLegality::visibleTo($actor, $team)->whereIn('farm_id', $farms->modelKeys())->get()->keyBy('farm_id');
-        $cycles = PlantingCycle::visibleTo($actor, $team)->whereIn('farm_id', $farms->modelKeys())
-            ->whereIn('status', ['planned', 'active', 'harvested'])
+        $allCycles = PlantingCycle::visibleTo($actor, $team)->whereIn('farm_id', $farms->modelKeys())
+            ->whereIn('status', ['planned', 'active', 'harvested', 'cancelled'])
             ->with([
                 'variety' => fn ($q) => $q->visibleTo($actor, $team)
                     ->with(['commodity' => fn ($q) => $q->visibleTo($actor, $team)]),
             ])->get();
-        $cycleCommodityIds = $cycles->mapWithKeys(function (PlantingCycle $cycle) use ($blocks, $commodities) {
+        $cycles = $allCycles->whereIn('status', ['planned', 'active', 'harvested']);
+        $cycleCommodityIds = $allCycles->mapWithKeys(function (PlantingCycle $cycle) use ($blocks, $commodities) {
             // An existing but hidden variety must not be bypassed through a block.
             if ($cycle->variety_id !== null) {
                 return [$cycle->id => $cycle->variety?->commodity->id ?? ''];
@@ -55,7 +56,7 @@ class ExecutiveSummaryService
         $activities = FarmActivity::visibleTo($actor, $team)->whereIn('farm_id', $farms->modelKeys())
             ->where('activity_date', '<=', $now)->where('status', 'completed')->get()->keyBy('id');
         $harvests = HarvestDetail::visibleTo($actor, $team)->whereIn('activity_id', $activities->modelKeys())->get();
-        $cycleById = $cycles->keyBy('id');
+        $cycleById = $allCycles->keyBy('id');
         $harvests = $harvests->filter(function ($detail) use ($activities, $cycleById) {
             $activity = $activities->get($detail->activity_id);
             $cycle = $cycleById->get($activity->planting_cycle_id);
@@ -76,6 +77,8 @@ class ExecutiveSummaryService
         $farmOptions = $farms->map(function ($farm) use ($legalities, $cycles, $commodities, $harvests, $activities, $blocks, $cycleCommodityIds) {
             $party = trim((string) ($farm->land_tenure_party ?: $legalities->get($farm->id)?->institution));
             $cropIds = $cycles->toBase()->where('farm_id', $farm->id)->map(fn ($cycle) => $cycleCommodityIds->get($cycle->id))
+                ->merge($harvests->filter(fn ($detail) => $activities[$detail->activity_id]->farm_id === $farm->id)
+                    ->map(fn ($detail) => $cycleCommodityIds->get($activities[$detail->activity_id]->planting_cycle_id)))
                 ->merge($blocks->where('farm_id', $farm->id)->pluck('commodity_id')->filter(fn ($id) => $commodities->has($id)))
                 // Older local schemas may still store the default on farms; current schemas store it on blocks.
                 ->push($commodities->has($farm->getAttribute('commodity_id')) ? $farm->getAttribute('commodity_id') : null)->filter()->unique()->values();
@@ -83,6 +86,9 @@ class ExecutiveSummaryService
                 $cycles->where('farm_id', $farm->id)->contains(fn ($cycle) => $cycleCommodityIds->get($cycle->id) === '')
                 || $harvests->contains(fn ($detail) => $activities[$detail->activity_id]->farm_id === $farm->id
                     && ! $activities[$detail->activity_id]->planting_cycle_id && $cropIds->count() !== 1)
+                || $harvests->contains(fn ($detail) => $activities[$detail->activity_id]->farm_id === $farm->id
+                    && $activities[$detail->activity_id]->planting_cycle_id
+                    && $cycleCommodityIds->get($activities[$detail->activity_id]->planting_cycle_id) === '')
             ) {
                 $cropIds->push('');
             }

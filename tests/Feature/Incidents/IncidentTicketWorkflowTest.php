@@ -10,6 +10,7 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\IncidentTicket;
 use App\Models\PlantingCycle;
+use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
@@ -592,6 +593,148 @@ class IncidentTicketWorkflowTest extends TestCase
         $this->assertNull($ticket->activity->incidentDetail->affected_area_ha);
 
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
+    public function test_emergency_cancellation_closes_open_tickets_preserves_history_and_notifies_assigned_petugas(): void
+    {
+        $task = PlantingCycleTask::create([
+            'planting_cycle_id' => $this->cycle->id,
+            'planting_cycle_stage_id' => $this->cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
+            'activity_category' => 'maintenance', 'name' => 'Perawatan lanjutan',
+            'offset_days' => 20, 'tolerance_days' => 2, 'status' => 'pending', 'is_required' => true,
+        ]);
+        $secondPetugas = User::factory()->create(['role' => 'petugas', 'assigned_farm_id' => $this->farm->id]);
+        $this->team->members()->attach($secondPetugas, ['role' => TeamRole::Member->value]);
+        $trigger = $this->createOpenTicket('cycle');
+        $other = $this->createOpenTicket('cycle');
+        $old = $this->createOpenTicket('cycle');
+        $blockOnly = $this->createOpenTicket('block');
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$old->id.'/resolve', [
+            'resolution_note' => 'Sudah selesai sebelum pembatalan.',
+        ])->assertSessionHasNoErrors();
+        $this->post('/admin/incidents/'.$trigger->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $url = '/admin/incidents/'.$trigger->id.'/cancel-subblock';
+        $this->get('/admin/incidents/'.$trigger->id)->assertInertia(fn (Assert $page) => $page->where('ticket.can.cancel_subblock', true));
+        $this->post($url, ['reason' => '  '])->assertSessionHasErrors('reason');
+        $this->post($url, ['reason' => 'Tanaman rusak akibat banjir besar.', 'farm_id' => (string) \Illuminate\Support\Str::uuid()])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('cancelled', $this->cycle->fresh()->status);
+        $this->assertSame('pending', $task->fresh()->status);
+        $this->assertSame('Tanaman rusak akibat banjir besar.', $this->cycle->fresh()->getAttribute('cancellation_reason'));
+        $this->assertSame($this->admin->id, $this->cycle->fresh()->getAttribute('cancelled_by'));
+        $this->assertNotNull($this->cycle->fresh()->getAttribute('cancelled_at'));
+        foreach ([$trigger, $other] as $ticket) {
+            $ticket->refresh();
+            $this->assertSame('resolved', $ticket->status);
+            $this->assertSame('Tanaman rusak akibat banjir besar.', $ticket->resolution_note);
+            $this->assertSame('resolved', $ticket->activity->fresh()->status);
+            $this->post('/admin/incidents/'.$ticket->id.'/reopen', ['reason' => 'Perlu pemeriksaan ulang.'])->assertSessionHasErrors('status');
+        }
+        $this->assertSame('trigger', $trigger->getAttribute('cancellation_role'));
+        $this->assertSame('related', $other->getAttribute('cancellation_role'));
+        $this->assertSame('Sudah selesai sebelum pembatalan.', $old->fresh()->resolution_note);
+        $this->assertNull($old->fresh()->getAttribute('cancellation_role'));
+        $this->assertSame('open', $blockOnly->fresh()->status);
+        $this->get('/admin/incidents/'.$trigger->id)->assertInertia(fn (Assert $page) => $page
+            ->where('ticket.can.cancel_subblock', false)->where('ticket.can.reopen', false)
+            ->where('ticket.cancellation.reason', 'Tanaman rusak akibat banjir besar.')
+            ->where('ticket.cancellation.cancelled_at', fn ($date) => is_string($date) && str_ends_with($date, 'Z')));
+        $this->get('/admin/incidents/'.$old->id)->assertInertia(fn (Assert $page) => $page->where('ticket.can.reopen', true));
+        $this->post($url, ['reason' => 'Tidak boleh menutup dua kali.'])->assertSessionHasErrors('status');
+
+        $this->actingAs($this->petugas)->get('/petugas/kebun?view=history')
+            ->assertInertia(fn (Assert $page) => $page->where('garden.batches.data.0.cancellation_reason', 'Tanaman rusak akibat banjir besar.'));
+        $this->get('/petugas/incidents/'.$other->id)->assertInertia(fn (Assert $page) => $page
+            ->where('ticket.can.reopen', false)->where('ticket.cancellation.role', 'related'));
+        $this->post('/petugas/incidents/'.$other->id.'/reopen', ['reason' => 'Perlu pemeriksaan ulang.'])->assertSessionHasErrors('status');
+        $this->get('/notifications')->assertInertia(fn (Assert $page) => $page
+            ->where('unreadCount', 1)->where('notifications.data.0.type', 'subblock_cancelled')
+            ->where('notifications.data.0.content.ticket_id', $trigger->id));
+        $this->assertDatabaseHas('notifications', ['user_id' => $secondPetugas->id, 'type' => 'subblock_cancelled']);
+        $this->petugas->forceFill(['assigned_farm_id' => null])->save();
+        $this->actingAs($this->petugas->fresh())->get('/notifications/unread')->assertJson(['count' => 0]);
+    }
+
+    public function test_cancellation_requires_an_open_emergency_on_a_visible_subblock_and_admin_authority(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $blockOnly = $this->createOpenTicket('block');
+        $url = '/admin/incidents/'.$ticket->id.'/cancel-subblock';
+        $payload = ['reason' => 'Tanaman rusak akibat banjir besar.'];
+        $this->actingAs($this->admin)->get('/admin/incidents/'.$ticket->id)
+            ->assertInertia(fn (Assert $page) => $page->where('ticket.can.cancel_subblock', false));
+        $this->post($url, $payload)->assertSessionHasErrors('status');
+        $this->post('/admin/incidents/'.$blockOnly->id.'/cancel-subblock', $payload)->assertForbidden();
+        $this->actingAs($this->petugas)->post($url, $payload)->assertForbidden();
+        $outsider = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($outsider)->post($url, $payload)->assertForbidden();
+        $this->assertSame('active', $this->cycle->fresh()->status);
+        $this->assertSame('open', $ticket->fresh()->status);
+    }
+
+    public function test_emergency_cancellation_also_accepts_planned_subblocks(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $this->cycle->forceFill(['status' => 'planned'])->save();
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$ticket->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $this->post('/admin/incidents/'.$ticket->id.'/cancel-subblock', ['reason' => 'Lahan tergenang banjir.'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('cancelled', $this->cycle->fresh()->status);
+    }
+
+    public function test_missing_notification_grant_and_closed_subblocks_cannot_be_cancelled(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$ticket->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $roles = config('access.roles');
+        unset($roles['admin']['notifications.create']);
+        config(['access.roles' => $roles]);
+        $url = '/admin/incidents/'.$ticket->id.'/cancel-subblock';
+        $this->post($url, ['reason' => 'Lahan tergenang banjir.'])->assertForbidden();
+        $roles['admin']['notifications.create'] = 'any';
+        config(['access.roles' => $roles]);
+        $this->cycle->forceFill(['status' => 'harvested'])->save();
+        $this->get('/admin/incidents/'.$ticket->id)->assertInertia(fn (Assert $page) => $page
+            ->where('ticket.can.cancel_subblock', false));
+        $this->post($url, ['reason' => 'Lahan tergenang banjir.'])->assertSessionHasErrors('status');
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+    }
+
+    public function test_cancellation_rolls_back_if_a_ticket_has_an_unrelated_report(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $mismatched = $this->createOpenTicket('block');
+        $mismatched->forceFill(['planting_cycle_id' => $this->cycle->id])->save();
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$ticket->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $this->post('/admin/incidents/'.$ticket->id.'/cancel-subblock', ['reason' => 'Lahan tergenang banjir.'])
+            ->assertSessionHasErrors('status');
+        $this->assertSame('active', $this->cycle->fresh()->status);
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+        $this->assertSame('open', $mismatched->fresh()->status);
+        $this->assertDatabaseCount('notifications', 0);
+    }
+
+    public function test_superadmin_can_cancel_using_the_existing_global_bypass(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$ticket->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $superadmin = User::factory()->create(['role' => 'superadmin']);
+        $this->actingAs($superadmin)->post('/admin/incidents/'.$ticket->id.'/cancel-subblock', [
+            'reason' => 'Lahan tergenang banjir.',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('cancelled', $this->cycle->fresh()->status);
+        $this->assertSame($superadmin->id, $this->cycle->fresh()->getAttribute('cancelled_by'));
     }
 
     private function createOpenTicket(string $scope): IncidentTicket
