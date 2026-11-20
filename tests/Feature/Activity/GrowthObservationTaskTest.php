@@ -200,12 +200,15 @@ class GrowthObservationTaskTest extends TestCase
                 'work_date' => '2026-11-19',
                 'notes' => 'Pertumbuhan vegetatif seragam pada baris tengah.',
                 'details' => ['growth_phase' => 'Vegetatif'],
-                'photos' => [UploadedFile::fake()->image('vegetatif.jpg')],
+                'photos' => [UploadedFile::fake()->image('vegetatif.jpg', 4000, 2000)],
             ])->assertRedirect('/petugas/tasks/'.$observationTask->id);
 
         $activity = FarmActivity::query()->where('planting_cycle_task_id', $observationTask->id)->firstOrFail();
         $this->assertNull($activity->worker_count);
         $this->assertSame('maintenance', $activity->activityType->code);
+        $photo = $activity->photos()->firstOrFail();
+        $this->assertStringStartsWith('farms/'.$this->farm->id.'/'.$activity->id.'/', $photo->image_url);
+        $this->assertSame([2048, 1024], array_slice(getimagesizefromstring(Storage::disk('activity')->get($photo->image_url)), 0, 2));
 
         $observation = PlantObservation::query()->where('activity_id', $activity->id)->firstOrFail();
         $this->assertSame($this->cycle->id, $observation->planting_cycle_id);

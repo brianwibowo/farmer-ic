@@ -17,7 +17,7 @@ class PhotoUploadFeedback
                 continue;
             }
             $messages['photos.'.$index.'.uploaded'] = match ($file->getError()) {
-                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Foto melebihi batas unggahan server ('.ini_get('upload_max_filesize').' per file). Hubungi pengelola jika ukuran foto masih di bawah 10 MB.',
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Foto melebihi batas unggahan server ('.ini_get('upload_max_filesize').' per file). Hubungi pengelola jika ukuran foto masih di bawah 15 MB.',
                 UPLOAD_ERR_PARTIAL => 'Foto hanya terunggah sebagian. Pilih ulang foto dan coba lagi.',
                 UPLOAD_ERR_NO_TMP_DIR => 'Foto gagal diunggah: folder sementara PHP tidak tersedia. Pengelola perlu mengatur upload_tmp_dir dan memulai ulang server.',
                 UPLOAD_ERR_CANT_WRITE => 'Foto gagal diunggah: PHP tidak dapat menulis ke folder sementara. Pengelola perlu memeriksa izin dan ruang penyimpanan server.',

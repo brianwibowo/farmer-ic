@@ -32,7 +32,7 @@ class FarmImageUploadTest extends TestCase
 
     public function test_create_stores_a_private_image_under_its_persisted_farm_and_serves_an_authorized_url(): void
     {
-        $this->post('/admin/farm-management', [...$this->payload(), 'image' => UploadedFile::fake()->image('field.jpg')->size(10240)])
+        $this->post('/admin/farm-management', [...$this->payload(), 'image' => UploadedFile::fake()->image('field.jpg')->size(15360)])
             ->assertRedirect();
         $farm = Farm::query()->where('name', 'Lahan Dokumentasi')->firstOrFail();
         $this->assertMatchesRegularExpression('#^farms/'.$farm->id.'/[a-f0-9-]+\.jpg$#', $farm->image_url);
@@ -58,6 +58,18 @@ class FarmImageUploadTest extends TestCase
         $this->assertSame($new, $farm->fresh()->image_url);
     }
 
+    public function test_high_resolution_photo_under_ten_megabytes_is_accepted_as_a_user_upload(): void
+    {
+        $image = UploadedFile::fake()->image('48mp.jpg', 6048, 8064)->size(8704);
+        $this->post('/admin/farm-management', [...$this->payload(), 'image' => $image])->assertRedirect()->assertSessionHasNoErrors();
+        $farm = Farm::query()->where('name', 'Lahan Dokumentasi')->firstOrFail();
+        $contents = Storage::disk('farm')->get($farm->image_url);
+        $this->assertSame(file_get_contents($image->getPathname()), $contents);
+        $this->assertSame([6048, 8064], array_slice(getimagesizefromstring($contents), 0, 2));
+        $this->get(route('farms.image', $farm))->assertOk();
+        $this->assertSame(2048, config('photo_uploads.max_dimension'));
+    }
+
     public function test_image_can_be_explicitly_removed(): void
     {
         $farm = $this->withImage();
@@ -68,7 +80,7 @@ class FarmImageUploadTest extends TestCase
 
     public function test_file_validation_rejects_oversize_non_images_svg_and_client_supplied_storage_paths(): void
     {
-        foreach ([UploadedFile::fake()->image('large.jpg')->size(10241),
+        foreach ([UploadedFile::fake()->image('large.jpg')->size(15361),
             UploadedFile::fake()->create('document.pdf', 1, 'application/pdf'),
             UploadedFile::fake()->create('image.svg', 1, 'image/svg+xml')] as $file) {
             $this->post('/admin/farm-management', [...$this->payload(), 'image' => $file])

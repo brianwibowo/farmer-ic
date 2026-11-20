@@ -883,6 +883,18 @@ class PetugasTaskActivityTest extends TestCase
         ];
     }
 
+    public function test_five_photos_at_fifteen_megabytes_are_accepted_and_larger_files_are_rejected(): void
+    {
+        $url = '/petugas/tasks/'.$this->task->id.'/aktivitas';
+        $photos = array_map(fn ($index) => UploadedFile::fake()->image("photo-$index.jpg")->size(15360), range(1, 5));
+        $this->actingAs($this->actor)->post($url, [...$this->payload(), 'photos' => $photos])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $activity = FarmActivity::query()->where('planting_cycle_task_id', $this->task->id)->firstOrFail();
+        $this->assertCount(5, $activity->photos);
+        $tooLarge = UploadedFile::fake()->image('large.jpg')->size(15361);
+        $this->post($url, [...$this->payload(), 'photos' => [$tooLarge]])->assertSessionHasErrors('photos.0');
+    }
+
     public function test_real_tasks_and_form_use_persisted_category_and_location(): void
     {
         $this->actingAs($this->actor)->get('/petugas/tasks')->assertOk()->assertInertia(fn (Assert $page) => $page
