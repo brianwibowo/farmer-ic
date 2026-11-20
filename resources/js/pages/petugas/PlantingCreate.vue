@@ -58,14 +58,28 @@ const form = useForm({
         : '',
     area: String(props.areaLimitM2),
     area_unit: 'm²',
-    seed_name: '',
     quantity: '',
     quantity_unit: 'kg',
     bag_size: '',
     notes: '',
     photos: [] as File[],
 });
-type FieldKey = 'area' | 'seed_name' | 'quantity';
+const varietyLocked = computed(() =>
+    Boolean(props.cycle.planted_at && props.cycle.variety?.id),
+);
+watch(
+    () => [props.cycle.planted_at, props.cycle.variety?.id] as const,
+    ([plantedAt, varietyId]) => {
+        if (
+            plantedAt &&
+            varietyId &&
+            props.varieties.some((variety) => variety.id === varietyId)
+        ) {
+            form.variety_id = varietyId;
+        }
+    },
+);
+type FieldKey = 'area' | 'quantity';
 const fields = computed<
     {
         key: FieldKey;
@@ -84,7 +98,6 @@ const fields = computed<
         min: '0.0001',
         step: '0.0001',
     },
-    { key: 'seed_name', label: 'Nama benih / produk', type: 'text' },
     {
         key: 'quantity',
         label: 'Jumlah benih',
@@ -433,14 +446,22 @@ function submit(): void {
                             :disabled="
                                 form.processing ||
                                 !varieties.length ||
-                                varietyMismatch
+                                varietyMismatch ||
+                                varietyLocked
                             "
                             :class="fieldClass"
                             :aria-invalid="!!errors.variety_id"
                             :aria-describedby="
-                                errors.variety_id
-                                    ? 'planting-variety-error'
-                                    : undefined
+                                [
+                                    varietyLocked
+                                        ? 'planting-variety-locked'
+                                        : null,
+                                    errors.variety_id
+                                        ? 'planting-variety-error'
+                                        : null,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' ') || undefined
                             "
                         >
                             <AppSelectOption
@@ -451,6 +472,13 @@ function submit(): void {
                                 {{ variety.name }}
                             </AppSelectOption>
                         </AppSelect>
+                        <p
+                            v-if="varietyLocked"
+                            id="planting-variety-locked"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Varietas mengikuti penanaman pertama pada subblok ini.
+                        </p>
                         <p
                             v-if="errors.variety_id"
                             id="planting-variety-error"

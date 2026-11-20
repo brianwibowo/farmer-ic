@@ -12,6 +12,12 @@ export type PlantingCycleContext = {
     variety: { id: string; name: string } | null;
 };
 
+export type PlantingWindow = {
+    starts_at: string;
+    ends_at: string;
+    expired: boolean;
+};
+
 export type PlantingReport = {
     id: string;
     date: string;

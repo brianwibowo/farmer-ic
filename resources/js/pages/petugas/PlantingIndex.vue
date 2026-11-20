@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, LoaderCircle, Plus, RefreshCw, Sprout } from '@lucide/vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { ArrowLeft, Plus, Sprout } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import SubblokCreateDialog, {
     type SubblokBlockOption,
 } from '@/components/petugas/SubblokCreateDialog.vue';
 import { Button } from '@/components/ui/button';
 import { useActivityDate } from '@/composables/useActivityDate';
-import type { PlantingCycleContext } from '@/types/planting';
+import type { PlantingCycleContext, PlantingWindow } from '@/types/planting';
 
 const props = defineProps<{
     farm: { id: string; name: string };
@@ -15,13 +15,12 @@ const props = defineProps<{
     selectedBlockId: string | null;
     cycles: (PlantingCycleContext & {
         canRecord: boolean;
-        canSync: boolean;
+        canSync?: boolean;
         blockedReason: string | null;
+        plantingWindow: PlantingWindow | null;
     })[];
 }>();
-const syncForm = useForm({});
 const activityDate = useActivityDate();
-const pendingId = ref<string | null>(null);
 const createOpen = ref(false);
 const workDateParam = computed(() =>
     activityDate.value ? activityDate.value.slice('?work_date='.length) : null,
@@ -49,15 +48,20 @@ function blockFilterHref(blockId: string | null): string {
     const query = params.toString();
     return query ? `/petugas/penanaman?${query}` : '/petugas/penanaman';
 }
-function synchronize(id: string): void {
-    if (syncForm.processing) return;
-    pendingId.value = id;
-    syncForm.post(`/petugas/subbloks/${id}/tasks/sync`, {
-        preserveScroll: true,
-        onFinish: () => {
-            pendingId.value = null;
-        },
-    });
+function formatWindowDate(value: string): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const date = new Date(`${value}T00:00:00Z`);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat('id-ID', {
+              dateStyle: 'medium',
+              timeZone: 'UTC',
+          }).format(date);
+}
+function formatWindowRange(window: PlantingWindow): string {
+    const start = formatWindowDate(window.starts_at);
+    const end = formatWindowDate(window.ends_at);
+    return start === end ? start : `${start} – ${end}`;
 }
 </script>
 
@@ -168,15 +172,30 @@ function synchronize(id: string): void {
         <article
             v-for="cycle in cycles"
             :key="cycle.id"
-            class="space-y-3 rounded-xl border border-border bg-card p-4"
+            class="space-y-3 rounded-xl border p-4"
+            :class="
+                cycle.plantingWindow?.expired
+                    ? 'border-muted-foreground/40 bg-muted/80 dark:border-muted-foreground/35 dark:bg-card/40'
+                    : 'border-border bg-card'
+            "
         >
             <div class="flex items-start gap-3">
                 <Sprout
-                    class="mt-1 size-5 shrink-0 text-primary"
+                    class="mt-1 size-5 shrink-0"
+                    :class="
+                        cycle.plantingWindow?.expired
+                            ? 'text-muted-foreground'
+                            : 'text-primary'
+                    "
                     aria-hidden="true"
                 />
                 <div class="min-w-0">
-                    <h2 class="text-base leading-6 font-semibold">
+                    <h2
+                        class="text-base leading-6 font-semibold"
+                        :class="{
+                            'text-foreground/75': cycle.plantingWindow?.expired,
+                        }"
+                    >
                         {{ cycle.block.name }} · {{ cycle.subblock_label }}
                     </h2>
                     <p class="text-xs text-muted-foreground">
@@ -187,6 +206,17 @@ function synchronize(id: string): void {
                                 : cycle.status === 'planned'
                                   ? 'Belum dicatat ditanam'
                                   : 'Subblok ditutup'
+                        }}
+                    </p>
+                    <p
+                        v-if="cycle.plantingWindow?.expired"
+                        class="mt-1 text-xs leading-5 text-muted-foreground"
+                    >
+                        Lewat 3 hari sejak tanam pertama ·
+                        {{
+                            cycle.canRecord
+                                ? `Tambahan hanya untuk tanggal ${formatWindowRange(cycle.plantingWindow)}.`
+                                : `Rentang tanam ${formatWindowRange(cycle.plantingWindow)}.`
                         }}
                     </p>
                 </div>
@@ -227,7 +257,14 @@ function synchronize(id: string): void {
                 </dl>
             </details>
             <div class="flex flex-wrap gap-2">
-                <Button as-child variant="outline" class="min-h-11 rounded-xl"
+                <Button
+                    as-child
+                    :variant="
+                        cycle.plantingWindow?.expired || !cycle.canRecord
+                            ? 'outline'
+                            : 'default'
+                    "
+                    class="min-h-11 rounded-xl"
                     ><Link
                         :href="`/petugas/subbloks/${cycle.id}/penanaman${activityDate}`"
                         >{{
@@ -236,19 +273,6 @@ function synchronize(id: string): void {
                                 : 'Lihat realisasi'
                         }}</Link
                     ></Button
-                ><Button
-                    v-if="cycle.canSync"
-                    type="button"
-                    class="min-h-11 rounded-xl"
-                    :disabled="syncForm.processing"
-                    @click="synchronize(cycle.id)"
-                    ><LoaderCircle
-                        v-if="pendingId === cycle.id"
-                        class="size-4 animate-spin motion-reduce:animate-none"
-                        aria-hidden="true"
-                    /><RefreshCw v-else class="size-4" aria-hidden="true" />{{
-                        pendingId === cycle.id ? 'Menyiapkan…' : 'Siapkan tugas'
-                    }}</Button
                 >
             </div>
         </article>
