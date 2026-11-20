@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { createRenderer, h } from 'vue';
-import { router } from '@inertiajs/vue3';
 import type { ExecutiveSummaryData } from '@/types/owner-executive';
 import { useExecutiveSummary } from './useExecutiveSummary';
 
-vi.mock('@inertiajs/vue3', () => ({ router: { get: vi.fn() } }));
+const mocks = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock('@inertiajs/vue3', () => ({ router: { get: mocks.get } }));
 vi.mock('@/lib/toast', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 describe('executive summary automatic refresh', () => {
@@ -45,9 +45,9 @@ describe('executive summary automatic refresh', () => {
         app.mount({});
 
         vi.advanceTimersByTime(299_999);
-        expect(router.get).not.toHaveBeenCalled();
+        expect(mocks.get).not.toHaveBeenCalled();
         vi.advanceTimersByTime(1);
-        expect(router.get).toHaveBeenCalledWith(
+        expect(mocks.get).toHaveBeenCalledWith(
             '/ringkasan-eksekutif',
             expect.objectContaining({ year: 2026, farm: 'farm-a' }),
             expect.objectContaining({
@@ -58,11 +58,11 @@ describe('executive summary automatic refresh', () => {
         );
         page.visibilityState = 'hidden';
         vi.advanceTimersByTime(300_000);
-        expect(router.get).toHaveBeenCalledTimes(1);
+        expect(mocks.get).toHaveBeenCalledTimes(1);
         app.unmount();
         page.visibilityState = 'visible';
         vi.advanceTimersByTime(300_000);
-        expect(router.get).toHaveBeenCalledTimes(1);
+        expect(mocks.get).toHaveBeenCalledTimes(1);
         vi.unstubAllGlobals();
         vi.useRealTimers();
     });
