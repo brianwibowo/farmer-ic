@@ -124,12 +124,25 @@ class SopTemplateService
         });
     }
 
-    /** @param array<string, mixed> $data */
-    public function update(SopTemplate $template, array $data): SopTemplate
+    /** @param array<string, mixed> $data
+     * @return array{template: SopTemplate, synced_cycles: int, created_tasks: int}
+     */
+    public function updateWithTaskSync(SopTemplate $template, array $data, ?User $actor = null): array
     {
-        $template->fill(Arr::only($data, ['name', 'description', 'is_active']))->save();
+        return DB::transaction(function () use ($template, $data, $actor): array {
+            $template->fill(Arr::only($data, ['name', 'description', 'is_active']))->save();
+            $sync = $actor instanceof User && $template->is_active
+                ? app(PlantingCycleTaskService::class)->synchronizeUnboundForSop($template, $actor)
+                : ['synced_cycles' => 0, 'created_tasks' => 0];
 
-        return $this->detail($template);
+            return ['template' => $this->detail($template), ...$sync];
+        });
+    }
+
+    /** @param array<string, mixed> $data */
+    public function update(SopTemplate $template, array $data, ?User $actor = null): SopTemplate
+    {
+        return $this->updateWithTaskSync($template, $data, $actor)['template'];
     }
 
     public function delete(SopTemplate $template): void
@@ -178,7 +191,8 @@ class SopTemplateService
         });
     }
 
-    public function publish(SopTemplateVersion $version, User $actor): SopTemplateVersion
+    /** @return array{version: SopTemplateVersion, synced_cycles: int, created_tasks: int} */
+    public function publishWithTaskSync(SopTemplateVersion $version, User $actor): array
     {
         if ($version->status !== 'draft') {
             throw ValidationException::withMessages(['version' => 'Hanya versi draft yang dapat dipublikasikan.']);
@@ -187,7 +201,7 @@ class SopTemplateService
             throw ValidationException::withMessages(['version' => 'Tambahkan minimal satu langkah sebelum mempublikasikan SOP.']);
         }
 
-        return DB::transaction(function () use ($version, $actor): SopTemplateVersion {
+        return DB::transaction(function () use ($version, $actor): array {
             SopTemplateVersion::query()
                 ->where('sop_template_id', $version->sop_template_id)
                 ->whereKeyNot($version->id)
@@ -200,8 +214,18 @@ class SopTemplateService
                 'published_at' => now(),
             ])->save();
 
-            return $version->load(['tasks', 'publisher:id,name']);
+            $template = SopTemplate::query()->with('team')->find($version->sop_template_id);
+            $sync = $template instanceof SopTemplate
+                ? app(PlantingCycleTaskService::class)->synchronizeUnboundForSop($template, $actor)
+                : ['synced_cycles' => 0, 'created_tasks' => 0];
+
+            return ['version' => $version->load(['tasks', 'publisher:id,name']), ...$sync];
         });
+    }
+
+    public function publish(SopTemplateVersion $version, User $actor): SopTemplateVersion
+    {
+        return $this->publishWithTaskSync($version, $actor)['version'];
     }
 
     /** @param array<string, mixed> $data */

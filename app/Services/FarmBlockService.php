@@ -352,10 +352,12 @@ class FarmBlockService
         });
     }
 
-    /** @param array<string, mixed> $data */
-    public function update(FarmBlock $block, User $actor, Team $team, array $data): FarmBlock
+    /** @param array<string, mixed> $data
+     * @return array{block: FarmBlock, synced_cycles: int, created_tasks: int}
+     */
+    public function updateWithTaskSync(FarmBlock $block, User $actor, Team $team, array $data): array
     {
-        return DB::transaction(function () use ($block, $actor, $team, $data): FarmBlock {
+        return DB::transaction(function () use ($block, $actor, $team, $data): array {
             $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
             $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
             $this->validateBlock($farm, array_replace($locked->only(['name', 'area_ha', 'is_active']), $data), $locked);
@@ -365,9 +367,16 @@ class FarmBlockService
                 ...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])),
                 ...$this->boundaryAttributes($data),
             ])->save();
+            $sync = app(PlantingCycleTaskService::class)->synchronizeUnboundForBlock($locked, $actor, $team);
 
-            return $locked->refresh();
+            return ['block' => $locked->refresh(), ...$sync];
         });
+    }
+
+    /** @param array<string, mixed> $data */
+    public function update(FarmBlock $block, User $actor, Team $team, array $data): FarmBlock
+    {
+        return $this->updateWithTaskSync($block, $actor, $team, $data)['block'];
     }
 
     /**
