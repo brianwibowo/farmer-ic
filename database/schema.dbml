@@ -180,6 +180,9 @@ Table planting_cycles {
   planting_window_checked_at timestamptz [note: 'Waktu command rekonsiliasi menutup window penanaman']
   block_id uuid [ref: > farm_blocks.id, note: 'Direct block ownership; null only for legacy cycles']
   farm_cycle_id uuid [note: 'Composite FK with farm_id enforces the same farm; nullable for legacy imports only']
+  cancellation_reason text
+  cancelled_at timestamptz
+  cancelled_by uuid [ref: > users.id]
   indexes {
     farm_cycle_id
     (farm_id, batch_number) [unique]
@@ -478,6 +481,7 @@ Table incident_tickets {
   reopened_at timestamptz
   created_at timestamptz
   updated_at timestamptz
+  cancellation_role varchar(20) [note: 'trigger | related; identifies incidents linked to a cancelled subblock']
 
   indexes {
     farm_id
