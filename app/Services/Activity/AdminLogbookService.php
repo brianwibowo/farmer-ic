@@ -187,8 +187,7 @@ class AdminLogbookService
             'farms' => array_values(Farm::visibleTo($actor, $team)->orderBy('name')->get(['id', 'name'])
                 ->map(fn (Farm $farm): array => ['id' => $farm->id, 'name' => $farm->name])->all()),
             'activity_types' => array_values(ActivityType::visibleTo($actor, $team)
-                ->where('is_active', true)
-                ->where(fn (Builder $q) => $q->where('is_selectable', true)->orWhereIn('id', (clone $activities)->select('activity_type_id')))
+                ->reportFilterable((clone $activities)->select('activity_type_id'))
                 ->orderBy('sort_order')
                 ->get(['id', 'code', 'name'])
                 ->map(fn (ActivityType $type): array => ['id' => $type->id, 'code' => $type->code, 'name' => $type->name])

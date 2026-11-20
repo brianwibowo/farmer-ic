@@ -435,7 +435,7 @@ class OwnerReadService
                 ->through(fn (FarmActivity $activity): array => $this->activityPayload($activity)),
             'filters' => $filters,
             'farms' => Farm::visibleTo($actor, $team)->orderBy('name')->get(['id', 'name']),
-            'activityTypes' => ActivityType::visibleTo($actor, $team)->where('is_active', true)->where('is_selectable', true)->orderBy('sort_order')->get(['id', 'code', 'name']),
+            'activityTypes' => ActivityType::visibleTo($actor, $team)->reportFilterable()->orderBy('sort_order')->get(['id', 'code', 'name']),
             'officers' => User::visibleTo($actor, $team)
                 ->whereHas('activities', fn ($activities) => $activities->visibleTo($actor, $team))
                 ->orderBy('name')->get(['id', 'name']),

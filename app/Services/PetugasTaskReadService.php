@@ -96,9 +96,11 @@ class PetugasTaskReadService
                 ...($canViewObservations ? ['observation' => fn ($q) => $q->visibleTo($actor, $team)] : []),
             ])
             ->orderByDesc('activity_date')->get()
-            ->map(function (FarmActivity $activity) use ($actor, $team, $canViewObservations): array {
+            ->map(function (FarmActivity $activity) use ($actor, $team, $task, $canViewObservations): array {
                 $log = DailyActivityLog::visibleTo($actor, $team)->find($activity->daily_activity_log_id);
-                $decoded = json_decode((string) $activity->getAttribute('task_details'), true);
+                $decoded = $task->activity_category === 'growth_observation' && ! $canViewObservations
+                    ? null
+                    : json_decode((string) $activity->getAttribute('task_details'), true);
                 $details = is_array($decoded) ? $decoded : [];
                 $observation = $canViewObservations ? $activity->observation : null;
                 if ($observation instanceof PlantObservation && $observation->growth_phase !== null) {
