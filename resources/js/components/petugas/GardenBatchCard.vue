@@ -51,7 +51,7 @@ const stageStatuses = {
                 />
                 <div class="min-w-0">
                     <h4 class="text-base font-semibold">
-                        Batch {{ batch.batch_number }}
+                        Subblok {{ batch.batch_number }}
                     </h4>
                     <p
                         class="mt-1 text-xs leading-5 break-words text-muted-foreground"

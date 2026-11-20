@@ -1,3 +1,4 @@
+import type { GeoJsonPolygon } from '@/lib/geoPolygon';
 import type { LandTenure } from '@/types/farms';
 
 export type GardenBlock = {
@@ -11,6 +12,8 @@ export type GardenBlock = {
     can_create_batch: boolean;
     land_clearing_started_at: string | null;
     land_clearing_completed_at: string | null;
+    boundary_geojson?: GeoJsonPolygon | null;
+    mapped_area_ha?: string | null;
 };
 
 export type GardenBatch = {

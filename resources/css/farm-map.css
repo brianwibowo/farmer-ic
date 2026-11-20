@@ -54,3 +54,69 @@
     color: var(--card-foreground);
     text-shadow: none;
 }
+
+.farm-map--drawing .leaflet-container {
+    cursor: crosshair;
+}
+
+.farm-map .farm-block-label {
+    border: 1px solid rgba(15, 23, 42, 0.2);
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.78);
+    color: #f8fafc;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.28);
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.farm-map .farm-block-label--selected {
+    border-color: #facc15;
+    background: rgba(15, 23, 42, 0.92);
+}
+
+.farm-map .farm-block-label::before {
+    display: none;
+}
+
+.farm-map .farm-block-vertex {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+}
+
+.farm-block-vertex__dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 3px solid #eab308;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.45);
+    cursor: grab;
+    transition: transform 120ms ease;
+}
+
+.farm-block-vertex__dot:hover {
+    transform: scale(1.15);
+}
+
+.farm-map .farm-block-gps-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+}
+
+.farm-block-gps-marker__dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: #2563eb;
+    border: 3px solid #ffffff;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
+}

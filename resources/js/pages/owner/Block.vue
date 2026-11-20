@@ -61,16 +61,16 @@ const origin = computed(() => ownerFarmOrigin(page.url));
     </section>
     <section aria-labelledby="block-batches">
         <h2 id="block-batches" class="text-base font-semibold">
-            Batch & timeline
+            Subblok & timeline
         </h2>
         <p class="mt-1 text-xs leading-5 text-muted-foreground">
-            Alokasi, realisasi, tahap, dan tugas mengikuti catatan setiap batch.
+            Alokasi, realisasi, tahap, dan tugas mengikuti catatan setiap subblok.
         </p>
         <p
             v-if="!cycles.length"
             class="mt-3 rounded-xl bg-muted p-4 text-sm leading-6 text-muted-foreground"
         >
-            Belum ada batch pada blok ini. Batch akan muncul setelah dicatat
+            Belum ada subblok pada blok ini. Subblok akan muncul setelah dicatat
             oleh Admin atau Petugas.
         </p>
         <div class="mt-4 space-y-4">
