@@ -107,11 +107,13 @@ const detail: IncidentTicketDetail = {
         },
     ],
     follow_up_blocked_reason: null,
+    cancellation: null,
     can: {
         respond: true,
         resolve_directly: true,
         resolve_by_follow_up: true,
         reopen: false,
+        cancel_subblock: false,
     },
 };
 
@@ -199,5 +201,42 @@ describe('incident ticketing pages', () => {
         expect(adminDetailHtml).toContain('Tanggapan &amp; Arahan Admin');
         expect(adminDetailHtml).toContain('Tutup &amp; Selesaikan Langsung');
         expect(adminDetailHtml).toContain('/admin/logbook/farm-1/log-1');
+    });
+
+    it('shows the cancellation action only when allowed and explains the final ticket', async () => {
+        const severities = [{ value: 'emergency' as const, label: 'Darurat' }];
+        const allowed = await renderToString(
+            h(AdminIncidentShow, {
+                ticket: {
+                    ...detail,
+                    can: { ...detail.can, cancel_subblock: true },
+                },
+                severities,
+            }),
+        );
+        expect(allowed).toContain('Tutup Subblok');
+
+        const closed = {
+            ...detail,
+            status: 'resolved' as const,
+            resolution_note: 'Banjir merusak seluruh tanaman.',
+            cancellation: {
+                reason: 'Banjir merusak seluruh tanaman.',
+                cancelled_at: '2026-11-18T04:00:00Z',
+                role: 'trigger' as const,
+            },
+            can: { ...detail.can, cancel_subblock: false, reopen: false },
+        };
+        const admin = await renderToString(
+            h(AdminIncidentShow, { ticket: closed, severities }),
+        );
+        const petugas = await renderToString(
+            h(PetugasIncidentShow, { ticket: closed }),
+        );
+        expect(admin).toContain('Banjir merusak seluruh tanaman.');
+        expect(admin).not.toContain('Tutup Subblok');
+        expect(petugas).toContain('Banjir merusak seluruh tanaman.');
+        expect(petugas).toContain('tidak dapat dibuka kembali');
+        expect(petugas).not.toContain('Buka kembali tiket');
     });
 });

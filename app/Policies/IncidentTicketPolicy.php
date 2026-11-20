@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\IncidentTicket;
+use App\Models\PlantingCycle;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 
@@ -26,6 +27,18 @@ class IncidentTicketPolicy extends ResourcePolicy
     {
         return $this->permissions->scope($user, $this->resource.'.update') === 'any'
             && $this->update($user, $ticket);
+    }
+
+    public function cancelSubblock(User $user, IncidentTicket $ticket): bool
+    {
+        $cycle = $ticket->plantingCycle;
+
+        return $this->respond($user, $ticket)
+            && $this->permissions->scope($user, 'users.view') === 'any'
+            && $this->permissions->scope($user, 'notifications.create') === 'any'
+            && $cycle instanceof PlantingCycle
+            && $cycle->farm_id === $ticket->farm_id
+            && Gate::forUser($user)->allows('configure', $cycle);
     }
 
     public function resolveByFollowUp(User $user, IncidentTicket $ticket): bool

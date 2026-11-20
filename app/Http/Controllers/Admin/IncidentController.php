@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\IncidentSeverity;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CancelIncidentSubblockRequest;
 use App\Http\Requests\Admin\ListIncidentsRequest;
 use App\Http\Requests\Admin\ResolveIncidentTicketRequest;
 use App\Http\Requests\Admin\RespondIncidentTicketRequest;
@@ -11,6 +12,7 @@ use App\Http\Requests\Incident\ReopenIncidentTicketRequest;
 use App\Models\IncidentTicket;
 use App\Models\Team;
 use App\Services\IncidentTicketService;
+use App\Services\SubblockCancellationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -73,6 +75,15 @@ class IncidentController extends Controller
         Gate::authorize('resolveDirectly', $incidentTicket);
         $this->tickets->resolveDirectly($incidentTicket, $request->user(), $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Tiket insiden ditandai selesai.']);
+
+        return back();
+    }
+
+    public function cancelSubblock(CancelIncidentSubblockRequest $request, IncidentTicket $incidentTicket, SubblockCancellationService $cancellations): RedirectResponse
+    {
+        Gate::authorize('cancelSubblock', $incidentTicket);
+        $cancellations->cancel($incidentTicket, $request->user(), $request->validated('reason'));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Subblok dibatalkan dan tiket terkait diselesaikan.']);
 
         return back();
     }

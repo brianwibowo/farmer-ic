@@ -200,6 +200,9 @@ function read(notice: InboxNotice): void {
                             Ketidaksesuaian SOP
                         </option>
                         <option value="incident_report">Laporan Insiden</option>
+                        <option value="subblock_cancelled">
+                            Subblok Dibatalkan
+                        </option>
                     </select>
                     <ChevronDown
                         class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"

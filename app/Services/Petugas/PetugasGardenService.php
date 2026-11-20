@@ -69,6 +69,9 @@ class PetugasGardenService
 
                 return [
                     ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
+                    'cancellation_reason' => $batch->getAttribute('cancellation_reason'),
+                    'cancelled_at' => $batch->getAttribute('cancelled_at') === null
+                        ? null : CarbonImmutable::parse($batch->getAttribute('cancelled_at'))->toISOString(),
                     'farm_cycle_number' => $cycleNumbers[$batch->getAttribute('farm_cycle_id')] ?? null,
                     'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
                     'planted_at' => $batch->planted_at?->toDateString(),

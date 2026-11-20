@@ -24,6 +24,8 @@ export type GardenBatch = {
     reserved_area_ha: string;
     planted_area_ha: string;
     status: string;
+    cancellation_reason?: string | null;
+    cancelled_at?: string | null;
     planned_planting_at: string | null;
     planted_at: string | null;
     estimated_harvest_at: string | null;
