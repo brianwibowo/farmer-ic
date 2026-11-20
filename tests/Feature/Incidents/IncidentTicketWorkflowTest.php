@@ -84,7 +84,7 @@ class IncidentTicketWorkflowTest extends TestCase
 
     public function test_petugas_submission_enforces_three_severities_and_two_initial_statuses(): void
     {
-        // Legacy 'Berat' and 'In Progress' are rejected at the HTTP boundary.
+        // Legacy 'Berat', legacy category 'Hama', and 'In Progress' are rejected at the HTTP boundary.
         $this->actingAs($this->petugas)
             ->post('/petugas/aktivitas/mandiri/incident', [
                 'work_date' => '2026-11-18',
@@ -92,15 +92,13 @@ class IncidentTicketWorkflowTest extends TestCase
                 'cycle_id' => $this->cycle->id,
                 'details' => [
                     'incident_category' => 'Hama',
-                    'description' => 'Ulat grayak muncul.',
-                    'area' => 200,
-                    'area_unit' => 'm²',
                     'severity' => 'Berat',
+                    'description' => 'Ulat grayak muncul.',
                     'incident_status' => 'In Progress',
                 ],
                 'photos' => [UploadedFile::fake()->image('incident.jpg')],
             ])
-            ->assertSessionHasErrors(['details.severity', 'details.incident_status']);
+            ->assertSessionHasErrors(['details.incident_category', 'details.severity', 'details.incident_status']);
 
         // Immediate resolution without immediate_action fails validation.
         $this->actingAs($this->petugas)
@@ -109,11 +107,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'worker_count' => 2,
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Alat rusak',
-                    'description' => 'Selang irigasi sobek.',
-                    'area' => 50,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Alat dan Tenaga Kerja',
                     'severity' => 'Ringan',
+                    'description' => 'Selang irigasi sobek.',
                     'incident_status' => 'Sudah ditangani langsung',
                     'immediate_action' => '',
                 ],
@@ -128,11 +124,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'worker_count' => 2,
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Alat rusak',
-                    'description' => 'Selang irigasi sobek.',
-                    'area' => 50,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Alat dan Tenaga Kerja',
                     'severity' => 'Ringan',
+                    'description' => 'Selang irigasi sobek.',
                     'incident_status' => 'Sudah ditangani langsung',
                     'immediate_action' => 'Mengganti sambungan selang baru.',
                 ],
@@ -148,6 +142,7 @@ class IncidentTicketWorkflowTest extends TestCase
         $this->assertSame('resolved', $ticket->activity->status);
         $this->assertSame(2, $ticket->activity->worker_count);
         $this->assertSame('light', $ticket->activity->incidentDetail->severity);
+        $this->assertNull($ticket->activity->incidentDetail->affected_area_ha);
 
         // Immediate resolution WITHOUT worker_count succeeds and stores null.
         $this->travel(1)->seconds();
@@ -156,11 +151,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'work_date' => '2026-11-18',
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Alat rusak',
-                    'description' => 'Kran air kendor.',
-                    'area' => 20,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Alat dan Tenaga Kerja',
                     'severity' => 'Ringan',
+                    'description' => 'Kran air kendor.',
                     'incident_status' => 'Sudah ditangani langsung',
                     'immediate_action' => 'Dikencangkan kembali.',
                 ],
@@ -180,11 +173,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'worker_count' => 0,
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Alat rusak',
-                    'description' => 'Pipa bocor.',
-                    'area' => 10,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Alat dan Tenaga Kerja',
                     'severity' => 'Ringan',
+                    'description' => 'Pipa bocor.',
                     'incident_status' => 'Sudah ditangani langsung',
                     'immediate_action' => 'Ditambal.',
                 ],
@@ -199,11 +190,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'work_date' => '2026-11-18',
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Banjir',
-                    'description' => 'Genangan air di sisi barat subblok.',
-                    'area' => 500,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Lahan',
                     'severity' => 'Darurat',
+                    'description' => 'Genangan air di sisi barat subblok.',
                 ],
                 'photos' => [UploadedFile::fake()->image('flood.jpg')],
             ])
@@ -226,11 +215,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'worker_count' => 3,
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Cuaca',
-                    'description' => 'Angin kencang di blok selatan.',
-                    'area' => 100,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Tanaman',
                     'severity' => 'Sedang',
+                    'description' => 'Angin kencang di blok selatan.',
                     'incident_status' => 'Perlu penanganan',
                 ],
                 'photos' => [UploadedFile::fake()->image('wind.jpg')],
@@ -539,7 +526,7 @@ class IncidentTicketWorkflowTest extends TestCase
         $this->actingAs($this->petugas)->get('/petugas/incidents/'.$ticket->id)->assertForbidden();
     }
 
-    public function test_unplanted_subblock_incident_uses_block_area_limit_instead_of_zero(): void
+    public function test_unplanted_subblock_incident_uses_ordered_fields_and_succeeds_without_area(): void
     {
         $unplanted = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team);
         $this->assertSame('planned', $unplanted->status);
@@ -550,6 +537,13 @@ class IncidentTicketWorkflowTest extends TestCase
             ->get('/petugas/aktivitas/mandiri/incident')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
+                ->where('fields', function ($fields): bool {
+                    $keys = collect($fields)->pluck('key')->values()->all();
+                    $categories = collect($fields)->firstWhere('key', 'incident_category')['options'] ?? [];
+
+                    return $keys === ['incident_category', 'severity', 'description', 'incident_status', 'immediate_action']
+                        && $categories === ['Lahan', 'Tanaman', 'Alat dan Tenaga Kerja', 'Lainnya'];
+                })
                 ->where('cycles', function ($cycles) use ($unplanted): bool {
                     $plannedCycle = collect($cycles)->firstWhere('id', $unplanted->id);
                     $plantedCycle = collect($cycles)->firstWhere('id', $this->cycle->id);
@@ -560,34 +554,32 @@ class IncidentTicketWorkflowTest extends TestCase
                         && $plantedCycle['area_limit_m2'] === 20000;
                 }));
 
-        // Exceeding the 4 ha (40,000 m²) block area limit still fails validation.
+        // Unexpected area fields on incident submissions are rejected.
         $this->actingAs($this->petugas)
             ->post('/petugas/aktivitas/mandiri/incident', [
                 'work_date' => '2026-11-18',
                 'cycle_id' => $unplanted->id,
                 'details' => [
-                    'incident_category' => 'Banjir',
-                    'description' => 'Air meluap melebihi blok.',
-                    'area' => 40001,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Lahan',
                     'severity' => 'Darurat',
-                    'incident_status' => 'Perlu penanganan',
-                ],
-                'photos' => [UploadedFile::fake()->image('too-big.jpg')],
-            ])
-            ->assertSessionHasErrors('details.area');
-
-        // Valid area within the block limit succeeds on the unplanted subblock.
-        $this->actingAs($this->petugas)
-            ->post('/petugas/aktivitas/mandiri/incident', [
-                'work_date' => '2026-11-18',
-                'cycle_id' => $unplanted->id,
-                'details' => [
-                    'incident_category' => 'Banjir',
-                    'description' => 'Genangan sebelum penanaman pada subblok baru.',
+                    'description' => 'Air meluap melebihi blok.',
                     'area' => 500,
                     'area_unit' => 'm²',
+                    'incident_status' => 'Perlu penanganan',
+                ],
+                'photos' => [UploadedFile::fake()->image('unexpected-area.jpg')],
+            ])
+            ->assertSessionHasErrors('details');
+
+        // Incident submission on the unplanted subblock succeeds without an area field.
+        $this->actingAs($this->petugas)
+            ->post('/petugas/aktivitas/mandiri/incident', [
+                'work_date' => '2026-11-18',
+                'cycle_id' => $unplanted->id,
+                'details' => [
+                    'incident_category' => 'Lahan',
                     'severity' => 'Sedang',
+                    'description' => 'Genangan sebelum penanaman pada subblok baru.',
                     'incident_status' => 'Perlu penanganan',
                 ],
                 'photos' => [UploadedFile::fake()->image('unplanted.jpg')],
@@ -597,7 +589,7 @@ class IncidentTicketWorkflowTest extends TestCase
 
         $ticket = IncidentTicket::orderByDesc('id')->firstOrFail();
         $this->assertSame($unplanted->id, $ticket->planting_cycle_id);
-        $this->assertSame('0.0500', (string) $ticket->activity->incidentDetail->affected_area_ha);
+        $this->assertNull($ticket->activity->incidentDetail->affected_area_ha);
 
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
@@ -608,11 +600,9 @@ class IncidentTicketWorkflowTest extends TestCase
             'work_date' => '2026-11-18',
             'worker_count' => 2,
             'details' => [
-                'incident_category' => 'Hama',
-                'description' => 'Temuan gangguan lapangan ('.$scope.').',
-                'area' => 300,
-                'area_unit' => 'm²',
+                'incident_category' => 'Tanaman',
                 'severity' => 'Sedang',
+                'description' => 'Temuan gangguan lapangan ('.$scope.').',
                 'incident_status' => 'Perlu penanganan',
             ],
             'photos' => [UploadedFile::fake()->image('ticket-'.$scope.'.jpg')],

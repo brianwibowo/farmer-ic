@@ -108,7 +108,7 @@ class VoluntaryActivityService
                     $detail = $activity->incidentDetail()->create([
                         'incident_category' => $d['incident_category'],
                         'severity' => $incidentSeverity->value,
-                        'affected_area_ha' => $d['area_ha'],
+                        'affected_area_ha' => $d['area_ha'] ?? null,
                         'proposed_solution' => $immediateAction,
                     ]);
                     $this->tickets->createFromIncidentReport($activity, $detail, $d, $actor);
