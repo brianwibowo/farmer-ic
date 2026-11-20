@@ -2,11 +2,21 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Upload } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
+import { usePhotoCompression } from '@/composables/usePhotoCompression';
 
 const file = defineModel<File | null>({ required: true });
 const remove = defineModel<boolean>('remove', { required: true });
-const props = defineProps<{ currentUrl: string | null; error?: string }>();
-const emit = defineEmits<{ validationError: [message: string] }>();
+const props = defineProps<{
+    currentUrl: string | null;
+    error?: string;
+    disabled?: boolean;
+}>();
+const emit = defineEmits<{
+    validationError: [message: string];
+    processing: [busy: boolean];
+}>();
+const { compressing, compressionStatus, fallbackNotice, preparePhotos } =
+    usePhotoCompression(() => (file.value ? [file.value] : []));
 const input = ref<HTMLInputElement | null>(null);
 const preview = ref<string | null>(null);
 const previewFailed = ref(false);
@@ -25,7 +35,8 @@ onBeforeUnmount(() => {
     if (preview.value) URL.revokeObjectURL(preview.value);
 });
 
-function choose(event: Event): void {
+async function choose(event: Event): Promise<void> {
+    if (compressing.value || props.disabled) return;
     const selected = (event.target as HTMLInputElement).files?.[0];
     if (!selected) return;
     if (
@@ -40,11 +51,26 @@ function choose(event: Event): void {
         return;
     }
     emit('validationError', '');
-    remove.value = false;
-    file.value = selected;
+    emit('processing', true);
+    try {
+        const [prepared] = await preparePhotos([selected]);
+        file.value = prepared;
+        remove.value = false;
+    } catch (error) {
+        emit(
+            'validationError',
+            error instanceof Error
+                ? error.message
+                : 'Foto gagal diproses. Pilih ulang foto.',
+        );
+    } finally {
+        emit('processing', false);
+        if (input.value) input.value.value = '';
+    }
 }
 
 function clear(): void {
+    if (compressing.value || props.disabled) return;
     file.value = null;
     remove.value = true;
     if (input.value) input.value.value = '';
@@ -81,6 +107,7 @@ function clear(): void {
             ref="input"
             id="farm-image"
             type="file"
+            :disabled="compressing || disabled"
             accept="image/jpeg,image/png,image/webp"
             class="admin-field w-full min-w-0 text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1 file:text-foreground"
             :aria-invalid="!!error"
@@ -89,6 +116,16 @@ function clear(): void {
             "
             @change="choose"
         />
+        <p
+            v-if="compressionStatus"
+            role="status"
+            class="text-xs text-muted-foreground"
+        >
+            {{ compressionStatus }}
+        </p>
+        <p v-if="fallbackNotice" role="status" class="text-xs text-warning">
+            {{ fallbackNotice }}
+        </p>
         <p
             v-if="error"
             id="farm-image-error"
@@ -116,6 +153,7 @@ function clear(): void {
         <Button
             v-if="imageUrl || error"
             type="button"
+            :disabled="compressing || disabled"
             variant="destructive-outline"
             class="min-h-11"
             @click="clear"

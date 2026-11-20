@@ -118,6 +118,7 @@ const {
     notify: (message) => toast.warning(message),
 });
 const waitingForLocation = ref(false);
+const preparingImage = ref(false);
 async function finishAddress(): Promise<void> {
     await nextTick();
     await completeAddress();
@@ -126,7 +127,8 @@ const backUrl = props.farm
     ? `/admin/farm-management/${props.farm.id}`
     : '/admin/farm-management';
 async function submit(): Promise<void> {
-    if (form.processing || waitingForLocation.value) return;
+    if (form.processing || waitingForLocation.value || preparingImage.value)
+        return;
     if (form.errors.image) {
         void focusFormErrors();
         return;
@@ -446,6 +448,8 @@ async function submit(): Promise<void> {
                     <h2 class="admin-section-title mb-5">Dokumentasi lahan</h2>
                     <FarmImageUpload
                         v-model="form.image"
+                        :disabled="form.processing || waitingForLocation"
+                        @processing="preparingImage = $event"
                         v-model:remove="form.remove_image"
                         :current-url="farm?.image_url ?? null"
                         :error="form.errors.image"
@@ -484,7 +488,9 @@ async function submit(): Promise<void> {
                 ><Button
                     type="submit"
                     class="h-10 rounded-xl"
-                    :disabled="form.processing || waitingForLocation"
+                    :disabled="
+                        form.processing || waitingForLocation || preparingImage
+                    "
                     ><LoaderCircle
                         v-if="form.processing || waitingForLocation"
                         class="animate-spin"

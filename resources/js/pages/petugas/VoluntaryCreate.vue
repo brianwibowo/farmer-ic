@@ -20,6 +20,7 @@ import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
 import ActivityPhotoPicker from '@/components/petugas/ActivityPhotoPicker.vue';
+import { usePhotoCompression } from '@/composables/usePhotoCompression';
 import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
 import { Button } from '@/components/ui/button';
 import { useErrorDisclosure } from '@/composables/useErrorDisclosure';
@@ -227,7 +228,10 @@ function clearPhotoErrors(): void {
             form.clearErrors(key as keyof typeof form.errors);
     }
 }
-function photos(event: Event): void {
+const { compressing, compressionStatus, fallbackNotice, preparePhotos } =
+    usePhotoCompression(() => form.photos);
+async function photos(event: Event): Promise<void> {
+    if (compressing.value || form.processing) return;
     const input = event.target as HTMLInputElement;
     const files = [...(input.files ?? [])];
     clientError.value = '';
@@ -242,12 +246,20 @@ function photos(event: Event): void {
         clientError.value =
             'Pilih maksimal 5 foto JPG/PNG/WebP, masing-masing maksimal 10 MB.';
     else {
-        form.photos.push(...files);
-        clearPhotoErrors();
+        try {
+            form.photos.push(...(await preparePhotos(files)));
+            clearPhotoErrors();
+        } catch (error) {
+            clientError.value =
+                error instanceof Error
+                    ? error.message
+                    : 'Foto gagal diproses. Pilih ulang foto.';
+        }
     }
     input.value = '';
 }
 function removePhoto(index: number): void {
+    if (compressing.value || form.processing) return;
     form.photos.splice(index, 1);
     clearPhotoErrors();
 }
@@ -267,6 +279,7 @@ function scheduledDateLabel(value: string | null): string {
 function submit(): void {
     if (
         form.processing ||
+        compressing.value ||
         blockedReason.value ||
         noArea.value ||
         Object.keys(numericErrors.value).length
@@ -751,6 +764,9 @@ function submit(): void {
                         <h2 class="text-base font-semibold">Bukti pekerjaan</h2>
                     </div>
                     <ActivityPhotoPicker
+                        :busy="compressing || form.processing"
+                        :status="compressionStatus"
+                        :notice="fallbackNotice"
                         :photos="form.photos"
                         :invalid="!!clientError || photoErrors.length > 0"
                         @select="photos"
@@ -836,6 +852,7 @@ function submit(): void {
             <Button
                 :disabled="
                     form.processing ||
+                    compressing ||
                     !!blockedReason ||
                     noArea ||
                     Object.keys(numericErrors).length > 0

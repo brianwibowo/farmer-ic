@@ -16,6 +16,7 @@ import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import TaskContext from '@/components/petugas/TaskContext.vue';
 import ActivityPhotoPicker from '@/components/petugas/ActivityPhotoPicker.vue';
+import { usePhotoCompression } from '@/composables/usePhotoCompression';
 import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
 import ActivityDetailFields, {
     type ActivityField,
@@ -54,6 +55,8 @@ const form = useForm({
     photos: [] as File[],
 });
 const clientErrors = ref<Record<string, string>>({});
+const { compressing, compressionStatus, fallbackNotice, preparePhotos } =
+    usePhotoCompression(() => form.photos);
 const numericErrors = computed<Record<string, string>>(() => {
     const result = activityDetailMaximumErrors(
         props.fields,
@@ -103,7 +106,8 @@ watch(
     () => form.worker_count,
     () => form.clearErrors('worker_count'),
 );
-function selectPhotos(event: Event): void {
+async function selectPhotos(event: Event): Promise<void> {
+    if (compressing.value || form.processing) return;
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     clientErrors.value = {};
@@ -119,7 +123,14 @@ function selectPhotos(event: Event): void {
         clientErrors.value.photos =
             'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 10 MB.';
     } else {
-        form.photos.push(...files);
+        try {
+            form.photos.push(...(await preparePhotos(files)));
+        } catch (error) {
+            clientErrors.value.photos =
+                error instanceof Error
+                    ? error.message
+                    : 'Foto gagal diproses. Pilih ulang foto.';
+        }
         for (const key of Object.keys(form.errors)) {
             if (key === 'photos' || key.startsWith('photos.'))
                 form.clearErrors(key as keyof typeof form.errors);
@@ -128,6 +139,7 @@ function selectPhotos(event: Event): void {
     input.value = '';
 }
 function removePhoto(index: number): void {
+    if (compressing.value || form.processing) return;
     form.photos.splice(index, 1);
     delete clientErrors.value.photos;
     for (const key of Object.keys(form.errors)) {
@@ -146,6 +158,7 @@ function dateLabel(value: string): string {
 function submit(): void {
     if (
         form.processing ||
+        compressing.value ||
         noArea.value ||
         Object.keys(numericErrors.value).length
     )
@@ -336,6 +349,9 @@ function submit(): void {
                         <h2 class="text-base font-semibold">Bukti pekerjaan</h2>
                     </div>
                     <ActivityPhotoPicker
+                        :busy="compressing || form.processing"
+                        :status="compressionStatus"
+                        :notice="fallbackNotice"
                         :photos="form.photos"
                         :invalid="photoErrors.length > 0"
                         @select="selectPhotos"
@@ -431,6 +447,7 @@ function submit(): void {
                 class="min-h-12 w-full rounded-xl"
                 :disabled="
                     form.processing ||
+                    compressing ||
                     noArea ||
                     Object.keys(numericErrors).length > 0
                 "

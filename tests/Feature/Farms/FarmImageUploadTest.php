@@ -58,6 +58,18 @@ class FarmImageUploadTest extends TestCase
         $this->assertSame($new, $farm->fresh()->image_url);
     }
 
+    public function test_high_resolution_photo_under_ten_megabytes_is_accepted_as_a_user_upload(): void
+    {
+        $image = UploadedFile::fake()->image('48mp.jpg', 6048, 8064)->size(8704);
+        $this->post('/admin/farm-management', [...$this->payload(), 'image' => $image])->assertRedirect()->assertSessionHasNoErrors();
+        $farm = Farm::query()->where('name', 'Lahan Dokumentasi')->firstOrFail();
+        $contents = Storage::disk('farm')->get($farm->image_url);
+        $this->assertSame(file_get_contents($image->getPathname()), $contents);
+        $this->assertSame([6048, 8064], array_slice(getimagesizefromstring($contents), 0, 2));
+        $this->get(route('farms.image', $farm))->assertOk();
+        $this->assertSame(2048, config('photo_uploads.max_dimension'));
+    }
+
     public function test_image_can_be_explicitly_removed(): void
     {
         $farm = $this->withImage();
