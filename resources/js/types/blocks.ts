@@ -57,10 +57,41 @@ export type BatchAge = {
     as_of: string;
     status: 'available' | 'not_planted' | 'future' | 'cancelled';
 };
+export type BatchObservationPhoto = {
+    id: string;
+    url: string;
+    available: boolean;
+};
+
+export type BatchObservationItem = {
+    id: string;
+    observed_at: string;
+    observer_name: string | null;
+    phase: string | null;
+    notes: string | null;
+    task_id: string | null;
+    task_name: string | null;
+    task_url: string | null;
+    activity_url: string | null;
+    photos: BatchObservationPhoto[];
+};
+
+export type BatchObservationTaskItem = {
+    id: string;
+    name: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+    offset_days: number;
+    scheduled_date: string | null;
+    due_date: string | null;
+    completed_at: string | null;
+    url: string | null;
+};
+
 export type BatchGrowth = {
     available: boolean;
     as_of: string;
     hst: number | null;
+    hst_percentage?: number | null;
     commodity: string | null;
     variety: string | null;
     estimated_harvest_at: string | null;
@@ -70,6 +101,8 @@ export type BatchGrowth = {
         phase: string | null;
         percentage: number | null;
     } | null;
+    observations?: BatchObservationItem[];
+    tasks?: BatchObservationTaskItem[];
 };
 export const stageLabels: Record<string, string> = {
     land_clearing: 'Land Clearing',

@@ -26,6 +26,7 @@ class SopTemplateTask extends FarmerModel
     /** @var array<string, string> */
     public const CATEGORIES = [
         'maintenance' => 'Perawatan',
+        'growth_observation' => 'Pengamatan Pertumbuhan',
         'harvest' => 'Panen',
     ];
 

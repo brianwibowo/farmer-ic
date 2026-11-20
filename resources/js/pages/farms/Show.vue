@@ -292,6 +292,7 @@ const coordinates = computed<[number, number] | null>(() =>
             :harvest-permissions="harvestPermissions"
             :capacity="blockCapacity"
             :can-create="can.createBlock"
+            :enable-batch-filter="!ownerSummary"
             return-to="farm"
         />
         <div v-if="can.forceDelete" class="flex justify-end">

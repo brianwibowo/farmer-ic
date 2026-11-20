@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import {
     Activity,
-    ArrowLeft,
     CalendarDays,
     ClipboardList,
     FileText,
@@ -10,6 +9,7 @@ import {
     UserRound,
 } from '@lucide/vue';
 import { computed } from 'vue';
+import PetugasDetailHeader from '@/components/petugas/PetugasDetailHeader.vue';
 import ReportPhotoGallery from '@/components/petugas/ReportPhotoGallery.vue';
 import { formatReportDate, formatReportDetails } from '@/lib/petugasReport';
 import type { DailyReport, DailyReportActivity } from '@/types/daily-activity';
@@ -60,54 +60,55 @@ const details = computed(() =>
 </script>
 
 <template>
-    <Head title="Rincian aktivitas" />
-    <div class="min-w-0 space-y-4 text-foreground">
-        <header class="flex items-center gap-2.5">
-            <Link
-                :href="backHref"
-                aria-label="Kembali ke daftar laporan"
-                class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                ><ArrowLeft class="size-5" aria-hidden="true"
-            /></Link>
-            <h1 class="sr-only">Rincian aktivitas</h1>
-        </header>
+    <Head title="Detail Laporan" />
+    <div
+        class="min-w-0 space-y-[var(--admin-content-gap)] pb-8 text-foreground"
+    >
+        <PetugasDetailHeader
+            title="Detail laporan"
+            :back-href="backHref"
+            back-label="Kembali ke daftar laporan"
+        />
 
         <template v-if="activity">
             <section
                 class="petugas-card overflow-hidden"
                 aria-label="Informasi aktivitas"
             >
-                <div class="bg-primary/5 p-4">
-                    <div class="flex items-start justify-between gap-2">
+                <div class="p-4">
+                    <div class="flex items-start gap-3">
                         <span
-                            class="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
+                            class="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
                         >
-                            <Activity
-                                class="size-3.5 shrink-0"
-                                aria-hidden="true"
-                            />
-                            {{ activity.name }}
+                            <Activity class="size-5" aria-hidden="true" />
                         </span>
-                        <span
-                            class="shrink-0 rounded-xl border border-primary/25 bg-card px-2.5 py-1.5 text-xs font-semibold text-primary"
-                        >
-                            {{ activity.task_id ? 'SOP' : 'Mandiri' }}
-                        </span>
+                        <div class="min-w-0 flex-1">
+                            <h2
+                                class="text-lg leading-6 font-semibold break-words"
+                            >
+                                {{ activity.name }}
+                            </h2>
+                            <span
+                                class="mt-1 inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] leading-4 font-semibold text-primary"
+                            >
+                                {{ activity.task_id ? 'SOP' : 'Mandiri' }}
+                            </span>
+                        </div>
                     </div>
                     <p
-                        class="mt-3 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground"
+                        class="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground"
                     >
                         <MapPin
                             class="mt-0.5 size-3.5 shrink-0 text-primary"
                             aria-hidden="true"
                         />
-                        <span>{{ location }}</span>
+                        <span class="min-w-0 break-words">{{ location }}</span>
                     </p>
                 </div>
                 <dl
                     class="grid grid-cols-2 divide-x divide-border border-t border-border"
                 >
-                    <div class="min-w-0 p-3.5">
+                    <div class="min-w-0 p-4">
                         <dt
                             class="flex items-center gap-1.5 text-xs text-muted-foreground"
                         >
@@ -120,7 +121,7 @@ const details = computed(() =>
                             {{ formatReportDate(date) }}
                         </dd>
                     </div>
-                    <div class="min-w-0 p-3.5">
+                    <div class="min-w-0 p-4">
                         <dt
                             class="flex items-center gap-1.5 text-xs text-muted-foreground"
                         >
@@ -245,11 +246,6 @@ const details = computed(() =>
                 :photos="activity.photos"
                 :activity-name="activity.name"
             />
-            <Link
-                :href="backHref"
-                class="flex min-h-11 items-center justify-center rounded-xl border border-border bg-card px-4 text-sm font-semibold hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >Kembali ke daftar laporan</Link
-            >
         </template>
         <div v-else class="petugas-card petugas-empty px-5 py-9 text-center">
             <ClipboardList

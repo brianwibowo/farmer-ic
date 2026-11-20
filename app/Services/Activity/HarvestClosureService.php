@@ -34,7 +34,7 @@ class HarvestClosureService
             }
 
             $openMaintenance = PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)
-                ->where('activity_category', 'maintenance')->whereNotIn('status', ['completed', 'skipped'])->exists();
+                ->whereIn('activity_category', PlantingCycleTask::PRE_HARVEST_CATEGORIES)->whereNotIn('status', ['completed', 'skipped'])->exists();
             if ($openMaintenance) {
                 throw ValidationException::withMessages(['harvest' => 'Selesaikan atau tandai tidak dikerjakan seluruh tugas SOP perawatan sebelum menutup panen.']);
             }

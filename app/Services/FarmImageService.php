@@ -5,28 +5,13 @@ namespace App\Services;
 use App\Models\Farm;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use RuntimeException;
 use Throwable;
 
 class FarmImageService
 {
     public function store(Farm $farm, UploadedFile $image): string
     {
-        $path = 'farms/'.$farm->id.'/'.Str::uuid().'.'.$image->extension();
-        try {
-            if (Storage::disk('farm')->putFileAs(dirname($path), $image, basename($path)) !== $path) {
-                throw new RuntimeException('Foto lahan tidak berhasil disimpan.');
-            }
-        } catch (Throwable $exception) {
-            $this->delete($path);
-            report($exception);
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'image' => 'Foto lahan tidak berhasil disimpan. Silakan coba lagi.',
-            ]);
-        }
-
-        return $path;
+        return app(MediaImageService::class)->store($image, 'farms/'.$farm->id, 'farm');
     }
 
     public function delete(?string $path): void

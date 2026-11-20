@@ -94,7 +94,8 @@ class PlantingCycleTaskService
             }
             $stages = PlantingCycleStage::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)->get()->keyBy('code');
             foreach ($sources as $source) {
-                if ($source->activity_category !== 'planting' && ! $stages->has($source->activity_category)) {
+                $stageCode = PlantingCycleTask::stageCodeForCategory($source->activity_category);
+                if ($source->activity_category !== 'planting' && ! $stages->has($stageCode)) {
                     return $this->result('missing_stage', 0, 0, $version->id, $source->activity_category);
                 }
             }
@@ -104,8 +105,9 @@ class PlantingCycleTaskService
                     continue;
                 }
                 $date = $anchor->addDays($source->offset_days);
+                $stageCode = PlantingCycleTask::stageCodeForCategory($source->activity_category);
                 PlantingCycleTask::create([
-                    'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $stages->get($source->activity_category)->id,
+                    'planting_cycle_id' => $cycle->id, 'planting_cycle_stage_id' => $stages->get($stageCode)->id,
                     'sop_template_task_id' => $source->id, 'activity_category' => $source->activity_category,
                     'activity_subcategory' => null, 'name' => $source->name, 'instructions' => $source->instructions,
                     'offset_days' => $source->offset_days, 'tolerance_days' => $source->tolerance_days, 'hok' => $source->hok,

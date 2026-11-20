@@ -52,7 +52,7 @@ describe('report history presentation', () => {
     it('retains filters and pagination and links back to the same filtered page', async () => {
         const html = await renderToString(h(Laporan, props));
         expect(html).toContain('Ringkasan laporan sesuai filter');
-        expect(html).toContain('<h1 class="sr-only">Laporan</h1>');
+        expect(html).toContain('<h1>Laporan</h1>');
         expect(html).not.toContain('Kebun Utara');
         expect(html).not.toContain('Laporan harian');
         expect(html).not.toContain('/petugas/laporan/harian');

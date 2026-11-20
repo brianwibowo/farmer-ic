@@ -46,6 +46,26 @@ hanya dapat dicatat melalui tugas SOP; panen mandiri tidak tersedia. Penutupan
 panen oleh Admin merupakan aksi terpisah dan tidak dipicu otomatis oleh satu laporan.
 Endpoint untuk mengubah status tahap secara bebas tidak disediakan.
 
+### Riwayat subblok
+
+Riwayat adalah tampilan berdasarkan status, bukan kolom atau aksi arsip baru.
+Daftar kerja menggunakan `planned`/`active`; riwayat menggunakan
+`harvested`/`cancelled`. Petugas dapat melihat riwayat pada lahan penugasan saat
+ini melalui tab Kebun dan riwayat tugas melalui halaman Tugas. Angka dan
+paginasi daftar Kebun mengikuti pilihan tampilan. Admin dapat memfilter subblok
+per status tanpa menyembunyikan blok yang kosong. Filter tidak mengubah data,
+kapasitas, laporan, atau perhitungan panen historis.
+
+Tugas pada subblok tertutup tetap menyimpan status dan laporannya, namun tidak
+dapat diselesaikan, dilewati, atau dijadwalkan ulang. Pemeriksaan ini dilakukan
+di service dalam transaksi dengan urutan kunci lahan, subblok, lalu tugas;
+penutupan panen yang sudah tersedia tetap menyelesaikan tugas panen terbuka
+sebagai bagian dari transaksinya. Riwayat tidak menciptakan tanggal atau pelaku
+penutupan yang tidak tercatat. Alur insiden/pembatalan dan pembukaan kembali
+subblok tidak termasuk implementasi ini. Integrasi pembatalan mendatang perlu
+mengunci lahan, subblok, lalu tugas dalam urutan yang sama agar selaras dengan
+penulisan laporan dan perubahan tugas.
+
 ### Pembaruan tahap oleh laporan
 
 | Tahap | `activity_types.code` |
@@ -67,6 +87,9 @@ aktivitas yang dilaporkan. Tahap sebelumnya menjadi `completed` begitu
 tahap mana pun setelahnya mulai, termasuk tahap yang dilewati tanpa laporan: kedua
 tanggal tahap yang dilewati tetap `null`. Laporan yang datang belakangan untuk
 tahap terdahulu mengisi tanggalnya tetapi tidak memundurkan tahap yang berjalan.
+Laporan persiapan blok berikutnya, termasuk yang bertanggal mundur, hanya
+memperbarui subblok yang masih berjalan; tahap subblok tertutup tetap seperti saat
+ditutup. Laporan itu sendiri tetap disimpan sebagai laporan blok.
 Panen tetap berjalan sampai Admin menutupnya setelah minimal satu laporan panen
 berdetail, tanpa syarat seluruh luas sudah dipanen. Petugas tidak dapat menyelesaikan
 tugas panen secara manual dan dapat menambah laporan selama tugas tetap terbuka.

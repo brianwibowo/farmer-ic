@@ -15,6 +15,7 @@ use App\Services\Activity\PlantingActivityService;
 use App\Services\FarmBlockService;
 use App\Services\PlantingCycleTaskService;
 use App\Support\ActivityInputLimits;
+use App\Support\SubblockLifecycle;
 use App\Support\TaskGenerationFeedback;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,7 @@ class PetugasPlantingController extends Controller
         $blockCounts = PlantingCycle::visibleTo($request->user(), $farm->team)
             ->where('farm_id', $farm->id)
             ->whereNotNull('block_id')
+            ->whereIn('status', SubblockLifecycle::RUNNING)
             ->selectRaw('block_id, COUNT(*) AS total')
             ->groupBy('block_id')
             ->pluck('total', 'block_id');

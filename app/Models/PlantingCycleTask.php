@@ -45,7 +45,20 @@ class PlantingCycleTask extends FarmerModel
 {
     public const STATUSES = ['pending', 'in_progress', 'completed', 'skipped'];
 
-    public const CATEGORIES = ['maintenance', 'harvest'];
+    public const CATEGORIES = ['maintenance', 'growth_observation', 'harvest'];
+
+    public const PRE_HARVEST_CATEGORIES = ['maintenance', 'growth_observation'];
+
+    public const CATEGORY_ORDER_SQL = "CASE activity_category WHEN 'planting' THEN 1 WHEN 'maintenance' THEN 2 WHEN 'growth_observation' THEN 3 WHEN 'harvest' THEN 4 ELSE 5 END";
+
+    public static function stageCodeForCategory(string $category): string
+    {
+        return match ($category) {
+            'maintenance', 'growth_observation' => 'maintenance',
+            'harvest' => 'harvest',
+            default => $category,
+        };
+    }
 
     protected $table = 'planting_cycle_tasks';
 

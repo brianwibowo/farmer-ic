@@ -1,7 +1,10 @@
 export type SopTeam = { id: number; name: string };
 export type SopCommodity = { id: string; name: string };
 
-export type SopActivityCategory = 'maintenance' | 'harvest';
+export type SopActivityCategory =
+    | 'maintenance'
+    | 'growth_observation'
+    | 'harvest';
 
 export type SopTask = {
     id: string;
@@ -88,6 +91,7 @@ export type SopSummary = {
 
 export const sopActivityCategoryLabels: Record<SopActivityCategory, string> = {
     maintenance: 'Perawatan',
+    growth_observation: 'Pengamatan Pertumbuhan',
     harvest: 'Panen',
 };
 

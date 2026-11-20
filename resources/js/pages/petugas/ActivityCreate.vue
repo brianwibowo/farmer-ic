@@ -16,10 +16,12 @@ import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import TaskContext from '@/components/petugas/TaskContext.vue';
 import ActivityPhotoPicker from '@/components/petugas/ActivityPhotoPicker.vue';
+import { usePhotoCompression } from '@/composables/usePhotoCompression';
 import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
 import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
+import { getGrowthStageAtHst, resolveGrowthProfile } from '@/data/growthStages';
 import type { PetugasTask } from '@/types/petugas-task';
 import {
     activityDetailMaximumErrors,
@@ -28,14 +30,65 @@ import {
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<{
-    task: PetugasTask;
-    fields: ActivityField[];
-    areaLimitM2: number;
-    numericLimits: { workerCount: number; quantityKg: number };
-    today: string;
-    workDate: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        task: PetugasTask;
+        fields: ActivityField[];
+        requiresWorkerCount?: boolean;
+        areaLimitM2: number;
+        numericLimits: { workerCount: number; quantityKg: number };
+        today: string;
+        workDate: string;
+    }>(),
+    { requiresWorkerCount: true },
+);
+const showWorkerCount = computed(
+    () =>
+        props.requiresWorkerCount &&
+        props.task.activity_category !== 'growth_observation',
+);
+const growthProfile = computed(() =>
+    resolveGrowthProfile(
+        props.task.subblok.commodity?.name,
+        props.task.subblok.variety?.name,
+    ),
+);
+const suggestedGrowthStage = computed(() =>
+    growthProfile.value
+        ? getGrowthStageAtHst(growthProfile.value, props.task.subblok.hst)
+        : null,
+);
+const resolvedFields = computed<ActivityField[]>(() =>
+    props.fields.map((field) => {
+        if (field.key !== 'growth_phase') {
+            return field;
+        }
+        const profile = growthProfile.value;
+        if (!profile) {
+            return {
+                ...field,
+                type: 'text',
+                placeholder: 'Contoh: Vegetatif, Pembungaan, Siap panen',
+            };
+        }
+        const suggested = suggestedGrowthStage.value;
+        return {
+            ...field,
+            type: 'select',
+            options: profile.stages.map((stage) => stage.label),
+            optionLabels: Object.fromEntries(
+                profile.stages.map((stage) => [
+                    stage.label,
+                    `${stage.number}. ${stage.label} (${stage.range})${stage.number === suggested?.number ? ' — Sesuai HST' : ''}`,
+                ]),
+            ),
+            hint:
+                suggested && props.task.subblok.hst !== null
+                    ? `Saran sesuai umur tanaman (${props.task.subblok.hst} HST): ${suggested.label}.`
+                    : undefined,
+        };
+    }),
+);
 const form = useForm({
     schema: 'taxonomy',
     work_date: props.workDate,
@@ -54,25 +107,31 @@ const form = useForm({
     photos: [] as File[],
 });
 const clientErrors = ref<Record<string, string>>({});
+const { compressing, compressionStatus, fallbackNotice, preparePhotos } =
+    usePhotoCompression(() => form.photos);
 const numericErrors = computed<Record<string, string>>(() => {
     const result = activityDetailMaximumErrors(
-        props.fields,
+        resolvedFields.value,
         form.details,
         props.areaLimitM2,
         props.numericLimits.quantityKg,
     );
-    const workerError = maximumError(
-        form.worker_count,
-        props.numericLimits.workerCount,
-        'Jumlah pekerja',
-    );
-    if (workerError) result.worker_count = workerError;
+    if (showWorkerCount.value) {
+        const workerError = maximumError(
+            form.worker_count,
+            props.numericLimits.workerCount,
+            'Jumlah pekerja',
+        );
+        if (workerError) result.worker_count = workerError;
+    }
     return result;
 });
 const noArea = computed(
     () =>
         props.areaLimitM2 === 0 &&
-        props.fields.some((field) => field.key === 'area' && !field.optional),
+        resolvedFields.value.some(
+            (field) => field.key === 'area' && !field.optional,
+        ),
 );
 const errors = computed<Record<string, string>>(() => ({
     ...form.errors,
@@ -103,7 +162,8 @@ watch(
     () => form.worker_count,
     () => form.clearErrors('worker_count'),
 );
-function selectPhotos(event: Event): void {
+async function selectPhotos(event: Event): Promise<void> {
+    if (compressing.value || form.processing) return;
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     clientErrors.value = {};
@@ -113,13 +173,20 @@ function selectPhotos(event: Event): void {
             (file) =>
                 !['image/jpeg', 'image/png', 'image/webp'].includes(
                     file.type,
-                ) || file.size > 10 * 1024 * 1024,
+                ) || file.size > 15 * 1024 * 1024,
         )
     ) {
         clientErrors.value.photos =
-            'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 10 MB.';
+            'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 15 MB.';
     } else {
-        form.photos.push(...files);
+        try {
+            form.photos.push(...(await preparePhotos(files)));
+        } catch (error) {
+            clientErrors.value.photos =
+                error instanceof Error
+                    ? error.message
+                    : 'Foto gagal diproses. Pilih ulang foto.';
+        }
         for (const key of Object.keys(form.errors)) {
             if (key === 'photos' || key.startsWith('photos.'))
                 form.clearErrors(key as keyof typeof form.errors);
@@ -128,6 +195,7 @@ function selectPhotos(event: Event): void {
     input.value = '';
 }
 function removePhoto(index: number): void {
+    if (compressing.value || form.processing) return;
     form.photos.splice(index, 1);
     delete clientErrors.value.photos;
     for (const key of Object.keys(form.errors)) {
@@ -146,6 +214,7 @@ function dateLabel(value: string): string {
 function submit(): void {
     if (
         form.processing ||
+        compressing.value ||
         noArea.value ||
         Object.keys(numericErrors.value).length
     )
@@ -154,7 +223,9 @@ function submit(): void {
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto bukti.';
     if (Object.keys(clientErrors.value).length) return;
-    form.post(`/petugas/tasks/${props.task.id}/aktivitas`, {
+    form.transform(({ worker_count, ...rest }) =>
+        showWorkerCount.value ? { worker_count, ...rest } : rest,
+    ).post(`/petugas/tasks/${props.task.id}/aktivitas`, {
         forceFormData: true,
         preserveScroll: true,
     });
@@ -307,13 +378,14 @@ function submit(): void {
                         <h2 class="text-base font-semibold">Hasil pekerjaan</h2>
                     </div>
                     <ActivityWorkerCount
+                        v-if="showWorkerCount"
                         v-model="form.worker_count"
                         :maximum="numericLimits.workerCount"
                         :error="errors.worker_count"
                     />
                     <ActivityDetailFields
                         v-model="form.details"
-                        :fields="fields"
+                        :fields="resolvedFields"
                         :errors="errors"
                         :area-limit-m2="areaLimitM2"
                         compact
@@ -336,6 +408,9 @@ function submit(): void {
                         <h2 class="text-base font-semibold">Bukti pekerjaan</h2>
                     </div>
                     <ActivityPhotoPicker
+                        :busy="compressing || form.processing"
+                        :status="compressionStatus"
+                        :notice="fallbackNotice"
                         :photos="form.photos"
                         :invalid="photoErrors.length > 0"
                         @select="selectPhotos"
@@ -431,6 +506,7 @@ function submit(): void {
                 class="min-h-12 w-full rounded-xl"
                 :disabled="
                     form.processing ||
+                    compressing ||
                     noArea ||
                     Object.keys(numericErrors).length > 0
                 "

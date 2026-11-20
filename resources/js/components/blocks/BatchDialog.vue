@@ -20,7 +20,7 @@ const props = defineProps<{
     batch: PreparationBatch | null;
     theme: string;
 }>();
-const emit = defineEmits<{ 'update:open': [value: boolean] }>();
+const emit = defineEmits<{ 'update:open': [value: boolean]; saved: [] }>();
 const fields = useTemplateRef<InstanceType<typeof BatchForm>>('fields');
 async function close(open: boolean): Promise<void> {
     if (!open && fields.value?.processing()) return;
@@ -28,7 +28,8 @@ async function close(open: boolean): Promise<void> {
         !open &&
         fields.value?.isDirty() &&
         !(await requestConfirmation({
-            description: 'Perubahan subblok belum disimpan. Tutup editor dan buang perubahan ini?',
+            description:
+                'Perubahan subblok belum disimpan. Tutup editor dan buang perubahan ini?',
             confirmLabel: 'Buang perubahan',
             cancelLabel: 'Lanjut mengedit',
         }))
@@ -79,7 +80,10 @@ async function close(open: boolean): Promise<void> {
                 :base="base"
                 :capacity="capacity"
                 :batch="batch"
-                @saved="emit('update:open', false)"
+                @saved="
+                    emit('update:open', false);
+                    emit('saved');
+                "
                 @cancel="close(false)"
             />
         </DialogContent>

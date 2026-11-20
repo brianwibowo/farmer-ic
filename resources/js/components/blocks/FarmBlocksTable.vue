@@ -5,6 +5,8 @@ import { useForm, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Pencil, Plus, Search, Trash2 } from '@lucide/vue';
 import BlockDialog from './BlockDialog.vue';
 import BlockBatches from './BlockBatches.vue';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -21,6 +23,7 @@ import type {
     BlockOptions,
 } from '@/types/blocks';
 import { hectares } from '@/types/farms';
+import { matchesSubblockView, type SubblockView } from '@/lib/subblockView';
 const props = withDefaults(
     defineProps<{
         farm: BlockFarm;
@@ -33,6 +36,7 @@ const props = withDefaults(
         harvestPermissions: Record<string, boolean>;
         clientPagination?: boolean;
         searchable?: boolean;
+        enableBatchFilter?: boolean;
         total?: number;
     }>(),
     { clientPagination: true, searchable: true },
@@ -43,6 +47,7 @@ const selected = ref<ManagedBlock | null>(null);
 const deleting = ref<ManagedBlock | null>(null);
 const search = ref('');
 const currentPage = ref(1);
+const batchView = ref<SubblockView>('running');
 const filtered = computed(() =>
     props.blocks.filter((block) =>
         block.name
@@ -62,6 +67,17 @@ const rows = computed(() =>
               currentPage.value * 10,
           )
         : filtered.value,
+);
+const displayedRows = computed(() =>
+    rows.value.map((block) => ({
+        ...block,
+        batches:
+            !props.enableBatchFilter || batchView.value === 'all'
+                ? block.batches
+                : block.batches.filter((batch) =>
+                      matchesSubblockView(batch.status, batchView.value),
+                  ),
+    })),
 );
 watch(search, () => (currentPage.value = 1));
 watch(
@@ -111,6 +127,29 @@ function remove(): void {
                     placeholder="Cari nama blok"
             /></label>
         </div>
+        <div
+            v-if="enableBatchFilter && blocks.length"
+            class="px-5 pb-4 sm:px-6"
+        >
+            <label
+                for="batch-status-filter"
+                class="mb-2 block text-sm font-medium"
+            >
+                Status subblok
+            </label>
+            <AppSelect
+                id="batch-status-filter"
+                v-model="batchView"
+                class="admin-field block-field max-w-xs"
+            >
+                <AppSelectOption value="running">Berjalan</AppSelectOption>
+                <AppSelectOption value="harvested"
+                    >Selesai panen</AppSelectOption
+                >
+                <AppSelectOption value="cancelled">Dibatalkan</AppSelectOption>
+                <AppSelectOption value="all">Semua</AppSelectOption>
+            </AppSelect>
+        </div>
         <div v-if="blocks.length" class="overflow-x-auto">
             <table class="w-full text-left text-sm">
                 <caption class="sr-only">
@@ -142,7 +181,7 @@ function remove(): void {
                     </tr>
                 </thead>
                 <tbody
-                    v-for="block in rows"
+                    v-for="block in displayedRows"
                     :key="block.id"
                     class="border-b-[12px] border-background last:border-b-0"
                 >
@@ -154,9 +193,7 @@ function remove(): void {
                                 {{ block.name }}
                             </h3>
                             <p class="text-xs text-muted-foreground sm:hidden">
-                                {{
-                                    block.is_active ? 'Aktif' : 'Nonaktif'
-                                }}
+                                {{ block.is_active ? 'Aktif' : 'Nonaktif' }}
                             </p>
                             <p class="mt-1 text-xs text-muted-foreground">
                                 {{
@@ -224,6 +261,10 @@ function remove(): void {
                                 :harvest-permissions="harvestPermissions"
                                 :theme="theme ?? 'admin-dashboard-theme'"
                                 :return-to="returnTo ?? 'blocks'"
+                                :filtered="
+                                    enableBatchFilter && batchView !== 'all'
+                                "
+                                @created="batchView = 'running'"
                             />
                         </td>
                     </tr>

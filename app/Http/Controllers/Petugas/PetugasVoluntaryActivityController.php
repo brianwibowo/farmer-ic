@@ -18,6 +18,7 @@ use App\Services\Activity\VoluntaryActivityCategoryService;
 use App\Services\Activity\VoluntaryActivityService;
 use App\Services\IncidentTicketService;
 use App\Support\ActivityInputLimits;
+use App\Support\SubblockLifecycle;
 use App\Support\VoluntaryActivityFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,7 +76,8 @@ class PetugasVoluntaryActivityController extends Controller
             'cycles' => $planting->cycles($request->user(), $farm)->filter(fn ($cycle) => in_array($cycle->status, ['planned', 'active'], true))
                 ->map(fn ($cycle) => [...$planting->context($request->user(), $cycle), 'area_limit_m2' => $limits->voluntaryCycleArea($cycle, $cycle->block_id !== null ? $blocksById->get($cycle->block_id) : null, $farm), 'blocked_reason' => $sequence->blockedReason($request->user(), $cycle, $type->code)])->values()->all(),
             'matchingTasks' => PlantingCycleTask::visibleTo($request->user(), $farm->team)
-                ->whereHas('plantingCycle', fn ($q) => $q->visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id))
+                ->whereHas('plantingCycle', fn ($q) => $q->visibleTo($request->user(), $farm->team)
+                    ->where('farm_id', $farm->id)->whereIn('status', SubblockLifecycle::RUNNING))
                 ->whereIn('status', ['pending', 'in_progress'])
                 ->where('activity_category', $type->code)
                 ->get(['id', 'planting_cycle_id', 'name', 'scheduled_date']),

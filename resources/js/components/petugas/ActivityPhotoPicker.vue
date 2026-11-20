@@ -2,7 +2,13 @@
 import { Camera, ImagePlus, X } from '@lucide/vue';
 import { onMounted, ref, watch } from 'vue';
 
-const props = defineProps<{ photos: File[]; invalid: boolean }>();
+const props = defineProps<{
+    photos: File[];
+    invalid: boolean;
+    busy?: boolean;
+    status?: string;
+    notice?: string;
+}>();
 const emit = defineEmits<{
     select: [event: Event];
     remove: [index: number];
@@ -31,7 +37,7 @@ onMounted(() => {
             accept="image/jpeg,image/png,image/webp"
             multiple
             class="peer sr-only"
-            :disabled="photos.length >= 5"
+            :disabled="busy || photos.length >= 5"
             :aria-invalid="invalid"
             :aria-describedby="
                 invalid ? 'photo-help photo-errors' : 'photo-help'
@@ -59,7 +65,7 @@ onMounted(() => {
                     id="photo-help"
                     class="mt-1 block text-xs leading-5 text-muted-foreground"
                 >
-                    Min. 1, maks. 5 foto · JPG, PNG, WebP · 10 MB/foto.
+                    Min. 1, maks. 5 foto · JPG, PNG, WebP · 15 MB/foto.
                 </span>
             </span>
             <span
@@ -69,6 +75,12 @@ onMounted(() => {
                 {{ photos.length }}/5
             </span>
         </label>
+        <p v-if="status" role="status" class="text-xs text-muted-foreground">
+            {{ status }}
+        </p>
+        <p v-if="notice" role="status" class="text-xs text-warning">
+            {{ notice }}
+        </p>
         <ul
             v-if="photos.length"
             class="grid grid-cols-2 gap-2 min-[360px]:grid-cols-3"
@@ -96,6 +108,7 @@ onMounted(() => {
                     />
                     <button
                         type="button"
+                        :disabled="busy"
                         :aria-label="`Hapus ${photo.name}`"
                         class="absolute top-1 right-1 inline-flex size-11 items-center justify-center rounded-xl bg-card text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         @click="emit('remove', index)"

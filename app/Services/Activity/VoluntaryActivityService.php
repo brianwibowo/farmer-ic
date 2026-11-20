@@ -120,11 +120,8 @@ class VoluntaryActivityService
                         default => null,
                     };
                 }
-                foreach ($data['photos'] as $photo) {
-                    $path = $photo->store('farms/'.$activity->farm_id.'/'.$activity->id, 'activity');
-                    if ($path === false) {
-                        throw new \RuntimeException('Foto tidak berhasil disimpan.');
-                    }
+                foreach ($data['photos'] as $index => $photo) {
+                    $path = app(\App\Services\MediaImageService::class)->store($photo, 'farms/'.$activity->farm_id.'/'.$activity->id, 'activity', 'photos.'.$index);
                     $paths[] = $path;
                     ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $path]);
                 }

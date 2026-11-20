@@ -16,7 +16,10 @@ export type AdminTaskView =
     | 'completed'
     | 'all';
 
-export type AdminTaskCategory = 'maintenance' | 'harvest';
+export type AdminTaskCategory =
+    | 'maintenance'
+    | 'growth_observation'
+    | 'harvest';
 
 export type AdminTask = {
     id: string;
@@ -47,11 +50,16 @@ export type AdminTask = {
         number: number;
         label: string | null;
         planted_at: string | null;
+        status?: 'planned' | 'active' | 'harvested' | 'cancelled';
     } | null;
     stage: { code: string } | null;
     sop_version: { id: string; version: number } | null;
     can: { update: boolean };
 };
+
+export function taskSubblockClosed(task: AdminTask): boolean {
+    return ['harvested', 'cancelled'].includes(task.subblok?.status ?? '');
+}
 
 export type AdminTaskPage = {
     data: AdminTask[];
@@ -132,6 +140,7 @@ export const adminTaskViewOptions: [AdminTaskView, string][] = [
 
 export const adminTaskCategoryOptions: [AdminTaskCategory, string][] = [
     ['maintenance', sopActivityCategoryLabels.maintenance],
+    ['growth_observation', sopActivityCategoryLabels.growth_observation],
     ['harvest', sopActivityCategoryLabels.harvest],
 ];
 
