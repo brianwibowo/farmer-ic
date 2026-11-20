@@ -27,6 +27,20 @@ class ExecutiveSummaryDataTest extends TestCase
 
     private Team $team;
 
+    public function test_projection_uses_accumulated_planted_area_and_retains_harvested_batches(): void
+    {
+        $farm = $this->farm('Lahan Proyeksi Aktual', 10);
+        $batch = $this->cycle($farm, 'Jagung', 1, null);
+        $this->get('/ringkasan-eksekutif?year=2026')->assertInertia(fn (Assert $page) => $page
+            ->where('summary.rows.0.projectedTon', 40));
+        $batch->update(['planted_area_ha' => 3]);
+        $this->get('/ringkasan-eksekutif?year=2026')->assertInertia(fn (Assert $page) => $page
+            ->where('summary.rows.0.projectedTon', 120));
+        $batch->update(['status' => 'harvested']);
+        $this->get('/ringkasan-eksekutif?year=2026')->assertInertia(fn (Assert $page) => $page
+            ->where('summary.rows.0.projectedTon', 120));
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -51,11 +65,11 @@ class ExecutiveSummaryDataTest extends TestCase
             ->where('summary.rows.1.farm.areaHa', 10)
             ->where('summary.rows.1.plantedHa', 2)
             ->where('summary.rows.1.harvestedTon', 5)
-            ->where('summary.rows.1.projectedTon', 12)
+            ->where('summary.rows.1.projectedTon', 80)
             ->where('summary.rows.1.stockTon', null)
             ->where('summary.rows.2.plantedHa', 3)
             ->where('summary.rows.2.harvestedTon', 7)
-            ->where('summary.rows.2.projectedTon', 20)
+            ->where('summary.rows.2.projectedTon', 300)
             ->where('summary.rows.1.farm.detail_url', '/kebun/'.$farm->id));
     }
 
@@ -82,10 +96,10 @@ class ExecutiveSummaryDataTest extends TestCase
         $second->update(['estimated_harvest_at' => '2027-01-01', 'status' => 'planned']);
         $this->get('/ringkasan-eksekutif?year=2026')->assertInertia(fn (Assert $page) => $page
             ->has('summary.rows', 1)->where('summary.rows.0.harvestedTon', 5)
-            ->where('summary.rows.0.projectedTon', 12)->where('summary.rows.0.plantedHa', 2)
+            ->where('summary.rows.0.projectedTon', 80)->where('summary.rows.0.plantedHa', 2)
             ->where('summary.rows.0.farm.areaHa', 10));
         $this->get('/ringkasan-eksekutif?year=2027')->assertInertia(fn (Assert $page) => $page
-            ->where('summary.rows.0.harvestedTon', 0)->where('summary.rows.0.projectedTon', 20)
+            ->where('summary.rows.0.harvestedTon', 0)->where('summary.rows.0.projectedTon', 0)
             ->where('summary.rows.0.plantedHa', 2));
     }
 
@@ -101,7 +115,7 @@ class ExecutiveSummaryDataTest extends TestCase
         $this->harvest($q1, 5, '2026-03-31 16:59:59+00');
         $this->harvest($q2, 7, '2026-03-31 17:00:00+00');
         $this->harvest($q3, 9, '2026-07-01 00:00:00+07');
-        foreach (['Q1' => [5, 12], 'Q2' => [7, 20], 'Q3' => [9, 8], 'Q4' => [0, 0], 'all' => [21, 40]] as $quarter => [$actual, $projection]) {
+        foreach (['Q1' => [5, 80], 'Q2' => [7, 120], 'Q3' => [9, 40], 'Q4' => [0, 0], 'all' => [21, 240]] as $quarter => [$actual, $projection]) {
             $this->get('/ringkasan-eksekutif?year=2026&quarter='.$quarter)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->where('summary.filters.quarter', $quarter)
                 ->where('summary.rows.0.harvestedTon', $actual)
@@ -140,9 +154,11 @@ class ExecutiveSummaryDataTest extends TestCase
     {
         $visible = $this->farm('Lahan Terlihat', 3);
         $this->cycle($visible, 'Jagung', 1, 10);
+        $this->plannedBatch($this->block($visible, 'Blok Terlihat', 'Jagung', 3), 1);
         $otherTeam = Team::factory()->create(['is_personal' => false]);
         $foreign = $this->farm('Lahan Rahasia', 999, 'Mitra Rahasia', $otherTeam);
         $foreignCycle = $this->cycle($foreign, 'Sorgum', 99, 999);
+        $this->plannedBatch($this->block($foreign, 'Blok Rahasia', 'Sorgum', 999), 1);
         $this->harvest($foreignCycle, 999);
         $this->get('/ringkasan-eksekutif?team_id='.$otherTeam->id)->assertInertia(fn (Assert $page) => $page
             ->has('summary.farms', 1)->has('summary.rows', 1)->has('summary.commodities', 1)
@@ -157,7 +173,7 @@ class ExecutiveSummaryDataTest extends TestCase
     {
         $cycle = $this->cycle($this->farm('Lahan Data Parsial', 10), 'Jagung', 2, null);
         $this->get('/ringkasan-eksekutif')->assertInertia(fn (Assert $page) => $page
-            ->where('summary.rows.0.projectedTon', null)->where('summary.rows.0.projectionMissing', 1));
+            ->where('summary.rows.0.projectedTon', 80)->where('summary.rows.0.projectionMissing', 0));
         $roles = app(RolePermissions::class)->roles();
         unset($roles['owner']['crop_varieties.view']);
         config(['access.roles' => $roles]);
@@ -175,7 +191,7 @@ class ExecutiveSummaryDataTest extends TestCase
         $this->cycle($farm, 'Jagung', 2, 10)->update(['status' => 'cancelled']);
         $this->cycle($farm, 'Jagung', 3, 20)->update(['planted_at' => '2026-12-01']);
         $this->get('/ringkasan-eksekutif')->assertInertia(fn (Assert $page) => $page
-            ->where('summary.rows.0.plantedHa', 0)->where('summary.rows.0.projectedTon', 20));
+            ->where('summary.rows.0.plantedHa', 0)->where('summary.rows.0.projectedTon', null));
     }
 
     public function test_bad_filters_have_validation_errors(): void
@@ -193,7 +209,143 @@ class ExecutiveSummaryDataTest extends TestCase
             'created_by' => $this->owner->id, 'land_clearing_started_at' => '2026-11-01'])->save();
         $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('summary.rows', 1)->where('summary.rows.0.commodity.id', $crop->id)
-            ->where('summary.rows.0.plantedHa', 0)->where('summary.rows.0.farm.areaHa', 5));
+            ->where('summary.rows.0.plantedHa', 0)->where('summary.rows.0.farm.areaHa', 5)
+            ->where('summary.rows.0.projectedTon', null));
+    }
+
+    public function test_an_older_active_batch_without_a_harvest_schedule_is_unavailable_instead_of_zero(): void
+    {
+        $batch = $this->cycle($this->farm('Lahan Jadwal Belum Lengkap', 10), 'Jagung', 2, 21);
+        $batch->update(['planted_at' => '2025-12-01', 'estimated_harvest_at' => null]);
+
+        $this->get('/ringkasan-eksekutif?year=2026')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('summary.rows.0.projectedTon', null));
+
+        $this->cycle($batch->farm, 'Jagung', 3, 12);
+        $this->get('/ringkasan-eksekutif?year=2026')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('summary.rows.0.projectedTon', null)->where('summary.rows.0.projectionMissing', 1));
+    }
+
+    public function test_cileuksa_batches_without_varieties_use_block_commodities_and_keep_incomplete_estimates_unavailable(): void
+    {
+        $farm = $this->farm('Lahan Cileuksa', 20);
+        $north = $this->block($farm, 'Blok Utara', 'Jagung', 10);
+        $south = $this->block($farm, 'Blok Selatan', 'Jagung', 2.5);
+        $grass = $this->block($farm, 'Blok Rumput', 'Rumput', 5);
+        $active = $this->cycle($farm, 'Jagung', 4.25, 21);
+        $active->forceFill(['block_id' => $north->id, 'batch_number' => 1, 'subblock_label' => 'A',
+            'reserved_area_ha' => 4.25, 'created_by' => $this->owner->id, 'estimated_harvest_at' => '2027-01-15'])->save();
+        $this->plannedBatch($south, 2);
+        $this->plannedBatch($grass, 3);
+
+        foreach ([2026, 2027] as $year) {
+            $this->get('/ringkasan-eksekutif?year='.$year.'&farm='.$farm->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->has('summary.rows', 2)->has('summary.commodities', 2)
+                ->where('summary.rows.0.commodity.name', 'Jagung')
+                ->where('summary.rows.0.plantedHa', 4.25)
+                ->where('summary.rows.0.projectedTon', $year === 2027 ? 170 : 0)->where('summary.rows.0.projectionMissing', 0)
+                ->where('summary.rows.1.commodity.name', 'Rumput')
+                ->where('summary.rows.1.projectedTon', null)->where('summary.rows.1.projectionMissing', 0));
+        }
+        foreach ([$north, $grass] as $block) {
+            $this->get('/ringkasan-eksekutif?farm='.$farm->id.'&commodity='.$block->getAttribute('commodity_id'))
+                ->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->has('summary.rows', 1)->where('summary.rows.0.commodity.id', $block->getAttribute('commodity_id')));
+        }
+    }
+
+    public function test_block_fallback_preserves_harvest_attribution_projection_dates_and_explicit_zero_estimates(): void
+    {
+        $farm = $this->farm('Lahan Proyeksi Blok', 10);
+        $corn = $this->block($farm, 'Blok Jagung', 'Jagung', 5);
+        $grass = $this->block($farm, 'Blok Rumput', 'Rumput', 5);
+        $batch = $this->plannedBatch($corn, 1);
+        $batch->update(['estimated_harvest_at' => '2027-01-15', 'estimated_weight_ton' => 21]);
+        $zero = $this->plannedBatch($grass, 2);
+        $zero->update(['estimated_harvest_at' => '2026-12-01', 'estimated_weight_ton' => 0]);
+        $this->harvest($batch, 3);
+
+        foreach ([2026 => [null, 3], 2027 => [null, 0]] as $year => [$projection, $actual]) {
+            $this->get('/ringkasan-eksekutif?year='.$year)->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->has('summary.rows', 2)
+                ->where('summary.rows.0.commodity.name', 'Jagung')
+                ->where('summary.rows.0.projectedTon', $projection)
+                ->where('summary.rows.0.harvestedTon', $actual)
+                ->where('summary.rows.1.commodity.name', 'Rumput')
+                ->where('summary.rows.1.projectedTon', null));
+        }
+    }
+
+    public function test_a_present_variety_takes_precedence_over_the_blocks_commodity(): void
+    {
+        $farm = $this->farm('Lahan Varietas Terpilih', 10);
+        $grass = $this->block($farm, 'Blok Rumput', 'Rumput', 10);
+        $batch = $this->cycle($farm, 'Jagung', 2, 12);
+        $batch->forceFill(['block_id' => $grass->id, 'batch_number' => 1, 'subblock_label' => 'A',
+            'reserved_area_ha' => 2, 'created_by' => $this->owner->id])->save();
+        $this->harvest($batch, 5);
+
+        $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('summary.rows', 2)->where('summary.rows.0.commodity.name', 'Jagung')
+            ->where('summary.rows.0.projectedTon', 80)->where('summary.rows.0.harvestedTon', 5)
+            ->where('summary.rows.1.commodity.name', 'Rumput')->where('summary.rows.1.harvestedTon', 0));
+    }
+
+    public function test_block_fallback_cannot_use_hidden_blocks_or_commodities(): void
+    {
+        $farm = $this->farm('Lahan Batas Akses', 10);
+        $block = $this->block($farm, 'Blok Jagung', 'Jagung', 10);
+        $this->plannedBatch($block, 1);
+        $roles = app(RolePermissions::class)->roles();
+
+        foreach (['farm_blocks.view', 'commodities.view'] as $grant) {
+            $restricted = $roles;
+            unset($restricted['owner'][$grant]);
+            config(['access.roles' => $restricted]);
+            $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->has('summary.rows', 1)->has('summary.commodities', 0)
+                ->where('summary.rows.0.commodity.id', '')
+                ->where('summary.rows.0.commodity.name', 'Belum teridentifikasi')
+                ->where('summary.rows.0.projectedTon', null));
+        }
+    }
+
+    public function test_hidden_present_varieties_are_not_replaced_with_the_blocks_commodity(): void
+    {
+        $farm = $this->farm('Lahan Varietas Tersembunyi', 10);
+        $block = $this->block($farm, 'Blok Jagung', 'Jagung', 10);
+        $batch = $this->cycle($farm, 'Jagung', 2, 12);
+        $batch->forceFill(['block_id' => $block->id, 'batch_number' => 1, 'subblock_label' => 'A',
+            'reserved_area_ha' => 2, 'created_by' => $this->owner->id])->save();
+        $roles = app(RolePermissions::class)->roles();
+        unset($roles['owner']['crop_varieties.view']);
+        config(['access.roles' => $roles]);
+
+        $this->get('/ringkasan-eksekutif')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('summary.rows', 2)
+            ->where('summary.rows.0.commodity.name', 'Jagung')->where('summary.rows.0.plantedHa', 0)
+            ->where('summary.rows.1.commodity.name', 'Belum teridentifikasi')->where('summary.rows.1.plantedHa', 2));
+    }
+
+    private function block(Farm $farm, string $name, string $crop, float $area): FarmBlock
+    {
+        $commodity = Commodity::firstOrCreate(['name' => $crop]);
+        $block = new FarmBlock(['name' => $name, 'area_ha' => $area, 'is_active' => true]);
+        $block->forceFill(['farm_id' => $farm->id, 'commodity_id' => $commodity->id,
+            'created_by' => $this->owner->id, 'land_clearing_started_at' => '2026-11-01'])->save();
+
+        return $block;
+    }
+
+    private function plannedBatch(FarmBlock $block, int $number): PlantingCycle
+    {
+        $batch = new PlantingCycle;
+        $batch->forceFill(['farm_id' => $block->farm_id, 'block_id' => $block->id,
+            'batch_number' => $number, 'subblock_label' => 'A', 'status' => 'planned',
+            'planned_planting_at' => '2026-11-20', 'planted_area_ha' => 0,
+            'reserved_area_ha' => 0, 'created_by' => $this->owner->id])->save();
+
+        return $batch;
     }
 
     private function farm(string $name, float $area, ?string $party = null, ?Team $team = null): Farm

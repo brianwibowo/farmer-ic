@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { toast } from '@/lib/toast';
 import {
     executiveMoney as money,
@@ -16,10 +16,14 @@ export function useExecutiveSummary(source: () => ExecutiveSummaryData) {
     const loading = ref(false);
     const error = ref('');
     const feedback = ref('');
+    let backgroundRequest: { cancel: () => void } | undefined;
+    let timer: ReturnType<typeof setInterval> | undefined;
     const filters = reactive({ ...data.value.filters });
     watch(data, (value) => Object.assign(filters, value.filters));
-    function load(refresh = false) {
+    function load(refresh = false, background = false) {
         if (loading.value) return;
+        if (background && backgroundRequest) return;
+        if (!background) backgroundRequest?.cancel();
         error.value = '';
         feedback.value = '';
         const fail = () => {
@@ -36,8 +40,11 @@ export function useExecutiveSummary(source: () => ExecutiveSummaryData) {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                onCancelToken: (token) => {
+                    if (background) backgroundRequest = token;
+                },
                 onStart: () => {
-                    loading.value = true;
+                    if (!background) loading.value = true;
                 },
                 onSuccess: () => {
                     if (refresh)
@@ -54,11 +61,24 @@ export function useExecutiveSummary(source: () => ExecutiveSummaryData) {
                 onHttpException: fail,
                 onNetworkError: fail,
                 onFinish: () => {
-                    loading.value = false;
+                    if (background) backgroundRequest = undefined;
+                    else loading.value = false;
                 },
             },
         );
     }
+    onMounted(() => {
+        timer = setInterval(
+            () => {
+                if (document.visibilityState === 'visible') load(false, true);
+            },
+            5 * 60 * 1000,
+        );
+    });
+    onUnmounted(() => {
+        if (timer) clearInterval(timer);
+        backgroundRequest?.cancel();
+    });
     const rows = computed(() => data.value.rows);
     const totals = computed(() => executiveTotals(rows.value));
     const years = computed(() => data.value.years);
