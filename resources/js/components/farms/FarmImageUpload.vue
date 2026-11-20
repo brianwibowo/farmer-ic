@@ -41,11 +41,11 @@ async function choose(event: Event): Promise<void> {
     if (!selected) return;
     if (
         !['image/jpeg', 'image/png', 'image/webp'].includes(selected.type) ||
-        selected.size > 10 * 1024 * 1024
+        selected.size > 15 * 1024 * 1024
     ) {
         emit(
             'validationError',
-            'Pilih foto JPEG, PNG, atau WebP maksimal 10 MB.',
+            'Pilih foto JPEG, PNG, atau WebP maksimal 15 MB.',
         );
         if (input.value) input.value.value = '';
         return;
@@ -91,7 +91,7 @@ function clear(): void {
                 id="farm-image-help"
                 class="mt-1 text-xs leading-5 text-muted-foreground"
             >
-                JPEG, PNG, atau WebP. Maksimal 1 foto per lahan, 10 MB per file.
+                JPEG, PNG, atau WebP. Maksimal 1 foto per lahan, 15 MB per file.
             </p>
         </div>
         <label

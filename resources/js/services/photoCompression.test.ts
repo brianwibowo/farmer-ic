@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToString } from '@vue/server-renderer';
 import { defineComponent, h, ref } from 'vue';
 import { usePhotoCompression } from '@/composables/usePhotoCompression';
-import { compressPhoto } from './photoCompression';
+import { compressPhoto, validatePhoto } from './photoCompression';
 
 const close = vi.fn();
 const drawImage = vi.fn();
@@ -34,6 +34,14 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('phone photo preparation', () => {
+    it('accepts exactly 15 MiB per photo', () => {
+        const photo = new File(
+            [new Uint8Array(15 * 1024 * 1024)],
+            'field.jpg',
+            { type: 'image/jpeg' },
+        );
+        expect(() => validatePhoto(photo)).not.toThrow();
+    });
     it.each(['toBlob', 'File', 'context', 'encoding'])(
         'keeps a validated original ready for Laravel when %s is unavailable or fails',
         async (capability) => {
@@ -158,7 +166,7 @@ describe('phone photo preparation', () => {
         expect(close).toHaveBeenCalledOnce();
     });
 
-    it('accepts a 48 MP selection under 10 MB and keeps the compressed output limit', async () => {
+    it('accepts a 48 MP selection under 15 MB and keeps the compressed output limit', async () => {
         bitmap.width = 6048;
         bitmap.height = 8064;
         const original = new File(
@@ -213,7 +221,7 @@ describe('phone photo preparation', () => {
     it('rejects an oversized PNG fallback before attempting to upload it', async () => {
         canvas.toBlob.mockImplementation((callback: BlobCallback) =>
             callback(
-                new Blob([new Uint8Array(11 * 1024 * 1024)], {
+                new Blob([new Uint8Array(16 * 1024 * 1024)], {
                     type: 'image/png',
                 }),
             ),
@@ -222,18 +230,18 @@ describe('phone photo preparation', () => {
             compressPhoto(
                 new File(['webp'], 'field.webp', { type: 'image/webp' }),
             ),
-        ).rejects.toThrow('masih melebihi 10 MB');
+        ).rejects.toThrow('masih melebihi 15 MB');
         expect(close).toHaveBeenCalledOnce();
     });
 
     it('rejects invalid or oversized selections before decoding', async () => {
         for (const original of [
             new File(['pdf'], 'document.pdf', { type: 'application/pdf' }),
-            new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'large.jpg', {
+            new File([new Uint8Array(15 * 1024 * 1024 + 1)], 'large.jpg', {
                 type: 'image/jpeg',
             }),
         ])
-            await expect(compressPhoto(original)).rejects.toThrow('10 MB');
+            await expect(compressPhoto(original)).rejects.toThrow('15 MB');
         expect(createImageBitmap).not.toHaveBeenCalled();
     });
 

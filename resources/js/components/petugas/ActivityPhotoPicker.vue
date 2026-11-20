@@ -65,7 +65,7 @@ onMounted(() => {
                     id="photo-help"
                     class="mt-1 block text-xs leading-5 text-muted-foreground"
                 >
-                    Min. 1, maks. 5 foto · JPG, PNG, WebP · 10 MB/foto.
+                    Min. 1, maks. 5 foto · JPG, PNG, WebP · 15 MB/foto.
                 </span>
             </span>
             <span

@@ -1,11 +1,11 @@
 const MAX_DIMENSION = 2048;
 const TARGET_BYTES = 512 * 1024;
-const MAX_INPUT_BYTES = 10 * 1024 * 1024;
+const MAX_INPUT_BYTES = 15 * 1024 * 1024;
 const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export function validatePhoto(file: File): void {
     if (!TYPES.includes(file.type) || file.size > MAX_INPUT_BYTES) {
-        throw new Error('Pilih foto JPEG, PNG, atau WebP maksimal 10 MB.');
+        throw new Error('Pilih foto JPEG, PNG, atau WebP maksimal 15 MB.');
     }
 }
 
@@ -111,7 +111,7 @@ export async function compressPhoto(file: File): Promise<File> {
         if (!best) throw new Error('Foto gagal diproses. Pilih ulang foto.');
         if (best.size > MAX_INPUT_BYTES)
             throw new Error(
-                'Foto hasil pemrosesan masih melebihi 10 MB. Pilih foto dengan resolusi lebih kecil.',
+                'Foto hasil pemrosesan masih melebihi 15 MB. Pilih foto dengan resolusi lebih kecil.',
             );
         if (scale === 1 && best.size >= file.size) return file;
         const extension =

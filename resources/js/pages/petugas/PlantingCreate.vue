@@ -227,11 +227,11 @@ async function selectPhotos(event: Event): Promise<void> {
             (file) =>
                 !['image/jpeg', 'image/png', 'image/webp'].includes(
                     file.type,
-                ) || file.size > 10 * 1024 * 1024,
+                ) || file.size > 15 * 1024 * 1024,
         )
     ) {
         clientErrors.value.photos =
-            'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 10 MB.';
+            'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 15 MB.';
     } else {
         try {
             form.photos.push(...(await preparePhotos(files)));

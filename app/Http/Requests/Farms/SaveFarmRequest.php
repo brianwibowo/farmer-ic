@@ -58,7 +58,7 @@ class SaveFarmRequest extends FormRequest
             'latitude' => ['sometimes', 'nullable', 'numeric', 'decimal:0,7', 'between:-90,90'],
             'longitude' => ['sometimes', 'nullable', 'numeric', 'decimal:0,7', 'between:-180,180'],
             'image_url' => ['prohibited'],
-            'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240', Rule::prohibitedIf($this->boolean('remove_image'))],
+            'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360', Rule::prohibitedIf($this->boolean('remove_image'))],
             'remove_image' => ['sometimes', 'boolean'],
             'id' => ['prohibited'],
             'created_at' => ['prohibited'],

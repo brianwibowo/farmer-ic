@@ -58,7 +58,7 @@ completion is a direct Petugas action.
 
 ### PHP upload configuration
 
-Both planting and SOP-task reports accept up to five photos of 10 MB each.
+Both planting and SOP-task reports accept up to five photos of 15 MB each.
 The serving PHP process must therefore allow `upload_max_filesize = 10M`
 and `post_max_size = 64M` (including multipart overhead). Set these in the
 serving PHP's `php.ini`, not Laravel `.env`, and restart the web server.

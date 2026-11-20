@@ -32,7 +32,7 @@ class FarmImageUploadTest extends TestCase
 
     public function test_create_stores_a_private_image_under_its_persisted_farm_and_serves_an_authorized_url(): void
     {
-        $this->post('/admin/farm-management', [...$this->payload(), 'image' => UploadedFile::fake()->image('field.jpg')->size(10240)])
+        $this->post('/admin/farm-management', [...$this->payload(), 'image' => UploadedFile::fake()->image('field.jpg')->size(15360)])
             ->assertRedirect();
         $farm = Farm::query()->where('name', 'Lahan Dokumentasi')->firstOrFail();
         $this->assertMatchesRegularExpression('#^farms/'.$farm->id.'/[a-f0-9-]+\.jpg$#', $farm->image_url);
@@ -80,7 +80,7 @@ class FarmImageUploadTest extends TestCase
 
     public function test_file_validation_rejects_oversize_non_images_svg_and_client_supplied_storage_paths(): void
     {
-        foreach ([UploadedFile::fake()->image('large.jpg')->size(10241),
+        foreach ([UploadedFile::fake()->image('large.jpg')->size(15361),
             UploadedFile::fake()->create('document.pdf', 1, 'application/pdf'),
             UploadedFile::fake()->create('image.svg', 1, 'image/svg+xml')] as $file) {
             $this->post('/admin/farm-management', [...$this->payload(), 'image' => $file])

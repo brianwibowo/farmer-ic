@@ -47,7 +47,7 @@ class StoreVoluntaryActivityRequest extends FormRequest
                 ? ['required', 'uuid', 'prohibits:cycle_id']
                 : ($optional ? ['nullable', 'uuid', 'prohibits:cycle_id'] : ['prohibited']),
             'photos' => ['required', 'array', 'list', 'min:1', 'max:5'],
-            'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'],
             'farm_id' => ['prohibited'], 'team_id' => ['prohibited'], 'performed_by' => ['prohibited'],
             'task_id' => ['prohibited'], 'planting_cycle_task_id' => ['prohibited'], 'daily_activity_log_id' => ['prohibited'],
             'incident_ticket_id' => $code === 'incident' ? ['prohibited'] : ['nullable', 'uuid'],
