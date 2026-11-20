@@ -2,12 +2,14 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import BlockForm from '@/components/blocks/BlockForm.vue';
+import type { BoundaryMapBlock } from '@/components/farms/FarmBlockBoundaryMap.vue';
 import BlockLayout from '@/layouts/BlockLayout.vue';
 import type { BlockFarm, FarmBlock, BlockFormCapacity } from '@/types/blocks';
 defineOptions({ layout: BlockLayout, inheritAttrs: false });
 const props = defineProps<{
     farm: BlockFarm;
     block: FarmBlock | null;
+    existingBlocks?: BoundaryMapBlock[];
     capacity: BlockFormCapacity;
 }>();
 const back = props.block
@@ -29,6 +31,7 @@ const back = props.block
             <BlockForm
                 :farm="farm"
                 :block="block"
+                :existing-blocks="existingBlocks"
                 :capacity="capacity"
                 @cancel="router.visit(back)"
             />

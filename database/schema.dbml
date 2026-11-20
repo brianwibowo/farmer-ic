@@ -203,6 +203,8 @@ Table farm_blocks {
   updated_at timestamptz
   commodity_id uuid [ref: > commodities.id, note: 'Komoditas blok']
   default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default blok untuk penanaman baru']
+  boundary_geojson jsonb [note: 'GeoJSON Polygon batas blok di peta (opsional)']
+  mapped_area_ha decimal(12,4) [note: 'Perkiraan luas (ha) yang dihitung server dari poligon batas blok']
   indexes {
     (id, farm_id) [unique]
     commodity_id

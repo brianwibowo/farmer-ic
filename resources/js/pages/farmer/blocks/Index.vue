@@ -63,7 +63,7 @@ function search(): void {
                 Blok lahan
             </h1>
             <p class="mt-2 text-sm text-muted-foreground">
-                {{ farm.name }} · Kelola blok permanen dan pembagian batch
+                {{ farm.name }} · Kelola blok permanen dan pembagian subblok
                 penanamannya.
             </p>
         </div>

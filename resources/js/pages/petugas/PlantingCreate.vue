@@ -14,6 +14,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import ActivityPhotoPicker from '@/components/petugas/ActivityPhotoPicker.vue';
+import { usePhotoCompression } from '@/composables/usePhotoCompression';
 import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
@@ -226,7 +227,10 @@ function clearPhotoErrors(): void {
             form.clearErrors(key as keyof typeof form.errors);
     }
 }
-function selectPhotos(event: Event): void {
+const { compressing, compressionStatus, fallbackNotice, preparePhotos } =
+    usePhotoCompression(() => form.photos);
+async function selectPhotos(event: Event): Promise<void> {
+    if (compressing.value || form.processing) return;
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     clientErrors.value = {};
@@ -236,24 +240,33 @@ function selectPhotos(event: Event): void {
             (file) =>
                 !['image/jpeg', 'image/png', 'image/webp'].includes(
                     file.type,
-                ) || file.size > 10 * 1024 * 1024,
+                ) || file.size > 15 * 1024 * 1024,
         )
     ) {
         clientErrors.value.photos =
-            'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 10 MB.';
+            'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 15 MB.';
     } else {
-        form.photos.push(...files);
-        clearPhotoErrors();
+        try {
+            form.photos.push(...(await preparePhotos(files)));
+            clearPhotoErrors();
+        } catch (error) {
+            clientErrors.value.photos =
+                error instanceof Error
+                    ? error.message
+                    : 'Foto gagal diproses. Pilih ulang foto.';
+        }
     }
     input.value = '';
 }
 function removePhoto(index: number): void {
+    if (compressing.value || form.processing) return;
     form.photos.splice(index, 1);
     clearPhotoErrors();
 }
 function submit(): void {
     if (
         form.processing ||
+        compressing.value ||
         props.areaLimitM2 === 0 ||
         Object.keys(numericErrors.value).length > 0 ||
         !props.commodityConfigured ||
@@ -314,7 +327,7 @@ function submit(): void {
                             aria-hidden="true"
                         />
                         <span
-                            >{{ farm.name }} · Batch {{ cycle.batch_number
+                            >{{ farm.name }} · Subblok {{ cycle.batch_number
                             }}<template v-if="cycle.farm_cycle_number">
                                 · Siklus {{ cycle.farm_cycle_number }}</template
                             ></span
@@ -714,6 +727,9 @@ function submit(): void {
                         <h2 class="text-base font-semibold">Bukti penanaman</h2>
                     </div>
                     <ActivityPhotoPicker
+                        :busy="compressing || form.processing"
+                        :status="compressionStatus"
+                        :notice="fallbackNotice"
                         :photos="form.photos"
                         :invalid="photoErrors.length > 0"
                         @select="selectPhotos"
@@ -807,6 +823,7 @@ function submit(): void {
                 class="min-h-12 w-full rounded-xl"
                 :disabled="
                     form.processing ||
+                    compressing ||
                     !varieties.length ||
                     varietyMismatch ||
                     areaLimitM2 === 0 ||

@@ -199,7 +199,7 @@ function formatWindowRange(window: PlantingWindow): string {
                         {{ cycle.block.name }} · {{ cycle.subblock_label }}
                     </h2>
                     <p class="text-xs text-muted-foreground">
-                        Batch {{ cycle.batch_number }} ·
+                        Subblok {{ cycle.batch_number }} ·
                         {{
                             cycle.planted_at
                                 ? 'Sudah ditanam'

@@ -6,6 +6,7 @@ import {
     executiveCommodityColor,
     executiveCommodities,
     executiveNumber as number,
+    executiveProjection as projection,
 } from '@/services/ownerExecutiveSummary';
 
 const props = defineProps<{
@@ -31,7 +32,7 @@ const cards = computed(() => [
             name: crop.name,
             color: crop.color,
             value: crop.planted,
-            detail: `Panen aktual ${number(crop.harvested)} ton, proyeksi ${number(crop.projected)} ton`,
+            detail: `Panen aktual ${number(crop.harvested)} ton, proyeksi ${projection(crop.projected)}`,
         })),
     },
     {
@@ -44,7 +45,7 @@ const cards = computed(() => [
             name: crop.name,
             color: crop.color,
             value: crop.harvested,
-            detail: `Luas tanam ${number(crop.planted)} Ha, proyeksi ${number(crop.projected)} ton`,
+            detail: `Luas tanam ${number(crop.planted)} Ha, proyeksi ${projection(crop.projected)}`,
         })),
     },
 ]);
@@ -110,10 +111,9 @@ const cards = computed(() => [
                                 >Proyeksi<strong
                                     class="block font-semibold text-foreground"
                                     >{{
-                                        number(byId.get(item.id)?.projected)
+                                        projection(byId.get(item.id)?.projected)
                                     }}
-                                    ton</strong
-                                ></span
+                                </strong></span
                             ></span
                         ></span
                     ></template

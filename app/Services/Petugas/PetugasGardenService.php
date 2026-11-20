@@ -48,7 +48,7 @@ class PetugasGardenService
         $capacities = $this->blocks->capacitiesForBlocks($farm, $actor, $team, $blocks);
         $selected = $selected === null ? $blocks->first() : $blocks->firstWhere('id', $selected->id);
         $blockPayload = fn (FarmBlock $block): array => [
-            ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active']),
+            ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active', 'boundary_geojson', 'mapped_area_ha']),
             'batches_count' => (int) ($blockCounts[$block->id] ?? 0),
             'available_ha' => $capacities[$block->id]['available_ha'] ?? '0.0000',
             'can_create_batch' => Gate::forUser($actor)->allows('create', [PlantingCycle::class, $block]),

@@ -131,6 +131,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->whereUuid(['farm', 'block', 'batch'])->name('blocks.batches.update');
     Route::post('kebun/{farm}/blocks/{block}/batches/{batch}/close-harvest', [FarmBlockController::class, 'closeHarvest'])
         ->whereUuid(['farm', 'block', 'batch'])->name('blocks.batches.close-harvest');
+    Route::put('kebun/{farm}/blocks/{block}/boundary', [FarmBlockController::class, 'updateBoundary'])
+        ->whereUuid(['farm', 'block'])->name('blocks.boundary.update');
     Route::resource('kebun/{farm}/blocks', FarmBlockController::class)
         ->whereUuid(['farm', 'block'])->names('blocks');
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');

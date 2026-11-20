@@ -190,11 +190,8 @@ class PlantingActivityService
                     $activity->forceFill(['task_details' => json_encode(array_intersect_key($data, array_flip(['area', 'area_unit', 'quantity', 'quantity_unit', 'bag_size'])), JSON_THROW_ON_ERROR)])->save();
                 }
                 $activity->plantingDetail()->create(['seed_name' => $variety->name, 'quantity_kg' => $data['quantity_kg'], 'area_ha' => $data['area_ha']]);
-                foreach ($data['photos'] as $photo) {
-                    $path = $photo->store('farms/'.$activity->farm_id.'/'.$activity->id, 'activity');
-                    if ($path === false) {
-                        throw new \RuntimeException('Foto tidak berhasil disimpan.');
-                    }
+                foreach ($data['photos'] as $index => $photo) {
+                    $path = app(\App\Services\MediaImageService::class)->store($photo, 'farms/'.$activity->farm_id.'/'.$activity->id, 'activity', 'photos.'.$index);
                     $paths[] = $path;
                     ActivityPhoto::create(['activity_id' => $activity->id, 'image_url' => $path]);
                 }

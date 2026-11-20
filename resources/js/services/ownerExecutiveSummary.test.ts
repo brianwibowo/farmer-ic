@@ -5,6 +5,7 @@ import {
     executiveCommodities,
     executiveLandCategories,
     executiveNumber,
+    executiveAvailableProjection,
 } from './ownerExecutiveSummary';
 
 export function row(overrides: Partial<ExecutiveRow> = {}): ExecutiveRow {
@@ -40,6 +41,25 @@ export function row(overrides: Partial<ExecutiveRow> = {}): ExecutiveRow {
     };
 }
 describe('Executive database presentation', () => {
+    it('sums available projections, preserving zero and identifying incomplete rows', () => {
+        expect(
+            executiveAvailableProjection([
+                row({ projectedTon: 40 }),
+                row({ projectedTon: null }),
+                row({ projectedTon: 0 }),
+            ]),
+        ).toEqual({ projected: 40, missing: 1 });
+        expect(
+            executiveAvailableProjection([row({ projectedTon: null })]),
+        ).toEqual({ projected: null, missing: 1 });
+        expect(
+            executiveAvailableProjection([row({ projectedTon: 0 })]),
+        ).toEqual({ projected: 0, missing: 0 });
+        expect(executiveAvailableProjection([])).toEqual({
+            projected: null,
+            missing: 0,
+        });
+    });
     it('counts farm area once across different commodities and preserves each production amount', () => {
         const rows = [
             row(),

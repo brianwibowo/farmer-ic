@@ -14,6 +14,8 @@ RUN apt-get update \
         https://github.com/phpredis/phpredis.git /tmp/phpredis \
     && install-php-extensions \
         bcmath \
+        gd \
+        exif \
         intl \
         mbstring \
         opcache \

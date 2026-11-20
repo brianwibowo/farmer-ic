@@ -41,25 +41,20 @@ const number = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 });
                 :key="cycle.id"
                 :value="cycle.id"
             >
-                Siklus {{ cycle.cycle_number }} · {{ cycle.batch_count }} batch
+                Siklus {{ cycle.cycle_number }} — Siklus ini memiliki {{ cycle.batch_count }} subblok
             </AppSelectOption>
             <AppSelectOption v-if="canCreate" value="new"
-                >+ Buat siklus baru</AppSelectOption
+                >+ Buat siklus tanam baru</AppSelectOption
             >
         </AppSelect>
         <p :id="`${id}-hint`" class="text-xs leading-5 text-muted-foreground">
             <template v-if="create"
-                >Siklus baru dibuat saat subblok disimpan. Nomornya diatur
-                otomatis.</template
+                >Siklus baru akan diterbitkan secara otomatis saat subblok ini disimpan.</template
             >
             <template v-else-if="selected"
-                >Panen aktual siklus ini:
-                {{
-                    number.format(Number(selected.harvested_ton))
-                }}
-                ton.</template
+                >Siklus {{ selected.cycle_number }} saat ini menaungi {{ selected.batch_count }} subblok terdaftar dengan realisasi panen {{ number.format(Number(selected.harvested_ton)) }} ton.</template
             >
-            <template v-else>Belum ada siklus yang dapat dipilih.</template>
+            <template v-else>Silakan tentukan siklus lahan untuk penempatan subblok baru.</template>
         </p>
         <p
             v-if="error"

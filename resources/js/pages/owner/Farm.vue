@@ -2,7 +2,7 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowUpRight, ClipboardList, MapPin, WalletCards } from '@lucide/vue';
 import { computed } from 'vue';
-import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
+import FarmBlockBoundaryMap from '@/components/farms/FarmBlockBoundaryMap.vue';
 import OwnerCycleCard from '@/components/owner/OwnerCycleCard.vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import {
@@ -69,18 +69,6 @@ const backHref = computed(() => (origin.value === 'home' ? '/' : '/kebun'));
 const backLabel = computed(() =>
     origin.value === 'home' ? 'Kembali ke Beranda' : 'Daftar lahan',
 );
-const mapFarms = computed(() => [
-    {
-        id: props.farm.id,
-        name: props.farm.name,
-        location: location.value,
-        area: ownerArea(props.farm.total_area_ha),
-        latitude:
-            props.farm.latitude === null ? null : Number(props.farm.latitude),
-        longitude:
-            props.farm.longitude === null ? null : Number(props.farm.longitude),
-    },
-]);
 const tenure: Record<string, string> = {
     owned: 'Milik sendiri',
     rented: 'Sewa',
@@ -214,9 +202,9 @@ const severity: Record<string, string> = {
         >
     </nav>
     <section aria-labelledby="farm-blocks">
-        <h2 id="farm-blocks" class="text-base font-semibold">Blok & batch</h2>
+        <h2 id="farm-blocks" class="text-base font-semibold">Blok & subblok</h2>
         <p class="mt-1 text-xs leading-5 text-muted-foreground">
-            Buka blok untuk melihat alokasi, timeline, dan jadwal setiap batch.
+            Buka blok untuk melihat alokasi, timeline, dan jadwal setiap subblok.
         </p>
         <p
             v-if="!blocks.length"
@@ -245,7 +233,7 @@ const severity: Record<string, string> = {
                 </div>
                 <p class="mt-2 text-xs text-muted-foreground">
                     {{ ownerArea(block.area_ha) }} ha ·
-                    {{ block.cycles_count }} batch ·
+                    {{ block.cycles_count }} subblok ·
                     {{ block.is_active ? 'Aktif' : 'Nonaktif' }}
                 </p>
                 <p v-if="block.description" class="mt-2 text-sm leading-6">
@@ -424,8 +412,10 @@ const severity: Record<string, string> = {
     </section>
     <section>
         <h2 class="flex items-center gap-2 text-base font-semibold">
-            <MapPin class="size-4" />Lokasi
+            <MapPin class="size-4" />Peta lokasi &amp; batas blok
         </h2>
-        <DashboardFarmMap :farms="mapFarms" class="mt-3! h-56!" />
+        <div class="mt-3">
+            <FarmBlockBoundaryMap :farm="farm" :blocks="blocks" />
+        </div>
     </section>
 </template>
