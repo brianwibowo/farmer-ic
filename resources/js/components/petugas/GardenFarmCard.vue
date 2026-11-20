@@ -1,30 +1,21 @@
 <script setup lang="ts">
 import { LandPlot, MapPin } from '@lucide/vue';
-import { computed } from 'vue';
-import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
+import FarmBlockBoundaryMap from '@/components/farms/FarmBlockBoundaryMap.vue';
 import type { PetugasGarden } from '@/types/petugas-garden';
 import { gardenArea } from '@/types/petugas-garden';
 
-const props = defineProps<{
-    farm: NonNullable<PetugasGarden['farm']>;
-    summary: PetugasGarden['summary'];
-}>();
-const coordinates = computed<[number, number] | null>(() => {
-    if (props.farm.latitude === null || props.farm.longitude === null)
-        return null;
-
-    const latitude = Number(props.farm.latitude);
-    const longitude = Number(props.farm.longitude);
-    if (
-        !Number.isFinite(latitude) ||
-        !Number.isFinite(longitude) ||
-        Math.abs(latitude) > 90 ||
-        Math.abs(longitude) > 180
-    )
-        return null;
-
-    return [latitude, longitude];
-});
+withDefaults(
+    defineProps<{
+        farm: NonNullable<PetugasGarden['farm']>;
+        summary: PetugasGarden['summary'];
+        blocks?: PetugasGarden['blocks'];
+        selectedBlockId?: string | null;
+    }>(),
+    {
+        blocks: () => [],
+        selectedBlockId: null,
+    },
+);
 </script>
 
 <template>
@@ -114,8 +105,11 @@ const coordinates = computed<[number, number] | null>(() => {
         </dl>
         <div class="space-y-3 border-t border-border pt-4">
             <h3 class="admin-section-title">Peta lokasi</h3>
-            <FarmLocationMap
-                :model-value="coordinates"
+            <FarmBlockBoundaryMap
+                :farm="farm"
+                :blocks="blocks"
+                :selected-block-id="selectedBlockId"
+                :show-gps-button="true"
                 :initial-zoom="18"
                 :show-hint="false"
             />

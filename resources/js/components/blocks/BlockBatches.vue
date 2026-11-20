@@ -218,7 +218,7 @@ const progressSummary = computed(() => {
                             </span>
                         </h5>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            Batch {{ batch.batch_number }} ·
+                            Subblok {{ batch.batch_number }} ·
                             <template v-if="batch.farm_cycle_number"
                                 >Siklus {{ batch.farm_cycle_number }} ·
                             </template>
@@ -303,7 +303,7 @@ const progressSummary = computed(() => {
                         :stages="batch.stages"
                         :growth="batch.growth"
                         :theme="theme"
-                        :growth-context="`Sub blok ${batch.subblock_label} · Batch ${batch.batch_number}`"
+                        :growth-context="`Sub blok ${batch.subblock_label} · Subblok ${batch.batch_number}`"
                     >
                         <template
                             v-if="
@@ -345,6 +345,7 @@ const progressSummary = computed(() => {
         :base="base"
         :capacity="block.batch_capacity"
         :batch="selected"
+        :existing-batches="block.batches"
         :theme="theme"
         :return-to="returnTo"
         @saved="!selected && emit('created')"

@@ -316,6 +316,7 @@ function remove(): void {
         v-model:open="editing"
         :farm="farm"
         :block="selected"
+        :existing-blocks="blocks"
         :capacity="selected?.capacity ?? capacity!"
         :theme="theme ?? 'admin-dashboard-theme'"
         :return-to="returnTo"

@@ -206,7 +206,7 @@ function submit(): void {
                                             class="size-4 accent-primary"
                                         />
                                         <span class="text-sm font-medium">
-                                            Aktif untuk batch baru
+                                            Aktif untuk subblok baru
                                         </span>
                                     </span>
                                     <span

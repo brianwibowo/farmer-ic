@@ -1,4 +1,12 @@
-export type BlockFarm = { id: string; name: string; total_area_ha: string };
+import type { GeoJsonPolygon } from '@/lib/geoPolygon';
+
+export type BlockFarm = {
+    id: string;
+    name: string;
+    total_area_ha: string;
+    latitude?: string | number | null;
+    longitude?: string | number | null;
+};
 export type BatchCapacity = {
     farm_total_ha: string;
     block_total_ha: string;
@@ -20,6 +28,8 @@ export type FarmBlock = {
     default_sop_template_id: string | null;
     land_clearing_started_at: string | null;
     land_clearing_completed_at: string | null;
+    boundary_geojson?: GeoJsonPolygon | null;
+    mapped_area_ha?: string | null;
 };
 export type BlockOptions = {
     commodities: { id: string; name: string }[];
