@@ -121,8 +121,8 @@ class FarmBlockController extends Controller
         if ($request->hasBoundaryInput()) {
             $data['boundary_geojson'] = $request->normalizedBoundary();
         }
-        $this->blocks->update($block, $request->user(), $this->team($farm), $data);
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan blok disimpan.']);
+        $result = $this->blocks->updateWithTaskSync($block, $request->user(), $this->team($farm), $data);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan blok disimpan.'.\App\Support\TaskGenerationFeedback::syncSummary($result)]);
 
         return $this->returnToFarm($request, $farm) ?? to_route('blocks.show', [$farm, $block]);
     }
