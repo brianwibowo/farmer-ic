@@ -3,7 +3,9 @@ import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Save } from '@lucide/vue';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import BlockBoundaryField from '@/components/blocks/BlockBoundaryField.vue';
+import type { BoundaryMapBlock } from '@/components/farms/FarmBlockBoundaryMap.vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import FormErrorSummary from '@/components/farms/FormErrorSummary.vue';
 import {
@@ -13,12 +15,14 @@ import {
 import { hectares } from '@/types/farms';
 import { Button } from '@/components/ui/button';
 import type { BlockFarm, FarmBlock, BlockOptions } from '@/types/blocks';
+import type { GeoJsonPolygon } from '@/lib/geoPolygon';
 import { areaValue, squareMetres, type AreaUnit } from '@/lib/landArea';
 
 const props = defineProps<{
     dialog?: boolean;
     farm: BlockFarm;
     block: FarmBlock | null;
+    existingBlocks?: BoundaryMapBlock[];
     returnTo?: 'farm' | 'blocks';
     capacity: {
         maximum_area_ha: string;
@@ -29,7 +33,18 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: []; cancel: [] }>();
 const options = computed(() => usePage().props.blockOptions as BlockOptions);
 const base = `/kebun/${props.farm.id}/blocks`;
-const form = useForm({
+const boundaryInvalid = ref<string | null>(null);
+const form = useForm<{
+    return_to: string;
+    name: string;
+    area_value: string;
+    area_unit: AreaUnit;
+    description: string;
+    is_active: boolean;
+    commodity_id: string;
+    default_sop_template_id: string;
+    boundary_geojson: GeoJsonPolygon | null;
+}>({
     return_to: props.returnTo ?? '',
     name: props.block?.name ?? '',
     area_value: props.block?.area_ha ?? '',
@@ -38,6 +53,7 @@ const form = useForm({
     is_active: props.block?.is_active ?? true,
     commodity_id: props.block?.commodity_id ?? '',
     default_sop_template_id: props.block?.default_sop_template_id ?? '',
+    boundary_geojson: props.block?.boundary_geojson ?? null,
 });
 const filteredSops = computed(() =>
     options.value.sops.filter(
@@ -115,7 +131,13 @@ const errorFields = {
     description: { id: 'block-description', label: 'Catatan' },
     commodity_id: { id: 'block-commodity', label: 'Komoditas' },
     default_sop_template_id: { id: 'block-sop', label: 'SOP default' },
+    boundary_geojson: { id: 'block-boundary', label: 'Batas blok di peta' },
 };
+function applyMappedArea(areaHa: string): void {
+    const metres = squareMetres(areaHa, 'ha');
+    if (metres === null) return;
+    form.area_value = areaValue(metres, form.area_unit);
+}
 defineExpose({
     isDirty: () => form.isDirty,
     processing: () => form.processing,
@@ -123,6 +145,11 @@ defineExpose({
 const fieldClass = 'admin-field block-field';
 function submit(): void {
     if (noCapacity.value) return;
+    if (boundaryInvalid.value) {
+        form.setError('boundary_geojson', boundaryInvalid.value);
+        void focusFormErrors();
+        return;
+    }
     if (areaError.value || enteredMetres.value === null) {
         form.setError('area_value', areaError.value ?? 'Isi luas blok.');
         void focusFormErrors();
@@ -349,7 +376,7 @@ function submit(): void {
                         >
                             Nonaktif{{
                                 capacity.running_batches > 0
-                                    ? ' · masih ada batch berjalan'
+                                    ? ' · masih ada subblok berjalan'
                                     : ''
                             }}
                         </AppSelectOption>
@@ -372,6 +399,24 @@ function submit(): void {
                         :aria-describedby="field.description"
                     />
                 </FarmField>
+                <div class="border-t border-border pt-4 sm:col-span-2">
+                    <BlockBoundaryField
+                        v-model="form.boundary_geojson"
+                        :farm="farm"
+                        :existing-blocks="existingBlocks"
+                        :current-block-id="block?.id ?? null"
+                        :block-name="form.name"
+                        :disabled="form.processing"
+                        :error="form.errors.boundary_geojson"
+                        @update:invalid="
+                            (msg) => {
+                                boundaryInvalid = msg;
+                                if (!msg) form.clearErrors('boundary_geojson');
+                            }
+                        "
+                        @use-area="applyMappedArea"
+                    />
+                </div>
             </fieldset>
         </div>
         <div

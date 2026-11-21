@@ -3,11 +3,11 @@ import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavi
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { ownerFarmOrigin } from '@/lib/ownerFarmNavigation';
-import { ArrowLeft, LandPlot, MapPin, Target, Sprout } from '@lucide/vue';
+import { ArrowLeft, LandPlot, MapPin, Pencil, Target, Sprout } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import FarmBlocksTable from '@/components/blocks/FarmBlocksTable.vue';
 import FarmCycleSummary from '@/components/blocks/FarmCycleSummary.vue';
-import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
+import FarmBlockBoundaryMap from '@/components/farms/FarmBlockBoundaryMap.vue';
 import {
     hectares,
     landTenureLabel,
@@ -100,11 +100,6 @@ onBeforeUnmount(() => {
     clearInterval(growthRefreshTimer);
     document.removeEventListener('visibilitychange', refreshGrowthDate);
 });
-const coordinates = computed<[number, number] | null>(() =>
-    props.farm.latitude !== null && props.farm.longitude !== null
-        ? [Number(props.farm.latitude), Number(props.farm.longitude)]
-        : null,
-);
 </script>
 <template>
     <Head :title="farm.name" />
@@ -124,6 +119,19 @@ const coordinates = computed<[number, number] | null>(() =>
                     {{ farm.name }}
                 </h1>
             </div>
+            <Button
+                v-if="can.update"
+                as-child
+                class="shadow-xs font-semibold"
+            >
+                <Link
+                    :href="`/admin/farm-management/${farm.id}/edit`"
+                    :aria-label="`Ubah lahan ${farm.name}`"
+                >
+                    <Pencil class="size-4" />
+                    <span>Edit lahan</span>
+                </Link>
+            </Button>
         </header>
         <section class="overflow-hidden rounded-xl bg-card">
             <header class="px-5 pt-4 sm:px-6 sm:pt-5">
@@ -274,7 +282,11 @@ const coordinates = computed<[number, number] | null>(() =>
                 <h2 class="mb-4 text-base font-bold text-primary">
                     Peta lokasi
                 </h2>
-                <FarmLocationMap :model-value="coordinates" prominent />
+                <FarmBlockBoundaryMap
+                    :farm="farm"
+                    :blocks="blocks"
+                    prominent
+                />
                 <p
                     v-if="farm.address"
                     class="mt-3 text-xs text-muted-foreground"

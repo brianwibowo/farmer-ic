@@ -224,7 +224,28 @@ describe('voluntary activity form presentation', () => {
 
     it('hides worker_count for open incidents and shows it optionally when resolved immediately', async () => {
         const incidentFields = [
-            ...areaFields,
+            {
+                key: 'incident_category',
+                label: 'Kategori insiden',
+                type: 'select',
+                options: [
+                    'Lahan',
+                    'Tanaman',
+                    'Alat dan Tenaga Kerja',
+                    'Lainnya',
+                ],
+            },
+            {
+                key: 'severity',
+                label: 'Tingkat kedaruratan',
+                type: 'select',
+                options: ['Ringan', 'Sedang', 'Darurat'],
+            },
+            {
+                key: 'description',
+                label: 'Deskripsi kejadian',
+                type: 'text',
+            },
             {
                 key: 'incident_status',
                 label: 'Status awal',
@@ -241,11 +262,17 @@ describe('voluntary activity form presentation', () => {
             }),
         );
         expect(openHtml).not.toContain('id="activity-worker-count"');
+        expect(openHtml).not.toContain('Luas area');
+        expect(openHtml).not.toContain('Satuan luas');
+        expect(openHtml.indexOf('Kategori insiden *')).toBeLessThan(
+            openHtml.indexOf('Tingkat kedaruratan *'),
+        );
+        expect(openHtml.indexOf('Tingkat kedaruratan *')).toBeLessThan(
+            openHtml.indexOf('Deskripsi kejadian *'),
+        );
 
         formState.initial = {
             details: {
-                area: '',
-                area_unit: 'm²',
                 incident_status: 'Sudah ditangani langsung',
             },
         };

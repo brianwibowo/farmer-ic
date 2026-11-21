@@ -93,14 +93,24 @@ class FarmerIcMigrationsTest extends TestCase
         }
         $this->assertSame(['migrations'], $this->tableNames());
 
-        // Exercise the legacy-data backfills in their own migrated cycle. The
+        // Exercise the legacy-data backfills in their pre-2026-11-19 window. The
         // rollback above deliberately returns the database to migrations-only.
         $this->artisan('migrate', $options)->assertSuccessful();
+        $growthCategory = require database_path('migrations/2026_11_19_000002_add_growth_observation_sop_category.php');
+        $growthType = require database_path('migrations/2026_11_19_000003_add_growth_observation_activity_type.php');
+        $original = DB::getDefaultConnection();
         try {
+            DB::setDefaultConnection('farmer_ic_test');
+            $growthType->down();
+            $growthCategory->down();
             $this->seedFixtures();
             $this->assertTypedDetailBackfill();
             $this->assertActivitySimplificationMigration();
+            DB::setDefaultConnection('farmer_ic_test');
+            $growthCategory->up();
+            $growthType->up();
         } finally {
+            DB::setDefaultConnection($original);
             while ($this->database->transactionLevel() > 0) {
                 $this->database->rollBack();
             }
@@ -653,6 +663,23 @@ SQL));
         ] as [$table, $code, $column, $value]) {
             $this->reject(fn () => $this->database->table($table)->where('activity_id', $this->ids[$code.'_activity'])->update([$column => $value]), '23514');
         }
+
+        $growthObservationType = $this->database->table('activity_types')->where('code', 'growth_observation')->value('id');
+        $this->assertIsString($growthObservationType);
+        $this->reject(fn () => $this->insert('farm_activities', ['activity_type_id' => $growthObservationType]), '23514');
+        $growthObservationActivity = $this->database->transaction(function () use ($growthObservationType): string {
+            $id = $this->insert('farm_activities', [
+                'activity_type_id' => $growthObservationType,
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+            ]);
+            $this->insert('plant_observations', [
+                'activity_id' => $id,
+                'planting_cycle_id' => $this->ids['planting_cycles'],
+            ]);
+
+            return $id;
+        });
+        $this->database->table('farm_activities')->where('id', $growthObservationActivity)->delete();
 
         // Migration 000015 refuses to roll back while activities reference the
         // new taxonomy. Remove these fixtures after their guards are verified.

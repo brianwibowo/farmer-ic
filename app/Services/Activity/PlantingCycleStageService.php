@@ -20,6 +20,7 @@ class PlantingCycleStageService
         'base_fertilization' => 'basic_fertilizer',
         'planting' => 'planting',
         'maintenance' => 'maintenance',
+        'growth_observation' => 'maintenance',
         'harvest' => 'harvest',
     ];
 

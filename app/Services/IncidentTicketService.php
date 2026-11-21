@@ -14,6 +14,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\Activity\ActivitySequenceService;
 use App\Services\Activity\DailyActivityReportService;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -217,6 +218,11 @@ class IncidentTicketService
     {
         return DB::transaction(function () use ($ticket, $actor, $reason): IncidentTicket {
             $locked = $this->lockTicket($ticket);
+            if ($locked->getAttribute('cancellation_role') !== null) {
+                throw ValidationException::withMessages([
+                    'status' => 'Tiket yang diselesaikan karena pembatalan subblok tidak dapat dibuka kembali.',
+                ]);
+            }
             if ($locked->status !== 'resolved') {
                 throw ValidationException::withMessages([
                     'status' => 'Hanya tiket berstatus selesai yang dapat dibuka kembali.',
@@ -320,6 +326,8 @@ class IncidentTicketService
         $farm = $ticket->farm;
         $activity = $ticket->activity;
         $resolvedActivity = $ticket->resolvedActivity;
+        $cycle = $ticket->plantingCycle;
+        $canViewCycle = $cycle instanceof PlantingCycle && Gate::forUser($actor)->allows('view', $cycle);
 
         $report = $activity instanceof FarmActivity
             ? $this->reports->activity($actor, $farm, $activity)
@@ -345,11 +353,22 @@ class IncidentTicketService
             'follow_up_activity' => $followUpActivity,
             'follow_up_options' => $followUp['categories'],
             'follow_up_blocked_reason' => $followUp['blocked_reason'],
+            'cancellation' => $ticket->getAttribute('cancellation_role') !== null && $canViewCycle ? [
+                'reason' => $cycle->getAttribute('cancellation_reason'),
+                'cancelled_at' => $cycle->getAttribute('cancelled_at') === null
+                    ? null : CarbonImmutable::parse($cycle->getAttribute('cancelled_at'))->toISOString(),
+                'role' => $ticket->getAttribute('cancellation_role'),
+            ] : null,
             'can' => [
                 'respond' => $ticket->status !== 'resolved' && Gate::forUser($actor)->allows('respond', $ticket),
                 'resolve_directly' => $ticket->status !== 'resolved' && Gate::forUser($actor)->allows('resolveDirectly', $ticket),
                 'resolve_by_follow_up' => $ticket->status !== 'resolved' && Gate::forUser($actor)->allows('resolveByFollowUp', $ticket),
-                'reopen' => $ticket->status === 'resolved' && Gate::forUser($actor)->allows('reopen', $ticket),
+                'reopen' => $ticket->status === 'resolved' && $ticket->getAttribute('cancellation_role') === null && Gate::forUser($actor)->allows('reopen', $ticket),
+                'cancel_subblock' => $audience === 'admin' && $ticket->severity === IncidentSeverity::Emergency->value
+                    && in_array($ticket->status, ['open', 'in_progress'], true) && $canViewCycle
+                    && $cycle->farm_id === $ticket->farm_id && $cycle->block_id !== null
+                    && in_array($cycle->status, SubblockLifecycle::RUNNING, true)
+                    && Gate::forUser($actor)->allows('cancelSubblock', $ticket),
             ],
         ];
     }
@@ -681,7 +700,7 @@ class IncidentTicketService
         return [
             'farm:id,team_id,name,city,district,province',
             'block:id,farm_id,name',
-            'plantingCycle:id,farm_id,block_id,batch_number,subblock_label,status,planted_at',
+            'plantingCycle:id,farm_id,block_id,batch_number,subblock_label,status,planted_at,cancellation_reason,cancelled_at',
             'plantingCycle.block:id,name',
             'activity.farm',
             'activity.activityType',

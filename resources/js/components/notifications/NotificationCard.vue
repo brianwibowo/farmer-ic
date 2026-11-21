@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import {
     Bell,
     Building2,
@@ -320,6 +321,17 @@ const period = computed(() => {
                     "
                     :content="report"
                 />
+                <div
+                    v-else-if="report?.kind === 'subblock_cancelled'"
+                    class="space-y-3"
+                >
+                    <p class="text-sm leading-6">{{ notice.message }}</p>
+                    <Link
+                        :href="`/petugas/incidents/${report.ticket_id}`"
+                        class="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
+                        >Lihat insiden</Link
+                    >
+                </div>
                 <p
                     v-else
                     class="text-sm leading-6 break-words whitespace-pre-wrap"

@@ -180,6 +180,9 @@ Table planting_cycles {
   planting_window_checked_at timestamptz [note: 'Waktu command rekonsiliasi menutup window penanaman']
   block_id uuid [ref: > farm_blocks.id, note: 'Direct block ownership; null only for legacy cycles']
   farm_cycle_id uuid [note: 'Composite FK with farm_id enforces the same farm; nullable for legacy imports only']
+  cancellation_reason text
+  cancelled_at timestamptz
+  cancelled_by uuid [ref: > users.id]
   indexes {
     farm_cycle_id
     (farm_id, batch_number) [unique]
@@ -203,6 +206,8 @@ Table farm_blocks {
   updated_at timestamptz
   commodity_id uuid [ref: > commodities.id, note: 'Komoditas blok']
   default_sop_template_id uuid [ref: > sop_templates.id, note: 'SOP default blok untuk penanaman baru']
+  boundary_geojson jsonb [note: 'GeoJSON Polygon batas blok di peta (opsional)']
+  mapped_area_ha decimal(12,4) [note: 'Perkiraan luas (ha) yang dihitung server dari poligon batas blok']
   indexes {
     (id, farm_id) [unique]
     commodity_id
@@ -325,18 +330,18 @@ Table sop_template_tasks {
 
 Table activity_types {
   id uuid [pk]
-  code varchar(50) [not null, unique, note: 'land_cleaning | soil_preparation | base_fertilization | planting | maintenance | harvest | incident | other | block_mapping']
+  code varchar(50) [not null, unique, note: 'land_cleaning | soil_preparation | base_fertilization | planting | maintenance | growth_observation | harvest | incident | other | block_mapping']
   name varchar(100) [not null]
   description text
   parent_id uuid [ref: > activity_types.id, note: 'Null untuk kategori root']
   detail_key varchar(50) [note: 'Menentukan detail table; null jika memakai task_details / catatan']
-  is_selectable boolean [not null, default: true, note: 'False untuk block_mapping']
+  is_selectable boolean [not null, default: true, note: 'False untuk block_mapping dan growth_observation']
   sort_order smallint [not null, default: 0]
   is_active boolean [not null, default: true]
   indexes {
     parent_id
   }
-  Note: 'Kategori utama aktivitas (pembersihan lahan, pengolahan tanah, pemupukan kandang, penanaman, perawatan, panen, pelaporan insiden, lainnya) plus block_mapping.'
+  Note: 'Kategori utama aktivitas (pembersihan lahan, pengolahan tanah, pemupukan kandang, penanaman, perawatan, pengamatan pertumbuhan, panen, pelaporan insiden, lainnya) plus block_mapping.'
 }
 
 Table farm_activities {
@@ -476,6 +481,7 @@ Table incident_tickets {
   reopened_at timestamptz
   created_at timestamptz
   updated_at timestamptz
+  cancellation_role varchar(20) [note: 'trigger | related; identifies incidents linked to a cancelled subblock']
 
   indexes {
     farm_id

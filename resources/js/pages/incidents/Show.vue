@@ -15,7 +15,7 @@ import {
     ShieldAlert,
     UserRound,
 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
@@ -59,6 +59,33 @@ const reopenOpen = ref(false);
 const reopenForm = useForm({
     reason: '',
 });
+
+const cancelOpen = ref(false);
+const cancelReasonError = ref('');
+const cancelForm = useForm({ reason: '' });
+const cancelStatusError = computed(
+    () => (cancelForm.errors as Record<string, string | undefined>).status,
+);
+function openCancel(): void {
+    cancelForm.reset();
+    cancelForm.clearErrors();
+    cancelReasonError.value = '';
+    cancelOpen.value = true;
+}
+function submitCancel(): void {
+    cancelReasonError.value =
+        cancelForm.reason.trim().length < 5
+            ? 'Alasan penutupan minimal 5 karakter.'
+            : '';
+    if (cancelReasonError.value || cancelForm.processing) return;
+    cancelForm.post(`/admin/incidents/${props.ticket.id}/cancel-subblock`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cancelOpen.value = false;
+            cancelForm.reset();
+        },
+    });
+}
 
 const failedPhotoIds = ref(new Set<string>());
 
@@ -161,6 +188,16 @@ function submitReopen(): void {
 
             <div class="flex flex-wrap items-center gap-2">
                 <Button
+                    v-if="ticket.can.cancel_subblock"
+                    type="button"
+                    variant="destructive-outline"
+                    class="min-h-11"
+                    @click="openCancel"
+                >
+                    <ShieldAlert class="size-4" />
+                    Tutup Subblok
+                </Button>
+                <Button
                     v-if="ticket.can.resolve_directly"
                     type="button"
                     variant="outline"
@@ -180,6 +217,22 @@ function submitReopen(): void {
                 </Button>
             </div>
         </header>
+
+        <div
+            v-if="ticket.cancellation"
+            class="rounded-2xl border border-warning/35 bg-warning/10 p-4 text-sm"
+            role="status"
+        >
+            <p class="font-semibold">
+                Subblok dibatalkan · tiket diselesaikan otomatis
+            </p>
+            <p class="mt-1 break-words whitespace-pre-line">
+                {{ ticket.cancellation.reason }}
+            </p>
+            <p class="mt-1 text-xs text-muted-foreground">
+                {{ formatIncidentDateTime(ticket.cancellation.cancelled_at) }}
+            </p>
+        </div>
 
         <div
             v-if="ticket.reopen_reason"
@@ -406,7 +459,7 @@ function submitReopen(): void {
                 </section>
             </div>
 
-            <aside class="space-y-[18px]">
+            <aside class="min-w-0 space-y-[18px]">
                 <section class="admin-panel space-y-4">
                     <h2 class="admin-section-title">
                         Tanggapan &amp; Arahan Admin
@@ -504,6 +557,87 @@ function submitReopen(): void {
             </aside>
         </div>
     </div>
+
+    <Dialog
+        :open="cancelOpen"
+        @update:open="
+            (open) => {
+                if (!cancelForm.processing) cancelOpen = open;
+            }
+        "
+    >
+        <DialogContent
+            class="admin-dashboard-theme max-h-[calc(100dvh-2rem)] overflow-y-auto"
+            :show-close-button="!cancelForm.processing"
+            @interact-outside.prevent
+        >
+            <DialogHeader>
+                <DialogTitle>Tutup subblok {{ ticket.subblok }}?</DialogTitle>
+                <DialogDescription>
+                    Seluruh subblok dibatalkan dan tidak dapat dibuka kembali.
+                    Semua tiket insiden terbuka pada subblok ini akan
+                    diselesaikan. Kapasitas lahan dilepas; tugas dan laporan
+                    tetap tersimpan sebagai riwayat.
+                </DialogDescription>
+            </DialogHeader>
+            <form class="space-y-4" @submit.prevent="submitCancel">
+                <FarmField
+                    id="cancel-subblock-reason"
+                    label="Alasan penutupan subblok"
+                    required
+                    :error="cancelReasonError || cancelForm.errors.reason"
+                    v-slot="field"
+                >
+                    <textarea
+                        :id="field.id"
+                        v-model="cancelForm.reason"
+                        class="admin-field resize-y"
+                        rows="4"
+                        maxlength="2000"
+                        required
+                        :disabled="cancelForm.processing"
+                        placeholder="Jelaskan alasan subblok harus ditutup."
+                        :aria-invalid="field.invalid"
+                        :aria-describedby="field.description"
+                        @input="cancelReasonError = ''"
+                    />
+                </FarmField>
+                <p
+                    v-if="cancelStatusError"
+                    role="alert"
+                    class="text-sm text-error"
+                >
+                    {{ cancelStatusError }}
+                </p>
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="min-h-11"
+                        :disabled="cancelForm.processing"
+                        @click="cancelOpen = false"
+                        >Batal</Button
+                    >
+                    <Button
+                        type="submit"
+                        variant="destructive"
+                        class="min-h-11"
+                        :disabled="cancelForm.processing"
+                    >
+                        <LoaderCircle
+                            v-if="cancelForm.processing"
+                            class="animate-spin"
+                        />
+                        {{
+                            cancelForm.processing
+                                ? 'Menyimpan…'
+                                : 'Tutup Subblok'
+                        }}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
 
     <Dialog v-model:open="resolveOpen">
         <DialogContent class="admin-dashboard-theme">

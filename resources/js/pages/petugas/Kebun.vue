@@ -44,7 +44,12 @@ function gardenHref(view: PetugasGarden['view'], blockId?: string): string {
         </section>
         <template v-else>
             <FarmCycleSummary :limit="2" />
-            <GardenFarmCard :farm="garden.farm" :summary="garden.summary" />
+            <GardenFarmCard
+                :farm="garden.farm"
+                :summary="garden.summary"
+                :blocks="garden.blocks"
+                :selected-block-id="garden.selected_block?.id ?? null"
+            />
             <section aria-labelledby="garden-blocks" class="space-y-4">
                 <h2 id="garden-blocks" class="admin-section-title">Blok</h2>
                 <div

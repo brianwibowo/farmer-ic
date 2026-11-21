@@ -250,6 +250,10 @@ function submitReopen(): void {
             >
                 {{ ticket.resolution_note }}
             </div>
+            <p v-if="ticket.cancellation" class="text-sm text-muted-foreground">
+                Tiket diselesaikan otomatis karena subblok dibatalkan dan tidak
+                dapat dibuka kembali.
+            </p>
 
             <div
                 v-if="ticket.follow_up_activity"

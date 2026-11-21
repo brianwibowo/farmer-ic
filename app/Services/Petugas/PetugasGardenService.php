@@ -48,7 +48,7 @@ class PetugasGardenService
         $capacities = $this->blocks->capacitiesForBlocks($farm, $actor, $team, $blocks);
         $selected = $selected === null ? $blocks->first() : $blocks->firstWhere('id', $selected->id);
         $blockPayload = fn (FarmBlock $block): array => [
-            ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active']),
+            ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active', 'boundary_geojson', 'mapped_area_ha']),
             'batches_count' => (int) ($blockCounts[$block->id] ?? 0),
             'available_ha' => $capacities[$block->id]['available_ha'] ?? '0.0000',
             'can_create_batch' => Gate::forUser($actor)->allows('create', [PlantingCycle::class, $block]),
@@ -69,6 +69,9 @@ class PetugasGardenService
 
                 return [
                     ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
+                    'cancellation_reason' => $batch->getAttribute('cancellation_reason'),
+                    'cancelled_at' => $batch->getAttribute('cancelled_at') === null
+                        ? null : CarbonImmutable::parse($batch->getAttribute('cancelled_at'))->toISOString(),
                     'farm_cycle_number' => $cycleNumbers[$batch->getAttribute('farm_cycle_id')] ?? null,
                     'planned_planting_at' => $batch->planned_planting_at?->toDateString(),
                     'planted_at' => $batch->planted_at?->toDateString(),

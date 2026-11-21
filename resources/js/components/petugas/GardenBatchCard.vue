@@ -51,7 +51,7 @@ const stageStatuses = {
                 />
                 <div class="min-w-0">
                     <h4 class="text-base font-semibold">
-                        Batch {{ batch.batch_number }}
+                        Subblok {{ batch.batch_number }}
                     </h4>
                     <p
                         class="mt-1 text-xs leading-5 break-words text-muted-foreground"
@@ -71,6 +71,21 @@ const stageStatuses = {
                 >{{ status.label }}</span
             >
         </header>
+        <div
+            v-if="batch.cancellation_reason"
+            class="rounded-xl bg-muted/50 p-3 text-sm"
+        >
+            <p class="font-semibold">Alasan penutupan</p>
+            <p class="mt-1 break-words whitespace-pre-line">
+                {{ batch.cancellation_reason }}
+            </p>
+            <p
+                v-if="batch.cancelled_at"
+                class="mt-1 text-xs text-muted-foreground"
+            >
+                Ditutup {{ gardenDate(batch.cancelled_at) }}
+            </p>
+        </div>
         <dl class="grid grid-cols-1 gap-3">
             <div>
                 <dt class="text-xs text-muted-foreground">Luas tertanam</dt>

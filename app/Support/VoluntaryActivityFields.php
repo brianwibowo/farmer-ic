@@ -19,10 +19,9 @@ class VoluntaryActivityFields
             'land_cleaning', 'soil_preparation', 'base_fertilization', 'maintenance' => $area,
             'harvest' => [...$area, $n('weight', 'Berat seluruh hasil panen'), $s('weight_unit', 'Satuan berat', ['kg', 'ton'])],
             'incident' => [
-                $s('incident_category', 'Kategori insiden', ['Hama', 'Penyakit', 'Cuaca', 'Banjir', 'Alat rusak', 'Tenaga kerja', 'Lainnya']),
-                $t('description', 'Deskripsi kejadian'),
-                ...$area,
+                $s('incident_category', 'Kategori insiden', ['Lahan', 'Tanaman', 'Alat dan Tenaga Kerja', 'Lainnya']),
                 $s('severity', 'Tingkat kedaruratan', ['Ringan', 'Sedang', 'Darurat']),
+                $t('description', 'Deskripsi kejadian'),
                 $s('incident_status', 'Status awal', ['Perlu penanganan', 'Sudah ditangani langsung']),
                 $t('immediate_action', 'Tindakan segera', true) + ['required_when' => ['key' => 'incident_status', 'value' => 'Sudah ditangani langsung']],
             ],

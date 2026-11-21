@@ -54,7 +54,7 @@ const createdOn = computed(() =>
                 <dt
                     class="order-2 mt-3 text-xs leading-5 text-muted-foreground"
                 >
-                    Jumlah batch
+                    Jumlah subblok
                 </dt>
                 <dd
                     class="order-1 inline-flex items-start justify-center gap-1"
@@ -64,7 +64,7 @@ const createdOn = computed(() =>
                         >{{ number.format(cycle.batch_count) }}</span
                     >
                     <span class="mt-1 text-xs font-semibold text-primary"
-                        >batch</span
+                        >subblok</span
                     >
                 </dd>
             </div>

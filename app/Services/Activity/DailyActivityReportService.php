@@ -57,6 +57,12 @@ class DailyActivityReportService
             $detail = PlantObservation::visibleTo($actor, $team)->where('activity_id', $activity->id)->first();
         }
 
+        $taskDetails = [];
+        if ($detailClass === null || $detail !== null) {
+            $decoded = json_decode((string) $activity->getAttribute('task_details'), true);
+            $taskDetails = is_array($decoded) ? $decoded : [];
+        }
+
         return [
             'id' => $activity->id, 'code' => $type?->code, 'name' => $type->name ?? 'Aktivitas', 'position' => $activity->position,
             'worker_count' => $activity->worker_count,
@@ -65,7 +71,7 @@ class DailyActivityReportService
             'block' => $block?->name,
             'task_id' => $activity->getAttribute('planting_cycle_task_id'),
             'source' => $activity->getAttribute('planting_cycle_task_id') !== null ? 'sop' : 'mandiri',
-            'details' => $this->details(($detail?->attributesToArray() ?? []) + (json_decode((string) $activity->getAttribute('task_details'), true) ?? []), $type?->code),
+            'details' => $this->details(($detail?->attributesToArray() ?? []) + $taskDetails, $type?->code),
             'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn (ActivityPhoto $photo) => [
                 'id' => $photo->id, 'url' => route('daily-logs.photos', ['farm' => $activity->farm_id, 'activity' => $activity->id, 'photo' => $photo->id]),
                 'available' => ActivityPhotoFile::available($photo),

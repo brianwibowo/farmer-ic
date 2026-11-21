@@ -2,13 +2,17 @@
 
 namespace App\Services\Notifications;
 
+use App\Models\Farm;
+use App\Models\IncidentTicket;
 use App\Models\Notification;
+use App\Models\PlantingCycle;
 use App\Models\Team;
 use App\Models\User;
 use App\Policies\NotificationPolicy;
 use App\Support\RolePermissions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 final class NotificationInboxService
 {
@@ -69,8 +73,20 @@ final class NotificationInboxService
     /** @return Builder<Notification> */
     private function query(User $actor): Builder
     {
+        $farm = $actor->assignedFarm;
+        $team = $farm instanceof Farm ? $farm->team : null;
+
         return Notification::visibleTo($actor)->where('user_id', $actor->id)
-            ->whereIn('type', ['weekly_report', 'task_reminder', 'sop_deviation', 'incident_report']);
+            ->where(function (Builder $query) use ($actor, $farm, $team): void {
+                $query->whereIn('type', ['weekly_report', 'task_reminder', 'sop_deviation', 'incident_report']);
+                if ($farm instanceof Farm && $team instanceof Team) {
+                    $cycles = PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->selectRaw('planting_cycles.id::text');
+                    $tickets = IncidentTicket::visibleTo($actor, $team)->where('farm_id', $farm->id)->selectRaw('incident_tickets.id::text');
+                    $query->orWhere(fn (Builder $notice) => $notice->where('type', 'subblock_cancelled')
+                        ->whereIn(DB::raw("notifications.content->>'cycle_id'"), $cycles)
+                        ->whereIn(DB::raw("notifications.content->>'ticket_id'"), $tickets));
+                }
+            });
     }
 
     public function markAllRead(User $actor): void

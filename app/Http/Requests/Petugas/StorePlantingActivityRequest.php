@@ -36,7 +36,7 @@ class StorePlantingActivityRequest extends FormRequest
             'worker_count' => ['required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
             'variety_id' => ['required', 'uuid'],
             'area_ha' => ['required', 'numeric', 'decimal:0,4', 'between:0.0001,99999999.9999'],
-            'seed_name' => ['required', 'string', 'max:150'],
+            'seed_name' => ['nullable', 'string', 'max:150'],
             'quantity_kg' => ['required', 'numeric', 'decimal:0,3', 'between:0.001,999999999.999'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'photos' => ['required', 'array', 'list', 'min:1', 'max:5'],
