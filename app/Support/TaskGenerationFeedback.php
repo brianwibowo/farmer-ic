@@ -21,4 +21,14 @@ class TaskGenerationFeedback
             default => 'Tugas belum dapat disiapkan. Periksa versi SOP dan tahap subblok bersama admin.',
         };
     }
+
+    /** @param array{synced_cycles: int, created_tasks: int} $summary */
+    public static function syncSummary(array $summary): string
+    {
+        if ($summary['created_tasks'] <= 0) {
+            return '';
+        }
+
+        return ' '.$summary['created_tasks'].' tugas SOP dibuat untuk '.$summary['synced_cycles'].' subblok tertanam.';
+    }
 }

@@ -3,17 +3,21 @@
 namespace App\Services;
 
 use App\Models\Farm;
+use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
 use App\Models\PlantingCycleTask;
 use App\Models\SopTemplate;
 use App\Models\SopTemplateTask;
 use App\Models\SopTemplateVersion;
+use App\Models\Team;
 use App\Models\User;
 use App\Services\Activity\HarvestEstimateService;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class PlantingCycleTaskService
 {
@@ -124,6 +128,82 @@ class PlantingCycleTaskService
 
             return $this->result($created > 0 ? 'generated' : 'no_tasks', $created, 0, $version->id);
         });
+    }
+
+    /** Synchronize planted running subblocks on a block that still lack a bound SOP version.
+     * @return array{synced_cycles: int, created_tasks: int}
+     */
+    public function synchronizeUnboundForBlock(FarmBlock $block, User $actor, Team $team): array
+    {
+        if ($block->getAttribute('default_sop_template_id') === null) {
+            return ['synced_cycles' => 0, 'created_tasks' => 0];
+        }
+
+        $cycles = PlantingCycle::visibleTo($actor, $team)
+            ->where('block_id', $block->id)
+            ->whereIn('status', SubblockLifecycle::RUNNING)
+            ->whereNotNull('planted_at')
+            ->whereNull('sop_template_version_id')
+            ->orderBy('id')
+            ->get();
+
+        return $this->synchronizeCycles($cycles, $actor);
+    }
+
+    /** Synchronize planted running subblocks on blocks pointing to this SOP template that lack a bound SOP version.
+     * @return array{synced_cycles: int, created_tasks: int}
+     */
+    public function synchronizeUnboundForSop(SopTemplate $template, User $actor): array
+    {
+        $team = $template->team;
+        if (! $team instanceof Team || ! $template->is_active) {
+            return ['synced_cycles' => 0, 'created_tasks' => 0];
+        }
+
+        $blockIds = FarmBlock::visibleTo($actor, $team)
+            ->where('default_sop_template_id', $template->id)
+            ->orderBy('farm_id')
+            ->orderBy('id')
+            ->pluck('id');
+
+        if ($blockIds->isEmpty()) {
+            return ['synced_cycles' => 0, 'created_tasks' => 0];
+        }
+
+        $cycles = PlantingCycle::visibleTo($actor, $team)
+            ->whereIn('block_id', $blockIds)
+            ->whereIn('status', SubblockLifecycle::RUNNING)
+            ->whereNotNull('planted_at')
+            ->whereNull('sop_template_version_id')
+            ->orderBy('farm_id')
+            ->orderBy('id')
+            ->get();
+
+        return $this->synchronizeCycles($cycles, $actor);
+    }
+
+    /** @param Collection<int, PlantingCycle> $cycles
+     * @return array{synced_cycles: int, created_tasks: int}
+     */
+    private function synchronizeCycles(Collection $cycles, User $actor): array
+    {
+        $gate = Gate::forUser($actor);
+        $syncedCycles = 0;
+        $createdTasks = 0;
+
+        foreach ($cycles as $cycle) {
+            if (! $gate->allows('synchronize', [PlantingCycleTask::class, $cycle])) {
+                continue;
+            }
+            $gate->authorize('synchronize', [PlantingCycleTask::class, $cycle]);
+            $result = $this->generateForSubblok($cycle, $actor);
+            if ($result['status'] === 'generated' && $result['created'] > 0) {
+                $syncedCycles++;
+                $createdTasks += $result['created'];
+            }
+        }
+
+        return ['synced_cycles' => $syncedCycles, 'created_tasks' => $createdTasks];
     }
 
     /** @param Collection<int, PlantingCycleTask> $tasks */

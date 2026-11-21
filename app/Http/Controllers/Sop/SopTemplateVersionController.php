@@ -29,8 +29,8 @@ class SopTemplateVersionController extends Controller
     {
         abort_unless($version->sop_template_id === $sopTemplate->id, 404);
         Gate::authorize('update', $version);
-        $this->sops->publish($version, $request->user());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Versi SOP berhasil dipublikasikan.']);
+        $result = $this->sops->publishWithTaskSync($version, $request->user());
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Versi SOP berhasil dipublikasikan.'.\App\Support\TaskGenerationFeedback::syncSummary($result)]);
 
         return to_route('sops.show', $sopTemplate);
     }

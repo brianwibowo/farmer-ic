@@ -115,8 +115,8 @@ class SopTemplateController extends Controller
     public function update(UpdateSopTemplateRequest $request, SopTemplate $sopTemplate): RedirectResponse
     {
         Gate::authorize('update', $sopTemplate);
-        $this->sops->update($sopTemplate, $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Template SOP berhasil diperbarui.']);
+        $result = $this->sops->updateWithTaskSync($sopTemplate, $request->validated(), $request->user());
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Template SOP berhasil diperbarui.'.\App\Support\TaskGenerationFeedback::syncSummary($result)]);
 
         return to_route('sops.show', $sopTemplate);
     }

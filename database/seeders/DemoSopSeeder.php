@@ -37,14 +37,6 @@ class DemoSopSeeder extends Seeder
             'created_by' => $admin->id,
         ]);
 
-        if ($farm instanceof Farm && $template->wasRecentlyCreated) {
-            Gate::forUser($admin)->authorize('viewAny', [FarmBlock::class, $team]);
-            foreach (FarmBlock::visibleTo($admin, $team)->where('farm_id', $farm->id)->whereNull('default_sop_template_id')->get() as $block) {
-                Gate::forUser($admin)->authorize('update', $block);
-                $block->forceFill(['commodity_id' => $commodity->id, 'default_sop_template_id' => $template->id])->save();
-            }
-        }
-
         if (! $template->versions()->exists()) {
             $version = $template->versions()->create([
                 'version' => 1,
@@ -75,7 +67,16 @@ class DemoSopSeeder extends Seeder
                 ]);
             }
 
+            // Publish before assigning block defaults so the historical cycle closed later by DemoActivitySeeder is not auto-populated.
             app(SopTemplateService::class)->publish($version, $admin);
+        }
+
+        if ($farm instanceof Farm && $template->wasRecentlyCreated) {
+            Gate::forUser($admin)->authorize('viewAny', [FarmBlock::class, $team]);
+            foreach (FarmBlock::visibleTo($admin, $team)->where('farm_id', $farm->id)->whereNull('default_sop_template_id')->get() as $block) {
+                Gate::forUser($admin)->authorize('update', $block);
+                $block->forceFill(['commodity_id' => $commodity->id, 'default_sop_template_id' => $template->id])->save();
+            }
         }
 
         if ($farm instanceof Farm) {
