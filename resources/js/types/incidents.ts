@@ -98,11 +98,17 @@ export type IncidentTicketDetail = IncidentTicketRow & {
     follow_up_activity: IncidentTicketActivity | null;
     follow_up_options: IncidentFollowUpOption[];
     follow_up_blocked_reason: string | null;
+    cancellation: {
+        reason: string | null;
+        cancelled_at: string | null;
+        role: 'trigger' | 'related';
+    } | null;
     can: {
         respond: boolean;
         resolve_directly: boolean;
         resolve_by_follow_up: boolean;
         reopen: boolean;
+        cancel_subblock: boolean;
     };
 };
 

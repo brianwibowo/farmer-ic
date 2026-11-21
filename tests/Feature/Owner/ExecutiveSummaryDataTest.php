@@ -213,6 +213,57 @@ class ExecutiveSummaryDataTest extends TestCase
             ->where('summary.rows.0.plantedHa', 0)->where('summary.rows.0.projectedTon', null));
     }
 
+    public function test_cancelled_subblock_keeps_actual_harvest_but_not_projection(): void
+    {
+        $cycle = $this->cycle($this->farm('Lahan Banjir', 10), 'Jagung', 2, 12);
+        $this->harvest($cycle, 5);
+        $cycle->update(['status' => 'cancelled']);
+        $this->get('/ringkasan-eksekutif?year=2026')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('summary.rows.0.harvestedTon', 5)
+            ->where('summary.rows.0.projectedTon', null)
+            ->where('summary.rows.0.plantedHa', 0));
+    }
+
+    public function test_cancelled_harvest_uses_block_commodity_without_affecting_active_projection(): void
+    {
+        $farm = $this->farm('Lahan Panen Terdampak', 10);
+        $block = $this->block($farm, 'Blok Jagung', 'Jagung', 10);
+        $cancelled = $this->plannedBatch($block, 1);
+        // Legacy reports can reference a planned batch before a variety was recorded.
+        $this->harvest($cancelled, 5);
+        $cancelled->update(['status' => 'cancelled']);
+
+        $this->get('/ringkasan-eksekutif?year=2026')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('summary.rows', 1)->where('summary.rows.0.commodity.name', 'Jagung')
+            ->where('summary.rows.0.harvestedTon', 5)->where('summary.rows.0.plantedHa', 0)
+            ->where('summary.rows.0.projectedTon', null));
+
+        $this->cycle($farm, 'Jagung', 1, 12);
+        $this->get('/ringkasan-eksekutif?year=2026')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('summary.rows', 1)->where('summary.rows.0.commodity.name', 'Jagung')
+            ->where('summary.rows.0.harvestedTon', 5)->where('summary.rows.0.plantedHa', 1)
+            ->where('summary.rows.0.projectedTon', 40));
+    }
+
+    public function test_cancelled_harvest_does_not_replace_hidden_variety_with_block_commodity(): void
+    {
+        $farm = $this->farm('Lahan Panen Terbatas', 10);
+        $block = $this->block($farm, 'Blok Jagung', 'Jagung', 10);
+        $cancelled = $this->cycle($farm, 'Sorgum', 2, 12);
+        $cancelled->forceFill(['block_id' => $block->id, 'batch_number' => 1, 'subblock_label' => 'A',
+            'reserved_area_ha' => 2, 'created_by' => $this->owner->id])->save();
+        $this->harvest($cancelled, 5);
+        $cancelled->update(['status' => 'cancelled']);
+        $roles = app(RolePermissions::class)->roles();
+        unset($roles['owner']['crop_varieties.view']);
+        config(['access.roles' => $roles]);
+
+        $this->get('/ringkasan-eksekutif?year=2026')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('summary.rows', 2)
+            ->where('summary.rows.0.commodity.name', 'Jagung')->where('summary.rows.0.harvestedTon', 0)
+            ->where('summary.rows.1.commodity.name', 'Belum teridentifikasi')->where('summary.rows.1.harvestedTon', 5));
+    }
+
     public function test_bad_filters_have_validation_errors(): void
     {
         $this->get('/ringkasan-eksekutif?year=invalid&quarter=Q5&farm=invalid&commodity=invalid')
