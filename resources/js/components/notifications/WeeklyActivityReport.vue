@@ -1,17 +1,34 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { reactive } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
 import { MapPin } from '@lucide/vue';
 import { number } from './format';
 import type { WeeklyAdminContent } from '@/types/notifications';
 defineProps<{ content: WeeklyAdminContent }>();
+const expandedFarms = reactive(new Set<string>());
+function toggleFarm(id: string): void {
+    if (expandedFarms.has(id)) expandedFarms.delete(id);
+    else expandedFarms.add(id);
+}
+function visibleBlocks(farm: WeeklyAdminContent['farms'][number]) {
+    const blocks = farm.blocks.filter(
+        (b) => b.activities.length || b.incidents.length || b.obstacle_count,
+    );
+    return expandedFarms.has(farm.id) ? blocks : blocks.slice(0, 3);
+}
+function blockCount(farm: WeeklyAdminContent['farms'][number]): number {
+    return farm.blocks.filter(
+        (b) => b.activities.length || b.incidents.length || b.obstacle_count,
+    ).length;
+}
 </script>
 <template>
     <div class="space-y-2" data-notification-content="weekly_admin">
-        <Link
+        <section
             v-for="farm in content.farms"
             :key="farm.id"
-            :href="'/admin/logbook/' + farm.id"
-            class="flex min-h-11 flex-wrap items-start gap-3 rounded-xl border border-border p-3 transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"
+            class="flex min-h-11 cursor-pointer flex-wrap items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted/50"
+            @click="router.visit('/admin/logbook/' + farm.id)"
         >
             <MapPin
                 class="mt-1 size-4 shrink-0 text-primary"
@@ -29,12 +46,7 @@ defineProps<{ content: WeeklyAdminContent }>();
                     Belum ada aktivitas pada periode ini.
                 </p>
                 <div
-                    v-for="(block, index) in farm.blocks.filter(
-                        (b) =>
-                            b.activities.length ||
-                            b.incidents.length ||
-                            b.obstacle_count,
-                    )"
+                    v-for="(block, index) in visibleBlocks(farm)"
                     :key="block.id ?? index"
                     class="text-xs leading-5"
                 >
@@ -73,11 +85,26 @@ defineProps<{ content: WeeklyAdminContent }>();
                         {{ block.obstacle_summary }}</span
                     >
                 </div>
+                <button
+                    v-if="blockCount(farm) > 3"
+                    type="button"
+                    class="min-h-11 cursor-pointer text-sm font-medium text-primary underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                    :aria-expanded="expandedFarms.has(farm.id)"
+                    @click.stop="toggleFarm(farm.id)"
+                >
+                    {{
+                        expandedFarms.has(farm.id)
+                            ? 'Lebih sedikit'
+                            : 'Selengkapnya'
+                    }}
+                </button>
             </div>
-            <span
+            <Link
+                :href="'/admin/logbook/' + farm.id"
+                @click.stop
                 class="ml-auto inline-flex min-h-11 shrink-0 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
-                >Lihat logbook</span
+                >Lihat logbook</Link
             >
-        </Link>
+        </section>
     </div>
 </template>

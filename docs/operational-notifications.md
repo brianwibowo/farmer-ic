@@ -49,6 +49,10 @@ berikutnya. Saat pertama kali diaktifkan, insiden historis yang belum tercatat
 di ledger juga termasuk backlog ini. Tidak ada pengiriman situasional jika kosong.
 
 Inbox memiliki tab Belum dibaca dan Sudah dibaca serta filter kategori yang default ke Semua.
+Rincian SOP dan reminder menampilkan tiga entri per kelompok; weekly Admin
+menampilkan tiga blok per lahan dan weekly Owner tiga komoditas. Kontrol
+Selengkapnya/Lebih sedikit membuka atau meringkas sisanya. Semua kartu insiden
+tetap ditampilkan.
 Tandai semua dibaca berlaku untuk seluruh notifikasi pribadi yang tampil di inbox,
 termasuk kategori dan halaman lain. Pada viewport di bawah 640px, aksi tandai
 dibaca per kartu berada pada menu titik tiga. Header membuka/menutup detail;
