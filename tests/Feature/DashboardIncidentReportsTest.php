@@ -101,8 +101,8 @@ class DashboardIncidentReportsTest extends TestCase
             $this->actingAs($petugas)->post('/petugas/aktivitas/mandiri/incident', [
                 'work_date' => today()->toDateString(), 'worker_count' => 2,
                 'notes' => 'Tim sedang memeriksa drainase',
-                'details' => ['incident_category' => 'Cuaca', 'description' => 'Tanaman rebah akibat angin',
-                    'area' => 100, 'area_unit' => 'm²', 'severity' => 'Darurat', ...$case],
+                'details' => ['incident_category' => 'Lahan', 'severity' => 'Darurat',
+                    'description' => 'Tanaman rebah akibat angin', ...$case],
                 'photos' => [UploadedFile::fake()->image('laporan-insiden.jpg')],
             ])->assertSessionHasNoErrors()->assertRedirect();
         }

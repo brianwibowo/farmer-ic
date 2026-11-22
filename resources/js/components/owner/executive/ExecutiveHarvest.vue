@@ -2,12 +2,14 @@
 import { ArrowUpRight, ChevronDown } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import ExecutiveChart from './ExecutiveChart.vue';
 import ExecutivePanel from './ExecutivePanel.vue';
 import ExecutiveTable from './ExecutiveTable.vue';
 import {
     executiveNumber as number,
+    executiveAvailableProjection,
+    executiveProjection as projection,
     executiveTotals,
 } from '@/services/ownerExecutiveSummary';
 import type { ExecutiveColumn, ExecutiveRow } from '@/types/owner-executive';
@@ -15,7 +17,28 @@ import type { ExecutiveColumn, ExecutiveRow } from '@/types/owner-executive';
 const props = defineProps<{ rows: ExecutiveRow[]; period: string }>();
 defineEmits<{ select: [id: string] }>();
 const unit = 'ton';
+const showProjection = ref(true);
+const showActual = ref(true);
+const landName = (name: string) => name.replace(/^kebun\b/i, 'Lahan');
+const farmGroups = computed(() => {
+    const groups = new Map<string, { label: string; rows: ExecutiveRow[] }>();
+    for (const row of props.rows) {
+        let group = groups.get(row.farm.id);
+        if (!group) {
+            group = { label: landName(row.farm.name), rows: [] };
+            groups.set(row.farm.id, group);
+        }
+        group.rows.push(row);
+    }
+    return [...groups.values()];
+});
+const chartRows = computed(() =>
+    farmGroups.value.flatMap((group) => group.rows),
+);
 const totals = computed(() => executiveTotals(props.rows));
+const availableProjection = computed(() =>
+    executiveAvailableProjection(props.rows),
+);
 const achievement = computed(() =>
     totals.value.projected === null
         ? null
@@ -23,7 +46,7 @@ const achievement = computed(() =>
           ? (totals.value.harvested / totals.value.projected) * 100
           : 0,
 );
-const columns: ExecutiveColumn[] = [
+const allColumns: ExecutiveColumn[] = [
     { key: 'farm', label: 'Lahan' },
     { key: 'crop', label: 'Komoditas' },
     { key: 'projected', label: `Proyeksi (${unit})`, numeric: true },
@@ -31,13 +54,22 @@ const columns: ExecutiveColumn[] = [
     { key: 'difference', label: `Selisih (${unit})`, numeric: true },
     { key: 'achievement', label: 'Pencapaian', numeric: true },
 ];
+const columns = computed(() =>
+    allColumns.filter((column) => {
+        if (column.key === 'projected') return showProjection.value;
+        if (column.key === 'actual') return showActual.value;
+        if (column.key === 'difference' || column.key === 'achievement')
+            return showProjection.value && showActual.value;
+        return true;
+    }),
+);
 const table = computed(() =>
     props.rows.map((row) => ({
         id: row.id,
         farmId: row.farm.id,
-        farm: row.farm.name,
+        farm: landName(row.farm.name),
         crop: row.commodity.name,
-        projected: number(row.projectedTon),
+        projected: projection(row.projectedTon, ''),
         actual: number(row.harvestedTon),
         difference:
             row.projectedTon === null
@@ -86,7 +118,7 @@ const table = computed(() =>
                 <dd
                     class="mt-1 text-base font-semibold text-foreground tabular-nums sm:text-xl"
                 >
-                    {{ number(totals.projected) }} {{ unit }}
+                    {{ projection(availableProjection.projected) }}
                 </dd>
             </div>
             <div>
@@ -99,32 +131,92 @@ const table = computed(() =>
             </div>
         </dl>
         <p
-            v-if="rows.some((row) => row.projectionMissing)"
+            v-if="availableProjection.missing"
             role="status"
             class="mb-3 text-xs text-muted-foreground"
         >
-            Sebagian jadwal atau estimasi bobot panen belum tercatat; proyeksi
-            ditampilkan — agar tidak dianggap lengkap.
+            <template v-if="availableProjection.projected !== null">
+                {{ availableProjection.missing }}
+                lahan dan komoditas belum memiliki proyeksi.
+            </template>
+            <template v-else>
+                Proyeksi belum tersedia untuk {{ availableProjection.missing }}
+                baris lahan dan komoditas.
+            </template>
         </p>
+        <div
+            class="mb-3 flex flex-wrap justify-center gap-4 text-xs"
+            aria-label="Pilih data grafik"
+        >
+            <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1.5 rounded focus-visible:outline-2 focus-visible:outline-ring"
+                :aria-pressed="showProjection"
+                @click="showProjection = !showProjection"
+            >
+                <span
+                    class="size-3 rounded-full bg-[var(--chart-2)]"
+                    aria-hidden="true"
+                />
+                <span
+                    :class="{
+                        'text-muted-foreground line-through': !showProjection,
+                    }"
+                    >Proyeksi</span
+                >
+            </button>
+            <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1.5 rounded focus-visible:outline-2 focus-visible:outline-ring"
+                :aria-pressed="showActual"
+                @click="showActual = !showActual"
+            >
+                <span
+                    class="size-3 rounded-full bg-[var(--chart-1)]"
+                    aria-hidden="true"
+                />
+                <span
+                    :class="{
+                        'text-muted-foreground line-through': !showActual,
+                    }"
+                    >Aktual</span
+                >
+            </button>
+        </div>
         <ExecutiveChart
             title="Perbandingan panen aktual dan proyeksi per lahan"
             kind="grouped"
-            :labels="
-                rows.map((row) => `${row.farm.name} · ${row.commodity.name}`)
+            :show-legend="false"
+            :labels="chartRows.map((row) => row.commodity.name)"
+            :details="
+                chartRows.map((row) =>
+                    row.projectedTon === null
+                        ? `${landName(row.farm.name)}\nProyeksi: Belum tersedia`
+                        : landName(row.farm.name),
+                )
             "
+            :category-groups="
+                farmGroups.map((group) => ({
+                    label: group.label,
+                    count: group.rows.length,
+                }))
+            "
+            :min-width="Math.max(320, chartRows.length * 160 + 48)"
             :series="[
                 {
                     label: 'Proyeksi',
-                    values: rows.map((row) => row.projectedTon),
+                    hidden: !showProjection,
+                    values: chartRows.map((row) => row.projectedTon),
                 },
                 {
                     label: 'Aktual',
-                    values: rows.map((row) => row.harvestedTon),
+                    hidden: !showActual,
+                    values: chartRows.map((row) => row.harvestedTon),
                 },
             ]"
             :unit="unit"
             interactive
-            @select="$emit('select', rows[$event]?.farm.id ?? '')"
+            @select="$emit('select', chartRows[$event]?.farm.id ?? '')"
         />
         <details class="group mt-4 border-t border-border pt-2">
             <summary

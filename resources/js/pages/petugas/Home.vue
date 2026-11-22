@@ -80,7 +80,7 @@ const cards = computed(() => [
                             }}
                         </p>
                     </div>
-                    <p class="mt-2 text-xs leading-4 font-normal">Batch</p>
+                    <p class="mt-2 text-xs leading-4 font-normal">Subblok</p>
                 </article>
             </section>
         </section>

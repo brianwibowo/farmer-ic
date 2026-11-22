@@ -343,7 +343,7 @@ class OwnerReadService
                 'harvest_weight_ton' => (string) $harvest,
             ],
             'blocks' => $blocks->map(fn (FarmBlock $block): array => [
-                ...$block->only(['id', 'name', 'area_ha', 'is_active', 'description']),
+                ...$block->only(['id', 'name', 'area_ha', 'is_active', 'description', 'boundary_geojson', 'mapped_area_ha']),
                 'cycles_count' => $cycleCounts->get($block->id, collect())->count(),
             ])->values()->all(),
             'legacyCycles' => (clone $cycles)->whereNull('block_id')->orderByDesc('created_at')
@@ -402,7 +402,7 @@ class OwnerReadService
         return [
             'farm' => $farm->only(['id', 'name']),
             'block' => [
-                ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active']),
+                ...$block->only(['id', 'name', 'area_ha', 'description', 'is_active', 'boundary_geojson', 'mapped_area_ha']),
                 'land_clearing_started_at' => $this->timestamp($block->getAttribute('land_clearing_started_at')),
                 'land_clearing_completed_at' => $this->timestamp($block->getAttribute('land_clearing_completed_at')),
             ],
@@ -435,7 +435,7 @@ class OwnerReadService
                 ->through(fn (FarmActivity $activity): array => $this->activityPayload($activity)),
             'filters' => $filters,
             'farms' => Farm::visibleTo($actor, $team)->orderBy('name')->get(['id', 'name']),
-            'activityTypes' => ActivityType::visibleTo($actor, $team)->where('is_active', true)->where('is_selectable', true)->orderBy('sort_order')->get(['id', 'code', 'name']),
+            'activityTypes' => ActivityType::visibleTo($actor, $team)->reportFilterable()->orderBy('sort_order')->get(['id', 'code', 'name']),
             'officers' => User::visibleTo($actor, $team)
                 ->whereHas('activities', fn ($activities) => $activities->visibleTo($actor, $team))
                 ->orderBy('name')->get(['id', 'name']),

@@ -16,6 +16,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\Activity\BlockPreparationTimeline;
 use App\Support\ActivityPhotoFile;
+use App\Support\GeoPolygon;
 use App\Support\LandArea;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -105,6 +106,9 @@ class FarmBlockService
             $block->setAttribute('deletionBlocked', $blockBatches->isNotEmpty() || $mapped->contains($block->id));
             $block->setAttribute('batches', $blockBatches->map(fn (PlantingCycle $batch): array => [
                 ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
+                'cancellation_reason' => $batch->getAttribute('cancellation_reason'),
+                'cancelled_at' => $batch->getAttribute('cancelled_at') === null
+                    ? null : CarbonImmutable::parse($batch->getAttribute('cancelled_at'))->toISOString(),
                 'farm_cycle_id' => $batch->getAttribute('farm_cycle_id'),
                 'farm_cycle_number' => $cycleNumbers[$batch->getAttribute('farm_cycle_id')] ?? null,
                 'planned_planting_at' => $batch->planned_planting_at?->toDateString(), 'planted_at' => $batch->planted_at?->toDateString(),
@@ -339,22 +343,101 @@ class FarmBlockService
             $this->validateBlock($lockedFarm, $data);
             $this->validateBlockSop($actor, $team, $data);
             $block = new FarmBlock($data);
-            $block->forceFill([...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])), 'farm_id' => $lockedFarm->id, 'created_by' => $actor->id, 'land_clearing_started_at' => now()])->save();
+            $block->forceFill([
+                ...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])),
+                ...$this->boundaryAttributes($data),
+                'farm_id' => $lockedFarm->id,
+                'created_by' => $actor->id,
+                'land_clearing_started_at' => now(),
+            ])->save();
 
             return $block->refresh();
+        });
+    }
+
+    /** @param array<string, mixed> $data
+     * @return array{block: FarmBlock, synced_cycles: int, created_tasks: int}
+     */
+    public function updateWithTaskSync(FarmBlock $block, User $actor, Team $team, array $data): array
+    {
+        return DB::transaction(function () use ($block, $actor, $team, $data): array {
+            $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
+            $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
+            $this->validateBlock($farm, array_replace($locked->only(['name', 'area_ha', 'is_active']), $data), $locked);
+            $this->validateBlockSop($actor, $team, array_replace($locked->only(['commodity_id', 'default_sop_template_id']), $data));
+            $locked->fill($data)->save();
+            $locked->forceFill([
+                ...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])),
+                ...$this->boundaryAttributes($data),
+            ])->save();
+            $sync = app(PlantingCycleTaskService::class)->synchronizeUnboundForBlock($locked, $actor, $team);
+
+            return ['block' => $locked->refresh(), ...$sync];
         });
     }
 
     /** @param array<string, mixed> $data */
     public function update(FarmBlock $block, User $actor, Team $team, array $data): FarmBlock
     {
-        return DB::transaction(function () use ($block, $actor, $team, $data): FarmBlock {
+        return $this->updateWithTaskSync($block, $actor, $team, $data)['block'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function boundaryAttributes(array $data): array
+    {
+        if (! array_key_exists('boundary_geojson', $data)) {
+            return [];
+        }
+
+        if ($data['boundary_geojson'] === null) {
+            return ['boundary_geojson' => null, 'mapped_area_ha' => null];
+        }
+
+        $normalized = GeoPolygon::normalize($data['boundary_geojson']);
+
+        return [
+            'boundary_geojson' => $normalized,
+            'mapped_area_ha' => GeoPolygon::areaHectares($normalized),
+        ];
+    }
+
+    /**
+     * Save or clear a block's optional map polygon boundary and server-computed mapped area.
+     *
+     * @param  array{type: 'Polygon', coordinates: list<list<array{0: float, 1: float}>>}|null  $geojson
+     */
+    public function saveBoundary(FarmBlock $block, User $actor, Team $team, ?array $geojson, bool $applyArea = false): FarmBlock
+    {
+        return DB::transaction(function () use ($block, $actor, $team, $geojson, $applyArea): FarmBlock {
             $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
             $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
-            $this->validateBlock($farm, array_replace($locked->only(['name', 'area_ha', 'is_active']), $data), $locked);
-            $this->validateBlockSop($actor, $team, array_replace($locked->only(['commodity_id', 'default_sop_template_id']), $data));
-            $locked->fill($data)->save();
-            $locked->forceFill(array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])))->save();
+
+            if ($geojson === null) {
+                $locked->forceFill([
+                    'boundary_geojson' => null,
+                    'mapped_area_ha' => null,
+                ])->save();
+
+                return $locked->refresh();
+            }
+
+            $normalized = GeoPolygon::normalize($geojson);
+            $mappedAreaHa = GeoPolygon::areaHectares($normalized);
+
+            $updates = [
+                'boundary_geojson' => $normalized,
+                'mapped_area_ha' => $mappedAreaHa,
+            ];
+
+            if ($applyArea) {
+                $this->validateBlock($farm, array_replace($locked->only(['name', 'area_ha', 'is_active']), ['area_ha' => $mappedAreaHa]), $locked);
+                $updates['area_ha'] = $mappedAreaHa;
+            }
+
+            $locked->forceFill($updates)->save();
 
             return $locked->refresh();
         });

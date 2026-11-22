@@ -3,6 +3,16 @@ import type {
     ExecutiveSummaryData,
 } from '@/types/owner-executive';
 
+export function executiveAvailableProjection(rows: ExecutiveRow[]) {
+    const available = rows.filter((row) => row.projectedTon !== null);
+    return {
+        projected: available.length
+            ? available.reduce((sum, row) => sum + (row.projectedTon ?? 0), 0)
+            : null,
+        missing: rows.length - available.length,
+    };
+}
+
 export function executiveTotals(rows: ExecutiveRow[]) {
     // Land and agreements are counted once, independently of cycle/contract joins.
     const farms = [
@@ -66,6 +76,15 @@ export const executiveNumber = (
         : new Intl.NumberFormat('id-ID', {
               maximumFractionDigits: digits,
           }).format(value);
+
+export const executiveProjection = (
+    value: number | null | undefined,
+    unit = 'ton',
+) =>
+    value == null
+        ? 'Belum tersedia'
+        : `${executiveNumber(value)}${unit ? ` ${unit}` : ''}`;
+
 export const executiveMoney = (value: number, compact = false) =>
     new Intl.NumberFormat('id-ID', {
         style: 'currency',

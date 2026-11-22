@@ -89,8 +89,13 @@ describe('planting activity form presentation', () => {
         expect(html).toContain('Waktu pelaksanaan');
         expect(html).toContain('aria-label="Tambah jumlah pekerja"');
         expect(html).toContain('aria-label="Varietas"');
+        expect(html).toMatch(/id="planting-variety"[^>]*disabled/);
+        expect(html).toContain(
+            'Varietas mengikuti penanaman pertama pada subblok ini.',
+        );
         expect(html).toContain('Satuan luas');
         expect(html).toContain('Satuan benih');
+        expect(html).not.toContain('Nama benih / produk');
         expect(html).toContain('Maksimal 30.000 m²');
         expect(html).toContain('id="activity-photos"');
         expect(html).toContain('Benih jagung');
@@ -123,5 +128,26 @@ describe('planting activity form presentation', () => {
         expect(html).toContain('Form ini tidak menimpa');
         expect(html).not.toContain('Simpan realisasi penanaman');
         expect(html).toContain('/petugas/laporan/report-a');
+    });
+
+    it('keeps the variety selector editable for unplanted subblocks', async () => {
+        const html = await renderToString(
+            h(PlantingCreate, {
+                ...props,
+                cycle: {
+                    ...props.cycle,
+                    planted_at: null,
+                    planted_area_ha: '0.0000',
+                    variety: null,
+                },
+                reports: [],
+            }),
+        );
+
+        expect(html).toContain('id="planting-variety"');
+        expect(html).not.toMatch(/id="planting-variety"[^>]*disabled/);
+        expect(html).not.toContain(
+            'Varietas mengikuti penanaman pertama pada subblok ini.',
+        );
     });
 });

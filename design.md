@@ -525,6 +525,11 @@ intended destination and the brand/home link. The former Owner Dashboard is
 data. Order the Owner navigation as Ringkasan Eksekutif, Monitoring Lahan,
 Proyeksi, and Lahan. Admin and Petugas keep their existing landing destinations.
 Keep the database refresh timestamp visible in the executive page footer.
+Refresh the executive summary every five minutes while the tab is visible,
+preserving filters, scroll position, and the current chart legend selection.
+The harvest chart legend uses keyboard-accessible toggle buttons: strike through
+hidden series and hide their chart bars and corresponding detail columns. Hide
+comparison columns when either series is hidden; totals remain unchanged.
 The sticky navbar owns the section heading on Owner summary, monitoring and
 projection pages and desktop settings. Omit duplicate content headings while
 preserving descriptions, back links, filters, Refresh and record-specific titles.
@@ -550,9 +555,25 @@ explicitly. Until the warehouse module records dispatch and adjusts stock,
 show gross recorded harvest by commodity for the selected filters. Label it
 as recorded harvest before dispatch. Sales retain the explicitly
 labelled reference month.
-Actual harvest uses completed harvest records. Projections use persisted
-estimated weight and scheduled harvest dates, with missing estimates explicitly
-unavailable. Cycles are groups of batches per farm. Cycle filtering is deferred
+Actual harvest uses completed harvest records. Executive projections calculate
+planted hectares per active or harvested batch multiplied by the existing
+commodity productivity rates, using the scheduled harvest date for period filters.
+Unplanted planned batches do not contribute. Missing dates or productivity rates
+are unavailable. The calculation uses current persisted batch area, not a frozen
+historical projection. Display null projections as **Belum tersedia**, without a ton unit,
+in harvest totals, details, commodity summaries and chart feedback. A batch
+scheduled outside the reporting period contributes zero to that period. Rows
+without any planted batch are unavailable.
+Resolve each batch's commodity from its visible variety first. Only when the
+batch has no variety ID, fall back to its visible persisted block's commodity,
+requiring that block to belong to the same farm and that commodity to be
+visible. Reuse this resolution for options, grouping, planted area and actual
+harvest attribution. Keep genuinely unknown or hidden relationships explicit;
+do not bypass a hidden existing variety. The harvest panel total sums available
+row projections and states how many farm-commodity rows are unavailable; when
+every row is unavailable, show Belum tersedia. Keep aggregate achievement
+unavailable when a projection is missing.
+Cycles are groups of batches per farm. Cycle filtering is deferred
 until the business grouping is supported. Production follows the selected
 year/quarter; current active planted area is a separate position.
 
@@ -568,8 +589,18 @@ followed by the recorded harvest breakdown per commodity. Stack the cards on pho
 match the loading skeleton to the grid. Keep the commercial card hidden until
 authoritative data is available.
 The Kerja sama & luas lahan section has a Lihat detail Inertia link to Monitoring
-Lahan; Panen aktual vs proyeksi per kebun links to Proyeksi. These page-level links preserve the existing scoped Owner routes. Map and
+Lahan; Panen aktual vs proyeksi per lahan links to Proyeksi. These page-level links preserve the existing scoped Owner routes. Map and
 farm detail links use persisted farm IDs.
+
+Group harvest comparisons by persisted farm ID. Show each land name once below
+its commodity group, with a separate Proyeksi/Aktual pair for each commodity.
+Wrap commodity labels and render group names as plot-aligned HTML text beneath
+the canvas, allowing long names to wrap without clipping. Reserve at least 160px
+per commodity and allow keyboard/touch scrolling within the chart; keep the
+legend outside that scroll region. Retain missing estimates as unavailable and
+the full commodity breakdown in the details table. In this harvest panel,
+display the legacy Kebun name prefix as Lahan without rewriting stored names.
+
 
 Client selection in the sales panel is local to that panel. Clicking a client
 name or its chart bars shows only that client's contract/reality comparison,
@@ -796,6 +827,13 @@ real status, omit urgency indicators for closed subblocks, and make historical
 tasks and reports read-only. Admin block tables provide a default Berjalan
 filter and Selesai panen, Dibatalkan, and Semua options without hiding empty
 blocks or changing capacity, dashboard, or historical-report calculations.
+
+An Admin may cancel a running subblock from its unresolved emergency incident
+ticket. Use a destructive confirmation dialog with a required reason and a clear
+explanation that the whole subblock closes, open incident tickets are resolved,
+and capacity is released. Show the saved reason on authorized incident details
+and cancelled subblock history; automatically resolved tickets cannot reopen.
+An in-app notice links assigned Petugas to the triggering incident.
 
 Subblok cards distinguish reserved area from actual planted area and show batch
 number, subblok label, planting round, status, actual/planned planting date, HST,

@@ -10,6 +10,7 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\IncidentTicket;
 use App\Models\PlantingCycle;
+use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
@@ -84,7 +85,7 @@ class IncidentTicketWorkflowTest extends TestCase
 
     public function test_petugas_submission_enforces_three_severities_and_two_initial_statuses(): void
     {
-        // Legacy 'Berat' and 'In Progress' are rejected at the HTTP boundary.
+        // Legacy 'Berat', legacy category 'Hama', and 'In Progress' are rejected at the HTTP boundary.
         $this->actingAs($this->petugas)
             ->post('/petugas/aktivitas/mandiri/incident', [
                 'work_date' => '2026-11-18',
@@ -92,15 +93,13 @@ class IncidentTicketWorkflowTest extends TestCase
                 'cycle_id' => $this->cycle->id,
                 'details' => [
                     'incident_category' => 'Hama',
-                    'description' => 'Ulat grayak muncul.',
-                    'area' => 200,
-                    'area_unit' => 'm²',
                     'severity' => 'Berat',
+                    'description' => 'Ulat grayak muncul.',
                     'incident_status' => 'In Progress',
                 ],
                 'photos' => [UploadedFile::fake()->image('incident.jpg')],
             ])
-            ->assertSessionHasErrors(['details.severity', 'details.incident_status']);
+            ->assertSessionHasErrors(['details.incident_category', 'details.severity', 'details.incident_status']);
 
         // Immediate resolution without immediate_action fails validation.
         $this->actingAs($this->petugas)
@@ -109,11 +108,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'worker_count' => 2,
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Alat rusak',
-                    'description' => 'Selang irigasi sobek.',
-                    'area' => 50,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Alat dan Tenaga Kerja',
                     'severity' => 'Ringan',
+                    'description' => 'Selang irigasi sobek.',
                     'incident_status' => 'Sudah ditangani langsung',
                     'immediate_action' => '',
                 ],
@@ -128,11 +125,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'worker_count' => 2,
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Alat rusak',
-                    'description' => 'Selang irigasi sobek.',
-                    'area' => 50,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Alat dan Tenaga Kerja',
                     'severity' => 'Ringan',
+                    'description' => 'Selang irigasi sobek.',
                     'incident_status' => 'Sudah ditangani langsung',
                     'immediate_action' => 'Mengganti sambungan selang baru.',
                 ],
@@ -148,6 +143,7 @@ class IncidentTicketWorkflowTest extends TestCase
         $this->assertSame('resolved', $ticket->activity->status);
         $this->assertSame(2, $ticket->activity->worker_count);
         $this->assertSame('light', $ticket->activity->incidentDetail->severity);
+        $this->assertNull($ticket->activity->incidentDetail->affected_area_ha);
 
         // Immediate resolution WITHOUT worker_count succeeds and stores null.
         $this->travel(1)->seconds();
@@ -156,11 +152,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'work_date' => '2026-11-18',
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Alat rusak',
-                    'description' => 'Kran air kendor.',
-                    'area' => 20,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Alat dan Tenaga Kerja',
                     'severity' => 'Ringan',
+                    'description' => 'Kran air kendor.',
                     'incident_status' => 'Sudah ditangani langsung',
                     'immediate_action' => 'Dikencangkan kembali.',
                 ],
@@ -180,11 +174,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'worker_count' => 0,
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Alat rusak',
-                    'description' => 'Pipa bocor.',
-                    'area' => 10,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Alat dan Tenaga Kerja',
                     'severity' => 'Ringan',
+                    'description' => 'Pipa bocor.',
                     'incident_status' => 'Sudah ditangani langsung',
                     'immediate_action' => 'Ditambal.',
                 ],
@@ -199,11 +191,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'work_date' => '2026-11-18',
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Banjir',
-                    'description' => 'Genangan air di sisi barat subblok.',
-                    'area' => 500,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Lahan',
                     'severity' => 'Darurat',
+                    'description' => 'Genangan air di sisi barat subblok.',
                 ],
                 'photos' => [UploadedFile::fake()->image('flood.jpg')],
             ])
@@ -226,11 +216,9 @@ class IncidentTicketWorkflowTest extends TestCase
                 'worker_count' => 3,
                 'cycle_id' => $this->cycle->id,
                 'details' => [
-                    'incident_category' => 'Cuaca',
-                    'description' => 'Angin kencang di blok selatan.',
-                    'area' => 100,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Tanaman',
                     'severity' => 'Sedang',
+                    'description' => 'Angin kencang di blok selatan.',
                     'incident_status' => 'Perlu penanganan',
                 ],
                 'photos' => [UploadedFile::fake()->image('wind.jpg')],
@@ -539,7 +527,7 @@ class IncidentTicketWorkflowTest extends TestCase
         $this->actingAs($this->petugas)->get('/petugas/incidents/'.$ticket->id)->assertForbidden();
     }
 
-    public function test_unplanted_subblock_incident_uses_block_area_limit_instead_of_zero(): void
+    public function test_unplanted_subblock_incident_uses_ordered_fields_and_succeeds_without_area(): void
     {
         $unplanted = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team);
         $this->assertSame('planned', $unplanted->status);
@@ -550,6 +538,13 @@ class IncidentTicketWorkflowTest extends TestCase
             ->get('/petugas/aktivitas/mandiri/incident')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
+                ->where('fields', function ($fields): bool {
+                    $keys = collect($fields)->pluck('key')->values()->all();
+                    $categories = collect($fields)->firstWhere('key', 'incident_category')['options'] ?? [];
+
+                    return $keys === ['incident_category', 'severity', 'description', 'incident_status', 'immediate_action']
+                        && $categories === ['Lahan', 'Tanaman', 'Alat dan Tenaga Kerja', 'Lainnya'];
+                })
                 ->where('cycles', function ($cycles) use ($unplanted): bool {
                     $plannedCycle = collect($cycles)->firstWhere('id', $unplanted->id);
                     $plantedCycle = collect($cycles)->firstWhere('id', $this->cycle->id);
@@ -560,34 +555,32 @@ class IncidentTicketWorkflowTest extends TestCase
                         && $plantedCycle['area_limit_m2'] === 20000;
                 }));
 
-        // Exceeding the 4 ha (40,000 m²) block area limit still fails validation.
+        // Unexpected area fields on incident submissions are rejected.
         $this->actingAs($this->petugas)
             ->post('/petugas/aktivitas/mandiri/incident', [
                 'work_date' => '2026-11-18',
                 'cycle_id' => $unplanted->id,
                 'details' => [
-                    'incident_category' => 'Banjir',
-                    'description' => 'Air meluap melebihi blok.',
-                    'area' => 40001,
-                    'area_unit' => 'm²',
+                    'incident_category' => 'Lahan',
                     'severity' => 'Darurat',
-                    'incident_status' => 'Perlu penanganan',
-                ],
-                'photos' => [UploadedFile::fake()->image('too-big.jpg')],
-            ])
-            ->assertSessionHasErrors('details.area');
-
-        // Valid area within the block limit succeeds on the unplanted subblock.
-        $this->actingAs($this->petugas)
-            ->post('/petugas/aktivitas/mandiri/incident', [
-                'work_date' => '2026-11-18',
-                'cycle_id' => $unplanted->id,
-                'details' => [
-                    'incident_category' => 'Banjir',
-                    'description' => 'Genangan sebelum penanaman pada subblok baru.',
+                    'description' => 'Air meluap melebihi blok.',
                     'area' => 500,
                     'area_unit' => 'm²',
+                    'incident_status' => 'Perlu penanganan',
+                ],
+                'photos' => [UploadedFile::fake()->image('unexpected-area.jpg')],
+            ])
+            ->assertSessionHasErrors('details');
+
+        // Incident submission on the unplanted subblock succeeds without an area field.
+        $this->actingAs($this->petugas)
+            ->post('/petugas/aktivitas/mandiri/incident', [
+                'work_date' => '2026-11-18',
+                'cycle_id' => $unplanted->id,
+                'details' => [
+                    'incident_category' => 'Lahan',
                     'severity' => 'Sedang',
+                    'description' => 'Genangan sebelum penanaman pada subblok baru.',
                     'incident_status' => 'Perlu penanganan',
                 ],
                 'photos' => [UploadedFile::fake()->image('unplanted.jpg')],
@@ -597,9 +590,151 @@ class IncidentTicketWorkflowTest extends TestCase
 
         $ticket = IncidentTicket::orderByDesc('id')->firstOrFail();
         $this->assertSame($unplanted->id, $ticket->planting_cycle_id);
-        $this->assertSame('0.0500', (string) $ticket->activity->incidentDetail->affected_area_ha);
+        $this->assertNull($ticket->activity->incidentDetail->affected_area_ha);
 
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+    }
+
+    public function test_emergency_cancellation_closes_open_tickets_preserves_history_and_notifies_assigned_petugas(): void
+    {
+        $task = PlantingCycleTask::create([
+            'planting_cycle_id' => $this->cycle->id,
+            'planting_cycle_stage_id' => $this->cycle->stages()->where('code', 'maintenance')->firstOrFail()->id,
+            'activity_category' => 'maintenance', 'name' => 'Perawatan lanjutan',
+            'offset_days' => 20, 'tolerance_days' => 2, 'status' => 'pending', 'is_required' => true,
+        ]);
+        $secondPetugas = User::factory()->create(['role' => 'petugas', 'assigned_farm_id' => $this->farm->id]);
+        $this->team->members()->attach($secondPetugas, ['role' => TeamRole::Member->value]);
+        $trigger = $this->createOpenTicket('cycle');
+        $other = $this->createOpenTicket('cycle');
+        $old = $this->createOpenTicket('cycle');
+        $blockOnly = $this->createOpenTicket('block');
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$old->id.'/resolve', [
+            'resolution_note' => 'Sudah selesai sebelum pembatalan.',
+        ])->assertSessionHasNoErrors();
+        $this->post('/admin/incidents/'.$trigger->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $url = '/admin/incidents/'.$trigger->id.'/cancel-subblock';
+        $this->get('/admin/incidents/'.$trigger->id)->assertInertia(fn (Assert $page) => $page->where('ticket.can.cancel_subblock', true));
+        $this->post($url, ['reason' => '  '])->assertSessionHasErrors('reason');
+        $this->post($url, ['reason' => 'Tanaman rusak akibat banjir besar.', 'farm_id' => (string) \Illuminate\Support\Str::uuid()])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('cancelled', $this->cycle->fresh()->status);
+        $this->assertSame('pending', $task->fresh()->status);
+        $this->assertSame('Tanaman rusak akibat banjir besar.', $this->cycle->fresh()->getAttribute('cancellation_reason'));
+        $this->assertSame($this->admin->id, $this->cycle->fresh()->getAttribute('cancelled_by'));
+        $this->assertNotNull($this->cycle->fresh()->getAttribute('cancelled_at'));
+        foreach ([$trigger, $other] as $ticket) {
+            $ticket->refresh();
+            $this->assertSame('resolved', $ticket->status);
+            $this->assertSame('Tanaman rusak akibat banjir besar.', $ticket->resolution_note);
+            $this->assertSame('resolved', $ticket->activity->fresh()->status);
+            $this->post('/admin/incidents/'.$ticket->id.'/reopen', ['reason' => 'Perlu pemeriksaan ulang.'])->assertSessionHasErrors('status');
+        }
+        $this->assertSame('trigger', $trigger->getAttribute('cancellation_role'));
+        $this->assertSame('related', $other->getAttribute('cancellation_role'));
+        $this->assertSame('Sudah selesai sebelum pembatalan.', $old->fresh()->resolution_note);
+        $this->assertNull($old->fresh()->getAttribute('cancellation_role'));
+        $this->assertSame('open', $blockOnly->fresh()->status);
+        $this->get('/admin/incidents/'.$trigger->id)->assertInertia(fn (Assert $page) => $page
+            ->where('ticket.can.cancel_subblock', false)->where('ticket.can.reopen', false)
+            ->where('ticket.cancellation.reason', 'Tanaman rusak akibat banjir besar.')
+            ->where('ticket.cancellation.cancelled_at', fn ($date) => is_string($date) && str_ends_with($date, 'Z')));
+        $this->get('/admin/incidents/'.$old->id)->assertInertia(fn (Assert $page) => $page->where('ticket.can.reopen', true));
+        $this->post($url, ['reason' => 'Tidak boleh menutup dua kali.'])->assertSessionHasErrors('status');
+
+        $this->actingAs($this->petugas)->get('/petugas/kebun?view=history')
+            ->assertInertia(fn (Assert $page) => $page->where('garden.batches.data.0.cancellation_reason', 'Tanaman rusak akibat banjir besar.'));
+        $this->get('/petugas/incidents/'.$other->id)->assertInertia(fn (Assert $page) => $page
+            ->where('ticket.can.reopen', false)->where('ticket.cancellation.role', 'related'));
+        $this->post('/petugas/incidents/'.$other->id.'/reopen', ['reason' => 'Perlu pemeriksaan ulang.'])->assertSessionHasErrors('status');
+        $this->get('/notifications')->assertInertia(fn (Assert $page) => $page
+            ->where('unreadCount', 1)->where('notifications.data.0.type', 'subblock_cancelled')
+            ->where('notifications.data.0.content.ticket_id', $trigger->id));
+        $this->assertDatabaseHas('notifications', ['user_id' => $secondPetugas->id, 'type' => 'subblock_cancelled']);
+        $this->petugas->forceFill(['assigned_farm_id' => null])->save();
+        $this->actingAs($this->petugas->fresh())->get('/notifications/unread')->assertJson(['count' => 0]);
+    }
+
+    public function test_cancellation_requires_an_open_emergency_on_a_visible_subblock_and_admin_authority(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $blockOnly = $this->createOpenTicket('block');
+        $url = '/admin/incidents/'.$ticket->id.'/cancel-subblock';
+        $payload = ['reason' => 'Tanaman rusak akibat banjir besar.'];
+        $this->actingAs($this->admin)->get('/admin/incidents/'.$ticket->id)
+            ->assertInertia(fn (Assert $page) => $page->where('ticket.can.cancel_subblock', false));
+        $this->post($url, $payload)->assertSessionHasErrors('status');
+        $this->post('/admin/incidents/'.$blockOnly->id.'/cancel-subblock', $payload)->assertForbidden();
+        $this->actingAs($this->petugas)->post($url, $payload)->assertForbidden();
+        $outsider = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($outsider)->post($url, $payload)->assertForbidden();
+        $this->assertSame('active', $this->cycle->fresh()->status);
+        $this->assertSame('open', $ticket->fresh()->status);
+    }
+
+    public function test_emergency_cancellation_also_accepts_planned_subblocks(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $this->cycle->forceFill(['status' => 'planned'])->save();
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$ticket->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $this->post('/admin/incidents/'.$ticket->id.'/cancel-subblock', ['reason' => 'Lahan tergenang banjir.'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('cancelled', $this->cycle->fresh()->status);
+    }
+
+    public function test_missing_notification_grant_and_closed_subblocks_cannot_be_cancelled(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$ticket->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $roles = config('access.roles');
+        unset($roles['admin']['notifications.create']);
+        config(['access.roles' => $roles]);
+        $url = '/admin/incidents/'.$ticket->id.'/cancel-subblock';
+        $this->post($url, ['reason' => 'Lahan tergenang banjir.'])->assertForbidden();
+        $roles['admin']['notifications.create'] = 'any';
+        config(['access.roles' => $roles]);
+        $this->cycle->forceFill(['status' => 'harvested'])->save();
+        $this->get('/admin/incidents/'.$ticket->id)->assertInertia(fn (Assert $page) => $page
+            ->where('ticket.can.cancel_subblock', false));
+        $this->post($url, ['reason' => 'Lahan tergenang banjir.'])->assertSessionHasErrors('status');
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+    }
+
+    public function test_cancellation_rolls_back_if_a_ticket_has_an_unrelated_report(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $mismatched = $this->createOpenTicket('block');
+        $mismatched->forceFill(['planting_cycle_id' => $this->cycle->id])->save();
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$ticket->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $this->post('/admin/incidents/'.$ticket->id.'/cancel-subblock', ['reason' => 'Lahan tergenang banjir.'])
+            ->assertSessionHasErrors('status');
+        $this->assertSame('active', $this->cycle->fresh()->status);
+        $this->assertSame('in_progress', $ticket->fresh()->status);
+        $this->assertSame('open', $mismatched->fresh()->status);
+        $this->assertDatabaseCount('notifications', 0);
+    }
+
+    public function test_superadmin_can_cancel_using_the_existing_global_bypass(): void
+    {
+        $ticket = $this->createOpenTicket('cycle');
+        $this->actingAs($this->admin)->post('/admin/incidents/'.$ticket->id.'/respond', [
+            'admin_note' => 'Kerusakan parah, segera periksa lokasi.', 'severity' => 'emergency',
+        ])->assertSessionHasNoErrors();
+        $superadmin = User::factory()->create(['role' => 'superadmin']);
+        $this->actingAs($superadmin)->post('/admin/incidents/'.$ticket->id.'/cancel-subblock', [
+            'reason' => 'Lahan tergenang banjir.',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('cancelled', $this->cycle->fresh()->status);
+        $this->assertSame($superadmin->id, $this->cycle->fresh()->getAttribute('cancelled_by'));
     }
 
     private function createOpenTicket(string $scope): IncidentTicket
@@ -608,11 +743,9 @@ class IncidentTicketWorkflowTest extends TestCase
             'work_date' => '2026-11-18',
             'worker_count' => 2,
             'details' => [
-                'incident_category' => 'Hama',
-                'description' => 'Temuan gangguan lapangan ('.$scope.').',
-                'area' => 300,
-                'area_unit' => 'm²',
+                'incident_category' => 'Tanaman',
                 'severity' => 'Sedang',
+                'description' => 'Temuan gangguan lapangan ('.$scope.').',
                 'incident_status' => 'Perlu penanganan',
             ],
             'photos' => [UploadedFile::fake()->image('ticket-'.$scope.'.jpg')],

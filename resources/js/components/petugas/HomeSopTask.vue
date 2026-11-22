@@ -72,7 +72,7 @@ const status = {
                 <span
                     >{{ task.block_name ?? 'Blok tidak tersedia'
                     }}<template v-if="task.batch_number !== null">
-                        · Batch {{ task.batch_number }}</template
+                        · Subblok {{ task.batch_number }}</template
                     ><template v-if="task.subblock_label">
                         · {{ task.subblock_label }}</template
                     ></span

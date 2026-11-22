@@ -131,6 +131,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->whereUuid(['farm', 'block', 'batch'])->name('blocks.batches.update');
     Route::post('kebun/{farm}/blocks/{block}/batches/{batch}/close-harvest', [FarmBlockController::class, 'closeHarvest'])
         ->whereUuid(['farm', 'block', 'batch'])->name('blocks.batches.close-harvest');
+    Route::put('kebun/{farm}/blocks/{block}/boundary', [FarmBlockController::class, 'updateBoundary'])
+        ->whereUuid(['farm', 'block'])->name('blocks.boundary.update');
     Route::resource('kebun/{farm}/blocks', FarmBlockController::class)
         ->whereUuid(['farm', 'block'])->names('blocks');
     Route::get('finance', [FinanceController::class, 'index'])->name('finance');
@@ -192,6 +194,7 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'can:admin.access'])->gr
     Route::get('incidents/{incidentTicket}', [IncidentController::class, 'show'])->whereUuid('incidentTicket')->name('incidents.show');
     Route::post('incidents/{incidentTicket}/respond', [IncidentController::class, 'respond'])->whereUuid('incidentTicket')->name('incidents.respond');
     Route::post('incidents/{incidentTicket}/resolve', [IncidentController::class, 'resolve'])->whereUuid('incidentTicket')->name('incidents.resolve');
+    Route::post('incidents/{incidentTicket}/cancel-subblock', [IncidentController::class, 'cancelSubblock'])->whereUuid('incidentTicket')->name('incidents.cancel-subblock');
     Route::post('incidents/{incidentTicket}/reopen', [IncidentController::class, 'reopen'])->whereUuid('incidentTicket')->name('incidents.reopen');
 
     Route::get('farm-regions', \App\Http\Controllers\AdministrativeRegionController::class)->name('farm-regions.index');

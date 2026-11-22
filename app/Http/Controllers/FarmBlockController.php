@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Blocks\ListFarmBlocksRequest;
+use App\Http\Requests\Blocks\SaveFarmBlockBoundaryRequest;
 use App\Http\Requests\Blocks\SaveFarmBlockRequest;
 use App\Http\Requests\Blocks\StorePreparationBatchRequest;
 use App\Models\Farm;
@@ -44,7 +45,7 @@ class FarmBlockController extends Controller
             Gate::authorize('viewAny', [FarmBlock::class, $team]);
 
             return Inertia::render('farmer/blocks/Index', [
-                'farm' => $farm->only(['id', 'name', 'total_area_ha']),
+                'farm' => $farm->only(['id', 'name', 'total_area_ha', 'latitude', 'longitude']),
                 'blocks' => $this->blocks->paginate($farm, $request->user(), $team, $request->validated())->through(fn (FarmBlock $block) => [...$block->toArray(), 'can' => ['update' => Gate::allows('update', $block), 'delete' => Gate::allows('delete', $block), 'createBatch' => Gate::allows('create', [PlantingCycle::class, $block])]]),
                 'batchPermissions' => PlantingCycle::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->whereNotNull('block_id')
                     ->with(['farm.team', 'block'])->get()->mapWithKeys(fn (PlantingCycle $batch) => [$batch->id => Gate::allows('update', $batch) && $batch->block !== null && $this->blocks->isBatchEditable($batch->block, $batch)]),
@@ -65,16 +66,25 @@ class FarmBlockController extends Controller
     public function create(Request $request, Farm $farm): Response
     {
         Gate::authorize('create', [FarmBlock::class, $farm]);
+        $team = $this->team($farm);
 
-        return Inertia::render('farmer/blocks/Form', ['farm' => $farm->only(['id', 'name', 'total_area_ha']), 'block' => null,
-            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm)),
-            'blockOptions' => $this->blocks->configurationOptions($request->user(), $this->team($farm))]);
+        return Inertia::render('farmer/blocks/Form', [
+            'farm' => $farm->only(['id', 'name', 'total_area_ha', 'latitude', 'longitude']),
+            'block' => null,
+            'existingBlocks' => FarmBlock::visibleTo($request->user(), $team)->where('farm_id', $farm->id)->orderBy('name')->get(['id', 'name', 'area_ha', 'is_active', 'boundary_geojson', 'mapped_area_ha']),
+            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $team),
+            'blockOptions' => $this->blocks->configurationOptions($request->user(), $team),
+        ]);
     }
 
     public function store(SaveFarmBlockRequest $request, Farm $farm): RedirectResponse
     {
         Gate::authorize('create', [FarmBlock::class, $farm]);
-        $block = $this->blocks->create($farm, $request->user(), $this->team($farm), $request->safe()->except(['area_value', 'area_unit']));
+        $data = $request->safe()->except(['area_value', 'area_unit', 'boundary_geojson']);
+        if ($request->hasBoundaryInput()) {
+            $data['boundary_geojson'] = $request->normalizedBoundary();
+        }
+        $block = $this->blocks->create($farm, $request->user(), $this->team($farm), $data);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Blok dibuat. Catat pembersihan lahan melalui laporan aktivitas.']);
 
         return $this->returnToFarm($request, $farm) ?? to_route('blocks.show', [$farm, $block]);
@@ -92,12 +102,14 @@ class FarmBlockController extends Controller
     {
         $this->matchFarm($farm, $block);
         Gate::authorize('update', $block);
+        $team = $this->team($farm);
 
         return Inertia::render('farmer/blocks/Form', [
-            'farm' => $farm->only(['id', 'name', 'total_area_ha']),
-            'block' => $this->blocks->detail($block, $request->user(), $this->team($farm))['block'],
-            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $this->team($farm), $block),
-            'blockOptions' => $this->blocks->configurationOptions($request->user(), $this->team($farm)),
+            'farm' => $farm->only(['id', 'name', 'total_area_ha', 'latitude', 'longitude']),
+            'block' => $this->blocks->detail($block, $request->user(), $team)['block'],
+            'existingBlocks' => FarmBlock::visibleTo($request->user(), $team)->where('farm_id', $farm->id)->orderBy('name')->get(['id', 'name', 'area_ha', 'is_active', 'boundary_geojson', 'mapped_area_ha']),
+            'capacity' => $this->blocks->formCapacity($farm, $request->user(), $team, $block),
+            'blockOptions' => $this->blocks->configurationOptions($request->user(), $team),
         ]);
     }
 
@@ -105,10 +117,31 @@ class FarmBlockController extends Controller
     {
         $this->matchFarm($farm, $block);
         Gate::authorize('update', $block);
-        $this->blocks->update($block, $request->user(), $this->team($farm), $request->safe()->except(['area_value', 'area_unit']));
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan blok disimpan.']);
+        $data = $request->safe()->except(['area_value', 'area_unit', 'boundary_geojson']);
+        if ($request->hasBoundaryInput()) {
+            $data['boundary_geojson'] = $request->normalizedBoundary();
+        }
+        $result = $this->blocks->updateWithTaskSync($block, $request->user(), $this->team($farm), $data);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Perubahan blok disimpan.'.\App\Support\TaskGenerationFeedback::syncSummary($result)]);
 
         return $this->returnToFarm($request, $farm) ?? to_route('blocks.show', [$farm, $block]);
+    }
+
+    public function updateBoundary(SaveFarmBlockBoundaryRequest $request, Farm $farm, FarmBlock $block): RedirectResponse
+    {
+        $this->matchFarm($farm, $block);
+        Gate::authorize('update', $block);
+        $boundary = $request->normalizedBoundary();
+        $applyArea = (bool) $request->validated('apply_area', false);
+        $this->blocks->saveBoundary($block, $request->user(), $this->team($farm), $boundary, $applyArea);
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $boundary === null
+                ? 'Batas blok di peta dihapus.'
+                : ($applyArea ? 'Batas blok dan luas tercatat diperbarui.' : 'Batas blok di peta disimpan.'),
+        ]);
+
+        return $this->returnToFarm($request, $farm) ?? to_route('farm-management.show', $farm);
     }
 
     public function destroy(Request $request, Farm $farm, FarmBlock $block): RedirectResponse

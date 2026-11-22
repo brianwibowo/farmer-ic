@@ -32,11 +32,7 @@ class TaskActivityFields
 
     public static function activityTypeCode(PlantingCycleTask $task): ?string
     {
-        return match ($task->activity_category) {
-            'maintenance', 'growth_observation' => 'maintenance',
-            'harvest' => 'harvest',
-            default => null,
-        };
+        return self::activityCode($task);
     }
 
     public static function requiresWorkerCount(PlantingCycleTask $task): bool

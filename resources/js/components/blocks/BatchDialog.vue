@@ -18,6 +18,7 @@ const props = defineProps<{
     base: string;
     capacity: BatchCapacity;
     batch: PreparationBatch | null;
+    existingBatches?: PreparationBatch[];
     theme: string;
 }>();
 const emit = defineEmits<{ 'update:open': [value: boolean]; saved: [] }>();
@@ -47,7 +48,18 @@ async function close(open: boolean): Promise<void> {
                 theme,
                 'flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden rounded-xl border-border bg-card p-0 text-foreground sm:max-w-3xl',
             ]"
-            @interact-outside.prevent
+            @interact-outside="
+                (event) => {
+                    if (fields?.processing()) {
+                        event.preventDefault();
+                        return;
+                    }
+                    if (fields?.isDirty()) {
+                        event.preventDefault();
+                        void close(false);
+                    }
+                }
+            "
         >
             <DialogHeader
                 class="flex-row items-start gap-4 border-b border-border bg-muted/30 px-5 py-5 pr-12 text-left sm:px-7 sm:pr-14"
@@ -80,6 +92,7 @@ async function close(open: boolean): Promise<void> {
                 :base="base"
                 :capacity="capacity"
                 :batch="batch"
+                :existing-batches="existingBatches"
                 @saved="
                     emit('update:open', false);
                     emit('saved');

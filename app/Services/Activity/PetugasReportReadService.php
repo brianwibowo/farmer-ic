@@ -120,6 +120,7 @@ class PetugasReportReadService
         $detailKey = match ($code) {
             'land_cleaning' => 'land_cleaning',
             'base_fertilization' => 'fertilization',
+            'growth_observation' => 'growth_check',
             'planting' => 'planting',
             'harvest' => 'harvest',
             'incident' => 'incident',

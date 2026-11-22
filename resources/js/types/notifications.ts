@@ -76,11 +76,18 @@ export type IncidentContent = {
         description: string | null;
     }[];
 };
+export type SubblockCancelledContent = {
+    version: 1;
+    kind: 'subblock_cancelled';
+    cycle_id: string;
+    ticket_id: string;
+};
 export type NotificationContent =
     | WeeklyOwnerContent
     | WeeklyAdminContent
     | TaskContent
-    | IncidentContent;
+    | IncidentContent
+    | SubblockCancelledContent;
 export type InboxNotice = {
     id: string;
     type: string | null;
