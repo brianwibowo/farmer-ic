@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { CircleAlert, Wheat } from '@lucide/vue';
 import type { HarvestCommodity, HarvestSummary } from '@/types/notifications';
 import { number } from './format';
 
 const props = defineProps<{ summary: HarvestSummary; label: string }>();
+const expanded = ref(false);
+const visibleCommodities = computed(() =>
+    expanded.value
+        ? props.summary.commodities
+        : props.summary.commodities.slice(0, 3),
+);
 const harvestCount = computed(() =>
     props.summary.commodities.reduce(
         (sum, crop) => sum + crop.harvest_count,
@@ -30,9 +36,7 @@ function harvest(crop: HarvestCommodity): string {
         <div v-if="summary.commodities.length" class="hidden @xl:block">
             <table class="w-full text-left text-sm">
                 <caption class="sr-only">
-                    {{
-                        label
-                    }}
+                    {{ label }}
                 </caption>
                 <thead
                     class="border-b border-border text-xs text-muted-foreground"
@@ -62,7 +66,7 @@ function harvest(crop: HarvestCommodity): string {
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border">
-                    <tr v-for="crop in summary.commodities" :key="crop.name">
+                    <tr v-for="crop in visibleCommodities" :key="crop.name">
                         <th scope="row" class="py-3 pr-3 align-top font-medium">
                             {{ crop.name }}
                         </th>
@@ -99,7 +103,7 @@ function harvest(crop: HarvestCommodity): string {
         </div>
         <ul class="divide-y divide-border @xl:hidden" :aria-label="label">
             <li
-                v-for="crop in summary.commodities"
+                v-for="crop in visibleCommodities"
                 :key="crop.name"
                 class="py-3 first:pt-0 last:pb-0"
             >
@@ -150,6 +154,15 @@ function harvest(crop: HarvestCommodity): string {
                 </p>
             </li>
         </ul>
+        <button
+            v-if="summary.commodities.length > 3"
+            type="button"
+            class="min-h-11 cursor-pointer text-sm font-medium text-primary underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+            :aria-expanded="expanded"
+            @click="expanded = !expanded"
+        >
+            {{ expanded ? 'Lebih sedikit' : 'Selengkapnya' }}
+        </button>
         <p
             v-if="summary.unidentified_batches > 0"
             class="text-xs leading-5 text-warning"

@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { computed, reactive } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { ClipboardList, TriangleAlert } from '@lucide/vue';
 import type { TaskContent } from '@/types/notifications';
 import { date } from './format';
 const props = defineProps<{ content: TaskContent }>();
 const page = usePage();
 const deviation = computed(() => props.content.kind === 'sop_deviation');
+const expandedGroups = reactive(new Set<string>());
+function toggleGroup(key: string): void {
+    if (expandedGroups.has(key)) expandedGroups.delete(key);
+    else expandedGroups.add(key);
+}
+
 function href(group: TaskContent['groups'][number]): string {
     const farm = group.farm_id ?? group.key.split(':')[0];
     const block = group.block_id ?? group.key.split(':')[1];
@@ -96,10 +102,10 @@ function subblockLabel(name: string): string {
 <template>
     <div class="space-y-2" :data-notification-content="content.kind">
         <template v-for="group in content.groups" :key="group.key">
-            <Link
+            <section
                 v-if="deviation"
-                :href="href(group)"
-                class="flex min-h-11 flex-wrap items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"
+                class="flex min-h-11 cursor-pointer flex-wrap items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted/50"
+                @click="router.visit(href(group))"
             >
                 <TriangleAlert
                     class="mt-1 size-4 shrink-0 text-warning"
@@ -113,7 +119,9 @@ function subblockLabel(name: string): string {
                         temuan ketidaksesuaian
                     </p>
                     <p
-                        v-for="(item, index) in group.items"
+                        v-for="(item, index) in expandedGroups.has(group.key)
+                            ? group.items
+                            : group.items.slice(0, 3)"
                         :key="index"
                         class="mt-2 text-xs leading-5"
                     >
@@ -122,12 +130,27 @@ function subblockLabel(name: string): string {
                             item.reason
                         }}</span>
                     </p>
+                    <button
+                        v-if="group.items.length > 3"
+                        type="button"
+                        class="min-h-11 cursor-pointer text-sm font-medium text-primary underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                        :aria-expanded="expandedGroups.has(group.key)"
+                        @click.stop="toggleGroup(group.key)"
+                    >
+                        {{
+                            expandedGroups.has(group.key)
+                                ? 'Lebih sedikit'
+                                : 'Selengkapnya'
+                        }}
+                    </button>
                 </div>
-                <span
+                <Link
+                    :href="href(group)"
+                    @click.stop
                     class="ml-auto inline-flex min-h-11 shrink-0 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
-                    >Lihat tugas</span
+                    >Lihat tugas</Link
                 >
-            </Link>
+            </section>
         </template>
         <template v-if="!deviation">
             <section
@@ -155,7 +178,9 @@ function subblockLabel(name: string): string {
                     class="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 marker:text-primary"
                 >
                     <li
-                        v-for="row in section.rows"
+                        v-for="row in expandedGroups.has(section.key)
+                            ? section.rows
+                            : section.rows.slice(0, 3)"
                         :key="row.id + ':' + row.date"
                         :data-subblock-id="row.id"
                     >
@@ -174,6 +199,19 @@ function subblockLabel(name: string): string {
                 <p v-else class="mt-3 text-xs text-muted-foreground">
                     Rincian subblok tidak tersedia pada notifikasi ini.
                 </p>
+                <button
+                    v-if="section.rows.length > 3"
+                    type="button"
+                    class="min-h-11 cursor-pointer text-sm font-medium text-primary underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                    :aria-expanded="expandedGroups.has(section.key)"
+                    @click="toggleGroup(section.key)"
+                >
+                    {{
+                        expandedGroups.has(section.key)
+                            ? 'Lebih sedikit'
+                            : 'Selengkapnya'
+                    }}
+                </button>
                 <div class="mt-3 flex justify-end">
                     <Link
                         :href="href(section.group)"

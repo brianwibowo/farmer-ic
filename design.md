@@ -1601,10 +1601,10 @@ Identitas sub blok dan angka utama memakai text-foreground untuk menjaga hierark
 ## Notification inbox
 
 The inbox is a personal chronological card feed with pagination and status tabs for unread and read. Parent card
-headers expand and collapse; details have no nested expand/collapse controls. Owner weekly cards show totals across all
+headers expand and collapse. Long detail lists show three entries initially, with accessible Selengkapnya and Lebih sedikit controls; navigation uses separate links. Owner weekly cards show totals across all
 farms only. Admin weekly farm cards link to the farm logbook; SOP deviation cards
 link to overdue tasks scoped to the farm and block. Admin and Petugas harvest reminders group subblocks by farm, block, and commodity.
 Each subblock shows its date and readable timing label. One explicit Lihat tugas panen
 link per group opens the task index with the block and harvest category selected,
-using the All status/view so different reminder milestones remain visible together. Use Inertia links with visible focus and at least 44px targets. Preserve
+using the All status/view so different reminder milestones remain visible together. Incident reports retain all incident cards. Use Inertia links with visible focus and at least 44px targets. Preserve
 read indicators, mark-read feedback, empty/loading states, and role-specific shells.
