@@ -109,7 +109,8 @@ class PetugasHomeTest extends TestCase
         $running = $this->task($active, 'in_progress');
         $this->task($planned, 'pending');
         $this->task($harvested, 'completed');
-        foreach (['2026-11-03', '2026-11-05', null] as $date) {
+        $overdue = $this->task($active, date: '2026-11-03');
+        foreach (['2026-11-05', null] as $date) {
             $this->task($active, date: $date);
         }
         $this->task($active, 'skipped');
@@ -127,17 +128,48 @@ class PetugasHomeTest extends TestCase
             ->component('petugas/Home')
             ->where('home.date', '2026-11-04')->where('home.farm.id', $this->farm->id)
             ->where('home.summary', ['pre_planting' => 1, 'planting' => 1, 'harvest' => 1])
-            ->where('home.task_summary', ['total' => 3, 'completed' => 0])
-            ->where('home.tasks.total', 3)->has('home.tasks.data', 3)
-            ->where('home.tasks.data.0.id', $running->id)
-            ->where('home.tasks.data.1.id', $pending->id)
-            ->where('home.tasks.data.1.hst', 7)
-            ->where('home.tasks.data.1.block_name', 'Blok Utara')
-            ->where('home.tasks.data.1.batch_number', $active->batch_number)
-            ->where('home.tasks.data.1.stage', 'maintenance')
-            ->where('home.tasks.data.1.instructions', $pending->instructions)
-            ->where('home.tasks.data.2.hst', null)
+            ->where('home.task_summary', ['total' => 4, 'completed' => 0])
+            ->where('home.tasks.total', 4)->has('home.tasks.data', 4)
+            ->where('home.tasks.data.0.id', $overdue->id)
+            ->where('home.tasks.data.0.urgency', 'overdue')
+            ->where('home.tasks.data.1.id', $running->id)
+            ->where('home.tasks.data.1.urgency', 'today')
+            ->where('home.tasks.data.2.id', $pending->id)
+            ->where('home.tasks.data.2.hst', 7)
+            ->where('home.tasks.data.2.block_name', 'Blok Utara')
+            ->where('home.tasks.data.2.batch_number', $active->batch_number)
+            ->where('home.tasks.data.2.stage', 'maintenance')
+            ->where('home.tasks.data.2.instructions', $pending->instructions)
+            ->where('home.tasks.data.3.hst', null)
             ->where('categories', fn ($categories) => collect($categories)->pluck('code')->contains('incident')));
+    }
+
+    public function test_home_includes_overdue_and_multi_day_tolerance_tasks_matching_active_todo_filter(): void
+    {
+        $batch = $this->batch($this->farm, 'active');
+        $overdue = $this->task($batch, 'pending', '2026-11-01', 'Penyiangan terlambat');
+        $overdue->forceFill(['offset_days' => 4, 'tolerance_days' => 1, 'due_date' => '2026-11-02'])->save();
+
+        $inWindow = $this->task($batch, 'pending', '2026-11-02', 'Pemupukan toleransi 7 hari');
+        $inWindow->forceFill(['offset_days' => 5, 'tolerance_days' => 7, 'due_date' => '2026-11-09'])->save();
+
+        $completedToday = $this->task($batch, 'completed', '2026-11-02', 'Penyiraman selesai hari ini');
+        $completedToday->forceFill(['tolerance_days' => 7, 'due_date' => '2026-11-09', 'completed_at' => now()])->save();
+
+        $completedEarlier = $this->task($batch, 'completed', '2026-11-02', 'Penyiraman kemarin');
+        $completedEarlier->forceFill(['completed_at' => CarbonImmutable::parse('2026-11-02 10:00:00', 'Asia/Jakarta')])->save();
+
+        $this->task($batch, 'pending', '2026-11-05', 'Panen mendatang');
+
+        $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('home.task_summary', ['total' => 3, 'completed' => 1])
+            ->where('home.tasks.total', 3)->has('home.tasks.data', 3)
+            ->where('home.tasks.data.0.id', $overdue->id)
+            ->where('home.tasks.data.0.urgency', 'overdue')
+            ->where('home.tasks.data.1.id', $inWindow->id)
+            ->where('home.tasks.data.1.urgency', 'today')
+            ->where('home.tasks.data.2.id', $completedToday->id)
+            ->where('home.tasks.data.2.urgency', 'completed'));
     }
 
     public function test_task_pagination_counts_all_visible_tasks_without_leaking_unassigned_records(): void

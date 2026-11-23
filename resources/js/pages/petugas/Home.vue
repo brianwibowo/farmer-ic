@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import InertiaPagination from '@/components/InertiaPagination.vue';
-import { Head } from '@inertiajs/vue3';
-import { Sprout, Tractor, Wheat } from '@lucide/vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { ChevronRight, Sprout, Tractor, Wheat } from '@lucide/vue';
 import { computed } from 'vue';
 import DashboardWeather from '@/components/dashboard/DashboardWeather.vue';
 import DashboardHeader from '@/components/farmer/DashboardHeader.vue';
@@ -91,7 +91,7 @@ const cards = computed(() => [
             <HomeIncidentAlerts :incidents="home.incidents" />
             <header class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <h2 id="home-today-tasks" class="admin-section-title">
-                    To-do hari ini
+                    Tugas perlu tindakan
                 </h2>
                 <span
                     v-if="home.task_summary.total"
@@ -101,6 +101,14 @@ const cards = computed(() => [
                     }}
                     selesai</span
                 >
+                <Link
+                    v-if="home.farm"
+                    href="/petugas/aktivitas"
+                    class="ml-auto inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-primary hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                    Lihat semua
+                    <ChevronRight class="size-3.5" aria-hidden="true" />
+                </Link>
             </header>
             <div
                 v-if="home.task_summary.total"
@@ -134,7 +142,7 @@ const cards = computed(() => [
                     class="mx-auto mb-4 size-40 max-w-full object-contain sm:size-44"
                 />
                 <h3 class="text-sm font-semibold text-muted-foreground">
-                    Belum ada tugas hari ini
+                    Belum ada tugas perlu tindakan
                 </h3>
             </div>
             <template v-else>
