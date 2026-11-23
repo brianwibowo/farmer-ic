@@ -8,6 +8,7 @@ import SubblokCreateDialog, {
 import { Button } from '@/components/ui/button';
 import { useActivityDate } from '@/composables/useActivityDate';
 import type { PlantingCycleContext, PlantingWindow } from '@/types/planting';
+import { gardenArea } from '@/types/petugas-garden';
 
 const props = defineProps<{
     farm: { id: string; name: string };
@@ -252,7 +253,9 @@ function formatWindowRange(window: PlantingWindow): string {
                     </div>
                     <div>
                         <dt class="text-xs text-muted-foreground">Luas</dt>
-                        <dd>Tertanam {{ cycle.planted_area_ha }} ha</dd>
+                        <dd>
+                            Tertanam {{ gardenArea(cycle.planted_area_ha) }} ha
+                        </dd>
                     </div>
                 </dl>
             </details>

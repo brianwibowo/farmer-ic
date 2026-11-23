@@ -285,6 +285,8 @@ describe('voluntary activity form presentation', () => {
         );
         expect(resolvedHtml).toContain('Jumlah pekerja (opsional)');
         expect(resolvedHtml).toContain('id="activity-worker-count"');
+        expect(resolvedHtml).not.toContain('worker-count-help');
+        expect(resolvedHtml).not.toContain('Maksimal 32.767 pekerja.');
         const workerInput = resolvedHtml.match(
             /<input(?=[^>]*id="activity-worker-count")[^>]*>/,
         )?.[0];

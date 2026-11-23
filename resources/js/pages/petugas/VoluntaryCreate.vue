@@ -27,7 +27,6 @@ import { useErrorDisclosure } from '@/composables/useErrorDisclosure';
 import { useVoluntaryLocation } from '@/composables/useVoluntaryLocation';
 import {
     activityDetailMaximumErrors,
-    formatActivityNumber,
     maximumError,
 } from '@/lib/activityInputLimits';
 
@@ -717,20 +716,10 @@ function submit(): void {
                             :aria-invalid="!!errors.worker_count"
                             :aria-describedby="
                                 errors.worker_count
-                                    ? 'worker-count-help error-worker_count'
-                                    : 'worker-count-help'
+                                    ? 'error-worker_count'
+                                    : undefined
                             "
                         />
-                        <p
-                            id="worker-count-help"
-                            class="text-xs text-muted-foreground"
-                        >
-                            Opsional · maksimal
-                            {{
-                                formatActivityNumber(numericLimits.workerCount)
-                            }}
-                            pekerja.
-                        </p>
                         <p
                             v-if="errors.worker_count"
                             id="error-worker_count"

@@ -122,6 +122,8 @@ describe('planting subblock index cards', () => {
         expect(plannedCard).toContain('bg-card');
         expect(plannedCard).toContain('text-primary');
         expect(plannedCard).toContain('bg-primary text-primary-foreground');
+        expect(plannedCard).toContain('Tertanam 0 ha');
+        expect(plannedCard).not.toContain('0.0000 ha');
         expect(plannedCard).not.toContain('Lewat 3 hari sejak tanam pertama');
         expect(plannedCard).not.toContain('Siapkan tugas');
 
