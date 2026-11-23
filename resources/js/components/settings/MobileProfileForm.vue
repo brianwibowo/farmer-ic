@@ -10,7 +10,6 @@ import {
 } from "@lucide/vue";
 import { ref } from "vue";
 import ProfileController from "@/actions/App/Http/Controllers/Settings/ProfileController";
-import DeleteUser from "@/components/DeleteUser.vue";
 import LogoutAllDevices from "@/components/settings/LogoutAllDevices.vue";
 import InputError from "@/components/InputError.vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
