@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PetugasTask } from '@/types/petugas-task';
 import ActivityCreate from './ActivityCreate.vue';
 
+const pageState = vi.hoisted(() => ({
+    url: '/petugas/tasks/task-1/aktivitas/buat',
+}));
+
 vi.mock('@inertiajs/vue3', async () => {
     const { defineComponent, h, reactive } = await import('vue');
     return {
@@ -15,6 +19,7 @@ vi.mock('@inertiajs/vue3', async () => {
                 () =>
                     h('a', { href: props.href }, slots.default?.()),
         }),
+        usePage: () => ({ url: pageState.url }),
         useForm: (data: Record<string, unknown>) =>
             reactive({
                 ...data,

@@ -23,14 +23,15 @@ class PetugasDailyActivityController extends Controller
 {
     public function history(ListPetugasReportsRequest $request, PetugasReportReadService $reports, VoluntaryActivityCategoryService $categories): Response
     {
-        $metrics = $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE);
-        $started = $metrics !== null ? hrtime(true) : null;
+        $metrics = MeasurePetugasActivity::metrics($request);
+        if ($metrics === null) {
+            return app(RolePermissions::class)->withMembershipSnapshot($request->user(), fn () => $this->historyWithMembership($request, $reports, $categories));
+        }
+        $started = hrtime(true);
         try {
             return app(RolePermissions::class)->withMembershipSnapshot($request->user(), fn () => $this->historyWithMembership($request, $reports, $categories));
         } finally {
-            if ($metrics !== null) {
-                $metrics->controller_ms = round((hrtime(true) - $started) / 1_000_000, 2);
-            }
+            $metrics->controller_ms = round((hrtime(true) - $started) / 1_000_000, 2);
         }
     }
 
@@ -45,21 +46,21 @@ class PetugasDailyActivityController extends Controller
         }
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [FarmActivity::class, $farm->team]);
-        $metrics = $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE);
-        $started = $metrics !== null ? hrtime(true) : null;
+        $metrics = MeasurePetugasActivity::metrics($request);
+        $started = $metrics !== null ? hrtime(true) : 0;
         $stats = $reports->sourceCounts($request->user(), $farm, $filters);
         if ($metrics !== null) {
             $metrics->stats_ms = round((hrtime(true) - $started) / 1_000_000, 2);
         }
-        $started = $metrics !== null ? hrtime(true) : null;
+        $started = $metrics !== null ? hrtime(true) : 0;
         $listing = $reports->listing($request->user(), $farm, $filters);
         if ($metrics !== null) {
             $metrics->listing_ms = round((hrtime(true) - $started) / 1_000_000, 2);
-            $metrics->report_count = $listing->count();
+            $metrics->report_count = count($listing->items());
             $metrics->page = $listing->currentPage();
             $metrics->per_page = $listing->perPage();
         }
-        $started = $metrics !== null ? hrtime(true) : null;
+        $started = $metrics !== null ? hrtime(true) : 0;
         $availableCategories = $categories->forFarm($request->user(), $farm);
         if ($metrics !== null) {
             $metrics->categories_ms = round((hrtime(true) - $started) / 1_000_000, 2);

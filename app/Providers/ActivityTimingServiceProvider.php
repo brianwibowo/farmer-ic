@@ -3,11 +3,12 @@
 namespace App\Providers;
 
 use App\Http\Middleware\MeasurePetugasActivity;
+use App\Support\ActivityTimingMetrics;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Client\Events\ConnectionFailed;
 use Illuminate\Http\Client\Events\RequestSending;
 use Illuminate\Http\Client\Events\ResponseReceived;
-use Illuminate\Http\Request;
+use Illuminate\Http\Client\Request as HttpClientRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Vite;
@@ -29,19 +30,17 @@ class ActivityTimingServiceProvider extends ServiceProvider
                 return;
             }
 
-            $request = $this->app->make('request');
-            $metrics = $request instanceof Request ? $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE) : null;
+            $metrics = MeasurePetugasActivity::metrics($this->app->make('request'));
             if ($metrics !== null) {
                 $metrics->queries++;
                 $metrics->query_ms += $query->time ?? 0;
             }
         });
-        $currentMetrics = function ($httpRequest): ?object {
+        $currentMetrics = function (HttpClientRequest $httpRequest): ?ActivityTimingMetrics {
             if (! $this->app->bound('request')) {
                 return null;
             }
-            $request = $this->app->make('request');
-            $metrics = $request instanceof Request ? $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE) : null;
+            $metrics = MeasurePetugasActivity::metrics($this->app->make('request'));
             if ($metrics === null) {
                 return null;
             }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { ChevronRight, Info, Siren, TriangleAlert } from '@lucide/vue';
+import { withPetugasBack } from '@/lib/petugasBackLink';
 import type { PetugasHomeIncident } from '@/types/petugas-home';
 
 defineProps<{ incidents: { data: PetugasHomeIncident[]; total: number } }>();
@@ -19,10 +20,13 @@ const date = (value: string) =>
         month: 'short',
     }).format(new Date(value));
 function detailUrl(incident: PetugasHomeIncident): string {
-    if (incident.detail_url) return incident.detail_url;
-    return incident.ticket_id
-        ? `/petugas/incidents/${incident.ticket_id}`
-        : `/petugas/laporan/${incident.id}`;
+    const base =
+        incident.detail_url ||
+        (incident.ticket_id
+            ? `/petugas/incidents/${incident.ticket_id}`
+            : `/petugas/laporan/${incident.id}`);
+
+    return withPetugasBack(base, '/petugas');
 }
 </script>
 
@@ -37,7 +41,7 @@ function detailUrl(incident: PetugasHomeIncident): string {
                 Insiden aktif ({{ incidents.total }})
             </h2>
             <Link
-                href="/petugas/incidents"
+                :href="withPetugasBack('/petugas/incidents', '/petugas')"
                 class="inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-primary hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-ring"
             >
                 Lihat semua

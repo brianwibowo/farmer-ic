@@ -172,8 +172,8 @@ class GrowthObservationTaskTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.category', 'growth_observation')
-                ->has('tasks', 2)
-                ->where('tasks.0.id', $observationTask->id));
+                ->has('tasks.data', 1)
+                ->where('tasks.data.0.id', $observationTask->id));
 
         $this->actingAs($this->petugas)
             ->get('/petugas/tasks/'.$observationTask->id.'/aktivitas/buat')

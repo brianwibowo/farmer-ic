@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\ActivityTimingMetrics;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -12,6 +13,13 @@ class MeasurePetugasActivity
 {
     public const ATTRIBUTE = '_petugas_activity_timing';
 
+    public static function metrics(Request $request): ?ActivityTimingMetrics
+    {
+        $metrics = $request->attributes->get(self::ATTRIBUTE);
+
+        return $metrics instanceof ActivityTimingMetrics ? $metrics : null;
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
         if (! config('activity_timing.enabled') || ! $request->isMethod('GET') || ! $request->is('petugas/aktivitas', 'petugas/laporan')) {
@@ -19,7 +27,7 @@ class MeasurePetugasActivity
         }
 
         $report = $request->is('petugas/laporan');
-        $metrics = (object) ['queries' => 0, 'query_ms' => 0.0, 'listing_ms' => null, 'permissions_ms' => null, 'task_count' => null, 'page' => null, 'per_page' => null, 'stats_ms' => null, 'categories_ms' => null, 'report_count' => null, 'web_started' => null, 'web_queries_start' => null, 'web_query_ms_start' => null, 'web_setup_ms' => null, 'web_setup_queries' => null, 'web_setup_query_ms' => null, 'web_pipeline_ms' => null, 'inertia_ms' => null, 'route_ms' => null, 'controller_ms' => null, 'route_queries' => null, 'route_query_ms' => null, 'shared_props_ms' => null, 'shared_props_queries' => null, 'shared_props_query_ms' => null, 'ssr_started' => null, 'ssr_ms' => null, 'ssr_result' => null];
+        $metrics = new ActivityTimingMetrics;
         $request->attributes->set(self::ATTRIBUTE, $metrics);
         $traceId = (string) Str::uuid();
         $started = hrtime(true);
@@ -46,7 +54,7 @@ class MeasurePetugasActivity
                 'controller_ms' => $metrics->controller_ms,
                 'inertia_visit' => $request->header('X-Inertia') === 'true',
                 'ssr_ms' => $metrics->ssr_ms,
-                'ssr_vite_ms' => $metrics->ssr_vite_ms ?? null,
+                'ssr_vite_ms' => $metrics->ssr_vite_ms,
                 'ssr_result' => $metrics->ssr_result,
                 'route_queries' => $metrics->route_queries,
                 'route_query_ms' => $metrics->route_query_ms,

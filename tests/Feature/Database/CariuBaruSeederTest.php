@@ -111,9 +111,9 @@ class CariuBaruSeederTest extends TestCase
         $this->assertFalse(Gate::forUser($petugas)->allows('view', $oldFarm));
         $harvestTask = PlantingCycleTask::query()->whereIn('planting_cycle_id', $cycles->modelKeys())
             ->where('activity_category', 'harvest')->firstOrFail();
-        $this->actingAs($petugas)->get('/petugas/tasks?view=history')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('petugas/Aktivitas')->where('filters.view', 'history')->has('tasks', 24)->where('summary.completed', 24)
-            ->where('tasks', fn ($tasks) => collect($tasks)->every(fn ($task) => str_contains($task['name'], 'SIMULASI'))));
+        $this->actingAs($petugas)->get('/petugas/tasks?view=history&per_page=50')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('petugas/Aktivitas')->where('filters.view', 'history')->where('tasks.total', 24)->has('tasks.data', 24)->where('summary.completed', 24)
+            ->where('tasks.data', fn ($tasks) => collect($tasks)->every(fn ($task) => str_contains($task['name'], 'SIMULASI'))));
         $this->get('/petugas/tasks/'.$harvestTask->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('petugas/TaskShow')->where('task.id', $harvestTask->id)->has('reports', 1)
             ->where('reports.0.notes', fn ($notes) => str_contains($notes, 'SIMULASI')));

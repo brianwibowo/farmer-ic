@@ -6,6 +6,7 @@ import PlantingCreate from './PlantingCreate.vue';
 const formState = vi.hoisted(() => ({
     initial: {} as Record<string, unknown>,
     errors: {} as Record<string, string>,
+    url: '/petugas/subbloks/cycle-a/penanaman',
 }));
 
 vi.mock('@inertiajs/vue3', async () => {
@@ -19,6 +20,7 @@ vi.mock('@inertiajs/vue3', async () => {
                 () =>
                     h('a', { href: props.href }, slots.default?.()),
         }),
+        usePage: () => ({ url: formState.url }),
         useForm: (data: Record<string, unknown>) =>
             reactive({
                 ...data,
@@ -77,6 +79,7 @@ const props = {
 beforeEach(() => {
     formState.initial = {};
     formState.errors = {};
+    formState.url = '/petugas/subbloks/cycle-a/penanaman';
 });
 
 describe('planting activity form presentation', () => {
@@ -97,6 +100,14 @@ describe('planting activity form presentation', () => {
         expect(html).toContain('Satuan benih');
         expect(html).not.toContain('Nama benih / produk');
         expect(html).toContain('Maksimal 30.000 m²');
+        expect(html).toContain('tertanam 2 ha');
+        expect(html).toContain('Total ditanam 2 ha');
+        expect(html).not.toContain('2.0000 ha');
+        expect(html).not.toContain('Maksimal 32.767 pekerja.');
+        expect(html).not.toContain('Maksimal 999.999.');
+        expect(html).not.toContain(
+            'Pelapor diambil dari akun yang sedang masuk.',
+        );
         expect(html).toContain('id="activity-photos"');
         expect(html).toContain('Benih jagung');
         expect(html).toContain('/petugas/laporan/report-a');
@@ -113,6 +124,8 @@ describe('planting activity form presentation', () => {
 
         expect(html).toContain('Berat per sak (kg) *');
         expect(html).toContain('planting-error-bag_size');
+        expect(html).not.toContain('planting-bag-help');
+        expect(html).not.toContain('Maksimal 99.999 kg per sak.');
         expect(html).toContain('photo-help photo-errors');
         expect(html).toContain('Foto tidak valid.');
         expect(html).toMatch(/<details[^>]*\sopen/);

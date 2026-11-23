@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import {
     CalendarDays,
     CheckCircle2,
@@ -17,6 +17,11 @@ import TaskReportCard from '@/components/petugas/TaskReportCard.vue';
 import TaskStatusBadges from '@/components/petugas/TaskStatusBadges.vue';
 import { Button } from '@/components/ui/button';
 import { useActivityDate } from '@/composables/useActivityDate';
+import {
+    extractPetugasBackParam,
+    petugasBackLabel,
+    withPetugasBack,
+} from '@/lib/petugasBackLink';
 import { formatReportDate } from '@/lib/petugasReport';
 import type {
     PetugasTask,
@@ -35,7 +40,20 @@ const props = defineProps<{
     blockedReason: string | null;
     completionGuidance: string;
 }>();
+const page = usePage();
 const activityDate = useActivityDate();
+const explicitBack = computed(() => extractPetugasBackParam(page.url));
+const defaultBackHref = computed(() =>
+    ['harvested', 'cancelled'].includes(props.task.subblok.status ?? '')
+        ? '/petugas/aktivitas?view=history'
+        : `/petugas/aktivitas${activityDate.value}`,
+);
+const backHref = computed(() => explicitBack.value ?? defaultBackHref.value);
+const backLabel = computed(() =>
+    explicitBack.value
+        ? petugasBackLabel(explicitBack.value, 'Kembali ke daftar tugas')
+        : 'Kembali ke daftar tugas',
+);
 const completionForm = useForm({ note: '' });
 const completionStatusError = computed(
     () => (completionForm.errors as Record<string, string | undefined>).status,
@@ -63,12 +81,8 @@ function completedAtLabel(value: string): string {
     >
         <PetugasDetailHeader
             title="Detail tugas"
-            :back-href="
-                ['harvested', 'cancelled'].includes(task.subblok.status ?? '')
-                    ? '/petugas/aktivitas?view=history'
-                    : `/petugas/aktivitas${activityDate}`
-            "
-            back-label="Kembali ke daftar tugas"
+            :back-href="backHref"
+            :back-label="backLabel"
         />
 
         <section
@@ -246,7 +260,12 @@ function completedAtLabel(value: string): string {
                 class="mt-4 min-h-12 w-full rounded-xl"
             >
                 <Link
-                    :href="`/petugas/tasks/${task.id}/aktivitas/buat${activityDate}`"
+                    :href="
+                        withPetugasBack(
+                            `/petugas/tasks/${task.id}/aktivitas/buat${activityDate}`,
+                            explicitBack,
+                        )
+                    "
                 >
                     <ClipboardPlus class="size-4" aria-hidden="true" />Catat
                     aktivitas tugas ini

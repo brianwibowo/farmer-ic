@@ -25,14 +25,15 @@ class HandleInertiaRequests extends Middleware
 {
     public function handle(Request $request, Closure $next)
     {
-        $metrics = $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE);
-        $started = $metrics !== null ? hrtime(true) : null;
+        $metrics = MeasurePetugasActivity::metrics($request);
+        if ($metrics === null) {
+            return parent::handle($request, $next);
+        }
+        $started = hrtime(true);
         try {
             return parent::handle($request, $next);
         } finally {
-            if ($metrics !== null) {
-                $metrics->inertia_ms = round((hrtime(true) - $started) / 1_000_000, 2);
-            }
+            $metrics->inertia_ms = round((hrtime(true) - $started) / 1_000_000, 2);
         }
     }
 
@@ -64,11 +65,11 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $metrics = $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE);
-        $started = $metrics !== null ? hrtime(true) : null;
-        $queriesBefore = $metrics?->queries;
-        $queryMsBefore = $metrics?->query_ms;
-        $guestPage = $request->route()?->defaults['farmer_guest'] ?? false;
+        $metrics = MeasurePetugasActivity::metrics($request);
+        $started = $metrics !== null ? hrtime(true) : 0;
+        $queriesBefore = $metrics !== null ? $metrics->queries : 0;
+        $queryMsBefore = $metrics !== null ? $metrics->query_ms : 0.0;
+        $guestPage = ($request->route()?->defaults['farmer_guest'] ?? false) === true;
         $user = $guestPage ? null : $request->user();
         $shared = $user instanceof User
             ? app(RolePermissions::class)->withMembershipSnapshot($user, fn () => $this->sharedValues($request, $user, $guestPage))
@@ -82,6 +83,7 @@ class HandleInertiaRequests extends Middleware
         return $shared;
     }
 
+    /** @return array<string, mixed> */
     private function sharedValues(Request $request, ?User $user, bool $guestPage): array
     {
         $adminAccess = $user !== null && Gate::forUser($user)->allows('admin.access');

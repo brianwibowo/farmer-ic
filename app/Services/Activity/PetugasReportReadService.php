@@ -2,6 +2,7 @@
 
 namespace App\Services\Activity;
 
+use App\Models\ActivityDetail;
 use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
@@ -16,6 +17,7 @@ use App\Support\ActivityPhotoFile;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 
 class PetugasReportReadService
@@ -64,7 +66,7 @@ class PetugasReportReadService
             $log = $logs->get($activity->daily_activity_log_id);
             $activityPhotos = $photos->get($activity->id, collect());
 
-            return $this->summary($farm, $activity, $type, $cycle, $block, $log, $activityPhotos, $details[$type?->code] ?? null, $observations->get($activity->id));
+            return $this->summary($farm, $activity, $type, $cycle, $block, $log, $activityPhotos, ($details[$type?->code] ?? null)?->get($activity->id), $observations->get($activity->id));
         });
     }
 
@@ -78,8 +80,8 @@ class PetugasReportReadService
             ->first();
 
         return [
-            'sop' => (int) $counts->sop,
-            'mandiri' => (int) $counts->mandiri,
+            'sop' => (int) ($counts?->getAttribute('sop') ?? 0),
+            'mandiri' => (int) ($counts?->getAttribute('mandiri') ?? 0),
         ];
     }
 
@@ -123,8 +125,11 @@ class PetugasReportReadService
         return $query;
     }
 
-    /** @return array<string, mixed> */
-    private function summary(Farm $farm, FarmActivity $activity, ?ActivityType $type, ?PlantingCycle $cycle, ?FarmBlock $block, ?DailyActivityLog $log, $photos, $details, ?PlantObservation $observation): array
+    /**
+     * @param  Collection<int, ActivityPhoto>  $photos
+     * @return array<string, mixed>
+     */
+    private function summary(Farm $farm, FarmActivity $activity, ?ActivityType $type, ?PlantingCycle $cycle, ?FarmBlock $block, ?DailyActivityLog $log, Collection $photos, ActivityDetail|PlantObservation|null $detail, ?PlantObservation $observation): array
     {
         $photo = $photos->first(fn (ActivityPhoto $photo) => ActivityPhotoFile::available($photo));
 
@@ -133,12 +138,12 @@ class PetugasReportReadService
             'location' => implode(' · ', array_filter([$block === null ? null : $block->name, $cycle?->getAttribute('subblock_label')])) ?: 'Lokasi spesifik tidak tercatat',
             'source' => $activity->getAttribute('planting_cycle_task_id') === null ? 'Mandiri' : 'SOP',
             'worker_count' => $activity->worker_count,
-            'notes' => $activity->description, 'highlight' => $this->highlight($activity, $type, $details, $observation),
+            'notes' => $activity->description, 'highlight' => $this->highlight($activity, $type, $detail, $observation),
             'photo_count' => $photos->count(),
             'photo' => $photo ? route('daily-logs.photos', ['farm' => $farm, 'activity' => $activity, 'photo' => $photo]) : null];
     }
 
-    private function highlight(FarmActivity $activity, ?ActivityType $type, $details, ?PlantObservation $observation): ?string
+    private function highlight(FarmActivity $activity, ?ActivityType $type, ActivityDetail|PlantObservation|null $detail, ?PlantObservation $observation): ?string
     {
         if ($type === null) {
             return null;
@@ -158,7 +163,6 @@ class PetugasReportReadService
             default => null,
         };
         if ($detailKey !== null) {
-            $detail = $details?->get($activity->id);
             if ($detail === null) {
                 return null;
             }

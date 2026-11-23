@@ -10,6 +10,7 @@ import {
     DialogDescription,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { withPetugasBack } from '@/lib/petugasBackLink';
 import type { PetugasActivityCategory } from '@/types/petugas-activity';
 
 type CategoryEntry = {
@@ -20,6 +21,7 @@ type CategoryEntry = {
 
 const props = defineProps<{
     categories: PetugasActivityCategory[];
+    backHref?: string;
 }>();
 const open = ref(false);
 const entries = computed<CategoryEntry[]>(() => {
@@ -107,9 +109,12 @@ const entries = computed<CategoryEntry[]>(() => {
                                 v-for="category in entry.items"
                                 :key="category.id"
                                 :href="
-                                    category.code === 'planting'
-                                        ? '/petugas/penanaman'
-                                        : `/petugas/aktivitas/mandiri/${category.code}`
+                                    withPetugasBack(
+                                        category.code === 'planting'
+                                            ? '/petugas/penanaman'
+                                            : `/petugas/aktivitas/mandiri/${category.code}`,
+                                        props.backHref,
+                                    )
                                 "
                                 class="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-card p-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
                                 @click="open = false"

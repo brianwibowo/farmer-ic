@@ -404,4 +404,15 @@ describe('task detail presentation', () => {
         expect(withoutHok).toContain('Tidak ditetapkan');
         expect(withoutHok).not.toContain('Umur tanaman');
     });
+
+    it('honors a safe back origin on task detail and preserves it on activity creation links', async () => {
+        state.url = '/petugas/tasks/task-a?back=%2Fpetugas';
+        const html = await renderToString(h(TaskShow, detailProps));
+
+        expect(html).toContain('href="/petugas"');
+        expect(html).toContain('Kembali ke beranda');
+        expect(html).toContain(
+            'href="/petugas/tasks/task-a/aktivitas/buat?back=%2Fpetugas"',
+        );
+    });
 });

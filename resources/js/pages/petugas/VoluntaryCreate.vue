@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import {
     ArrowLeft,
@@ -26,8 +26,13 @@ import { Button } from '@/components/ui/button';
 import { useErrorDisclosure } from '@/composables/useErrorDisclosure';
 import { useVoluntaryLocation } from '@/composables/useVoluntaryLocation';
 import {
+    extractPetugasBackParam,
+    petugasBackLabel,
+    resolvePetugasBackHref,
+    withPetugasBack,
+} from '@/lib/petugasBackLink';
+import {
     activityDetailMaximumErrors,
-    formatActivityNumber,
     maximumError,
 } from '@/lib/activityInputLimits';
 
@@ -324,22 +329,30 @@ function submit(): void {
         preserveScroll: true,
     });
 }
+const page = usePage();
+const backHref = computed(() =>
+    props.incidentTicket
+        ? withPetugasBack(
+              `/petugas/incidents/${props.incidentTicket.id}`,
+              extractPetugasBackParam(page.url),
+          )
+        : resolvePetugasBackHref(page.url, '/petugas/laporan'),
+);
+const backLabel = computed(() =>
+    props.incidentTicket
+        ? 'Kembali ke tiket insiden'
+        : petugasBackLabel(backHref.value, 'Kembali ke laporan'),
+);
 </script>
 <template>
     <Head :title="`Catat ${type.name}`" />
     <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
             <Link
-                :href="
-                    incidentTicket
-                        ? `/petugas/incidents/${incidentTicket.id}`
-                        : '/petugas/laporan'
-                "
+                :href="backHref"
                 class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 ><ArrowLeft class="size-4" aria-hidden="true" />{{
-                    incidentTicket
-                        ? 'Kembali ke tiket insiden'
-                        : 'Kembali ke laporan'
+                    backLabel
                 }}</Link
             >
             <h1 class="mt-2 text-xl leading-7 font-semibold">
@@ -717,20 +730,10 @@ function submit(): void {
                             :aria-invalid="!!errors.worker_count"
                             :aria-describedby="
                                 errors.worker_count
-                                    ? 'worker-count-help error-worker_count'
-                                    : 'worker-count-help'
+                                    ? 'error-worker_count'
+                                    : undefined
                             "
                         />
-                        <p
-                            id="worker-count-help"
-                            class="text-xs text-muted-foreground"
-                        >
-                            Opsional · maksimal
-                            {{
-                                formatActivityNumber(numericLimits.workerCount)
-                            }}
-                            pekerja.
-                        </p>
                         <p
                             v-if="errors.worker_count"
                             id="error-worker_count"

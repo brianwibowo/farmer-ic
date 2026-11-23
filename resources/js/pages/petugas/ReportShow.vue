@@ -11,6 +11,10 @@ import {
 import { computed } from 'vue';
 import PetugasDetailHeader from '@/components/petugas/PetugasDetailHeader.vue';
 import ReportPhotoGallery from '@/components/petugas/ReportPhotoGallery.vue';
+import {
+    extractPetugasBackParam,
+    petugasBackLabel,
+} from '@/lib/petugasBackLink';
 import { formatReportDate, formatReportDetails } from '@/lib/petugasReport';
 import type { DailyReport, DailyReportActivity } from '@/types/daily-activity';
 
@@ -25,14 +29,15 @@ const page = usePage();
 const activity = computed(
     () => props.legacyActivity ?? props.log?.activities[0] ?? null,
 );
-const backHref = computed(() => {
-    const candidate = new URL(page.url, 'http://localhost').searchParams.get(
-        'back',
-    );
-    return candidate && /^\/petugas\/laporan(?:\?|$)/.test(candidate)
-        ? candidate
-        : '/petugas/laporan';
-});
+const backHref = computed(
+    () => extractPetugasBackParam(page.url) ?? '/petugas/laporan',
+);
+const backLabel = computed(() =>
+    backHref.value === '/petugas/laporan' ||
+    backHref.value.startsWith('/petugas/laporan?')
+        ? 'Kembali ke daftar laporan'
+        : petugasBackLabel(backHref.value, 'Kembali ke daftar laporan'),
+);
 const location = computed(() => {
     if (!activity.value) return '';
     return (
@@ -67,7 +72,7 @@ const details = computed(() =>
         <PetugasDetailHeader
             title="Detail laporan"
             :back-href="backHref"
-            back-label="Kembali ke daftar laporan"
+            :back-label="backLabel"
         />
 
         <template v-if="activity">
