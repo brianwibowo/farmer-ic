@@ -12,9 +12,9 @@ import { email } from '@/routes/password';
 defineOptions({
     layout: {
         variant: 'login',
-        title: 'Forgot your password?',
+        title: 'Lupa kata sandi?',
         description:
-            "Enter your email and we'll send you a link to reset your password.",
+            'Masukkan email Anda untuk menerima link reset kata sandi',
     },
 });
 
@@ -24,7 +24,7 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Forgot password" />
+    <Head title="Lupa kata sandi" />
 
     <div
         v-if="status"
@@ -37,7 +37,7 @@ defineProps<{
         />
         <div class="space-y-1">
             <p class="text-sm font-semibold text-foreground">
-                Check your inbox
+                Periksa kotak masuk Anda
             </p>
             <p class="text-sm leading-5 text-muted-foreground">{{ status }}</p>
         </div>
@@ -64,7 +64,7 @@ defineProps<{
                     autocapitalize="none"
                     :spellcheck="false"
                     v-focus
-                    placeholder="Enter your email"
+                    placeholder="Masukkan email Anda"
                     class="h-12 rounded-xl bg-background pl-10 text-base shadow-none md:text-sm"
                     :aria-invalid="Boolean(errors.email)"
                     :aria-describedby="errors.email ? 'email-error' : undefined"
@@ -85,7 +85,7 @@ defineProps<{
             data-test="email-password-reset-link-button"
         >
             <Spinner v-if="processing" aria-hidden="true" />
-            {{ processing ? 'Sending link…' : 'Send reset link' }}
+            {{ processing ? 'Mengirim link…' : 'Kirim link reset' }}
         </Button>
     </Form>
 
@@ -95,7 +95,7 @@ defineProps<{
             class="inline-flex items-center gap-2 rounded-sm text-sm font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring dark:text-primary"
         >
             <ArrowLeft aria-hidden="true" class="size-4" />
-            Back to log in
+            Kembali ke halaman masuk
         </Link>
     </div>
 </template>
