@@ -1,0 +1,684 @@
+% Editable LaTeX source for Buku Panduan Farm Management.
+% Run XeLaTeX twice from the docs directory to refresh the table of contents.
+\documentclass[11pt,a4paper]{article}
+\usepackage[a4paper,margin=2.2cm,headheight=15pt]{geometry}
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{tikz}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\definecolor{FarmGreen}{HTML}{087A55}
+\definecolor{SoftBlack}{HTML}{30343B}
+\hypersetup{colorlinks=true,linkcolor=FarmGreen,urlcolor=FarmGreen,pdftitle={Buku Panduan Farm Management},pdfauthor={PT Bumi Hijauan}}
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}
+\setlist{leftmargin=*,itemsep=3pt,topsep=4pt}
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+\renewcommand{\arraystretch}{1.18}
+\titleformat{\section}{\Large\bfseries\color{SoftBlack}}{\thesection}{0.65em}{}
+\titleformat{\subsection}{\large\bfseries\color{FarmGreen}}{\thesubsection}{0.65em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{SoftBlack}}{\thesubsubsection}{0.65em}{}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small Buku Panduan Farm Management}\fancyhead[R]{\small PT Bumi Hijauan}\fancyfoot[C]{\thepage}\renewcommand{\headrulewidth}{0.4pt}
+\newcommand{\guideimage}[2]{%
+  \begin{figure}[H]\centering\includegraphics[width=0.94\linewidth,height=0.63\textheight,keepaspectratio]{#1}%
+  \caption*{#2}\end{figure}}
+\newcommand{\imageplaceholder}[1]{%
+  \begin{figure}[H]\centering\fbox{\parbox[c][5.8cm][c]{0.88\linewidth}{\centering\color{gray}Tempatkan tangkapan layar bersih di sini\\[4pt]\texttt{#1}}}%
+  \caption*{Tangkapan layar belum disertakan agar penanda merah dapat ditambahkan manual.}\end{figure}}
+\begin{document}
+\begin{titlepage}\thispagestyle{empty}\centering\vspace*{1.3cm}
+{\Large\bfseries\color{FarmGreen} PT BUMI HIJAUAN\par}\vspace{2.0cm}
+{\Huge\bfseries\color{SoftBlack} Buku Panduan\\[0.25em] Farm Management\par}\vspace{0.7cm}
+{\Large Panduan penggunaan Admin dan Petugas\par}\vspace{0.5cm}
+{\large Versi 1.4 · 23 November 2026\par}\vfill
+\includegraphics[width=0.98\linewidth,height=0.30\textheight,keepaspectratio]{panduan-pengguna/gambar/20-ilustrasi-lahan-penutup.png}\vfill
+{\small Dokumen panduan operasional\\PT Bumi Hijauan\par}\vspace{0.7cm}
+\end{titlepage}
+\tableofcontents\clearpage
+
+% Untuk menambahkan kotak merah manual pada sebuah gambar, gunakan pola berikut di dalam figure:
+% \begin{tikzpicture}[remember picture,overlay]
+%   \draw[red,line width=2pt] (x1,y1) rectangle (x2,y2);
+% \end{tikzpicture}
+% Sesuaikan koordinat berdasarkan ukuran gambar; source screenshot yang dipakai di sini bersih.
+
+﻿\# Panduan Penggunaan Admin dan Petugas
+
+Versi 1.4 · 23 November 2026
+
+Panduan ini menjelaskan alur awal Admin menyiapkan akun dan data lahan, lalu alur Petugas mencatat pekerjaan melalui perangkat mobile. Gunakan istilah \textbf{lahan} untuk lokasi usaha pertanian; satu lahan dapat dibagi menjadi blok, lalu subblok untuk area tanam dan siklus yang berbeda.
+
+\guideimage{panduan-pengguna/gambar/20-ilustrasi-lahan-penutup.png}{Ilustrasi lahan budidaya dengan jagung, rumput, dan sorgum.}
+
+\begin{quote}\small \textbf{Kredensial awal:} Mintalah akun awal kepada Developer. Kata sandi bersifat sensitif dan disampaikan melalui tempat atau mekanisme terpisah yang aman, bukan melalui panduan ini.\end{quote}
+
+\section{Kata Pengantar}
+
+Panduan ini masih dikembangkan seiring penggunaan sistem. Versi berikutnya akan disempurnakan berdasarkan masukan pengguna, data penggunaan, dan pengalaman nyata di lapangan. Sistem juga terus dikembangkan; versioning membantu pengguna meninjau pembaruan panduan dengan jelas.
+
+\begin{itemize}
+
+\item \href{#1-istilah-dan-peran}{1. Istilah dan peran}
+
+\item \href{#2-persiapan-dan-masuk-ke-aplikasi}{2. Persiapan dan masuk ke aplikasi}
+
+\item \href{#3-alur-awal-admin-buat-akun-petugas}{3. Alur awal Admin: buat akun Petugas}
+
+\item \href{#4-mencatat-lahan}{4. Mencatat lahan}
+
+\item \href{#5-menyusun-dan-menetapkan-sop}{5. Menyusun dan menetapkan SOP}
+
+\item \href{#6-alur-kerja-petugaspic-di-mobile}{6. Alur kerja Petugas/PIC di mobile}
+
+\item \href{#7-pemecahan-masalah}{7. Pemecahan masalah}
+
+\item \href{#8-catatan-pengelolaan-dokumen}{8. Catatan pengelolaan dokumen}
+
+\item \href{#penutup}{Penutup}
+
+\end{itemize}
+
+\begin{quote}\small \textbf{Cara membaca:} judul besar menandai bagian utama, subjudul menandai tahapan dalam bagian, daftar bernomor menunjukkan urutan kerja, dan bullet menunjukkan pilihan atau hal yang perlu diperhatikan. \textbf{Cakupan:} panduan berfokus pada Admin dan Petugas/PIC. Owner dan Superadmin dijelaskan untuk konteks akun serta batas peran. Label menu dapat berubah mengikuti pembaruan aplikasi.\end{quote}
+
+\section{1. Istilah dan peran}
+
+\begin{longtable}{p{0.28\linewidth}p{0.66\linewidth}}\toprule
+
+Istilah & Arti dalam panduan \\
+
+\midrule
+
+Owner & Pemilik usaha, dalam briefing ini Pak Satar. Memantau ringkasan usaha dan data yang menjadi hak aksesnya. \\
+
+Superadmin & Developer atau personel yang diberi tanggung jawab mengelola akses lintas tenant dan dukungan sistem. \\
+
+Admin & Pengurus operasional satu tenant yang menyiapkan akun, data lahan, SOP, blok, dan penugasan. \\
+
+Petugas / PIC & Person in Charge di lapangan. Mengerjakan tugas dan mengirim laporan dari lahan yang ditugaskan. \\
+
+Lahan & Lokasi usaha pertanian dengan identitas, luas, wilayah, titik peta, status penguasaan, dan target hasil. \\
+
+Blok & Pembagian area di dalam lahan. Blok dapat memiliki komoditas dan SOP budidaya. \\
+
+Subblok & Bagian blok yang disiapkan untuk satu rencana atau siklus tanam. Buat subblok sebelum memulai penanaman pada bagian tersebut. \\
+
+SOP & Prosedur operasional budidaya yang disusun Admin. Tahap SOP menjadi dasar tugas yang ditampilkan kepada Petugas. \\
+
+Tenant / tim & Ruang kerja organisasi yang membatasi data yang dapat dilihat dan dikelola pengguna. \\
+
+\bottomrule\end{longtable}
+
+\subsection{Ringkasan tanggung jawab}
+
+\begin{longtable}{p{0.28\linewidth}p{0.66\linewidth}}\toprule
+
+Peran & Tanggung jawab utama \\
+
+\midrule
+
+Superadmin & Menyiapkan atau mendukung akun utama, menjaga konfigurasi akses, dan membantu Admin. Hak global hanya untuk kebutuhan pengelolaan sistem. \\
+
+Admin & Membuat akun Admin/Petugas dalam tenant, mencatat lahan, menyusun SOP, membuat blok dan subblok, menugaskan Petugas, serta memantau laporan. \\
+
+Petugas / PIC & Melihat lahan dan tugas yang ditugaskan, mencatat aktivitas atau realisasi tugas, serta meninjau laporan yang pernah dikirim. \\
+
+Owner & Memantau ringkasan usaha dan informasi yang tersedia sesuai aksesnya. \\
+
+\bottomrule\end{longtable}
+
+\section{2. Persiapan dan masuk ke aplikasi}
+
+\subsection{Akses}
+
+\begin{itemize}
+
+\item Alamat aplikasi demo: \href{https://farmer.icdigital.io/login}{Buka halaman masuk}.
+
+\item Gunakan akun yang diberikan organisasi. Empat alamat akun demo untuk lingkungan lokal tercatat di \href{demo-seed-credentials.md}{Daftar akun demo dan informasi akses}.
+
+\item Akun dengan alamat \texttt{@farmer-ic.test} adalah fixture demo/pengembangan, bukan akun untuk layanan bersama atau operasional.
+
+\item Jangan menyalin kata sandi ke dokumen panduan, pesan grup, atau dokumen yang dapat diakses publik. Bagikan melalui kanal aman dan ubah kata sandi sesuai kebijakan organisasi.
+
+\end{itemize}
+
+\subsection{Masuk}
+
+\begin{enumerate}
+
+\item Buka halaman masuk melalui browser. Tampilan menyesuaikan ukuran layar desktop atau mobile.
+
+\item Isi email dan kata sandi akun yang diberikan.
+
+\item Pilih \textbf{Log in}. Jika kredensial tidak cocok, periksa ejaan email, Caps Lock, dan pastikan akun belum dinonaktifkan.
+
+\item Setelah berhasil masuk, aplikasi mengarahkan pengguna ke area yang sesuai dengan perannya.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/05-form-login-desktop.png}{Halaman masuk Bumi Hijauan pada tampilan desktop.}
+
+\emph{Gambar 1A. Halaman masuk pada layar desktop.}
+
+\guideimage{panduan-pengguna/gambar/06-form-login-mobile.png}{Halaman masuk Bumi Hijauan pada tampilan mobile.}
+
+\emph{Gambar 1B. Halaman masuk pada layar mobile.}
+
+\section{3. Alur awal Admin: buat akun Petugas}
+
+Admin perlu masuk terlebih dahulu sebelum menyiapkan akun lapangan. Akun Petugas baru dapat ditautkan ke lahan yang sudah tercatat; jika lahannya belum ada, buat akun dahulu lalu lakukan penugasan setelah lahan tersedia.
+
+\begin{enumerate}
+
+\item Buka menu \textbf{Manajemen Pengguna}. Tabel ini menampilkan akun yang sudah ada dan tombol untuk menambahkan akun (Gambar 2).
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/08-list-management-pengguna.png}{Daftar Manajemen Pengguna.}
+
+\emph{Gambar 2. Daftar pengguna. Periksa nama, email, peran, tenant, status, dan penugasan sebelum memilih tindakan.}
+
+\begin{enumerate}
+
+\item Pilih \textbf{Tambah pengguna}. Form pembuatan akun akan terbuka (Gambar 3).
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/10-tambah-pengguna.png}{Form untuk menambahkan pengguna.}
+
+\emph{Gambar 3. Form tambah pengguna. Lengkapi identitas, peran, kata sandi awal, dan penugasan lahan jika sudah tersedia.}
+
+\begin{enumerate}
+
+\item Isi nama lengkap, email aktif, dan nomor WhatsApp bila tersedia.
+
+\item Pilih peran aplikasi \textbf{Petugas}. Admin dapat membuat akun Admin atau Petugas sesuai kewenangannya; pengaturan Superadmin hanya dilakukan personel yang berwenang.
+
+\item Tetapkan kata sandi awal dan isi konfirmasinya. Berikan kredensial kepada pengguna melalui kanal aman.
+
+\item Jika lahan sudah tersedia, pilih lahan untuk penugasan Petugas. Jika belum tersedia, simpan tanpa penugasan dan kembali setelah lahan dibuat.
+
+\item Tinjau kembali data lalu simpan. Pastikan pengguna muncul pada daftar dan peran serta penugasannya benar.
+
+\end{enumerate}
+
+\textbf{Praktik yang disarankan:} satu akun untuk satu orang, email tidak digunakan bersama, dan akun Petugas diberi penugasan lahan yang benar. Penugasan membatasi data operasional yang tersedia untuk Petugas. Pada model saat ini satu akun Petugas memiliki paling banyak satu lahan tugas; satu lahan dapat ditugaskan kepada beberapa Petugas.
+
+\subsection{Mengelola akun yang sudah dibuat}
+
+\begin{itemize}
+
+\item Gunakan pencarian nama/email dan filter untuk menemukan akun. Menu tindakan di ujung baris membuka opsi detail, ubah, dan hapus sesuai izin (Gambar 4).
+
+\end{itemize}
+
+\guideimage{panduan-pengguna/gambar/09-tindakan-lanjut-pengguna.png}{Menu tindakan lanjutan pada pengguna.}
+
+\emph{Gambar 4. Menu tindakan pengguna. Pilih tindakan pada akun yang benar.}
+
+\begin{itemize}
+
+\item Buka \textbf{Lihat detail} untuk memeriksa identitas, peran, tenant, dan lahan tugas (Gambar 5).
+
+\end{itemize}
+
+\guideimage{panduan-pengguna/gambar/11-detail-pengguna.png}{Halaman detail pengguna.}
+
+\emph{Gambar 5. Detail pengguna menampilkan informasi akun dan lahan yang ditugaskan.}
+
+\begin{itemize}
+
+\item Pilih \textbf{Ubah pengguna} untuk memperbarui informasi yang diizinkan (Gambar 6). Admin tenant tidak dapat mengganti peran akun yang telah ada; perubahan tersebut ditangani Superadmin.
+
+\end{itemize}
+
+\guideimage{panduan-pengguna/gambar/12-edit-informasi-pengguna.png}{Form untuk mengubah informasi pengguna.}
+
+\emph{Gambar 6. Form ubah pengguna. Isian kata sandi boleh dikosongkan jika tidak ingin menggantinya.}
+
+\begin{itemize}
+
+\item Kata sandi baru pada formulir edit bersifat opsional. Mengubahnya dapat mengakhiri sesi aktif pengguna lain.
+
+\item \textbf{Hapus pengguna} meminta konfirmasi (Gambar 7). Penghapusan menonaktifkan kemampuan masuk, sementara akun dan relasi operasional dipertahankan melalui soft delete.
+
+\end{itemize}
+
+\guideimage{panduan-pengguna/gambar/13-konfirmasi-hapus-pengguna.png}{Dialog konfirmasi penghapusan pengguna.}
+
+\emph{Gambar 7. Pastikan akun yang ditampilkan benar sebelum mengonfirmasi penghapusan.}
+
+\begin{itemize}
+
+\item Pengguna yang dihapus tersedia pada tab \textbf{Terhapus} bagi Admin yang berwenang (Gambar 8). Pilih \textbf{Pulihkan} untuk mengaktifkan kembali akun.
+
+\end{itemize}
+
+\guideimage{panduan-pengguna/gambar/14-list-pengguna-dalam-keadaan-terhapus.png}{Daftar pengguna yang telah dihapus.}
+
+\emph{Gambar 8. Tab Terhapus menampilkan akun yang dapat dipulihkan oleh Admin yang berwenang.}
+
+Setelah memilih \textbf{Pulihkan}, tinjau dialog konfirmasi (Gambar 9), lalu periksa kembali status dan penugasan akun.
+
+\guideimage{panduan-pengguna/gambar/15-konfirmasi-pemulihan-pengguna.png}{Dialog konfirmasi pemulihan pengguna.}
+
+\emph{Gambar 9. Konfirmasikan pemulihan akun yang dipilih.}
+
+\section{4. Mencatat lahan}
+
+Buka \textbf{Manajemen Lahan}, lalu pilih \textbf{Tambah lahan}. Isi informasi berdasarkan dokumen dan kondisi lapangan. Isian bertanda bintang wajib dilengkapi.
+
+\guideimage{panduan-pengguna/gambar/07-list-management-lahan.png}{Daftar lahan pada menu Manajemen Lahan.}
+
+\emph{Gambar 10. Daftar Manajemen Lahan. Gunakan pencarian atau filter untuk menemukan lahan; pilih ZZTOKEN0ZZ untuk mencatat lahan baru.}
+
+\imageplaceholder{01-form-tambah-lahan.png}
+
+\emph{Gambar 11. Pilih wilayah secara berurutan, lalu simpan setelah data diperiksa.}
+
+\subsection{Informasi lahan}
+
+\begin{longtable}{p{0.28\linewidth}p{0.66\linewidth}}\toprule
+
+Isian & Cara mengisi \\
+
+\midrule
+
+Nama lahan & Gunakan nama yang singkat dan mudah dikenali, misalnya “Lahan Cariu”. Hindari nama yang sama dalam satu ruang kerja. \\
+
+Luas lahan (ha) & Masukkan luas resmi/terverifikasi dalam hektare. Perhatikan satuan; 1 ha = 10.000 m². \\
+
+Target volume panen (ton) & Masukkan target total sesuai rencana usaha. Jika target dihitung dari luas × produktivitas per hektare, pastikan komoditas, satuan, periode, dan angka produktivitas disepakati terlebih dahulu. Form meminta nilai target secara langsung. \\
+
+Status penguasaan lahan & Pilih Milik sendiri, Sewa, atau Kerja sama sesuai dokumen. Untuk Sewa/Kerja sama, catat pihak terkait jika diminta. \\
+
+PIC lahan & Opsional. Pilih akun Petugas yang telah tersedia. Penugasan dapat dilakukan atau diperbarui kemudian. \\
+
+\bottomrule\end{longtable}
+
+\subsection{Lokasi dan dokumentasi}
+
+\begin{enumerate}
+
+\item Tulis alamat yang membantu menemukan lokasi, termasuk desa/dusun atau petunjuk akses. Hindari memasukkan nomor telepon atau data pribadi pada alamat.
+
+\item Pilih \textbf{Provinsi}, kemudian \textbf{Kota/kabupaten}, lalu \textbf{Kecamatan}. Pilihan wilayah berikutnya aktif setelah pilihan sebelumnya tersedia.
+
+\item Gunakan peta untuk menaruh pin, lalu geser marker jika posisinya perlu dikoreksi. Periksa posisi terhadap alamat sebelum menyimpan. Pin menunjukkan satu titik referensi; pin bukan batas/poligon luas lahan.
+
+\item Tautan dokumentasi menerima referensi HTTP/HTTPS, misalnya folder Google Drive. Isian tautan ini menyimpan URL, bukan mengunggah berkas. Pastikan izin akses folder sudah sesuai bagi tim yang membutuhkan.
+
+\item Simpan lahan dan buka detailnya untuk memastikan luas, wilayah, status, PIC, dan titik lokasi benar.
+
+\end{enumerate}
+
+\section{5. Membagi lahan menjadi blok dan subblok}
+
+\subsection{Tambahkan blok}
+
+\begin{enumerate}
+
+\item Dari detail lahan, pilih \textbf{Tambah blok}. Gambar 12 menunjukkan letak aksi Tambah blok dan Tambah subblok.
+
+\end{enumerate}
+
+\imageplaceholder{02-detail-lahan.png}
+
+\emph{Gambar 12. Detail lahan; gunakan Tambah blok untuk memulai pembagian lahan.}
+
+\begin{enumerate}
+
+\item Pilih \textbf{Komoditas blok} terlebih dahulu. Pilihan SOP default mengikuti komoditas yang tersedia.
+
+\item Pilih SOP yang sesuai. Jika SOP belum tersedia, Admin perlu menyusun SOP untuk komoditas tersebut sebelum memasangnya pada blok.
+
+\item Isi kode blok yang unik di lahan tersebut, misalnya \texttt{B01}, dan nama deskriptif, misalnya \textbf{Blok Utara}.
+
+\item Masukkan luas blok dan pilih satuan luas yang benar. Rencanakan pembagian luas agar jumlah blok aktif tidak melebihi kapasitas lahan. Pembagian sama rata hanya salah satu cara perencanaan, bukan aturan wajib.
+
+\item Pastikan status \textbf{Aktif} bila blok akan digunakan untuk kegiatan operasional. Catatan bersifat opsional.
+
+\item Simpan dan periksa blok di halaman detail lahan.
+
+\end{enumerate}
+
+\imageplaceholder{03-form-tambah-blok.png}
+
+\emph{Gambar 13. Form tambah blok. Pilih komoditas dan SOP, lalu lengkapi kode, nama, luas, serta satuan. Pada tangkapan layar, kapasitas lahan untuk blok aktif adalah 0 ha sehingga Simpan blok nonaktif; sesuaikan alokasi atau status blok sebelum menyimpan.}
+
+\subsection{Tambahkan subblok}
+
+\begin{enumerate}
+
+\item Pada blok yang tepat, pilih \textbf{Tambah subblok}. Form yang terbuka ditunjukkan pada Gambar 14.
+
+\item Isi label bila diperlukan; jika dikosongkan, sistem dapat memberi label otomatis.
+
+\item Isi rencana tanggal tanam bila sudah diketahui. Tanggal ini adalah rencana, bukan bukti bahwa penanaman sudah terjadi.
+
+\item Periksa sisa luas yang tersedia pada blok, lalu simpan.
+
+\item Setelah subblok tersedia, Petugas dapat menjalankan alur penanaman untuk bagian tersebut. Aktivitas persiapan tertentu, seperti pembersihan lahan, dapat dicatat pada tingkat blok sesuai alur aplikasi.
+
+\end{enumerate}
+
+\imageplaceholder{04-form-tambah-subblok.png}
+
+\emph{Gambar 14. Label dan rencana tanggal tanam bersifat opsional pada contoh form. Tekan Tambah subblok setelah memastikan sisa luas mencukupi.}
+
+\subsection{Membuat, menerbitkan, dan merevisi SOP}
+
+Admin dan Superadmin membuat SOP per komoditas melalui menu \textbf{SOP}. Panduan ini menyusun langkah SOP mulai dari \textbf{perawatan setelah penanaman hingga panen}. Langkah persiapan lahan dan penanaman tidak dimasukkan ke dalam rangkaian ini.
+
+\subsubsection{1. Periksa daftar dan buat template}
+
+\begin{enumerate}
+
+\item Buka menu \textbf{SOP}. Cari berdasarkan nama atau komoditas untuk memastikan template yang dibutuhkan belum tersedia. Pilih \textbf{Tambah SOP}.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar1SOP.png}{Daftar SOP Admin dan Superadmin; tombol Tambah SOP ditampilkan.}
+
+\emph{Gambar 15. Daftar template SOP. Tombol yang diberi kotak merah memulai pembuatan template baru.}
+
+\begin{enumerate}
+
+\item Pada \textbf{Identitas template}, isi nama SOP, pilih komoditas, tinjau status aktif untuk subblok baru, dan tulis deskripsi tujuan atau cakupannya. Pilih \textbf{Simpan template}.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar2SOP.png}{Form kosong untuk identitas template SOP dengan field dan tombol simpan ditampilkan.}
+
+\emph{Gambar 16. Form identitas template baru. }
+
+\begin{enumerate}
+
+\item Gunakan data yang terisi sebagai contoh: nama \textbf{SOP Budidaya Rumput}, komoditas \textbf{Rumput}, status aktif, dan deskripsi yang menjelaskan tujuan SOP. Sesuaikan dengan komoditas dan praktik yang telah disepakati.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar3SOP.png}{Contoh identitas SOP Budidaya Rumput yang telah diisi.}
+
+\emph{Gambar 17. Contoh form identitas SOP sebelum disimpan.}
+
+\subsubsection{2. Susun langkah perawatan sampai panen}
+
+\begin{enumerate}
+
+\item Setelah template tersimpan, halaman detail menampilkan versi awal berstatus \textbf{Draft}. Tambahkan langkah satu per satu. Rancang urutannya secara rinci sesuai SOP agronomi komoditas: misalnya pemantauan awal, pemeliharaan, pemupukan susulan, pengamatan pertumbuhan, pengendalian bila diperlukan, pemeriksaan kesiapan panen, lalu panen dan pencatatan hasil. Angka HST harus mengikuti SOP agronomi yang disetujui, bukan contoh generik.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar4SOP.png}{Detail template dengan versi Draft kosong dan tombol untuk menambahkan langkah serta memublikasikan.}
+
+\emph{Gambar 18. Detail SOP setelah template dibuat. Tambahkan langkah selama versi masih Draft; tombol Publikasikan digunakan setelah daftar langkah ditinjau.}
+
+\begin{enumerate}
+
+\item Di jendela \textbf{Tambah langkah SOP}, isi nama tindakan, kategori aktivitas, offset HST, toleransi hari, dan instruksi. Estimasi HOK bersifat opsional.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar5SOP.png}{Jendela Tambah langkah SOP dengan nama, kategori, offset HST, toleransi, instruksi, dan tombol tambah ditampilkan.}
+
+\emph{Gambar 19. Form langkah SOP. }
+
+\begin{itemize}
+
+\item \textbf{Nama langkah} menjelaskan tindakan secara spesifik, seperti \emph{Pemupukan susulan pertama}.
+
+\item \textbf{Kategori aktivitas} mengelompokkan langkah, misalnya \textbf{Perawatan} atau \textbf{Panen}.
+
+\item \textbf{Offset HST (hari)} menentukan hari pelaksanaan relatif terhadap tanggal tanam aktual. \texttt{H+0} berarti tanggal tanam, sedangkan \texttt{H+14} berarti 14 hari setelahnya.
+
+\item \textbf{Toleransi (hari)} menambahkan tenggang waktu setelah tanggal jadwal. Jika batas ini terlewati, sistem dapat menandai tugas terlambat dan memicu tindak lanjut. Notifikasi deviasi SOP yang tersedia saat ini dikirim kepada Admin.
+
+\item \textbf{Instruksi} dapat menjelaskan cara kerja, hal yang perlu diperiksa, atau catatan dari Admin/Superadmin untuk Petugas.
+
+\item \textbf{Estimasi HOK} opsional dan merupakan perkiraan kebutuhan kerja, bukan penjadwal tugas.
+
+\end{itemize}
+
+\begin{enumerate}
+
+\item Setelah tiap langkah ditambahkan, tinjau urutan HST, toleransi, nama, kategori, dan instruksinya. Selama masih Draft, gunakan ikon pensil untuk mengedit dan ikon tempat sampah untuk menghapus langkah yang keliru. Selesaikan daftar perawatan hingga panen sebelum publikasi.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar6SOP.png}{Versi SOP Draft berisi satu langkah, dengan tombol Publikasikan serta aksi edit dan hapus ditampilkan.}
+
+\emph{Gambar 20. Tinjau dan koreksi langkah Draft. Publikasikan hanya setelah semua langkah siap.}
+
+\begin{enumerate}
+
+\item Pilih \textbf{Publikasikan}. Versi yang terbit menjadi acuan yang dapat dipilih untuk blok. Versi Published dibekukan dan langkahnya tidak diedit langsung.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar7SOP.png}{Detail SOP dengan status versi Published ditampilkan.}
+
+\emph{Gambar 21. Versi Published. Status ini menandakan bahwa versi sudah diterbitkan dan tidak lagi diedit langsung.}
+
+\subsubsection{3. Revisi melalui versi baru}
+
+\begin{enumerate}
+
+\item Untuk mengubah SOP yang sudah diterbitkan, pilih \textbf{Versi baru}. Sistem membuat Draft baru berdasarkan versi sebelumnya.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar8SOP.png}{Detail SOP Published dengan tombol Versi baru ditampilkan.}
+
+\emph{Gambar 22. Mulai revisi dengan membuat versi baru; versi Published lama tetap menjadi riwayat.}
+
+\begin{enumerate}
+
+\item Periksa Draft versi berikutnya. Edit atau hapus langkah dengan ikon tindakan, tambahkan langkah baru bila diperlukan, lalu tinjau kembali semua offset dan toleransi. Pilih \textbf{Publikasikan} untuk menerbitkan revisi setelah selesai.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar9SOP.png}{Versi Draft berikutnya dengan aksi edit, hapus, dan Publikasikan ditampilkan.}
+
+\emph{Gambar 23. Revisi SOP pada versi Draft baru. Perubahan baru berlaku setelah versi tersebut diterbitkan.}
+
+Versi baru tidak otomatis mengganti snapshot SOP pada siklus yang sudah berjalan. Tinjau penerapan versi baru pada blok dan siklus yang akan dimulai.
+
+\subsubsection{4. Tetapkan SOP pada blok}
+
+\begin{enumerate}
+
+\item Buka detail lahan, lalu pilih \textbf{Tambah blok} atau edit blok yang belum memiliki SOP. Pilih komoditas blok terlebih dahulu, kemudian pilih SOP yang sesuai dari daftar. Lengkapi nama dan luas blok, lalu simpan.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/Gambar10SOP.png}{Form Tambah blok dengan pilihan komoditas, SOP, opsi SOP yang cocok, dan tombol simpan ditampilkan.}
+
+\emph{Gambar 24. Tetapkan SOP Published pada blok. Pilih komoditas terlebih dahulu agar pilihan SOP yang sesuai dapat ditampilkan.}
+
+\textbf{Jadwal tugas:} tugas siklus dihitung dari tanggal tanam aktual (\texttt{planted\_at}) ditambah offset HST; tanggal rencana tanam belum memulai hitung mundur. Toleransi hari menjadi masa tenggang setelah jadwal. Notifikasi deviasi SOP saat ini dikirim kepada Admin; Owner belum menjadi penerima.
+
+\textbf{Pengelolaan versi:} versi Published dibekukan. Siklus yang telah memakai snapshot versi sebelumnya tetap mengacu pada snapshot tersebut. Penerbitan versi baru tidak otomatis mengubah SOP pada semua blok atau siklus berjalan.
+
+\section{6. Alur kerja Petugas/PIC di mobile}
+
+Bagian ini mengikuti alur tugas SOP dari beranda sampai tugas ditandai selesai. Pada layar Petugas, laporan aktivitas dan penyelesaian tugas adalah dua tindakan terpisah.
+
+\subsection{6.1 Periksa beranda, to-do, dan insiden}
+
+\begin{enumerate}
+
+\item Setelah masuk, buka \textbf{Beranda}. Bagian atas merangkum subblok pra-tanam, penanaman, dan panen.
+
+\item Periksa kartu \textbf{Insiden aktif}. Insiden yang belum ditindaklanjuti dapat berasal dari laporan Petugas pada lahan yang sama; buka detail atau \textbf{Lihat semua} untuk meninjau informasi dan tindak lanjut.
+
+\item Pada \textbf{To-do hari ini}, pilih kartu tugas untuk membuka detailnya. Status dan progres selesai hari ini membantu membedakan pekerjaan yang masih harus dilakukan.
+
+\item Jika tugas atau insiden yang diharapkan tidak terlihat, pastikan lahan yang ditugaskan benar dan periksa menu Tugas bersama Admin.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas1.png}{Beranda Petugas dengan kartu insiden aktif dan tugas hari ini yang ditampilkan.}
+
+\emph{Gambar 25. Beranda Petugas: tinjau insiden aktif dan pilih tugas pada daftar To-do hari ini.}
+
+\subsection{6.2 Buka dan pahami detail tugas}
+
+\begin{enumerate}
+
+\item Pilih tugas dari kartu To-do atau daftar \textbf{Tugas}.
+
+\item Periksa nama tugas, lahan/blok/subblok, tanggal jadwal, target HST, varietas, serta jendela pelaporan.
+
+\item Baca \textbf{Instruksi SOP} sebelum mulai bekerja. Instruksi menjelaskan cara kerja atau hal yang harus diperiksa.
+
+\item Setelah pekerjaan dilakukan, tekan \textbf{Catat aktivitas tugas ini} untuk membuat laporan yang terhubung dengan tugas.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas2.png}{Detail tugas dengan jadwal, HST, instruksi SOP, dan tombol Catat aktivitas tugas ini ditampilkan.}
+
+\emph{Gambar 26. Baca target HST dan instruksi sebelum memulai pekerjaan, lalu buka form dari tombol Catat aktivitas tugas ini.}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas3.png}{Detail tugas dengan informasi jadwal dan instruksi SOP ditampilkan.}
+
+\emph{Gambar 27. Contoh tampilan detail tugas dan instruksi yang menjadi acuan pelaksanaan. Tangkapan layar ini menampilkan detail tugas yang sama.}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas7.png}{Detail tugas dengan tindakan Catat aktivitas tugas ini ditampilkan.}
+
+\emph{Gambar 28. Tindakan untuk memulai pencatatan laporan pada tugas SOP. Tampilan ini mengulang keadaan tombol yang sama agar titik mulai alur pelaporan terlihat jelas.}
+
+\subsection{6.3 Isi form aktivitas yang terhubung ke tugas}
+
+\begin{enumerate}
+
+\item Pastikan ringkasan tugas yang terhubung sudah benar. Tanggal kerja harus sesuai hari pelaksanaan dan berada dalam jendela pelaporan yang ditampilkan.
+
+\item Isi \textbf{Jumlah pekerja} serta \textbf{Luas area} dan satuannya sesuai pekerjaan. Form dapat berbeda menurut kategori tugas; isi field yang tampil dan wajib.
+
+\item Lampirkan minimal satu \textbf{foto bukti pekerjaan} melalui \textbf{Tambah foto}. Form pada contoh menerima JPG, PNG, atau WebP, paling banyak lima foto, dengan batas ukuran 15 MB per foto.
+
+\item Catatan tambahan dapat diisi jika diperlukan. Periksa kembali data dan bukti, lalu tekan \textbf{Simpan aktivitas}.
+
+\item Jika unggahan atau penyimpanan gagal, ikuti pesan pada layar dan kirim ulang setelah memperbaiki isian atau koneksi.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas4.png}{Form aktivitas tugas dengan jumlah pekerja, luas area, unggah foto, dan tombol simpan ditampilkan.}
+
+\emph{Gambar 29. Form aktivitas tugas. Field menyesuaikan jenis pekerjaan; foto bukti wajib dilampirkan sebelum laporan dikirim.}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas8.png}{Contoh form aktivitas terkait tugas yang sudah diisi, dengan ringkasan tugas, data pekerjaan, foto, dan tombol Simpan aktivitas ditampilkan.}
+
+\emph{Gambar 30. Contoh pengisian laporan untuk tugas SOP sebelum menekan Simpan aktivitas.}
+
+\subsection{6.4 Tinjau laporan yang tersimpan dan selesaikan tugas}
+
+\begin{enumerate}
+
+\item Setelah penyimpanan berhasil, periksa detail tugas atau buka \textbf{Laporan} untuk memastikan aktivitas muncul. Laporan tugas menampilkan relasi ke tugas dan ringkasan hasil yang dikirim.
+
+\item Tersimpannya laporan \textbf{tidak otomatis menyelesaikan tugas}. Status tugas berubah menjadi \textbf{Dikerjakan} dan dapat tetap demikian selama masih ada pekerjaan yang harus dituntaskan.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas10.png}{Beranda Petugas setelah laporan aktivitas tersimpan, dengan status tugas Dikerjakan yang ditampilkan.}
+
+\emph{Gambar 31. Setelah laporan terkait dikirim, tugas tampak berstatus Dikerjakan; status ini belum berarti tugas selesai.}
+
+\begin{enumerate}
+
+\item Setelah seluruh pekerjaan benar-benar selesai, buka kembali detail tugas, isi catatan penyelesaian bila perlu, lalu tekan \textbf{Selesaikan tugas}.
+
+\item Tinjau kembali status setelah konfirmasi. Menandai selesai merupakan sinyal progres untuk Admin dan sistem; setelah tugas selesai, laporan baru tidak dapat ditambahkan pada tugas tersebut.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas6.png}{Detail laporan aktivitas yang tersimpan, dengan data hasil dan foto dokumentasi ditampilkan.}
+
+\emph{Gambar 32. Contoh halaman detail laporan yang tersimpan. Periksa informasi tugas terkait untuk memastikan laporan terhubung dengan pekerjaan SOP yang benar.}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas9.png}{Detail tugas berstatus Dikerjakan dengan kartu Selesaikan tugas dan tombolnya ditampilkan.}
+
+\emph{Gambar 33. Tugas berstatus Dikerjakan dengan laporan terkait. Tekan Selesaikan tugas setelah seluruh pekerjaan tuntas.}
+
+\subsection{6.5 Lihat semua tugas dan gunakan filter}
+
+\begin{enumerate}
+
+\item Buka tab \textbf{Tugas} untuk melihat daftar tugas lintas blok dan subblok pada lahan penugasan.
+
+\item Gunakan ringkasan jumlah tugas terlambat, hari ini, dan mendatang sebagai gambaran beban kerja.
+
+\item Cari nama tugas atau subblok. Gunakan pilihan status dan tombol \textbf{Filter} untuk mempersempit daftar sesuai pekerjaan yang ingin diperiksa.
+
+\item Buka kartu tugas untuk melihat instruksi, mengirim laporan, atau menandai penyelesaian. Daftar dapat mencakup tugas yang sudah memiliki status Dikerjakan, sehingga Petugas bisa melanjutkan tindak lanjut.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas11.png}{Halaman Tugas Petugas dengan ringkasan, tab, pencarian, filter, dan daftar lintas subblok ditampilkan.}
+
+\emph{Gambar 34. Daftar tugas lebih lengkap dengan pencarian dan filter untuk meninjau pekerjaan lintas blok/subblok.}
+
+\subsection{6.6 Lihat lahan dan catat aktivitas mandiri}
+
+\begin{enumerate}
+
+\item Buka tab \textbf{Lahan}, lalu pilih lahan yang ditugaskan untuk melihat alamat/wilayah, luas, peta titik lokasi, blok, subblok, dan ringkasan progres.
+
+\item Untuk pekerjaan di luar daftar to-do SOP, gunakan tombol \textbf{+} pada Beranda atau Laporan. Pilih kategori kegiatan, isi tanggal/waktu, lokasi, jumlah pekerja, dan rincian yang diminta.
+
+\item Lampirkan foto sesuai aturan form, simpan, lalu pastikan aktivitas muncul di riwayat \textbf{Laporan}.
+
+\item Pada \textbf{Laporan}, cari berdasarkan aktivitas atau subblok dan gunakan filter tanggal, kategori, atau sumber bila perlu. Buka laporan untuk melihat detail.
+
+\end{enumerate}
+
+\guideimage{panduan-pengguna/gambar/GambarPetugas5.png}{Contoh form aktivitas mandiri yang terisi, dengan rincian pekerjaan, bukti foto, dan tombol penyimpanan ditampilkan.}
+
+\emph{Gambar 35. Contoh aktivitas mandiri di luar to-do SOP. Gunakan alur ini untuk pekerjaan yang memang tidak terkait tugas terjadwal.}
+
+\section{7. Pemecahan masalah}
+
+\begin{longtable}{p{0.28\linewidth}p{0.66\linewidth}}\toprule
+
+Situasi & Langkah awal \\
+
+\midrule
+
+Tidak bisa masuk & Periksa email/kata sandi dan status akun. Hubungi Admin untuk pemeriksaan akun atau reset kredensial. \\
+
+Menu tidak terlihat & Pastikan akun menggunakan peran dan tenant yang benar. Minta Admin memeriksa akses; jangan menggunakan akun orang lain. \\
+
+Petugas tidak melihat lahan & Periksa penugasan lahan pada detail akun dan pastikan lahan berada di tenant yang sama. \\
+
+Pilihan SOP kosong & Periksa apakah SOP sudah dibuat, aktif/tersedia, dan sesuai komoditas yang dipilih. \\
+
+Wilayah atau titik peta keliru & Perbaiki pilihan provinsi-kota/kabupaten-kecamatan dan geser pin sebelum menyimpan perubahan. \\
+
+Aktivitas tidak ada di laporan & Hapus filter, periksa tanggal kerja, lalu pastikan pengiriman berhasil. Hubungi Admin jika tetap tidak muncul. \\
+
+Lahan tidak memiliki blok/subblok & Admin membuat blok terlebih dahulu, kemudian subblok untuk area yang akan ditanam. \\
+
+\bottomrule\end{longtable}
+
+\section{8. Catatan pengelolaan dokumen}
+
+Panduan ini menjelaskan alur Admin–Petugas dan menghindari pencantuman kata sandi. Untuk perubahan alur, menu, atau aturan akses, perbarui bagian terkait dan tangkapan layar pada langkah yang relevan. Gunakan tangkapan layar tanpa data pribadi nyata; samarkan email, nomor telepon, koordinat sensitif, dan nama pihak bila dokumen dibagikan di luar tim.
+
+\section{Penutup}
+
+Terima kasih telah menggunakan panduan ini. Pastikan data lahan dan penugasan diperiksa sebelum pekerjaan dimulai, lalu catat aktivitas sesuai kondisi lapangan dan SOP yang berlaku.
+
+\guideimage{panduan-pengguna/gambar/20-ilustrasi-lahan-penutup.png}{Ilustrasi transparan lahan budidaya, daun, jagung, rumput, dan sorgum sebagai elemen dekoratif penutup panduan.}
+\end{document}

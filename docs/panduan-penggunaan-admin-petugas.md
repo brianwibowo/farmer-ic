@@ -1,9 +1,29 @@
-# Panduan Penggunaan Admin dan Petugas
+﻿# Panduan Penggunaan Admin dan Petugas
 
 **Sistem Manajemen Lahan Bumi Hijauan**  
-Versi 1.0 · 19 November 2026
+Versi 1.4 · 23 November 2026
 
 Panduan ini menjelaskan alur awal Admin menyiapkan akun dan data lahan, lalu alur Petugas mencatat pekerjaan melalui perangkat mobile. Gunakan istilah **lahan** untuk lokasi usaha pertanian; satu lahan dapat dibagi menjadi blok, lalu subblok untuk area tanam dan siklus yang berbeda.
+
+![Ilustrasi lahan budidaya dengan jagung, rumput, dan sorgum.](panduan-pengguna/gambar/20-ilustrasi-lahan-penutup.png)
+
+> **Kredensial awal:** Mintalah akun awal kepada Developer. Kata sandi bersifat sensitif dan disampaikan melalui tempat atau mekanisme terpisah yang aman, bukan melalui panduan ini.
+
+## Kata Pengantar
+
+Panduan ini masih dikembangkan seiring penggunaan sistem. Versi berikutnya akan disempurnakan berdasarkan masukan pengguna, data penggunaan, dan pengalaman nyata di lapangan. Sistem juga terus dikembangkan; versioning membantu pengguna meninjau pembaruan panduan dengan jelas.
+
+## Daftar Isi
+
+- [1. Istilah dan peran](#1-istilah-dan-peran)
+- [2. Persiapan dan masuk ke aplikasi](#2-persiapan-dan-masuk-ke-aplikasi)
+- [3. Alur awal Admin: buat akun Petugas](#3-alur-awal-admin-buat-akun-petugas)
+- [4. Mencatat lahan](#4-mencatat-lahan)
+- [5. Menyusun dan menetapkan SOP](#5-menyusun-dan-menetapkan-sop)
+- [6. Alur kerja Petugas/PIC di mobile](#6-alur-kerja-petugaspic-di-mobile)
+- [7. Pemecahan masalah](#7-pemecahan-masalah)
+- [8. Catatan pengelolaan dokumen](#8-catatan-pengelolaan-dokumen)
+- [Penutup](#penutup)
 
 > **Cara membaca:** judul besar menandai bagian utama, subjudul menandai tahapan dalam bagian, daftar bernomor menunjukkan urutan kerja, dan bullet menunjukkan pilihan atau hal yang perlu diperhatikan.
 > **Cakupan:** panduan berfokus pada Admin dan Petugas/PIC. Owner dan Superadmin dijelaskan untuk konteks akun serta batas peran. Label menu dapat berubah mengikuti pembaruan aplikasi.
@@ -181,83 +201,183 @@ Buka **Manajemen Lahan**, lalu pilih **Tambah lahan**. Isi informasi berdasarkan
 
 *Gambar 14. Label dan rencana tanggal tanam bersifat opsional pada contoh form. Tekan Tambah subblok setelah memastikan sisa luas mencukupi.*
 
-### SOP dan tugas
+### Membuat, menerbitkan, dan merevisi SOP
 
-Admin menyusun langkah SOP dan mengaitkannya dengan komoditas. SOP yang dipasang pada blok menjadi acuan tahapan kerja; tugas yang relevan muncul pada area **Tugas** Petugas. Tugas dapat terkait siklus tanam/subblok. Jika jadwal, komoditas, atau penugasan berubah, Admin meninjau konfigurasi SOP dan tugas agar instruksi lapangan tetap sesuai.
+Admin dan Superadmin membuat SOP per komoditas melalui menu **SOP**. Panduan ini menyusun langkah SOP mulai dari **perawatan setelah penanaman hingga panen**. Langkah persiapan lahan dan penanaman tidak dimasukkan ke dalam rangkaian ini.
 
-1. Buka menu **SOP** dan pastikan komoditas memiliki SOP yang sesuai. Daftar SOP ditunjukkan pada Gambar 15.
+#### 1. Periksa daftar dan buat template
 
-![Daftar SOP yang tersedia.](panduan-pengguna/gambar/16-list-existing-sop.png)
+1. Buka menu **SOP**. Cari berdasarkan nama atau komoditas untuk memastikan template yang dibutuhkan belum tersedia. Pilih **Tambah SOP**.
 
-*Gambar 15. Daftar SOP. Pastikan SOP tersedia untuk komoditas sebelum memilihnya pada blok.*
+   ![Daftar SOP Admin dan Superadmin; tombol Tambah SOP diberi penanda merah.](panduan-pengguna/gambar/Gambar1SOP-panduan.png)
 
-2. Jika belum tersedia, pilih tambah SOP dan isi identitas serta komoditas (Gambar 16).
+   *Gambar 15. Daftar template SOP. Tombol yang diberi kotak merah memulai pembuatan template baru.*
 
-![Form untuk menambahkan SOP.](panduan-pengguna/gambar/18-menambahkan-sop.png)
+2. Pada **Identitas template**, isi nama SOP, pilih komoditas, tinjau status aktif untuk subblok baru, dan tulis deskripsi tujuan atau cakupannya. Pilih **Simpan template**.
 
-*Gambar 16. Form tambah SOP. Isi identitas dan komoditas SOP, lalu simpan sebelum menambahkan langkah.*
+   ![Form kosong untuk identitas template SOP dengan field dan tombol simpan ditandai merah.](panduan-pengguna/gambar/Gambar2SOP-panduan.png)
 
-3. Buka detail SOP yang dibuat untuk meninjau status dan mengelola langkah (Gambar 17).
+   *Gambar 16. Form identitas template baru. Penanda merah menunjukkan field nama, komoditas, dan tombol simpan.*
 
-![Detail SOP dan langkah-langkahnya.](panduan-pengguna/gambar/17-detail-sop.png)
+3. Gunakan data yang terisi sebagai contoh: nama **SOP Budidaya Rumput**, komoditas **Rumput**, status aktif, dan deskripsi yang menjelaskan tujuan SOP. Sesuaikan dengan komoditas dan praktik yang telah disepakati.
 
-*Gambar 17. Detail SOP dan area untuk meninjau atau menambahkan langkah.*
+   ![Contoh identitas SOP Budidaya Rumput yang telah diisi.](panduan-pengguna/gambar/Gambar3SOP-panduan.png)
 
-4. Tambahkan langkah secara berurutan, termasuk waktu relatif terhadap HST, instruksi, dan bukti yang diminta (Gambar 18).
+   *Gambar 17. Contoh form identitas SOP sebelum disimpan.*
 
-![Form untuk menambahkan langkah SOP.](panduan-pengguna/gambar/19-menambahkan-langkah-sop.png)
+#### 2. Susun langkah perawatan sampai panen
 
-*Gambar 18. Form tambah langkah SOP.*
+4. Setelah template tersimpan, halaman detail menampilkan versi awal berstatus **Draft**. Tambahkan langkah satu per satu. Rancang urutannya secara rinci sesuai SOP agronomi komoditas: misalnya pemantauan awal, pemeliharaan, pemupukan susulan, pengamatan pertumbuhan, pengendalian bila diperlukan, pemeriksaan kesiapan panen, lalu panen dan pencatatan hasil. Angka HST harus mengikuti SOP agronomi yang disetujui, bukan contoh generik.
 
+   ![Detail template dengan versi Draft kosong dan tombol untuk menambahkan langkah serta memublikasikan.](panduan-pengguna/gambar/Gambar4SOP-panduan.png)
+
+   *Gambar 18. Detail SOP setelah template dibuat. Tambahkan langkah selama versi masih Draft; tombol Publikasikan digunakan setelah daftar langkah ditinjau.*
+
+5. Di jendela **Tambah langkah SOP**, isi nama tindakan, kategori aktivitas, offset HST, toleransi hari, dan instruksi. Estimasi HOK bersifat opsional.
+
+   ![Jendela Tambah langkah SOP dengan nama, kategori, offset HST, toleransi, instruksi, dan tombol tambah diberi penanda merah.](panduan-pengguna/gambar/Gambar5SOP-panduan.png)
+
+   *Gambar 19. Form langkah SOP. Penanda merah menunjukkan isian utama dan tombol untuk menambahkan langkah ke versi Draft.*
+
+   - **Nama langkah** menjelaskan tindakan secara spesifik, seperti *Pemupukan susulan pertama*.
+   - **Kategori aktivitas** mengelompokkan langkah, misalnya **Perawatan** atau **Panen**.
+   - **Offset HST (hari)** menentukan hari pelaksanaan relatif terhadap tanggal tanam aktual. `H+0` berarti tanggal tanam, sedangkan `H+14` berarti 14 hari setelahnya.
+   - **Toleransi (hari)** menambahkan tenggang waktu setelah tanggal jadwal. Jika batas ini terlewati, sistem dapat menandai tugas terlambat dan memicu tindak lanjut. Notifikasi deviasi SOP yang tersedia saat ini dikirim kepada Admin.
+   - **Instruksi** dapat menjelaskan cara kerja, hal yang perlu diperiksa, atau catatan dari Admin/Superadmin untuk Petugas.
+   - **Estimasi HOK** opsional dan merupakan perkiraan kebutuhan kerja, bukan penjadwal tugas.
+
+6. Setelah tiap langkah ditambahkan, tinjau urutan HST, toleransi, nama, kategori, dan instruksinya. Selama masih Draft, gunakan ikon pensil untuk mengedit dan ikon tempat sampah untuk menghapus langkah yang keliru. Selesaikan daftar perawatan hingga panen sebelum publikasi.
+
+   ![Versi SOP Draft berisi satu langkah, dengan tombol Publikasikan serta aksi edit dan hapus diberi tanda merah.](panduan-pengguna/gambar/Gambar6SOP-panduan.png)
+
+   *Gambar 20. Tinjau dan koreksi langkah Draft. Publikasikan hanya setelah semua langkah siap.*
+
+7. Pilih **Publikasikan**. Versi yang terbit menjadi acuan yang dapat dipilih untuk blok. Versi Published dibekukan dan langkahnya tidak diedit langsung.
+
+   ![Detail SOP dengan status versi Published ditandai merah.](panduan-pengguna/gambar/Gambar7SOP-panduan.png)
+
+   *Gambar 21. Versi Published. Status ini menandakan bahwa versi sudah diterbitkan dan tidak lagi diedit langsung.*
+
+#### 3. Revisi melalui versi baru
+
+8. Untuk mengubah SOP yang sudah diterbitkan, pilih **Versi baru**. Sistem membuat Draft baru berdasarkan versi sebelumnya.
+
+   ![Detail SOP Published dengan tombol Versi baru diberi penanda merah.](panduan-pengguna/gambar/Gambar8SOP-panduan.png)
+
+   *Gambar 22. Mulai revisi dengan membuat versi baru; versi Published lama tetap menjadi riwayat.*
+
+9. Periksa Draft versi berikutnya. Edit atau hapus langkah dengan ikon tindakan, tambahkan langkah baru bila diperlukan, lalu tinjau kembali semua offset dan toleransi. Pilih **Publikasikan** untuk menerbitkan revisi setelah selesai.
+
+   ![Versi Draft berikutnya dengan aksi edit, hapus, dan Publikasikan ditandai merah.](panduan-pengguna/gambar/Gambar9SOP-panduan.png)
+
+   *Gambar 23. Revisi SOP pada versi Draft baru. Perubahan baru berlaku setelah versi tersebut diterbitkan.*
+
+   Versi baru tidak otomatis mengganti snapshot SOP pada siklus yang sudah berjalan. Tinjau penerapan versi baru pada blok dan siklus yang akan dimulai.
+
+#### 4. Tetapkan SOP pada blok
+
+10. Buka detail lahan, lalu pilih **Tambah blok** atau edit blok yang belum memiliki SOP. Pilih komoditas blok terlebih dahulu, kemudian pilih SOP yang sesuai dari daftar. Lengkapi nama dan luas blok, lalu simpan.
+
+   ![Form Tambah blok dengan pilihan komoditas, SOP, opsi SOP yang cocok, dan tombol simpan ditandai merah.](panduan-pengguna/gambar/Gambar10SOP-panduan.png)
+
+   *Gambar 24. Tetapkan SOP Published pada blok. Pilih komoditas terlebih dahulu agar pilihan SOP yang sesuai dapat ditampilkan.*
+
+**Jadwal tugas:** tugas siklus dihitung dari tanggal tanam aktual (`planted_at`) ditambah offset HST; tanggal rencana tanam belum memulai hitung mundur. Toleransi hari menjadi masa tenggang setelah jadwal. Notifikasi deviasi SOP saat ini dikirim kepada Admin; Owner belum menjadi penerima.
+
+**Pengelolaan versi:** versi Published dibekukan. Siklus yang telah memakai snapshot versi sebelumnya tetap mengacu pada snapshot tersebut. Penerbitan versi baru tidak otomatis mengubah SOP pada semua blok atau siklus berjalan.
 ## 6. Alur kerja Petugas/PIC di mobile
 
-### Beranda
+Bagian ini mengikuti alur tugas SOP dari beranda sampai tugas ditandai selesai. Pada layar Petugas, laporan aktivitas dan penyelesaian tugas adalah dua tindakan terpisah.
 
-Beranda menampilkan ringkasan batch pra-tanam, penanaman, dan panen, serta bagian **To-do hari ini**. Gunakan angka ringkasan dan daftar tugas sebagai petunjuk kerja; bila tugas tidak muncul, periksa penugasan lahan dan filter tugas bersama Admin.
+### 6.1 Periksa beranda, to-do, dan insiden
 
-### Lihat lahan tugas
+1. Setelah masuk, buka **Beranda**. Bagian atas merangkum subblok pra-tanam, penanaman, dan panen.
+2. Periksa kartu **Insiden aktif**. Insiden yang belum ditindaklanjuti dapat berasal dari laporan Petugas pada lahan yang sama; buka detail atau **Lihat semua** untuk meninjau informasi dan tindak lanjut.
+3. Pada **To-do hari ini**, pilih kartu tugas untuk membuka detailnya. Status dan progres selesai hari ini membantu membedakan pekerjaan yang masih harus dilakukan.
+4. Jika tugas atau insiden yang diharapkan tidak terlihat, pastikan lahan yang ditugaskan benar dan periksa menu Tugas bersama Admin.
 
-1. Buka tab **Lahan**.
-2. Pilih lahan yang ditugaskan untuk melihat alamat/wilayah, luas, peta titik lokasi, blok, subblok, dan ringkasan progres.
-3. Gunakan detail blok atau subblok untuk memastikan pekerjaan dilaporkan pada area yang benar.
+   ![Beranda Petugas dengan kartu insiden aktif dan tugas hari ini yang ditandai merah.](panduan-pengguna/gambar/GambarPetugas1-panduan.png)
 
-### Kerjakan tugas SOP
+   *Gambar 25. Beranda Petugas: tinjau insiden aktif dan pilih tugas pada daftar To-do hari ini.*
 
-1. Buka tab **Tugas** dan periksa tugas terlambat, hari ini, atau mendatang.
-2. Gunakan pencarian dan filter blok, status tindakan, atau kategori untuk menemukan tugas.
-3. Buka detail tugas dan baca instruksi sebelum bekerja.
-4. Setelah pekerjaan selesai, catat aktivitas/laporan yang diminta dan selesaikan tugas sesuai kontrol yang tersedia. Jika tugas tidak dapat dikerjakan, sampaikan alasan kepada Admin agar penjadwalan atau status ditangani dengan benar.
+### 6.2 Buka dan pahami detail tugas
 
-### Catat aktivitas mandiri
+1. Pilih tugas dari kartu To-do atau daftar **Tugas**.
+2. Periksa nama tugas, lahan/blok/subblok, tanggal jadwal, target HST, varietas, serta jendela pelaporan.
+3. Baca **Instruksi SOP** sebelum mulai bekerja. Instruksi menjelaskan cara kerja atau hal yang harus diperiksa.
+4. Setelah pekerjaan dilakukan, tekan **Catat aktivitas tugas ini** untuk membuat laporan yang terhubung dengan tugas.
 
-Gunakan tombol **+** pada Beranda/Laporan untuk pekerjaan yang dilakukan di luar daftar to-do SOP. Pilih kategori yang paling sesuai, isi tanggal/waktu, lahan atau blok yang relevan, jumlah pekerja dan rincian kegiatan yang diminta. Periksa isian sebelum mengirim, lalu pastikan aktivitas muncul pada riwayat laporan.
+   ![Detail tugas dengan jadwal, HST, instruksi SOP, dan tombol Catat aktivitas tugas ini ditandai merah.](panduan-pengguna/gambar/GambarPetugas2-panduan.png)
 
-### Lihat laporan
+   *Gambar 26. Baca target HST dan instruksi sebelum memulai pekerjaan, lalu buka form dari tombol Catat aktivitas tugas ini.*
 
-1. Buka tab **Laporan** untuk melihat aktivitas yang sudah dicatat.
-2. Cari berdasarkan aktivitas atau subblok, kemudian gunakan filter tanggal, kategori, atau sumber bila diperlukan.
-3. Buka suatu baris untuk melihat detail laporan. Jika laporan tidak ditemukan, hapus filter yang tidak diperlukan dan periksa tanggal kerja.
+   ![Detail tugas dengan informasi jadwal dan instruksi SOP ditandai merah.](panduan-pengguna/gambar/GambarPetugas3-panduan.png)
 
-## 7. Daftar periksa sebelum selesai
+   *Gambar 27. Contoh tampilan detail tugas dan instruksi yang menjadi acuan pelaksanaan. Tangkapan layar ini menampilkan detail tugas yang sama.*
 
-### Admin
+   ![Detail tugas dengan tindakan Catat aktivitas tugas ini ditandai merah.](panduan-pengguna/gambar/GambarPetugas7-panduan.png)
 
-- [ ] Akun dibuat dengan email unik dan peran yang tepat.
-- [ ] Petugas ditugaskan ke lahan yang sesuai.
-- [ ] Luas, target, status penguasaan, wilayah, dan titik peta sudah diperiksa.
-- [ ] Kode blok unik, komoditas dan SOP sesuai, luas serta satuan benar.
-- [ ] Subblok dibuat sebelum penanaman pada bagian tersebut.
-- [ ] Petugas mengetahui cara masuk dan mendapat kredensial melalui kanal aman.
+   *Gambar 28. Tindakan untuk memulai pencatatan laporan pada tugas SOP. Tampilan ini mengulang keadaan tombol yang sama agar titik mulai alur pelaporan terlihat jelas.*
 
-### Petugas
+### 6.3 Isi form aktivitas yang terhubung ke tugas
 
-- [ ] Lahan dan blok yang dipilih sesuai pekerjaan.
-- [ ] Tanggal kerja dan kategori aktivitas benar.
-- [ ] Rincian wajib diisi dan laporan dikirim.
-- [ ] Aktivitas terlihat pada riwayat atau terhubung ke tugas yang sesuai.
-- [ ] Kendala/insiden disampaikan kepada Admin bila memerlukan tindak lanjut.
+1. Pastikan ringkasan tugas yang terhubung sudah benar. Tanggal kerja harus sesuai hari pelaksanaan dan berada dalam jendela pelaporan yang ditampilkan.
+2. Isi **Jumlah pekerja** serta **Luas area** dan satuannya sesuai pekerjaan. Form dapat berbeda menurut kategori tugas; isi field yang tampil dan wajib.
+3. Lampirkan minimal satu **foto bukti pekerjaan** melalui **Tambah foto**. Form pada contoh menerima JPG, PNG, atau WebP, paling banyak lima foto, dengan batas ukuran 15 MB per foto.
+4. Catatan tambahan dapat diisi jika diperlukan. Periksa kembali data dan bukti, lalu tekan **Simpan aktivitas**.
+5. Jika unggahan atau penyimpanan gagal, ikuti pesan pada layar dan kirim ulang setelah memperbaiki isian atau koneksi.
 
-## 8. Pemecahan masalah
+   ![Form aktivitas tugas dengan jumlah pekerja, luas area, unggah foto, dan tombol simpan ditandai merah.](panduan-pengguna/gambar/GambarPetugas4-panduan.png)
+
+   *Gambar 29. Form aktivitas tugas. Field menyesuaikan jenis pekerjaan; foto bukti wajib dilampirkan sebelum laporan dikirim.*
+
+   ![Contoh form aktivitas terkait tugas yang sudah diisi, dengan ringkasan tugas, data pekerjaan, foto, dan tombol Simpan aktivitas ditandai merah.](panduan-pengguna/gambar/GambarPetugas8-panduan.png)
+
+   *Gambar 30. Contoh pengisian laporan untuk tugas SOP sebelum menekan Simpan aktivitas.*
+
+### 6.4 Tinjau laporan yang tersimpan dan selesaikan tugas
+
+1. Setelah penyimpanan berhasil, periksa detail tugas atau buka **Laporan** untuk memastikan aktivitas muncul. Laporan tugas menampilkan relasi ke tugas dan ringkasan hasil yang dikirim.
+2. Tersimpannya laporan **tidak otomatis menyelesaikan tugas**. Status tugas berubah menjadi **Dikerjakan** dan dapat tetap demikian selama masih ada pekerjaan yang harus dituntaskan.
+
+   ![Beranda Petugas setelah laporan aktivitas tersimpan, dengan status tugas Dikerjakan yang ditandai merah.](panduan-pengguna/gambar/GambarPetugas10-panduan.png)
+
+   *Gambar 31. Setelah laporan terkait dikirim, tugas tampak berstatus Dikerjakan; status ini belum berarti tugas selesai.*
+
+3. Setelah seluruh pekerjaan benar-benar selesai, buka kembali detail tugas, isi catatan penyelesaian bila perlu, lalu tekan **Selesaikan tugas**.
+4. Tinjau kembali status setelah konfirmasi. Menandai selesai merupakan sinyal progres untuk Admin dan sistem; setelah tugas selesai, laporan baru tidak dapat ditambahkan pada tugas tersebut.
+
+   ![Detail laporan aktivitas yang tersimpan, dengan data hasil dan foto dokumentasi ditandai merah.](panduan-pengguna/gambar/GambarPetugas6-panduan.png)
+
+   *Gambar 32. Contoh halaman detail laporan yang tersimpan. Periksa informasi tugas terkait untuk memastikan laporan terhubung dengan pekerjaan SOP yang benar.*
+
+   ![Detail tugas berstatus Dikerjakan dengan kartu Selesaikan tugas dan tombolnya ditandai merah.](panduan-pengguna/gambar/GambarPetugas9-panduan.png)
+
+   *Gambar 33. Tugas berstatus Dikerjakan dengan laporan terkait. Tekan Selesaikan tugas setelah seluruh pekerjaan tuntas.*
+
+### 6.5 Lihat semua tugas dan gunakan filter
+
+1. Buka tab **Tugas** untuk melihat daftar tugas lintas blok dan subblok pada lahan penugasan.
+2. Gunakan ringkasan jumlah tugas terlambat, hari ini, dan mendatang sebagai gambaran beban kerja.
+3. Cari nama tugas atau subblok. Gunakan pilihan status dan tombol **Filter** untuk mempersempit daftar sesuai pekerjaan yang ingin diperiksa.
+4. Buka kartu tugas untuk melihat instruksi, mengirim laporan, atau menandai penyelesaian. Daftar dapat mencakup tugas yang sudah memiliki status Dikerjakan, sehingga Petugas bisa melanjutkan tindak lanjut.
+
+   ![Halaman Tugas Petugas dengan ringkasan, tab, pencarian, filter, dan daftar lintas subblok ditandai merah.](panduan-pengguna/gambar/GambarPetugas11-panduan.png)
+
+   *Gambar 34. Daftar tugas lebih lengkap dengan pencarian dan filter untuk meninjau pekerjaan lintas blok/subblok.*
+
+### 6.6 Lihat lahan dan catat aktivitas mandiri
+
+1. Buka tab **Lahan**, lalu pilih lahan yang ditugaskan untuk melihat alamat/wilayah, luas, peta titik lokasi, blok, subblok, dan ringkasan progres.
+2. Untuk pekerjaan di luar daftar to-do SOP, gunakan tombol **+** pada Beranda atau Laporan. Pilih kategori kegiatan, isi tanggal/waktu, lokasi, jumlah pekerja, dan rincian yang diminta.
+3. Lampirkan foto sesuai aturan form, simpan, lalu pastikan aktivitas muncul di riwayat **Laporan**.
+4. Pada **Laporan**, cari berdasarkan aktivitas atau subblok dan gunakan filter tanggal, kategori, atau sumber bila perlu. Buka laporan untuk melihat detail.
+
+   ![Contoh form aktivitas mandiri yang terisi, dengan rincian pekerjaan, bukti foto, dan tombol penyimpanan ditandai merah.](panduan-pengguna/gambar/GambarPetugas5-panduan.png)
+
+   *Gambar 35. Contoh aktivitas mandiri di luar to-do SOP. Gunakan alur ini untuk pekerjaan yang memang tidak terkait tugas terjadwal.*
+
+## 7. Pemecahan masalah
 
 | Situasi | Langkah awal |
 | --- | --- |
@@ -269,32 +389,15 @@ Gunakan tombol **+** pada Beranda/Laporan untuk pekerjaan yang dilakukan di luar
 | Aktivitas tidak ada di laporan | Hapus filter, periksa tanggal kerja, lalu pastikan pengiriman berhasil. Hubungi Admin jika tetap tidak muncul. |
 | Lahan tidak memiliki blok/subblok | Admin membuat blok terlebih dahulu, kemudian subblok untuk area yang akan ditanam. |
 
-## 9. Indeks visual untuk materi pelatihan
+## 8. Catatan pengelolaan dokumen
 
-Tangkapan layar yang tersedia sudah disisipkan pada langkah yang relevan. Gambar dengan penanda merah menyorot kontrol yang perlu digunakan. Gambar lain dalam daftar berikut belum tersedia sebagai berkas; tambahkan tangkapan layar terbaru dari lingkungan yang disetujui saat materi tersebut tersedia.
-
-| ID visual | Layar yang ditunjukkan | Bagian panduan |
-| --- | --- | --- |
-| 1A–1B | Halaman masuk desktop dan mobile | 2; Gambar 1A–1B |
-| 2 | Beranda Admin setelah masuk | 2–3 |
-| 3–4D | Daftar pengguna, menu aksi, konfirmasi hapus, akun terhapus, pemulihan | 3; Gambar 2, 4, 7–9 |
-| 5–7 | Form akun baru, detail pengguna, form ubah pengguna | 3; Gambar 3, 5–6 |
-| 8–9B | Daftar lahan, form lahan, contoh pengisian, detail sebelum blok dibuat | 4; Gambar 10–11 |
-| 9C–9D | Form blok dan detail lahan setelah blok ditambahkan | 5; Gambar 12–13 |
-| 9E–9F | Form subblok dan detail lahan dengan subblok/progres | 5; Gambar 14 |
-| SOP | Daftar, detail, pembuatan SOP dan langkah SOP | 5; Gambar 15–18 |
-| 10–10B | Beranda Petugas dan pilihan aktivitas mandiri | 6 |
-| 11 | Lahan tugas pada tampilan mobile | 6 |
-| 12 | Daftar tugas Petugas | 6 |
-| 13 | Riwayat laporan Petugas | 6 |
-
-## 10. Catatan pengelolaan dokumen
-
-Panduan ini menjelaskan alur Admin–Petugas dan menghindari pencantuman kata sandi. Untuk perubahan alur, menu, atau aturan akses, perbarui bagian terkait dan indeks visual bersamaan. Gunakan tangkapan layar tanpa data pribadi nyata; samarkan email, nomor telepon, koordinat sensitif, dan nama pihak bila dokumen dibagikan di luar tim.
+Panduan ini menjelaskan alur Admin–Petugas dan menghindari pencantuman kata sandi. Untuk perubahan alur, menu, atau aturan akses, perbarui bagian terkait dan tangkapan layar pada langkah yang relevan. Gunakan tangkapan layar tanpa data pribadi nyata; samarkan email, nomor telepon, koordinat sensitif, dan nama pihak bila dokumen dibagikan di luar tim.
 
 
-## 11. Penutup
+## Penutup
 
 Terima kasih telah menggunakan panduan ini. Pastikan data lahan dan penugasan diperiksa sebelum pekerjaan dimulai, lalu catat aktivitas sesuai kondisi lapangan dan SOP yang berlaku.
 
 ![Ilustrasi transparan lahan budidaya, daun, jagung, rumput, dan sorgum sebagai elemen dekoratif penutup panduan.](panduan-pengguna/gambar/20-ilustrasi-lahan-penutup.png)
+
+
