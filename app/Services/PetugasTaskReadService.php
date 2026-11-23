@@ -23,7 +23,10 @@ use Illuminate\Support\Facades\Gate;
 
 class PetugasTaskReadService
 {
-    /** @return array<string, mixed> */
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
     public function listing(User $actor, Farm $farm, array $filters): array
     {
         $team = $farm->team;
@@ -89,7 +92,7 @@ class PetugasTaskReadService
             $variety = $varieties->get($cycle->variety_id);
             $commodity = $commodities->get($variety === null ? $block->commodity_id : $variety->commodity_id);
 
-            return $this->formatTask($task, $cycle, $scopedFarm, $block, $variety, $commodity, (int) $task->visible_activities_count);
+            return $this->formatTask($task, $cycle, $scopedFarm, $block, $variety, $commodity, (int) $task->getAttribute('visible_activities_count'));
         });
         $paginator->setCollection($items);
 
@@ -119,6 +122,7 @@ class PetugasTaskReadService
         return $this->formatTask($task, $cycle, $farm, $block, $variety, $commodity, $count);
     }
 
+    /** @return array<string, mixed> */
     private function formatTask(PlantingCycleTask $task, PlantingCycle $cycle, Farm $farm, FarmBlock $block, ?CropVariety $variety, ?Commodity $commodity, int $count): array
     {
         $today = CarbonImmutable::today('Asia/Jakarta');

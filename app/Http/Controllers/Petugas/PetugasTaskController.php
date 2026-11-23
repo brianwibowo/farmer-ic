@@ -29,14 +29,15 @@ class PetugasTaskController extends Controller
 
     public function index(ListTasksRequest $request): Response
     {
-        $metrics = $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE);
-        $started = $metrics !== null ? hrtime(true) : null;
+        $metrics = MeasurePetugasActivity::metrics($request);
+        if ($metrics === null) {
+            return app(RolePermissions::class)->withMembershipSnapshot($request->user(), fn () => $this->indexWithMembership($request));
+        }
+        $started = hrtime(true);
         try {
             return app(RolePermissions::class)->withMembershipSnapshot($request->user(), fn () => $this->indexWithMembership($request));
         } finally {
-            if ($metrics !== null) {
-                $metrics->controller_ms = round((hrtime(true) - $started) / 1_000_000, 2);
-            }
+            $metrics->controller_ms = round((hrtime(true) - $started) / 1_000_000, 2);
         }
     }
 
@@ -58,18 +59,18 @@ class PetugasTaskController extends Controller
         }
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [PlantingCycleTask::class, $farm->team]);
-        $metrics = $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE);
-        $started = $metrics !== null ? hrtime(true) : null;
+        $metrics = MeasurePetugasActivity::metrics($request);
+        $started = $metrics !== null ? hrtime(true) : 0;
         $data = $this->tasks->listing($request->user(), $farm, $filters);
         if ($metrics !== null) {
             $metrics->listing_ms = round((hrtime(true) - $started) / 1_000_000, 2);
-            $metrics->task_count = $data['tasks']->count();
+            $metrics->task_count = count($data['tasks']->items());
             $metrics->page = $data['tasks']->currentPage();
             $metrics->per_page = $data['tasks']->perPage();
         }
         $models = $data['taskModels'];
         unset($data['taskModels']);
-        $started = $metrics !== null ? hrtime(true) : null;
+        $started = $metrics !== null ? hrtime(true) : 0;
         $data['tasks']->through(function (array $task) use ($request, $models): array {
             $model = $models->get($task['id']);
             $reason = $this->window->blockedReason($model, $model->plantingCycle) ?? $this->sequence->blockedReason($request->user(), $model->plantingCycle, TaskActivityFields::activityCode($model) ?? '');

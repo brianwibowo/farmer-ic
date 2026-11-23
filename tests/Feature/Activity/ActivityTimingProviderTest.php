@@ -4,6 +4,7 @@ namespace Tests\Feature\Activity;
 
 use App\Http\Middleware\MeasurePetugasActivity;
 use App\Providers\ActivityTimingServiceProvider;
+use App\Support\ActivityTimingMetrics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -33,7 +34,7 @@ class ActivityTimingProviderTest extends TestCase
         config(['inertia.ssr.url' => 'http://127.0.0.1:13714']);
         Vite::shouldReceive('isRunningHot')->andReturn(false);
         $request = Request::create('/petugas/aktivitas');
-        $metrics = (object) ['ssr_started' => null, 'ssr_ms' => null, 'ssr_result' => null];
+        $metrics = new ActivityTimingMetrics;
         $request->attributes->set(MeasurePetugasActivity::ATTRIBUTE, $metrics);
         $this->app->instance('request', $request);
         Http::fake(['*' => Http::response([], 200)]);
@@ -53,7 +54,7 @@ class ActivityTimingProviderTest extends TestCase
             Vite::shouldReceive('isRunningHot')->andReturn(true);
             Vite::shouldReceive('hotFile')->andReturn($hotFile);
             $request = Request::create('/petugas/aktivitas');
-            $metrics = (object) ['ssr_started' => null, 'ssr_ms' => null, 'ssr_result' => null];
+            $metrics = new ActivityTimingMetrics;
             $request->attributes->set(MeasurePetugasActivity::ATTRIBUTE, $metrics);
             $this->app->instance('request', $request);
             Http::fake(['*' => Http::response([], 200, ['Server-Timing' => 'other;dur=4, farmer-ssr;dur=27.35'])]);
