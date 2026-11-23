@@ -53,9 +53,12 @@ class DemoPetugasTodoSeederTest extends TestCase
         }
         $actor = User::where('email', DemoIdentitySeeder::ACCOUNTS['petugas']['email'])->firstOrFail();
         $this->actingAs($actor)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('petugas/Home')->where('home.tasks.total', 4)->where('home.task_summary.completed', 1)
-            ->has('home.tasks.data', 4)->where('home.tasks.data.0.name', 'Pengairan pagi')
-            ->where('home.tasks.data.0.status', 'in_progress')->where('home.tasks.data.0.hst', 14)
-            ->where('home.tasks.data.0.scheduled_date', '2026-11-05')->where('home.tasks.data.3.status', 'completed'));
+            ->component('petugas/Home')->where('home.tasks.total', 7)->where('home.task_summary.completed', 1)
+            ->has('home.tasks.data', 7)
+            ->where('home.tasks.data.0.urgency', 'overdue')
+            ->where('home.tasks.data.3.name', 'Pengairan pagi')
+            ->where('home.tasks.data.3.status', 'in_progress')->where('home.tasks.data.3.hst', 14)
+            ->where('home.tasks.data.3.urgency', 'today')
+            ->where('home.tasks.data.3.scheduled_date', '2026-11-05')->where('home.tasks.data.6.status', 'completed'));
     }
 }

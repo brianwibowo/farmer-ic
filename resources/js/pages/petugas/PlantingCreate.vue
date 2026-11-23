@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     CalendarDays,
@@ -19,7 +19,12 @@ import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { useErrorDisclosure } from '@/composables/useErrorDisclosure';
+import {
+    extractPetugasBackParam,
+    withPetugasBack,
+} from '@/lib/petugasBackLink';
 import type { PlantingCycleContext, PlantingReport } from '@/types/planting';
+import { gardenArea } from '@/types/petugas-garden';
 import {
     areaMaximum,
     formatActivityNumber,
@@ -65,6 +70,10 @@ const form = useForm({
     notes: '',
     photos: [] as File[],
 });
+const page = usePage();
+const backHref = computed(() =>
+    withPetugasBack('/petugas/penanaman', extractPetugasBackParam(page.url)),
+);
 const varietyLocked = computed(() =>
     Boolean(props.cycle.planted_at && props.cycle.variety?.id),
 );
@@ -296,8 +305,8 @@ function submit(): void {
     <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
             <Link
-                href="/petugas/penanaman"
-                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                :href="backHref"
+                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 ><ArrowLeft class="size-4" aria-hidden="true" />Daftar
                 subblok</Link
             >
@@ -339,11 +348,11 @@ function submit(): void {
                 <p class="text-xs leading-5 text-muted-foreground">
                     Rencana:
                     {{ cycle.planned_planting_at ?? 'Belum ditentukan' }} · Luas
-                    tertanam {{ cycle.planted_area_ha }} ha
+                    tertanam {{ gardenArea(cycle.planted_area_ha) }} ha
                 </p>
                 <p v-if="cycle.planted_at" class="text-sm font-semibold">
                     Acuan HST: {{ cycle.planted_at }} · Total ditanam
-                    {{ cycle.planted_area_ha }} ha ·
+                    {{ gardenArea(cycle.planted_area_ha) }} ha ·
                     {{ cycle.variety?.name ?? 'Varietas tidak tersedia' }}
                 </p>
             </div>
@@ -490,7 +499,8 @@ function submit(): void {
                             id="planting-variety-locked"
                             class="text-xs text-muted-foreground"
                         >
-                            Varietas mengikuti penanaman pertama pada subblok ini.
+                            Varietas mengikuti penanaman pertama pada subblok
+                            ini.
                         </p>
                         <p
                             v-if="errors.variety_id"
@@ -558,7 +568,7 @@ function submit(): void {
                                     :aria-invalid="!!errors[field.key]"
                                     :aria-describedby="
                                         [
-                                            field.key === 'area' || field.max
+                                            field.key === 'area'
                                                 ? `planting-help-${field.key}`
                                                 : null,
                                             errors[field.key]
@@ -577,15 +587,6 @@ function submit(): void {
                                     {{ formatActivityNumber(maximumArea ?? 0) }}
                                     {{ form.area_unit }} untuk laporan
                                     ini.</span
-                                >
-                                <span
-                                    v-else-if="field.max"
-                                    :id="`planting-help-${field.key}`"
-                                    class="block text-xs text-muted-foreground"
-                                    >Maksimal
-                                    {{
-                                        formatActivityNumber(Number(field.max))
-                                    }}.</span
                                 >
                                 <span
                                     v-if="errors[field.key]"
@@ -693,20 +694,10 @@ function submit(): void {
                                 :aria-invalid="!!errors.bag_size"
                                 :aria-describedby="
                                     errors.bag_size
-                                        ? 'planting-bag-help planting-error-bag_size'
-                                        : 'planting-bag-help'
+                                        ? 'planting-error-bag_size'
+                                        : undefined
                                 "
                             />
-                            <span
-                                id="planting-bag-help"
-                                class="block text-xs text-muted-foreground"
-                            >
-                                Maksimal
-                                {{
-                                    formatActivityNumber(numericLimits.bagSize)
-                                }}
-                                kg per sak.
-                            </span>
                             <span
                                 v-if="errors.bag_size"
                                 id="planting-error-bag_size"
@@ -749,9 +740,6 @@ function submit(): void {
                             {{ message }}
                         </p>
                     </div>
-                    <p class="text-xs text-muted-foreground">
-                        Pelapor diambil dari akun yang sedang masuk.
-                    </p>
                     <details
                         class="group rounded-xl bg-muted/50"
                         :open="notesOpen"
@@ -879,7 +867,7 @@ function submit(): void {
                             ? `${report.input.quantity} ${report.input.quantity_unit}`
                             : `${report.detail.quantity_kg ?? '—'} kg`
                     }}
-                    · {{ report.detail.area_ha }} ha
+                    · {{ gardenArea(report.detail.area_ha) }} ha
                 </p>
                 <p
                     v-if="report.notes"
@@ -905,7 +893,7 @@ function submit(): void {
             </article>
         </section>
         <Button as-child variant="outline" class="min-h-11 w-full rounded-xl"
-            ><Link href="/petugas/tasks"
+            ><Link href="/petugas/aktivitas"
                 >Lihat to-do pekerjaan lanjutan</Link
             ></Button
         >

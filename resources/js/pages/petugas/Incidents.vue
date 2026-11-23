@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
+    ArrowLeft,
     CheckCircle2,
     ChevronRight,
     Clock,
@@ -9,9 +10,14 @@ import {
     ShieldAlert,
     Siren,
 } from '@lucide/vue';
-import { reactive, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
+import {
+    petugasBackLabel,
+    resolvePetugasBackHref,
+    withPetugasBack,
+} from '@/lib/petugasBackLink';
 import {
     formatIncidentDate,
     incidentSeverityClasses,
@@ -30,6 +36,17 @@ const props = defineProps<{
     summary: IncidentTicketSummary;
     filters: { search?: string; severity?: string; view?: string };
 }>();
+
+const page = usePage();
+const backHref = computed(() => resolvePetugasBackHref(page.url, '/petugas'));
+const backLabel = computed(() =>
+    petugasBackLabel(backHref.value, 'Kembali ke beranda'),
+);
+const listUrl = computed(() =>
+    /^\/petugas\/incidents(?:\?|$)/.test(page.url)
+        ? page.url
+        : '/petugas/incidents',
+);
 
 const filter = reactive({
     search: props.filters.search ?? '',
@@ -69,25 +86,38 @@ function reset(): void {
 <template>
     <Head title="Tiket Insiden" />
     <div class="min-w-0 space-y-4 pb-20 text-foreground">
-        <header class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-                <h1>Tiket insiden</h1>
-                <p class="mt-1 text-sm text-muted-foreground">
-                    {{
-                        farm
-                            ? `Laporan & tindak lanjut insiden · ${farm.name}`
-                            : 'Belum ada penugasan lahan'
-                    }}
-                </p>
-            </div>
+        <header class="space-y-2">
             <Link
-                v-if="farm"
-                href="/petugas/aktivitas/mandiri/incident"
-                class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                :href="backHref"
+                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-                <Plus class="size-4" aria-hidden="true" />
-                Laporkan
+                <ArrowLeft class="size-4" aria-hidden="true" />{{ backLabel }}
             </Link>
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <h1>Tiket insiden</h1>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        {{
+                            farm
+                                ? `Laporan & tindak lanjut insiden · ${farm.name}`
+                                : 'Belum ada penugasan lahan'
+                        }}
+                    </p>
+                </div>
+                <Link
+                    v-if="farm"
+                    :href="
+                        withPetugasBack(
+                            '/petugas/aktivitas/mandiri/incident',
+                            listUrl,
+                        )
+                    "
+                    class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                    <Plus class="size-4" aria-hidden="true" />
+                    Laporkan
+                </Link>
+            </div>
         </header>
 
         <section
@@ -219,7 +249,12 @@ function reset(): void {
         <ul v-else class="space-y-3" aria-label="Daftar tiket insiden">
             <li v-for="ticket in tickets" :key="ticket.id">
                 <Link
-                    :href="`/petugas/incidents/${ticket.id}`"
+                    :href="
+                        withPetugasBack(
+                            `/petugas/incidents/${ticket.id}`,
+                            listUrl,
+                        )
+                    "
                     class="petugas-card block space-y-2.5 p-4 transition-colors hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                     <div class="flex items-start justify-between gap-2">

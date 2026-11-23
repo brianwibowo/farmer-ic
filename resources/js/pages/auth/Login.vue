@@ -16,8 +16,8 @@ import type { TeamInvitationContext } from '@/types';
 defineOptions({
     layout: {
         variant: 'login',
-        title: 'Log in to your account',
-        description: 'Welcome back! Please enter your details.',
+        title: 'Masuk ke akun Anda',
+        description: 'Selamat datang kembali! Silakan masukkan data Anda.',
     },
 });
 
@@ -29,7 +29,7 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Log in" />
+    <Head title="Masuk" />
 
     <div
         v-if="status"
@@ -69,7 +69,7 @@ defineProps<{
                         autocomplete="email"
                         autocapitalize="none"
                         :spellcheck="false"
-                        placeholder="Enter your email"
+                        placeholder="Masukkan email Anda"
                         class="h-12 rounded-xl bg-background pl-10 text-base shadow-none md:text-sm"
                         :aria-invalid="Boolean(errors.email)"
                         :aria-describedby="
@@ -87,7 +87,7 @@ defineProps<{
 
             <div class="space-y-2">
                 <Label for="password" class="text-sm font-medium"
-                    >Password</Label
+                    >Kata sandi</Label
                 >
                 <div class="relative">
                     <LockKeyhole
@@ -100,7 +100,7 @@ defineProps<{
                         required
                         autocomplete="current-password"
                         :toggle-tabindex="0"
-                        placeholder="Enter your password"
+                        placeholder="Masukkan kata sandi Anda"
                         class="h-12 rounded-xl bg-background pl-10 text-base shadow-none md:text-sm"
                         :aria-invalid="Boolean(errors.password)"
                         :aria-describedby="
@@ -125,7 +125,7 @@ defineProps<{
                 >
                     <Checkbox id="remember" name="remember" />
                     <span class="text-sm font-normal text-muted-foreground"
-                        >Remember me</span
+                        >Ingat login saya</span
                     >
                 </Label>
                 <Link
@@ -133,7 +133,7 @@ defineProps<{
                     :href="request()"
                     class="rounded-sm text-sm font-medium text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring dark:text-primary"
                 >
-                    Forgot password?
+                    Lupa kata sandi?
                 </Link>
             </div>
         </div>
@@ -144,7 +144,7 @@ defineProps<{
             data-test="login-button"
         >
             <Spinner v-if="processing" aria-hidden="true" />
-            {{ processing ? 'Logging in…' : 'Log in' }}
+            {{ processing ? 'Sedang masuk…' : 'Masuk' }}
         </Button>
     </Form>
 </template>

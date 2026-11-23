@@ -75,6 +75,7 @@ function detailHref(id: string): string {
         <PetugasListHeader
             title="Laporan"
             :show-incidents="!!farm"
+            :incidents-back-href="listUrl"
             summary-label="Ringkasan laporan sesuai filter"
             :metrics="[
                 {
@@ -266,6 +267,6 @@ function detailHref(id: string): string {
                 />
             </div>
         </footer>
-        <ActivityAddButton :categories="categories" />
+        <ActivityAddButton :categories="categories" :back-href="listUrl" />
     </div>
 </template>

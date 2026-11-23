@@ -2,10 +2,12 @@
 import { Link } from '@inertiajs/vue3';
 import { CircleAlert } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
+import { withPetugasBack } from '@/lib/petugasBackLink';
 
 defineProps<{
     title: string;
     showIncidents: boolean;
+    incidentsBackHref?: string;
     summaryLabel: string;
     metrics: { label: string; value: number | string }[];
 }>();
@@ -21,7 +23,11 @@ defineProps<{
                 variant="outline"
                 class="min-h-11 rounded-xl bg-card px-3 text-xs"
             >
-                <Link href="/petugas/incidents">
+                <Link
+                    :href="
+                        withPetugasBack('/petugas/incidents', incidentsBackHref)
+                    "
+                >
                     <CircleAlert
                         class="size-4 text-warning"
                         aria-hidden="true"
