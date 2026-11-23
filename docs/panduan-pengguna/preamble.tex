@@ -48,7 +48,7 @@
 \newcommand{\GuideTitle}{Buku Panduan Farm Management}
 \newcommand{\GuideSubtitle}{Panduan Kerja Admin dan Petugas/PIC}
 \newcommand{\GuideOrg}{PT Bumi Hijauan}
-\newcommand{\GuideVersion}{Versi 1.4}
+\newcommand{\GuideVersion}{Versi 1.0.0}
 \newcommand{\GuideDate}{23 November 2026}
 
 \hypersetup{
@@ -67,7 +67,19 @@
 \setlength{\parskip}{5.5pt}
 \setlength{\parindent}{0pt}
 \setlength{\emergencystretch}{1.5em}
-\renewcommand{\arraystretch}{1.22}
+
+% Boxed table styling (full-bleed header background + clean grid borders)
+\arrayrulecolor{FarmBorder}
+\setlength{\arrayrulewidth}{0.6pt}
+\setlength{\tabcolsep}{8pt}
+\setlength{\extrarowheight}{2.5pt}
+\renewcommand{\arraystretch}{1.32}
+\newcommand{\tableheaderrow}[2]{%
+  \hline
+  \rowcolor{FarmGreenLight}%
+  \textcolor{FarmGreenDark}{\textbf{#1}} & \textcolor{FarmGreenDark}{\textbf{#2}} \\
+  \hline
+}
 
 % Section headings
 \titleformat{\section}
