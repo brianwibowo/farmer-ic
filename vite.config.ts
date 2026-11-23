@@ -4,11 +4,13 @@ import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
+import { viteSsrTiming } from './vite-ssr-timing.ts';
 
 // Wayfinder TypeScript output is checked in. Regenerate it explicitly with
 // `npm run routes:generate` (includes --with-form) after route/controller changes.
 export default defineConfig({
     plugins: lazyPlugins(() => [
+        viteSsrTiming(),
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
             refresh: true,

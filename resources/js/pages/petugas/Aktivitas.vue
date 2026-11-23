@@ -1,134 +1,152 @@
 <script setup lang="ts">
-import { Head, Link, useRemember } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ClipboardList, Search, SlidersHorizontal } from '@lucide/vue';
-import { computed, reactive, ref, unref, useId, watch } from 'vue';
+import { computed, reactive, ref, useId, watch, onScopeDispose } from 'vue';
+import NumberPagination from '@/components/NumberPagination.vue';
 import PetugasListHeader from '@/components/petugas/PetugasListHeader.vue';
 import TaskCard from '@/components/petugas/TaskCard.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Button } from '@/components/ui/button';
-import type { PetugasTask, PetugasTaskPageProps } from '@/types/petugas-task';
+import type { PetugasTaskPageProps } from '@/types/petugas-task';
 import { sopActivityCategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
-
 const props = defineProps<PetugasTaskPageProps>();
 const isHistory = computed(() => props.filters.view === 'history');
-const filter = reactive(
-    unref(
-        useRemember<{
-            q: string;
-            status: PetugasTaskPageProps['filters']['status'];
-            category: string;
-            block: string;
-            subblok: string;
-        }>(
-            {
-                q: '',
-                status: isHistory.value
-                    ? 'all'
-                    : props.filters.status === 'all' ||
-                        props.filters.status === 'overdue' ||
-                        props.filters.status === 'today'
-                      ? 'active'
-                      : props.filters.status,
-                category: '',
-                block: '',
-                subblok: '',
-            },
-            `petugas-activities-${props.filters.view ?? 'running'}`,
-        ),
-    ),
-);
-if (filter.status === 'overdue' || filter.status === 'today') {
-    filter.status = 'active';
+const normalize = () => ({
+    q: props.filters.q ?? '',
+    status: props.filters.status,
+    category: props.filters.category ?? '',
+    block: props.filters.block_id ?? '',
+    subblok: props.filters.subblok_id ?? '',
+    perPage: props.filters.per_page ?? 10,
+});
+const filter = reactive(normalize());
+const loading = ref(false);
+const error = ref('');
+let timer: ReturnType<typeof setTimeout> | undefined;
+let cancelVisit: (() => void) | undefined;
+let revision = 0;
+let syncing = false;
+let lastPage = 1;
+function cancelPending() {
+    revision++;
+    if (timer) clearTimeout(timer);
+    timer = undefined;
+    const cancel = cancelVisit;
+    cancelVisit = undefined;
+    cancel?.();
 }
-filter.subblok ??= '';
-watch(
-    () => props.filters.view,
-    (view, previous) => {
-        if (view === previous) return;
-        Object.assign(filter, {
-            q: '',
-            status: view === 'history' ? 'all' : 'active',
-            category: '',
-            block: '',
-            subblok: '',
-        });
-    },
-);
-// Explicit navigation from the inbox overrides remembered local filters.
+function load(page = 1, replace = true) {
+    if (!props.farm) return;
+    lastPage = page;
+    const current = revision;
+    loading.value = true;
+    error.value = '';
+    const data: Record<string, string | number> = {
+        view: props.filters.view ?? 'running',
+        status: filter.status,
+        per_page: filter.perPage,
+    };
+    if (filter.q.trim()) data.q = filter.q.trim();
+    if (filter.category) data.category = filter.category;
+    if (filter.block) data.block_id = filter.block;
+    if (filter.subblok) data.subblok_id = filter.subblok;
+    if (page > 1) data.page = page;
+    const fail = (): false => {
+        if (current === revision)
+            error.value = 'Tugas belum berhasil dimuat. Silakan coba lagi.';
+        return false;
+    };
+    router.get('/petugas/aktivitas', data, {
+        preserveState: true,
+        preserveScroll: true,
+        replace,
+        onCancelToken: (token) => {
+            if (current === revision) cancelVisit = token.cancel;
+            else token.cancel();
+        },
+        onError: fail,
+        onHttpException: fail,
+        onNetworkError: fail,
+        onFinish: () => {
+            if (current === revision) {
+                loading.value = false;
+                cancelVisit = undefined;
+            }
+        },
+    });
+}
 watch(
     () =>
         [
-            props.filters.block_id,
-            props.filters.status,
-            props.filters.category,
+            filter.q,
+            filter.status,
+            filter.category,
+            filter.block,
+            filter.subblok,
+            filter.perPage,
         ] as const,
-    ([block, status, category]) => {
-        if (!block) return;
-        Object.assign(filter, {
-            q: '',
-            status:
-                status === 'today' || status === 'overdue' ? 'active' : status,
-            category: category ?? '',
-            block,
-            subblok: '',
-        });
+    (next, previous) => {
+        if (syncing) return;
+        cancelPending();
+        if (!props.farm) return;
+        loading.value = true;
+        if (
+            next[0] !== previous[0] &&
+            next.slice(1).every((value, index) => value === previous[index + 1])
+        )
+            timer = setTimeout(() => load(), 300);
+        else load();
     },
-    { immediate: true },
+    { flush: 'sync' },
 );
-
+watch(
+    () => props.filters,
+    () => {
+        const updated = normalize();
+        if (JSON.stringify(filter) === JSON.stringify(updated)) return;
+        cancelPending();
+        syncing = true;
+        Object.assign(filter, updated);
+        syncing = false;
+        loading.value = false;
+        error.value = '';
+    },
+    { flush: 'sync' },
+);
+onScopeDispose(cancelPending);
+function requestPage(page: number) {
+    if (!loading.value) {
+        cancelPending();
+        load(page, false);
+    }
+}
+function retry() {
+    cancelPending();
+    load(lastPage);
+}
 const options = [
     { key: 'active', label: 'Perlu tindakan' },
+    { key: 'overdue', label: 'Terlambat' },
+    { key: 'today', label: 'Hari ini' },
     { key: 'upcoming', label: 'Mendatang' },
     { key: 'completed', label: 'Ditutup' },
     { key: 'all', label: 'Semua' },
 ];
-const blocks = computed(() => [
-    ...new Map(
-        props.tasks.map((t) => [t.subblok.block.id, t.subblok.block]),
-    ).values(),
-]);
-const subblokOptions = computed(() => {
-    if (!filter.block) return [];
-
-    return [
-        ...new Map(
-            props.tasks
-                .filter((t) => t.subblok.block.id === filter.block)
-                .map((t) => [t.subblok.id, t.subblok]),
-        ).values(),
-    ].sort((a, b) =>
-        (a.label ?? `Subblok ${a.number}`).localeCompare(
-            b.label ?? `Subblok ${b.number}`,
-            'id',
+const blocks = computed(() => props.options.blocks);
+const subblokOptions = computed(() =>
+    props.options.subbloks
+        .filter((item) => item.block_id === filter.block)
+        .sort((a, b) =>
+            (a.label ?? `Subblok ${a.number}`).localeCompare(
+                b.label ?? `Subblok ${b.number}`,
+                'id',
+            ),
         ),
-    );
-});
-function matchesStatus(task: PetugasTask): boolean {
-    if (filter.status === 'all') return true;
-    if (filter.status === 'active') {
-        return task.urgency === 'overdue' || task.urgency === 'today';
-    }
-
-    return task.urgency === filter.status;
-}
-const tasks = computed(() =>
-    props.tasks.filter(
-        (t) =>
-            matchesStatus(t) &&
-            (!filter.category || t.activity_category === filter.category) &&
-            (!filter.block || t.subblok.block.id === filter.block) &&
-            (!filter.subblok || t.subblok.id === filter.subblok) &&
-            `${t.name} ${t.subblok.block.name} ${t.subblok.label}`
-                .toLocaleLowerCase()
-                .includes(filter.q.toLocaleLowerCase().trim()),
-    ),
 );
-const categoryOptions = computed(() => [
-    ...new Set(props.tasks.map((t) => t.activity_category)),
-]);
+const categoryOptions = computed(() => props.options.categories);
 function label(code: string): string {
     return (sopActivityCategoryLabels as Record<string, string>)[code] ?? code;
 }
@@ -142,6 +160,7 @@ const advancedCount = computed(
         [filter.category, filter.block, filter.subblok].filter(Boolean).length,
 );
 function reset(): void {
+    syncing = true;
     Object.assign(filter, {
         q: '',
         status: isHistory.value ? 'all' : 'active',
@@ -149,12 +168,18 @@ function reset(): void {
         block: '',
         subblok: '',
     });
+    syncing = false;
+    cancelPending();
+    load();
 }
 </script>
 
 <template>
     <Head title="Tugas" />
-    <div class="min-w-0 space-y-[var(--admin-content-gap)] text-foreground">
+    <div
+        class="min-w-0 space-y-[var(--admin-content-gap)] text-foreground"
+        :aria-busy="loading"
+    >
         <PetugasListHeader
             title="Tugas"
             :show-incidents="!!farm"
@@ -204,6 +229,7 @@ function reset(): void {
                 <input
                     v-model="filter.q"
                     type="search"
+                    maxlength="100"
                     placeholder="Cari tugas atau subblok"
                     class="petugas-field min-h-11 w-full rounded-xl border border-border px-3 pr-10 text-foreground"
                 />
@@ -305,7 +331,7 @@ function reset(): void {
                     {{ isHistory ? 'Riwayat tugas' : 'Daftar tugas' }}
                 </h2>
                 <p role="status" class="mt-1 text-xs text-muted-foreground">
-                    {{ tasks.length }} tugas ditampilkan
+                    {{ tasks?.total ?? 0 }} tugas ditemukan
                 </p>
             </div>
             <button
@@ -323,8 +349,17 @@ function reset(): void {
                 Reset filter
             </button>
         </div>
+        <p v-if="loading" role="status" class="text-sm text-muted-foreground">
+            Memuat tugas…
+        </p>
+        <div v-else-if="error" role="alert" class="petugas-card p-4 text-error">
+            <p>{{ error }}</p>
+            <button type="button" class="min-h-11 underline" @click="retry">
+                Coba lagi
+            </button>
+        </div>
         <div
-            v-if="!tasks.length"
+            v-else-if="!tasks?.data.length"
             class="petugas-card petugas-empty bg-muted/40 px-5 py-10 text-center"
         >
             <ClipboardList class="mx-auto size-9 text-primary" />
@@ -344,9 +379,47 @@ function reset(): void {
             </p>
         </div>
         <ul v-else class="space-y-3" aria-label="Daftar tugas">
-            <li v-for="task in tasks" :key="task.id">
+            <li v-for="task in tasks.data" :key="task.id">
                 <TaskCard :task="task" />
             </li>
         </ul>
+        <footer
+            v-if="farm && tasks && !error"
+            class="petugas-card flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-xs text-muted-foreground"
+        >
+            <span role="status" aria-live="polite" aria-atomic="true">
+                Menampilkan {{ tasks.from ?? 0 }}–{{ tasks.to ?? 0 }} dari
+                {{ tasks.total }} tugas.
+            </span>
+            <div
+                class="ml-auto flex w-full flex-wrap items-center justify-between gap-3"
+            >
+                <label for="task-per-page" class="flex items-center gap-2">
+                    Per halaman
+                    <AppSelect
+                        id="task-per-page"
+                        v-model.number="filter.perPage"
+                        :disabled="loading"
+                        class="admin-field w-auto!"
+                        aria-label="Jumlah tugas per halaman"
+                    >
+                        <AppSelectOption
+                            v-for="size in [10, 20, 50]"
+                            :key="size"
+                            :value="size"
+                            >{{ size }}</AppSelectOption
+                        >
+                    </AppSelect>
+                </label>
+                <NumberPagination
+                    class="ml-auto"
+                    :current-page="tasks.current_page"
+                    :total-pages="tasks.last_page"
+                    :disabled="loading"
+                    label="Pagination tugas"
+                    @change="requestPage"
+                />
+            </div>
+        </footer>
     </div>
 </template>
