@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\MeasurePetugasActivity;
 use App\Http\Requests\Petugas\CompleteTaskRequest;
+use App\Http\Requests\Petugas\ListTasksRequest;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\PlantingCycleTask;
@@ -11,6 +13,7 @@ use App\Services\Activity\ActivitySequenceService;
 use App\Services\Activity\TaskReportingWindow;
 use App\Services\PetugasTaskReadService;
 use App\Services\PlantingCycleTaskManagementService;
+use App\Support\RolePermissions;
 use App\Support\SubblockLifecycle;
 use App\Support\TaskActivityFields;
 use App\Support\VoluntaryActivityFields;
@@ -24,33 +27,51 @@ class PetugasTaskController extends Controller
 {
     public function __construct(private readonly PetugasTaskReadService $tasks, private readonly ActivitySequenceService $sequence, private readonly TaskReportingWindow $window) {}
 
-    public function index(Request $request): Response
+    public function index(ListTasksRequest $request): Response
     {
-        $filters = $request->validate([
-            'block_id' => ['nullable', 'uuid'],
-            'category' => ['nullable', \Illuminate\Validation\Rule::in(PlantingCycleTask::CATEGORIES)],
-            'view' => ['sometimes', \Illuminate\Validation\Rule::in(['running', 'history'])],
-        ]);
+        $metrics = $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE);
+        $started = $metrics !== null ? hrtime(true) : null;
+        try {
+            return app(RolePermissions::class)->withMembershipSnapshot($request->user(), fn () => $this->indexWithMembership($request));
+        } finally {
+            if ($metrics !== null) {
+                $metrics->controller_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+            }
+        }
+    }
+
+    private function indexWithMembership(ListTasksRequest $request): Response
+    {
+        $filters = $request->validated();
         $view = $filters['view'] ?? 'running';
         $farm = $request->user()->assignedFarm;
-        $status = $request->query('status', 'all');
-        if (! is_string($status) || ! in_array($status, ['all', 'active', 'overdue', 'today', 'upcoming', 'completed'], true)) {
-            $status = 'all';
-        }
+        $status = $filters['status'] ?? ($request->routeIs('petugas.aktivitas') ? 'active' : 'all');
         if ($view === 'history') {
             $status = 'all';
         }
+        $filters = ['status' => $status, 'view' => $view, 'q' => trim($filters['q'] ?? ''), 'block_id' => $filters['block_id'] ?? null, 'subblok_id' => $filters['subblok_id'] ?? null, 'category' => $filters['category'] ?? null, 'per_page' => (int) ($filters['per_page'] ?? 10)];
         if (! $farm instanceof Farm) {
             return Inertia::render('petugas/Aktivitas', [
-                'tasks' => [], 'filters' => ['status' => $status, 'view' => $view, 'block_id' => $filters['block_id'] ?? null, 'category' => $filters['category'] ?? null], 'farm' => null,
+                'tasks' => null, 'filters' => $filters, 'farm' => null, 'options' => ['blocks' => [], 'subbloks' => [], 'categories' => []],
                 'summary' => ['overdue' => 0, 'today' => 0, 'upcoming' => 0, 'completed' => 0], 'defaultSopMissing' => true,
             ]);
         }
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [PlantingCycleTask::class, $farm->team]);
-        $data = $this->tasks->listing($request->user(), $farm, $status, $view);
-        $data['tasks'] = array_map(function (array $task) use ($request, $farm): array {
-            $model = PlantingCycleTask::visibleTo($request->user(), $farm->team)->whereKey($task['id'])->firstOrFail();
+        $metrics = $request->attributes->get(MeasurePetugasActivity::ATTRIBUTE);
+        $started = $metrics !== null ? hrtime(true) : null;
+        $data = $this->tasks->listing($request->user(), $farm, $filters);
+        if ($metrics !== null) {
+            $metrics->listing_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+            $metrics->task_count = $data['tasks']->count();
+            $metrics->page = $data['tasks']->currentPage();
+            $metrics->per_page = $data['tasks']->perPage();
+        }
+        $models = $data['taskModels'];
+        unset($data['taskModels']);
+        $started = $metrics !== null ? hrtime(true) : null;
+        $data['tasks']->through(function (array $task) use ($request, $models): array {
+            $model = $models->get($task['id']);
             $reason = $this->window->blockedReason($model, $model->plantingCycle) ?? $this->sequence->blockedReason($request->user(), $model->plantingCycle, TaskActivityFields::activityCode($model) ?? '');
             $open = in_array($task['subblok']['status'], SubblockLifecycle::RUNNING, true)
                 && in_array($task['status'], ['pending', 'in_progress'], true) && $task['subblok']['planted_at'] !== null;
@@ -59,10 +80,13 @@ class PetugasTaskController extends Controller
                 'record' => $open && $reason === null && Gate::allows('recordTask', [FarmActivity::class, $model]),
                 'complete' => $open && $model->activity_category !== 'harvest' && $task['linked_activities_count'] > 0 && Gate::allows('complete', $model),
             ]];
-        }, $data['tasks']);
+        });
+        if ($metrics !== null) {
+            $metrics->permissions_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+        }
 
         return Inertia::render('petugas/Aktivitas', [
-            ...$data, 'filters' => ['status' => $status, 'view' => $view, 'block_id' => $filters['block_id'] ?? null, 'category' => $filters['category'] ?? null], 'farm' => $farm->only(['id', 'name']),
+            ...$data, 'filters' => $filters, 'farm' => $farm->only(['id', 'name']),
             'defaultSopMissing' => \App\Models\FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->whereNull('default_sop_template_id')->exists(),
         ]);
     }

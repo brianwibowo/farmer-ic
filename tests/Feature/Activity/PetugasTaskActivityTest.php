@@ -19,6 +19,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -38,6 +39,53 @@ class PetugasTaskActivityTest extends TestCase
     private PlantingCycle $cycle;
 
     private PlantingCycleTask $task;
+
+    public function test_report_timing_records_pagination_and_omits_sensitive_query_details(): void
+    {
+        Log::spy();
+        $response = $this->actingAs($this->actor)->get('/petugas/laporan?page=2&per_page=20');
+        $response->assertOk();
+        $trace = $response->headers->get('X-Report-Trace-Id');
+        $this->assertNotEmpty($trace);
+        Log::shouldHaveReceived('info')->once()->with('petugas_report_timing', \Mockery::on(
+            fn ($metrics) => $metrics['trace_id'] === $trace && $metrics['status'] === 200
+                && $metrics['page'] === 2 && $metrics['per_page'] === 20 && $metrics['report_count'] === 0
+                && $metrics['query_count'] > 0 && $metrics['query_ms'] >= 0
+                && $metrics['listing_ms'] >= 0 && $metrics['stats_ms'] >= 0 && $metrics['categories_ms'] >= 0
+                && $metrics['web_setup_ms'] >= 0 && $metrics['web_setup_queries'] >= 0
+                && $metrics['shared_props_ms'] >= 0 && $metrics['shared_props_queries'] > 0
+                && $metrics['web_pipeline_ms'] >= 0 && $metrics['inertia_ms'] >= 0 && $metrics['route_ms'] >= 0
+                && $metrics['controller_ms'] >= 0 && $metrics['inertia_visit'] === false
+                && ! array_key_exists('sql', $metrics) && ! array_key_exists('bindings', $metrics),
+        ));
+        $this->get('/petugas/laporan/harian')->assertHeaderMissing('X-Report-Trace-Id');
+        config(['activity_timing.enabled' => false]);
+        $this->get('/petugas/laporan')->assertOk()->assertHeaderMissing('X-Report-Trace-Id');
+        Log::shouldHaveReceived('info')->once()->with('petugas_report_timing', \Mockery::any());
+    }
+
+    public function test_report_timing_omits_pagination_for_invalid_input(): void
+    {
+        Log::spy();
+        $response = $this->actingAs($this->actor)->get('/petugas/laporan?per_page=999');
+        $response->assertSessionHasErrors('per_page');
+        $trace = $response->headers->get('X-Report-Trace-Id');
+        Log::shouldHaveReceived('info')->once()->with('petugas_report_timing', \Mockery::on(
+            fn ($metrics) => $metrics['trace_id'] === $trace && $metrics['page'] === null
+                && $metrics['per_page'] === null && $metrics['report_count'] === null,
+        ));
+    }
+
+    public function test_report_timing_uses_default_pagination(): void
+    {
+        Log::spy();
+        $response = $this->actingAs($this->actor)->get('/petugas/laporan');
+        $response->assertOk();
+        $trace = $response->headers->get('X-Report-Trace-Id');
+        Log::shouldHaveReceived('info')->once()->with('petugas_report_timing', \Mockery::on(
+            fn ($metrics) => $metrics['trace_id'] === $trace && $metrics['page'] === 1 && $metrics['per_page'] === 10,
+        ));
+    }
 
     protected function setUp(): void
     {
@@ -76,7 +124,7 @@ class PetugasTaskActivityTest extends TestCase
                 ->where('filters.status', 'upcoming')->where('filters.category', 'harvest'));
         $this->get('/petugas/aktivitas?status=active&category=harvest&block_id='.$block)
             ->assertInertia(fn (Assert $page) => $page->where('filters.status', 'active')
-                ->where('filters.category', 'harvest')->where('tasks', fn ($tasks) => collect($tasks)->every(fn ($task) => in_array($task['urgency'], ['overdue', 'today'], true))));
+                ->where('filters.category', 'harvest')->where('tasks.data', fn ($tasks) => collect($tasks)->every(fn ($task) => in_array($task['urgency'], ['overdue', 'today'], true))));
         $this->getJson('/petugas/aktivitas?category=invalid')->assertUnprocessable();
     }
 
@@ -898,9 +946,9 @@ class PetugasTaskActivityTest extends TestCase
     public function test_real_tasks_and_form_use_persisted_category_and_location(): void
     {
         $this->actingAs($this->actor)->get('/petugas/tasks')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('petugas/Aktivitas')->has('tasks', 1)->where('tasks.0.id', $this->task->id)
-            ->where('tasks.0.activity_category', 'maintenance')->where('tasks.0.subblok.farm.id', $this->farm->id)
-            ->where('tasks.0.can.record', true)->where('summary.today', 1)->missing('isFixture'));
+            ->component('petugas/Aktivitas')->has('tasks.data', 1)->where('tasks.data.0.id', $this->task->id)
+            ->where('tasks.data.0.activity_category', 'maintenance')->where('tasks.data.0.subblok.farm.id', $this->farm->id)
+            ->where('tasks.data.0.can.record', true)->where('summary.today', 1)->missing('isFixture'));
         $this->get('/petugas/tasks/'.$this->task->id.'/aktivitas/buat')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('petugas/ActivityCreate')->where('task.id', $this->task->id)->has('fields', 2));
         $this->get('/petugas/aktivitas/buat')->assertRedirect('/petugas/aktivitas');
@@ -1145,6 +1193,10 @@ class PetugasTaskActivityTest extends TestCase
                 'planting_cycle_task_id' => $index < 9 ? $this->task->id : null,
                 'task_details' => $index < 9 ? json_encode(['area_ha' => 0.1]) : null,
             ])->save();
+            ActivityPhoto::create([
+                'activity_id' => $activity->id,
+                'image_url' => 'farms/'.$this->farm->id.'/'.$activity->id.'/foto.jpg',
+            ]);
         }
         $otherFarm = new Farm(['name' => 'Kebun lain', 'land_tenure' => 'owned', 'total_area_ha' => '3']);
         $otherFarm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->actor->id])->save();
@@ -1154,6 +1206,13 @@ class PetugasTaskActivityTest extends TestCase
         ]);
 
         $this->actingAs($this->actor);
+        $queryCount = 0;
+        $profiling = true;
+        \Illuminate\Support\Facades\DB::listen(function () use (&$queryCount, &$profiling): void {
+            if ($profiling) {
+                $queryCount++;
+            }
+        });
         foreach ([1 => [1, 10], 2 => [11, 20], 3 => [21, 23]] as $pageNumber => [$from, $to]) {
             $this->get('/petugas/laporan?page='.$pageNumber)->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->where('reports.total', 23)->where('reports.current_page', $pageNumber)
@@ -1161,6 +1220,10 @@ class PetugasTaskActivityTest extends TestCase
                 ->where('reports.from', $from)->where('reports.to', $to)
                 ->where('filters.per_page', 10)
                 ->where('stats.sop', 9)->where('stats.mandiri', 14));
+            if ($profiling) {
+                $profiling = false;
+                $baselineQueries = $queryCount;
+            }
         }
         $this->get('/petugas/laporan?source=mandiri')->assertInertia(fn (Assert $page) => $page
             ->where('reports.total', 14)->where('stats.sop', 0)->where('stats.mandiri', 14));
@@ -1171,9 +1234,13 @@ class PetugasTaskActivityTest extends TestCase
             ->where('reports.total', 23)->where('reports.per_page', 20)->where('reports.last_page', 2)
             ->where('reports.from', 21)->where('reports.to', 23)->has('reports.data', 3)
             ->where('filters.per_page', 20)->where('stats.sop', 9)->where('stats.mandiri', 14));
+        $queryCount = 0;
+        $profiling = true;
         $this->get('/petugas/laporan?per_page=50')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('reports.total', 23)->where('reports.per_page', 50)->where('reports.last_page', 1)
             ->where('reports.from', 1)->where('reports.to', 23)->has('reports.data', 23));
+        $profiling = false;
+        $this->assertLessThanOrEqual($baselineQueries + 5, $queryCount);
         $this->get('/petugas/laporan?source=mandiri&per_page=10&page=2')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('filters.source', 'mandiri')->where('filters.per_page', 10)
             ->where('reports.total', 14)->where('reports.from', 11)->where('reports.to', 14)
@@ -1340,13 +1407,13 @@ class PetugasTaskActivityTest extends TestCase
         $other = new Farm(['name' => 'Kebun lain', 'land_tenure' => 'owned', 'total_area_ha' => '3']);
         $other->forceFill(['team_id' => $this->team->id, 'created_by' => $this->actor->id])->save();
         $this->actor->forceFill(['assigned_farm_id' => $other->id])->save();
-        $this->actingAs($this->actor)->get('/petugas/tasks')->assertInertia(fn (Assert $page) => $page->has('tasks', 0)->where('summary.today', 0));
+        $this->actingAs($this->actor)->get('/petugas/tasks')->assertInertia(fn (Assert $page) => $page->has('tasks.data', 0)->where('summary.today', 0));
         $this->get('/petugas/tasks/'.$this->task->id)->assertForbidden();
         $this->get('/petugas/tasks/'.$this->task->id.'/aktivitas/buat')->assertForbidden();
         $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertForbidden();
         $this->actor->forceFill(['assigned_farm_id' => null])->save();
         $this->actor->unsetRelation('assignedFarm');
-        $this->get('/petugas/tasks')->assertInertia(fn (Assert $page) => $page->has('tasks', 0)->where('farm', null));
+        $this->get('/petugas/tasks')->assertInertia(fn (Assert $page) => $page->where('tasks', null)->where('farm', null));
     }
 
     public function test_filters_have_unfiltered_scoped_counts_and_closed_tasks_cannot_receive_reports(): void
@@ -1354,7 +1421,7 @@ class PetugasTaskActivityTest extends TestCase
         $this->task->update(['offset_days' => 18, 'tolerance_days' => 2, 'scheduled_date' => today()->subDays(3), 'due_date' => today()->subDay()]);
         $this->newTask(['status' => 'skipped', 'skip_reason' => 'Tidak relevan.']);
         $this->actingAs($this->actor)->get('/petugas/tasks?status=completed')->assertInertia(fn (Assert $page) => $page
-            ->has('tasks', 1)->where('summary.overdue', 1)->where('summary.completed', 1));
+            ->has('tasks.data', 1)->where('summary.overdue', 1)->where('summary.completed', 1));
         $this->task->update(['status' => 'completed', 'completed_at' => now()]);
         $this->get('/petugas/tasks/'.$this->task->id.'/aktivitas/buat')->assertForbidden();
         $this->post('/petugas/tasks/'.$this->task->id.'/aktivitas', $this->payload())->assertForbidden();

@@ -162,7 +162,7 @@ abstract class ResourcePolicy
         }
 
         // Shared reference/system records require real membership, not an active-team pointer.
-        return $this->global ? $user->teams()->first() : null;
+        return $this->global ? $this->permissions->firstTeamMembership($user) : null;
     }
 
     private function teamForUserTarget(

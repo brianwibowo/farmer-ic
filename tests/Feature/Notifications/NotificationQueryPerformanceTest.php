@@ -233,9 +233,11 @@ class NotificationQueryPerformanceTest extends TestCase
         $team = Team::factory()->create(['is_personal' => false]);
         $owner = $this->actor($team, 'owner')->load(['role', 'teams']);
         $permissions = app(RolePermissions::class);
+        $commodity = Commodity::create(['name' => 'Jagung snapshot']);
         try {
-            $permissions->withMembershipSnapshot($owner, function () use ($permissions, $owner, $team): void {
+            $permissions->withMembershipSnapshot($owner, function () use ($permissions, $owner, $team, $commodity): void {
                 $this->assertTrue($permissions->withinTeam($owner, $team));
+                $this->assertTrue(Gate::forUser($owner)->allows('view', $commodity));
                 throw new RuntimeException('End read operation');
             });
         } catch (RuntimeException $exception) {
@@ -247,6 +249,9 @@ class NotificationQueryPerformanceTest extends TestCase
             $this->assertFalse($permissions->withinTeam($owner, $team));
             $this->assertFalse(Gate::forUser($owner)->allows('notifications.weeklyReport', $team));
         });
+        $owner->teams()->detach();
+        $this->assertFalse(Gate::forUser($owner)->allows('view', $commodity));
+        $permissions->withMembershipSnapshot($owner, fn () => $this->assertFalse(Gate::forUser($owner)->allows('view', $commodity)));
     }
 
     public function test_new_snapshot_ignores_stale_loaded_teams_and_denies_admin_with_two_tenants(): void

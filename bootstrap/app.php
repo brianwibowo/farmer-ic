@@ -3,6 +3,10 @@
 use App\Http\Middleware\EnsureLocalFarmApi;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\MeasurePetugasActivity;
+use App\Http\Middleware\MeasurePetugasRoute;
+use App\Http\Middleware\MeasurePetugasWebReady;
+use App\Http\Middleware\MeasurePetugasWebStart;
 use App\Http\Middleware\SetTeamUrlDefaults;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(MeasurePetugasActivity::class);
         $middleware->redirectUsersTo(fn (Request $request) => route(
             Gate::forUser($request->user())->allows('admin.access') ? 'admin.dashboard'
                 : (Gate::forUser($request->user())->allows('petugas.access') ? 'petugas.home'
@@ -31,11 +36,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        $middleware->web(prepend: [MeasurePetugasWebStart::class]);
+
         $middleware->web(append: [
+            MeasurePetugasWebReady::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             SetTeamUrlDefaults::class,
+            MeasurePetugasRoute::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -27,6 +27,7 @@ vi.mock('@inertiajs/vue3', async () => {
                     h('a', { href: props.href }, slots.default?.()),
         }),
         usePage: () => ({ url: state.url }),
+        router: { get: vi.fn() },
         useRemember: (initial: object) => state.remembered ?? initial,
         useForm: () => ({
             note: '',
@@ -67,18 +68,32 @@ const task: PetugasTask = {
     },
 };
 const listProps: PetugasTaskPageProps = {
-    tasks: [
-        task,
-        {
-            ...task,
-            id: 'task-b',
-            name: 'Panen jagung',
-            status: 'completed',
-            urgency: 'completed',
-            activity_category: 'harvest',
-        },
-    ],
-    filters: { status: 'all' },
+    tasks: {
+        data: [
+            task,
+            {
+                ...task,
+                id: 'task-b',
+                name: 'Panen jagung',
+                status: 'completed',
+                urgency: 'completed',
+                activity_category: 'harvest',
+            },
+        ],
+        total: 2,
+        from: 1,
+        to: 2,
+        current_page: 1,
+        last_page: 1,
+    },
+    options: {
+        blocks: [{ id: 'block-a', name: 'Blok Utara' }],
+        subbloks: [
+            { id: 'subblok-a', block_id: 'block-a', label: 'A', number: 2 },
+        ],
+        categories: ['maintenance', 'harvest'],
+    },
+    filters: { status: 'active' },
     summary: { overdue: 2, today: 1, upcoming: 3, completed: 1 },
     farm: { id: 'farm-a', name: 'Kebun Utara' },
     defaultSopMissing: false,
@@ -115,6 +130,33 @@ beforeEach(() => {
 });
 
 describe('task list presentation', () => {
+    it('paginates the filtered task list with the report page sizes', async () => {
+        const manyTasks = Array.from({ length: 12 }, (_, index) => ({
+            ...task,
+            id: `task-${index + 1}`,
+            name: `Pekerjaan ${index + 1}`,
+        }));
+        const html = await renderToString(
+            h(Aktivitas, {
+                ...listProps,
+                tasks: {
+                    data: manyTasks.slice(0, 10),
+                    total: 12,
+                    from: 1,
+                    to: 10,
+                    current_page: 1,
+                    last_page: 2,
+                },
+            }),
+        );
+        expect(html).toContain('Pekerjaan 10');
+        expect(html).not.toContain('Pekerjaan 11');
+        expect(html).toContain('dari 12 tugas');
+        expect(html).toContain('Pagination tugas');
+        expect(html).toContain('Halaman 2');
+        expect(html).toContain('Jumlah tugas per halaman');
+    });
+
     it('shows scoped summary, filters, active task metadata, and its detail link', async () => {
         const html = await renderToString(h(Aktivitas, listProps));
         for (const text of [
@@ -135,29 +177,14 @@ describe('task list presentation', () => {
         ])
             expect(html).toContain(text);
         expect(html).toContain('href="/petugas/tasks/task-a"');
-        expect(html).not.toContain('Panen jagung');
-    });
-
-    it('respects remembered status, category, block, subblock, and search filters', async () => {
-        state.remembered = {
-            q: 'panen',
-            status: 'completed',
-            category: 'harvest',
-            block: 'block-a',
-            subblok: 'subblok-a',
-        };
-        const html = await renderToString(h(Aktivitas, listProps));
         expect(html).toContain('Panen jagung');
-        expect(html).toContain('Selesai');
-        expect(html).toContain('Reset filter');
-        expect(html).not.toContain('Pemupukan susulan');
     });
 
     it('shows assignment and filtered empty states without sample tasks', async () => {
         const html = await renderToString(
             h(Aktivitas, {
                 ...listProps,
-                tasks: [],
+                tasks: null,
                 farm: null,
                 defaultSopMissing: true,
             }),
@@ -178,7 +205,14 @@ describe('task list presentation', () => {
         const html = await renderToString(
             h(Aktivitas, {
                 ...listProps,
-                tasks: [historical],
+                tasks: {
+                    data: [historical],
+                    total: 1,
+                    from: 1,
+                    to: 1,
+                    current_page: 1,
+                    last_page: 1,
+                },
                 filters: { status: 'all', view: 'history' },
             }),
         );
