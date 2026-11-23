@@ -11,6 +11,7 @@ import {
 import { ref } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/DeleteUser.vue';
+import LogoutAllDevices from '@/components/settings/LogoutAllDevices.vue';
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import { edit as editSecurity } from '@/routes/security';
 
 const props = defineProps<{
     returnUrl: string;
+    canLogoutAllDevices: boolean;
     profile: {
         name: string;
         email: string;
@@ -191,6 +193,7 @@ const isEditing = ref(false);
             </Link>
         </section>
 
+        <LogoutAllDevices v-if="props.canLogoutAllDevices" />
         <DeleteUser mobile />
     </div>
 </template>

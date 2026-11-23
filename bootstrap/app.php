@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateRememberedDevice;
 use App\Http\Middleware\EnsureLocalFarmApi;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -28,10 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ));
         $middleware->trustProxies(at: '*');
         $middleware->api(prepend: [EnsureLocalFarmApi::class]);
+        $middleware->prependToPriorityList(\Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class, AuthenticateRememberedDevice::class);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
+            AuthenticateRememberedDevice::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

@@ -3,6 +3,8 @@
 use App\Models\User;
 
 return [
+    // Owner persistent sign-in lifetime, in days (browsers may enforce a lower limit).
+    'owner_remember_days' => 400,
 
     /*
     |--------------------------------------------------------------------------
