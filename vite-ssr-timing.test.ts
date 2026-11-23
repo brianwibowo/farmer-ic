@@ -10,13 +10,13 @@ afterEach(() => {
 describe('Vite SSR timing', () => {
     it.each(['false', '(false)', '0', 'off'])(
         'does not attach when set to %s',
-        (value) => {
+        async (value) => {
             process.env.ACTIVITY_TIMING_ENABLED = value;
             const use = vi.fn();
             const hook = viteSsrTiming().configureServer;
             if (typeof hook !== 'function')
                 throw new Error('Missing server hook');
-            hook({
+            await hook({
                 config: { mode: 'test', envDir: process.cwd() },
                 middlewares: { use },
             } as never);
@@ -24,12 +24,12 @@ describe('Vite SSR timing', () => {
         },
     );
 
-    it('attaches timing only to the SSR endpoint when enabled', () => {
+    it('attaches timing only to the SSR endpoint when enabled', async () => {
         process.env.ACTIVITY_TIMING_ENABLED = 'true';
         const use = vi.fn();
         const hook = viteSsrTiming().configureServer;
         if (typeof hook !== 'function') throw new Error('Missing server hook');
-        hook({
+        await hook({
             config: { mode: 'test', envDir: process.cwd() },
             middlewares: { use },
         } as never);

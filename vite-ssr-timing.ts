@@ -25,14 +25,14 @@ export function viteSsrTiming(): Plugin {
             server.middlewares.use('/__inertia_ssr', (req, res, next) => {
                 if (req.method !== 'POST') return next();
                 const started = performance.now();
-                const originalEnd = res.end;
+                const originalEnd = res.end.bind(res);
                 res.end = function (...args: Parameters<typeof res.end>) {
                     if (!res.headersSent) {
                         const timing = `farmer-ssr;dur=${(performance.now() - started).toFixed(2)}`;
                         const existing = res.getHeader('Server-Timing');
                         res.setHeader(
                             'Server-Timing',
-                            existing ? `${existing}, ${timing}` : timing,
+                            existing ? `${String(existing)}, ${timing}` : timing,
                         );
                     }
                     return originalEnd.apply(this, args as never);
