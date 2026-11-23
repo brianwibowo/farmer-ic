@@ -1,0 +1,144 @@
+name: Release image
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    name: Docker build and isolated PostgreSQL smoke test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Test entrypoint guards
+        run: |
+          bash tests/Deployment/entrypoint-test.sh
+          python3 tests/Deployment/compose-config-test.py
+          python3 tests/Deployment/release-image-metadata-test.py
+          python3 tests/Deployment/registry-retry-test.py
+
+      - name: Prepare disposable test configuration
+        run: |
+          cat > .env.production <<'EOF'
+          APP_KEY=base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+          DB_CONNECTION=pgsql
+          DB_HOST=farmer-ic-postgres
+          DB_DATABASE=farmer_ic
+          DB_USERNAME=farmer_ic
+          DB_PASSWORD=ci-only-password
+          POSTGRES_DB=farmer_ic
+          POSTGRES_USER=farmer_ic
+          POSTGRES_PASSWORD=ci-only-password
+          QUEUE_CONNECTION=redis
+          NOTIFICATION_QUEUE_CONNECTION=database
+          REDIS_PREFIX=farmer_ic_ci_
+          QDRANT_COLLECTION=farmer_ic_ci_knowledge
+          FONNTE_ENABLED=false
+          EOF
+
+      - name: Build and check image
+        run: |
+          docker compose --env-file .env.production -f compose.production.yaml --profile rag build app
+          docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --wait postgres redis qdrant
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php artisan migrate:status --pending=1 --no-interaction; then
+            echo 'Migration preflight unexpectedly passed against an empty database.' >&2
+            exit 1
+          fi
+          docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php artisan migrate --force --no-interaction --path=database/migrations/0001_01_01_000001_create_cache_table.php
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php artisan migrate:status --pending=1 --no-interaction; then
+            echo 'Migration preflight unexpectedly passed with pending migrations.' >&2
+            exit 1
+          fi
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps -e DB_CONNECTION=sqlite app true; then
+            echo 'The PostgreSQL-only image unexpectedly accepted SQLite.' >&2
+            exit 1
+          fi
+          docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php artisan migrate --force --no-interaction
+          docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php artisan migrate:status --pending=1 --no-interaction
+          docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php docker/verify-release-target.php farmer_ic farmer-ic-postgres redis farmer_ic_ci_ http://qdrant:6333 farmer_ic_ci_knowledge
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php docker/verify-release-target.php incorrect_db farmer-ic-postgres redis farmer_ic_ci_ http://qdrant:6333 farmer_ic_ci_knowledge; then
+            echo 'Release target check unexpectedly accepted a different database.' >&2
+            exit 1
+          fi
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php docker/verify-release-target.php farmer_ic farmer-ic-postgres redis incorrect_prefix http://qdrant:6333 farmer_ic_ci_knowledge; then
+            echo 'Release target check unexpectedly accepted a different Redis prefix.' >&2
+            exit 1
+          fi
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps app php docker/verify-release-target.php farmer_ic farmer-ic-postgres redis farmer_ic_ci_ http://qdrant:6333 incorrect_collection; then
+            echo 'Release target check unexpectedly accepted a different Qdrant collection.' >&2
+            exit 1
+          fi
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps -e DB_URL=postgresql://invalid/incorrect_db app php docker/verify-release-target.php farmer_ic farmer-ic-postgres redis farmer_ic_ci_ http://qdrant:6333 farmer_ic_ci_knowledge; then
+            echo 'Release target check unexpectedly accepted DB_URL.' >&2
+            exit 1
+          fi
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps -e REDIS_URL=redis://invalid:6379 app php docker/verify-release-target.php farmer_ic farmer-ic-postgres redis farmer_ic_ci_ http://qdrant:6333 farmer_ic_ci_knowledge; then
+            echo 'Release target check unexpectedly accepted REDIS_URL.' >&2
+            exit 1
+          fi
+          if docker compose --env-file .env.production -f compose.production.yaml --profile rag run --rm --no-deps -e DB_QUEUE_CONNECTION=pgsql_testing app php docker/verify-release-target.php farmer_ic farmer-ic-postgres redis farmer_ic_ci_ http://qdrant:6333 farmer_ic_ci_knowledge; then
+            echo 'Release target check unexpectedly accepted an unchecked queue database.' >&2
+            exit 1
+          fi
+          docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --wait --no-build --no-deps app worker notifications scheduler
+          docker compose --env-file .env.production -f compose.production.yaml exec -T app php -r 'exit(extension_loaded("pcntl") && extension_loaded("redis") && extension_loaded("pdo_pgsql") ? 0 : 1);'
+          curl --fail --silent --show-error http://127.0.0.1:8080/up
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the tested image and record its digest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker tag farmer-ic:latest "$image:$GITHUB_SHA"
+          docker push "$image:$GITHUB_SHA"
+          docker image inspect --format '{{json .RepoDigests}}' "$image:$GITHUB_SHA" > "$RUNNER_TEMP/repo-digests.json"
+          python3 docker/release-image-metadata.py create \
+            --repository "$GITHUB_REPOSITORY" --revision "$GITHUB_SHA" \
+            --repo-digests "$RUNNER_TEMP/repo-digests.json" --output "$RUNNER_TEMP/release-image.json"
+
+      - name: Store the tested image reference
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-image-${{ github.sha }}
+          path: ${{ runner.temp }}/release-image.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Tag the tested main image as latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          # Do not promote a completed run if main has already advanced.
+          main_sha=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$main_sha" != "$GITHUB_SHA" ]; then
+            echo 'A newer main commit exists; skipping the latest tag.'
+            exit 0
+          fi
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker tag "$image:$GITHUB_SHA" "$image:latest"
+          docker push "$image:latest"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --env-file .env.production -f compose.production.yaml --profile rag logs --tail=100
