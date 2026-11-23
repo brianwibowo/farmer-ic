@@ -1,0 +1,60 @@
+% !TeX program = xelatex
+% Main entry point for Buku Panduan Farm Management (Admin & Petugas/PIC).
+% Build locally with: latexmk
+% Or manually: xelatex main.tex && xelatex main.tex
+
+\documentclass[11pt,a4paper]{article}
+
+\input{preamble}
+
+% Update version and release date here before publishing a new revision
+\renewcommand{\GuideVersion}{Versi 1.4}
+\renewcommand{\GuideDate}{23 November 2026}
+
+\begin{document}
+
+% ----------------------------------------------------------------------
+% Cover Page
+% ----------------------------------------------------------------------
+\pagenumbering{Alph}
+\begin{titlepage}
+  \thispagestyle{empty}
+  \noindent\textcolor{FarmGreen}{\rule{\linewidth}{5pt}}\par
+  \vspace{1.2cm}
+  {\sffamily\small\bfseries\color{MutedGray} \MakeUppercase{\GuideOrg}\ /\ PANDUAN OPERASIONAL\par}
+  \vspace{1.6cm}
+  {\sffamily\Huge\bfseries\color{SoftBlack} Buku Panduan\\[0.2em] Farm Management\par}
+  \vspace{0.6cm}
+  {\sffamily\Large\color{MutedGray} \GuideOrg\par}
+  \vspace{0.8cm}
+  \tcbox[colback=FarmGreen,colframe=FarmGreen,arc=4pt,boxsep=4pt,left=10pt,right=10pt]{%
+    \sffamily\bfseries\small\color{white}\MakeUppercase{\GuideVersion}\ \textperiodcentered\ \GuideDate%
+  }\par
+  \vspace{0.7cm}
+  {\large\color{SoftBlack} \GuideSubtitle\par}
+  \vfill
+  \begin{center}
+    \includegraphics[width=0.96\linewidth,height=0.30\textheight,keepaspectratio]{20-ilustrasi-lahan-penutup.png}
+  \end{center}
+  \vspace{0.3cm}
+  {\small\color{MutedGray} Akun awal dan kredensial diperoleh dari Developer melalui kanal terpisah yang aman.\par}
+\end{titlepage}
+\pagenumbering{arabic}
+
+% ----------------------------------------------------------------------
+% Table of Contents & Front Matter
+% ----------------------------------------------------------------------
+\tableofcontents
+\clearpage
+
+\input{sections/00-pengantar}
+\input{sections/01-istilah-dan-peran}
+\input{sections/02-persiapan-masuk}
+\input{sections/03-admin-akun-petugas}
+\input{sections/04-mencatat-lahan}
+\input{sections/05-blok-subblok-sop}
+\input{sections/06-alur-petugas-mobile}
+\input{sections/07-pemecahan-masalah}
+\input{sections/08-pengelolaan-dan-penutup}
+
+\end{document}

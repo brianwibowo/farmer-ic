@@ -1,0 +1,177 @@
+% Shared styling, colors, macros, and packages for Buku Panduan Farm Management.
+% Included by main.tex; edit here to update styling across the whole guide.
+
+\usepackage[a4paper,margin=2.2cm,headheight=24pt,footskip=24pt]{geometry}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+  \setmainfont{Latin Modern Roman}
+  \setsansfont{Latin Modern Sans}
+  \setmonofont{Latin Modern Mono}
+\fi
+
+\usepackage{graphicx}
+\graphicspath{{gambar/}}
+
+\usepackage[table]{xcolor}
+\definecolor{FarmGreen}{HTML}{087A55}
+\definecolor{FarmGreenDark}{HTML}{05583D}
+\definecolor{FarmGreenLight}{HTML}{EEF5F1}
+\definecolor{FarmBorder}{HTML}{C6DDD1}
+\definecolor{SoftBlack}{HTML}{2B3036}
+\definecolor{MutedGray}{HTML}{5C6470}
+\definecolor{GuideRed}{HTML}{DC2626}
+
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{tikz}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[most]{tcolorbox}
+\usepackage[plainpages=false,pdfpagelabels]{hyperref}
+
+% Indonesian labels for TOC, figures, and tables
+\renewcommand{\contentsname}{Daftar Isi}
+\renewcommand{\figurename}{Gambar}
+\renewcommand{\tablename}{Tabel}
+\renewcommand{\listfigurename}{Daftar Gambar}
+
+% Document metadata helpers (overridden in main.tex)
+\newcommand{\GuideTitle}{Buku Panduan Farm Management}
+\newcommand{\GuideSubtitle}{Panduan Kerja Admin dan Petugas/PIC}
+\newcommand{\GuideOrg}{PT Bumi Hijauan}
+\newcommand{\GuideVersion}{Versi 1.4}
+\newcommand{\GuideDate}{23 November 2026}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=FarmGreen,
+  urlcolor=FarmGreen,
+  citecolor=FarmGreen,
+  pdftitle={Buku Panduan Farm Management},
+  pdfauthor={PT Bumi Hijauan}
+}
+
+% Typography & spacing
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}
+\setlist{leftmargin=*,itemsep=3pt,topsep=4pt}
+\setlength{\parskip}{5.5pt}
+\setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{1.5em}
+\renewcommand{\arraystretch}{1.22}
+
+% Section headings
+\titleformat{\section}
+  {\Large\sffamily\bfseries\color{FarmGreenDark}}
+  {\thesection.}{0.55em}{}
+  [\vspace{-0.35em}\textcolor{FarmBorder}{\rule{\linewidth}{0.6pt}}]
+
+\titleformat{\subsection}
+  {\large\sffamily\bfseries\color{FarmGreen}}
+  {\thesubsection}{0.55em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\sffamily\bfseries\color{SoftBlack}}
+  {\thesubsubsection}{0.55em}{}
+
+% Caption styling
+\captionsetup{
+  font={small,it},
+  labelfont={bf,normalfont,color=FarmGreenDark},
+  labelsep=period,
+  skip=6pt
+}
+
+% Running headers and footers
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{MutedGray}\GuideTitle}
+\fancyhead[R]{\small\sffamily\color{MutedGray}\GuideOrg\ (\GuideVersion)}
+\fancyfoot[L]{\small\sffamily\color{MutedGray}\GuideDate}
+\fancyfoot[R]{\small\sffamily\color{MutedGray}Halaman \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{FarmBorder}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrule}{\hbox to\headwidth{\color{FarmBorder}\leaders\hrule height \footrulewidth\hfill}}
+
+% Reusable callout boxes
+\newtcolorbox{guidebox}[1]{
+  enhanced,
+  breakable,
+  colback=FarmGreenLight,
+  colframe=FarmGreen,
+  boxrule=0pt,
+  leftrule=3pt,
+  arc=2pt,
+  top=7pt,
+  bottom=7pt,
+  left=10pt,
+  right=10pt,
+  fonttitle=\sffamily\bfseries\small\color{FarmGreenDark},
+  title={#1},
+  attach title to upper={\par\vspace{2pt}}
+}
+
+% Standard screenshot figure (desktop / full width)
+% Usage: \guideimage[width-spec]{filename}{Caption text}{fig:label}
+\newcommand{\guideimage}[4][0.94\linewidth]{%
+  \begin{figure}[H]
+    \centering
+    \fcolorbox{FarmBorder}{white}{%
+      \includegraphics[width=#1,height=0.58\textheight,keepaspectratio]{#2}%
+    }%
+    \caption{#3}%
+    \label{#4}%
+  \end{figure}%
+}
+
+% Mobile / tall portrait screenshot figure
+% Usage: \guidemobileimage[width-spec]{filename}{Caption text}{fig:label}
+\newcommand{\guidemobileimage}[4][0.44\linewidth]{%
+  \begin{figure}[H]
+    \centering
+    \fcolorbox{FarmBorder}{white}{%
+      \includegraphics[width=#1,height=0.56\textheight,keepaspectratio]{#2}%
+    }%
+    \caption{#3}%
+    \label{#4}%
+  \end{figure}%
+}
+
+% Screenshot with normalized [0,1]x[0,1] TikZ overlay annotations
+% Origin (0,0) is bottom-left of the image, (1,1) is top-right.
+% Usage: \guideannotated[width-spec]{filename}{Caption text}{fig:label}{\highlightbox{...}\stepbadge{...}}
+\newcommand{\guideannotated}[5][0.94\linewidth]{%
+  \begin{figure}[H]
+    \centering
+    \fcolorbox{FarmBorder}{white}{%
+      \begin{tikzpicture}
+        \node[anchor=south west,inner sep=0] (img) at (0,0) {%
+          \includegraphics[width=#1,height=0.58\textheight,keepaspectratio]{#2}%
+        };
+        \begin{scope}[x={(img.south east)},y={(img.north west)}]
+          #5
+        \end{scope}
+      \end{tikzpicture}%
+    }%
+    \caption{#3}%
+    \label{#4}%
+  \end{figure}%
+}
+
+% Annotation helpers for use inside \guideannotated
+\newcommand{\highlightbox}[4]{%
+  \draw[GuideRed,line width=1.6pt,rounded corners=2pt] (#1,#2) rectangle (#3,#4);%
+}
+\newcommand{\stepbadge}[3]{%
+  \node[circle,fill=GuideRed,text=white,font=\sffamily\bfseries\scriptsize,inner sep=1.2pt,minimum size=13pt] at (#1,#2) {#3};%
+}

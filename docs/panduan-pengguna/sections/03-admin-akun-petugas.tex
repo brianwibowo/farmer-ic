@@ -1,0 +1,66 @@
+\section{Alur awal Admin: buat akun Petugas}
+
+Admin perlu masuk terlebih dahulu sebelum menyiapkan akun lapangan. Akun Petugas baru dapat ditautkan ke lahan yang sudah tercatat; jika lahannya belum ada, buat akun dahulu lalu lakukan penugasan setelah lahan tersedia.
+
+\subsection{Membuat akun Petugas baru}
+
+\begin{enumerate}[series=admin-akun]
+  \item Buka menu \textbf{Manajemen Pengguna}. Tabel ini menampilkan akun yang sudah ada dan tombol untuk menambahkan akun (Gambar~\ref{fig:daftar-pengguna}).
+\end{enumerate}
+
+\guideimage{08-list-management-pengguna.png}{Daftar pengguna. Periksa nama, email, peran, tenant, status, dan penugasan sebelum memilih tindakan.}{fig:daftar-pengguna}
+
+\begin{enumerate}[resume=admin-akun]
+  \item Pilih \textbf{Tambah pengguna}. Form pembuatan akun akan terbuka (Gambar~\ref{fig:tambah-pengguna}).
+\end{enumerate}
+
+\guideimage{10-tambah-pengguna.png}{Form tambah pengguna. Lengkapi identitas, peran, kata sandi awal, dan penugasan lahan jika sudah tersedia.}{fig:tambah-pengguna}
+
+\begin{enumerate}[resume=admin-akun]
+  \item Isi nama lengkap, email aktif, dan nomor WhatsApp bila tersedia.
+  \item Pilih peran aplikasi \textbf{Petugas}. Admin dapat membuat akun Admin atau Petugas sesuai kewenangannya; pengaturan Superadmin hanya dilakukan personel yang berwenang.
+  \item Tetapkan kata sandi awal dan isi konfirmasinya. Berikan kredensial kepada pengguna melalui kanal aman.
+  \item Jika lahan sudah tersedia, pilih lahan untuk penugasan Petugas. Jika belum tersedia, simpan tanpa penugasan dan kembali setelah lahan dibuat.
+  \item Tinjau kembali data lalu simpan. Pastikan pengguna muncul pada daftar dan peran serta penugasannya benar.
+\end{enumerate}
+
+\begin{guidebox}{Praktik yang disarankan}
+  Gunakan satu akun untuk satu orang, hindari pemakaian email bersama, dan pastikan akun Petugas diberi penugasan lahan yang benar karena penugasan membatasi data operasional yang dapat dilihat Petugas. Pada model saat ini, satu akun Petugas memiliki paling banyak satu lahan tugas; satu lahan dapat ditugaskan kepada beberapa Petugas.
+\end{guidebox}
+
+\subsection{Mengelola akun yang sudah dibuat}
+
+\begin{itemize}
+  \item Gunakan pencarian nama/email dan filter untuk menemukan akun. Menu tindakan di ujung baris membuka opsi detail, ubah, dan hapus sesuai izin (Gambar~\ref{fig:tindakan-pengguna}).
+\end{itemize}
+
+\guideimage{09-tindakan-lanjut-pengguna.png}{Menu tindakan pengguna. Pilih tindakan pada akun yang benar.}{fig:tindakan-pengguna}
+
+\begin{itemize}
+  \item Buka \textbf{Lihat detail} untuk memeriksa identitas, peran, tenant, dan lahan tugas (Gambar~\ref{fig:detail-pengguna}).
+\end{itemize}
+
+\guideimage{11-detail-pengguna.png}{Detail pengguna menampilkan informasi akun dan lahan yang ditugaskan.}{fig:detail-pengguna}
+
+\begin{itemize}
+  \item Pilih \textbf{Ubah pengguna} untuk memperbarui informasi yang diizinkan (Gambar~\ref{fig:ubah-pengguna}). Admin tenant tidak dapat mengganti peran akun yang telah ada; perubahan tersebut ditangani Superadmin.
+  \item Kata sandi baru pada formulir edit bersifat opsional. Mengubahnya dapat mengakhiri sesi aktif pengguna lain.
+\end{itemize}
+
+\guideimage{12-edit-informasi-pengguna.png}{Form ubah pengguna. Isian kata sandi boleh dikosongkan jika tidak ingin menggantinya.}{fig:ubah-pengguna}
+
+\begin{itemize}
+  \item \textbf{Hapus pengguna} meminta konfirmasi (Gambar~\ref{fig:hapus-pengguna}). Penghapusan menonaktifkan kemampuan masuk, sementara akun dan relasi operasional dipertahankan melalui \emph{soft delete}.
+\end{itemize}
+
+\guideimage{13-konfirmasi-hapus-pengguna.png}{Konfirmasi hapus pengguna. Pastikan akun yang ditampilkan benar sebelum mengonfirmasi penghapusan.}{fig:hapus-pengguna}
+
+\begin{itemize}
+  \item Pengguna yang dihapus tersedia pada tab \textbf{Terhapus} bagi Admin yang berwenang (Gambar~\ref{fig:tab-terhapus}). Pilih \textbf{Pulihkan} untuk mengaktifkan kembali akun.
+\end{itemize}
+
+\guideimage{14-list-pengguna-dalam-keadaan-terhapus.png}{Tab Terhapus menampilkan akun yang dapat dipulihkan oleh Admin yang berwenang.}{fig:tab-terhapus}
+
+Setelah memilih \textbf{Pulihkan}, tinjau dialog konfirmasi (Gambar~\ref{fig:pulihkan-pengguna}), lalu periksa kembali status dan penugasan akun.
+
+\guideimage{15-konfirmasi-pemulihan-pengguna.png}{Dialog konfirmasi pemulihan akun pengguna yang dipilih.}{fig:pulihkan-pengguna}

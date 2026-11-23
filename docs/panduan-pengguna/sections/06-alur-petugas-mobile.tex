@@ -1,0 +1,83 @@
+\section{Alur kerja Petugas/PIC di mobile}
+
+Bagian ini mengikuti alur tugas SOP dari beranda sampai tugas ditandai selesai. Pada layar Petugas, laporan aktivitas dan penyelesaian tugas adalah dua tindakan terpisah.
+
+\subsection{Periksa beranda, tugas perlu tindakan, dan insiden}
+
+\begin{enumerate}
+  \item Setelah masuk, buka \textbf{Beranda}. Bagian atas menampilkan cuaca serta ringkasan subblok pra-tanam, penanaman, dan panen.
+  \item Periksa kartu \textbf{Insiden aktif}. Insiden yang belum ditindaklanjuti dapat berasal dari laporan Petugas pada lahan yang sama; buka detail atau pilih \textbf{Lihat semua} untuk meninjau informasi dan tindak lanjut.
+  \item Pada bagian \textbf{Tugas perlu tindakan} (Gambar~\ref{fig:petugas-beranda}), pilih kartu tugas untuk membuka detailnya, atau pilih \textbf{Lihat semua} untuk masuk ke daftar lengkap tugas. Indikator progres (\emph{X/Y selesai}), tanggal jadwal, target HST, dan lencana status membantu membedakan pekerjaan yang harus diprioritaskan.
+  \item Jika tugas atau insiden yang diharapkan tidak terlihat, pastikan lahan yang ditugaskan benar dan periksa menu Tugas bersama Admin.
+\end{enumerate}
+
+\guidemobileimage[0.40\linewidth]{GambarPetugas1.png}{Beranda Petugas: tinjau insiden aktif dan pilih tugas pada daftar tugas. Catatan: pada versi terbaru, judul daftar To-do hari ini telah diperbarui menjadi Tugas perlu tindakan disertai tautan Lihat semua dan tanggal jadwal pada kartu tugas.}{fig:petugas-beranda}
+
+\subsection{Buka dan pahami detail tugas}
+
+\begin{enumerate}
+  \item Pilih tugas dari daftar \textbf{Tugas perlu tindakan} di Beranda atau melalui tab \textbf{Tugas}.
+  \item Periksa nama tugas, lahan/blok/subblok, \textbf{Jadwal tugas}, \textbf{Target tugas} (HST), \textbf{Varietas}, \textbf{Estimasi HOK}, serta \textbf{Jendela pelaporan}.
+  \item Baca \textbf{Instruksi SOP} sebelum mulai bekerja. Instruksi menjelaskan cara kerja atau hal yang harus diperiksa.
+  \item Jika pencatatan tersedia (tanggal tanam aktual sudah tercatat dan tugas belum selesai/ditutup), tekan \textbf{Catat aktivitas tugas ini} untuk membuat laporan yang terhubung dengan tugas.
+\end{enumerate}
+
+\guideimage{GambarPetugas2.png}{Baca target HST dan instruksi SOP sebelum memulai pekerjaan, lalu buka form dari tombol Catat aktivitas tugas ini.}{fig:petugas-detail-tugas}
+
+\guideimage{GambarPetugas3.png}{Contoh tampilan detail tugas dan instruksi yang menjadi acuan pelaksanaan.}{fig:petugas-detail-instruksi}
+
+\guideimage{GambarPetugas7.png}{Tindakan untuk memulai pencatatan laporan pada tugas SOP melalui tombol Catat aktivitas tugas ini.}{fig:petugas-tombol-catat}
+
+\subsection{Isi form aktivitas yang terhubung ke tugas}
+
+\begin{enumerate}
+  \item Pastikan ringkasan tugas yang terhubung sudah benar. \textbf{Tanggal kerja} harus sesuai hari pelaksanaan dan berada dalam jendela pelaporan yang ditampilkan.
+  \item Isi \textbf{Jumlah pekerja} serta \textbf{Luas area} dan satuannya sesuai pekerjaan. Kolom dapat berbeda menurut kategori tugas (misalnya \textbf{Jumlah pekerja} tidak ditampilkan pada pengamatan perkembangan tanaman); isi kolom yang tampil dan wajib.
+  \item Lampirkan minimal satu \textbf{foto bukti pekerjaan} melalui \textbf{Tambah foto}. Form menerima JPG, PNG, atau WebP, paling banyak lima foto, dengan batas ukuran 15~MB per foto (foto dikompresi otomatis di browser sebelum diunggah).
+  \item \textbf{Tambah catatan} dapat diisi jika diperlukan. Periksa kembali data dan bukti, lalu tekan \textbf{Simpan aktivitas}.
+  \item Jika unggahan atau penyimpanan gagal, ikuti pesan pada layar dan kirim ulang setelah memperbaiki isian atau koneksi.
+\end{enumerate}
+
+\guideimage{GambarPetugas4.png}{Form aktivitas tugas. Kolom menyesuaikan jenis pekerjaan; foto bukti wajib dilampirkan sebelum laporan dikirim.}{fig:petugas-form-aktivitas}
+
+\guidemobileimage[0.44\linewidth]{GambarPetugas8.png}{Contoh pengisian laporan untuk tugas SOP sebelum menekan Simpan aktivitas.}{fig:petugas-form-terisi}
+
+\subsection{Tinjau laporan yang tersimpan dan selesaikan tugas}
+
+\begin{enumerate}[series=petugas-selesai]
+  \item Setelah penyimpanan berhasil, periksa detail tugas atau buka tab \textbf{Laporan} untuk memastikan aktivitas muncul. Laporan tugas menampilkan relasi ke tugas dan ringkasan hasil yang dikirim.
+  \item Tersimpannya laporan \textbf{tidak otomatis menyelesaikan tugas}. Status tugas berubah menjadi \textbf{Dikerjakan} dan dapat tetap demikian selama masih ada pekerjaan yang harus dituntaskan (Gambar~\ref{fig:petugas-status-dikerjakan}).
+\end{enumerate}
+
+\guidemobileimage[0.46\linewidth]{GambarPetugas10.png}{Setelah laporan terkait dikirim, tugas tampak berstatus Dikerjakan; status ini belum berarti tugas selesai.}{fig:petugas-status-dikerjakan}
+
+\begin{enumerate}[resume=petugas-selesai]
+  \item Setelah seluruh pekerjaan benar-benar selesai, buka kembali detail tugas, isi \textbf{Catatan penyelesaian (opsional)} bila perlu, lalu tekan \textbf{Selesaikan tugas} (Gambar~\ref{fig:petugas-selesaikan-tugas}).
+  \item Tinjau kembali status setelah konfirmasi. Menandai selesai merupakan sinyal progres untuk Admin dan sistem; setelah tugas selesai, laporan baru tidak dapat ditambahkan pada tugas tersebut.
+\end{enumerate}
+
+\guideimage{GambarPetugas6.png}{Contoh halaman detail laporan yang tersimpan. Periksa informasi tugas terkait untuk memastikan laporan terhubung dengan pekerjaan SOP yang benar.}{fig:petugas-detail-laporan}
+
+\guidemobileimage[0.42\linewidth]{GambarPetugas9.png}{Tugas berstatus Dikerjakan dengan laporan terkait. Tekan Selesaikan tugas setelah seluruh pekerjaan tuntas.}{fig:petugas-selesaikan-tugas}
+
+\subsection{Lihat semua tugas dan gunakan filter}
+
+\begin{enumerate}
+  \item Buka tab \textbf{Tugas} untuk melihat daftar tugas lintas blok dan subblok pada lahan penugasan. Gunakan tab \textbf{Tugas berjalan} untuk pekerjaan aktif atau \textbf{Riwayat subblok} untuk meninjau subblok yang sudah selesai/dibatalkan.
+  \item Gunakan ringkasan jumlah tugas \textbf{Terlambat}, \textbf{Hari ini}, dan \textbf{Mendatang} sebagai gambaran beban kerja.
+  \item Cari nama tugas atau subblok, pilih status (\textbf{Perlu tindakan}, \textbf{Terlambat}, \textbf{Hari ini}, \textbf{Mendatang}, \textbf{Ditutup}, atau \textbf{Semua}), lalu tekan tombol \textbf{Filter} untuk menyaring berdasarkan kategori tugas, blok, atau subblok. Gunakan \textbf{Reset filter} dan pengatur \textbf{Per halaman} (\texttt{10}, \texttt{20}, atau \texttt{50}) bila daftar panjang.
+  \item Buka kartu tugas untuk melihat instruksi, mengirim laporan, atau menandai penyelesaian (Gambar~\ref{fig:petugas-daftar-tugas}). Daftar dapat mencakup tugas yang sudah berstatus \textbf{Dikerjakan} agar Petugas bisa melanjutkan tindak lanjut.
+\end{enumerate}
+
+\guidemobileimage[0.34\linewidth]{GambarPetugas11.png}{Daftar tugas lengkap dengan pencarian, filter status, dan daftar lintas blok/subblok.}{fig:petugas-daftar-tugas}
+
+\subsection{Lihat lahan dan catat aktivitas mandiri}
+
+\begin{enumerate}
+  \item Buka tab \textbf{Lahan} (\textbf{Lahan saya}), lalu pilih blok untuk melihat alamat/wilayah, luas, kapasitas blok, tampilan subblok \textbf{Berjalan} atau \textbf{Riwayat}, serta ringkasan progres. Bila diberi izin dan sisa luas blok masih tersedia, Petugas juga dapat menekan \textbf{Tambah subblok} dari halaman ini.
+  \item Untuk pekerjaan di luar daftar tugas SOP, tekan tombol \textbf{+} pada \textbf{Beranda} atau \textbf{Laporan} untuk membuka dialog \textbf{Tambah aktivitas mandiri}. Memilih kategori \textbf{Penanaman} akan mengarahkan ke form pencatatan penanaman, sedangkan kategori lainnya membuka form aktivitas mandiri (isi tanggal/waktu, lokasi, jumlah pekerja opsional, foto bukti, dan rincian yang diminta lalu tekan \textbf{Simpan laporan}).
+  \item Pastikan aktivitas yang baru disimpan muncul di riwayat tab \textbf{Laporan} (Gambar~\ref{fig:petugas-aktivitas-mandiri}).
+  \item Pada tab \textbf{Laporan}, cari berdasarkan aktivitas atau subblok dan gunakan filter \textbf{Tanggal kerja}, \textbf{Kategori}, \textbf{Sumber laporan} (\textbf{Semua sumber}, \textbf{Dari SOP}, \textbf{Mandiri}), atau centang \textbf{Input saya}. Buka kartu laporan untuk melihat detailnya.
+\end{enumerate}
+
+\guideimage{GambarPetugas5.png}{Contoh form aktivitas mandiri di luar jadwal tugas SOP. Gunakan alur ini untuk pekerjaan yang memang tidak terkait tugas terjadwal.}{fig:petugas-aktivitas-mandiri}

@@ -1,0 +1,125 @@
+\section{Membagi lahan menjadi blok, subblok, dan SOP}
+
+\subsection{Tambahkan blok}
+
+\begin{enumerate}[series=admin-blok]
+  \item Dari detail lahan, pilih \textbf{Tambah blok}. Gambar~\ref{fig:detail-lahan} menunjukkan letak aksi \textbf{Tambah blok} (1) dan \textbf{Tambah subblok} (2).
+\end{enumerate}
+
+\guideimage{02-detail-lahan.png}{Detail lahan. Gunakan tombol Tambah blok (1) untuk memulai pembagian lahan, atau Tambah subblok (2) pada blok yang sudah ada. (Label menu pada tangkapan layar masih memakai Manajemen Kebun versi sebelumnya.)}{fig:detail-lahan}
+
+\begin{enumerate}[resume=admin-blok]
+  \item Pilih \textbf{Komoditas blok} terlebih dahulu (Gambar~\ref{fig:tambah-blok}). Pilihan \textbf{SOP default blok} mengikuti komoditas yang dipilih.
+  \item Pilih SOP yang sesuai. Jika SOP belum tersedia, Admin perlu menyusun SOP untuk komoditas tersebut sebelum memasangnya pada blok (lihat Subbab~\ref{subsec:kelola-sop}).
+  \item Isi \textbf{Nama blok} yang unik di lahan tersebut, misalnya \textbf{Blok Timur} atau \textbf{Blok Utara}.
+  \item Masukkan \textbf{Luas blok} dan pilih \textbf{Satuan luas} (\textbf{Hektare (ha)} atau \textbf{Meter persegi (m\textsuperscript{2})}). Rencanakan pembagian luas agar jumlah blok aktif tidak melebihi kapasitas lahan. Pembagian sama rata hanya salah satu cara perencanaan, bukan aturan wajib.
+  \item Pastikan \textbf{Status blok} bernilai \textbf{Aktif} bila blok akan digunakan untuk kegiatan operasional. \textbf{Catatan} bersifat opsional.
+  \item (Opsional) Tandai \textbf{Batas blok di peta} dengan mengeklik minimal 3 titik sudut poligon pada peta; luas poligon juga dapat diterapkan ke isian luas blok.
+  \item Tekan \textbf{Simpan blok}, lalu periksa hasilnya di halaman detail lahan.
+\end{enumerate}
+
+\guideimage[0.72\linewidth]{03-form-tambah-blok.png}{Form tambah blok. Pilih komoditas (1) dan SOP default (2), lengkapi nama, luas, serta satuan, lalu simpan (3). Pada versi terbaru, kolom Kode blok sudah dihapus dan bagian bawah form memiliki pemetaan Batas blok di peta (terlihat pada Gambar~\ref{fig:sop-pada-blok}). Pada contoh ini kapasitas blok aktif adalah 0~ha sehingga tombol simpan nonaktif.}{fig:tambah-blok}
+
+\subsection{Tambahkan subblok}
+
+\begin{enumerate}
+  \item Pada blok yang tepat, pilih \textbf{Tambah sub blok}. Form yang terbuka ditunjukkan pada Gambar~\ref{fig:tambah-subblok}.
+  \item Pilih atau buat \textbf{Siklus lahan} yang menaungi subblok baru tersebut (wajib dipilih sebelum tombol simpan aktif). Jika blok sudah memiliki subblok lain pada siklus berjalan, ringkasan riwayatnya akan ditampilkan.
+  \item Isi \textbf{Label sub blok (opsional)} bila diperlukan; jika dikosongkan, sistem memberi label otomatis (\texttt{A}, \texttt{B}, \texttt{C}, dan seterusnya).
+  \item Isi \textbf{Rencana tanggal tanam (opsional)} bila sudah diketahui. Tanggal ini adalah rencana, bukan bukti bahwa penanaman sudah terjadi.
+  \item Periksa \textbf{Sisa lahan blok untuk penanaman}, lalu tekan \textbf{Tambah sub blok}.
+  \item Setelah subblok tersedia, Petugas dapat menjalankan alur penanaman untuk bagian tersebut. Aktivitas persiapan tertentu, seperti pembersihan lahan, dapat dicatat pada tingkat blok sesuai alur aplikasi.
+\end{enumerate}
+
+\guideimage[0.78\linewidth]{04-form-tambah-subblok.png}{Form tambah subblok. Label dan rencana tanggal tanam (1) bersifat opsional sebelum menekan Tambah sub blok (2). Catatan: versi terbaru menambahkan pilihan wajib Siklus lahan di bagian atas form serta daftar riwayat subblok terdaftar.}{fig:tambah-subblok}
+
+\subsection{Membuat, menerbitkan, dan merevisi SOP}
+\label{subsec:kelola-sop}
+
+Admin dan Superadmin membuat SOP per komoditas melalui menu \textbf{SOP}. Panduan ini menyusun langkah SOP mulai dari \textbf{perawatan setelah penanaman hingga panen}. Langkah persiapan lahan dan penanaman tidak dimasukkan ke dalam rangkaian ini.
+
+\subsubsection{Periksa daftar dan buat template}
+
+\begin{enumerate}[series=admin-sop]
+  \item Buka menu \textbf{SOP}. Cari berdasarkan nama atau komoditas untuk memastikan template yang dibutuhkan belum tersedia, lalu pilih \textbf{Tambah SOP} (Gambar~\ref{fig:sop-daftar}).
+\end{enumerate}
+
+\guideimage{Gambar1SOP.png}{Daftar template SOP pada menu SOP Admin/Superadmin. Gunakan tombol Tambah SOP di kanan atas tabel untuk membuat template baru.}{fig:sop-daftar}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Pada \textbf{Identitas template}, isi nama template, pilih komoditas, tinjau status aktif untuk subblok baru, dan tulis deskripsi tujuan atau cakupannya, lalu pilih \textbf{Simpan template} (Gambar~\ref{fig:sop-form-kosong}).
+\end{enumerate}
+
+\guideimage{Gambar2SOP.png}{Form identitas template SOP baru.}{fig:sop-form-kosong}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Gunakan contoh pengisian berikut sebagai acuan: nama \textbf{SOP Budidaya Rumput}, komoditas \textbf{Rumput}, status aktif, dan deskripsi tujuan SOP (Gambar~\ref{fig:sop-form-terisi}). Sesuaikan dengan komoditas dan praktik yang disepakati.
+\end{enumerate}
+
+\guideimage{Gambar3SOP.png}{Contoh pengisian form identitas SOP sebelum disimpan.}{fig:sop-form-terisi}
+
+\subsubsection{Susun langkah perawatan sampai panen}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Setelah template tersimpan, halaman detail menampilkan versi awal berstatus \textbf{Draft} (Gambar~\ref{fig:sop-draft}). Tambahkan langkah satu per satu sesuai SOP agronomi komoditas: pemantauan awal, pemeliharaan, pemupukan susulan, pengamatan pertumbuhan, pengendalian bila diperlukan, pemeriksaan kesiapan panen, hingga panen dan pencatatan hasil. Angka jadwal hari setelah tanam (HST) harus mengikuti SOP agronomi yang disetujui.
+\end{enumerate}
+
+\guideimage{Gambar4SOP.png}{Detail SOP setelah template dibuat. Tambahkan langkah selama versi masih Draft; tombol Publikasikan digunakan setelah seluruh daftar langkah ditinjau.}{fig:sop-draft}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Di jendela \textbf{Tambah langkah SOP} (Gambar~\ref{fig:sop-tambah-langkah}), isi nama langkah, kategori aktivitas, \textbf{Jadwal setelah tanam (hari)}, \textbf{Toleransi (hari)}, dan instruksi. \textbf{Estimasi HOK} bersifat opsional.
+\end{enumerate}
+
+\guideimage{Gambar5SOP.png}{Jendela Tambah langkah SOP. Catatan: pada versi terbaru, label Offset HST (hari) berubah menjadi Jadwal setelah tanam (hari) dengan isian kosong (contoh: 14) dan nilai awal Toleransi (hari) berubah menjadi 7 hari.}{fig:sop-tambah-langkah}
+
+Rincian setiap kolom pada jendela langkah SOP:
+\begin{itemize}
+  \item \textbf{Nama langkah:} menjelaskan tindakan secara spesifik, seperti \emph{Pemupukan susulan pertama}.
+  \item \textbf{Kategori aktivitas:} mengelompokkan langkah, misalnya \textbf{Perawatan} atau \textbf{Panen}.
+  \item \textbf{Jadwal setelah tanam (hari):} menentukan hari pelaksanaan relatif terhadap tanggal tanam aktual (wajib diisi). Isi \texttt{0} untuk hari tanam (\texttt{H+0}), atau \texttt{14} untuk 14 hari setelah tanam (\texttt{H+14}).
+  \item \textbf{Toleransi (hari):} menambahkan tenggang waktu setelah tanggal jadwal (nilai bawaan \texttt{7} hari). Jika batas ini terlewati, sistem dapat menandai tugas terlambat dan memicu tindak lanjut. Notifikasi deviasi SOP saat ini dikirim kepada Admin.
+  \item \textbf{Instruksi:} menjelaskan cara kerja, hal yang perlu diperiksa, atau catatan dari Admin atau Superadmin untuk Petugas.
+  \item \textbf{Estimasi HOK (Hari Orang Kerja):} opsional dan merupakan perkiraan kebutuhan kerja, bukan penjadwal tugas.
+\end{itemize}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Setelah tiap langkah ditambahkan, tinjau urutan jadwal HST, toleransi, nama, kategori, dan instruksinya (Gambar~\ref{fig:sop-daftar-langkah}). Selama masih \textbf{Draft}, gunakan ikon pensil untuk mengedit dan ikon tempat sampah untuk menghapus langkah yang keliru. Selesaikan daftar perawatan hingga panen sebelum publikasi.
+\end{enumerate}
+
+\guideimage{Gambar6SOP.png}{Tinjau dan koreksi langkah Draft sebelum menerbitkan SOP.}{fig:sop-daftar-langkah}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Pilih \textbf{Publikasikan}. Versi yang terbit menjadi acuan yang dapat dipilih untuk blok (Gambar~\ref{fig:sop-published}). Versi \textbf{Published} dibekukan dan langkahnya tidak dapat diedit langsung.
+\end{enumerate}
+
+\guideimage{Gambar7SOP.png}{Detail SOP berstatus Published setelah diterbitkan. (Tangkapan layar pada berkas aset saat ini masih menampilkan status Draft; perbarui aset Gambar7SOP.png jika ingin menampilkan lencana Published.)}{fig:sop-published}
+
+\subsubsection{Revisi melalui versi baru}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Untuk mengubah SOP yang sudah diterbitkan, pilih \textbf{Versi baru} (Gambar~\ref{fig:sop-versi-baru}). Sistem membuat \textbf{Draft} baru berdasarkan versi sebelumnya.
+\end{enumerate}
+
+\guideimage{Gambar8SOP.png}{Mulai revisi dengan memilih Versi baru; versi Published lama tetap tersimpan sebagai riwayat.}{fig:sop-versi-baru}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Periksa Draft versi berikutnya (Gambar~\ref{fig:sop-draft-revisi}). Edit atau hapus langkah dengan ikon tindakan, tambahkan langkah baru bila diperlukan, lalu tinjau kembali semua jadwal dan toleransi. Pilih \textbf{Publikasikan} untuk menerbitkan revisi setelah selesai.
+\end{enumerate}
+
+\guideimage{Gambar9SOP.png}{Revisi SOP pada versi Draft baru. Perubahan baru berlaku setelah versi tersebut diterbitkan.}{fig:sop-draft-revisi}
+
+Versi baru tidak otomatis mengganti \emph{snapshot} SOP pada siklus yang sudah berjalan. Tinjau penerapan versi baru pada blok dan siklus yang akan dimulai.
+
+\subsubsection{Tetapkan SOP pada blok}
+
+\begin{enumerate}[resume=admin-sop]
+  \item Buka detail lahan, lalu pilih \textbf{Tambah blok} atau edit blok yang belum memiliki SOP. Pilih komoditas blok terlebih dahulu, kemudian pilih SOP yang sesuai dari daftar (Gambar~\ref{fig:sop-pada-blok}). Lengkapi nama dan luas blok, lalu simpan.
+\end{enumerate}
+
+\guideimage{Gambar10SOP.png}{Tetapkan SOP Published pada blok. Pilih komoditas terlebih dahulu agar daftar SOP yang sesuai ditampilkan.}{fig:sop-pada-blok}
+
+\begin{guidebox}{Jadwal tugas dan pengelolaan versi}
+  \textbf{Jadwal tugas:} tugas siklus dihitung dari tanggal tanam aktual (\texttt{planted\_at}) ditambah jadwal hari setelah tanam; tanggal rencana tanam belum memulai hitung mundur. Toleransi hari menjadi masa tenggang setelah jadwal. Notifikasi deviasi SOP saat ini dikirim kepada Admin; Owner belum menjadi penerima.
+
+  \textbf{Pengelolaan versi:} versi \textbf{Published} dibekukan. Siklus yang telah memakai \emph{snapshot} versi sebelumnya tetap mengacu pada \emph{snapshot} tersebut. Penerbitan versi baru tidak otomatis mengubah SOP pada semua blok atau siklus berjalan.
+\end{guidebox}
