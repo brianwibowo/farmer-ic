@@ -2,15 +2,25 @@
 import { Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
+    CalendarDays,
     Check,
     Circle,
     Clock3,
     FileCheck2,
     MapPin,
 } from '@lucide/vue';
+import { computed } from 'vue';
+import TaskStatusBadges from '@/components/petugas/TaskStatusBadges.vue';
+import { withPetugasBack } from '@/lib/petugasBackLink';
+import { formatReportDate } from '@/lib/petugasReport';
 import type { PetugasHomeTask } from '@/types/petugas-home';
 
-defineProps<{ task: PetugasHomeTask }>();
+const props = defineProps<{ task: PetugasHomeTask }>();
+const urgency = computed(
+    () =>
+        props.task.urgency ??
+        (props.task.status === 'completed' ? 'completed' : 'today'),
+);
 const status = {
     pending: {
         label: 'Terjadwal',
@@ -47,7 +57,12 @@ const status = {
 
 <template>
     <Link
-        :href="`/petugas/tasks/${encodeURIComponent(task.id)}`"
+        :href="
+            withPetugasBack(
+                `/petugas/tasks/${encodeURIComponent(task.id)}`,
+                '/petugas',
+            )
+        "
         :aria-label="`Lihat aktivitas untuk ${task.name}`"
         class="petugas-card group flex min-h-20 items-start gap-3 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
     >
@@ -78,17 +93,25 @@ const status = {
                     ></span
                 >
             </span>
+            <span
+                v-if="task.scheduled_date || task.hst !== null"
+                class="mt-1 flex items-center gap-1 text-xs leading-5 text-muted-foreground"
+            >
+                <CalendarDays class="size-3 shrink-0" aria-hidden="true" />
+                <span>
+                    <template v-if="task.scheduled_date">{{
+                        formatReportDate(task.scheduled_date)
+                    }}</template>
+                    <template v-if="task.scheduled_date && task.hst !== null">
+                        ·
+                    </template>
+                    <template v-if="task.hst !== null"
+                        >{{ task.hst }} HST</template
+                    >
+                </span>
+            </span>
             <span class="mt-2 flex flex-wrap items-center gap-2">
-                <span
-                    class="rounded-full px-2 py-1 text-[11px] font-medium"
-                    :class="status[task.status].color"
-                    >{{ status[task.status].label }}</span
-                >
-                <span
-                    v-if="task.hst !== null"
-                    class="text-[11px] text-muted-foreground"
-                    >{{ task.hst }} HST</span
-                >
+                <TaskStatusBadges :status="task.status" :urgency="urgency" />
             </span>
         </span>
         <ArrowRight

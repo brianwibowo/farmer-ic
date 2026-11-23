@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Link } from '@inertiajs/vue3';
+import { Form, Link } from "@inertiajs/vue3";
 import {
     ArrowLeft,
     ChevronRight,
@@ -7,19 +7,20 @@ import {
     LockKeyhole,
     Pencil,
     Save,
-} from '@lucide/vue';
-import { ref } from 'vue';
-import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
-import DeleteUser from '@/components/DeleteUser.vue';
-import InputError from '@/components/InputError.vue';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { getInitials } from '@/composables/useInitials';
-import { edit as editSecurity } from '@/routes/security';
+} from "@lucide/vue";
+import { ref } from "vue";
+import ProfileController from "@/actions/App/Http/Controllers/Settings/ProfileController";
+import LogoutAllDevices from "@/components/settings/LogoutAllDevices.vue";
+import InputError from "@/components/InputError.vue";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { getInitials } from "@/composables/useInitials";
+import { edit as editSecurity } from "@/routes/security";
 
 const props = defineProps<{
     returnUrl: string;
+    canLogoutAllDevices: boolean;
     profile: {
         name: string;
         email: string;
@@ -42,20 +43,26 @@ const isEditing = ref(false);
         </Link>
 
         <header class="flex flex-col items-center px-4 pt-2 pb-1 text-center">
-            <Avatar class="size-20 rounded-full border-2 border-primary/20 shadow-sm">
+            <Avatar
+                class="size-20 rounded-full border-2 border-primary/20 shadow-sm"
+            >
                 <AvatarImage
                     v-if="props.profile.avatar"
                     :src="props.profile.avatar"
                     :alt="props.profile.name"
                 />
-                <AvatarFallback class="bg-primary/15 text-xl font-bold text-secondary">
+                <AvatarFallback
+                    class="bg-primary/15 text-xl font-bold text-secondary"
+                >
                     {{ getInitials(props.profile.name) }}
                 </AvatarFallback>
             </Avatar>
             <h1 class="mt-3 text-[22px] leading-7 font-bold text-foreground">
                 {{ props.profile.name }}
             </h1>
-            <p class="mt-1 max-w-full truncate text-sm leading-5 text-muted-foreground/70">
+            <p
+                class="mt-1 max-w-full truncate text-sm leading-5 text-muted-foreground/70"
+            >
                 {{ props.profile.email }}
             </p>
             <button
@@ -69,11 +76,11 @@ const isEditing = ref(false);
             </button>
         </header>
 
-        <section class="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <section
+            class="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+        >
             <div class="flex items-center justify-between gap-3 px-4 py-3.5">
-                <p class="text-sm leading-5 text-foreground">
-                    Informasi akun
-                </p>
+                <p class="text-sm leading-5 text-foreground">Informasi akun</p>
                 <button
                     v-if="isEditing"
                     type="button"
@@ -87,23 +94,35 @@ const isEditing = ref(false);
             <dl v-if="!isEditing" class="border-t border-border/50 text-sm">
                 <div class="flex items-start justify-between gap-4 px-4 py-3.5">
                     <dt class="text-muted-foreground/70">Nama lengkap</dt>
-                    <dd class="max-w-[62%] text-right font-medium text-foreground">
+                    <dd
+                        class="max-w-[62%] text-right font-medium text-foreground"
+                    >
                         {{ props.profile.name }}
                     </dd>
                 </div>
-                <div class="flex items-start justify-between gap-4 border-t border-border/50 px-4 py-3.5">
+                <div
+                    class="flex items-start justify-between gap-4 border-t border-border/50 px-4 py-3.5"
+                >
                     <dt class="text-muted-foreground/70">Email</dt>
-                    <dd class="max-w-[62%] break-all text-right font-medium text-foreground">
+                    <dd
+                        class="max-w-[62%] break-all text-right font-medium text-foreground"
+                    >
                         {{ props.profile.email }}
                     </dd>
                 </div>
-                <div class="flex items-start justify-between gap-4 border-t border-border/50 px-4 py-3.5">
+                <div
+                    class="flex items-start justify-between gap-4 border-t border-border/50 px-4 py-3.5"
+                >
                     <dt class="text-muted-foreground/70">WhatsApp</dt>
                     <dd
                         class="max-w-[62%] text-right font-medium"
-                        :class="props.profile.phone_number ? 'text-foreground' : 'text-muted-foreground/70'"
+                        :class="
+                            props.profile.phone_number
+                                ? 'text-foreground'
+                                : 'text-muted-foreground/70'
+                        "
                     >
-                        {{ props.profile.phone_number || 'Belum ditambahkan' }}
+                        {{ props.profile.phone_number || "Belum ditambahkan" }}
                     </dd>
                 </div>
             </dl>
@@ -159,8 +178,12 @@ const isEditing = ref(false);
                         maxlength="24"
                         aria-describedby="phone-help"
                     />
-                    <p id="phone-help" class="text-xs leading-4 text-muted-foreground/60">
-                        Opsional. Nomor 08... atau +628... disimpan sebagai 628....
+                    <p
+                        id="phone-help"
+                        class="text-xs leading-4 text-muted-foreground/60"
+                    >
+                        Opsional. Nomor 08... atau +628... disimpan sebagai
+                        628....
                     </p>
                     <InputError :message="errors.phone_number" />
                 </div>
@@ -171,26 +194,40 @@ const isEditing = ref(false);
                     class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:bg-disable disabled:text-disable-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     data-test="update-profile-button"
                 >
-                    <LoaderCircle v-if="processing" class="size-4 animate-spin" />
+                    <LoaderCircle
+                        v-if="processing"
+                        class="size-4 animate-spin"
+                    />
                     <Save v-else class="size-4" aria-hidden="true" />
-                    {{ processing ? 'Menyimpan...' : 'Simpan perubahan' }}
+                    {{ processing ? "Menyimpan..." : "Simpan perubahan" }}
                 </button>
             </Form>
         </section>
 
-        <section class="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <section
+            class="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+        >
             <Link
                 :href="editSecurity()"
                 class="flex min-h-12 items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-                <LockKeyhole class="size-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
-                <span class="min-w-0 flex-1 text-sm font-medium text-foreground">
+                <LockKeyhole
+                    class="size-4 shrink-0 text-muted-foreground/70"
+                    aria-hidden="true"
+                />
+                <span
+                    class="min-w-0 flex-1 text-sm font-medium text-foreground"
+                >
                     Ubah kata sandi
                 </span>
-                <ChevronRight class="size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+                <ChevronRight
+                    class="size-4 shrink-0 text-muted-foreground/60"
+                    aria-hidden="true"
+                />
             </Link>
         </section>
 
+        <LogoutAllDevices v-if="props.canLogoutAllDevices" />
         <DeleteUser mobile />
     </div>
 </template>

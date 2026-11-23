@@ -48,7 +48,10 @@ export type PetugasTask = {
 };
 
 export type PetugasTaskFilters = {
+    q?: string | null;
     block_id?: string | null;
+    subblok_id?: string | null;
+    per_page?: number;
     status: 'all' | 'active' | PetugasTaskUrgency;
     view?: 'running' | 'history';
     category?: PetugasTaskCategory | null;
@@ -74,7 +77,24 @@ export type PetugasActivityPageProps = {
 };
 
 export type PetugasTaskPageProps = {
-    tasks: PetugasTask[];
+    tasks: {
+        data: PetugasTask[];
+        total: number;
+        from: number | null;
+        to: number | null;
+        current_page: number;
+        last_page: number;
+    } | null;
+    options: {
+        blocks: { id: string; name: string }[];
+        subbloks: {
+            id: string;
+            block_id: string;
+            label: string | null;
+            number: number;
+        }[];
+        categories: PetugasTaskCategory[];
+    };
     filters: PetugasTaskFilters;
     summary: Record<PetugasTaskUrgency, number>;
     farm: { id: string; name: string } | null;

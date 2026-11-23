@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import { withPetugasBack } from '@/lib/petugasBackLink';
 import type { DailyReport, DailyReportActivity } from '@/types/daily-activity';
 
 const props = defineProps<{
@@ -123,7 +124,12 @@ const adding = ref(false);
                 </div>
                 <Link
                     v-if="activity.task_id && canRecord"
-                    :href="`/petugas/tasks/${activity.task_id}`"
+                    :href="
+                        withPetugasBack(
+                            `/petugas/tasks/${activity.task_id}`,
+                            `/petugas/laporan/harian?work_date=${date}`,
+                        )
+                    "
                     class="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
                     >Lihat tugas SOP asal</Link
                 >
@@ -148,7 +154,13 @@ const adding = ref(false);
                         >Dari tugas SOP</Link
                     ></Button
                 ><Button as-child variant="outline" class="min-h-12 rounded-xl"
-                    ><Link :href="`/petugas/penanaman?work_date=${date}`"
+                    ><Link
+                        :href="
+                            withPetugasBack(
+                                `/petugas/penanaman?work_date=${date}`,
+                                `/petugas/laporan/harian?work_date=${date}`,
+                            )
+                        "
                         >Penanaman awal subblok</Link
                     ></Button
                 >

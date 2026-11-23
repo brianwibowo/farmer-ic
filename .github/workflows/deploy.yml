@@ -2,7 +2,7 @@ name: Deploy
 
 on:
     workflow_run:
-        workflows: [CI]
+        workflows: [Release image]
         types: [completed]
 
 permissions:
@@ -84,7 +84,7 @@ jobs:
                         git -C "$VPS_DEPLOY_PATH" remote add origin "https://github.com/$REPOSITORY.git"
                       fi
 
-                      # Do not deploy an older CI run after main has advanced.
+                      # Do not deploy an older release run after main has advanced.
                       git -C "$VPS_DEPLOY_PATH" fetch --depth 1 origin main
                       if [ "$(git -C "$VPS_DEPLOY_PATH" rev-parse FETCH_HEAD)" != "$COMMIT_SHA" ]; then
                         echo 'A newer main commit exists; skipping this deployment.'

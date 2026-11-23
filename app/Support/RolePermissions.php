@@ -56,6 +56,13 @@ final class RolePermissions
         return $this->membershipSnapshot($user) ?? $user->teams()->get();
     }
 
+    public function firstTeamMembership(User $user): ?Team
+    {
+        $memberships = $this->membershipSnapshot($user);
+
+        return $memberships !== null ? $memberships->first() : $user->teams()->first();
+    }
+
     /** @return array<string, mixed> */
     public function roles(): array
     {

@@ -20,7 +20,9 @@ describe('activity task input controls', () => {
         );
         expect(html).toContain('aria-label="Tambah jumlah pekerja"');
         expect(html).toContain('max="25"');
-        expect(html).toContain('worker-count-help error-worker_count');
+        expect(html).toContain('aria-describedby="error-worker_count"');
+        expect(html).not.toContain('worker-count-help');
+        expect(html).not.toContain('Maksimal 25 pekerja.');
         expect(html).toContain('Periksa jumlah pekerja.');
     });
 

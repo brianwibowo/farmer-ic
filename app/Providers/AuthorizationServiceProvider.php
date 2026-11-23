@@ -26,6 +26,7 @@ class AuthorizationServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::define('account.logoutAllDevices', fn (User $user): bool => $user->exists && app(RolePermissions::class)->isKnownRole((string) app(RolePermissions::class)->roleName($user)));
         Gate::before(function (User $user, string $ability): ?bool {
             // Interactive AI remains Owner-only, including developer accounts.
             return $ability !== 'ai.access' && app(RolePermissions::class)->roleName($user) === 'superadmin' ? true : null;

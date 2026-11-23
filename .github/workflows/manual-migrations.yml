@@ -4,7 +4,7 @@ on:
     workflow_dispatch:
         inputs:
             ci_run_id:
-                description: 'ID successful CI push run for the current main commit'
+                description: 'ID successful release image push run for the current main commit'
                 required: true
                 type: string
             operation:
@@ -35,7 +35,7 @@ jobs:
         runs-on: ubuntu-latest
         environment: demo-database
         steps:
-            - name: Validate CI run and operator confirmation
+            - name: Validate release run and operator confirmation
               id: release
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -45,7 +45,7 @@ jobs:
                   DEMO_RESET_ENABLED: ${{ vars.DEMO_DATABASE_RESET_ENABLED }}
               run: |
                   set -eu
-                  case "$CI_RUN_ID" in ''|*[!0-9]*) echo 'CI run ID must contain digits only.' >&2; exit 1 ;; esac
+                  case "$CI_RUN_ID" in ''|*[!0-9]*) echo 'Release run ID must contain digits only.' >&2; exit 1 ;; esac
                   case "$OPERATION" in
                     migrate) ;;
                     fresh-seed)
@@ -57,11 +57,11 @@ jobs:
                   run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID")
                   printf '%s' "$run" | jq -e --arg repo "$GITHUB_REPOSITORY" \
                     '.status == "completed" and .conclusion == "success" and .event == "push" and
-                     .head_branch == "main" and .path == ".github/workflows/ci.yml" and
+                     .head_branch == "main" and .path == ".github/workflows/release-image.yml" and
                      .repository.full_name == $repo and .head_repository.full_name == $repo' >/dev/null
                   sha=$(printf '%s' "$run" | jq -er '.head_sha | select(test("^[0-9a-f]{40}$"))')
                   main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
-                  [ "$sha" = "$main_sha" ] || { echo 'CI run is not for the current main commit.' >&2; exit 1; }
+                  [ "$sha" = "$main_sha" ] || { echo 'Release run is not for the current main commit.' >&2; exit 1; }
                   printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
 
             - name: Check out tested commit
@@ -115,7 +115,7 @@ jobs:
                       cd "$VPS_DEPLOY_PATH"
                       # Do not update the working tree or overwrite server changes.
                       git fetch --depth 1 origin main
-                      [ "$(git rev-parse FETCH_HEAD)" = "$COMMIT_SHA" ] || { echo 'main has changed; choose a new successful CI run.' >&2; exit 1; }
+                      [ "$(git rev-parse FETCH_HEAD)" = "$COMMIT_SHA" ] || { echo 'main has changed; choose a new successful release run.' >&2; exit 1; }
                       [ "$(git rev-parse HEAD)" = "$COMMIT_SHA" ] || { echo 'VPS checkout differs from tested commit; review and update it before migrating.' >&2; exit 1; }
                       git diff --quiet HEAD -- compose.production.yaml docker/registry-retry.sh || { echo 'VPS migration configuration has local modifications.' >&2; exit 1; }
                       [ -f .env.production ] || { echo 'Missing .env.production.' >&2; exit 1; }

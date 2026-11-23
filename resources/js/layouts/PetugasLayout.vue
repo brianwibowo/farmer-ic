@@ -6,6 +6,7 @@ import FarmerBottomNav, {
     type FarmerNavKey,
 } from '@/components/farmer/FarmerBottomNav.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
+import { extractPetugasBackParam } from '@/lib/petugasBackLink';
 
 const page = usePage();
 const navigating = ref(false);
@@ -17,14 +18,55 @@ const items: FarmerNavItem[] = [
     { key: 'activity', label: 'Tugas', href: '/petugas/aktivitas' },
     { key: 'report', label: 'Laporan', href: '/petugas/laporan' },
 ];
+function navKeyForPath(pathname: string): FarmerNavKey | null {
+    const clean = pathname.split('?')[0].replace(/\/$/, '');
+    if (clean === '/petugas') return 'home';
+    if (clean === '/petugas/kebun' || clean.startsWith('/petugas/kebun/')) {
+        return 'garden';
+    }
+    if (clean === '/petugas/laporan' || clean.startsWith('/petugas/laporan/')) {
+        return 'report';
+    }
+    if (
+        clean.startsWith('/petugas/aktivitas/mandiri') ||
+        clean === '/petugas/penanaman' ||
+        clean.startsWith('/petugas/penanaman/') ||
+        clean === '/petugas/subbloks' ||
+        clean.startsWith('/petugas/subbloks/')
+    ) {
+        return 'report';
+    }
+    if (
+        clean === '/petugas/aktivitas' ||
+        clean === '/petugas/tasks' ||
+        clean.startsWith('/petugas/tasks/')
+    ) {
+        return 'activity';
+    }
+
+    return null;
+}
+
 const activeKey = computed<FarmerNavKey>(() => {
     const pathname = page.url.split('?')[0].replace(/\/$/, '');
-    if (
-        ['/petugas/tasks', '/petugas/penanaman', '/petugas/subbloks'].some(
-            (path) => pathname === path || pathname.startsWith(`${path}/`),
-        )
-    )
-        return 'activity';
+    const isSubpage =
+        pathname.startsWith('/petugas/aktivitas/mandiri') ||
+        [
+            '/petugas/tasks',
+            '/petugas/penanaman',
+            '/petugas/subbloks',
+            '/petugas/incidents',
+        ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
+
+    if (isSubpage) {
+        const back = extractPetugasBackParam(page.url);
+        const backKey = back ? navKeyForPath(back) : null;
+        if (backKey) return backKey;
+    }
+
+    const direct = navKeyForPath(pathname);
+    if (direct) return direct;
+
     const exact = items.find((item) => item.href === pathname);
     if (exact) return exact.key;
 

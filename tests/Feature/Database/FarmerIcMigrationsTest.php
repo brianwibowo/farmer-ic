@@ -18,7 +18,7 @@ class FarmerIcMigrationsTest extends TestCase
 {
     private const PATH = 'database/migrations';
 
-    private const RUNTIME_TABLES = ['cache', 'cache_locks', 'failed_jobs', 'job_batches', 'jobs', 'password_reset_tokens', 'sessions'];
+    private const RUNTIME_TABLES = ['cache', 'cache_locks', 'failed_jobs', 'job_batches', 'jobs', 'password_reset_tokens', 'remembered_devices', 'sessions'];
 
     private Connection $database;
 
@@ -443,7 +443,9 @@ SQL, [$table]), 'columns');
             }
         }
         $farmTeamAlreadyDocumented = in_array('team_id', array_column($this->definition['farms'], 'name'), true);
-        $this->assertSame($simpleForeignKeys + ($farmTeamAlreadyDocumented ? 0 : 1), (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
+        // The runtime remembered-device table also references users.
+        $this->assertSame($simpleForeignKeys + ($farmTeamAlreadyDocumented ? 0 : 1) + 1, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) = 1"));
+        $this->assertSame(1, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint WHERE conrelid = 'remembered_devices'::regclass AND confrelid = 'users'::regclass AND contype = 'f'"));
         $this->assertSame(13, (int) $this->database->scalar("SELECT COUNT(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = 'public' AND c.contype = 'f' AND array_length(c.conkey, 1) > 1"));
         // Verify the ordered column pairs, not just the number of constraints.
         $this->assertSame(1, (int) $this->database->scalar(<<<'SQL'

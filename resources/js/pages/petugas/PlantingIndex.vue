@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, Plus, Sprout } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import SubblokCreateDialog, {
@@ -7,7 +7,14 @@ import SubblokCreateDialog, {
 } from '@/components/petugas/SubblokCreateDialog.vue';
 import { Button } from '@/components/ui/button';
 import { useActivityDate } from '@/composables/useActivityDate';
+import {
+    extractPetugasBackParam,
+    petugasBackLabel,
+    resolvePetugasBackHref,
+    withPetugasBack,
+} from '@/lib/petugasBackLink';
 import type { PlantingCycleContext, PlantingWindow } from '@/types/planting';
+import { gardenArea } from '@/types/petugas-garden';
 
 const props = defineProps<{
     farm: { id: string; name: string };
@@ -20,7 +27,15 @@ const props = defineProps<{
         plantingWindow: PlantingWindow | null;
     })[];
 }>();
+const page = usePage();
 const activityDate = useActivityDate();
+const explicitBack = computed(() => extractPetugasBackParam(page.url));
+const backHref = computed(() =>
+    resolvePetugasBackHref(page.url, '/petugas/laporan'),
+);
+const backLabel = computed(() =>
+    petugasBackLabel(backHref.value, 'Kembali ke laporan'),
+);
 const createOpen = ref(false);
 const workDateParam = computed(() =>
     activityDate.value ? activityDate.value.slice('?work_date='.length) : null,
@@ -45,6 +60,7 @@ function blockFilterHref(blockId: string | null): string {
     if (activityDate.value) {
         params.set('work_date', activityDate.value.slice('?work_date='.length));
     }
+    if (explicitBack.value) params.set('back', explicitBack.value);
     const query = params.toString();
     return query ? `/petugas/penanaman?${query}` : '/petugas/penanaman';
 }
@@ -70,10 +86,11 @@ function formatWindowRange(window: PlantingWindow): string {
     <div class="min-w-0 space-y-5 text-foreground">
         <header>
             <Link
-                href="/petugas/aktivitas"
-                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
-                aktivitas</Link
+                :href="backHref"
+                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                ><ArrowLeft class="size-4" aria-hidden="true" />{{
+                    backLabel
+                }}</Link
             >
             <div class="mt-3 flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -252,7 +269,9 @@ function formatWindowRange(window: PlantingWindow): string {
                     </div>
                     <div>
                         <dt class="text-xs text-muted-foreground">Luas</dt>
-                        <dd>Tertanam {{ cycle.planted_area_ha }} ha</dd>
+                        <dd>
+                            Tertanam {{ gardenArea(cycle.planted_area_ha) }} ha
+                        </dd>
                     </div>
                 </dl>
             </details>
@@ -266,7 +285,12 @@ function formatWindowRange(window: PlantingWindow): string {
                     "
                     class="min-h-11 rounded-xl"
                     ><Link
-                        :href="`/petugas/subbloks/${cycle.id}/penanaman${activityDate}`"
+                        :href="
+                            withPetugasBack(
+                                `/petugas/subbloks/${cycle.id}/penanaman${activityDate}`,
+                                explicitBack,
+                            )
+                        "
                         >{{
                             cycle.canRecord
                                 ? 'Catat penanaman'

@@ -12,7 +12,9 @@ import { sopActivityCategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<PetugasTaskPageProps>();
+const props = defineProps<
+    Omit<PetugasTaskPageProps, 'tasks' | 'options'> & { tasks: PetugasTask[] }
+>();
 const activityDate = useActivityDate();
 
 const sections: {

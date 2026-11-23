@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     CalendarDays,
@@ -15,8 +15,13 @@ import {
     ShieldAlert,
     UserRound,
 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import {
+    petugasBackLabel,
+    resolvePetugasBackHref,
+    withPetugasBack,
+} from '@/lib/petugasBackLink';
 import {
     formatIncidentDate,
     formatIncidentDateTime,
@@ -30,6 +35,14 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps<{
     ticket: IncidentTicketDetail;
 }>();
+
+const page = usePage();
+const backHref = computed(() =>
+    resolvePetugasBackHref(page.url, '/petugas/incidents'),
+);
+const backLabel = computed(() =>
+    petugasBackLabel(backHref.value, 'Kembali ke daftar tiket insiden'),
+);
 
 const reopenVisible = ref(false);
 const reopenForm = useForm({ reason: '' });
@@ -57,8 +70,8 @@ function submitReopen(): void {
     <div class="min-w-0 space-y-4 pb-12 text-foreground">
         <header class="flex items-center gap-2.5">
             <Link
-                href="/petugas/incidents"
-                aria-label="Kembali ke daftar tiket insiden"
+                :href="backHref"
+                :aria-label="backLabel"
                 class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
                 <ArrowLeft class="size-5" aria-hidden="true" />
@@ -342,7 +355,12 @@ function submitReopen(): void {
                     Rincian laporan awal
                 </h2>
                 <Link
-                    :href="`/petugas/laporan/${ticket.activity_id}`"
+                    :href="
+                        withPetugasBack(
+                            `/petugas/laporan/${ticket.activity_id}`,
+                            `/petugas/incidents/${ticket.id}`,
+                        )
+                    "
                     class="inline-flex items-center gap-1 text-xs font-semibold text-primary underline"
                 >
                     <FileText class="size-3.5" aria-hidden="true" />

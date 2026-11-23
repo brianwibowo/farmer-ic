@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import DailyReportContent from '@/components/petugas/DailyReportContent.vue';
+import { withPetugasBack } from '@/lib/petugasBackLink';
 import type { DailyReport } from '@/types/daily-activity';
 
 const props = defineProps<{
@@ -12,6 +13,9 @@ const props = defineProps<{
     canRecord: boolean;
 }>();
 const pending = ref(false);
+const dailyBackUrl = computed(
+    () => `/petugas/laporan/harian?work_date=${props.date}`,
+);
 function changeDate(event: Event): void {
     const date = (event.target as HTMLInputElement).value;
     if (!date || date > props.today) return;
@@ -85,7 +89,12 @@ function changeDate(event: Event): void {
                 class="inline-flex min-h-11 items-center text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
                 >To-do SOP</Link
             ><Link
-                :href="`/petugas/penanaman?work_date=${date}`"
+                :href="
+                    withPetugasBack(
+                        `/petugas/penanaman?work_date=${date}`,
+                        dailyBackUrl,
+                    )
+                "
                 class="inline-flex min-h-11 items-center text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
                 >Penanaman aktual</Link
             >

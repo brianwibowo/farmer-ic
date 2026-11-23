@@ -14,6 +14,7 @@ use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\RolePermissions;
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -22,6 +23,20 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    public function handle(Request $request, Closure $next)
+    {
+        $metrics = MeasurePetugasActivity::metrics($request);
+        if ($metrics === null) {
+            return parent::handle($request, $next);
+        }
+        $started = hrtime(true);
+        try {
+            return parent::handle($request, $next);
+        } finally {
+            $metrics->inertia_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+        }
+    }
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -50,13 +65,32 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $guestPage = $request->route()?->defaults['farmer_guest'] ?? false;
+        $metrics = MeasurePetugasActivity::metrics($request);
+        $started = $metrics !== null ? hrtime(true) : 0;
+        $queriesBefore = $metrics !== null ? $metrics->queries : 0;
+        $queryMsBefore = $metrics !== null ? $metrics->query_ms : 0.0;
+        $guestPage = ($request->route()?->defaults['farmer_guest'] ?? false) === true;
         $user = $guestPage ? null : $request->user();
+        $shared = $user instanceof User
+            ? app(RolePermissions::class)->withMembershipSnapshot($user, fn () => $this->sharedValues($request, $user, $guestPage))
+            : $this->sharedValues($request, null, $guestPage);
+        if ($metrics !== null) {
+            $metrics->shared_props_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+            $metrics->shared_props_queries = $metrics->queries - $queriesBefore;
+            $metrics->shared_props_query_ms = round($metrics->query_ms - $queryMsBefore, 2);
+        }
+
+        return $shared;
+    }
+
+    /** @return array<string, mixed> */
+    private function sharedValues(Request $request, ?User $user, bool $guestPage): array
+    {
         $adminAccess = $user !== null && Gate::forUser($user)->allows('admin.access');
         $ownerAccess = $user !== null && ! $adminAccess && Gate::forUser($user)->allows('owner.access');
         $logbookTeam = $user ? (app(RolePermissions::class)->singleTenant($user) ?? $user->currentTeam) : null;
 
-        return [
+        $shared = [
             ...parent::share($request),
             'name' => config('app.name'),
             'ownerNavigation' => collect([
@@ -101,6 +135,8 @@ class HandleInertiaRequests extends Middleware
             'canCreateTeam' => fn () => $user !== null
                 && Gate::forUser($user)->allows('create', Team::class),
         ];
+
+        return $shared;
     }
 
     /** @return array{name: string, email: string}|null */

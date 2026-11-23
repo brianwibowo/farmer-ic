@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\MeasurePetugasActivity;
 use App\Http\Requests\Activity\ListPetugasReportsRequest;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
@@ -12,6 +13,7 @@ use App\Services\Activity\DailyActivityHeaderService;
 use App\Services\Activity\DailyActivityReportService;
 use App\Services\Activity\PetugasReportReadService;
 use App\Services\Activity\VoluntaryActivityCategoryService;
+use App\Support\RolePermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -20,6 +22,20 @@ use Inertia\Response;
 class PetugasDailyActivityController extends Controller
 {
     public function history(ListPetugasReportsRequest $request, PetugasReportReadService $reports, VoluntaryActivityCategoryService $categories): Response
+    {
+        $metrics = MeasurePetugasActivity::metrics($request);
+        if ($metrics === null) {
+            return app(RolePermissions::class)->withMembershipSnapshot($request->user(), fn () => $this->historyWithMembership($request, $reports, $categories));
+        }
+        $started = hrtime(true);
+        try {
+            return app(RolePermissions::class)->withMembershipSnapshot($request->user(), fn () => $this->historyWithMembership($request, $reports, $categories));
+        } finally {
+            $metrics->controller_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+        }
+    }
+
+    private function historyWithMembership(ListPetugasReportsRequest $request, PetugasReportReadService $reports, VoluntaryActivityCategoryService $categories): Response
     {
         $filters = $request->validated();
         $filters['mine'] = $request->boolean('mine');
@@ -30,12 +46,31 @@ class PetugasDailyActivityController extends Controller
         }
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [FarmActivity::class, $farm->team]);
+        $metrics = MeasurePetugasActivity::metrics($request);
+        $started = $metrics !== null ? hrtime(true) : 0;
+        $stats = $reports->sourceCounts($request->user(), $farm, $filters);
+        if ($metrics !== null) {
+            $metrics->stats_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+        }
+        $started = $metrics !== null ? hrtime(true) : 0;
+        $listing = $reports->listing($request->user(), $farm, $filters);
+        if ($metrics !== null) {
+            $metrics->listing_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+            $metrics->report_count = count($listing->items());
+            $metrics->page = $listing->currentPage();
+            $metrics->per_page = $listing->perPage();
+        }
+        $started = $metrics !== null ? hrtime(true) : 0;
+        $availableCategories = $categories->forFarm($request->user(), $farm);
+        if ($metrics !== null) {
+            $metrics->categories_ms = round((hrtime(true) - $started) / 1_000_000, 2);
+        }
 
         return Inertia::render('petugas/Laporan', ['farm' => $farm->only(['id', 'name']), 'filters' => $filters,
-            'stats' => $reports->sourceCounts($request->user(), $farm, $filters),
-            'reports' => $reports->listing($request->user(), $farm, $filters),
+            'stats' => $stats,
+            'reports' => $listing,
             'types' => ActivityType::visibleTo($request->user(), $farm->team)->reportFilterable()->orderBy('sort_order')->get(['code', 'name']),
-            'categories' => $categories->forFarm($request->user(), $farm)]);
+            'categories' => $availableCategories]);
     }
 
     public function show(Request $request, FarmActivity $activity, DailyActivityReportService $reports): Response

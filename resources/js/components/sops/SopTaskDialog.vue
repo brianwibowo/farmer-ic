@@ -5,12 +5,11 @@ import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Save } from '@lucide/vue';
 import { computed, watch } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
-import { formatActivityNumber, maximumError } from '@/lib/activityInputLimits';
+import { maximumError } from '@/lib/activityInputLimits';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -35,12 +34,15 @@ const categoryOptions = Object.entries(sopActivityCategoryLabels) as [
     string,
 ][];
 
+const defaultOffsetDays = null as number | string | null;
+const defaultToleranceDays = 7 as number | string | null;
+
 const form = useForm({
     activity_category: 'maintenance' as SopActivityCategory,
     name: '',
     instructions: '',
-    offset_days: 0,
-    tolerance_days: 2,
+    offset_days: defaultOffsetDays,
+    tolerance_days: defaultToleranceDays,
     hok: null as number | string | null,
 });
 
@@ -48,7 +50,7 @@ const offsetError = computed(() =>
     maximumError(
         form.offset_days,
         props.numericLimits.offsetDays,
-        'Offset HST',
+        'Jadwal setelah tanam',
         'hari',
     ),
 );
@@ -91,8 +93,8 @@ function reset(): void {
     form.activity_category = props.task?.activity_category ?? 'maintenance';
     form.name = props.task?.name ?? '';
     form.instructions = props.task?.instructions ?? '';
-    form.offset_days = props.task?.offset_days ?? 0;
-    form.tolerance_days = props.task?.tolerance_days ?? 2;
+    form.offset_days = props.task?.offset_days ?? defaultOffsetDays;
+    form.tolerance_days = props.task?.tolerance_days ?? defaultToleranceDays;
     form.hok = props.task?.hok ?? null;
 }
 
@@ -101,6 +103,7 @@ watch(
     (open) => {
         if (open) reset();
     },
+    { immediate: true },
 );
 
 function close(): void {
@@ -143,16 +146,13 @@ function submit(): void {
 <template>
     <Dialog :open="open" @update:open="emit('update:open', $event)">
         <DialogContent
+            :aria-describedby="undefined"
             class="admin-dashboard-theme flex max-h-[90dvh] flex-col overflow-hidden rounded-xl bg-card text-foreground sm:max-w-2xl"
         >
             <DialogHeader class="shrink-0">
                 <DialogTitle>{{
                     task ? 'Ubah langkah SOP' : 'Tambah langkah SOP'
                 }}</DialogTitle>
-                <DialogDescription>
-                    SOP mencakup langkah perawatan sampai panen pada versi
-                    {{ version.version }} yang masih draft.
-                </DialogDescription>
             </DialogHeader>
 
             <form
@@ -208,7 +208,6 @@ function submit(): void {
                             id="task-hok"
                             label="Estimasi HOK (Hari Orang Kerja)"
                             :error="hokError ?? form.errors.hok"
-                            :hint="`Opsional, bilangan bulat minimal 1 (maksimal ${formatActivityNumber(hokLimit)} HOK).`"
                             v-slot="field"
                         >
                             <input
@@ -226,10 +225,10 @@ function submit(): void {
                         </FarmField>
                         <FarmField
                             id="task-offset"
-                            label="Offset HST (hari)"
+                            label="Jadwal setelah tanam (hari)"
                             required
                             :error="offsetError ?? form.errors.offset_days"
-                            :hint="`H+0 adalah tanggal tanam. Offset tidak negatif dan maksimal ${formatActivityNumber(numericLimits.offsetDays)} hari.`"
+                            hint="Jumlah hari setelah tanggal tanam (isi 0 untuk hari tanam / H+0)."
                             v-slot="field"
                         >
                             <input
@@ -241,6 +240,7 @@ function submit(): void {
                                 min="0"
                                 :max="numericLimits.offsetDays"
                                 step="1"
+                                placeholder="Contoh: 14"
                                 :aria-invalid="field.invalid"
                                 :aria-describedby="field.description"
                             />
@@ -252,7 +252,6 @@ function submit(): void {
                             :error="
                                 toleranceError ?? form.errors.tolerance_days
                             "
-                            :hint="`Maksimal ${formatActivityNumber(numericLimits.toleranceDays)} hari.`"
                             v-slot="field"
                         >
                             <input
