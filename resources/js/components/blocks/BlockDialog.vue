@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { requestConfirmation } from '@/composables/useConfirmation';
 import { LandPlot } from '@lucide/vue';
 import { useTemplateRef } from 'vue';
 import BlockForm from './BlockForm.vue';
@@ -10,24 +11,31 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 import type { BlockFarm, FarmBlock, BlockFormCapacity } from '@/types/blocks';
+import type { BoundaryMapBlock } from '@/components/farms/FarmBlockBoundaryMap.vue';
 const props = defineProps<{
     open: boolean;
     farm: BlockFarm;
     block: FarmBlock | null;
+    existingBlocks?: BoundaryMapBlock[];
     capacity: BlockFormCapacity;
     returnTo?: 'farm' | 'blocks';
     theme: string;
 }>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 const fields = useTemplateRef<InstanceType<typeof BlockForm>>('fields');
-function close(open: boolean): void {
+async function close(open: boolean): Promise<void> {
     if (!open && fields.value?.processing()) return;
     if (
         !open &&
         fields.value?.isDirty() &&
-        !window.confirm('Tutup dan buang perubahan yang belum disimpan?')
+        !(await requestConfirmation({
+            description: 'Perubahan blok belum disimpan. Tutup editor dan buang perubahan ini?',
+            confirmLabel: 'Buang perubahan',
+            cancelLabel: 'Lanjut mengedit',
+        }))
     )
         return;
+    if (fields.value?.processing()) return;
     emit('update:open', open);
 }
 </script>
@@ -39,7 +47,18 @@ function close(open: boolean): void {
                 theme,
                 'flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden rounded-xl border-border bg-card p-0 text-foreground sm:max-w-3xl',
             ]"
-            @interact-outside.prevent
+            @interact-outside="
+                (event) => {
+                    if (fields?.processing()) {
+                        event.preventDefault();
+                        return;
+                    }
+                    if (fields?.isDirty()) {
+                        event.preventDefault();
+                        void close(false);
+                    }
+                }
+            "
         >
             <DialogHeader
                 class="flex-row items-start gap-4 border-b border-border bg-muted/30 px-5 py-5 pr-12 text-left sm:px-7 sm:pr-14"
@@ -70,6 +89,7 @@ function close(open: boolean): void {
                 ref="fields"
                 :farm="farm"
                 :block="block"
+                :existing-blocks="existingBlocks"
                 :capacity="capacity"
                 :return-to="returnTo"
                 @saved="emit('update:open', false)"

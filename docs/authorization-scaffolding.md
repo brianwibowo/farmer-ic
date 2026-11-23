@@ -9,6 +9,33 @@ source of truth for every other role.
 
 ## Providers and grant source
 
+Manual land cycles use `FarmCycle` (`farm_cycles`) to group the existing
+`PlantingCycle` batches. The existing Admin `storeBatch` and Petugas subblok
+POST actions authorize batch creation, cycle listing, and either viewing the
+selected persisted cycle or creating a cycle under the trusted Farm. Cycle
+options, batch counts and actual harvest totals are scoped with `visibleTo`
+before aggregation. Creation uses the existing endpoints without an approval step. Petugas
+is restricted to the assigned farm; Owner cannot create cycles or batches.
+Update/delete/configure for cycles remain undefined and denied. Existing batch
+edits cannot reassign cycles. No new cycle routes or queries remain unprotected.
+
+Read-only cycle detail listings use GET `/petugas/kebun/siklus`,
+`/admin/farm-management/{farm}/siklus`, and `/kebun/{farm}/siklus` (Owner).
+Each Controller action authorizes the persisted Farm and `FarmCycle::viewAny`
+with its trusted Team before calling the service. Petugas derives the farm
+from `assignedFarm`, never from query input. Owner also retains the current-team
+boundary used by the farm detail page. `FarmCycleService` scopes cycles before
+pagination and scopes batches, activities and harvest details before computing
+batch counts and tonnage. These routes introduce no mutation grants.
+
+Migration `2026_11_18_000001_create_farm_cycles.php` groups existing batches in
+Siklus 1 per farm because historical boundaries cannot be inferred. The final
+`FarmCycleSeeder` installation fixture does the same for unassigned seed batches
+without overwriting explicit choices. Cycle numbers are allocated while the
+persisted farm is locked, and a composite foreign key prevents cross-farm links.
+New cycle creation and batch/SOP preparation share one transaction. Physical
+occupancy validation still applies independently of the selected cycle.
+
 The desktop admin logbook uses the existing DailyActivityLog, Farm, FarmActivity,
 User, ActivityType and BlockMappingDetail policies. Its three GET routes under
 `/admin/logbook` require authenticated/verified admin admission plus explicit
@@ -169,6 +196,7 @@ discover the persisted domain relationships directly.
 | `FarmActivity` | `farm_activities` | farm -> team |
 | `Farm` | `farms` | Farm itself -> team |
 | `FarmBlock` | `farm_blocks` | farm -> team; create parent Farm |
+| `FarmCycle` | `farm_cycles` | farm -> team; create parent Farm; Admin any, Petugas own, Owner view only |
 | `FarmLegality` | `farm_legalities` | farm -> team; create parent Farm; Admin CRUD, Owner read-only, Petugas denied |
 | `FarmLegalityDocument` | `farm_legality_documents` | legality.farm -> team; create parent persisted FarmLegality or Farm for an atomic new legality+files submission; Admin view/create/delete, Owner view, Petugas denied; private authorized downloads |
 | `PlantingCycleStage` | `planting_cycle_stages` | plantingCycle.farm -> team; read-only timeline initialized at creation and updated by authorized reports/harvest closure |

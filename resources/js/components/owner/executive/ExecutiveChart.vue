@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Chart, registerables } from 'chart.js';
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { executiveNumber } from '@/services/ownerExecutiveDemoService';
+import { executiveNumber } from '@/services/ownerExecutiveSummary';
 
 Chart.register(...registerables);
 const props = withDefaults(
@@ -10,10 +10,11 @@ const props = withDefaults(
         labels: string[];
         series: {
             label: string;
-            values: number[];
+            values: (number | null)[];
             colorTokens?: string[];
             borderColorTokens?: string[];
             borderWidth?: number;
+            hidden?: boolean;
         }[];
         kind?: 'horizontal' | 'grouped';
         stacked?: boolean;
@@ -44,6 +45,7 @@ let chart: Chart | undefined;
 let observer: MutationObserver | undefined;
 let disposed = false;
 const colors = ref<string[]>([]);
+const plotInsets = ref({ left: 0, right: 0 });
 
 async function draw() {
     await nextTick();
@@ -61,6 +63,12 @@ async function draw() {
         plugins: [
             {
                 id: 'executiveCategoryGroups',
+                afterLayout(chart) {
+                    plotInsets.value = {
+                        left: chart.chartArea.left,
+                        right: chart.width - chart.chartArea.right,
+                    };
+                },
                 beforeDatasetsDraw(chart) {
                     if (props.categoryGroups.length < 2) return;
                     const axis = chart.scales.x;
@@ -99,59 +107,13 @@ async function draw() {
                     });
                     ctx.restore();
                 },
-                afterDraw(chart) {
-                    if (!props.categoryGroups.length) return;
-                    const axis = chart.scales.x;
-                    const { ctx } = chart;
-                    const step = axis.width / Math.max(props.labels.length, 1);
-                    let start = 0;
-                    ctx.save();
-                    ctx.font = `600 12px ${style.fontFamily}`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-                    for (const group of props.categoryGroups) {
-                        const left = axis.getPixelForValue(start) - step / 2;
-                        const right =
-                            axis.getPixelForValue(start + group.count - 1) +
-                            step / 2;
-                        const lines = group.label
-                            .split(' ')
-                            .reduce<string[]>((lines, word) => {
-                                const last = lines.length - 1;
-                                if (
-                                    last >= 0 &&
-                                    ctx.measureText(`${lines[last]} ${word}`)
-                                        .width <
-                                        right - left - 12
-                                )
-                                    lines[last] += ` ${word}`;
-                                else lines.push(word);
-                                return lines;
-                            }, []);
-                        ctx.strokeStyle = muted;
-                        ctx.lineWidth = 1.5;
-                        ctx.beginPath();
-                        ctx.moveTo(left + 4, axis.bottom + 2);
-                        ctx.lineTo(right - 4, axis.bottom + 2);
-                        ctx.stroke();
-                        ctx.fillStyle = foreground;
-                        lines.forEach((line, index) =>
-                            ctx.fillText(
-                                line,
-                                (left + right) / 2,
-                                axis.bottom + 10 + index * 15,
-                            ),
-                        );
-                        start += group.count;
-                    }
-                    ctx.restore();
-                },
             },
         ],
         data: {
             labels: props.labels,
             datasets: props.series.map((series, index) => ({
                 label: series.label,
+                hidden: series.hidden ?? false,
                 data: series.values,
                 backgroundColor:
                     series.colorTokens?.map((token) =>
@@ -174,18 +136,6 @@ async function draw() {
                 ? false
                 : { duration: 250 },
             indexAxis: props.kind === 'horizontal' ? 'y' : 'x',
-            layout: {
-                padding: {
-                    bottom: props.categoryGroups.length
-                        ? props.categoryGroups.length > 1 &&
-                          props.categoryGroups.some(
-                              (group) => group.count === 1,
-                          )
-                            ? 64
-                            : 44
-                        : 0,
-                },
-            },
             onClick: (_event, elements) => {
                 if (props.interactive && elements[0])
                     emit('select', elements[0].index);
@@ -209,7 +159,11 @@ async function draw() {
                 },
                 tooltip: {
                     callbacks: {
+                        title: (items) =>
+                            props.labels[items[0]?.dataIndex] ?? '',
                         label: (context) => {
+                            if (context.raw === null)
+                                return `${context.dataset.label}: Belum tersedia`;
                             const value = Number(context.raw);
                             return `${context.dataset.label}: ${props.formatValue ? props.formatValue(value) : `${executiveNumber(value)} ${props.unit}`}`;
                         },
@@ -230,6 +184,50 @@ async function draw() {
                         color: muted,
                         maxRotation: 0,
                         autoSkip: !props.minWidth,
+                        callback:
+                            props.categoryGroups.length &&
+                            props.kind !== 'horizontal'
+                                ? function (value) {
+                                      const label =
+                                          props.labels[Number(value)] ?? '';
+                                      const { ctx } = this.chart;
+                                      const maxWidth = Math.max(
+                                          24,
+                                          (this.chart.width - 64) /
+                                              Math.max(props.labels.length, 1) -
+                                              16,
+                                      );
+                                      ctx.save();
+                                      ctx.font = `${Chart.defaults.font.size}px ${Chart.defaults.font.family}`;
+                                      const lines = [''];
+                                      for (const word of label.split(/\s+/u)) {
+                                          const last = lines.length - 1;
+                                          const candidate =
+                                              `${lines[last]} ${word}`.trim();
+                                          if (
+                                              ctx.measureText(candidate)
+                                                  .width <= maxWidth
+                                          ) {
+                                              lines[last] = candidate;
+                                              continue;
+                                          }
+                                          if (lines[last]) lines.push('');
+                                          for (const character of word) {
+                                              const index = lines.length - 1;
+                                              if (
+                                                  lines[index] &&
+                                                  ctx.measureText(
+                                                      lines[index] + character,
+                                                  ).width > maxWidth
+                                              )
+                                                  lines.push(character);
+                                              else lines[index] += character;
+                                          }
+                                      }
+                                      ctx.restore();
+                                      return lines;
+                                  }
+                                : undefined,
                     },
                 },
                 y: {
@@ -303,21 +301,58 @@ onBeforeUnmount(() => {
                 {{ item.label }}
             </li>
         </ul>
-        <div class="min-w-0 overflow-x-auto">
+        <div
+            class="min-w-0 overflow-x-auto rounded-sm pb-3 focus-visible:outline-2 focus-visible:outline-ring"
+            :tabindex="minWidth ? 0 : undefined"
+            :role="minWidth ? 'region' : undefined"
+            :aria-label="
+                minWidth
+                    ? `${title}. Geser untuk melihat semua kelompok.`
+                    : undefined
+            "
+        >
             <div
-                class="relative min-w-0"
-                :class="compact ? 'h-40 sm:h-44' : 'h-56 sm:h-64'"
+                class="min-w-0"
                 :style="minWidth ? { minWidth: `${minWidth}px` } : undefined"
             >
-                <canvas ref="canvas" role="img" :aria-label="title"
-                    ><span>{{ title }}</span></canvas
+                <div
+                    class="relative min-w-0"
+                    :class="compact ? 'h-40 sm:h-44' : 'h-56 sm:h-64'"
                 >
+                    <canvas ref="canvas" role="img" :aria-label="title"
+                        ><span>{{ title }}</span></canvas
+                    >
+                </div>
+                <div
+                    v-if="categoryGroups.length"
+                    class="grid pt-2 text-center text-xs leading-5 font-semibold text-foreground"
+                    :style="{
+                        gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))`,
+                        paddingLeft: `${plotInsets.left}px`,
+                        paddingRight: `${plotInsets.right}px`,
+                    }"
+                >
+                    <div
+                        v-for="(group, index) in categoryGroups"
+                        :key="index"
+                        class="min-w-0 px-2"
+                        :style="{ gridColumn: `span ${group.count}` }"
+                    >
+                        <div
+                            class="border-t border-border px-2 pt-2 [overflow-wrap:anywhere]"
+                        >
+                            {{ group.label }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <p
             v-if="
                 !series.some((series) =>
-                    series.values.some((value) => value !== 0),
+                    series.values.some(
+                        (value) => value !== null && value !== 0,
+                    ),
                 )
             "
             class="py-2 text-center text-sm text-muted-foreground"

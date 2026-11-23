@@ -46,7 +46,7 @@ const number = new Intl.NumberFormat('id-ID');
                 </h2>
                 <component
                     :is="metric.icon"
-                    class="hidden size-5 shrink-0 text-primary sm:block"
+                    class="size-5 shrink-0 text-primary"
                     aria-hidden="true"
                 />
             </div>

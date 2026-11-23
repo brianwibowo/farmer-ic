@@ -1,15 +1,32 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, CheckCircle2, ClipboardPlus } from '@lucide/vue';
+import {
+    CalendarDays,
+    CheckCircle2,
+    ClipboardList,
+    ClipboardPlus,
+    FileText,
+    Info,
+    MapPin,
+    Sprout,
+    Wheat,
+} from '@lucide/vue';
 import { computed } from 'vue';
-import TaskContext from '@/components/petugas/TaskContext.vue';
+import PetugasDetailHeader from '@/components/petugas/PetugasDetailHeader.vue';
+import TaskReportCard from '@/components/petugas/TaskReportCard.vue';
+import TaskStatusBadges from '@/components/petugas/TaskStatusBadges.vue';
 import { Button } from '@/components/ui/button';
 import { useActivityDate } from '@/composables/useActivityDate';
+import { formatReportDate } from '@/lib/petugasReport';
 import type {
     PetugasTask,
     TaskActivityField,
     TaskActivityReport,
 } from '@/types/petugas-task';
+import { formatHok, sopTaskCategoryLabel } from '@/types/sop';
+
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
     task: PetugasTask;
     reports: TaskActivityReport[];
@@ -28,76 +45,272 @@ function complete(): void {
         preserveScroll: true,
     });
 }
-function completedAtLabel(value: string | null): string {
-    return value
-        ? new Intl.DateTimeFormat('id-ID', {
+function completedAtLabel(value: string): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat('id-ID', {
               dateStyle: 'medium',
               timeStyle: 'short',
-          }).format(new Date(value))
-        : '';
+          }).format(date);
 }
 </script>
 
 <template>
     <Head title="Detail Tugas" />
-    <div class="min-w-0 space-y-5 text-foreground">
-        <Link
-            :href="`/petugas/aktivitas${activityDate}`"
-            class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
-            to-do</Link
+    <div
+        class="min-w-0 space-y-[var(--admin-content-gap)] pb-8 text-foreground"
+    >
+        <PetugasDetailHeader
+            title="Detail tugas"
+            :back-href="
+                ['harvested', 'cancelled'].includes(task.subblok.status ?? '')
+                    ? '/petugas/aktivitas?view=history'
+                    : `/petugas/aktivitas${activityDate}`
+            "
+            back-label="Kembali ke daftar tugas"
+        />
+
+        <section
+            class="petugas-card overflow-hidden"
+            aria-label="Informasi tugas"
         >
-        <h1 class="text-xl leading-7 font-semibold">{{ task.name }}</h1>
-        <TaskContext :task="task" />
-        <Button v-if="canRecord" as-child class="min-h-12 w-full rounded-xl"
-            ><Link
-                :href="`/petugas/tasks/${task.id}/aktivitas/buat${activityDate}`"
-                ><ClipboardPlus class="size-4" aria-hidden="true" />Catat
-                aktivitas tugas ini</Link
-            ></Button
+            <div class="p-4">
+                <div class="flex items-start gap-3">
+                    <span
+                        class="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+                    >
+                        <component
+                            :is="
+                                task.activity_category === 'harvest'
+                                    ? Wheat
+                                    : Sprout
+                            "
+                            class="size-5"
+                            aria-hidden="true"
+                        />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="text-lg leading-6 font-semibold break-words">
+                            {{ task.name }}
+                        </h2>
+                        <p
+                            class="mt-0.5 text-xs leading-5 text-muted-foreground"
+                        >
+                            {{ sopTaskCategoryLabel(task) }} · SOP · Wajib
+                        </p>
+                    </div>
+                </div>
+                <p
+                    class="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground"
+                >
+                    <MapPin
+                        class="mt-0.5 size-3.5 shrink-0 text-primary"
+                        aria-hidden="true"
+                    />
+                    <span class="min-w-0 break-words">
+                        {{ task.subblok.farm.name }} ·
+                        {{ task.subblok.block.name }} ·
+                        {{
+                            task.subblok.label ??
+                            `Subblok ${task.subblok.number}`
+                        }}
+                    </span>
+                </p>
+                <TaskStatusBadges
+                    class="mt-3"
+                    :status="task.status"
+                    :urgency="task.urgency"
+                    :closed="
+                        ['harvested', 'cancelled'].includes(
+                            task.subblok.status ?? '',
+                        )
+                    "
+                />
+            </div>
+            <dl
+                class="grid grid-cols-2 divide-x divide-border border-t border-border"
+            >
+                <div class="min-w-0 p-4">
+                    <dt
+                        class="flex items-center gap-1.5 text-xs text-muted-foreground"
+                    >
+                        <CalendarDays
+                            class="size-3.5 shrink-0 text-primary"
+                            aria-hidden="true"
+                        />
+                        Jadwal tugas
+                    </dt>
+                    <dd class="mt-1.5 text-sm font-semibold">
+                        {{
+                            task.scheduled_date
+                                ? formatReportDate(task.scheduled_date)
+                                : 'Belum dijadwalkan'
+                        }}
+                    </dd>
+                </div>
+                <div class="min-w-0 p-4">
+                    <dt
+                        class="flex items-center gap-1.5 text-xs text-muted-foreground"
+                    >
+                        <Sprout
+                            class="size-3.5 shrink-0 text-primary"
+                            aria-hidden="true"
+                        />
+                        Target tugas
+                    </dt>
+                    <dd class="mt-1.5 text-sm font-semibold">
+                        HST {{ task.offset_days }}
+                    </dd>
+                </div>
+            </dl>
+            <dl
+                class="grid grid-cols-2 divide-x divide-border border-t border-border"
+            >
+                <div class="min-w-0 p-4">
+                    <dt class="text-xs text-muted-foreground">Varietas</dt>
+                    <dd class="mt-1.5 text-sm font-semibold break-words">
+                        {{ task.subblok.variety.name }}
+                    </dd>
+                </div>
+                <div class="min-w-0 p-4">
+                    <dt class="text-xs text-muted-foreground">Estimasi HOK</dt>
+                    <dd class="mt-1.5 text-sm font-semibold tabular-nums">
+                        {{
+                            task.hok != null
+                                ? formatHok(task.hok)
+                                : 'Tidak ditetapkan'
+                        }}
+                    </dd>
+                </div>
+            </dl>
+            <div
+                v-if="task.reporting_window"
+                class="border-t border-border px-4 py-3"
+            >
+                <p class="text-xs font-semibold text-muted-foreground">
+                    Jendela pelaporan
+                </p>
+                <p class="mt-1 text-sm leading-5">
+                    {{ formatReportDate(task.reporting_window.start) }} –
+                    {{ formatReportDate(task.reporting_window.end) }} (WIB)
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    Termasuk kedua tanggal.
+                </p>
+            </div>
+        </section>
+
+        <section
+            class="petugas-card p-4"
+            aria-labelledby="instructions-heading"
         >
-        <p
-            v-else
-            class="rounded-xl border border-border bg-muted p-3 text-sm leading-6"
-        >
-            {{
-                blockedReason ??
-                (task.subblok.planted_at === null
-                    ? 'Pencatatan tersedia setelah tanggal tanam aktual dicatat.'
-                    : task.status === 'completed'
-                      ? 'Tugas ini sudah selesai. Laporan baru tidak dapat ditambahkan.'
-                      : task.status === 'skipped'
-                        ? 'Tugas ini ditandai tidak dikerjakan.'
-                        : 'Tugas sudah ditutup. Pencatatan baru tidak tersedia.')
-            }}
-        </p>
+            <div class="flex items-center gap-2.5 border-b border-border pb-3">
+                <span
+                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                >
+                    <FileText class="size-5" aria-hidden="true" />
+                </span>
+                <h2 id="instructions-heading" class="text-base font-semibold">
+                    Instruksi SOP
+                </h2>
+            </div>
+            <p
+                v-if="task.instructions"
+                class="pt-3 text-sm leading-6 break-words whitespace-pre-line"
+            >
+                {{ task.instructions }}
+            </p>
+            <p v-else class="pt-3 text-sm text-muted-foreground">
+                Tidak ada instruksi tambahan.
+            </p>
+        </section>
+
+        <section class="petugas-card p-4" aria-labelledby="actions-heading">
+            <div class="flex items-center gap-2.5">
+                <span
+                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                >
+                    <ClipboardPlus class="size-5" aria-hidden="true" />
+                </span>
+                <h2 id="actions-heading" class="text-base font-semibold">
+                    Pelaksanaan tugas
+                </h2>
+            </div>
+            <p class="mt-3 text-sm leading-6 text-muted-foreground">
+                {{ completionGuidance }}
+            </p>
+            <Button
+                v-if="canRecord"
+                as-child
+                class="mt-4 min-h-12 w-full rounded-xl"
+            >
+                <Link
+                    :href="`/petugas/tasks/${task.id}/aktivitas/buat${activityDate}`"
+                >
+                    <ClipboardPlus class="size-4" aria-hidden="true" />Catat
+                    aktivitas tugas ini
+                </Link>
+            </Button>
+            <p
+                v-else
+                class="mt-4 flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-sm leading-6"
+            >
+                <Info
+                    class="mt-1 size-4 shrink-0 text-primary"
+                    aria-hidden="true"
+                />
+                <span>
+                    {{
+                        blockedReason ??
+                        (task.subblok.planted_at === null
+                            ? 'Pencatatan tersedia setelah tanggal tanam aktual dicatat.'
+                            : task.status === 'completed'
+                              ? 'Tugas ini sudah selesai. Laporan baru tidak dapat ditambahkan.'
+                              : task.status === 'skipped'
+                                ? 'Tugas ini ditandai tidak dikerjakan.'
+                                : 'Tugas sudah ditutup. Pencatatan baru tidak tersedia.')
+                    }}
+                </span>
+            </p>
+        </section>
+
         <section
             v-if="task.can.complete"
-            class="space-y-3 rounded-xl border border-border bg-card p-4"
+            class="petugas-card p-4"
             aria-labelledby="complete-heading"
         >
-            <h2 id="complete-heading" class="text-base font-semibold">
-                Selesaikan tugas
-            </h2>
-            <p class="text-sm leading-6 text-muted-foreground">
+            <div class="flex items-center gap-2.5 border-b border-border pb-3">
+                <span
+                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-secondary dark:text-primary"
+                >
+                    <CheckCircle2 class="size-5" aria-hidden="true" />
+                </span>
+                <h2 id="complete-heading" class="text-base font-semibold">
+                    Selesaikan tugas
+                </h2>
+            </div>
+            <p class="mt-3 text-sm leading-6 text-muted-foreground">
                 Tandai selesai setelah pekerjaan tuntas. Setelah selesai,
                 laporan baru tidak dapat ditambahkan.
             </p>
-            <form class="space-y-3" @submit.prevent="complete">
-                <label class="block space-y-2 text-sm"
-                    ><span>Catatan penyelesaian (opsional)</span
-                    ><textarea
+            <form class="mt-3 space-y-3" @submit.prevent="complete">
+                <label class="block space-y-2 text-sm">
+                    <span>Catatan penyelesaian (opsional)</span>
+                    <textarea
                         v-model="completionForm.note"
                         rows="3"
                         maxlength="2000"
                         class="block min-h-24 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-error"
                         :aria-invalid="!!completionForm.errors.note"
-                    /><span
+                    />
+                    <span
                         v-if="completionForm.errors.note"
+                        role="alert"
                         class="block text-xs text-error"
                         >{{ completionForm.errors.note }}</span
-                    ></label
-                >
+                    >
+                </label>
                 <p
                     v-if="completionStatusError"
                     role="alert"
@@ -110,99 +323,84 @@ function completedAtLabel(value: string | null): string {
                     class="min-h-12 w-full rounded-xl"
                     :disabled="completionForm.processing"
                 >
-                    <CheckCircle2 class="size-4" aria-hidden="true" />Selesaikan
-                    tugas
+                    <CheckCircle2 class="size-4" aria-hidden="true" />
+                    {{
+                        completionForm.processing
+                            ? 'Menyimpan…'
+                            : 'Selesaikan tugas'
+                    }}
                 </Button>
+                <p
+                    v-if="completionForm.processing"
+                    role="status"
+                    class="text-xs text-muted-foreground"
+                >
+                    Menyimpan penyelesaian tugas…
+                </p>
             </form>
         </section>
         <section
             v-else-if="task.status === 'completed'"
-            class="space-y-2 rounded-xl border border-success/30 bg-success/10 p-4"
+            class="petugas-card border border-success/30 p-4"
             aria-labelledby="completed-heading"
         >
-            <h2 id="completed-heading" class="text-base font-semibold">
-                Tugas selesai
-            </h2>
-            <p v-if="task.completed_at" class="text-xs text-muted-foreground">
-                Dicatat {{ completedAtLabel(task.completed_at) }}
-            </p>
+            <div class="flex items-center gap-2.5">
+                <span
+                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-secondary dark:text-primary"
+                >
+                    <CheckCircle2 class="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                    <h2 id="completed-heading" class="text-base font-semibold">
+                        Tugas selesai
+                    </h2>
+                    <p
+                        v-if="task.completed_at"
+                        class="mt-1 text-xs text-muted-foreground"
+                    >
+                        Dicatat {{ completedAtLabel(task.completed_at) }}
+                    </p>
+                </div>
+            </div>
             <p
                 v-if="task.completion_note"
-                class="text-sm leading-6 whitespace-pre-line"
+                class="mt-3 rounded-xl bg-muted/50 p-3 text-sm leading-6 break-words whitespace-pre-line"
             >
                 {{ task.completion_note }}
             </p>
         </section>
+
         <section class="space-y-3" aria-labelledby="reports-heading">
-            <h2 id="reports-heading" class="text-lg font-semibold">
-                Aktivitas terkait · {{ reports.length }}
-            </h2>
-            <p
+            <div class="flex items-center justify-between gap-3">
+                <h2 id="reports-heading" class="text-base font-semibold">
+                    Aktivitas terkait
+                </h2>
+                <span
+                    class="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground"
+                    >{{ reports.length }} laporan</span
+                >
+            </div>
+            <div
                 v-if="!reports.length"
-                class="rounded-xl border border-dashed border-border p-5 text-sm leading-6 text-muted-foreground"
+                class="petugas-card petugas-empty bg-muted/40 px-5 py-8 text-center"
             >
-                Belum ada laporan untuk tugas ini. Catat hasil pekerjaan setelah
-                pelaksanaan di lapangan.
-            </p>
-            <article
+                <ClipboardList
+                    class="mx-auto size-8 text-primary"
+                    aria-hidden="true"
+                />
+                <h3 class="mt-3 text-sm font-semibold">
+                    Belum ada laporan untuk tugas ini
+                </h3>
+                <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                    Catat hasil pekerjaan setelah pelaksanaan di lapangan.
+                </p>
+            </div>
+            <TaskReportCard
                 v-for="report in reports"
                 :key="report.id"
-                class="space-y-3 rounded-xl border border-border bg-card p-4"
-            >
-                <h3 class="text-base font-semibold">{{ report.work_date }}</h3>
-                <p class="text-xs text-muted-foreground">
-                    Dicatat oleh
-                    {{ report.performer_name ?? 'Petugas kebun' }} ·
-                    {{ report.worker_count }} pekerja
-                </p>
-                <Link
-                    :href="`/petugas/laporan/${report.id}`"
-                    class="inline-flex min-h-11 items-center text-sm text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
-                    >Lihat detail laporan</Link
-                >
-                <dl class="space-y-2 text-sm">
-                    <div
-                        v-for="field in fields.filter(
-                            (field) =>
-                                report.details[field.key] !== null &&
-                                report.details[field.key] !== undefined &&
-                                report.details[field.key] !== '',
-                        )"
-                        :key="field.key"
-                    >
-                        <dt class="text-xs text-muted-foreground">
-                            {{ field.label }}
-                        </dt>
-                        <dd class="mt-1 break-words">
-                            {{ report.details[field.key] }}
-                        </dd>
-                    </div>
-                </dl>
-                <p
-                    v-if="report.notes"
-                    class="text-sm leading-6 whitespace-pre-line"
-                >
-                    {{ report.notes }}
-                </p>
-                <div class="grid grid-cols-2 gap-2">
-                    <a
-                        v-for="(photo, index) in report.photos"
-                        :key="photo.id"
-                        :href="photo.url"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        ><img
-                            :src="photo.url"
-                            :alt="`Bukti aktivitas ${report.work_date}, foto ${index + 1}`"
-                            class="aspect-square w-full rounded-xl object-cover"
-                            loading="lazy"
-                    /></a>
-                </div>
-            </article>
+                :report="report"
+                :fields="fields"
+            />
         </section>
-        <p class="text-xs leading-5 text-muted-foreground">
-            {{ completionGuidance }}
-        </p>
     </div>
 </template>

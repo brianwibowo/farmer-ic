@@ -18,7 +18,13 @@ class VoluntaryActivityFields
         return match ($code) {
             'land_cleaning', 'soil_preparation', 'base_fertilization', 'maintenance' => $area,
             'harvest' => [...$area, $n('weight', 'Berat seluruh hasil panen'), $s('weight_unit', 'Satuan berat', ['kg', 'ton'])],
-            'incident' => [$s('incident_category', 'Kategori insiden', ['Hama', 'Penyakit', 'Cuaca', 'Banjir', 'Alat rusak', 'Tenaga kerja', 'Lainnya']), $t('description', 'Deskripsi kejadian'), ...$area, $s('severity', 'Tingkat kedaruratan', ['Ringan', 'Sedang', 'Berat', 'Darurat']), $t('immediate_action', 'Tindakan segera', true), $s('incident_status', 'Status insiden', ['Open', 'In Progress', 'Resolved'], true)],
+            'incident' => [
+                $s('incident_category', 'Kategori insiden', ['Lahan', 'Tanaman', 'Alat dan Tenaga Kerja', 'Lainnya']),
+                $s('severity', 'Tingkat kedaruratan', ['Ringan', 'Sedang', 'Darurat']),
+                $t('description', 'Deskripsi kejadian'),
+                $s('incident_status', 'Status awal', ['Perlu penanganan', 'Sudah ditangani langsung']),
+                $t('immediate_action', 'Tindakan segera', true) + ['required_when' => ['key' => 'incident_status', 'value' => 'Sudah ditangani langsung']],
+            ],
             'other' => [$t('description', 'Deskripsi pekerjaan'), $n('area', 'Luas area', true, '0.0001'), $s('area_unit', 'Satuan luas', ['m²', 'Ha'], true)],
             default => [],
         };
@@ -30,7 +36,10 @@ class VoluntaryActivityFields
         $fields = self::forCode($code);
         $rules = ['details' => ['required', 'array:'.implode(',', array_column($fields, 'key'))]];
         foreach ($fields as $field) {
-            $checks = [$field['optional'] ? 'nullable' : 'required'];
+            $requiredWhen = $field['required_when'] ?? null;
+            $checks = is_array($requiredWhen)
+                ? ['required_if:details.'.$requiredWhen['key'].','.$requiredWhen['value'], 'nullable']
+                : [$field['optional'] ? 'nullable' : 'required'];
             if ($field['type'] === 'number') {
                 $checks = [...$checks, $field['step'] === '1' ? 'integer' : 'numeric', 'min:'.$field['step'], 'max:'.$field['max']];
             } else {

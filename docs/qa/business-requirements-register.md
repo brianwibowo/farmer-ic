@@ -284,4 +284,3 @@ Daftar ini membantu pembaca menemukan bagian proyek untuk dibandingkan setelah k
 | Aplikasi mobile Petugas | Halaman Petugas Beranda, Kebun, Tugas, Laporan; navigasi mobile dan detail alur aktivitas. |
 | Keuangan dan operasional | Rute finance/transaksi/anggaran/ekspor; `app/Http/Controllers/Finance/`; `app/Services/Finance/`. |
 | Notifikasi dan tindak lanjut | `NotificationController`; `app/Services/Notifications/`. |
-

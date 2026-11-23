@@ -2,7 +2,7 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowUpRight, ClipboardList, MapPin, WalletCards } from '@lucide/vue';
 import { computed } from 'vue';
-import DashboardFarmMap from '@/components/dashboard/DashboardFarmMap.vue';
+import FarmBlockBoundaryMap from '@/components/farms/FarmBlockBoundaryMap.vue';
 import OwnerCycleCard from '@/components/owner/OwnerCycleCard.vue';
 import OwnerPageHeader from '@/components/owner/OwnerPageHeader.vue';
 import {
@@ -67,20 +67,8 @@ const page = usePage();
 const origin = computed(() => ownerFarmOrigin(page.url));
 const backHref = computed(() => (origin.value === 'home' ? '/' : '/kebun'));
 const backLabel = computed(() =>
-    origin.value === 'home' ? 'Kembali ke Beranda' : 'Daftar kebun',
+    origin.value === 'home' ? 'Kembali ke Beranda' : 'Daftar lahan',
 );
-const mapFarms = computed(() => [
-    {
-        id: props.farm.id,
-        name: props.farm.name,
-        location: location.value,
-        area: ownerArea(props.farm.total_area_ha),
-        latitude:
-            props.farm.latitude === null ? null : Number(props.farm.latitude),
-        longitude:
-            props.farm.longitude === null ? null : Number(props.farm.longitude),
-    },
-]);
 const tenure: Record<string, string> = {
     owned: 'Milik sendiri',
     rented: 'Sewa',
@@ -107,7 +95,7 @@ const severity: Record<string, string> = {
         aria-labelledby="farm-information"
     >
         <h2 id="farm-information" class="text-base font-semibold">
-            Informasi kebun
+            Informasi lahan
         </h2>
         <dl class="mt-4 space-y-3 text-sm">
             <div>
@@ -197,10 +185,10 @@ const severity: Record<string, string> = {
             <span class="text-sm font-normal">ton</span>
         </p>
         <p class="mt-2 text-xs leading-5 text-muted-foreground">
-            Akumulasi berat panen dari aktivitas yang tercatat pada kebun ini.
+            Akumulasi berat panen dari aktivitas yang tercatat pada lahan ini.
         </p>
     </section>
-    <nav aria-label="Data terkait kebun" class="grid grid-cols-2 gap-3">
+    <nav aria-label="Data terkait lahan" class="grid grid-cols-2 gap-3">
         <Link
             v-if="page.props.ownerNavigation?.activities"
             :href="`/aktivitas?farm_id=${farm.id}`"
@@ -214,15 +202,15 @@ const severity: Record<string, string> = {
         >
     </nav>
     <section aria-labelledby="farm-blocks">
-        <h2 id="farm-blocks" class="text-base font-semibold">Blok & batch</h2>
+        <h2 id="farm-blocks" class="text-base font-semibold">Blok & subblok</h2>
         <p class="mt-1 text-xs leading-5 text-muted-foreground">
-            Buka blok untuk melihat alokasi, timeline, dan jadwal setiap batch.
+            Buka blok untuk melihat alokasi, timeline, dan jadwal setiap subblok.
         </p>
         <p
             v-if="!blocks.length"
             class="mt-3 rounded-xl bg-muted p-4 text-sm text-muted-foreground"
         >
-            Belum ada blok tercatat pada kebun ini.
+            Belum ada blok tercatat pada lahan ini.
         </p>
         <div class="mt-3 space-y-3">
             <Link
@@ -237,7 +225,7 @@ const severity: Record<string, string> = {
                 class="block rounded-xl border border-border p-4 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
                 ><div class="flex justify-between gap-3">
                     <h3 class="text-sm font-semibold">
-                        {{ block.code }} · {{ block.name }}
+                        {{ block.name }}
                     </h3>
                     <ArrowUpRight
                         class="size-4 shrink-0 text-secondary dark:text-primary"
@@ -245,7 +233,7 @@ const severity: Record<string, string> = {
                 </div>
                 <p class="mt-2 text-xs text-muted-foreground">
                     {{ ownerArea(block.area_ha) }} ha ·
-                    {{ block.cycles_count }} batch ·
+                    {{ block.cycles_count }} subblok ·
                     {{ block.is_active ? 'Aktif' : 'Nonaktif' }}
                 </p>
                 <p v-if="block.description" class="mt-2 text-sm leading-6">
@@ -402,7 +390,7 @@ const severity: Record<string, string> = {
         </article>
     </section>
     <section>
-        <h2 class="text-base font-semibold">Petugas kebun</h2>
+        <h2 class="text-base font-semibold">Petugas lahan</h2>
         <p
             v-if="!officers.length"
             class="mt-3 rounded-xl bg-muted p-4 text-sm text-muted-foreground"
@@ -424,8 +412,10 @@ const severity: Record<string, string> = {
     </section>
     <section>
         <h2 class="flex items-center gap-2 text-base font-semibold">
-            <MapPin class="size-4" />Lokasi
+            <MapPin class="size-4" />Peta lokasi &amp; batas blok
         </h2>
-        <DashboardFarmMap :farms="mapFarms" class="mt-3! h-56!" />
+        <div class="mt-3">
+            <FarmBlockBoundaryMap :farm="farm" :blocks="blocks" />
+        </div>
     </section>
 </template>

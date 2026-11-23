@@ -1,13 +1,15 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { renderToString } from '@vue/server-renderer';
 import { h } from 'vue';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { PetugasHomeIncident } from '@/types/petugas-home';
 import HomeIncidentAlerts from './HomeIncidentAlerts.vue';
 
 const fixtures: PetugasHomeIncident[] = [
     {
         id: 'demo-emergency',
+        ticket_id: 'ticket-1',
+        detail_url: '/petugas/incidents/ticket-1',
         severity: 'emergency',
         severity_label: 'Darurat',
         category: 'Banjir',
@@ -17,23 +19,13 @@ const fixtures: PetugasHomeIncident[] = [
         action: 'Periksa akses dan saluran drainase.',
     },
     {
-        id: 'demo-heavy',
-        severity: 'heavy',
-        severity_label: 'Berat',
-        category: 'Alat rusak',
-        description: 'Contoh: pompa irigasi berhenti berfungsi.',
-        reported_at: '2026-11-10T01:00:00Z',
-        status: 'in_progress',
-        action: null,
-    },
-    {
         id: 'demo-medium',
         severity: 'medium',
         severity_label: 'Sedang',
         category: 'Hama',
         description: 'Contoh: ditemukan serangan ulat pada beberapa baris.',
         reported_at: '2026-11-10T00:30:00Z',
-        status: 'open',
+        status: 'in_progress',
         action: null,
     },
     {
@@ -51,22 +43,20 @@ const render = (data: PetugasHomeIncident[], total = data.length) =>
     renderToString(h(HomeIncidentAlerts, { incidents: { data, total } }));
 
 describe('incident home alerts', () => {
-    it('announces emergencies and presents all four severity colors and labels', async () => {
+    it('announces emergencies and presents three severity colors, labels, and ticket links', async () => {
         const html = await render(fixtures);
-        for (const label of ['Darurat', 'Berat', 'Sedang', 'Ringan'])
+        for (const label of ['Darurat', 'Sedang', 'Ringan'])
             expect(html).toContain(`Insiden · ${label}`);
+        expect(html).not.toContain('Insiden · Berat');
+        expect(html).toContain('/petugas/incidents/ticket-1');
+        expect(html).toContain('/petugas/incidents');
         expect(html.match(/role="alert"/g)).toHaveLength(1);
-        expect(html.match(/role="status"/g)).toHaveLength(3);
-        for (const color of [
-            'text-error',
-            'petugas-incident-heavy',
-            'text-warning',
-            'text-info',
-        ])
+        expect(html.match(/role="status"/g)).toHaveLength(2);
+        for (const color of ['text-error', 'text-warning', 'text-info'])
             expect(html).toContain(color);
         expect(html).toContain('Dalam penanganan');
         expect(html).toContain('Perlu ditindaklanjuti');
-        expect(html).toContain('Tindakan penanganan');
+        expect(html).toContain('Arahan / tindakan');
 
         // Optional QA artifact: visual fixtures only, never a source of operational data.
         if (process.env.INCIDENT_ALERT_PREVIEW) {

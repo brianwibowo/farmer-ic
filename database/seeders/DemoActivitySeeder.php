@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\IncidentSeverity;
 use App\Models\ActivityPhoto;
 use App\Models\ActivityType;
 use App\Models\DailyActivityLog;
@@ -9,6 +10,7 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\HarvestDetail;
+use App\Models\IncidentTicket;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\User;
@@ -55,11 +57,8 @@ class DemoActivitySeeder extends Seeder
             \Illuminate\Support\Facades\Gate::forUser($petugas)->authorize('create', [DailyActivityLog::class, $farm]);
             app(DailyActivityLogService::class)->create($farm, [
                 'work_date' => $mappingDate,
-                'start_time' => '08:00',
-                'end_time' => '16:00',
                 'worker_count' => 6,
                 'recorded_by' => $petugas->id,
-                'notes' => 'Pemetaan awal untuk persiapan bedengan.',
                 'activities' => [[
                     'type' => 'block_mapping',
                     'block_mapping' => [
@@ -74,6 +73,7 @@ class DemoActivitySeeder extends Seeder
                     'obstacles' => 'Sebagian batas lahan mengikuti kontur lereng.',
                     'proposed_solution' => 'Sesuaikan panjang bedeng dengan batas lahan.',
                     'action_taken' => 'Batas blok ditandai di lapangan.',
+                    'notes' => 'Pemetaan awal untuk persiapan bedengan.',
                 ]],
             ]);
         }
@@ -105,7 +105,7 @@ class DemoActivitySeeder extends Seeder
 
         $previous = PlantingCycle::visibleTo($petugas, $team)
             ->where('farm_id', $farm->id)
-            ->where('subblock_label', 'A')->whereHas('block', fn ($q) => $q->where('code', 'B01'))
+            ->where('subblock_label', 'A')->whereHas('block', fn ($q) => $q->where('name', 'Blok Utara'))
             ->first();
         if ($previous instanceof PlantingCycle) {
             if ($previous->sop_template_version_id === null && $cycle->sop_template_version_id !== null) {
@@ -132,7 +132,7 @@ class DemoActivitySeeder extends Seeder
                 'label' => 'Kondisi awal bedengan',
             ], [
                 'caption' => 'Dokumentasi kondisi awal bedengan Blok 1.',
-                'image_url' => '/images/kebun-placeholder.svg',
+                'image_url' => \Database\Seeders\Support\DemoUpload::image('activity', 'farms/'.$farm->id.'/'.$planting->id.'/demo.jpg'),
                 'uploaded_at' => now(),
             ]);
         }
@@ -210,6 +210,19 @@ class DemoActivitySeeder extends Seeder
             };
             if ($relation !== null) {
                 $activity->{$relation}()->create($detail);
+                if ($typeCode === 'incident') {
+                    IncidentTicket::query()->firstOrCreate(
+                        ['activity_id' => $activity->id],
+                        [
+                            'farm_id' => $farm->id,
+                            'planting_cycle_id' => $cycle->id,
+                            'block_id' => $cycle->block_id,
+                            'incident_category' => is_string($detail['incident_category'] ?? null) ? $detail['incident_category'] : null,
+                            'severity' => (IncidentSeverity::fromStored(is_string($detail['severity'] ?? null) ? $detail['severity'] : null) ?? IncidentSeverity::Medium)->value,
+                            'status' => 'open',
+                        ],
+                    );
+                }
             } elseif ($task === null) {
                 $activity->forceFill([
                     'task_details' => json_encode($detail, JSON_THROW_ON_ERROR),
@@ -299,16 +312,17 @@ class DemoActivitySeeder extends Seeder
     {
         $team = $farm->team;
         \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('viewAny', [FarmBlock::class, $team]);
-        $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('code', ['B01', 'B02'])->get();
+        $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->whereIn('name', ['Blok Utara', 'Blok Selatan'])->get();
         foreach ($blocks as $block) {
-            $cleaningDate = $block->code === 'B01' ? '2026-05-17' : '2026-09-20';
-            $soilDate = $block->code === 'B01' ? '2026-05-20' : '2026-09-23';
+            $isNorth = $block->name === 'Blok Utara';
+            $cleaningDate = $isNorth ? '2026-05-17' : '2026-09-20';
+            $soilDate = $isNorth ? '2026-05-20' : '2026-09-23';
             $reports = [
-                ['land_cleaning', 'Pembersihan lahan percontohan '.$block->code, $cleaningDate, 'landCleaningDetail', ['area_ha' => '1.0000']],
-                ['soil_preparation', 'Pengolahan tanah percontohan '.$block->code, $soilDate, null, ['area_ha' => '1.0000']],
+                ['land_cleaning', 'Pembersihan lahan percontohan '.$block->name, $cleaningDate, 'landCleaningDetail', ['area_ha' => '1.0000']],
+                ['soil_preparation', 'Pengolahan tanah percontohan '.$block->name, $soilDate, null, ['area_ha' => '1.0000']],
             ];
-            if ($block->code === 'B01') {
-                $reports[] = ['base_fertilization', 'Pemupukan kandang percontohan '.$block->code, '2026-05-25', 'fertilizationDetail', [
+            if ($isNorth) {
+                $reports[] = ['base_fertilization', 'Pemupukan kandang percontohan '.$block->name, '2026-05-25', 'fertilizationDetail', [
                     'fertilization_stage' => 'kandang', 'area_ha' => '1.0000',
                 ]];
             }
@@ -345,10 +359,7 @@ class DemoActivitySeeder extends Seeder
         \Illuminate\Support\Facades\Gate::forUser($actor)->authorize('create', [DailyActivityLog::class, $farm]);
         Farm::visibleTo($actor, $farm->team)->whereKey($farm->id)->lockForUpdate()->firstOrFail();
         $headers = app(\App\Services\Activity\DailyActivityHeaderService::class);
-        $log = $headers->resolve($farm, $actor, [
-            'work_date' => $date, 'start_time' => '08:00', 'end_time' => '16:00',
-            'daily_notes' => 'Kegiatan lapangan bersama tim Kebun Cileuksa.',
-        ]);
+        $log = $headers->resolve($farm, $actor, $date);
 
         return [$log, $headers->nextPosition($log, $actor)];
     }

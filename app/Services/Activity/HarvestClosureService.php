@@ -33,9 +33,30 @@ class HarvestClosureService
                 throw ValidationException::withMessages(['harvest' => 'Catat laporan panen sebelum menutup subblok.']);
             }
 
+            $openMaintenance = PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)
+                ->whereIn('activity_category', PlantingCycleTask::PRE_HARVEST_CATEGORIES)->whereNotIn('status', ['completed', 'skipped'])->exists();
+            if ($openMaintenance) {
+                throw ValidationException::withMessages(['harvest' => 'Selesaikan atau tandai tidak dikerjakan seluruh tugas SOP perawatan sebelum menutup panen.']);
+            }
+
             $tasks = PlantingCycleTask::visibleTo($actor, $team)->where('planting_cycle_id', $cycle->id)
                 ->where('activity_category', 'harvest')->whereIn('status', ['pending', 'in_progress'])
                 ->orderBy('id')->lockForUpdate()->get();
+            if ($tasks->isNotEmpty()) {
+                $reportedTaskIds = FarmActivity::visibleTo($actor, $team)
+                    ->whereIn('planting_cycle_task_id', $tasks->modelKeys())
+                    ->whereHas('activityType', fn ($q) => $q->visibleTo($actor, $team)->where('code', 'harvest'))
+                    ->whereHas('harvestDetail', fn ($q) => $q->visibleTo($actor, $team))
+                    ->distinct()
+                    ->pluck('planting_cycle_task_id')
+                    ->all();
+                if (count($reportedTaskIds) !== $tasks->count()) {
+                    throw ValidationException::withMessages([
+                        'harvest' => 'Setiap tugas SOP panen yang belum ditandai tidak dikerjakan wajib memiliki laporan panen sebelum penutupan.',
+                    ]);
+                }
+            }
+
             foreach ($tasks as $task) {
                 $task->forceFill([
                     'status' => 'completed', 'completed_at' => now(), 'completed_by' => $actor->id,

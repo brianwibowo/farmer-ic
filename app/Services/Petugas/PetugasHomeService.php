@@ -10,6 +10,7 @@ use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
 
 class PetugasHomeService
@@ -40,7 +41,7 @@ class PetugasHomeService
             ->whereHas('block', fn ($blocks) => $blocks->visibleTo($actor, $team)->where('farm_id', $visibleFarm->id));
         $counts = (clone $cycles)->selectRaw('status, COUNT(*) AS total')->groupBy('status')->pluck('total', 'status');
         $tasks = PlantingCycleTask::visibleTo($actor, $team)
-            ->whereIn('planting_cycle_id', (clone $cycles)->select('id'))
+            ->whereIn('planting_cycle_id', (clone $cycles)->whereIn('status', SubblockLifecycle::RUNNING)->select('id'))
             ->whereRaw('COALESCE(rescheduled_date, scheduled_date) = ?', [$today->toDateString()])
             ->whereIn('status', ['pending', 'in_progress', 'completed']);
         $total = (clone $tasks)->count();
@@ -91,19 +92,32 @@ class PetugasHomeService
                 ->where('activity_date', '<=', CarbonImmutable::now('Asia/Jakarta'))
                 ->where(fn ($statuses) => $statuses->whereIn('status', ['open', 'progress', 'in_progress', 'pending', 'reported'])->orWhereNull('status')));
         $total = (clone $query)->count();
-        $items = $query->with(['activity' => fn ($activities) => $activities->visibleTo($actor, $team)])
-            ->orderByRaw("CASE WHEN severity IN ('emergency', 'critical') THEN 0 WHEN severity IN ('heavy', 'high') THEN 1 WHEN severity IN ('medium', 'moderate') THEN 2 ELSE 3 END")
+        $items = $query->with([
+            'activity' => fn ($activities) => $activities->visibleTo($actor, $team),
+            'activity.incidentTicket' => fn ($tickets) => $tickets->visibleTo($actor, $team),
+        ])
+            ->orderByRaw("CASE WHEN severity IN ('emergency', 'critical', 'heavy', 'high') THEN 0 WHEN severity IN ('medium', 'moderate') THEN 1 ELSE 2 END")
             ->orderByDesc(FarmActivity::visibleTo($actor, $team)->select('activity_date')->whereColumn('farm_activities.id', 'incident_details.activity_id'))
             ->orderBy('activity_id')->limit(4)->get()->map(function (IncidentDetail $incident): array {
-                $severity = IncidentSeverity::fromStored($incident->severity);
                 $activity = $incident->activity;
+                $ticket = $activity->incidentTicket;
+                $severity = IncidentSeverity::fromStored(
+                    $ticket !== null ? $ticket->severity : $incident->severity,
+                ) ?? IncidentSeverity::Medium;
 
                 return [
-                    'id' => $incident->activity_id, 'severity' => $severity->value, 'severity_label' => $severity->label(),
-                    'category' => $incident->incident_category, 'description' => $activity->description,
+                    'id' => $incident->activity_id,
+                    'ticket_id' => $ticket?->id,
+                    'detail_url' => $ticket !== null
+                        ? route('petugas.incidents.show', $ticket)
+                        : route('petugas.laporan.show', $incident->activity_id),
+                    'severity' => $severity->value,
+                    'severity_label' => $severity->label(),
+                    'category' => ($ticket !== null ? $ticket->incident_category : null) ?? $incident->incident_category,
+                    'description' => $activity->description,
                     'reported_at' => $activity->activity_date->toISOString(),
-                    'status' => in_array($activity->status, ['progress', 'in_progress'], true) ? 'in_progress' : 'open',
-                    'action' => $activity->action_taken ?? $incident->proposed_solution,
+                    'status' => ($ticket !== null && $ticket->status === 'in_progress') || in_array($activity->status, ['progress', 'in_progress'], true) ? 'in_progress' : 'open',
+                    'action' => ($ticket !== null ? $ticket->admin_note : null) ?? $activity->action_taken ?? $incident->proposed_solution,
                 ];
             })->all();
 

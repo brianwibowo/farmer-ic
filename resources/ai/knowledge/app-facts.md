@@ -26,7 +26,7 @@ periode tersebut") instead of claiming the data is unavailable or cut off.
 
 When answering agronomic, field, activity, or crop questions, embed one relevant local image asset using Markdown `![Caption](url)` at the beginning of the guide or infographic:
 
-- Jagung / Kebun Jagung: `![Lahan dan tanaman jagung](/images/farmer/corn-field.jpeg)` atau `![Ilustrasi komoditas jagung](/images/commodities/jagung.svg)`
+- Jagung / Lahan Jagung: `![Lahan dan tanaman jagung](/images/farmer/corn-field.jpeg)` atau `![Ilustrasi komoditas jagung](/images/commodities/jagung.svg)`
 - Padi: `![Ilustrasi komoditas padi](/images/commodities/padi.svg)`
 - Kedelai: `![Ilustrasi komoditas kedelai](/images/commodities/kedelai.svg)`
 - Pemupukan / Nutrisi Lahan: `![Aktivitas pemupukan dan nutrisi tanah](/images/activities/pupuk-sak.jpg)`

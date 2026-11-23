@@ -146,7 +146,7 @@ class OwnerPortalTest extends TestCase
             ->component('farms/Show')->where('farm.id', $this->farm->id)
             ->has('blocks', 2)->where('can.update', false)->where('can.delete', false));
 
-        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
+        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('name', 'Blok Utara')->firstOrFail();
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Block')->where('block.id', $block->id)
             ->has('cycles', 2)->has('cycles.0.stages', 6)->has('cycles.1.stages', 6)
@@ -203,7 +203,9 @@ class OwnerPortalTest extends TestCase
             ->component('owner/Sops')->where('sops.total', 1)->where('sops.data.0.id', $sop->id));
         $this->get('/lainnya/sop/'.$sop->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Sop')->where('template.id', $sop->id)->has('template.versions', 1)
-            ->where('template.versions.0.status', 'published')->has('template.versions.0.tasks', 5));
+            ->where('template.versions.0.status', 'published')->has('template.versions.0.tasks', 5)
+            ->where('template.versions.0.tasks', fn ($tasks) => collect($tasks)->every(fn ($task) => is_int($task['hok']) && $task['hok'] >= 1)
+                && collect($tasks)->sum('hok') === 16));
         $this->get('/lainnya/pengguna')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('owner/Users')->where('users.total', 3)
             ->where('users.data', fn ($rows) => collect($rows)->every(fn ($row) => $row['role'] !== 'superadmin')));
@@ -242,8 +244,7 @@ class OwnerPortalTest extends TestCase
     public function test_persisted_petugas_logbook_activity_appears_in_owner_feed(): void
     {
         $this->actingAs($this->petugas)->post('/kebun/'.$this->farm->id.'/daily-logs', [
-            'work_date' => '2026-11-04', 'start_time' => '08:00', 'end_time' => null, 'worker_count' => 3,
-            'notes' => 'Pemetaan ulang batas blok setelah hujan.',
+            'work_date' => '2026-11-04', 'worker_count' => 3,
             'activities' => [[
                 'type' => 'block_mapping', 'notes' => 'Pengukuran ulang sisi timur blok',
                 'block_mapping' => ['block_name' => 'Blok Timur', 'length_m' => 25, 'width_m' => 40,
@@ -256,7 +257,7 @@ class OwnerPortalTest extends TestCase
         $this->actingAs($this->owner)->get('/aktivitas?search=Pengukuran')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('activities.total', 1)->where('activities.data.0.id', $activity->id));
         $this->get('/aktivitas/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('activity.worker_count', 3)->where('activity.log.end_time', null));
+            ->where('activity.worker_count', 3)->where('activity.log.work_date', '2026-11-04'));
     }
 
     public function test_farms_without_coordinates_or_observations_remain_in_lists_and_totals(): void
@@ -410,7 +411,7 @@ class OwnerPortalTest extends TestCase
     {
         $this->revoke(['activity_photos.view', 'planting_cycle_stages.view', 'planting_cycle_tasks.view', 'sop_template_versions.view']);
         $activity = FarmActivity::query()->where('description', 'Penanaman Blok 1')->firstOrFail();
-        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
+        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('name', 'Blok Utara')->firstOrFail();
         $sop = SopTemplate::query()->where('team_id', $this->team->id)->firstOrFail();
 
         $this->get('/aktivitas/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page->has('activity.photos', 0));
@@ -451,7 +452,7 @@ class OwnerPortalTest extends TestCase
     public function test_revoked_variety_grant_hides_its_nested_commodity_from_dashboard_and_batches(): void
     {
         $this->revoke(['crop_varieties.view']);
-        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('code', 'B01')->firstOrFail();
+        $block = FarmBlock::query()->where('farm_id', $this->farm->id)->where('name', 'Blok Utara')->firstOrFail();
 
         $this->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page->has('dashboard.commodities', 0));
         $this->get('/kebun/'.$this->farm->id.'/blok/'.$block->id)->assertOk()->assertInertia(fn (Assert $page) => $page

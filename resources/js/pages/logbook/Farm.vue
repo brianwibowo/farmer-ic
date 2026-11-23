@@ -182,13 +182,13 @@ function reset(): void {
                             Riwayat logbook
                         </h2>
                         <span
-                            class="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold tabular-nums text-accent-foreground"
+                            class="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground tabular-nums"
                         >
                             {{ logs.total }}
                         </span>
                     </div>
                     <p class="mt-0.5 text-xs text-muted-foreground">
-                        Waktu pencatatan mengikuti waktu kerja WIB
+                        Ringkasan laporan harian bersama per tanggal kerja
                     </p>
                 </div>
 
@@ -305,9 +305,8 @@ function reset(): void {
                             <tr>
                                 <th scope="col">Tanggal kerja</th>
                                 <th scope="col">Pelapor</th>
-                                <th scope="col">Waktu kerja</th>
                                 <th scope="col">Kegiatan</th>
-                                <th scope="col">Kendala tercatat</th>
+                                <th scope="col">Insiden</th>
                                 <th scope="col" class="text-right">
                                     <span class="sr-only">Aksi</span>
                                 </th>
@@ -334,14 +333,6 @@ function reset(): void {
                                         'Pelapor tidak tersedia'
                                     }}
                                 </td>
-                                <td
-                                    class="text-xs whitespace-nowrap text-muted-foreground"
-                                >
-                                    {{ log.start_time }}–{{
-                                        log.end_time ?? 'Belum diisi'
-                                    }}
-                                    WIB
-                                </td>
                                 <td class="font-semibold tabular-nums">
                                     {{ log.activities_count }}
                                 </td>
@@ -349,12 +340,12 @@ function reset(): void {
                                     <span
                                         class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
                                         :class="
-                                            log.obstacle_count
+                                            log.incident_count
                                                 ? 'bg-warning/15 text-warning'
                                                 : 'bg-muted text-muted-foreground'
                                         "
                                     >
-                                        {{ log.obstacle_count }} kendala
+                                        {{ log.incident_count }} insiden
                                     </span>
                                 </td>
                                 <td class="text-right">
@@ -398,16 +389,12 @@ function reset(): void {
                             class="flex items-center justify-between gap-2 font-semibold hover:text-primary"
                         >
                             <span>{{ logbookDate(log.work_date) }}</span>
-                            <ArrowUpRight class="size-4 shrink-0 text-primary" />
+                            <ArrowUpRight
+                                class="size-4 shrink-0 text-primary"
+                            />
                         </Link>
                         <p class="text-xs text-muted-foreground">
-                            {{
-                                log.recorder_name ?? 'Pelapor tidak tersedia'
-                            }}
-                            · {{ log.start_time }}–{{
-                                log.end_time ?? 'Belum diisi'
-                            }}
-                            WIB
+                            {{ log.recorder_name ?? 'Pelapor tidak tersedia' }}
                         </p>
                         <div class="flex flex-wrap items-center gap-2 text-xs">
                             <span
@@ -418,12 +405,12 @@ function reset(): void {
                             <span
                                 class="rounded-full px-2.5 py-1 font-semibold"
                                 :class="
-                                    log.obstacle_count
+                                    log.incident_count
                                         ? 'bg-warning/15 text-warning'
                                         : 'bg-muted text-muted-foreground'
                                 "
                             >
-                                {{ log.obstacle_count }} kendala tercatat
+                                {{ log.incident_count }} insiden
                             </span>
                         </div>
                     </li>

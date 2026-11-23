@@ -3,7 +3,6 @@ import {
     BookOpen,
     CalendarCheck,
     ClipboardList,
-    LandPlot,
     TriangleAlert,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -13,37 +12,27 @@ const props = defineProps<{ summary: LogbookSummary; directory?: boolean }>();
 
 const number = new Intl.NumberFormat('id-ID');
 
-const primaryMetric = computed(() =>
+const primaryHint = computed(() =>
     props.directory
-        ? {
-              label: 'Kebun',
-              value: props.summary.farms,
-              hint: 'Kebun dalam cakupan akses',
-              icon: LandPlot,
-          }
-        : {
-              label: 'Kegiatan tercatat',
-              value: props.summary.activities,
-              hint: 'Total kegiatan pada kebun ini',
-              icon: ClipboardList,
-          },
+        ? 'Aktivitas lapangan dalam cakupan akses'
+        : 'Total kegiatan pada kebun ini',
 );
 
-const maxReportBar = computed(() =>
+const maxComparisonBar = computed(() =>
     Math.max(
         1,
         props.summary.reports,
         props.summary.today,
-        props.summary.obstacles,
+        props.summary.incidents,
     ),
 );
 
-const obstacleRatio = computed(() =>
-    props.summary.reports > 0
-        ? Math.min(1, props.summary.obstacles / props.summary.reports)
+const incidentRatio = computed(() =>
+    props.summary.activities > 0
+        ? Math.min(1, props.summary.incidents / props.summary.activities)
         : 0,
 );
-const obstaclePercent = computed(() => Math.round(obstacleRatio.value * 100));
+const incidentPercent = computed(() => Math.round(incidentRatio.value * 100));
 </script>
 
 <template>
@@ -51,14 +40,13 @@ const obstaclePercent = computed(() => Math.round(obstacleRatio.value * 100));
         class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4"
         aria-label="Ringkasan logbook"
     >
-        <!-- 1. Kebun / Kegiatan tercatat -->
+        <!-- 1. Aktivitas tercatat -->
         <article
             class="admin-panel flex flex-col justify-between gap-3 rounded-xl bg-card"
         >
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-sm font-semibold">{{ primaryMetric.label }}</h2>
-                <component
-                    :is="primaryMetric.icon"
+                <h2 class="text-sm font-semibold">Aktivitas tercatat</h2>
+                <ClipboardList
                     class="size-4 shrink-0 text-primary"
                     aria-hidden="true"
                 />
@@ -66,27 +54,27 @@ const obstaclePercent = computed(() => Math.round(obstacleRatio.value * 100));
 
             <div class="flex min-h-[2.75rem] items-end justify-between gap-3">
                 <p class="admin-metric-value tracking-tight">
-                    {{ number.format(primaryMetric.value) }}
+                    {{ number.format(summary.activities) }}
                 </p>
                 <span
-                    v-if="directory && summary.activities > 0"
-                    class="shrink-0 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold tabular-nums text-accent-foreground"
+                    v-if="directory"
+                    class="shrink-0 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground tabular-nums"
                 >
-                    {{ number.format(summary.activities) }} kegiatan
+                    {{ number.format(summary.farms) }} kebun
                 </span>
             </div>
 
             <p class="text-xs text-muted-foreground">
-                {{ primaryMetric.hint }}
+                {{ primaryHint }}
             </p>
         </article>
 
-        <!-- 2. Total logbook + mini comparison bars -->
+        <!-- 2. Laporan harian + mini comparison bars -->
         <article
             class="admin-panel flex flex-col justify-between gap-3 rounded-xl bg-card"
         >
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-sm font-semibold">Total logbook</h2>
+                <h2 class="text-sm font-semibold">Laporan harian</h2>
                 <BookOpen
                     class="size-4 shrink-0 text-muted-foreground"
                     aria-hidden="true"
@@ -104,35 +92,35 @@ const obstaclePercent = computed(() => Math.round(obstacleRatio.value * 100));
                     <span
                         class="w-3.5 rounded-t bg-primary transition-[height]"
                         :style="{
-                            height: `${Math.max(5, (summary.reports / maxReportBar) * 36)}px`,
+                            height: `${Math.max(5, (summary.reports / maxComparisonBar) * 36)}px`,
                         }"
                     />
                     <span
                         class="w-3.5 rounded-t bg-[var(--admin-chart-secondary)] transition-[height]"
                         :style="{
-                            height: `${Math.max(5, (summary.today / maxReportBar) * 36)}px`,
+                            height: `${Math.max(5, (summary.today / maxComparisonBar) * 36)}px`,
                         }"
                     />
                     <span
                         class="w-3.5 rounded-t bg-[var(--admin-chart-tertiary)] transition-[height]"
                         :style="{
-                            height: `${Math.max(5, (summary.obstacles / maxReportBar) * 36)}px`,
+                            height: `${Math.max(5, (summary.incidents / maxComparisonBar) * 36)}px`,
                         }"
                     />
                 </div>
             </div>
 
             <p class="text-xs text-muted-foreground">
-                Laporan kerja harian tersimpan
+                Logbook kerja harian tersimpan
             </p>
         </article>
 
-        <!-- 3. Logbook hari ini + status pill -->
+        <!-- 3. Aktivitas hari ini + status pill -->
         <article
             class="admin-panel flex flex-col justify-between gap-3 rounded-xl bg-card"
         >
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-sm font-semibold">Logbook hari ini</h2>
+                <h2 class="text-sm font-semibold">Aktivitas hari ini</h2>
                 <CalendarCheck
                     class="size-4 shrink-0 text-primary"
                     aria-hidden="true"
@@ -151,7 +139,7 @@ const obstaclePercent = computed(() => Math.round(obstacleRatio.value * 100));
                             : 'bg-muted text-muted-foreground'
                     "
                 >
-                    {{ summary.today > 0 ? 'Sudah terisi' : 'Belum ada' }}
+                    {{ summary.today > 0 ? 'Sudah ada' : 'Belum ada' }}
                 </span>
             </div>
 
@@ -160,16 +148,16 @@ const obstaclePercent = computed(() => Math.round(obstacleRatio.value * 100));
             </p>
         </article>
 
-        <!-- 4. Kendala tercatat + warning highlight & ratio -->
+        <!-- 4. Insiden dilaporkan -->
         <article
             class="admin-panel flex flex-col justify-between gap-3 rounded-xl bg-card"
         >
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-sm font-semibold">Kendala tercatat</h2>
+                <h2 class="text-sm font-semibold">Insiden dilaporkan</h2>
                 <TriangleAlert
                     class="size-4 shrink-0"
                     :class="
-                        summary.obstacles > 0
+                        summary.incidents > 0
                             ? 'text-warning'
                             : 'text-muted-foreground'
                     "
@@ -180,28 +168,28 @@ const obstaclePercent = computed(() => Math.round(obstacleRatio.value * 100));
             <div class="flex min-h-[2.75rem] items-end justify-between gap-3">
                 <p
                     class="admin-metric-value tracking-tight"
-                    :class="{ 'text-warning': summary.obstacles > 0 }"
+                    :class="{ 'text-warning': summary.incidents > 0 }"
                 >
-                    {{ number.format(summary.obstacles) }}
+                    {{ number.format(summary.incidents) }}
                 </p>
                 <span
                     class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums"
                     :class="
-                        summary.obstacles > 0
+                        summary.incidents > 0
                             ? 'bg-warning/15 text-warning'
                             : 'bg-success/10 text-success'
                     "
                 >
                     {{
-                        summary.obstacles > 0
-                            ? `${obstaclePercent}% dari logbook`
+                        summary.incidents > 0
+                            ? `${incidentPercent}% dari aktivitas`
                             : 'Aman'
                     }}
                 </span>
             </div>
 
             <p class="text-xs text-muted-foreground">
-                Kendala lapangan dilaporkan
+                Laporan insiden lapangan tercatat
             </p>
         </article>
     </section>

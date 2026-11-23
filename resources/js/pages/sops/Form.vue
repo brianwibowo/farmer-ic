@@ -99,7 +99,7 @@ function submit(): void {
                         <strong class="font-semibold text-foreground">{{
                             team.name
                         }}</strong
-                        >. Berlaku untuk semua kebun dengan komoditas yang sama.
+                        >. Berlaku untuk semua lahan dengan komoditas yang sama.
                     </p>
                 </div>
             </div>
@@ -206,7 +206,7 @@ function submit(): void {
                                             class="size-4 accent-primary"
                                         />
                                         <span class="text-sm font-medium">
-                                            Aktif untuk batch baru
+                                            Aktif untuk subblok baru
                                         </span>
                                     </span>
                                     <span

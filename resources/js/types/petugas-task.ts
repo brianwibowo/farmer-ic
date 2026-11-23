@@ -6,7 +6,10 @@ export type PetugasTaskStatus =
 
 export type PetugasTaskUrgency = 'overdue' | 'today' | 'upcoming' | 'completed';
 
-export type PetugasTaskCategory = 'maintenance' | 'harvest';
+export type PetugasTaskCategory =
+    | 'maintenance'
+    | 'growth_observation'
+    | 'harvest';
 
 export type PetugasTask = {
     id: string;
@@ -16,6 +19,7 @@ export type PetugasTask = {
     urgency: PetugasTaskUrgency;
     activity_category: PetugasTaskCategory;
     offset_days: number;
+    hok?: number | null;
     scheduled_date: string | null;
     due_date: string | null;
     reporting_window: { start: string; end: string } | null;
@@ -32,11 +36,13 @@ export type PetugasTask = {
         id: string;
         number: number;
         label: string | null;
+        status?: 'planned' | 'active' | 'harvested' | 'cancelled';
         planned_planting_at: string | null;
         planted_at: string | null;
         hst: number | null;
         farm: { id: string; name: string };
         block: { id: string; name: string };
+        commodity?: { id: string; name: string } | null;
         variety: { id: string; name: string };
     };
 };
@@ -44,7 +50,8 @@ export type PetugasTask = {
 export type PetugasTaskFilters = {
     block_id?: string | null;
     status: 'all' | 'active' | PetugasTaskUrgency;
-    category?: 'maintenance' | 'harvest' | null;
+    view?: 'running' | 'history';
+    category?: PetugasTaskCategory | null;
 };
 
 export type PetugasDefaultSop = {
@@ -87,11 +94,9 @@ export type TaskActivityField = {
 export type TaskActivityReport = {
     id: string;
     performer_name: string | null;
-    work_date: string;
-    start_time: string;
-    end_time: string | null;
-    worker_count: number;
+    work_date: string | null;
+    worker_count: number | null;
     notes: string | null;
-    details: Record<string, string | number | null>;
-    photos: { id: string; url: string }[];
+    details: Record<string, string | number | null> | null;
+    photos: { id: string; url: string; available: boolean }[];
 };

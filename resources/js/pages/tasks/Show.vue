@@ -16,6 +16,7 @@ import {
     ShieldCheck,
     SkipForward,
     Tag,
+    Users,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import FarmField from '@/components/farms/FarmField.vue';
@@ -36,8 +37,10 @@ import {
     adminTaskStatusLabels,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
+    taskSubblockClosed,
     type AdminTask,
 } from '@/types/tasks';
+import { formatHok } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
@@ -52,19 +55,18 @@ const rescheduleForm = useForm({
     reschedule_reason: '',
 });
 
-const hasNotes = computed(
-    () =>
-        Boolean(
-            props.task.skip_reason ||
-                props.task.completion_note ||
-                props.task.reschedule_reason,
-        ),
+const hasNotes = computed(() =>
+    Boolean(
+        props.task.skip_reason ||
+        props.task.completion_note ||
+        props.task.reschedule_reason,
+    ),
 );
 
 const locationSummary = computed(() => {
     const parts = [
         props.task.farm?.name,
-        props.task.block?.code,
+        props.task.block?.name,
         props.task.subblok?.label ??
             (props.task.subblok?.number
                 ? `Subblok ${props.task.subblok.number}`
@@ -85,8 +87,7 @@ function openSkip(): void {
 }
 
 function openReschedule(): void {
-    rescheduleForm.rescheduled_date =
-        props.task.effective_scheduled_date ?? '';
+    rescheduleForm.rescheduled_date = props.task.effective_scheduled_date ?? '';
     rescheduleForm.reschedule_reason = '';
     rescheduleForm.clearErrors();
     rescheduleOpen.value = true;
@@ -148,17 +149,28 @@ function submitReschedule(): void {
                             {{ adminTaskStatusLabels[task.status] }}
                         </span>
                         <span
+                            v-if="!taskSubblockClosed(task)"
                             class="rounded-full px-2.5 py-1 text-xs font-medium"
                             :class="adminTaskUrgencyClass(task.urgency)"
                         >
                             {{ adminTaskUrgencyLabels[task.urgency] }}
                         </span>
                         <span
-                            v-if="task.urgency === 'overdue' && task.overdue_days"
+                            v-if="
+                                !taskSubblockClosed(task) &&
+                                task.urgency === 'overdue' &&
+                                task.overdue_days
+                            "
                             class="inline-flex items-center gap-1 rounded-full bg-error/10 px-2.5 py-1 text-xs font-medium text-error"
                         >
                             <AlertTriangle class="size-3" aria-hidden="true" />
                             Terlambat {{ task.overdue_days }} hari
+                        </span>
+                        <span
+                            v-if="taskSubblockClosed(task)"
+                            class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                        >
+                            Subblok ditutup · hanya dapat dilihat
                         </span>
                     </div>
                 </div>
@@ -195,7 +207,7 @@ function submitReschedule(): void {
                             <dt
                                 class="flex items-center gap-1.5 text-xs text-muted-foreground"
                             >
-                                <LandPlot class="size-3.5 text-primary" />Kebun
+                                <LandPlot class="size-3.5 text-primary" />Lahan
                             </dt>
                             <dd class="mt-1.5 font-medium">
                                 {{ task.farm?.name ?? '-' }}
@@ -210,7 +222,6 @@ function submitReschedule(): void {
                                 subblok
                             </dt>
                             <dd class="mt-1.5 font-medium">
-                                {{ task.block?.code ?? '-' }} ·
                                 {{ task.block?.name ?? '-' }}
                                 <template v-if="task.subblok?.label">
                                     · {{ task.subblok.label }}</template
@@ -233,13 +244,27 @@ function submitReschedule(): void {
                             <dt
                                 class="flex items-center gap-1.5 text-xs text-muted-foreground"
                             >
+                                <Users class="size-3.5 text-primary" />Estimasi
+                                HOK
+                            </dt>
+                            <dd class="mt-1.5 font-medium tabular-nums">
+                                {{
+                                    task.hok != null
+                                        ? formatHok(task.hok)
+                                        : 'Tidak ditetapkan'
+                                }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="flex items-center gap-1.5 text-xs text-muted-foreground"
+                            >
                                 <ShieldCheck
                                     class="size-3.5 text-primary"
                                 />Sifat tugas
                             </dt>
-                            <dd class="mt-1.5 font-medium">
-                                {{ task.is_required ? 'Wajib dikerjakan' : 'Opsional' }}
-                            </dd>
+                            <dd class="mt-1.5 font-medium">Wajib dikerjakan</dd>
                         </div>
 
                         <div>
@@ -501,9 +526,8 @@ function submitReschedule(): void {
             <DialogHeader>
                 <DialogTitle>Jadwalkan ulang tugas</DialogTitle>
                 <DialogDescription>
-                    Tanggal SOP asli tetap disimpan. Tanggal baru menjadi
-                    jadwal berlaku dan tenggat dihitung ulang dari toleransi
-                    SOP.
+                    Tanggal SOP asli tetap disimpan. Tanggal baru menjadi jadwal
+                    berlaku dan tenggat dihitung ulang dari toleransi SOP.
                 </DialogDescription>
             </DialogHeader>
             <form class="space-y-4" @submit.prevent="submitReschedule">

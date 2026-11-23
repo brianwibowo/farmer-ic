@@ -167,7 +167,7 @@ onMounted(() => void loadReport());
                         Ringkasan operasional
                     </p>
                     <h1 class="mt-1 text-2xl font-semibold tracking-tight">
-                        Laporan Kebun
+                        Laporan Lahan
                     </h1>
                 </div>
                 <button
@@ -275,13 +275,13 @@ onMounted(() => void loadReport());
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
-                    <label class="sr-only" for="report-kebun">Kebun</label>
+                    <label class="sr-only" for="report-kebun">Lahan</label>
                     <select
                         id="report-kebun"
                         v-model="filters.kebunId"
                         class="h-10 min-w-0 rounded-xl border border-border bg-card px-3 text-xs text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     >
-                        <option value="all">Semua kebun</option>
+                        <option value="all">Semua lahan</option>
                         <option
                             v-for="item in kebunOptions"
                             :key="item.id"
@@ -309,7 +309,7 @@ onMounted(() => void loadReport());
                     v-if="filters.kebunId !== 'all'"
                     class="text-[10px] text-muted-foreground"
                 >
-                    Komoditas mengikuti kebun yang dipilih.
+                    Komoditas mengikuti lahan yang dipilih.
                 </p>
             </section>
 
@@ -432,7 +432,7 @@ onMounted(() => void loadReport());
                                 report.summary.critical +
                                 report.summary.attention
                             }}
-                            kebun
+                            lahan
                         </span>
                     </div>
                     <div v-if="report.risks.length" class="mt-3 space-y-2">
@@ -465,7 +465,7 @@ onMounted(() => void loadReport());
                         class="mt-3 flex items-center gap-2 rounded-xl bg-primary/10 px-3 py-2.5 text-xs text-success"
                     >
                         <CheckCircle2 :size="16" aria-hidden="true" />
-                        Semua kebun dalam kondisi terpantau.
+                        Semua lahan dalam kondisi terpantau.
                     </div>
                 </section>
 
@@ -485,7 +485,7 @@ onMounted(() => void loadReport());
                                 <span
                                     class="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-secondary"
                                 >
-                                    {{ report.finance.farms.length }} kebun
+                                    {{ report.finance.farms.length }} lahan
                                 </span>
                             </div>
                             <p class="mt-1 text-[11px] text-muted-foreground">
@@ -511,7 +511,7 @@ onMounted(() => void loadReport());
                         v-if="report.finance.farms.length === 0"
                         class="mt-4 rounded-xl bg-muted p-3 text-center text-xs text-muted-foreground"
                     >
-                        Tidak ada data kebun pada filter ini.
+                        Tidak ada data lahan pada filter ini.
                     </div>
                     <div v-else class="mt-4 space-y-3">
                         <article
@@ -594,7 +594,7 @@ onMounted(() => void loadReport());
                     <p class="mt-1 text-[11px] text-muted-foreground">
                         Histori pertumbuhan tersedia untuk
                         {{ report.growthTimeline.observedKebunCount }} dari
-                        {{ report.summary.totalKebun }} kebun ·
+                        {{ report.summary.totalKebun }} lahan ·
                         {{ report.growthTimeline.observedUpdateCount }} update
                         pada periode ini.
                     </p>
@@ -629,7 +629,7 @@ onMounted(() => void loadReport());
                                 <p
                                     class="mt-2 text-[9px] font-semibold text-secondary"
                                 >
-                                    {{ stage.count }} kebun
+                                    {{ stage.count }} lahan
                                 </p>
                                 <p
                                     class="mt-0.5 line-clamp-2 text-[9px] leading-3 text-muted-foreground"
@@ -693,7 +693,7 @@ onMounted(() => void loadReport());
                         </article>
                         <article class="rounded-xl bg-primary/10 p-3">
                             <h3 class="text-xs font-semibold text-secondary">
-                                Analisa kebun
+                                Analisa lahan
                             </h3>
                             <p
                                 class="mt-1 text-[11px] leading-4 text-foreground"

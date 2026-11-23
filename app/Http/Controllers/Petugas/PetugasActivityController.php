@@ -11,6 +11,8 @@ use App\Services\Activity\ActivityFormLimits;
 use App\Services\Activity\TaskActivityService;
 use App\Services\PetugasTaskReadService;
 use App\Support\ActivityInputLimits;
+use App\Support\ActivityPhotoFile;
+use App\Support\SubblockLifecycle;
 use App\Support\TaskActivityFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,8 +28,14 @@ class PetugasActivityController extends Controller
     {
         $this->authorizeRecord($request, $task);
 
+        $code = TaskActivityFields::activityCode($task);
+
         return Inertia::render('petugas/ActivityCreate', [
-            'task' => $tasks->detail($request->user(), $task), 'fields' => \App\Support\VoluntaryActivityFields::forCode(TaskActivityFields::activityCode($task) ?? ''),
+            'task' => $tasks->detail($request->user(), $task),
+            'fields' => $code === 'growth_observation'
+                ? TaskActivityFields::forTask($task)
+                : \App\Support\VoluntaryActivityFields::forCode($code ?? ''),
+            'requiresWorkerCount' => TaskActivityFields::requiresWorkerCount($task),
             'areaLimitM2' => $limits->taskArea($request->user(), $task),
             'numericLimits' => ActivityInputLimits::common(),
             'today' => now('Asia/Jakarta')->toDateString(),
@@ -50,7 +58,9 @@ class PetugasActivityController extends Controller
         $farm = $task->plantingCycle->farm;
         abort_unless($farm->id === $request->user()->assigned_farm_id, 403);
         Gate::authorize('recordTask', [FarmActivity::class, $task]);
-        abort_unless(in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null, 403, 'Tugas belum ditanam, sedang direview, atau sudah ditutup.');
+        abort_unless(in_array($task->plantingCycle->status, SubblockLifecycle::RUNNING, true)
+            && in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null,
+            403, 'Tugas belum ditanam, sedang direview, atau sudah ditutup.');
     }
 
     public function photo(Request $request, FarmActivity $activity, ActivityPhoto $photo): StreamedResponse
@@ -60,8 +70,9 @@ class PetugasActivityController extends Controller
         abort_unless($photo->activity_id === $activity->id && $activity->farm_id === $request->user()->assigned_farm_id, 403);
         $team = $activity->farm->team;
         $photo = ActivityPhoto::visibleTo($request->user(), $team)->where('activity_id', $activity->id)->findOrFail($photo->id);
-        abort_unless(str_starts_with($photo->image_url, 'task-activities/'.$activity->id.'/'), 404);
+        abort_unless(str_starts_with($photo->image_url, 'farms/'.$activity->farm_id.'/'.$activity->id.'/'), 404);
+        abort_unless(ActivityPhotoFile::available($photo), 404);
 
-        return Storage::disk('local')->response($photo->image_url, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+        return Storage::disk('activity')->response($photo->image_url, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 }

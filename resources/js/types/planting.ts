@@ -1,4 +1,5 @@
 export type PlantingCycleContext = {
+    farm_cycle_number?: number | null;
     id: string;
     batch_number: number;
     subblock_label: string;
@@ -9,6 +10,12 @@ export type PlantingCycleContext = {
     planted_at: string | null;
     block: { id: string; name: string };
     variety: { id: string; name: string } | null;
+};
+
+export type PlantingWindow = {
+    starts_at: string;
+    ends_at: string;
+    expired: boolean;
 };
 
 export type PlantingReport = {

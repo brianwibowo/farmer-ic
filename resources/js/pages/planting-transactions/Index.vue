@@ -126,10 +126,8 @@ function rowSubblock(row: PlantingTransactionRow): string {
         <TransactionSummaryCards
             mode="planting"
             :subblocks="summary.subblocks"
-            :reports="summary.reports"
             :area-ha="summary.area_ha"
             :primary-metric-value="summary.seed_kg"
-            :row-areas="transactions.data.map((row) => Number(row.area_ha) || 0)"
         />
 
         <section class="admin-card overflow-hidden rounded-xl bg-card">
@@ -170,7 +168,7 @@ function rowSubblock(row: PlantingTransactionRow): string {
                                     class="admin-field pl-10!"
                                     type="search"
                                     maxlength="100"
-                                    placeholder="Kebun, blok, varietas, benih, atau petugas…"
+                                    placeholder="Lahan, blok, varietas, benih, atau petugas…"
                                     :disabled="filters.processing"
                                     :aria-invalid="!!filters.errors.search"
                                     :aria-describedby="
@@ -367,7 +365,6 @@ function rowSubblock(row: PlantingTransactionRow): string {
                                         <p
                                             class="mt-1 text-xs text-muted-foreground"
                                         >
-                                            {{ row.block?.code ?? '-' }} ·
                                             {{
                                                 row.block?.name ??
                                                 'Blok belum diisi'
@@ -458,7 +455,7 @@ function rowSubblock(row: PlantingTransactionRow): string {
                         <div>
                             <p class="font-semibold">
                                 {{ row.farm?.name ?? '-' }} ·
-                                {{ row.block?.code ?? '-' }}
+                                {{ row.block?.name ?? '-' }}
                             </p>
                             <p class="mt-1 text-xs text-muted-foreground">
                                 {{ rowSubblock(row) }}

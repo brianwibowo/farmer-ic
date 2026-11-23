@@ -1,26 +1,19 @@
 <script setup lang="ts">
 import { Head, Link, useRemember } from '@inertiajs/vue3';
-import {
-    CalendarDays,
-    ChevronRight,
-    ClipboardList,
-    MapPin,
-    Search,
-    Sprout,
-} from '@lucide/vue';
-import { computed, reactive, unref, watch } from 'vue';
+import { ClipboardList, Search, SlidersHorizontal } from '@lucide/vue';
+import { computed, reactive, ref, unref, useId, watch } from 'vue';
+import PetugasListHeader from '@/components/petugas/PetugasListHeader.vue';
+import TaskCard from '@/components/petugas/TaskCard.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
-import type {
-    PetugasTask,
-    PetugasTaskPageProps,
-    PetugasTaskUrgency,
-} from '@/types/petugas-task';
+import { Button } from '@/components/ui/button';
+import type { PetugasTask, PetugasTaskPageProps } from '@/types/petugas-task';
 import { sopActivityCategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps<PetugasTaskPageProps>();
+const isHistory = computed(() => props.filters.view === 'history');
 const filter = reactive(
     unref(
         useRemember<{
@@ -32,17 +25,18 @@ const filter = reactive(
         }>(
             {
                 q: '',
-                status:
-                    props.filters.status === 'all' ||
-                    props.filters.status === 'overdue' ||
-                    props.filters.status === 'today'
-                        ? 'active'
-                        : props.filters.status,
+                status: isHistory.value
+                    ? 'all'
+                    : props.filters.status === 'all' ||
+                        props.filters.status === 'overdue' ||
+                        props.filters.status === 'today'
+                      ? 'active'
+                      : props.filters.status,
                 category: '',
                 block: '',
                 subblok: '',
             },
-            'petugas-activities',
+            `petugas-activities-${props.filters.view ?? 'running'}`,
         ),
     ),
 );
@@ -50,6 +44,19 @@ if (filter.status === 'overdue' || filter.status === 'today') {
     filter.status = 'active';
 }
 filter.subblok ??= '';
+watch(
+    () => props.filters.view,
+    (view, previous) => {
+        if (view === previous) return;
+        Object.assign(filter, {
+            q: '',
+            status: view === 'history' ? 'all' : 'active',
+            category: '',
+            block: '',
+            subblok: '',
+        });
+    },
+);
 // Explicit navigation from the inbox overrides remembered local filters.
 watch(
     () =>
@@ -78,13 +85,6 @@ const options = [
     { key: 'completed', label: 'Ditutup' },
     { key: 'all', label: 'Semua' },
 ];
-const urgencyLabels: Record<PetugasTaskUrgency, string> = {
-    overdue: 'Terlambat',
-    today: 'Hari ini',
-    upcoming: 'Mendatang',
-    completed: 'Ditutup',
-};
-
 const blocks = computed(() => [
     ...new Map(
         props.tasks.map((t) => [t.subblok.block.id, t.subblok.block]),
@@ -135,10 +135,16 @@ function label(code: string): string {
 function changeBlock(): void {
     filter.subblok = '';
 }
+const advancedOpen = ref(false);
+const advancedId = useId();
+const advancedCount = computed(
+    () =>
+        [filter.category, filter.block, filter.subblok].filter(Boolean).length,
+);
 function reset(): void {
     Object.assign(filter, {
         q: '',
-        status: 'active',
+        status: isHistory.value ? 'all' : 'active',
         category: '',
         block: '',
         subblok: '',
@@ -148,61 +154,112 @@ function reset(): void {
 
 <template>
     <Head title="Tugas" />
-    <div class="min-w-0 space-y-4 pb-16 text-foreground">
-        <header>
-            <h1 class="text-xl leading-7 font-semibold">Tugas</h1>
-            <p class="mt-1 text-sm text-muted-foreground">
-                {{
-                    farm
-                        ? `Tugas dari SOP · ${farm.name}`
-                        : 'Belum ada penugasan kebun'
-                }}
-            </p>
-        </header>
-        <section class="grid grid-cols-3 gap-2" aria-label="Ringkasan tugas">
-            <div
-                v-for="metric in [
-                    {
-                        key: 'overdue',
-                        label: 'Terlambat',
-                        count: summary.overdue,
-                    },
-                    { key: 'today', label: 'Hari ini', count: summary.today },
-                    {
-                        key: 'upcoming',
-                        label: 'Mendatang',
-                        count: summary.upcoming,
-                    },
-                ]"
-                :key="metric.key"
-                class="rounded-xl border px-2 py-3 text-center"
+    <div class="min-w-0 space-y-[var(--admin-content-gap)] text-foreground">
+        <PetugasListHeader
+            title="Tugas"
+            :show-incidents="!!farm"
+            summary-label="Ringkasan tugas"
+            :metrics="
+                isHistory
+                    ? []
+                    : [
+                          { label: 'Terlambat', value: summary.overdue },
+                          { label: 'Hari ini', value: summary.today },
+                          { label: 'Mendatang', value: summary.upcoming },
+                      ]
+            "
+        />
+        <nav aria-label="Tampilan tugas" class="flex gap-2 overflow-x-auto">
+            <Link
+                href="/petugas/aktivitas?view=running"
+                preserve-scroll
+                :aria-current="!isHistory ? 'page' : undefined"
+                class="inline-flex min-h-11 shrink-0 items-center rounded-xl border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
                 :class="
-                    metric.key === 'overdue'
-                        ? 'border-warning/40 bg-warning/10'
-                        : 'border-primary/25 bg-primary/10'
+                    !isHistory
+                        ? 'border-secondary bg-secondary text-secondary-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
                 "
+                >Tugas berjalan</Link
             >
-                <CalendarDays
-                    class="mx-auto mb-2 size-5 text-secondary"
-                    aria-hidden="true"
-                />
-                <p class="text-lg font-semibold">{{ metric.count }}</p>
-                <p class="text-[11px] text-muted-foreground">
-                    {{ metric.label }}
-                </p>
-            </div>
-        </section>
-        <div class="space-y-2">
-            <label class="relative block"
-                ><span class="sr-only">Cari tugas</span
-                ><input
+            <Link
+                href="/petugas/aktivitas?view=history"
+                preserve-scroll
+                :aria-current="isHistory ? 'page' : undefined"
+                class="inline-flex min-h-11 shrink-0 items-center rounded-xl border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                :class="
+                    isHistory
+                        ? 'border-secondary bg-secondary text-secondary-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                "
+                >Riwayat subblok</Link
+            >
+        </nav>
+        <p v-if="isHistory" class="text-sm text-muted-foreground">
+            Tugas dari subblok selesai atau dibatalkan hanya dapat dilihat.
+        </p>
+        <section v-if="farm" class="space-y-2" aria-label="Filter tugas">
+            <label class="relative block">
+                <span class="sr-only">Cari tugas</span>
+                <input
                     v-model="filter.q"
                     type="search"
                     placeholder="Cari tugas atau subblok"
-                    class="min-h-11 w-full rounded-xl border border-primary bg-card px-3 pr-10 text-sm focus-visible:outline-2 focus-visible:outline-ring" /><Search
-                    class="pointer-events-none absolute top-3 right-3 size-5 text-primary"
-            /></label>
-            <div class="grid grid-cols-2 gap-2">
+                    class="petugas-field min-h-11 w-full rounded-xl border border-border px-3 pr-10 text-foreground"
+                />
+                <Search
+                    class="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-primary"
+                    aria-hidden="true"
+                />
+            </label>
+            <div
+                class="grid gap-2"
+                :class="
+                    isHistory ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_auto]'
+                "
+            >
+                <AppSelect
+                    v-if="!isHistory"
+                    v-model="filter.status"
+                    aria-label="Status tugas"
+                    class="min-h-11 min-w-0"
+                    ><AppSelectOption
+                        v-for="option in options"
+                        :key="option.key"
+                        :value="option.key"
+                        >{{ option.label }}</AppSelectOption
+                    ></AppSelect
+                >
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="min-h-11 rounded-xl bg-card text-xs"
+                    :aria-expanded="advancedOpen"
+                    :aria-controls="advancedId"
+                    @click="advancedOpen = !advancedOpen"
+                >
+                    <SlidersHorizontal aria-hidden="true" />
+                    Filter
+                    <span v-if="advancedCount">({{ advancedCount }})</span>
+                </Button>
+            </div>
+            <div
+                v-show="advancedOpen"
+                :id="advancedId"
+                class="petugas-card grid gap-2 p-3"
+            >
+                <AppSelect
+                    v-model="filter.category"
+                    aria-label="Kategori tugas"
+                    class="min-h-11"
+                    ><AppSelectOption value="">Semua kategori</AppSelectOption
+                    ><AppSelectOption
+                        v-for="code in categoryOptions"
+                        :key="code"
+                        :value="code"
+                        >{{ label(code) }}</AppSelectOption
+                    ></AppSelect
+                >
                 <AppSelect
                     v-model="filter.block"
                     aria-label="Blok"
@@ -233,50 +290,34 @@ function reset(): void {
                         }}</AppSelectOption
                     ></AppSelect
                 >
-                <AppSelect
-                    v-model="filter.status"
-                    aria-label="Status tugas"
-                    class="col-span-2 min-h-11 min-[360px]:col-span-1"
-                    ><AppSelectOption
-                        v-for="option in options"
-                        :key="option.key"
-                        :value="option.key"
-                        >{{ option.label }}</AppSelectOption
-                    ></AppSelect
-                >
-                <AppSelect
-                    v-model="filter.category"
-                    aria-label="Kategori tugas"
-                    class="col-span-2 min-h-11 min-[360px]:col-span-1"
-                    ><AppSelectOption value="">Semua kategori</AppSelectOption
-                    ><AppSelectOption
-                        v-for="code in categoryOptions"
-                        :key="code"
-                        :value="code"
-                        >{{ label(code) }}</AppSelectOption
-                    ></AppSelect
-                >
             </div>
-        </div>
+        </section>
         <p
             v-if="defaultSopMissing && farm"
-            class="rounded-xl bg-muted p-3 text-xs leading-5"
+            class="rounded-xl border border-border bg-muted/50 p-3 text-xs leading-5"
         >
             SOP default pada salah satu blok belum diatur. Hubungi Admin;
             aktivitas mandiri tetap dapat dicatat.
         </p>
-        <div
-            class="flex items-center justify-between text-xs text-muted-foreground"
-        >
-            <span>{{ tasks.length }} tugas</span
-            ><button
+        <div v-if="farm" class="flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-semibold">
+                    {{ isHistory ? 'Riwayat tugas' : 'Daftar tugas' }}
+                </h2>
+                <p role="status" class="mt-1 text-xs text-muted-foreground">
+                    {{ tasks.length }} tugas ditampilkan
+                </p>
+            </div>
+            <button
                 v-if="
                     filter.q ||
                     filter.category ||
                     filter.block ||
-                    filter.status !== 'active'
+                    filter.subblok ||
+                    filter.status !== (isHistory ? 'all' : 'active')
                 "
-                class="min-h-11 text-secondary underline"
+                type="button"
+                class="min-h-11 rounded-xl px-2 text-xs font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 @click="reset"
             >
                 Reset filter
@@ -291,7 +332,7 @@ function reset(): void {
                 {{
                     farm
                         ? 'Tidak ada tugas pada pilihan ini'
-                        : 'Belum ada penugasan kebun'
+                        : 'Belum ada penugasan lahan'
                 }}
             </h2>
             <p class="mt-2 text-sm text-muted-foreground">
@@ -304,53 +345,7 @@ function reset(): void {
         </div>
         <ul v-else class="space-y-3" aria-label="Daftar tugas">
             <li v-for="task in tasks" :key="task.id">
-                <Link
-                    :href="`/petugas/tasks/${task.id}`"
-                    class="petugas-card flex gap-3 p-3 transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                    <span
-                        class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-secondary"
-                        ><Sprout class="size-6"
-                    /></span>
-                    <div class="min-w-0 flex-1">
-                        <span
-                            class="text-[10px] font-semibold text-secondary"
-                            >{{ label(task.activity_category) }}</span
-                        >
-                        <h2 class="mt-1 text-base leading-5 font-semibold">
-                            {{ task.name }}
-                        </h2>
-                        <p
-                            class="mt-2 flex items-center gap-1 text-xs text-muted-foreground"
-                        >
-                            <MapPin class="size-3 shrink-0" />{{
-                                task.subblok.block.name
-                            }}
-                            · {{ task.subblok.label }}
-                        </p>
-                        <p class="mt-1 text-xs text-muted-foreground">
-                            {{ task.scheduled_date ?? 'Belum dijadwalkan' }} ·
-                            Target HST {{ task.offset_days }}
-                        </p>
-                        <span
-                            class="mt-2 inline-block rounded-md px-2 py-1 text-[10px] font-medium"
-                            :class="
-                                task.urgency === 'overdue'
-                                    ? 'bg-warning/15 text-foreground'
-                                    : 'bg-muted text-muted-foreground'
-                            "
-                            >{{ urgencyLabels[task.urgency]
-                            }}<template v-if="task.linked_activities_count">
-                                ·
-                                {{ task.linked_activities_count }}
-                                laporan</template
-                            ></span
-                        >
-                    </div>
-                    <ChevronRight
-                        class="mt-2 size-4 shrink-0 text-muted-foreground"
-                    />
-                </Link>
+                <TaskCard :task="task" />
             </li>
         </ul>
     </div>

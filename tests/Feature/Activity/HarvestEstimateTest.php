@@ -47,7 +47,7 @@ class HarvestEstimateTest extends TestCase
     {
         parent::setUp();
         $this->travelTo(CarbonImmutable::parse('2026-11-13 12:00', 'Asia/Jakarta'));
-        Storage::fake('local');
+        Storage::fake('activity');
         $this->team = Team::factory()->create(['is_personal' => false]);
         $this->admin = User::factory()->create(['role' => 'admin', 'is_active' => true]);
         $this->petugas = User::factory()->create(['role' => 'petugas', 'is_active' => true]);
@@ -59,7 +59,7 @@ class HarvestEstimateTest extends TestCase
         $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
         $this->petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $blocks = app(FarmBlockService::class);
-        $block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Estimasi', 'area_ha' => '5']);
+        $block = $blocks->create($this->farm, $this->admin, $this->team, ['name' => 'Blok Estimasi', 'area_ha' => '5']);
         $this->cycle = $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '2']);
         $commodity = Commodity::create(['name' => 'Jagung Estimasi']);
         $block->forceFill(['commodity_id' => $commodity->id])->save();
@@ -86,10 +86,10 @@ class HarvestEstimateTest extends TestCase
         $this->cycle->block->forceFill(['default_sop_template_id' => $template->id])->save();
     }
 
-    private function plant(string $date = '2026-11-12'): void
+    private function plant(string $date = '2026-11-11'): void
     {
         $this->actingAs($this->petugas)->post('/petugas/subbloks/'.$this->cycle->id.'/penanaman', [
-            'work_date' => $date, 'start_time' => '07:00', 'worker_count' => 2, 'variety_id' => $this->variety->id,
+            'work_date' => $date, 'worker_count' => 2, 'variety_id' => $this->variety->id,
             'area_ha' => '0.5', 'seed_name' => 'Benih Jagung Bisi', 'quantity_kg' => '5',
             'photos' => [UploadedFile::fake()->image('tanam.jpg')],
         ])->assertSessionHasNoErrors();
@@ -104,15 +104,20 @@ class HarvestEstimateTest extends TestCase
     {
         $this->sop([90, 110]);
         $this->plant();
+        $this->assertSame('2026-11-12', $this->cycle->fresh()->planted_at->toDateString());
         $this->assertSame('2027-02-10', $this->cycle->fresh()->estimated_harvest_at->toDateString());
         $this->assertSame('2027-02-10', $this->harvest()->scheduled_date->toDateString());
         $this->get('/petugas/kebun')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('garden.batches.data.0.estimated_harvest_at', '2027-02-10'));
 
-        $this->plant('2026-11-13');
-        $this->assertSame('2026-11-13', $this->cycle->fresh()->planted_at->toDateString());
-        $this->assertSame('2027-02-11', $this->cycle->fresh()->estimated_harvest_at->toDateString());
-        $this->assertSame('2027-02-11', $this->harvest()->fresh()->scheduled_date->toDateString());
+        $this->plant('2026-11-12');
+        $this->assertSame('2026-11-12', $this->cycle->fresh()->planted_at->toDateString());
+        $this->assertSame('2027-02-10', $this->cycle->fresh()->estimated_harvest_at->toDateString());
+
+        $this->plant('2026-11-10');
+        $this->assertSame('2026-11-11', $this->cycle->fresh()->planted_at->toDateString());
+        $this->assertSame('2027-02-09', $this->cycle->fresh()->estimated_harvest_at->toDateString());
+        $this->assertSame('2027-02-09', $this->harvest()->fresh()->scheduled_date->toDateString());
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
@@ -208,8 +213,8 @@ class HarvestEstimateTest extends TestCase
         ])->assertSessionHasNoErrors();
         $this->cycle->forceFill(['estimated_harvest_at' => '2027-03-20'])->save();
 
-        $this->plant('2026-11-13');
-        $this->assertSame('2027-02-11', $task->fresh()->scheduled_date->toDateString());
+        $this->plant('2026-11-10');
+        $this->assertSame('2027-02-09', $task->fresh()->scheduled_date->toDateString());
         $this->assertSame('2027-02-20', $task->fresh()->effectiveScheduledDate()->toDateString());
         $this->assertSame('2027-02-20', $this->cycle->fresh()->estimated_harvest_at->toDateString());
     }
@@ -222,8 +227,8 @@ class HarvestEstimateTest extends TestCase
         $task->forceFill(['status' => 'in_progress'])->save();
         $this->cycle->forceFill(['estimated_harvest_at' => '2027-03-20'])->save();
 
-        $this->plant('2026-11-13');
-        $this->assertSame('2026-11-13', $this->cycle->fresh()->planted_at->toDateString());
+        $this->plant('2026-11-10');
+        $this->assertSame('2026-11-11', $this->cycle->fresh()->planted_at->toDateString());
         $this->assertSame('2027-02-10', $task->fresh()->effectiveScheduledDate()->toDateString());
         $this->assertSame('2027-02-10', $this->cycle->fresh()->estimated_harvest_at->toDateString());
     }
@@ -260,9 +265,9 @@ class HarvestEstimateTest extends TestCase
         $this->sop([0]);
         $this->plant();
         $this->assertSame('2026-11-12', $this->cycle->fresh()->estimated_harvest_at->toDateString());
-        $this->plant('2026-11-13');
-        $this->assertSame('2026-11-13', $this->cycle->fresh()->estimated_harvest_at->toDateString());
-        $this->assertSame('2026-11-13', $this->harvest(0)->fresh()->scheduled_date->toDateString());
+        $this->plant('2026-11-10');
+        $this->assertSame('2026-11-11', $this->cycle->fresh()->estimated_harvest_at->toDateString());
+        $this->assertSame('2026-11-11', $this->harvest(0)->fresh()->scheduled_date->toDateString());
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
     }
 
@@ -277,22 +282,33 @@ class HarvestEstimateTest extends TestCase
         $this->assertSame('2027-02-10', $task->fresh()->scheduled_date->toDateString());
         $this->assertSame('2026-11-12', $task->fresh()->rescheduled_date->toDateString());
         $this->assertSame('2026-11-14', $task->fresh()->due_date->toDateString());
+
+        $this->plant('2026-11-12');
+        $this->assertSame('2026-11-12', $this->cycle->fresh()->planted_at->toDateString());
+
+        $this->cycle->activities()->update(['activity_date' => '2026-11-12 07:00:00+07']);
+        $this->cycle->forceFill(['planting_started_on' => '2026-11-12', 'planted_at' => '2026-11-12'])->save();
         $this->actingAs($this->petugas)->post('/petugas/subbloks/'.$this->cycle->id.'/penanaman', [
-            'work_date' => '2026-11-13', 'start_time' => '07:00', 'worker_count' => 2, 'variety_id' => $this->variety->id,
+            'work_date' => '2026-11-13', 'worker_count' => 2, 'variety_id' => $this->variety->id,
             'area_ha' => '0.5', 'seed_name' => 'Benih Jagung Bisi', 'quantity_kg' => '5',
             'photos' => [UploadedFile::fake()->image('tanam-lanjutan.jpg')],
         ])->assertSessionHasErrors('work_date');
         $this->assertSame('2026-11-12', $this->cycle->fresh()->planted_at->toDateString());
         $this->assertSame('2026-11-12', $this->cycle->fresh()->estimated_harvest_at->toDateString());
-        $this->assertSame(1, $this->cycle->activities()->count());
+        $this->assertSame(2, $this->cycle->activities()->count());
     }
 
     public function test_anchor_change_does_not_discard_an_unrelated_legacy_estimate(): void
     {
         $this->cycle->forceFill(['estimated_harvest_at' => '2026-11-12'])->save();
         $this->plant();
+        $this->assertSame('2026-11-12', $this->cycle->fresh()->planted_at->toDateString());
+        $this->assertSame('2026-11-12', $this->cycle->fresh()->estimated_harvest_at->toDateString());
+
+        $this->cycle->activities()->update(['activity_date' => '2026-11-12 07:00:00+07']);
+        $this->cycle->forceFill(['planting_started_on' => '2026-11-12', 'planted_at' => '2026-11-12'])->save();
         $this->actingAs($this->petugas)->post('/petugas/subbloks/'.$this->cycle->id.'/penanaman', [
-            'work_date' => '2026-11-13', 'start_time' => '07:00', 'worker_count' => 2, 'variety_id' => $this->variety->id,
+            'work_date' => '2026-11-13', 'worker_count' => 2, 'variety_id' => $this->variety->id,
             'area_ha' => '0.5', 'seed_name' => 'Benih Jagung Bisi', 'quantity_kg' => '5',
             'photos' => [UploadedFile::fake()->image('tanam-lanjutan.jpg')],
         ])->assertSessionHasErrors('work_date');
@@ -375,8 +391,7 @@ class HarvestEstimateTest extends TestCase
     public function test_reconciliation_continues_after_a_cycle_with_an_invalid_harvest_override(): void
     {
         $this->sop([90]);
-        $this->plant();
-        $this->plant('2026-11-13');
+        $this->plant('2026-11-12');
         $blocked = $this->cycle->fresh();
         $blocked->forceFill(['planted_at' => '2026-11-12', 'estimated_harvest_at' => '2026-11-12'])->save();
         $task = $this->harvest();
@@ -396,8 +411,7 @@ class HarvestEstimateTest extends TestCase
     public function test_reconciliation_syncs_an_in_progress_harvest_when_its_anchor_changes(): void
     {
         $this->sop([90]);
-        $this->plant();
-        $this->plant('2026-11-13');
+        $this->plant('2026-11-12');
         $this->cycle->forceFill(['planted_at' => '2026-11-12', 'estimated_harvest_at' => '2027-03-20'])->save();
         $task = $this->harvest();
         $task->forceFill(['status' => 'in_progress', 'scheduled_date' => '2027-02-10', 'due_date' => '2027-02-12'])->save();
@@ -493,7 +507,7 @@ class HarvestEstimateTest extends TestCase
         $task = $this->harvest();
         $this->travelTo(CarbonImmutable::parse('2027-02-10 10:00', 'Asia/Jakarta'));
         $this->actingAs($this->petugas)->post('/petugas/tasks/'.$task->id.'/aktivitas', [
-            'work_date' => '2027-02-10', 'start_time' => '07:00', 'worker_count' => 2,
+            'work_date' => '2027-02-10', 'worker_count' => 2,
             'details' => ['area_ha' => '0.1', 'weight_ton' => '0.1'],
             'photos' => [UploadedFile::fake()->image('panen.jpg')],
         ])->assertSessionHasNoErrors();
@@ -502,7 +516,7 @@ class HarvestEstimateTest extends TestCase
         $this->assertSame('harvested', $this->cycle->fresh()->status);
         $this->assertSame('completed', $task->fresh()->status);
         $this->assertSame('2027-02-10', $this->cycle->fresh()->estimated_harvest_at->toDateString());
-        $this->actingAs($this->petugas)->get('/petugas/kebun')->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($this->petugas)->get('/petugas/kebun?view=history')->assertInertia(fn (Assert $page) => $page
             ->where('garden.batches.data.0.status', 'harvested')
             ->where('garden.batches.data.0.estimated_harvest_at', '2027-02-10'));
     }

@@ -20,13 +20,13 @@ const selectedKebunItem = computed(() =>
 // The full name ("Kebun Sumber Makmur") does not fit the compact trigger, so
 // only the distinctive part is shown there. The dropdown list keeps full names.
 function shortKebunName(name: string): string {
-    return name.replace(/^Kebun\s+/i, '');
+    return name.replace(/^(?:Kebun|Lahan)\s+/i, '');
 }
 
 const selectedLabel = computed(() =>
     selectedKebunItem.value
         ? shortKebunName(selectedKebunItem.value.name)
-        : 'Kebun',
+        : 'Lahan',
 );
 
 function selectKebun(id: string): void {
@@ -65,7 +65,7 @@ onBeforeUnmount(() => {
     <div ref="listRef" class="relative w-full min-w-0">
         <button
             type="button"
-            aria-label="Filter kebun"
+            aria-label="Filter lahan"
             :aria-expanded="isListOpen"
             aria-haspopup="listbox"
             :title="selectedKebunItem?.name"
@@ -87,7 +87,7 @@ onBeforeUnmount(() => {
         <ul
             v-if="isListOpen"
             role="listbox"
-            aria-label="Pilihan kebun"
+            aria-label="Pilihan lahan"
             class="absolute top-full right-0 z-30 mt-1.5 max-h-[228px] w-[208px] overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-md"
         >
             <li>

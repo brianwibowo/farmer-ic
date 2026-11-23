@@ -32,7 +32,7 @@ class BlockConfigurationMigrationTest extends TestCase
         $sop = SopTemplate::create(['team_id' => $team->id, 'commodity_id' => $soy->id, 'name' => 'SOP Kedelai', 'is_active' => true, 'created_by' => $actor->id]);
         $farm = new Farm(['name' => 'Kebun Lama', 'total_area_ha' => 5]);
         $farm->forceFill(['team_id' => $team->id, 'created_by' => $actor->id, 'commodity_id' => $corn->id, 'default_sop_template_id' => $sop->id])->save();
-        $block = new FarmBlock(['code' => 'B01', 'name' => 'Blok Lama', 'area_ha' => 5]);
+        $block = new FarmBlock(['name' => 'Blok Lama', 'area_ha' => 5]);
         $block->forceFill(['farm_id' => $farm->id, 'created_by' => $actor->id, 'land_clearing_started_at' => now()])->save();
 
         DB::statement('SET CONSTRAINTS ALL IMMEDIATE');

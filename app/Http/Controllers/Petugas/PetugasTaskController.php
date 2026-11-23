@@ -11,6 +11,7 @@ use App\Services\Activity\ActivitySequenceService;
 use App\Services\Activity\TaskReportingWindow;
 use App\Services\PetugasTaskReadService;
 use App\Services\PlantingCycleTaskManagementService;
+use App\Support\SubblockLifecycle;
 use App\Support\TaskActivityFields;
 use App\Support\VoluntaryActivityFields;
 use Illuminate\Http\RedirectResponse;
@@ -25,25 +26,34 @@ class PetugasTaskController extends Controller
 
     public function index(Request $request): Response
     {
-        $filters = $request->validate(['block_id' => ['nullable', 'uuid'], 'category' => ['nullable', \Illuminate\Validation\Rule::in(['maintenance', 'harvest'])]]);
+        $filters = $request->validate([
+            'block_id' => ['nullable', 'uuid'],
+            'category' => ['nullable', \Illuminate\Validation\Rule::in(PlantingCycleTask::CATEGORIES)],
+            'view' => ['sometimes', \Illuminate\Validation\Rule::in(['running', 'history'])],
+        ]);
+        $view = $filters['view'] ?? 'running';
         $farm = $request->user()->assignedFarm;
         $status = $request->query('status', 'all');
         if (! is_string($status) || ! in_array($status, ['all', 'active', 'overdue', 'today', 'upcoming', 'completed'], true)) {
             $status = 'all';
         }
+        if ($view === 'history') {
+            $status = 'all';
+        }
         if (! $farm instanceof Farm) {
             return Inertia::render('petugas/Aktivitas', [
-                'tasks' => [], 'filters' => ['status' => $status, 'block_id' => $filters['block_id'] ?? null, 'category' => $filters['category'] ?? null], 'farm' => null,
+                'tasks' => [], 'filters' => ['status' => $status, 'view' => $view, 'block_id' => $filters['block_id'] ?? null, 'category' => $filters['category'] ?? null], 'farm' => null,
                 'summary' => ['overdue' => 0, 'today' => 0, 'upcoming' => 0, 'completed' => 0], 'defaultSopMissing' => true,
             ]);
         }
         Gate::authorize('view', $farm);
         Gate::authorize('viewAny', [PlantingCycleTask::class, $farm->team]);
-        $data = $this->tasks->listing($request->user(), $farm, $status);
+        $data = $this->tasks->listing($request->user(), $farm, $status, $view);
         $data['tasks'] = array_map(function (array $task) use ($request, $farm): array {
             $model = PlantingCycleTask::visibleTo($request->user(), $farm->team)->whereKey($task['id'])->firstOrFail();
             $reason = $this->window->blockedReason($model, $model->plantingCycle) ?? $this->sequence->blockedReason($request->user(), $model->plantingCycle, TaskActivityFields::activityCode($model) ?? '');
-            $open = in_array($task['status'], ['pending', 'in_progress'], true) && $task['subblok']['planted_at'] !== null;
+            $open = in_array($task['subblok']['status'], SubblockLifecycle::RUNNING, true)
+                && in_array($task['status'], ['pending', 'in_progress'], true) && $task['subblok']['planted_at'] !== null;
 
             return [...$task, 'can' => [
                 'record' => $open && $reason === null && Gate::allows('recordTask', [FarmActivity::class, $model]),
@@ -52,7 +62,7 @@ class PetugasTaskController extends Controller
         }, $data['tasks']);
 
         return Inertia::render('petugas/Aktivitas', [
-            ...$data, 'filters' => ['status' => $status, 'block_id' => $filters['block_id'] ?? null, 'category' => $filters['category'] ?? null], 'farm' => $farm->only(['id', 'name']),
+            ...$data, 'filters' => ['status' => $status, 'view' => $view, 'block_id' => $filters['block_id'] ?? null, 'category' => $filters['category'] ?? null], 'farm' => $farm->only(['id', 'name']),
             'defaultSopMissing' => \App\Models\FarmBlock::visibleTo($request->user(), $farm->team)->where('farm_id', $farm->id)->where('is_active', true)->whereNull('default_sop_template_id')->exists(),
         ]);
     }
@@ -63,8 +73,11 @@ class PetugasTaskController extends Controller
         abort_unless($task->plantingCycle->farm_id === $request->user()->assigned_farm_id, 403);
 
         $detail = $this->tasks->detail($request->user(), $task);
-        $blockedReason = $this->window->blockedReason($task, $task->plantingCycle) ?? $this->sequence->blockedReason($request->user(), $task->plantingCycle, TaskActivityFields::activityCode($task) ?? '');
-        $open = in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null;
+        $blockedReason = ! in_array($task->plantingCycle->status, SubblockLifecycle::RUNNING, true)
+            ? 'Subblok sudah ditutup.'
+            : ($this->window->blockedReason($task, $task->plantingCycle) ?? $this->sequence->blockedReason($request->user(), $task->plantingCycle, TaskActivityFields::activityCode($task) ?? ''));
+        $open = in_array($task->plantingCycle->status, SubblockLifecycle::RUNNING, true)
+            && in_array($task->status, ['pending', 'in_progress'], true) && $task->plantingCycle->planted_at !== null;
         $detail['can']['record'] = $open && $blockedReason === null && Gate::allows('recordTask', [FarmActivity::class, $task]);
         $detail['can']['complete'] = $open && $task->activity_category !== 'harvest' && $detail['linked_activities_count'] > 0 && Gate::allows('complete', $task);
 
@@ -74,9 +87,11 @@ class PetugasTaskController extends Controller
             'fields' => collect([...TaskActivityFields::forTask($task), ...VoluntaryActivityFields::forCode(TaskActivityFields::activityCode($task) ?? '')])->unique('key')->values()->all(),
             'canRecord' => $detail['can']['record'],
             'blockedReason' => $blockedReason,
-            'completionGuidance' => $task->activity_category === 'harvest'
-                ? 'Laporan panen dapat ditambahkan dalam jendela pelaporan selama tugas dan subblok masih terbuka. Admin menyelesaikan tugas saat menutup panen.'
-                : 'Menyimpan laporan tidak otomatis menyelesaikan tugas. Tandai selesai setelah seluruh pekerjaan tuntas.',
+            'completionGuidance' => ! in_array($task->plantingCycle->status, SubblockLifecycle::RUNNING, true)
+                ? 'Subblok sudah ditutup. Tugas dan laporannya hanya dapat dilihat.'
+                : ($task->activity_category === 'harvest'
+                    ? 'Laporan panen dapat ditambahkan dalam jendela pelaporan selama tugas dan subblok masih terbuka. Admin menyelesaikan tugas saat menutup panen.'
+                    : 'Menyimpan laporan tidak otomatis menyelesaikan tugas. Tandai selesai setelah seluruh pekerjaan tuntas.'),
         ]);
     }
 

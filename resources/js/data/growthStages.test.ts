@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { getGrowthProfile, getGrowthStageAtHst } from './growthStages';
+import { describe, expect, it } from 'vite-plus/test';
+import {
+    findObservedGrowthStage,
+    getGrowthProfile,
+    getGrowthStageAtHst,
+    resolveGrowthProfile,
+} from './growthStages';
 
 describe('growth reference by actual HST', () => {
     const corn = getGrowthProfile('Jagung', 'Hibrida BISI-18');
@@ -42,5 +47,13 @@ describe('growth reference by actual HST', () => {
         expect(
             getGrowthStageAtHst(getGrowthProfile('Rumput'), 46)?.number,
         ).toBe(5);
+    });
+
+    it('resolves commodity profiles and matches observed phase labels and short labels', () => {
+        const profile = resolveGrowthProfile('Jagung Hibrida', 'Bisi 18');
+        expect(profile?.commodity).toBe('Jagung');
+        expect(findObservedGrowthStage(profile, 'Vegetatif')?.number).toBe(2);
+        expect(findObservedGrowthStage(profile, 'Pembungaan')?.number).toBe(3);
+        expect(resolveGrowthProfile('Sorgum')).toBeNull();
     });
 });

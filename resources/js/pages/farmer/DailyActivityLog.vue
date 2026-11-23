@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
@@ -6,9 +7,7 @@ import {
     AlertTriangle,
     ArrowLeft,
     CalendarDays,
-    ChevronLeft,
     ChevronRight,
-    Clock3,
     ClipboardList,
     Plus,
     Save,
@@ -17,8 +16,7 @@ import {
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import FarmManagementLayout from '@/layouts/FarmManagementLayout.vue';
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
-import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { maximumError } from '@/lib/activityInputLimits';
 
 type Farm = {
@@ -57,12 +55,9 @@ type DailyLog = {
     id: string;
     farm_id: string;
     work_date: string;
-    start_time: string;
-    end_time: string | null;
     timezone: string;
     recorded_by: string;
     recorder_name: string | null;
-    notes: string | null;
     activities: Activity[];
     created_at: string;
     updated_at: string | null;
@@ -106,7 +101,7 @@ type ActivityForm = {
 
 type Props = {
     farm: Farm;
-    blocks: { id: string; code: string; name: string }[];
+    blocks: { id: string; name: string }[];
     logs: PaginatedLogs;
     filters: Record<string, string | number | null>;
     recorder: { id: string; name: string };
@@ -123,9 +118,6 @@ type Props = {
 const props = defineProps<Props>();
 const page = usePage();
 const { indexUrl } = useFarmManagementNavigation();
-const headerReady = ref(false);
-const existingHeader = ref(false);
-const headerVersion = ref(0);
 function selectBlock(activity: ActivityForm): void {
     activity.block_mapping.block_name =
         props.blocks.find(
@@ -155,10 +147,7 @@ function emptyActivity(): ActivityForm {
 
 const form = useForm({
     work_date: props.today,
-    start_time: '08:00',
-    end_time: '16:00',
     worker_count: 1,
-    notes: '',
     activities: [emptyActivity()],
 });
 const numericErrors = computed<Record<string, string>>(() => {
@@ -229,32 +218,11 @@ function removeActivity(index: number): void {
 }
 
 function submit(): void {
-    if (
-        !headerReady.value ||
-        form.processing ||
-        Object.keys(numericErrors.value).length
-    )
-        return;
-    form.transform((data) =>
-        existingHeader.value
-            ? {
-                  ...data,
-                  start_time: undefined,
-                  end_time: undefined,
-                  notes: undefined,
-              }
-            : data,
-    ).post(`/kebun/${props.farm.id}/daily-logs`, {
+    if (form.processing || Object.keys(numericErrors.value).length) return;
+    form.post(`/kebun/${props.farm.id}/daily-logs`, {
         preserveScroll: true,
         onSuccess: () => {
-            headerVersion.value++;
-            form.reset(
-                'start_time',
-                'end_time',
-                'worker_count',
-                'notes',
-                'activities',
-            );
+            form.reset('worker_count', 'activities');
             form.work_date = props.today;
             form.activities = [emptyActivity()];
         },
@@ -273,10 +241,6 @@ function clearFilters(): void {
     filterForm.from_date = '';
     filterForm.to_date = '';
     applyFilters();
-}
-
-function goToPage(url: string | null): void {
-    if (url) router.visit(url, { preserveScroll: true, preserveState: true });
 }
 
 function detailUrl(log: DailyLog): string {
@@ -299,14 +263,14 @@ function detailUrl(log: DailyLog): string {
             v-if="page.props.navigation?.farms"
             :href="`${indexUrl}/${farm.id}`"
             class="mx-4 mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
-            ><ArrowLeft :size="16" />Kembali ke detail kebun</Link
+            ><ArrowLeft :size="16" />Kembali ke detail lahan</Link
         >
         <div class="space-y-5 px-4 pt-4 pb-6">
             <header class="flex items-start gap-3">
                 <Link
                     href="/kebun"
                     class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    aria-label="Kembali ke daftar kebun"
+                    aria-label="Kembali ke daftar lahan"
                 >
                     <ArrowLeft :size="18" />
                 </Link>
@@ -332,7 +296,7 @@ function detailUrl(log: DailyLog): string {
                             Catat kegiatan hari ini
                         </h2>
                         <p class="mt-1 text-xs leading-5 text-muted-foreground">
-                            Tambahkan pemetaan ke laporan bersama kebun pada
+                            Tambahkan pemetaan ke laporan bersama lahan pada
                             tanggal yang dipilih. Informasi harian yang sudah
                             ada tidak ditimpa.
                         </p>
@@ -368,19 +332,6 @@ function detailUrl(log: DailyLog): string {
                             </p>
                         </label>
                     </div>
-
-                    <DailyHeaderContext
-                        :key="headerVersion"
-                        v-model:start="form.start_time"
-                        v-model:end="form.end_time"
-                        v-model:notes="form.notes"
-                        :farm-id="farm.id"
-                        :date="form.work_date"
-                        :errors="form.errors"
-                        :report-base="`/kebun/${farm.id}/daily-logs`"
-                        @ready="headerReady = $event"
-                        @existing="existingHeader = $event"
-                    />
 
                     <div class="space-y-3">
                         <label
@@ -454,7 +405,7 @@ function detailUrl(log: DailyLog): string {
                                 <label
                                     class="col-span-2 space-y-1.5 text-xs font-medium text-foreground"
                                 >
-                                    <span>Blok kebun</span>
+                                    <span>Blok lahan</span>
                                     <AppSelect
                                         v-model="
                                             activity.block_mapping.block_id
@@ -464,14 +415,14 @@ function detailUrl(log: DailyLog): string {
                                         @change="selectBlock(activity)"
                                     >
                                         <AppSelectOption value="">
-                                            Pilih blok aktif kebun ini
+                                            Pilih blok aktif lahan ini
                                         </AppSelectOption>
                                         <AppSelectOption
                                             v-for="block in blocks"
                                             :key="block.id"
                                             :value="block.id"
                                         >
-                                            {{ block.code }} · {{ block.name }}
+                                            {{ block.name }}
                                         </AppSelectOption>
                                     </AppSelect>
                                     <span
@@ -834,7 +785,6 @@ function detailUrl(log: DailyLog): string {
                         class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                         :disabled="
                             form.processing ||
-                            !headerReady ||
                             Object.keys(numericErrors).length > 0
                         "
                     >
@@ -855,7 +805,7 @@ function detailUrl(log: DailyLog): string {
                             Riwayat logbook
                         </h2>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            {{ logs.meta.total }} laporan tersimpan untuk kebun
+                            {{ logs.meta.total }} laporan tersimpan untuk lahan
                             ini.
                         </p>
                     </div>
@@ -938,12 +888,6 @@ function detailUrl(log: DailyLog): string {
                                 >
                                     {{ log.work_date }}
                                 </p>
-                                <p class="mt-1 text-xs text-muted-foreground">
-                                    {{ log.start_time }}-{{
-                                        log.end_time ?? 'Belum diisi'
-                                    }}
-                                    WIB
-                                </p>
                             </div>
                             <Link
                                 :href="detailUrl(log)"
@@ -973,40 +917,16 @@ function detailUrl(log: DailyLog): string {
                                 >
                             </span>
                         </div>
-                        <p
-                            v-if="log.notes"
-                            class="mt-3 line-clamp-2 text-xs leading-5 text-muted-foreground"
-                        >
-                            {{ log.notes }}
-                        </p>
                     </article>
                 </div>
 
-                <div
+                <InertiaPagination
                     v-if="logs.meta.last_page > 1"
-                    class="mt-4 flex items-center justify-between border-t border-border pt-3"
-                >
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-2 text-xs font-semibold text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                        :disabled="!logs.links.prev"
-                        @click="goToPage(logs.links.prev)"
-                    >
-                        <ChevronLeft :size="15" /> Sebelumnya
-                    </button>
-                    <span class="text-xs text-muted-foreground"
-                        >Halaman {{ logs.meta.current_page }} dari
-                        {{ logs.meta.last_page }}</span
-                    >
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-2 text-xs font-semibold text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                        :disabled="!logs.links.next"
-                        @click="goToPage(logs.links.next)"
-                    >
-                        Berikutnya <ChevronRight :size="15" />
-                    </button>
-                </div>
+                    :paginator="logs.meta"
+                    label="Pagination logbook harian"
+                    class="mt-4 ml-auto justify-end border-t border-border pt-3"
+                    preserve-state
+                />
             </section>
         </div>
     </component>

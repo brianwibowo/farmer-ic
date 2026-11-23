@@ -1,9 +1,9 @@
 # Daily activity log: block mapping
 
-Current shared-header and Petugas UX rules are recorded in
+Current Petugas and shared-day logbook rules are recorded in
 [`petugas-activity-handoff.md`](petugas-activity-handoff.md), section 8.
-The batch payload below documents the legacy mapping client; new SOP/voluntary
-clients use their dedicated web endpoints and optional daily end time.
+Daily logs group activities by `(farm_id, work_date)` without daily start/end
+time or daily header notes.
 
 ## Desktop admin logbook
 
@@ -39,6 +39,29 @@ the existing mobile Inertia flow, using `StoreDailyActivityLogRequest` and
 external API, migrations, duplicate operational tables or frontend-only records.
 Summary cards are unfiltered visible-scope totals; list totals follow filters.
 Kendala counts mean activities marked `reported`, not unresolved incidents.
+
+### Dashboard risk summary
+
+`AdminDashboardService` supplies both **Risiko terbuka** and **Risiko belum
+ditutup** through the existing Inertia dashboard props. Both totals include open
+`farm_risks` plus actual incident reports stored in `incident_details`, whose
+primary/foreign key `activity_id` points to `farm_activities.id`. Reporting an
+incident does not insert a duplicate `farm_risks` record.
+
+For incidents, the persisted `farm_activities.status` takes precedence; when
+absent/blank, read `task_details.incident_status`, then default to open for
+reports without either value. Open/progress/in_progress/pending/reported are
+included (case/space normalized). Resolved, completed, closed, cancelled, draft,
+unknown statuses and future-dated reports are excluded. The card uses the
+snapshot's incident description, falling back to activity notes/category.
+
+The service applies `visibleTo` to activities and incident details before any
+count or serialization and retains the dashboard's selected farm/team boundary.
+The list shows the latest ten combined records; the total counts all matching
+records. This is read-only: existing report submission, models, schema and
+incident closure workflows are unchanged. Dashboard admission remains in
+`DashboardController`/route middleware; missing related read grants omit those
+records, rather than exposing unscoped data.
 
 Focused integration coverage is in `tests/Feature/Activity/AdminLogbookTest.php`:
 role admission, navigation grants, tenant/farm boundaries, scoped totals and
@@ -102,13 +125,11 @@ send `Accept: application/json` and `Content-Type: application/json`.
 ```json
 {
   "work_date": "2026-10-27",
-  "start_time": "08:00",
-  "end_time": "16:00",
-  "notes": "Pemetaan awal untuk persiapan bedengan.",
   "activities": [
     {
       "type": "block_mapping",
       "worker_count": 6,
+      "notes": "Pemetaan awal untuk persiapan bedengan.",
       "block_mapping": {
         "block_name": "Blok 1",
         "length_m": 35,

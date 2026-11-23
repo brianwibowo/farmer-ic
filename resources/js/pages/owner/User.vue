@@ -70,7 +70,7 @@ defineProps<{ managedUser: OwnerUserDetail }>();
             </p>
         </section>
         <section class="space-y-3">
-            <h2 class="text-base font-semibold">Penugasan kebun</h2>
+            <h2 class="text-base font-semibold">Penugasan lahan</h2>
             <Link
                 v-if="managedUser.assigned_farm"
                 :href="`/kebun/${managedUser.assigned_farm.id}`"
@@ -88,7 +88,7 @@ defineProps<{ managedUser: OwnerUserDetail }>();
                 v-else
                 class="rounded-xl border border-dashed border-border p-4 text-sm leading-6 text-muted-foreground"
             >
-                Tidak ada penugasan kebun yang dapat ditampilkan.
+                Tidak ada penugasan lahan yang dapat ditampilkan.
             </p>
         </section>
     </div>

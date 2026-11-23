@@ -13,6 +13,7 @@ use App\Services\FarmBlockService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class TaskManagementTest extends TestCase
@@ -45,7 +46,6 @@ class TaskManagementTest extends TestCase
             'created_by' => $this->admin->id,
         ])->save();
         $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
-            'code' => 'B01',
             'name' => 'Blok Utara',
             'area_ha' => '5.0000',
         ]);
@@ -94,7 +94,6 @@ class TaskManagementTest extends TestCase
             'completed_at' => now(),
         ]);
         $secondBlock = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
-            'code' => 'B02',
             'name' => 'Blok Selatan',
             'area_ha' => '4.0000',
         ]);
@@ -112,8 +111,8 @@ class TaskManagementTest extends TestCase
                 ->where('filters.view', 'actionable')
                 ->where('tasks.total', 2)
                 ->has('blocks', 2)
-                ->where('blocks.0.code', 'B01')
-                ->where('blocks.1.code', 'B02')
+                ->where('blocks.0.name', 'Blok Selatan')
+                ->where('blocks.1.name', 'Blok Utara')
                 ->has('subbloks', 2)
                 ->where('subbloks.0.id', $this->subblok->id)
                 ->where('subbloks.0.label', 'A')
@@ -243,7 +242,6 @@ class TaskManagementTest extends TestCase
             'created_by' => $this->admin->id,
         ])->save();
         $otherBlock = app(FarmBlockService::class)->create($otherFarm, $this->admin, $this->team, [
-            'code' => 'C01',
             'name' => 'Blok Barat',
             'area_ha' => '4.0000',
         ]);
@@ -305,7 +303,7 @@ class TaskManagementTest extends TestCase
                 ->component('tasks/Show')
                 ->where('task.id', $task->id)
                 ->where('task.farm.name', 'Kebun Tugas Admin')
-                ->where('task.block.code', 'B01')
+                ->where('task.block.name', 'Blok Utara')
                 ->where('task.can.update', true));
     }
 
@@ -320,6 +318,51 @@ class TaskManagementTest extends TestCase
         $this->assertSame('Lahan tergenang setelah hujan.', $skip->skip_reason);
         $this->assertNull($skip->completed_at);
         $this->assertNull($skip->completed_by);
+    }
+
+    public static function closedSubblockStatuses(): array
+    {
+        return [['harvested'], ['cancelled']];
+    }
+
+    #[DataProvider('closedSubblockStatuses')]
+    public function test_closed_subblock_tasks_are_read_only_even_for_superadmin(string $status): void
+    {
+        $task = $this->task();
+        $commodity = \App\Models\Commodity::create(['name' => 'Jagung riwayat']);
+        $variety = \App\Models\CropVariety::create(['commodity_id' => $commodity->id, 'name' => 'Varietas riwayat']);
+        $this->subblok->forceFill(['status' => $status, 'planted_at' => '2026-11-05',
+            'planted_area_ha' => '1', 'variety_id' => $variety->id])->save();
+
+        $this->get('/admin/tasks')->assertInertia(fn (Assert $page) => $page
+            ->where('tasks.total', 0)->where('summary.open', 0)->where('summary.total', 1));
+        $this->get('/admin/tasks?view=all')->assertInertia(fn (Assert $page) => $page
+            ->where('tasks.total', 1)->where('tasks.data.0.id', $task->id)
+            ->where('tasks.data.0.subblok.status', $status)->where('tasks.data.0.can.update', false));
+        $this->get('/admin/tasks/'.$task->id)->assertInertia(fn (Assert $page) => $page
+            ->where('task.can.update', false));
+
+        foreach ([$this->admin, User::factory()->create(['role' => 'superadmin'])] as $actor) {
+            $this->actingAs($actor)->post('/admin/tasks/'.$task->id.'/skip', ['reason' => 'Tidak diperlukan.'])
+                ->assertSessionHasErrors('status');
+            $this->post('/admin/tasks/'.$task->id.'/reschedule', [
+                'rescheduled_date' => '2026-11-20', 'reschedule_reason' => 'Perubahan rencana.',
+            ])->assertSessionHasErrors('status');
+        }
+        $this->assertSame('pending', $task->fresh()->status);
+        $this->assertNull($task->fresh()->rescheduled_date);
+    }
+
+    public function test_task_rows_do_not_expose_subblock_status_without_cycle_visibility(): void
+    {
+        $this->task();
+        $roles = config('access.roles');
+        unset($roles['admin']['planting_cycles.view']);
+        config(['access.roles' => $roles]);
+
+        $this->get('/admin/tasks?view=all')->assertInertia(fn (Assert $page) => $page
+            ->where('tasks.total', 1)->where('tasks.data.0.subblok', null)
+            ->where('tasks.data.0.can.update', false)->where('summary.open', 0));
     }
 
     public function test_admin_can_reschedule_an_unfinished_task_without_changing_the_sop_date(): void
@@ -377,7 +420,6 @@ class TaskManagementTest extends TestCase
             'created_by' => $otherAdmin->id,
         ])->save();
         $otherBlock = app(FarmBlockService::class)->create($otherFarm, $otherAdmin, $otherTeam, [
-            'code' => 'B01',
             'name' => 'Blok Lain',
             'area_ha' => '5.0000',
         ]);
@@ -420,5 +462,29 @@ class TaskManagementTest extends TestCase
 
         $this->actingAs($petugas)->get('/admin/tasks')->assertForbidden();
         $this->actingAs($owner)->get('/admin/tasks')->assertForbidden();
+    }
+
+    public function test_admin_task_index_and_detail_expose_hok(): void
+    {
+        $withHok = $this->task(['name' => 'Pemupukan ber-HOK', 'hok' => 4]);
+        $withoutHok = $this->task(['name' => 'Tugas tanpa HOK', 'hok' => null]);
+
+        $this->get('/admin/tasks')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tasks.data', fn ($rows) => collect($rows)->contains(fn ($r) => $r['id'] === $withHok->id && $r['hok'] === 4)
+                    && collect($rows)->contains(fn ($r) => $r['id'] === $withoutHok->id && $r['hok'] === null)));
+
+        $this->get('/admin/tasks/'.$withHok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('tasks/Show')
+                ->where('task.hok', 4));
+
+        $this->get('/admin/tasks/'.$withoutHok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('tasks/Show')
+                ->where('task.hok', null));
     }
 }

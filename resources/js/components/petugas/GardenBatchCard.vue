@@ -51,12 +51,17 @@ const stageStatuses = {
                 />
                 <div class="min-w-0">
                     <h4 class="text-base font-semibold">
-                        Batch {{ batch.batch_number }}
+                        Subblok {{ batch.batch_number }}
                     </h4>
                     <p
                         class="mt-1 text-xs leading-5 break-words text-muted-foreground"
                     >
                         Subblok {{ batch.subblock_label }}
+                        <span
+                            v-if="batch.farm_cycle_number"
+                            class="ml-1 text-xs font-medium text-muted-foreground"
+                            >· Siklus {{ batch.farm_cycle_number }}</span
+                        >
                     </p>
                 </div>
             </div>
@@ -66,6 +71,21 @@ const stageStatuses = {
                 >{{ status.label }}</span
             >
         </header>
+        <div
+            v-if="batch.cancellation_reason"
+            class="rounded-xl bg-muted/50 p-3 text-sm"
+        >
+            <p class="font-semibold">Alasan penutupan</p>
+            <p class="mt-1 break-words whitespace-pre-line">
+                {{ batch.cancellation_reason }}
+            </p>
+            <p
+                v-if="batch.cancelled_at"
+                class="mt-1 text-xs text-muted-foreground"
+            >
+                Ditutup {{ gardenDate(batch.cancelled_at) }}
+            </p>
+        </div>
         <dl class="grid grid-cols-1 gap-3">
             <div>
                 <dt class="text-xs text-muted-foreground">Luas tertanam</dt>
@@ -128,9 +148,11 @@ const stageStatuses = {
                 </dt>
                 <dd class="mt-1 font-medium">
                     {{
-                        gardenDate(
-                            batch.planted_at ?? batch.planned_planting_at,
-                        )
+                        batch.planted_at || batch.planned_planting_at
+                            ? gardenDate(
+                                  batch.planted_at ?? batch.planned_planting_at,
+                              )
+                            : '-'
                     }}<span
                         v-if="batch.hst !== null"
                         class="mt-0.5 block font-normal text-muted-foreground"
@@ -152,10 +174,13 @@ const stageStatuses = {
                             ? 'Panen selesai'
                             : batch.estimated_harvest_at
                               ? gardenDate(batch.estimated_harvest_at)
-                              : 'Belum ada estimasi'
+                              : '-'
                     }}
                     <span
-                        v-if="batch.status === 'harvested' && batch.estimated_harvest_at"
+                        v-if="
+                            batch.status === 'harvested' &&
+                            batch.estimated_harvest_at
+                        "
                         class="mt-0.5 block text-muted-foreground"
                     >
                         Estimasi sebelumnya:

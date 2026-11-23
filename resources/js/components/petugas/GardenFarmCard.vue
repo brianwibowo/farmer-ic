@@ -1,36 +1,21 @@
 <script setup lang="ts">
 import { LandPlot, MapPin } from '@lucide/vue';
-import { computed } from 'vue';
-import FarmLocationMap from '@/components/farms/FarmLocationMap.vue';
-import { landTenureLabel } from '@/types/farms';
+import FarmBlockBoundaryMap from '@/components/farms/FarmBlockBoundaryMap.vue';
 import type { PetugasGarden } from '@/types/petugas-garden';
 import { gardenArea } from '@/types/petugas-garden';
 
-const props = defineProps<{
-    farm: NonNullable<PetugasGarden['farm']>;
-    summary: PetugasGarden['summary'];
-}>();
-const location = computed(() =>
-    [props.farm.district, props.farm.city, props.farm.province]
-        .filter(Boolean)
-        .join(', '),
+withDefaults(
+    defineProps<{
+        farm: NonNullable<PetugasGarden['farm']>;
+        summary: PetugasGarden['summary'];
+        blocks?: PetugasGarden['blocks'];
+        selectedBlockId?: string | null;
+    }>(),
+    {
+        blocks: () => [],
+        selectedBlockId: null,
+    },
 );
-const coordinates = computed<[number, number] | null>(() => {
-    if (props.farm.latitude === null || props.farm.longitude === null)
-        return null;
-
-    const latitude = Number(props.farm.latitude);
-    const longitude = Number(props.farm.longitude);
-    if (
-        !Number.isFinite(latitude) ||
-        !Number.isFinite(longitude) ||
-        Math.abs(latitude) > 90 ||
-        Math.abs(longitude) > 180
-    )
-        return null;
-
-    return [latitude, longitude];
-});
 </script>
 
 <template>
@@ -40,9 +25,13 @@ const coordinates = computed<[number, number] | null>(() => {
     >
         <div class="flex items-start gap-3">
             <span
-                class="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-secondary dark:text-primary"
-                ><LandPlot class="size-6" aria-hidden="true"
-            /></span>
+                class="grid size-11 shrink-0 place-items-center"
+            >
+                <LandPlot
+                    class="size-7 text-secondary dark:text-primary"
+                    aria-hidden="true"
+                />
+            </span>
             <div class="min-w-0">
                 <h2
                     id="garden-farm-name"
@@ -50,51 +39,90 @@ const coordinates = computed<[number, number] | null>(() => {
                 >
                     {{ farm.name }}
                 </h2>
-                <p class="mt-1 text-xs text-muted-foreground">
-                    {{ landTenureLabel(farm.land_tenure) }}
-                </p>
-            </div>
-        </div>
-        <div v-if="location || farm.address" class="flex items-start gap-2">
-            <MapPin
-                class="mt-0.5 size-4 shrink-0 text-secondary dark:text-primary"
-                aria-hidden="true"
-            />
-            <div class="min-w-0 space-y-1">
-                <p v-if="farm.address" class="text-sm leading-5 break-words">
-                    {{ farm.address }}
-                </p>
                 <p
-                    v-if="location"
-                    class="text-xs leading-5 text-muted-foreground"
+                    v-if="farm.address"
+                    class="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground"
                 >
-                    {{ location }}
+                    <MapPin
+                        class="mt-0.5 size-3.5 shrink-0 text-secondary dark:text-primary"
+                        aria-hidden="true"
+                    />
+                    <span class="min-w-0 break-words">{{ farm.address }}</span>
                 </p>
             </div>
         </div>
-        <dl class="grid grid-cols-3 gap-3 border-t border-border pt-4">
-            <div>
-                <dt class="text-xs text-muted-foreground">Luas (ha)</dt>
-                <dd class="petugas-metric-value mt-1">
-                    {{ gardenArea(farm.total_area_ha) }}
+        <dl
+            class="grid grid-cols-3 divide-x divide-border border-t border-border pt-5"
+        >
+            <div
+                class="garden-farm-metric flex min-w-0 flex-col px-1 py-2 text-center"
+            >
+                <dt
+                    class="order-2 mt-3 text-xs leading-5 text-muted-foreground"
+                >
+                    Luas lahan
+                </dt>
+                <dd
+                    class="order-1 inline-flex items-start justify-center gap-1"
+                >
+                    <span
+                        class="garden-farm-metric-value font-bold tracking-tight text-foreground tabular-nums"
+                        >{{ gardenArea(farm.total_area_ha) }}</span
+                    >
+                    <span class="mt-1 text-sm font-semibold text-primary"
+                        >ha</span
+                    >
                 </dd>
             </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Blok</dt>
-                <dd class="petugas-metric-value mt-1">
+            <div
+                class="garden-farm-metric flex min-w-0 flex-col px-1 py-2 text-center"
+            >
+                <dt
+                    class="order-2 mt-3 text-xs leading-5 text-muted-foreground"
+                >
+                    Blok
+                </dt>
+                <dd
+                    class="garden-farm-metric-value order-1 font-bold tracking-tight text-foreground tabular-nums"
+                >
                     {{ summary.blocks }}
                 </dd>
             </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Subblok</dt>
-                <dd class="petugas-metric-value mt-1">
+            <div
+                class="garden-farm-metric flex min-w-0 flex-col px-1 py-2 text-center"
+            >
+                <dt
+                    class="order-2 mt-3 text-xs leading-5 text-muted-foreground"
+                >
+                    Subblok
+                </dt>
+                <dd
+                    class="garden-farm-metric-value order-1 font-bold tracking-tight text-foreground tabular-nums"
+                >
                     {{ summary.batches }}
                 </dd>
             </div>
         </dl>
         <div class="space-y-3 border-t border-border pt-4">
             <h3 class="admin-section-title">Peta lokasi</h3>
-            <FarmLocationMap :model-value="coordinates" />
+            <FarmBlockBoundaryMap
+                :farm="farm"
+                :blocks="blocks"
+                :selected-block-id="selectedBlockId"
+                :show-gps-button="true"
+                :initial-zoom="18"
+                :show-hint="false"
+            />
         </div>
     </section>
 </template>
+
+<style scoped>
+.garden-farm-metric {
+    container-type: inline-size;
+}
+.garden-farm-metric-value {
+    font-size: clamp(1.5rem, 30cqi, 2.5rem);
+    line-height: 1.1;
+}
+</style>

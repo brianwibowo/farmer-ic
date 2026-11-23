@@ -1,7 +1,10 @@
 export type SopTeam = { id: number; name: string };
 export type SopCommodity = { id: string; name: string };
 
-export type SopActivityCategory = 'maintenance' | 'harvest';
+export type SopActivityCategory =
+    | 'maintenance'
+    | 'growth_observation'
+    | 'harvest';
 
 export type SopTask = {
     id: string;
@@ -11,6 +14,7 @@ export type SopTask = {
     instructions: string | null;
     offset_days: number;
     tolerance_days: number;
+    hok: number | null;
     is_required: boolean;
 };
 
@@ -40,7 +44,10 @@ export type SopTemplateRow = {
     commodity: SopCommodity | null;
 };
 
-export type SopTemplateDetail = Omit<SopTemplateRow, 'versions_count' | 'can'> & {
+export type SopTemplateDetail = Omit<
+    SopTemplateRow,
+    'versions_count' | 'can'
+> & {
     versions: SopVersion[];
 };
 
@@ -84,19 +91,42 @@ export type SopSummary = {
 
 export const sopActivityCategoryLabels: Record<SopActivityCategory, string> = {
     maintenance: 'Perawatan',
+    growth_observation: 'Pengamatan Pertumbuhan',
     harvest: 'Panen',
 };
 
-export function sopTaskCategoryLabel(task: Pick<SopTask, 'activity_category'>): string {
-    return sopActivityCategoryLabels[task.activity_category] ?? task.activity_category;
+export function sopTaskCategoryLabel(
+    task: Pick<SopTask, 'activity_category'>,
+): string {
+    return (
+        sopActivityCategoryLabels[task.activity_category] ??
+        task.activity_category
+    );
 }
 
 export function hstLabel(task: Pick<SopTask, 'offset_days'>): string {
     return `H${task.offset_days >= 0 ? '+' : ''}${task.offset_days}`;
 }
 
+export function formatHok(hok: number | null | undefined): string {
+    return hok == null
+        ? '—'
+        : `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(hok)} HOK`;
+}
+
+export function sumTaskHok(
+    tasks: ReadonlyArray<{ hok?: number | null }>,
+): number {
+    return tasks.reduce(
+        (total, task) => total + (task.hok != null ? Number(task.hok) : 0),
+        0,
+    );
+}
+
 export function sopDate(value: string | null): string {
     return value
-        ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value))
+        ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(
+              new Date(value),
+          )
         : '-';
 }

@@ -75,7 +75,7 @@ async function loadKebun(): Promise<void> {
     try {
         kebun.value = await listMappedKebun();
     } catch {
-        errorMessage.value = 'Data kebun belum dapat dimuat. Coba lagi.';
+        errorMessage.value = 'Data lahan belum dapat dimuat. Coba lagi.';
     } finally {
         isLoading.value = false;
     }
@@ -123,14 +123,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Head title="Kebun" />
+    <Head title="Lahan" />
 
     <FarmerMobileShell active-key="garden">
         <div ref="pageRoot" data-kebun-list class="px-4 pt-4 pb-5">
             <header class="flex items-start justify-between gap-3">
                 <div>
                     <!-- <p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Ruang kerja petani</p> -->
-                    <h1 class="mt-1 text-[22px] leading-7 font-semibold text-foreground">Daftar Kebun</h1>
+                    <h1 class="mt-1 text-[22px] leading-7 font-semibold text-foreground">Daftar Lahan</h1>
                 </div>
                 <button
                     type="button"
@@ -143,7 +143,7 @@ onBeforeUnmount(() => {
 
             <div class="mt-5 flex gap-2">
                 <label class="relative min-w-0 flex-1">
-                    <span class="sr-only">Cari kebun</span>
+                    <span class="sr-only">Cari lahan</span>
                     <input
                         v-model="searchQuery"
                         type="search"
@@ -179,7 +179,7 @@ onBeforeUnmount(() => {
                 <button type="button" class="rounded p-1 text-base leading-none hover:bg-success/10 focus-visible:outline-2 focus-visible:outline-ring" aria-label="Tutup notifikasi" @click="resetMessage = ''">&times;</button>
             </div>
 
-            <div v-if="isLoading" class="mt-5 space-y-3" aria-live="polite" aria-label="Memuat data kebun">
+            <div v-if="isLoading" class="mt-5 space-y-3" aria-live="polite" aria-label="Memuat data lahan">
                 <div v-for="index in 4" :key="index" class="flex gap-3 rounded-2xl border border-border bg-card p-3">
                     <div class="size-[84px] shrink-0 animate-pulse rounded-xl bg-muted" />
                     <div class="min-w-0 flex-1 space-y-3 pt-1">
@@ -197,11 +197,11 @@ onBeforeUnmount(() => {
 
             <div v-else-if="filteredKebun.length === 0" class="mt-8 rounded-2xl border border-dashed border-border bg-muted/50 px-5 py-10 text-center">
                 <LandPlot :size="36" class="mx-auto text-primary" aria-hidden="true" />
-                <h2 class="mt-3 text-base font-semibold text-foreground">Kebun tidak ditemukan</h2>
+                <h2 class="mt-3 text-base font-semibold text-foreground">Lahan tidak ditemukan</h2>
                 <p class="mt-1 text-sm leading-5 text-muted-foreground">Coba ubah kata kunci atau filter komoditas.</p>
             </div>
 
-            <ul v-else class="mt-5 space-y-3" aria-label="Daftar kebun">
+            <ul v-else class="mt-5 space-y-3" aria-label="Daftar lahan">
                 <li v-for="item in filteredKebun" :key="item.id">
                     <Link
                         :href="`/referensi/kebun/detail?id=${encodeURIComponent(item.id)}`"

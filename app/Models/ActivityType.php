@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -48,5 +49,23 @@ class ActivityType extends FarmerModel
     public function activities(): HasMany
     {
         return $this->hasMany(FarmActivity::class, 'activity_type_id');
+    }
+
+    /**
+     * Include selectable categories, SOP growth observations, and any referenced historical types.
+     *
+     * @param  Builder<static>  $query
+     * @param  Builder<FarmActivity>|null  $usedTypeIds
+     */
+    public function scopeReportFilterable(Builder $query, ?Builder $usedTypeIds = null): void
+    {
+        $query->where('is_active', true)
+            ->where(function (Builder $filter) use ($usedTypeIds): void {
+                $filter->where('is_selectable', true)
+                    ->orWhere('code', 'growth_observation');
+                if ($usedTypeIds !== null) {
+                    $filter->orWhereIn('id', $usedTypeIds);
+                }
+            });
     }
 }

@@ -53,6 +53,12 @@ class PlantingCycle extends FarmerModel
         return $this->belongsTo(Farm::class, 'farm_id');
     }
 
+    /** @return BelongsTo<FarmCycle, $this> */
+    public function farmCycle(): BelongsTo
+    {
+        return $this->belongsTo(FarmCycle::class);
+    }
+
     /** @return BelongsTo<FarmBlock, $this> */
     public function block(): BelongsTo
     {
@@ -83,7 +89,7 @@ class PlantingCycle extends FarmerModel
         return $this->hasMany(PlantingCycleTask::class)
             ->orderBy('scheduled_date')
             ->orderBy('offset_days')
-            ->orderByRaw("CASE activity_category WHEN 'planting' THEN 1 WHEN 'maintenance' THEN 2 WHEN 'harvest' THEN 3 ELSE 4 END")
+            ->orderByRaw(PlantingCycleTask::CATEGORY_ORDER_SQL)
             ->orderBy('created_at')
             ->orderBy('id');
     }

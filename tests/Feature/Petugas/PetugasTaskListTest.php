@@ -76,7 +76,6 @@ class PetugasTaskListTest extends TestCase
         ])->save();
 
         $block = app(FarmBlockService::class)->create($farm, $actor, $team, [
-            'code' => $code,
             'name' => 'Blok '.$code,
             'area_ha' => '5.0000',
         ]);
@@ -221,6 +220,42 @@ class PetugasTaskListTest extends TestCase
                 ->where('tasks.0.can.complete', false));
     }
 
+    public function test_task_history_shows_closed_subblocks_only_within_the_assigned_farm(): void
+    {
+        $petugas = $this->petugas($this->farm);
+        $running = $this->task($this->subblok, 'Tugas berjalan');
+        $harvested = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team);
+        $harvested->forceFill(['variety_id' => $this->variety->id, 'planted_at' => today()->subDays(12),
+            'planted_area_ha' => '1', 'status' => 'harvested'])->save();
+        $completed = $this->task($harvested, 'Riwayat panen', ['status' => 'completed', 'completed_at' => now()]);
+        $cancelled = app(FarmBlockService::class)->createBatch($this->block, $this->admin, $this->team);
+        $cancelled->forceFill(['status' => 'cancelled'])->save();
+        $pending = $this->task($cancelled, 'Riwayat belum dikerjakan');
+        [, , $other] = $this->makeFarm('Lahan lain', 'B03', $this->team, $this->admin);
+        $other->forceFill(['status' => 'cancelled'])->save();
+        $this->task($other, 'Riwayat lahan lain');
+
+        $this->actingAs($petugas)->get('/petugas/aktivitas')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'running')->has('tasks', 1)->where('tasks.0.id', $running->id)
+                ->where('summary.completed', 0));
+        $this->get('/petugas/aktivitas?view=history&farm_id='.$other->farm_id)
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'history')->has('tasks', 2)
+                ->where('tasks', fn ($tasks) => collect($tasks)->pluck('id')->sort()->values()->all()
+                    === collect([$completed->id, $pending->id])->sort()->values()->all())
+                ->where('tasks', fn ($tasks) => collect($tasks)->every(fn ($task) => ! $task['can']['record'] && ! $task['can']['complete'])));
+        $this->get('/petugas/aktivitas?view=history&status=active')
+            ->assertInertia(fn (Assert $page) => $page->where('filters.status', 'all')->has('tasks', 2));
+        $this->get('/petugas/tasks/'.$pending->id)
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('task.status', 'pending')->where('task.subblok.status', 'cancelled')
+                ->where('task.can.complete', false)->where('canRecord', false));
+        $this->get('/petugas/penanaman')->assertInertia(fn (Assert $page) => $page
+            ->has('cycles', 1)->where('cycles.0.id', $this->subblok->id)->where('blocks.0.cycles_count', 1));
+        $this->get('/petugas/aktivitas?view=invalid')->assertSessionHasErrors('view');
+    }
+
     public function test_petugas_without_an_assigned_farm_gets_an_empty_real_list(): void
     {
         $petugas = User::factory()->create(['role' => 'petugas']);
@@ -253,5 +288,28 @@ class PetugasTaskListTest extends TestCase
         foreach (['owner', 'admin'] as $role) {
             $this->actingAs(User::factory()->create(['role' => $role]))->get('/petugas/tasks')->assertForbidden();
         }
+    }
+
+    public function test_petugas_task_detail_exposes_hok_when_present(): void
+    {
+        $petugas = $this->petugas($this->farm);
+        $withHok = $this->task($this->subblok, 'Pemupukan HOK', ['hok' => 7]);
+        $withoutHok = $this->task($this->subblok, 'Pemupukan Opsional HOK', ['hok' => null]);
+
+        $this->actingAs($petugas)
+            ->get('/petugas/tasks/'.$withHok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('petugas/TaskShow')
+                ->where('task.id', $withHok->id)
+                ->where('task.hok', 7));
+
+        $this->actingAs($petugas)
+            ->get('/petugas/tasks/'.$withoutHok->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('petugas/TaskShow')
+                ->where('task.id', $withoutHok->id)
+                ->where('task.hok', null));
     }
 }

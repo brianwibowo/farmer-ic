@@ -2,19 +2,24 @@
 
 namespace App\Http\Requests\Blocks;
 
+use App\Support\GeoPolygon;
 use App\Support\LandArea;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use InvalidArgumentException;
 
 class SaveFarmBlockRequest extends FormRequest
 {
     private bool $conflictingArea = false;
 
+    /** @var array{type: 'Polygon', coordinates: list<list<array{0: float, 1: float}>>}|null */
+    private ?array $normalizedBoundary = null;
+
     protected function prepareForValidation(): void
     {
-        if (is_string($this->input('code'))) {
-            $this->merge(['code' => strtoupper(trim($this->input('code')))]);
+        if (is_string($this->input('name'))) {
+            $this->merge(['name' => trim($this->input('name'))]);
         }
         if ($this->exists('area_value') || $this->exists('area_unit')) {
             $this->conflictingArea = $this->exists('area_ha');
@@ -40,7 +45,6 @@ class SaveFarmBlockRequest extends FormRequest
         $metres = $this->input('area_unit') === 'm2';
 
         return [
-            'code' => [...$presence, 'string', 'max:30', 'regex:/^[A-Z0-9][A-Z0-9_-]*$/'],
             'name' => [...$presence, 'string', 'max:150'],
             'area_ha' => [...$presence, 'numeric', 'decimal:0,4', 'between:0.0001,99999999.9999'],
             'area_value' => [Rule::requiredIf($unitInput), 'numeric', $metres ? 'decimal:0' : 'decimal:0,4', $metres ? 'between:1,999999999999' : 'between:0.0001,99999999.9999'],
@@ -49,7 +53,8 @@ class SaveFarmBlockRequest extends FormRequest
             'is_active' => ['sometimes', 'required', 'boolean'],
             'commodity_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('commodities', 'id')],
             'default_sop_template_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('sop_templates', 'id')],
-            ...array_fill_keys(['id', 'farm_id', 'team_id', 'created_by', 'created_at', 'updated_at', 'status', 'current_stage', 'land_clearing_started_at', 'land_clearing_completed_at'], ['prohibited']),
+            'boundary_geojson' => ['sometimes', 'nullable', 'array'],
+            ...array_fill_keys(['id', 'farm_id', 'team_id', 'created_by', 'created_at', 'updated_at', 'status', 'current_stage', 'land_clearing_started_at', 'land_clearing_completed_at', 'mapped_area_ha'], ['prohibited']),
         ];
     }
 
@@ -63,7 +68,25 @@ class SaveFarmBlockRequest extends FormRequest
             if (($this->exists('area_value') || $this->exists('area_unit')) && $this->input('area_ha') === null) {
                 $validator->errors()->add('area_value', 'Masukkan luas dalam ha (maksimal 4 desimal) atau m² bulat. Contoh: 0,5 ha atau 5000 m².');
             }
+            if ($this->exists('boundary_geojson') && $this->input('boundary_geojson') !== null && ! $validator->errors()->has('boundary_geojson')) {
+                try {
+                    $this->normalizedBoundary = GeoPolygon::normalize($this->input('boundary_geojson'));
+                } catch (InvalidArgumentException $exception) {
+                    $validator->errors()->add('boundary_geojson', $exception->getMessage());
+                }
+            }
         }];
+    }
+
+    public function hasBoundaryInput(): bool
+    {
+        return $this->exists('boundary_geojson');
+    }
+
+    /** @return array{type: 'Polygon', coordinates: list<list<array{0: float, 1: float}>>}|null */
+    public function normalizedBoundary(): ?array
+    {
+        return $this->normalizedBoundary;
     }
 
     /** @return array<string, string> */

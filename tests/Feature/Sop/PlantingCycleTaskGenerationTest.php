@@ -4,6 +4,7 @@ namespace Tests\Feature\Sop;
 
 use App\Enums\TeamRole;
 use App\Models\Commodity;
+use App\Models\CropVariety;
 use App\Models\Farm;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
@@ -49,7 +50,6 @@ class PlantingCycleTaskGenerationTest extends TestCase
             'created_by' => $this->admin->id,
         ])->save();
         $this->block = app(FarmBlockService::class)->create($this->farm, $this->admin, $this->team, [
-            'code' => 'B01',
             'name' => 'Blok Utara',
             'area_ha' => '5.0000',
         ]);
@@ -283,5 +283,228 @@ class PlantingCycleTaskGenerationTest extends TestCase
         $this->assertSame('already_generated', $result['status']);
         $this->assertCount(2, PlantingCycleTask::query()->where('planting_cycle_id', $subblok->id)->get());
         $this->assertSame($first->versions()->where('status', 'published')->value('id'), $subblok->refresh()->sop_template_version_id);
+    }
+
+    public function test_snapshots_sop_task_hok_and_enforces_positive_check_constraint(): void
+    {
+        $sop = app(SopTemplateService::class);
+        $template = $sop->create($this->admin, $this->team, [
+            'commodity_id' => $this->commodity->id,
+            'name' => 'SOP HOK Snapshot',
+            'description' => null,
+            'is_active' => true,
+        ]);
+        $version = $template->versions()->firstOrFail();
+        $sop->createTask($version, [
+            'activity_category' => 'maintenance',
+            'name' => 'Pemupukan HOK',
+            'offset_days' => 7,
+            'tolerance_days' => 2,
+            'is_required' => true,
+            'hok' => 5,
+            'instructions' => null,
+        ]);
+        $sop->createTask($version, [
+            'activity_category' => 'harvest',
+            'name' => 'Panen Opsional HOK',
+            'offset_days' => 85,
+            'tolerance_days' => 3,
+            'is_required' => true,
+            'hok' => null,
+            'instructions' => null,
+        ]);
+        $sop->publish($version, $this->admin);
+        $this->useDefaultSop($template);
+
+        $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-01'])->save();
+
+        $result = app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
+        $this->assertSame('generated', $result['status']);
+
+        $tasks = $subblok->tasks()->get();
+        $this->assertSame(5, $tasks[0]->hok);
+        $this->assertNull($tasks[1]->hok);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        $tasks[0]->update(['hok' => 0]);
+    }
+
+    public function test_generated_tasks_are_always_required_at_service_and_database_layers(): void
+    {
+        $template = $this->publishedSop();
+        $this->useDefaultSop($template);
+        $subblok = $this->subblok();
+        $subblok->forceFill(['planted_at' => '2026-11-01'])->save();
+
+        app(PlantingCycleTaskService::class)->generateForSubblok($subblok, $this->admin);
+
+        $tasks = $subblok->tasks()->get();
+        $this->assertCount(2, $tasks);
+        $this->assertTrue($tasks->every(fn (PlantingCycleTask $task): bool => $task->is_required === true));
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        $tasks[0]->update(['is_required' => false]);
+    }
+
+    public function test_assigning_default_sop_to_block_generates_tasks_for_already_planted_unbound_subblocks_only(): void
+    {
+        $sopService = app(SopTemplateService::class);
+        $olderSop = $sopService->create($this->admin, $this->team, [
+            'commodity_id' => $this->commodity->id,
+            'name' => 'SOP Lama',
+            'description' => null,
+            'is_active' => true,
+        ]);
+        $olderVersion = $olderSop->versions()->firstOrFail();
+        $sopService->createTask($olderVersion, [
+            'activity_category' => 'harvest',
+            'name' => 'Panen Lama',
+            'offset_days' => 80,
+            'tolerance_days' => 2,
+            'is_required' => true,
+        ]);
+        $sopService->publish($olderVersion, $this->admin);
+        $this->useDefaultSop($olderSop);
+
+        $variety = CropVariety::query()->create(['commodity_id' => $this->commodity->id, 'name' => 'Bisi 18']);
+
+        $alreadyBound = $this->subblok();
+        $alreadyBound->forceFill([
+            'variety_id' => $variety->id,
+            'planted_at' => '2026-11-01',
+            'planted_area_ha' => '1.0000',
+            'status' => 'active',
+        ])->save();
+        app(PlantingCycleTaskService::class)->generateForSubblok($alreadyBound, $this->admin);
+
+        // Clear block default SOP before recording actual planting on the next subblock.
+        $this->block->forceFill(['default_sop_template_id' => null])->save();
+
+        $waiting = $this->subblok();
+        $waiting->forceFill([
+            'variety_id' => $variety->id,
+            'planted_at' => '2026-11-05',
+            'planted_area_ha' => '1.0000',
+            'status' => 'active',
+        ])->save();
+
+        $unplanted = $this->subblok();
+
+        $newSop = $this->publishedSop();
+        $newVersion = $newSop->versions()->where('status', 'published')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->patch('/kebun/'.$this->farm->id.'/blocks/'.$this->block->id, [
+                'commodity_id' => $this->commodity->id,
+                'default_sop_template_id' => $newSop->id,
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $waiting->refresh();
+        $this->assertSame($newVersion->id, $waiting->sop_template_version_id);
+        $this->assertSame('2027-02-03', $waiting->estimated_harvest_at?->toDateString());
+        $this->assertSame(2, $waiting->tasks()->count());
+        $this->assertSame('2026-11-12', $waiting->tasks()->where('activity_category', 'maintenance')->firstOrFail()->scheduled_date->toDateString());
+
+        $this->assertNull($unplanted->refresh()->sop_template_version_id);
+        $this->assertSame(0, $unplanted->tasks()->count());
+
+        $this->assertSame($olderVersion->id, $alreadyBound->refresh()->sop_template_version_id);
+        $this->assertSame(1, $alreadyBound->tasks()->count());
+    }
+
+    public function test_publishing_or_activating_sop_generates_tasks_for_waiting_planted_subblocks(): void
+    {
+        $sopService = app(SopTemplateService::class);
+        $template = $sopService->create($this->admin, $this->team, [
+            'commodity_id' => $this->commodity->id,
+            'name' => 'SOP Bertahap',
+            'description' => null,
+            'is_active' => false,
+        ]);
+        $version = $template->versions()->firstOrFail();
+        $sopService->createTask($version, [
+            'activity_category' => 'maintenance',
+            'name' => 'Pemupukan Susulan',
+            'offset_days' => 10,
+            'tolerance_days' => 2,
+            'is_required' => true,
+        ]);
+        $this->useDefaultSop($template);
+
+        $variety = CropVariety::query()->create(['commodity_id' => $this->commodity->id, 'name' => 'Bisi 2']);
+        $waiting = $this->subblok();
+        $waiting->forceFill([
+            'variety_id' => $variety->id,
+            'planted_at' => '2026-11-05',
+            'planted_area_ha' => '1.0000',
+            'status' => 'active',
+        ])->save();
+
+        $closed = $this->subblok();
+        $closed->forceFill([
+            'variety_id' => $variety->id,
+            'planted_at' => '2026-10-01',
+            'planted_area_ha' => '1.0000',
+            'status' => 'harvested',
+        ])->save();
+
+        $this->actingAs($this->admin)
+            ->post('/admin/sops/'.$template->id.'/versions/'.$version->id.'/publish')
+            ->assertRedirect();
+
+        $this->assertNull($waiting->refresh()->sop_template_version_id);
+        $this->assertSame(0, $waiting->tasks()->count());
+
+        $this->actingAs($this->admin)
+            ->put('/admin/sops/'.$template->id, [
+                'commodity_id' => $this->commodity->id,
+                'name' => 'SOP Bertahap',
+                'is_active' => true,
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertSame($version->id, $waiting->refresh()->sop_template_version_id);
+        $this->assertSame(1, $waiting->tasks()->count());
+        $this->assertSame('2026-11-15', $waiting->tasks()->firstOrFail()->scheduled_date->toDateString());
+
+        $this->assertNull($closed->refresh()->sop_template_version_id);
+        $this->assertSame(0, $closed->tasks()->count());
+
+        // Active template assigned to a block before publishing its draft version also syncs on publish.
+        $activeDraft = $sopService->create($this->admin, $this->team, [
+            'commodity_id' => $this->commodity->id,
+            'name' => 'SOP Aktif Draft',
+            'description' => null,
+            'is_active' => true,
+        ]);
+        $draftVersion = $activeDraft->versions()->firstOrFail();
+        $sopService->createTask($draftVersion, [
+            'activity_category' => 'harvest',
+            'name' => 'Panen Draft',
+            'offset_days' => 95,
+            'tolerance_days' => 3,
+            'is_required' => true,
+        ]);
+        $this->useDefaultSop($activeDraft);
+
+        $waitingTwo = $this->subblok();
+        $waitingTwo->forceFill([
+            'variety_id' => $variety->id,
+            'planted_at' => '2026-11-10',
+            'planted_area_ha' => '1.0000',
+            'status' => 'active',
+        ])->save();
+
+        $this->actingAs($this->admin)
+            ->post('/admin/sops/'.$activeDraft->id.'/versions/'.$draftVersion->id.'/publish')
+            ->assertRedirect();
+
+        $this->assertSame($draftVersion->id, $waitingTwo->refresh()->sop_template_version_id);
+        $this->assertSame(1, $waitingTwo->tasks()->count());
+        $this->assertSame('2027-02-13', $waitingTwo->estimated_harvest_at?->toDateString());
     }
 }

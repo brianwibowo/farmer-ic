@@ -53,32 +53,24 @@ watch(
     >
         <OwnerPageHeader
             title="Monitoring Lahan"
+            hide-title
             back-href="/ringkasan-eksekutif"
             back-label="Kembali ke Ringkasan Eksekutif"
         >
-            <template #heading>
-                <div
-                    class="owner-dashboard-header flex items-center justify-between gap-3"
-                >
-                    <header class="min-w-0">
-                        <h1 class="admin-page-title wrap-break-word">
-                            Monitoring Lahan
-                        </h1>
-                    </header>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        class="min-h-11 min-w-11 shrink-0"
-                        :disabled="loading"
-                        aria-label="Perbarui monitoring lahan"
-                        @click="submit()"
-                        ><RefreshCw
-                            class="size-4"
-                            :class="loading ? 'motion-safe:animate-spin' : ''"
-                            aria-hidden="true"
-                    /></Button>
-                </div>
+            <template #actions>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    class="min-h-11 min-w-11 shrink-0"
+                    :disabled="loading"
+                    aria-label="Perbarui monitoring lahan"
+                    @click="submit()"
+                    ><RefreshCw
+                        class="size-4"
+                        :class="loading ? 'motion-safe:animate-spin' : ''"
+                        aria-hidden="true"
+                /></Button>
             </template>
         </OwnerPageHeader>
         <p
@@ -87,7 +79,7 @@ watch(
             class="text-xs leading-5"
             :class="error ? 'text-error' : 'text-muted-foreground'"
         >
-            {{ loading ? 'Memuat ringkasan kebun…' : error || feedback }}
+            {{ loading ? 'Memuat ringkasan lahan…' : error || feedback }}
         </p>
         <OwnerDashboardMetrics :table="landTable" />
         <OwnerDashboardLandTable :table="landTable" :loading="loading" />
@@ -108,7 +100,7 @@ watch(
                     <Link
                         href="/kebun"
                         class="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-                        >Lihat kebun</Link
+                        >Lihat lahan</Link
                     >
                 </div>
                 <DashboardFarmMap

@@ -18,7 +18,7 @@ export const aiKnowledgeChunks: AiKnowledgeChunk[] = [
         id: 'finance-current-unavailable-v1',
         title: 'Ketersediaan finansial bulan berjalan',
         get content() {
-            return `Data finansial bulan ini belum tersedia di informasi aplikasi ${getAppName()} yang dapat diakses Asisten Kebun. Asisten dapat membantu merekap angka atau screenshot yang dikirim pengguna, termasuk perbandingan pemasukan dan pengeluaran, rincian biaya, serta laba/rugi per lahan atau komoditas.`;
+            return `Data finansial bulan ini belum tersedia di informasi aplikasi ${getAppName()} yang dapat diakses Asisten Lahan. Asisten dapat membantu merekap angka atau screenshot yang dikirim pengguna, termasuk perbandingan pemasukan dan pengeluaran, rincian biaya, serta laba/rugi per lahan atau komoditas.`;
         },
         keywords: [
             'finansial',
@@ -40,9 +40,9 @@ export const aiKnowledgeChunks: AiKnowledgeChunk[] = [
     },
     {
         id: 'assistant-scope-v1',
-        title: 'Ruang lingkup Asisten Kebun',
+        title: 'Ruang lingkup Asisten Lahan',
         content:
-            'Asisten Kebun membantu menjelaskan alur pemantauan pertanian, memahami data yang diberikan pengguna, dan memberi panduan umum pertanian dengan menyatakan asumsi serta keterbatasannya.',
+            'Asisten Lahan membantu menjelaskan alur pemantauan pertanian, memahami data yang diberikan pengguna, dan memberi panduan umum pertanian dengan menyatakan asumsi serta keterbatasannya.',
         keywords: [
             'asisten',
             'farmer',

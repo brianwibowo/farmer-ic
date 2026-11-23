@@ -37,7 +37,7 @@ class DemoPetugasTodoSeederTest extends TestCase
         $this->seed([DemoIdentitySeeder::class, DemoFarmSeeder::class, DemoSopSeeder::class]);
         $farm = Farm::where('name', DemoFarmSeeder::FARM_NAME)->firstOrFail();
         $farm->forceFill(['name' => $farmName])->save();
-        $block = \App\Models\FarmBlock::where('farm_id', $farm->id)->where('code', 'B01')->firstOrFail();
+        $block = \App\Models\FarmBlock::where('farm_id', $farm->id)->where('name', 'Blok Utara')->firstOrFail();
         $defaultSop = $block->getAttribute('default_sop_template_id');
         $cycles = PlantingCycle::count();
         $originals = PlantingCycleTask::orderBy('id')->get()->keyBy('id');

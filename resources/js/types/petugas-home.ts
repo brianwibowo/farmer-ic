@@ -42,7 +42,9 @@ export type PetugasHome = {
 
 export type PetugasHomeIncident = {
     id: string;
-    severity: 'light' | 'medium' | 'heavy' | 'emergency';
+    ticket_id?: string | null;
+    detail_url?: string;
+    severity: 'light' | 'medium' | 'emergency';
     severity_label: string;
     category: string | null;
     description: string | null;

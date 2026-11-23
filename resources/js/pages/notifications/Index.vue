@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NumberPagination from '@/components/NumberPagination.vue';
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Bell, ChevronDown, CheckCheck, X } from '@lucide/vue';
@@ -199,6 +200,9 @@ function read(notice: InboxNotice): void {
                             Ketidaksesuaian SOP
                         </option>
                         <option value="incident_report">Laporan Insiden</option>
+                        <option value="subblock_cancelled">
+                            Subblok Dibatalkan
+                        </option>
                     </select>
                     <ChevronDown
                         class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -280,38 +284,15 @@ function read(notice: InboxNotice): void {
                     />
                 </div>
             </div>
-            <nav
+            <NumberPagination
                 v-if="notifications.last_page > 1"
-                class="flex items-center justify-between gap-3"
-                aria-label="Halaman notifikasi"
-            >
-                <Button
-                    variant="outline"
-                    class="min-h-11"
-                    :disabled="
-                        loading ||
-                        pending !== null ||
-                        notifications.current_page === 1
-                    "
-                    @click="load(notifications.current_page - 1)"
-                    >Sebelumnya</Button
-                >
-                <span class="text-xs text-muted-foreground" aria-current="page"
-                    >{{ notifications.current_page }} /
-                    {{ notifications.last_page }}</span
-                >
-                <Button
-                    variant="outline"
-                    class="min-h-11"
-                    :disabled="
-                        loading ||
-                        pending !== null ||
-                        notifications.current_page === notifications.last_page
-                    "
-                    @click="load(notifications.current_page + 1)"
-                    >Berikutnya</Button
-                >
-            </nav>
+                :current-page="notifications.current_page"
+                :total-pages="notifications.last_page"
+                :disabled="loading || pending !== null"
+                label="Pagination notifikasi"
+                class="ml-auto justify-end"
+                @change="load"
+            />
         </div>
     </component>
 </template>

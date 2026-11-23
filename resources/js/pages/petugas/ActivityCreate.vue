@@ -1,37 +1,98 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Camera, LoaderCircle, Save, X } from '@lucide/vue';
+import {
+    ArrowLeft,
+    CalendarDays,
+    ChevronDown,
+    ClipboardCheck,
+    FileText,
+    Info,
+    LoaderCircle,
+    MapPin,
+    Save,
+    SquarePen,
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import TaskContext from '@/components/petugas/TaskContext.vue';
-import DailyHeaderContext from '@/components/petugas/DailyHeaderContext.vue';
+import ActivityPhotoPicker from '@/components/petugas/ActivityPhotoPicker.vue';
+import { usePhotoCompression } from '@/composables/usePhotoCompression';
+import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
 import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
+import { getGrowthStageAtHst, resolveGrowthProfile } from '@/data/growthStages';
 import type { PetugasTask } from '@/types/petugas-task';
 import {
     activityDetailMaximumErrors,
-    formatActivityNumber,
     maximumError,
 } from '@/lib/activityInputLimits';
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<{
-    task: PetugasTask;
-    fields: ActivityField[];
-    areaLimitM2: number;
-    numericLimits: { workerCount: number; quantityKg: number };
-    today: string;
-    workDate: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        task: PetugasTask;
+        fields: ActivityField[];
+        requiresWorkerCount?: boolean;
+        areaLimitM2: number;
+        numericLimits: { workerCount: number; quantityKg: number };
+        today: string;
+        workDate: string;
+    }>(),
+    { requiresWorkerCount: true },
+);
+const showWorkerCount = computed(
+    () =>
+        props.requiresWorkerCount &&
+        props.task.activity_category !== 'growth_observation',
+);
+const growthProfile = computed(() =>
+    resolveGrowthProfile(
+        props.task.subblok.commodity?.name,
+        props.task.subblok.variety?.name,
+    ),
+);
+const suggestedGrowthStage = computed(() =>
+    growthProfile.value
+        ? getGrowthStageAtHst(growthProfile.value, props.task.subblok.hst)
+        : null,
+);
+const resolvedFields = computed<ActivityField[]>(() =>
+    props.fields.map((field) => {
+        if (field.key !== 'growth_phase') {
+            return field;
+        }
+        const profile = growthProfile.value;
+        if (!profile) {
+            return {
+                ...field,
+                type: 'text',
+                placeholder: 'Contoh: Vegetatif, Pembungaan, Siap panen',
+            };
+        }
+        const suggested = suggestedGrowthStage.value;
+        return {
+            ...field,
+            type: 'select',
+            options: profile.stages.map((stage) => stage.label),
+            optionLabels: Object.fromEntries(
+                profile.stages.map((stage) => [
+                    stage.label,
+                    `${stage.number}. ${stage.label} (${stage.range})${stage.number === suggested?.number ? ' — Sesuai HST' : ''}`,
+                ]),
+            ),
+            hint:
+                suggested && props.task.subblok.hst !== null
+                    ? `Saran sesuai umur tanaman (${props.task.subblok.hst} HST): ${suggested.label}.`
+                    : undefined,
+        };
+    }),
+);
 const form = useForm({
     schema: 'taxonomy',
     work_date: props.workDate,
-    start_time: '07:00',
-    end_time: '',
     worker_count: 1,
-    daily_notes: '',
     notes: '',
     details: Object.fromEntries(
         props.fields.map((field) => [
@@ -46,31 +107,42 @@ const form = useForm({
     photos: [] as File[],
 });
 const clientErrors = ref<Record<string, string>>({});
+const { compressing, compressionStatus, fallbackNotice, preparePhotos } =
+    usePhotoCompression(() => form.photos);
 const numericErrors = computed<Record<string, string>>(() => {
     const result = activityDetailMaximumErrors(
-        props.fields,
+        resolvedFields.value,
         form.details,
         props.areaLimitM2,
         props.numericLimits.quantityKg,
     );
-    const workerError = maximumError(
-        form.worker_count,
-        props.numericLimits.workerCount,
-        'Jumlah pekerja',
-    );
-    if (workerError) result.worker_count = workerError;
+    if (showWorkerCount.value) {
+        const workerError = maximumError(
+            form.worker_count,
+            props.numericLimits.workerCount,
+            'Jumlah pekerja',
+        );
+        if (workerError) result.worker_count = workerError;
+    }
     return result;
 });
 const noArea = computed(
     () =>
         props.areaLimitM2 === 0 &&
-        props.fields.some((field) => field.key === 'area' && !field.optional),
+        resolvedFields.value.some(
+            (field) => field.key === 'area' && !field.optional,
+        ),
 );
 const errors = computed<Record<string, string>>(() => ({
     ...form.errors,
     ...clientErrors.value,
     ...numericErrors.value,
 }));
+const photoErrors = computed(() =>
+    Object.entries(errors.value).filter(
+        ([key]) => key === 'photos' || key.startsWith('photos.'),
+    ),
+);
 watch(
     () => ({ ...form.details }),
     (current, previous) => {
@@ -90,9 +162,8 @@ watch(
     () => form.worker_count,
     () => form.clearErrors('worker_count'),
 );
-const headerReady = ref(false);
-const existingHeader = ref(false);
-function selectPhotos(event: Event): void {
+async function selectPhotos(event: Event): Promise<void> {
+    if (compressing.value || form.processing) return;
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     clientErrors.value = {};
@@ -102,13 +173,20 @@ function selectPhotos(event: Event): void {
             (file) =>
                 !['image/jpeg', 'image/png', 'image/webp'].includes(
                     file.type,
-                ) || file.size > 10 * 1024 * 1024,
+                ) || file.size > 15 * 1024 * 1024,
         )
     ) {
         clientErrors.value.photos =
-            'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 10 MB.';
+            'Maksimal 5 foto JPG, PNG, atau WebP, masing-masing maksimal 15 MB.';
     } else {
-        form.photos.push(...files);
+        try {
+            form.photos.push(...(await preparePhotos(files)));
+        } catch (error) {
+            clientErrors.value.photos =
+                error instanceof Error
+                    ? error.message
+                    : 'Foto gagal diproses. Pilih ulang foto.';
+        }
         for (const key of Object.keys(form.errors)) {
             if (key === 'photos' || key.startsWith('photos.'))
                 form.clearErrors(key as keyof typeof form.errors);
@@ -116,10 +194,27 @@ function selectPhotos(event: Event): void {
     }
     input.value = '';
 }
+function removePhoto(index: number): void {
+    if (compressing.value || form.processing) return;
+    form.photos.splice(index, 1);
+    delete clientErrors.value.photos;
+    for (const key of Object.keys(form.errors)) {
+        if (key === 'photos' || key.startsWith('photos.'))
+            form.clearErrors(key as keyof typeof form.errors);
+    }
+}
+function dateLabel(value: string): string {
+    const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(
+              date,
+          );
+}
 function submit(): void {
     if (
         form.processing ||
-        !headerReady.value ||
+        compressing.value ||
         noArea.value ||
         Object.keys(numericErrors.value).length
     )
@@ -127,23 +222,9 @@ function submit(): void {
     clientErrors.value = {};
     if (!form.photos.length)
         clientErrors.value.photos = 'Tambahkan minimal satu foto bukti.';
-    if (
-        !existingHeader.value &&
-        form.end_time &&
-        form.end_time <= form.start_time
-    )
-        clientErrors.value.end_time =
-            'Waktu selesai harus setelah waktu mulai.';
     if (Object.keys(clientErrors.value).length) return;
-    form.transform((data) =>
-        existingHeader.value
-            ? {
-                  ...data,
-                  start_time: undefined,
-                  end_time: undefined,
-                  daily_notes: undefined,
-              }
-            : data,
+    form.transform(({ worker_count, ...rest }) =>
+        showWorkerCount.value ? { worker_count, ...rest } : rest,
     ).post(`/petugas/tasks/${props.task.id}/aktivitas`, {
         forceFormData: true,
         preserveScroll: true,
@@ -153,7 +234,7 @@ function submit(): void {
 
 <template>
     <Head title="Catat Aktivitas Tugas" />
-    <div class="min-w-0 space-y-5 text-foreground">
+    <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
             <Link
                 :href="`/petugas/tasks/${task.id}`"
@@ -161,38 +242,108 @@ function submit(): void {
                 ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
                 tugas</Link
             >
-            <h1 class="mt-3 text-xl leading-7 font-semibold">
+            <h1 class="mt-2 text-xl leading-7 font-semibold">
                 Catat aktivitas
             </h1>
-            <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                Laporkan hasil pekerjaan untuk tugas ini. Jenis pekerjaan dan
-                lokasi ditentukan dari to-do, bukan dipilih ulang.
+            <p class="mt-1 text-sm leading-5 text-muted-foreground">
+                Laporkan hasil pekerjaan untuk tugas ini.
             </p>
         </header>
-        <details class="petugas-card p-3">
-            <summary class="cursor-pointer text-sm font-medium">
-                {{ task.name }} · {{ task.subblok.label }}
-            </summary>
-            <TaskContext :task="task" />
-        </details>
+        <section
+            class="petugas-card overflow-hidden"
+            aria-label="Tugas yang dilaporkan"
+        >
+            <details class="group">
+                <summary
+                    class="flex min-h-11 cursor-pointer list-none items-center gap-3 bg-primary/5 p-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+                >
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                    >
+                        <ClipboardCheck class="size-5" aria-hidden="true" />
+                    </span>
+                    <span class="min-w-0 flex-1">
+                        <span class="block text-xs font-semibold text-primary"
+                            >Tugas SOP</span
+                        >
+                        <span
+                            class="mt-0.5 block text-base leading-6 font-bold"
+                        >
+                            {{ task.name }}
+                        </span>
+                        <span
+                            class="mt-1 flex items-start gap-1 text-xs leading-5 text-muted-foreground"
+                        >
+                            <MapPin
+                                class="mt-0.5 size-3.5 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span>
+                                {{ task.subblok.farm.name }} ·
+                                {{ task.subblok.block.name }} ·
+                                {{
+                                    task.subblok.label ??
+                                    `Subblok ${task.subblok.number}`
+                                }}
+                            </span>
+                        </span>
+                    </span>
+                    <ChevronDown
+                        class="size-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                        aria-hidden="true"
+                    />
+                    <span class="sr-only">Lihat detail tugas</span>
+                </summary>
+                <div class="pt-3">
+                    <TaskContext :task="task" compact />
+                </div>
+            </details>
+        </section>
         <form class="space-y-4" @submit.prevent="submit">
             <fieldset
                 :disabled="form.processing"
                 class="space-y-4 disabled:opacity-70"
             >
                 <section class="petugas-card space-y-4 p-4">
-                    <h2 class="text-base font-semibold">Tanggal pelaksanaan</h2>
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                        >
+                            <CalendarDays class="size-5" aria-hidden="true" />
+                        </span>
+                        <h2 class="text-base font-semibold">
+                            Waktu pelaksanaan
+                        </h2>
+                    </div>
                     <label class="block space-y-2 text-sm"
-                        ><span>Tanggal kerja</span
+                        ><span class="font-medium">Tanggal kerja *</span
                         ><input
                             v-model="form.work_date"
                             type="date"
                             required
-                            :max="task.reporting_window && task.reporting_window.end < today ? task.reporting_window.end : today"
-                            :min="task.reporting_window?.start ?? task.subblok.planted_at ?? undefined"
-                            class="task-activity-field [color-scheme:light] dark:[color-scheme:dark]"
+                            :max="
+                                task.reporting_window &&
+                                task.reporting_window.end < today
+                                    ? task.reporting_window.end
+                                    : today
+                            "
+                            :min="
+                                task.reporting_window?.start ??
+                                task.subblok.planted_at ??
+                                undefined
+                            "
+                            class="petugas-activity-field block [color-scheme:light] dark:[color-scheme:dark]"
                             :aria-invalid="!!errors.work_date"
-                            aria-describedby="error-work_date"
+                            :aria-describedby="
+                                [
+                                    task.reporting_window
+                                        ? 'work-date-help'
+                                        : null,
+                                    errors.work_date ? 'error-work_date' : null,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' ') || undefined
+                            "
                         /><span
                             v-if="errors.work_date"
                             id="error-work_date"
@@ -200,56 +351,44 @@ function submit(): void {
                             >{{ errors.work_date }}</span
                         ></label
                     >
-                    <p v-if="task.reporting_window" class="text-xs text-muted-foreground">
-                        Jendela pelaporan: {{ task.reporting_window.start }} sampai {{ task.reporting_window.end }} (WIB).
-                    </p>
-                </section>
-                <DailyHeaderContext
-                    v-model:start="form.start_time"
-                    v-model:end="form.end_time"
-                    v-model:notes="form.daily_notes"
-                    :farm-id="task.subblok.farm.id"
-                    :date="form.work_date"
-                    :errors="errors"
-                    @ready="headerReady = $event"
-                    @existing="existingHeader = $event"
-                />
-                <section class="petugas-card space-y-4 p-4">
-                    <h2 class="text-base font-semibold">Hasil pelaksanaan</h2>
-                    <label class="block space-y-2 text-sm">
-                        <span>Jumlah pekerja untuk aktivitas ini</span>
-                        <input
-                            v-model.number="form.worker_count"
-                            type="number"
-                            min="1"
-                            :max="numericLimits.workerCount"
-                            step="1"
-                            required
-                            class="task-activity-field"
-                            :aria-invalid="!!errors.worker_count"
-                            aria-describedby="worker-count-help error-worker_count"
+                    <p
+                        v-if="task.reporting_window"
+                        id="work-date-help"
+                        class="flex items-start gap-2 text-xs leading-5 text-muted-foreground"
+                    >
+                        <Info
+                            class="mt-0.5 size-3.5 shrink-0 text-info"
+                            aria-hidden="true"
                         />
                         <span
-                            id="worker-count-help"
-                            class="block text-xs text-muted-foreground"
-                            >Maksimal
-                            {{
-                                formatActivityNumber(numericLimits.workerCount)
-                            }}
-                            pekerja.</span
+                            >Jendela pelaporan:
+                            {{ dateLabel(task.reporting_window.start) }} –
+                            {{ dateLabel(task.reporting_window.end) }}
+                            (WIB).</span
                         >
+                    </p>
+                </section>
+                <section class="petugas-card space-y-4 p-4">
+                    <div class="flex items-center gap-3">
                         <span
-                            v-if="errors.worker_count"
-                            id="error-worker_count"
-                            class="block text-xs text-error"
-                            >{{ errors.worker_count }}</span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-info/10 text-info"
                         >
-                    </label>
+                            <SquarePen class="size-5" aria-hidden="true" />
+                        </span>
+                        <h2 class="text-base font-semibold">Hasil pekerjaan</h2>
+                    </div>
+                    <ActivityWorkerCount
+                        v-if="showWorkerCount"
+                        v-model="form.worker_count"
+                        :maximum="numericLimits.workerCount"
+                        :error="errors.worker_count"
+                    />
                     <ActivityDetailFields
                         v-model="form.details"
-                        :fields="fields"
+                        :fields="resolvedFields"
                         :errors="errors"
                         :area-limit-m2="areaLimitM2"
+                        compact
                     />
                     <p v-if="noArea" role="status" class="text-sm text-warning">
                         Tidak ada sisa luas yang dapat dilaporkan untuk
@@ -260,82 +399,84 @@ function submit(): void {
                     </p>
                 </section>
                 <section class="petugas-card space-y-4 p-4">
-                    <h2 class="text-base font-semibold">Bukti pekerjaan</h2>
-                    <label class="block space-y-2 text-sm"
-                        ><span>Foto aktivitas · minimal satu</span
-                        ><input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            multiple
-                            class="task-activity-field"
-                            :aria-invalid="!!errors.photos"
-                            aria-describedby="photo-help"
-                            @change="selectPhotos"
-                    /></label>
-                    <p
-                        id="photo-help"
-                        class="text-xs leading-5 text-muted-foreground"
-                    >
-                        Maksimal 5 foto JPG, PNG, atau WebP. Maksimal 10 MB per
-                        foto. Foto hanya dapat diakses melalui akun berizin.
-                    </p>
-                    <ul
-                        v-if="form.photos.length"
-                        class="space-y-2"
-                        aria-label="Foto dipilih"
-                    >
-                        <li
-                            v-for="(photo, index) in form.photos"
-                            :key="`${photo.name}-${index}`"
-                            class="flex items-center gap-2 rounded-xl bg-muted p-2"
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
                         >
-                            <Camera
-                                class="size-4 shrink-0"
-                                aria-hidden="true"
-                            /><span class="min-w-0 flex-1 truncate text-xs">{{
-                                photo.name
-                            }}</span
-                            ><Button
-                                type="button"
-                                variant="ghost"
-                                class="size-11 rounded-xl"
-                                :aria-label="`Hapus ${photo.name}`"
-                                @click="form.photos.splice(index, 1)"
-                                ><X class="size-4" aria-hidden="true"
-                            /></Button>
-                        </li>
-                    </ul>
-                    <p
-                        v-for="(message, key) in Object.fromEntries(
-                            Object.entries(errors).filter(
-                                ([key]) =>
-                                    key === 'photos' ||
-                                    key.startsWith('photos.'),
-                            ),
-                        )"
-                        :key="key"
-                        class="text-xs text-error"
+                            <FileText class="size-5" aria-hidden="true" />
+                        </span>
+                        <h2 class="text-base font-semibold">Bukti pekerjaan</h2>
+                    </div>
+                    <ActivityPhotoPicker
+                        :busy="compressing || form.processing"
+                        :status="compressionStatus"
+                        :notice="fallbackNotice"
+                        :photos="form.photos"
+                        :invalid="photoErrors.length > 0"
+                        @select="selectPhotos"
+                        @remove="removePhoto"
+                    />
+                    <div
+                        v-if="photoErrors.length"
+                        id="photo-errors"
                         role="alert"
+                        class="space-y-1"
                     >
-                        {{ message }}
+                        <p
+                            v-for="[key, message] in photoErrors"
+                            :key="key"
+                            class="text-xs text-error"
+                        >
+                            {{ message }}
+                        </p>
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        Foto hanya dapat diakses melalui akun berizin.
                     </p>
-                    <label class="block space-y-2 text-sm"
-                        ><span>Catatan (opsional)</span
-                        ><textarea
-                            v-model="form.notes"
-                            rows="3"
-                            maxlength="5000"
-                            placeholder="Metode, bahan/pupuk/pestisida, dosis, kondisi lapangan, atau observasi tambahan..."
-                            class="task-activity-field"
-                            :aria-invalid="!!errors.notes"
-                            aria-describedby="error-notes"
-                        /><span
-                            v-if="errors.notes"
-                            id="error-notes"
-                            class="block text-xs text-error"
-                            >{{ errors.notes }}</span
-                        ></label
+                    <details
+                        class="group rounded-xl bg-muted/50"
+                        :open="errors.notes ? true : undefined"
                     >
+                        <summary
+                            class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+                        >
+                            <FileText
+                                class="size-4 text-primary"
+                                aria-hidden="true"
+                            />
+                            <span class="flex-1">Tambah catatan</span>
+                            <ChevronDown
+                                class="size-4 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                                aria-hidden="true"
+                            />
+                        </summary>
+                        <div class="space-y-2 px-3 pb-3">
+                            <label
+                                for="activity-notes"
+                                class="block text-sm font-medium"
+                                >Catatan (opsional)</label
+                            >
+                            <textarea
+                                id="activity-notes"
+                                v-model="form.notes"
+                                rows="3"
+                                maxlength="5000"
+                                placeholder="Metode, bahan, dosis, atau kondisi lapangan..."
+                                class="petugas-activity-field block"
+                                :aria-invalid="!!errors.notes"
+                                :aria-describedby="
+                                    errors.notes ? 'error-notes' : undefined
+                                "
+                            />
+                            <p
+                                v-if="errors.notes"
+                                id="error-notes"
+                                class="text-xs text-error"
+                            >
+                                {{ errors.notes }}
+                            </p>
+                        </div>
+                    </details>
                 </section>
             </fieldset>
             <p
@@ -348,16 +489,24 @@ function submit(): void {
                     'Periksa isian yang ditandai sebelum menyimpan.'
                 }}
             </p>
-            <p class="text-xs leading-5 text-muted-foreground">
-                Menyimpan laporan tidak otomatis menyelesaikan atau menyetujui
-                tugas. Anda dapat mencatat beberapa aktivitas untuk satu tugas.
+            <p
+                class="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-xs leading-5 text-muted-foreground"
+            >
+                <Info
+                    class="mt-0.5 size-4 shrink-0 text-info"
+                    aria-hidden="true"
+                />
+                <span
+                    >Laporan tidak otomatis menyelesaikan atau menyetujui tugas.
+                    Satu tugas dapat memiliki beberapa aktivitas.</span
+                >
             </p>
             <Button
                 type="submit"
                 class="min-h-12 w-full rounded-xl"
                 :disabled="
                     form.processing ||
-                    !headerReady ||
+                    compressing ||
                     noArea ||
                     Object.keys(numericErrors).length > 0
                 "
@@ -374,28 +523,3 @@ function submit(): void {
         </form>
     </div>
 </template>
-
-<style>
-.task-activity-field {
-    display: block;
-    width: 100%;
-    min-height: 48px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--background);
-    padding: 0.75rem;
-    color: var(--foreground);
-    font-size: 1rem;
-}
-.task-activity-field:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-}
-.task-activity-field[aria-invalid='true'] {
-    border-color: var(--error);
-}
-.task-activity-field:disabled {
-    background: var(--muted);
-    color: var(--muted-foreground);
-}
-</style>

@@ -2,22 +2,28 @@
 
 namespace App\Services;
 
+use App\Models\ActivityPhoto;
 use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\Farm;
+use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleStage;
+use App\Models\PlantingCycleTask;
 use App\Models\PlantObservation;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Activity\BlockPreparationTimeline;
+use App\Support\ActivityPhotoFile;
+use App\Support\GeoPolygon;
 use App\Support\LandArea;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class FarmBlockService
@@ -46,13 +52,13 @@ class FarmBlockService
         $query = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id);
         if (($filters['search'] ?? '') !== '') {
             $search = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($filters['search'])).'%';
-            $query->where(fn ($query) => $query->where('code', 'ilike', $search)->orWhere('name', 'ilike', $search));
+            $query->where('name', 'ilike', $search);
         }
         if (in_array($filters['status'] ?? '', ['active', 'inactive'], true)) {
             $query->where('is_active', $filters['status'] === 'active');
         }
 
-        $paginator = $query->orderBy('code')->orderBy('id')->paginate($filters['per_page'] ?? 15)->appends($filters);
+        $paginator = $query->orderBy('name')->orderBy('id')->paginate($filters['per_page'] ?? 15)->appends($filters);
         $paginator->setCollection($this->overview($farm, $actor, $team, $paginator->getCollection()));
 
         return $paginator;
@@ -65,11 +71,12 @@ class FarmBlockService
     public function overview(Farm $farm, User $actor, Team $team, ?\Illuminate\Support\Collection $selected = null, bool $includeGrowth = false): \Illuminate\Support\Collection
     {
         $blocks = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)
-            ->when($selected !== null, fn ($query) => $query->whereIn('id', $selected->pluck('id')))->orderBy('code')->get();
+            ->when($selected !== null, fn ($query) => $query->whereIn('id', $selected->pluck('id')))->orderBy('name')->get();
         if ($blocks->isEmpty()) {
             return $blocks;
         }
         $batches = PlantingCycle::visibleTo($actor, $team)->whereIn('block_id', $blocks->modelKeys())->orderBy('batch_number')->get();
+        $cycleNumbers = \App\Models\FarmCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->pluck('cycle_number', 'id');
         $stages = PlantingCycleStage::visibleTo($actor, $team)->whereIn('planting_cycle_id', $batches->modelKeys())->orderBy('position')->get()->groupBy('planting_cycle_id');
         $clearing = app(BlockPreparationTimeline::class)->clearingForBlocks($actor, $team, collect($blocks->modelKeys()));
         $today = CarbonImmutable::today('Asia/Jakarta');
@@ -78,7 +85,7 @@ class FarmBlockService
         $activeArea = LandArea::squareMetres(FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('is_active', true)->sum('area_ha')) ?? 0;
         $farmCapacity = $this->batchCapacity($farm, $blocks->firstOrFail(), PlantingCycle::visibleTo($actor, $team)->toBase());
 
-        return $blocks->map(function (FarmBlock $block) use ($farm, $batches, $stages, $clearing, $mapped, $activeArea, $farmCapacity, $growth, $includeGrowth, $today): FarmBlock {
+        return $blocks->map(function (FarmBlock $block) use ($farm, $batches, $cycleNumbers, $stages, $clearing, $mapped, $activeArea, $farmCapacity, $growth, $includeGrowth, $today): FarmBlock {
             $block->setAttribute('land_clearing_started_at', $clearing[$block->id]['started_at'] ?? null);
             $block->setAttribute('land_clearing_completed_at', $clearing[$block->id]['completed_at'] ?? null);
             $blockBatches = $batches->where('block_id', $block->id);
@@ -99,6 +106,11 @@ class FarmBlockService
             $block->setAttribute('deletionBlocked', $blockBatches->isNotEmpty() || $mapped->contains($block->id));
             $block->setAttribute('batches', $blockBatches->map(fn (PlantingCycle $batch): array => [
                 ...$batch->only(['id', 'batch_number', 'subblock_label', 'reserved_area_ha', 'planted_area_ha', 'status']),
+                'cancellation_reason' => $batch->getAttribute('cancellation_reason'),
+                'cancelled_at' => $batch->getAttribute('cancelled_at') === null
+                    ? null : CarbonImmutable::parse($batch->getAttribute('cancelled_at'))->toISOString(),
+                'farm_cycle_id' => $batch->getAttribute('farm_cycle_id'),
+                'farm_cycle_number' => $cycleNumbers[$batch->getAttribute('farm_cycle_id')] ?? null,
                 'planned_planting_at' => $batch->planned_planting_at?->toDateString(), 'planted_at' => $batch->planted_at?->toDateString(),
                 ...($includeGrowth ? ['age' => $this->batchAge($batch, $today)] : []),
                 ...(isset($growth[$batch->id]) ? ['growth' => $growth[$batch->id]] : []),
@@ -142,37 +154,149 @@ class FarmBlockService
                 && $timeline->contains(fn (PlantingCycleStage $stage): bool => $stage->code === 'planting' && $stage->status === 'completed')
                 && $timeline->contains(fn (PlantingCycleStage $stage): bool => $stage->code === 'maintenance' && in_array($stage->status, ['in_progress', 'completed'], true));
         })->keyBy('id');
-        $observations = PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $eligible->modelKeys())
-            ->orderByDesc('observed_at')->orderByDesc('id')
-            ->get(['id', 'planting_cycle_id', 'observed_at', 'growth_phase', 'growth_percentage'])
-            ->unique('planting_cycle_id')->keyBy('planting_cycle_id');
-        $varieties = CropVariety::visibleTo($actor, $team)->whereIn('id', $eligible->pluck('variety_id')->filter())
-            ->get(['id', 'commodity_id', 'name'])->keyBy('id');
+        $eligibleIds = $eligible->modelKeys();
+        $canViewObservations = $eligibleIds !== [] && Gate::forUser($actor)->allows('viewAny', [PlantObservation::class, $team]);
+        $canViewActivities = $eligibleIds !== [] && Gate::forUser($actor)->allows('viewAny', [FarmActivity::class, $team]);
+        $canViewPhotos = $eligibleIds !== [] && Gate::forUser($actor)->allows('viewAny', [ActivityPhoto::class, $team]);
+        $canViewTasks = $eligibleIds !== [] && Gate::forUser($actor)->allows('viewAny', [PlantingCycleTask::class, $team]);
+        $isAdmin = Gate::forUser($actor)->allows('admin.access');
+
+        $observations = $canViewObservations
+            ? PlantObservation::visibleTo($actor, $team)->whereIn('planting_cycle_id', $eligibleIds)
+                ->with([
+                    'observer:id,name',
+                    ...($canViewActivities ? [
+                        'activity' => fn ($activities) => $activities->visibleTo($actor, $team)->select(['id', 'farm_id', 'planting_cycle_task_id', 'description']),
+                        ...($canViewPhotos ? ['activity.photos' => fn ($photos) => $photos->visibleTo($actor, $team)->orderBy('uploaded_at')->orderBy('id')] : []),
+                    ] : []),
+                ])
+                ->orderByDesc('observed_at')->orderByDesc('id')
+                ->get()
+            : collect();
+        $observationsByCycle = $observations->groupBy('planting_cycle_id');
+
+        $tasks = $canViewTasks
+            ? PlantingCycleTask::visibleTo($actor, $team)
+                ->whereIn('planting_cycle_id', $eligibleIds)
+                ->where('activity_category', 'growth_observation')
+                ->orderBy('offset_days')->orderBy('scheduled_date')->orderBy('id')
+                ->get()
+            : collect();
+        $tasksByCycle = $tasks->groupBy('planting_cycle_id');
+        $tasksById = $tasks->keyBy('id');
+        $extraTaskIds = $canViewTasks && $canViewActivities
+            ? $observations->map(fn (PlantObservation $obs) => $obs->activity?->getAttribute('planting_cycle_task_id'))
+                ->filter(fn ($id): bool => is_string($id) && $id !== '' && ! $tasksById->has($id))
+                ->unique()->values()->all()
+            : [];
+        if ($extraTaskIds !== []) {
+            $tasksById = $tasksById->merge(PlantingCycleTask::visibleTo($actor, $team)->whereIn('id', $extraTaskIds)->get()->keyBy('id'));
+        }
+
+        $varieties = $eligibleIds !== []
+            ? CropVariety::visibleTo($actor, $team)->whereIn('id', $eligible->pluck('variety_id')->filter())->get(['id', 'commodity_id', 'name'])->keyBy('id')
+            : collect();
         $blockCommodities = FarmBlock::visibleTo($actor, $team)->whereIn('id', $batches->pluck('block_id')->filter())->pluck('commodity_id', 'id');
         $commodities = Commodity::visibleTo($actor, $team)->whereIn('id', $varieties->pluck('commodity_id')->merge($blockCommodities->values())->filter())
             ->pluck('name', 'id');
 
-        return $batches->mapWithKeys(function (PlantingCycle $batch) use ($blockCommodities, $observations, $varieties, $commodities, $eligible, $today): array {
-            if (! $eligible->has($batch->id)) {
+        return $batches->mapWithKeys(function (PlantingCycle $batch) use (
+            $actor,
+            $farm,
+            $blockCommodities,
+            $observationsByCycle,
+            $tasksByCycle,
+            $tasksById,
+            $varieties,
+            $commodities,
+            $eligible,
+            $today,
+            $isAdmin,
+            $canViewActivities,
+            $canViewPhotos,
+        ): array {
+            if (! $eligible->has($batch->id) || $batch->planted_at === null) {
                 return [$batch->id => ['available' => false, 'as_of' => $today->toDateString(), 'hst' => null,
-                    'commodity' => null, 'variety' => null, 'estimated_harvest_at' => null, 'observation' => null]];
+                    'hst_percentage' => null, 'commodity' => null, 'variety' => null, 'estimated_harvest_at' => null,
+                    'observation' => null, 'observations' => [], 'tasks' => []]];
             }
-            $observation = $observations->get($batch->id);
+            $cycleObservations = $observationsByCycle->get($batch->id, collect());
+            $latest = $cycleObservations->first();
             $variety = $varieties->get($batch->variety_id);
+            $plantedDay = CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta');
+            $hst = (int) $plantedDay->diffInDays($today);
+            $hstPercentage = null;
+            if ($batch->estimated_harvest_at !== null) {
+                $harvestDay = CarbonImmutable::parse($batch->estimated_harvest_at->toDateString(), 'Asia/Jakarta');
+                $totalDays = (int) $plantedDay->diffInDays($harvestDay, false);
+                if ($totalDays > 0) {
+                    $hstPercentage = min(100.0, max(0.0, round(($hst / $totalDays) * 100, 1)));
+                }
+            }
+
+            $observationItems = $cycleObservations->map(function (PlantObservation $obs) use ($farm, $tasksById, $actor, $isAdmin, $canViewActivities, $canViewPhotos): array {
+                $activity = $canViewActivities && $obs->relationLoaded('activity') ? $obs->activity : null;
+                $canActivity = $activity instanceof FarmActivity && Gate::forUser($actor)->allows('view', $activity);
+                $linkedTaskId = $canActivity ? $activity->getAttribute('planting_cycle_task_id') : null;
+                $linkedTask = is_string($linkedTaskId) ? $tasksById->get($linkedTaskId) : null;
+                $canTask = $linkedTask instanceof PlantingCycleTask && Gate::forUser($actor)->allows('view', $linkedTask);
+
+                $photos = $canActivity && $canViewPhotos && $activity->relationLoaded('photos')
+                    ? $activity->photos->filter(fn (ActivityPhoto $photo): bool => Gate::forUser($actor)->allows('view', $photo))
+                        ->map(function (ActivityPhoto $photo) use ($farm, $activity): array {
+                            $photo->setRelation('activity', $activity);
+
+                            return [
+                                'id' => $photo->id,
+                                'url' => route('daily-logs.photos', ['farm' => $farm->id, 'activity' => $activity->id, 'photo' => $photo->id], false),
+                                'available' => ActivityPhotoFile::available($photo),
+                            ];
+                        })->values()->all()
+                    : [];
+
+                return [
+                    'id' => $obs->id,
+                    'observed_at' => $obs->observed_at->toISOString(),
+                    'observer_name' => $obs->observer?->name,
+                    'phase' => $obs->growth_phase,
+                    'notes' => $obs->notes ?? ($canActivity ? $activity->description : null),
+                    'task_id' => $canTask ? $linkedTask->id : null,
+                    'task_name' => $canTask ? $linkedTask->name : null,
+                    'task_url' => $canTask && $isAdmin ? route('tasks.show', $linkedTask, false) : null,
+                    'activity_url' => $canActivity && $isAdmin ? route('admin.logbook.activity', $activity, false) : null,
+                    'photos' => $photos,
+                ];
+            })->values()->all();
+
+            $taskItems = $tasksByCycle->get($batch->id, collect())
+                ->filter(fn (PlantingCycleTask $task): bool => Gate::forUser($actor)->allows('view', $task))
+                ->map(fn (PlantingCycleTask $task): array => [
+                    'id' => $task->id,
+                    'name' => $task->name,
+                    'status' => $task->status,
+                    'offset_days' => $task->offset_days,
+                    'scheduled_date' => $task->effectiveScheduledDate()?->toDateString(),
+                    'due_date' => $task->due_date?->toDateString(),
+                    'completed_at' => $task->completed_at?->toISOString(),
+                    'url' => $isAdmin ? route('tasks.show', $task, false) : null,
+                ])->values()->all();
 
             return [$batch->id => [
                 'available' => true,
                 'as_of' => $today->toDateString(),
-                'hst' => (int) CarbonImmutable::parse($batch->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today),
+                'hst' => $hst,
+                'hst_percentage' => $hstPercentage,
                 'commodity' => $commodities->get($variety->commodity_id ?? $blockCommodities->get($batch->block_id)),
                 'variety' => $variety?->name,
                 'estimated_harvest_at' => $batch->estimated_harvest_at?->toDateString(),
-                'observation' => $observation === null ? null : [
-                    'id' => $observation->id,
-                    'observed_at' => $observation->observed_at->toISOString(),
-                    'phase' => $observation->growth_phase,
-                    'percentage' => $observation->growth_percentage === null ? null : (float) $observation->growth_percentage,
+                'observation' => ! $latest instanceof PlantObservation ? null : [
+                    'id' => $latest->id,
+                    'observed_at' => $latest->observed_at->toISOString(),
+                    'phase' => $latest->growth_phase,
+                    'percentage' => $latest->growth_percentage === null ? null : (float) $latest->growth_percentage,
                 ],
+                'observations' => $observationItems,
+                'tasks' => $taskItems,
             ]];
         })->all();
     }
@@ -219,22 +343,101 @@ class FarmBlockService
             $this->validateBlock($lockedFarm, $data);
             $this->validateBlockSop($actor, $team, $data);
             $block = new FarmBlock($data);
-            $block->forceFill([...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])), 'farm_id' => $lockedFarm->id, 'created_by' => $actor->id, 'land_clearing_started_at' => now()])->save();
+            $block->forceFill([
+                ...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])),
+                ...$this->boundaryAttributes($data),
+                'farm_id' => $lockedFarm->id,
+                'created_by' => $actor->id,
+                'land_clearing_started_at' => now(),
+            ])->save();
 
             return $block->refresh();
+        });
+    }
+
+    /** @param array<string, mixed> $data
+     * @return array{block: FarmBlock, synced_cycles: int, created_tasks: int}
+     */
+    public function updateWithTaskSync(FarmBlock $block, User $actor, Team $team, array $data): array
+    {
+        return DB::transaction(function () use ($block, $actor, $team, $data): array {
+            $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
+            $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
+            $this->validateBlock($farm, array_replace($locked->only(['name', 'area_ha', 'is_active']), $data), $locked);
+            $this->validateBlockSop($actor, $team, array_replace($locked->only(['commodity_id', 'default_sop_template_id']), $data));
+            $locked->fill($data)->save();
+            $locked->forceFill([
+                ...array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])),
+                ...$this->boundaryAttributes($data),
+            ])->save();
+            $sync = app(PlantingCycleTaskService::class)->synchronizeUnboundForBlock($locked, $actor, $team);
+
+            return ['block' => $locked->refresh(), ...$sync];
         });
     }
 
     /** @param array<string, mixed> $data */
     public function update(FarmBlock $block, User $actor, Team $team, array $data): FarmBlock
     {
-        return DB::transaction(function () use ($block, $actor, $team, $data): FarmBlock {
+        return $this->updateWithTaskSync($block, $actor, $team, $data)['block'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function boundaryAttributes(array $data): array
+    {
+        if (! array_key_exists('boundary_geojson', $data)) {
+            return [];
+        }
+
+        if ($data['boundary_geojson'] === null) {
+            return ['boundary_geojson' => null, 'mapped_area_ha' => null];
+        }
+
+        $normalized = GeoPolygon::normalize($data['boundary_geojson']);
+
+        return [
+            'boundary_geojson' => $normalized,
+            'mapped_area_ha' => GeoPolygon::areaHectares($normalized),
+        ];
+    }
+
+    /**
+     * Save or clear a block's optional map polygon boundary and server-computed mapped area.
+     *
+     * @param  array{type: 'Polygon', coordinates: list<list<array{0: float, 1: float}>>}|null  $geojson
+     */
+    public function saveBoundary(FarmBlock $block, User $actor, Team $team, ?array $geojson, bool $applyArea = false): FarmBlock
+    {
+        return DB::transaction(function () use ($block, $actor, $team, $geojson, $applyArea): FarmBlock {
             $farm = Farm::visibleTo($actor, $team)->whereKey($block->farm_id)->lockForUpdate()->firstOrFail();
             $locked = FarmBlock::visibleTo($actor, $team)->whereKey($block->id)->lockForUpdate()->firstOrFail();
-            $this->validateBlock($farm, array_replace($locked->only(['code', 'area_ha', 'is_active']), $data), $locked);
-            $this->validateBlockSop($actor, $team, array_replace($locked->only(['commodity_id', 'default_sop_template_id']), $data));
-            $locked->fill($data)->save();
-            $locked->forceFill(array_intersect_key($data, array_flip(['commodity_id', 'default_sop_template_id'])))->save();
+
+            if ($geojson === null) {
+                $locked->forceFill([
+                    'boundary_geojson' => null,
+                    'mapped_area_ha' => null,
+                ])->save();
+
+                return $locked->refresh();
+            }
+
+            $normalized = GeoPolygon::normalize($geojson);
+            $mappedAreaHa = GeoPolygon::areaHectares($normalized);
+
+            $updates = [
+                'boundary_geojson' => $normalized,
+                'mapped_area_ha' => $mappedAreaHa,
+            ];
+
+            if ($applyArea) {
+                $this->validateBlock($farm, array_replace($locked->only(['name', 'area_ha', 'is_active']), ['area_ha' => $mappedAreaHa]), $locked);
+                $updates['area_ha'] = $mappedAreaHa;
+            }
+
+            $locked->forceFill($updates)->save();
 
             return $locked->refresh();
         });
@@ -259,12 +462,12 @@ class FarmBlockService
         // Physical integrity checks deliberately include every historical reference,
         // independent of the actor's list filters or related-record permissions.
         $others = DB::table('farm_blocks')->where('farm_id', $farm->id)->when($block, fn ($query) => $query->where('id', '<>', $block->id));
-        if ((clone $others)->where('code', $data['code'])->exists()) {
-            throw ValidationException::withMessages(['code' => 'Kode blok sudah digunakan dalam kebun ini.']);
+        if ((clone $others)->whereRaw('LOWER(TRIM(name)) = LOWER(TRIM(?))', [$data['name']])->exists()) {
+            throw ValidationException::withMessages(['name' => 'Nama blok sudah digunakan dalam kebun ini.']);
         }
         if (($data['is_active'] ?? true) && (clone $others)->where('is_active', true)
             ->selectRaw('COALESCE(SUM(area_ha), 0) + CAST(? AS numeric) > CAST(? AS numeric) AS exceeds', [$data['area_ha'], $farm->total_area_ha])->value('exceeds')) {
-            throw ValidationException::withMessages(['area_ha' => 'Total luas blok aktif melebihi luas kebun.']);
+            throw ValidationException::withMessages(['area_ha' => 'Total luas blok aktif melebihi luas lahan.']);
         }
         if ($block) {
             $running = DB::table('planting_cycles as c')
@@ -328,7 +531,7 @@ class FarmBlockService
             }
             $capacity = $this->batchCapacity($farm, $locked, DB::table('planting_cycles'));
             if ((LandArea::squareMetres($capacity['available_ha']) ?? 0) < 1) {
-                throw ValidationException::withMessages(['subblock_label' => 'Kapasitas lahan pada blok atau kebun sudah penuh. Subblok baru dapat dibuat setelah siklus berjalan selesai.']);
+                throw ValidationException::withMessages(['subblock_label' => 'Kapasitas lahan pada blok atau lahan sudah penuh. Subblok baru dapat dibuat setelah siklus berjalan selesai.']);
             }
             $labels = PlantingCycle::visibleTo($actor, $team)->where('block_id', $locked->id)->pluck('subblock_label')->all();
             $label = $data['subblock_label'] ?? null;
@@ -344,7 +547,9 @@ class FarmBlockService
                 throw ValidationException::withMessages(['subblock_label' => 'Label subblok sudah digunakan pada blok ini.']);
             }
             $batch = new PlantingCycle;
+            $farmCycle = app(FarmCycleService::class)->forBatch($farm, $actor, $team, $data);
             $batch->forceFill(['farm_id' => $farm->id, 'block_id' => $locked->id,
+                'farm_cycle_id' => $farmCycle->id,
                 'batch_number' => 1 + (int) PlantingCycle::visibleTo($actor, $team)->where('farm_id', $farm->id)->max('batch_number'),
                 'subblock_label' => $label, 'reserved_area_ha' => '0.0000', 'planted_area_ha' => '0.0000',
                 'planned_planting_at' => $data['planned_planting_at'] ?? null,

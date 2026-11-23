@@ -54,7 +54,7 @@ class LegacyActivityReportTest extends TestCase
         $activity->forceFill(['activity_date' => CarbonImmutable::parse('2026-12-15 00:15', 'Asia/Jakarta')])->save();
         $this->actingAs($petugas)->get('/petugas/laporan/'.$activity->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('petugas/ReportShow')->where('log', null)->where('legacyActivity.id', $activity->id)
-            ->where('date', '2026-12-15')->where('canUpdate', false));
+            ->where('date', '2026-12-15')->missing('canUpdate'));
         $this->get('/petugas/laporan?date=2026-12-15')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('reports.total', 1)->where('reports.data.0.id', $activity->id));
         $this->get('/petugas/laporan?date=2026-12-14')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -71,7 +71,6 @@ class LegacyActivityReportTest extends TestCase
         $unrelated = $this->oldHarvest($petugas, '3.000');
         $header = DailyActivityLog::create([
             'farm_id' => $activity->farm_id, 'recorded_by' => $petugas->id, 'work_date' => '2026-12-15',
-            'start_time' => '07:15', 'end_time' => '15:45', 'notes' => 'Laporan yang telah ada.',
         ]);
         $before = $header->refresh()->getRawOriginal();
         $this->assertNotNull(\App\Models\HarvestDetail::visibleTo($petugas, $activity->farm->team)->where('activity_id', $activity->id)->first());

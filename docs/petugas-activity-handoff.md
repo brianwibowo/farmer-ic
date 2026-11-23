@@ -23,15 +23,12 @@ tercatat di bagian 8; tindak lanjut ada di bagian 9.
 
 ## 1. Keputusan bisnis yang disepakati
 
-- `daily_activity_logs` adalah **header bersama per kebun + tanggal kerja**,
-  bukan per aktivitas dan bukan per Petugas.
-- Jam kerja dan catatan umum berada di header. Jumlah pekerja disimpan per
-  aktivitas (`farm_activities.worker_count`) dan boleh berbeda antar aktivitas.
-- `recorded_by` pada header merupakan pembuat pertama laporan harian.
+- `daily_activity_logs` adalah **pengelompokan harian bersama per kebun + tanggal kerja**,
+  bukan per aktivitas dan bukan per Petugas (field jam mulai/selesai dan catatan harian
+  telah dihapus pada pembaruan November 2026). Jumlah pekerja (`farm_activities.worker_count`)
+  dan catatan opsional (`farm_activities.description`) disimpan per aktivitas.
+- `recorded_by` pada logbook merupakan pembuat pertama logbook harian.
 - `farm_activities.performed_by` tetap mencatat Petugas masing-masing aktivitas.
-- Menambahkan aktivitas tidak menimpa informasi header yang sudah ada.
-- Petugas yang berwenang pada kebun serta Admin sesuai izin boleh mengubah
-  header melalui aksi terpisah. Owner tetap hanya membaca.
 - Harus ada unique constraint database untuk `(farm_id, work_date)` dan
   penanganan penyimpanan bersamaan.
 - Pengguna memilih menghapus laporan lama, detail, dan fotonya; bukan
@@ -41,20 +38,15 @@ tercatat di bagian 8; tindak lanjut ada di bagian 9.
 
 ### Laporan harian bersama
 
-- [x] Header otomatis dibuat saat aktivitas pertama disimpan.
-- [x] Aktivitas berikutnya pada kebun dan tanggal yang sama memakai header itu,
+- [x] Logbook harian otomatis dibuat saat aktivitas pertama disimpan.
+- [x] Aktivitas berikutnya pada kebun dan tanggal yang sama memakai logbook harian itu,
       termasuk aktivitas dari Petugas lain yang ditugaskan ke kebun tersebut.
-- [x] Alur tugas SOP, penanaman awal, dan pemetaan blok memakai mekanisme yang sama.
-- [x] Jam, catatan umum, dan pembuat pertama tidak ditimpa oleh penyimpanan
-      aktivitas berikutnya; jumlah pekerja tetap tersimpan per aktivitas.
-- [x] Catatan aktivitas terpisah dari catatan umum harian (`daily_notes` pada
-      form SOP/penanaman; form pemetaan lama memakai `notes` untuk header).
-- [x] Pengubahan header tersedia sebagai aksi terpisah; tidak dapat mengubah
-      kebun, tanggal, pembuat pertama, atau memindahkan aktivitas.
+- [x] Alur tugas SOP, penanaman awal, aktivitas mandiri, dan pemetaan blok memakai mekanisme yang sama.
+- [x] Pembuat pertama tidak ditimpa oleh penyimpanan aktivitas berikutnya; jumlah pekerja dan catatan opsional tersimpan per aktivitas.
 - [x] Unique constraint `daily_logs_farm_date_unique` pada `(farm_id, work_date)`.
-- [x] Penguncian farm dalam transaksi sebelum pencarian/pembuatan header dan
+- [x] Penguncian farm dalam transaksi sebelum pencarian/pembuatan logbook harian dan
       alokasi urutan aktivitas; urutan memakai `max(position) + 1`.
-- [x] Constraint urutan unik per header tetap digunakan.
+- [x] Constraint urutan unik per logbook tetap digunakan.
 - [x] Migrasi menolak duplikat historis, tidak diam-diam menggabungkan atau
       menghapus data pada lingkungan lain.
 
@@ -148,10 +140,10 @@ Penanaman awal tidak mengisi `planting_cycle_task_id`. Panen membuat
 `harvest_details` untuk luas panen, berat ton, dan kadar air opsional.
 Isian tugas juga disimpan sebagai snapshot JSON `farm_activities.task_details`.
 
-Jam pada timestamp aktivitas mengikuti jam mulai header saat aktivitas dicatat;
-ini bukan pencatatan durasi terpisah per aktivitas. Timestamp tahap penanaman
-mengikuti jam harian saat laporan tanam disimpan. Pengubahan header berikutnya
-tidak menulis ulang timestamp aktivitas/tahap.
+Timestamp aktivitas memakai `work_date` dengan jam pelaksanaan saat laporan
+dibuat untuk tanggal hari ini, atau `08:00 WIB` untuk tanggal lampau.
+Timestamp tahap penanaman mengikuti `activity_date` dari laporan aktivitas
+pada tahap tersebut.
 
 ## 4. Belum diimplementasikan / keputusan lanjutan
 
@@ -212,19 +204,19 @@ Tidak ada keputusan untuk memasukkan workflow itu dalam implementasi ini.
   lama yang hanya menerima satu realisasi awal per subblok.
 - **Target operasional:** satu blok per hari, sekitar 1 Ha. Belum disepakati
   sebagai batas validasi yang menolak pencatatan.
-- **Pemicu SOP:** generasi tugas dipicu pencatatan penanaman pertama, langsung
-  memakai tanggal tanam pertama sebagai acuan sementara (contoh: 26).
-  Sistem kemudian memeriksa penanaman dalam jendela tiga hari dan menyesuaikan
-  acuan HST serta jadwal SOP. Jendela mengikuti contoh yang disepakati, yaitu
-  26–28 inklusif; bukan diperpanjang hingga 29. Setelah jendela berakhir, lakukan
-  rekonsiliasi meskipun tidak ada laporan tambahan. Mekanisme eksekusi otomatis
-  pemeriksaan ini masih perlu diimplementasikan.
-- **Acuan HST:** berdasarkan hari yang benar-benar ada pelaksanaan penanaman,
-  bukan titik tengah jendela kalender atau urutan submit laporan. Untuk tiga
-  hari penanaman, gunakan hari kedua; untuk dua hari, gunakan hari kedua juga.
-  Contoh: 26/27/28 → 27; 26/27 → 27; 26/28 (27 kosong) → 28.
-  Beberapa laporan pada tanggal yang sama tetap dihitung satu hari penanaman.
-  Jika hanya ada penanaman pada satu hari, acuan tetap tanggal tersebut.
+- **Pemicu & Acuan HST:** generasi tugas dipicu langsung saat pencatatan
+  penanaman pertama, dengan acuan `H+0` HST (`planted_at`) **selalu ditetapkan
+  satu hari setelah tanggal pelaksanaan penanaman pertama** pada subblok
+  (`planting_started_on + 1 hari`, misalnya tanam 26 → `H+0` pada tanggal 27;
+  jadwal SOP `offset_days = 7` jatuh pada `27 + 7`). Pada hari penanaman
+  pertama (tanggal 26), HST belum dimulai (`null`), lalu menjadi `0 HST` pada
+  tanggal 27 dan `1 HST` pada tanggal 28.
+  Penambahan penanaman pada hari kedua/ketiga dalam jendela tiga hari inklusif
+  (26–28) tidak menggeser acuan HST; jadwal SOP pending dan `planted_at`
+  dihitung ulang hanya jika ada laporan terlambat dengan tanggal pelaksanaan
+  lebih awal (misalnya tanggal 25 menyusul tanggal 26). Beberapa laporan pada
+  tanggal yang sama tetap dihitung satu tanggal tanam. Command
+  `planting:reconcile-windows` tetap memeriksa penutupan jendela tiga hari.
 - **Penyesuaian jadwal disetujui:** ketika acuan HST berubah, hitung ulang jadwal
   tugas pending tanpa duplikasi, sambil mempertahankan snapshot SOP dan override
   jadwal Admin. Belum diimplementasikan untuk alur penanaman bertahap ini.
@@ -344,7 +336,6 @@ File rujukan:
 - `app/Services/Activity/PlantingActivityService.php`
 - `app/Services/PlantingCycleTaskService.php`
 - `resources/js/pages/petugas/Aktivitas.vue`
-- `resources/js/components/petugas/DailyHeaderContext.vue`
 - `resources/js/components/petugas/DailyReportContent.vue`
 
 ## 8. Implementasi UX dan penanaman bertahap — diperbarui 5 November 2026
@@ -366,18 +357,17 @@ File rujukan:
 - Detail/form menggunakan profil Farmer/mobile. Halaman berubah: `Aktivitas`,
   `Laporan`, `TaskShow`, `ActivityCreate`, `PlantingIndex`, `PlantingCreate`;
   halaman baru: `VoluntaryCreate`, `ReportShow`, `DailyReport`. Komponen bersama:
-  `ActivityAddButton`, `ActivityDetailFields`, `DailyHeaderContext`, `DailyReportContent`.
+  `ActivityAddButton`, `ActivityDetailFields`, `DailyReportContent`.
 - Asumsi visual: ikon kategori memakai Sprout dan kartu tetap ringkas; halaman
   Farmer menjadi referensi, tanpa wireframe baru. Semua kategori selectable
   tersedia. Penyulaman serta lifecycle review bukan cakupan implementasi ini.
 
 ### Data, header, dan HST
 
-- Satu header per kebun/tanggal, lintas Petugas; jam selesai nullable. Jam mulai
-  dan catatan harian tetap pada header; jumlah pekerja dicatat per aktivitas. Editor inline
-  memakai PATCH terpisah ke `/kebun/{farm}/daily-logs/{dailyLog}`.
-- Admin kembali memiliki `daily_activity_logs.update`; create/delete dan UI
-  Logbook Admin tetap read-only. Owner tidak memperoleh hak tulis.
+- Satu logbook harian per kebun/tanggal, lintas Petugas; jumlah pekerja dan
+  catatan opsional dicatat per aktivitas (field jam mulai/selesai, catatan harian,
+  serta endpoint editor header telah dihapus pada pembaruan November 2026).
+- Logbook Admin tetap read-only. Owner tidak memperoleh hak tulis.
 - Kategori mandiri disimpan transaksional dengan foto privat, validasi kondisional,
   satuan asli dalam `farm_activities.task_details`, dan typed detail per kategori.
   Pemupukan dasar dan susulan berbagi tabel dengan pembeda tahap.
@@ -392,9 +382,13 @@ File rujukan:
 - Penanaman menerima m²/Ha dan benih kg/sak/butir; berat per sak diperlukan,
   butir harus bulat dan tidak diperlakukan sebagai kg. Kedalaman opsional;
   pola tanam dari pemetaan bila tersedia dapat dikoreksi.
-- `planting_started_on` menyimpan tanggal pertama; `planted_at` menyimpan acuan
-  HST (tanggal aktual berbeda kedua, atau pertama bila hanya satu). Akumulasi
-  luas tidak boleh melebihi reservasi dan varietas lanjutan harus sama.
+- `planting_started_on` menyimpan tanggal pelaksanaan tanam pertama;
+  `planted_at` menyimpan acuan `H+0` HST yang selalu ditetapkan **satu hari
+  setelah `planting_started_on`** (`first_work_date + 1 hari`). Akumulasi
+  luas tidak boleh melebihi sisa kapasitas blok/kebun dan varietas lanjutan
+  harus sama.
+- Perawatan lanjutan (`maintenance`) diizinkan mulai tanggal acuan `planted_at`
+  (`H+0`) ke atas.
 - Jendela tiga hari inklusif memakai tanggal pekerjaan, bukan submit. Laporan
   terlambat tetap dihitung. Rentang waktu tahap memakai tanggal paling awal/akhir
   sehingga laporan yang datang tidak berurutan tetap sah.

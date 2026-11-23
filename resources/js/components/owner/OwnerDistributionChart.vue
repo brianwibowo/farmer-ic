@@ -9,6 +9,7 @@ const props = withDefaults(
             name: string;
             value: number;
             detail?: string;
+            color?: string;
         }>;
         title?: string;
         description?: string;
@@ -19,6 +20,8 @@ const props = withDefaults(
         compact?: boolean;
         showFooter?: boolean;
         showLegend?: boolean;
+        legendLimit?: number;
+        floorCenterValue?: boolean;
     }>(),
     {
         title: 'Distribusi',
@@ -30,9 +33,10 @@ const props = withDefaults(
         compact: false,
         showFooter: true,
         showLegend: true,
+        floorCenterValue: false,
     },
 );
-const selectedId = defineModel<string | null>('selected', { default: null });
+const selectedId = ref<string | null>(null);
 const headingId = useId();
 const previewId = ref<string | null>(null);
 const areaFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 4 });
@@ -50,7 +54,7 @@ const crops = computed(() =>
     props.items
         .map((crop, index) => ({
             ...crop,
-            color: colors[index % colors.length],
+            color: crop.color ?? colors[index % colors.length],
         }))
         .filter((crop) => Number.isFinite(crop.value) && crop.value > 0),
 );
@@ -103,9 +107,19 @@ const slices = computed(() => {
     });
 });
 const activeId = computed(() => previewId.value ?? selectedId.value);
+const legendItems = computed(() => slices.value.slice(0, props.legendLimit));
+const remainingLegendCount = computed(
+    () => slices.value.length - legendItems.value.length,
+);
 const activeSlice = computed(() =>
     slices.value.find((crop) => crop.id === activeId.value),
 );
+const centerValue = computed(() => {
+    const value = activeSlice.value?.value ?? total.value;
+    return areaFormat.format(
+        props.floorCenterValue ? Math.floor(value) : value,
+    );
+});
 const selectedSlice = computed(() =>
     slices.value.find((crop) => crop.id === selectedId.value),
 );
@@ -127,9 +141,7 @@ const selectionAnnouncement = computed(() =>
 );
 
 watch(slices, (items) => {
-    // A shared legend can select a crop with zero value in one of its diagrams.
-    const selectable = props.showLegend ? items : props.items;
-    if (!selectable.some((crop) => crop.id === selectedId.value))
+    if (!items.some((crop) => crop.id === selectedId.value))
         selectedId.value = null;
     if (!items.some((crop) => crop.id === previewId.value))
         previewId.value = null;
@@ -280,9 +292,7 @@ function clearSelection(): void {
                         <p
                             class="mt-1 text-[30px] leading-9 font-bold tracking-tight tabular-nums"
                         >
-                            {{
-                                activeSlice?.valueLabel ??
-                                areaFormat.format(total)
+                            {{ centerValue
                             }}<span
                                 class="block text-xs leading-4 font-medium tracking-normal text-muted-foreground"
                                 >{{ unit }}</span
@@ -302,7 +312,7 @@ function clearSelection(): void {
                     class="min-w-0 space-y-1.5"
                     :aria-label="`Pilih ${categoryLabel}`"
                 >
-                    <li v-for="crop in slices" :key="crop.id">
+                    <li v-for="crop in legendItems" :key="crop.id">
                         <button
                             type="button"
                             class="owner-commodity-choice flex min-h-16 w-full items-center gap-3 rounded-xl border p-2.5 text-left hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-safe:transition-colors"
@@ -376,6 +386,18 @@ function clearSelection(): void {
                             ></slot>
                         </button>
                     </li>
+                    <li
+                        v-if="
+                            remainingLegendCount > 0 &&
+                            $slots['legend-overflow']
+                        "
+                    >
+                        <slot
+                            name="legend-overflow"
+                            :count="remainingLegendCount"
+                            :items="slices"
+                        />
+                    </li>
                 </ul>
             </div>
             <div
@@ -432,7 +454,7 @@ function clearSelection(): void {
 .owner-commodity-body {
     display: grid;
     flex: 1;
-    align-items: center;
+    align-items: start;
     gap: 16px;
     margin-top: 16px;
 }

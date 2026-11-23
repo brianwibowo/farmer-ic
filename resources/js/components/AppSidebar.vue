@@ -12,6 +12,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
+    ShieldAlert,
     Sprout,
     Users,
     Wheat,
@@ -114,7 +115,7 @@ const mainNavItems = computed<NavItem[]>(() => {
             ? [
                   {
                       title: props.adminTheme
-                          ? 'Manajemen Kebun'
+                          ? 'Manajemen Lahan'
                           : 'Farm Management',
                       href: '/admin/farm-management',
                       icon: LandPlot,
@@ -153,6 +154,12 @@ const mainNavItems = computed<NavItem[]>(() => {
                       href: '/admin/tasks',
                       icon: ListChecks,
                       isActive: isCurrentOrParentUrl('/admin/tasks'),
+                  },
+                  {
+                      title: 'Insiden',
+                      href: '/admin/incidents',
+                      icon: ShieldAlert,
+                      isActive: isCurrentOrParentUrl('/admin/incidents'),
                   },
               ]
             : []),

@@ -217,16 +217,19 @@ khusus karena luas realisasi tersimpan pada `farm_activities.task_details`.
   `harvest`, sedangkan `activity_subcategory` selalu `null` sejak
   `2026_11_16_000002`); stage subblok diturunkan dari kategori tersebut saat
   task subblok dibuat.
-- Semua offset pekerjaan SOP memakai HST dari tanggal tanam subblok. `H+0`
-  adalah tanggal tanam (`planting` menjadi jangkar HST, bukan langkah SOP);
-  pekerjaan persiapan tidak menjadi langkah SOP.
-- Tanggal acuan memakai `planting_cycles.planted_at` jika sudah ada. Sebelum
-  realisasi tanam, `planned_planting_at` dipakai sebagai acuan rencana agar
-  pekerjaan persiapan tetap memiliki tanggal. Perhitungan hari mengikuti
-  Asia/Jakarta.
-- `scheduled_date = tanggal tanam + offset_days`;
-  `due_date = scheduled_date + tolerance_days`. Jika kedua tanggal tanam belum
-  tersedia, tanggal jadwal boleh kosong.
+- Semua offset pekerjaan SOP memakai HST dari acuan `H+0` subblok (`planted_at`),
+  yang selalu ditetapkan **satu hari setelah tanggal aktivitas penanaman
+  pertama** pada subblok (`planting_started_on + 1 hari`). `planting` tetap
+  menjadi pemicu jangkar HST, bukan langkah SOP; pekerjaan persiapan tidak
+  menjadi langkah SOP.
+- Tanggal acuan memakai `planting_cycles.planted_at` jika sudah ada. Selama
+  persiapan sebelum realisasi tanam, `planned_planting_at` tetap menjadi tanggal
+  rencana, tetapi pembuatan task SOP menunggu realisasi penanaman pertama.
+  Perhitungan hari mengikuti Asia/Jakarta.
+- `scheduled_date = planted_at + offset_days`;
+  `due_date = scheduled_date + tolerance_days`. Pada hari penanaman pertama,
+  HST masih belum dimulai (`null`) sampai keesokan harinya (`0 HST`). Jika
+  `planted_at` belum tersedia, tanggal jadwal task boleh kosong.
 - Koreksi tanggal tanam batch merupakan koreksi data realisasi oleh Admin
   tenant, bukan penerapan revisi SOP. Koreksi dapat menghitung ulang tanggal task
   yang belum dimulai dari offset snapshot yang sama; riwayat perubahan wajib
@@ -530,7 +533,7 @@ Daftar berikut mencakup seluruh tabel, termasuk modul yang tidak berubah.
 | Tabel | Status | Kolom lengkap |
 | --- | --- | --- |
 | `activity_types` | Disesuaikan | `id`, `code`, `name`, `description` *(6 kategori utama + `incident`, `other`, internal `block_mapping`; kolom taxonomy aktif ada di `database/schema.dbml`)* |
-| `daily_activity_logs` | Tetap | `id`, `farm_id`, `recorded_by`, `work_date`, `start_time`, `end_time`, `worker_count`, `notes`, `created_at`, `updated_at` |
+| `daily_activity_logs` | Disesuaikan | `id`, `farm_id`, `recorded_by`, `work_date`, `created_at`, `updated_at` |
 | `farm_activities` | Disesuaikan | `id`, `farm_id`, `planting_cycle_id`, `activity_type_id`, `performed_by`, `activity_date`, `description`, `status`, `created_at`, `updated_at`, `daily_activity_log_id`, `position`, `obstacle_status`, `obstacles`, `proposed_solution`, `action_taken`, `task_details`, `planting_cycle_task_id` |
 | `activity_photos` | Tetap | `id`, `activity_id`, `label`, `caption`, `image_url`, `uploaded_at` |
 | `block_mapping_details` | Disesuaikan | `activity_id`, `form_version`, `block_name`, `length_m`, `width_m`, `row_spacing_cm`, `plant_spacing_cm`, `rows_per_bed`, `block_id` |

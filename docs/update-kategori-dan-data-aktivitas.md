@@ -11,7 +11,7 @@ Dokumen ini adalah acuan untuk field input form aktivitas, aturan blok/sub-blok,
 - Beberapa aktivitas pada tanggal dan farm yang sama memakai **header harian yang sama** agar pekerja tidak mengisi tanggal dan jam berulang kali.
 - Scheduled tasks **tidak dibagi daily/weekly/monthly**. Task dibuat dari langkah **SOP modular** pada offset **HST** tertentu.
 - Field dibagi menjadi **blok**. Jika penanaman hanya mencakup sebagian blok, bagian yang ditanami menjadi **sub-blok**.
-- Penanaman subblok dibatasi **tiga hari kalender inklusif**: 26–28; tanggal 29 memakai subblok lain yang disiapkan Admin. Acuan HST adalah tanggal penanaman aktual kedua yang berbeda jika ada, atau tanggal pertama jika hanya satu hari.
+- Penanaman subblok dibatasi **tiga hari kalender inklusif**: 26–28; tanggal 29 memakai subblok lain. Acuan `H+0` HST (`planted_at`) selalu ditetapkan **satu hari setelah tanggal tanam pertama** pada subblok (`planting_started_on + 1 hari`).
 - **Jumlah pekerja dicatat per aktivitas** dan boleh berbeda antar aktivitas.
 - **Catatan harian tetap ada**, terpisah dari catatan aktivitas; jam selesai boleh dilengkapi kemudian.
 - Aktivitas **tidak mencatat kendala, solusi, atau tindakan**. Pengecualian: form insiden memiliki `Tindakan segera` yang opsional.
@@ -202,8 +202,8 @@ Field
 ```
 
 Diagram di atas hanya pengelompokan waktu konseptual; setiap subblok memiliki record cycle sendiri.
-HST memakai tanggal aktual kedua yang berbeda: 26/27/28 → 27; 26/28 → 28;
-hanya 26 → 26. Tanggal pertama disimpan terpisah sebagai batas jendela.
+Acuan `H+0` HST selalu ditetapkan satu hari setelah tanggal tanam pertama pada subblok (`planting_started_on + 1 hari`):
+26/27/28 → `27`; 26/28 → `27`; hanya 26 → `27` (0 HST pada tanggal 27; pada tanggal 26 HST masih `null`). Tanggal pertama tetap disimpan pada `planting_started_on` sebagai batas jendela.
 
 ## Scheduled Tasks Berbasis SOP
 

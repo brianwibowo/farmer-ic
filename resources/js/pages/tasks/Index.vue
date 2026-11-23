@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowUpRight,
     CalendarDays,
-    ChevronLeft,
-    ChevronRight,
     ClipboardList,
     LoaderCircle,
     Search,
@@ -26,6 +25,7 @@ import {
     adminTaskStatusLabels,
     adminTaskUrgencyClass,
     adminTaskUrgencyLabels,
+    taskSubblockClosed,
     type AdminTaskBlockOption,
     type AdminTaskCategory,
     type AdminTaskFarmOption,
@@ -36,7 +36,7 @@ import {
     type AdminTaskSummary,
     type AdminTaskView,
 } from '@/types/tasks';
-import { sopActivityCategoryLabels } from '@/types/sop';
+import { formatHok, sopActivityCategoryLabels } from '@/types/sop';
 
 defineOptions({ inheritAttrs: false });
 
@@ -96,7 +96,7 @@ const appliedFilters = computed(() => {
         const farmName =
             props.farms.find((farm) => farm.id === props.filters.farm_id)
                 ?.name ?? 'Tidak tersedia';
-        items.push({ key: 'farm_id', label: `Kebun: ${farmName}` });
+        items.push({ key: 'farm_id', label: `Lahan: ${farmName}` });
     }
 
     if (props.filters.block_id) {
@@ -105,9 +105,7 @@ const appliedFilters = computed(() => {
         );
         items.push({
             key: 'block_id',
-            label: block
-                ? `Blok: ${block.code} · ${block.name}`
-                : 'Blok: Tidak tersedia',
+            label: block ? `Blok: ${block.name}` : 'Blok: Tidak tersedia',
         });
     }
 
@@ -280,7 +278,7 @@ function reset(): void {
                                 v-model="form.search"
                                 type="search"
                                 class="admin-field pl-10!"
-                                placeholder="Cari nama tugas, kebun, blok, atau subblok…"
+                                placeholder="Cari nama tugas, lahan, blok, atau subblok…"
                                 maxlength="100"
                                 :disabled="form.processing"
                                 :aria-invalid="!!form.errors.search"
@@ -432,7 +430,11 @@ function reset(): void {
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ adminTaskCategoryLabel(task) }}
+                                        {{ adminTaskCategoryLabel(task)
+                                        }}<template v-if="task.hok != null">
+                                            ·
+                                            {{ formatHok(task.hok) }}</template
+                                        >
                                     </p>
                                 </td>
                                 <td>
@@ -442,7 +444,6 @@ function reset(): void {
                                     <p
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        {{ task.block?.code ?? '-' }} ·
                                         {{
                                             task.block?.name ??
                                             'Blok belum diisi'
@@ -466,7 +467,10 @@ function reset(): void {
                                         }}
                                     </p>
                                     <p
-                                        v-if="task.urgency === 'overdue'"
+                                        v-if="
+                                            !taskSubblockClosed(task) &&
+                                            task.urgency === 'overdue'
+                                        "
                                         class="mt-1 text-xs font-medium text-error"
                                     >
                                         {{
@@ -476,7 +480,10 @@ function reset(): void {
                                         }}
                                     </p>
                                     <p
-                                        v-else-if="task.urgency === 'today'"
+                                        v-else-if="
+                                            !taskSubblockClosed(task) &&
+                                            task.urgency === 'today'
+                                        "
                                         class="mt-1 text-xs font-medium text-warning"
                                     >
                                         Hari ini
@@ -506,6 +513,7 @@ function reset(): void {
                                             }}
                                         </span>
                                         <span
+                                            v-if="!taskSubblockClosed(task)"
                                             class="rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap"
                                             :class="
                                                 adminTaskUrgencyClass(
@@ -519,6 +527,11 @@ function reset(): void {
                                                 ]
                                             }}
                                         </span>
+                                        <span
+                                            v-else
+                                            class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                                            >Subblok ditutup</span
+                                        >
                                     </div>
                                 </td>
                                 <td class="text-right">
@@ -562,9 +575,12 @@ function reset(): void {
                             />
                         </Link>
                         <p class="text-xs text-muted-foreground">
-                            {{ adminTaskCategoryLabel(task) }} ·
-                            {{ task.farm?.name ?? '-' }} ·
-                            {{ task.block?.code ?? '-' }}
+                            {{ adminTaskCategoryLabel(task)
+                            }}<template v-if="task.hok != null">
+                                · {{ formatHok(task.hok) }}</template
+                            >
+                            · {{ task.farm?.name ?? '-' }} ·
+                            {{ task.block?.name ?? '-' }}
                             <template v-if="task.subblok?.label">
                                 · {{ task.subblok.label }}</template
                             >
@@ -577,11 +593,17 @@ function reset(): void {
                                 {{ adminTaskStatusLabels[task.status] }}
                             </span>
                             <span
+                                v-if="!taskSubblockClosed(task)"
                                 class="rounded-full px-2.5 py-1 text-xs font-medium"
                                 :class="adminTaskUrgencyClass(task.urgency)"
                             >
                                 {{ adminTaskUrgencyLabels[task.urgency] }}
                             </span>
+                            <span
+                                v-else
+                                class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                                >Subblok ditutup</span
+                            >
                             <span
                                 class="inline-flex items-center gap-1 text-xs text-muted-foreground"
                             >
@@ -591,7 +613,10 @@ function reset(): void {
                                 }}
                             </span>
                             <span
-                                v-if="task.urgency === 'overdue'"
+                                v-if="
+                                    !taskSubblockClosed(task) &&
+                                    task.urgency === 'overdue'
+                                "
                                 class="text-xs font-medium text-error"
                             >
                                 {{
@@ -619,7 +644,9 @@ function reset(): void {
                             : '0 tugas ditemukan'
                     }}
                 </p>
-                <div class="flex flex-wrap items-center gap-3">
+                <div
+                    class="ml-auto flex flex-wrap items-center justify-end gap-3"
+                >
                     <div class="w-36">
                         <AppSelect
                             id="tasks-page-size"
@@ -640,57 +667,12 @@ function reset(): void {
                             >
                         </AppSelect>
                     </div>
-                    <nav
-                        class="flex items-center gap-1"
-                        aria-label="Pagination tugas"
-                    >
-                        <Button
-                            v-if="tasks.prev_page_url"
-                            as-child
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="Halaman sebelumnya"
-                        >
-                            <Link :href="tasks.prev_page_url" preserve-scroll
-                                ><ChevronLeft
-                            /></Link>
-                        </Button>
-                        <Button
-                            v-else
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled
-                            aria-label="Halaman sebelumnya"
-                        >
-                            <ChevronLeft />
-                        </Button>
-                        <span
-                            aria-current="page"
-                            class="px-2 text-xs font-semibold tabular-nums"
-                        >
-                            {{ tasks.current_page }} / {{ tasks.last_page }}
-                        </span>
-                        <Button
-                            v-if="tasks.next_page_url"
-                            as-child
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="Halaman berikutnya"
-                        >
-                            <Link :href="tasks.next_page_url" preserve-scroll
-                                ><ChevronRight
-                            /></Link>
-                        </Button>
-                        <Button
-                            v-else
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled
-                            aria-label="Halaman berikutnya"
-                        >
-                            <ChevronRight />
-                        </Button>
-                    </nav>
+                    <InertiaPagination
+                        :paginator="tasks"
+                        label="Pagination tugas"
+                        class="ml-auto justify-end"
+                        :disabled="form.processing"
+                    />
                 </div>
             </footer>
         </section>

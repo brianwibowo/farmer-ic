@@ -25,12 +25,12 @@ final class DemoOwnerPortfolioData
                 'address' => 'Cariu, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Cariu', 'province' => 'Jawa Barat', 'target_volume_ton' => '44.000', 'harvest_offset' => 107,
                 'blocks' => [
-                    ['code' => 'B01', 'name' => 'Blok Rumput Utara', 'area_ha' => '5.0000'],
-                    ['code' => 'B02', 'name' => 'Blok Rumput Selatan', 'area_ha' => '3.0000'],
+                    ['name' => 'Blok Rumput Utara', 'area_ha' => '5.0000'],
+                    ['name' => 'Blok Rumput Selatan', 'area_ha' => '3.0000'],
                 ],
                 'batches' => [
-                    self::batch('active', 'B01', 'A', '3.2500', '2026-10-01', '2027-01-16', '18.200', 'maintenance'),
-                    self::batch('harvested', 'B02', 'H', '1.7500', '2026-07-10', '2026-10-25', '9.800', 'harvest', '2026-10-25'),
+                    self::batch('active', 'Blok Rumput Utara', 'A', '3.2500', '2026-10-01', '2027-01-16', '18.200', 'maintenance'),
+                    self::batch('harvested', 'Blok Rumput Selatan', 'H', '1.7500', '2026-07-10', '2026-10-25', '9.800', 'harvest', '2026-10-25'),
                 ],
             ],
             [
@@ -39,10 +39,10 @@ final class DemoOwnerPortfolioData
                 'address' => 'Jonggol, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Jonggol', 'province' => 'Jawa Barat', 'target_volume_ton' => '12.000', 'harvest_offset' => 80,
                 'blocks' => [
-                    ['code' => 'B01', 'name' => 'Blok Sorgum Timur', 'area_ha' => '4.0000'],
-                    ['code' => 'B02', 'name' => 'Blok Rotasi Barat', 'area_ha' => '2.5000'],
+                    ['name' => 'Blok Sorgum Timur', 'area_ha' => '4.0000'],
+                    ['name' => 'Blok Rotasi Barat', 'area_ha' => '2.5000'],
                 ],
-                'batches' => [self::batch('active', 'B01', 'A', '3.0000', '2026-10-20', '2027-01-08', '6.000', 'maintenance')],
+                'batches' => [self::batch('active', 'Blok Sorgum Timur', 'A', '3.0000', '2026-10-20', '2027-01-08', '6.000', 'maintenance')],
             ],
             [
                 'key' => 'mekarsari', 'name' => 'Lahan Pamijahan', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
@@ -50,10 +50,10 @@ final class DemoOwnerPortfolioData
                 'address' => 'Pamijahan, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Pamijahan', 'province' => 'Jawa Barat', 'target_volume_ton' => '28.000', 'harvest_offset' => 90,
                 'blocks' => [
-                    ['code' => 'B01', 'name' => 'Blok Jagung Bedengan', 'area_ha' => '2.5000'],
-                    ['code' => 'B02', 'name' => 'Blok Cadangan Jagung', 'area_ha' => '1.5000'],
+                    ['name' => 'Blok Jagung Bedengan', 'area_ha' => '2.5000'],
+                    ['name' => 'Blok Cadangan Jagung', 'area_ha' => '1.5000'],
                 ],
-                'batches' => [self::batch('active', 'B01', 'A', '1.5000', '2026-09-01', '2026-11-30', '10.500', 'maintenance')],
+                'batches' => [self::batch('active', 'Blok Jagung Bedengan', 'A', '1.5000', '2026-09-01', '2026-11-30', '10.500', 'maintenance')],
             ],
             [
                 'key' => 'cikeas', 'name' => 'Lahan Sirnasari', 'commodity' => 'Jagung', 'variety' => 'Bisi 18',
@@ -61,12 +61,12 @@ final class DemoOwnerPortfolioData
                 'address' => 'Sirnasari, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Sirnasari', 'province' => 'Jawa Barat', 'target_volume_ton' => '64.000', 'harvest_offset' => 110,
                 'blocks' => [
-                    ['code' => 'B01', 'name' => 'Blok Jagung Utama', 'area_ha' => '6.0000'],
-                    ['code' => 'B02', 'name' => 'Blok Tanam Berikutnya', 'area_ha' => '4.0000'],
+                    ['name' => 'Blok Jagung Utama', 'area_ha' => '6.0000'],
+                    ['name' => 'Blok Tanam Berikutnya', 'area_ha' => '4.0000'],
                 ],
                 'batches' => [
-                    self::batch('active', 'B01', 'A', '4.0000', '2026-09-15', '2027-01-03', '25.600', 'maintenance'),
-                    self::batch('planned', 'B02', 'P', '2.0000', '2026-11-15', null, '12.800', 'soil_preparation'),
+                    self::batch('active', 'Blok Jagung Utama', 'A', '4.0000', '2026-09-15', '2027-01-03', '25.600', 'maintenance'),
+                    self::batch('planned', 'Blok Tanam Berikutnya', 'P', '2.0000', '2026-11-15', null, '12.800', 'soil_preparation'),
                 ],
             ],
             [
@@ -75,13 +75,13 @@ final class DemoOwnerPortfolioData
                 'address' => 'Megamendung, Kabupaten Bogor, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Bogor',
                 'district' => 'Megamendung', 'province' => 'Jawa Barat', 'target_volume_ton' => '70.000', 'harvest_offset' => 107,
                 'blocks' => [
-                    ['code' => 'B01', 'name' => 'Blok Rumput Selesai Panen', 'area_ha' => '2.0000'],
-                    ['code' => 'B02', 'name' => 'Blok Persiapan Rumput', 'area_ha' => '1.5000'],
+                    ['name' => 'Blok Rumput Selesai Panen', 'area_ha' => '2.0000'],
+                    ['name' => 'Blok Persiapan Rumput', 'area_ha' => '1.5000'],
                 ],
                 'batches' => [
-                    self::batch('harvested', 'B01', 'H', '1.2500', '2026-07-15', '2026-10-30', '25.000', 'harvest', '2026-10-30'),
+                    self::batch('harvested', 'Blok Rumput Selesai Panen', 'H', '1.2500', '2026-07-15', '2026-10-30', '25.000', 'harvest', '2026-10-30'),
                     self::megamendungActiveBatch(),
-                    self::batch('planned', 'B02', 'P', '0.7500', '2026-11-20', null, '15.000', 'basic_fertilizer'),
+                    self::batch('planned', 'Blok Persiapan Rumput', 'P', '0.7500', '2026-11-20', null, '15.000', 'basic_fertilizer'),
                 ],
             ],
             [
@@ -90,10 +90,10 @@ final class DemoOwnerPortfolioData
                 'address' => 'Cipanengah, Kabupaten Sukabumi, skenario presentasi '.config('app.name'), 'city' => 'Kabupaten Sukabumi',
                 'district' => 'Cipanengah', 'province' => 'Jawa Barat', 'target_volume_ton' => '28.000', 'harvest_offset' => 90,
                 'blocks' => [
-                    ['code' => 'B01', 'name' => 'Blok Jagung Utama', 'area_ha' => '6.0000'],
-                    ['code' => 'B02', 'name' => 'Blok Tanam Berikutnya', 'area_ha' => '4.0000'],
+                    ['name' => 'Blok Jagung Utama', 'area_ha' => '6.0000'],
+                    ['name' => 'Blok Tanam Berikutnya', 'area_ha' => '4.0000'],
                 ],
-                'batches' => [self::batch('active', 'B01', 'A', '4.0000', '2026-09-15', '2027-01-03', '25.600', 'maintenance')],
+                'batches' => [self::batch('active', 'Blok Jagung Utama', 'A', '4.0000', '2026-09-15', '2027-01-03', '25.600', 'maintenance')],
             ],
         ];
     }
@@ -101,7 +101,7 @@ final class DemoOwnerPortfolioData
     /**
      * @return array{
      *     key:string,
-     *     block_code:string,
+     *     block_name:string,
      *     subblock_label:string,
      *     reserved_area_ha:string,
      *     planted_area_ha:string,
@@ -116,13 +116,13 @@ final class DemoOwnerPortfolioData
      */
     public static function megamendungActiveBatch(): array
     {
-        return self::batch('active', 'B01', 'A2', '0.7500', '2026-11-01', '2027-02-15', '75.000', 'maintenance');
+        return self::batch('active', 'Blok Rumput Selesai Panen', 'A2', '0.7500', '2026-11-01', '2027-02-15', '75.000', 'maintenance');
     }
 
     /**
      * @return array{
      *     key:string,
-     *     block_code:string,
+     *     block_name:string,
      *     subblock_label:string,
      *     reserved_area_ha:string,
      *     planted_area_ha:string,
@@ -138,7 +138,7 @@ final class DemoOwnerPortfolioData
     private static function batch(string $status, string $block, string $label, string $area, string $plantingDate, ?string $harvestDate, string $weight, string $stage, ?string $harvestedAt = null): array
     {
         return [
-            'key' => $status, 'block_code' => $block, 'subblock_label' => $label, 'reserved_area_ha' => $area,
+            'key' => $status, 'block_name' => $block, 'subblock_label' => $label, 'reserved_area_ha' => $area,
             'planted_area_ha' => $status === 'planned' ? '0.0000' : $area, 'status' => $status,
             'planted_at' => $status === 'planned' ? null : $plantingDate, 'planned_planting_at' => $plantingDate,
             'estimated_harvest_at' => $harvestDate, 'harvested_at' => $harvestedAt,

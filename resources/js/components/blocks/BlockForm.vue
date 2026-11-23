@@ -3,7 +3,9 @@ import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Save } from '@lucide/vue';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import BlockBoundaryField from '@/components/blocks/BlockBoundaryField.vue';
+import type { BoundaryMapBlock } from '@/components/farms/FarmBlockBoundaryMap.vue';
 import FarmField from '@/components/farms/FarmField.vue';
 import FormErrorSummary from '@/components/farms/FormErrorSummary.vue';
 import {
@@ -13,12 +15,14 @@ import {
 import { hectares } from '@/types/farms';
 import { Button } from '@/components/ui/button';
 import type { BlockFarm, FarmBlock, BlockOptions } from '@/types/blocks';
+import type { GeoJsonPolygon } from '@/lib/geoPolygon';
 import { areaValue, squareMetres, type AreaUnit } from '@/lib/landArea';
 
 const props = defineProps<{
     dialog?: boolean;
     farm: BlockFarm;
     block: FarmBlock | null;
+    existingBlocks?: BoundaryMapBlock[];
     returnTo?: 'farm' | 'blocks';
     capacity: {
         maximum_area_ha: string;
@@ -29,9 +33,19 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: []; cancel: [] }>();
 const options = computed(() => usePage().props.blockOptions as BlockOptions);
 const base = `/kebun/${props.farm.id}/blocks`;
-const form = useForm({
+const boundaryInvalid = ref<string | null>(null);
+const form = useForm<{
+    return_to: string;
+    name: string;
+    area_value: string;
+    area_unit: AreaUnit;
+    description: string;
+    is_active: boolean;
+    commodity_id: string;
+    default_sop_template_id: string;
+    boundary_geojson: GeoJsonPolygon | null;
+}>({
     return_to: props.returnTo ?? '',
-    code: props.block?.code ?? '',
     name: props.block?.name ?? '',
     area_value: props.block?.area_ha ?? '',
     area_unit: 'ha' as AreaUnit,
@@ -39,11 +53,26 @@ const form = useForm({
     is_active: props.block?.is_active ?? true,
     commodity_id: props.block?.commodity_id ?? '',
     default_sop_template_id: props.block?.default_sop_template_id ?? '',
+    boundary_geojson: props.block?.boundary_geojson ?? null,
 });
-const filteredSops = computed(() => options.value.sops.filter((sop) => sop.commodity_id === form.commodity_id && (sop.is_active || sop.id === props.block?.default_sop_template_id)));
-watch(() => form.commodity_id, () => {
-    if (!filteredSops.value.some((sop) => sop.id === form.default_sop_template_id)) form.default_sop_template_id = '';
-});
+const filteredSops = computed(() =>
+    options.value.sops.filter(
+        (sop) =>
+            sop.commodity_id === form.commodity_id &&
+            (sop.is_active || sop.id === props.block?.default_sop_template_id),
+    ),
+);
+watch(
+    () => form.commodity_id,
+    () => {
+        if (
+            !filteredSops.value.some(
+                (sop) => sop.id === form.default_sop_template_id,
+            )
+        )
+            form.default_sop_template_id = '';
+    },
+);
 useUnsavedChanges(() => form.isDirty && !form.processing);
 const enteredMetres = computed(() =>
     squareMetres(form.area_value, form.area_unit),
@@ -94,7 +123,6 @@ const noCapacity = computed(
             Number(props.capacity.minimum_area_ha),
 );
 const errorFields = {
-    code: { id: 'block-code', label: 'Kode blok' },
     name: { id: 'block-name', label: 'Nama blok' },
     area_ha: { id: 'block-area', label: 'Luas blok' },
     area_value: { id: 'block-area', label: 'Luas blok' },
@@ -103,7 +131,13 @@ const errorFields = {
     description: { id: 'block-description', label: 'Catatan' },
     commodity_id: { id: 'block-commodity', label: 'Komoditas' },
     default_sop_template_id: { id: 'block-sop', label: 'SOP default' },
+    boundary_geojson: { id: 'block-boundary', label: 'Batas blok di peta' },
 };
+function applyMappedArea(areaHa: string): void {
+    const metres = squareMetres(areaHa, 'ha');
+    if (metres === null) return;
+    form.area_value = areaValue(metres, form.area_unit);
+}
 defineExpose({
     isDirty: () => form.isDirty,
     processing: () => form.processing,
@@ -111,6 +145,11 @@ defineExpose({
 const fieldClass = 'admin-field block-field';
 function submit(): void {
     if (noCapacity.value) return;
+    if (boundaryInvalid.value) {
+        form.setError('boundary_geojson', boundaryInvalid.value);
+        void focusFormErrors();
+        return;
+    }
     if (areaError.value || enteredMetres.value === null) {
         form.setError('area_value', areaError.value ?? 'Isi luas blok.');
         void focusFormErrors();
@@ -155,7 +194,7 @@ function submit(): void {
                 role="status"
                 class="rounded-xl bg-muted p-4 text-sm leading-6 text-foreground"
             >
-                Kapasitas kebun tidak mencukupi untuk blok aktif ini. Sesuaikan
+                Kapasitas lahan tidak mencukupi untuk blok aktif ini. Sesuaikan
                 alokasi blok yang ada, atau pilih status Nonaktif untuk mencatat
                 blok tanpa alokasi baru.
             </p>
@@ -172,7 +211,7 @@ function submit(): void {
                         untuk {{ capacity.running_batches }} sub blok berjalan.
                     </p>
                     <p v-else class="mt-1 text-xs text-muted-foreground">
-                        Luas blok mengikuti sisa lahan kebun.
+                        Luas blok mengikuti sisa lahan lahan.
                     </p>
                 </div>
                 <p class="text-2xl font-bold tabular-nums">
@@ -186,44 +225,66 @@ function submit(): void {
                 :disabled="form.processing"
                 class="grid gap-5 disabled:opacity-70 sm:grid-cols-2"
             >
-                <FarmField id="block-commodity" label="Komoditas blok" :error="form.errors.commodity_id" v-slot="field">
-                    <AppSelect :id="field.id" v-model="form.commodity_id" :class="fieldClass" :aria-invalid="field.invalid">
-                        <AppSelectOption value="">Belum ditentukan</AppSelectOption>
-                        <AppSelectOption v-for="commodity in options.commodities" :key="commodity.id" :value="commodity.id">{{ commodity.name }}</AppSelectOption>
-                    </AppSelect>
-                </FarmField>
-                <FarmField id="block-sop" label="SOP default blok" :error="form.errors.default_sop_template_id" v-slot="field">
-                    <AppSelect :id="field.id" v-model="form.default_sop_template_id" :class="fieldClass" :disabled="!form.commodity_id" :aria-invalid="field.invalid">
-                        <AppSelectOption value="">Belum ditentukan</AppSelectOption>
-                        <AppSelectOption v-for="sop in filteredSops" :key="sop.id" :value="sop.id">{{ sop.name }}</AppSelectOption>
-                    </AppSelect>
-                </FarmField>
-                <p class="text-xs leading-5 text-muted-foreground sm:col-span-2">
-                    Perubahan berlaku untuk penanaman baru. Subblok yang sudah ditanam tetap memakai varietas dan versi SOP yang telah tersimpan.
-                </p>
                 <FarmField
-                    id="block-code"
-                    label="Kode blok"
-                    required
-                    :error="form.errors.code"
-                    hint="Contoh: B01. Unik dalam kebun ini."
+                    id="block-commodity"
+                    label="Komoditas blok"
+                    :error="form.errors.commodity_id"
                     v-slot="field"
-                    ><input
+                >
+                    <AppSelect
                         :id="field.id"
-                        v-model="form.code"
-                        placeholder="Contoh: B03"
+                        v-model="form.commodity_id"
                         :class="fieldClass"
-                        required
-                        maxlength="30"
-                        pattern="[A-Za-z0-9][A-Za-z0-9_\-]*"
                         :aria-invalid="field.invalid"
-                        :aria-describedby="field.description"
-                /></FarmField>
+                    >
+                        <AppSelectOption value=""
+                            >Belum ditentukan</AppSelectOption
+                        >
+                        <AppSelectOption
+                            v-for="commodity in options.commodities"
+                            :key="commodity.id"
+                            :value="commodity.id"
+                            >{{ commodity.name }}</AppSelectOption
+                        >
+                    </AppSelect>
+                </FarmField>
+                <FarmField
+                    id="block-sop"
+                    label="SOP default blok"
+                    :error="form.errors.default_sop_template_id"
+                    v-slot="field"
+                >
+                    <AppSelect
+                        :id="field.id"
+                        v-model="form.default_sop_template_id"
+                        :class="fieldClass"
+                        :disabled="!form.commodity_id"
+                        :aria-invalid="field.invalid"
+                    >
+                        <AppSelectOption value=""
+                            >Belum ditentukan</AppSelectOption
+                        >
+                        <AppSelectOption
+                            v-for="sop in filteredSops"
+                            :key="sop.id"
+                            :value="sop.id"
+                            >{{ sop.name }}</AppSelectOption
+                        >
+                    </AppSelect>
+                </FarmField>
+                <p
+                    class="text-xs leading-5 text-muted-foreground sm:col-span-2"
+                >
+                    Perubahan berlaku untuk penanaman baru. Subblok yang sudah
+                    ditanam tetap memakai varietas dan versi SOP yang telah
+                    tersimpan.
+                </p>
                 <FarmField
                     id="block-name"
                     label="Nama blok"
                     required
                     :error="form.errors.name"
+                    hint="Unik dalam kebun ini."
                     v-slot="field"
                     ><input
                         :id="field.id"
@@ -315,7 +376,7 @@ function submit(): void {
                         >
                             Nonaktif{{
                                 capacity.running_batches > 0
-                                    ? ' · masih ada batch berjalan'
+                                    ? ' · masih ada subblok berjalan'
                                     : ''
                             }}
                         </AppSelectOption>
@@ -338,6 +399,24 @@ function submit(): void {
                         :aria-describedby="field.description"
                     />
                 </FarmField>
+                <div class="border-t border-border pt-4 sm:col-span-2">
+                    <BlockBoundaryField
+                        v-model="form.boundary_geojson"
+                        :farm="farm"
+                        :existing-blocks="existingBlocks"
+                        :current-block-id="block?.id ?? null"
+                        :block-name="form.name"
+                        :disabled="form.processing"
+                        :error="form.errors.boundary_geojson"
+                        @update:invalid="
+                            (msg) => {
+                                boundaryInvalid = msg;
+                                if (!msg) form.clearErrors('boundary_geojson');
+                            }
+                        "
+                        @use-area="applyMappedArea"
+                    />
+                </div>
             </fieldset>
         </div>
         <div

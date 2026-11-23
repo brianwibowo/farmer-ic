@@ -14,8 +14,8 @@ class StorePlantingActivityRequest extends FormRequest
     public function messages(): array
     {
         return \App\Support\PhotoUploadFeedback::messages($this->file('photos', [])) + [
-            'photos.*.uploaded' => 'Foto gagal diunggah oleh server. Batas PHP saat ini: '.ini_get('upload_max_filesize').' per file dan '.ini_get('post_max_size').' per request. Jika foto memenuhi batas form (10 MB), hubungi pengelola untuk menyesuaikan konfigurasi PHP.',
-            'photos.*.max' => 'Ukuran setiap foto maksimal 10 MB.',
+            'photos.*.uploaded' => 'Foto gagal diunggah oleh server. Batas PHP saat ini: '.ini_get('upload_max_filesize').' per file dan '.ini_get('post_max_size').' per request. Jika foto memenuhi batas form (15 MB), hubungi pengelola untuk menyesuaikan konfigurasi PHP.',
+            'photos.*.max' => 'Ukuran setiap foto maksimal 15 MB.',
         ];
     }
 
@@ -33,17 +33,14 @@ class StorePlantingActivityRequest extends FormRequest
     {
         $rules = [
             'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('Asia/Jakarta')->toDateString()],
-            'start_time' => ['nullable', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i', 'after:start_time'],
             'worker_count' => ['required', 'integer', 'between:1,'.ActivityInputLimits::WORKER_COUNT],
-            'daily_notes' => ['nullable', 'string', 'max:5000'],
             'variety_id' => ['required', 'uuid'],
             'area_ha' => ['required', 'numeric', 'decimal:0,4', 'between:0.0001,99999999.9999'],
-            'seed_name' => ['required', 'string', 'max:150'],
+            'seed_name' => ['nullable', 'string', 'max:150'],
             'quantity_kg' => ['required', 'numeric', 'decimal:0,3', 'between:0.001,999999999.999'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'photos' => ['required', 'array', 'list', 'min:1', 'max:5'],
-            'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'photos.*' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360'],
             'schema' => ['nullable', 'in:taxonomy'],
         ];
         if ($this->input('schema') === 'taxonomy') {

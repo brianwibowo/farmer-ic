@@ -89,9 +89,9 @@ let lastRecordedVoiceError: AiVoiceMetric | null = null;
 const speech = typeof window !== 'undefined' ? window.speechSynthesis : null;
 const quickPrompts = [
     '📊 Gambar: Panduan Pemupukan Jagung sesuai Fase',
-    '💧 Gambar: Jadwal & Kebutuhan Air Kebun',
+    '💧 Gambar: Jadwal & Kebutuhan Air Lahan',
     '🐛 Gambar: Deteksi & Pengendalian Hama Daun',
-    'Bagaimana kondisi kebun saya hari ini?',
+    'Bagaimana kondisi lahan saya hari ini?',
 ];
 
 const setInputElement: VNodeRef = (element) => {
@@ -285,7 +285,7 @@ async function send(): Promise<void> {
     ) {
         await showLocalAnswer(
             text,
-            'Saya belum menangkap tujuan pertanyaannya. Anda ingin saya membantu yang mana?\n\n1. **Data kebun atau aktivitas** yang tersedia di aplikasi\n2. **Panduan perawatan tanaman**\n3. **Gambar atau ilustrasi** pertanian\n\nSebutkan kebun, komoditas, periode, atau tujuan Anda agar jawabannya lebih tepat.',
+            'Saya belum menangkap tujuan pertanyaannya. Anda ingin saya membantu yang mana?\n\n1. **Data lahan atau aktivitas** yang tersedia di aplikasi\n2. **Panduan perawatan tanaman**\n3. **Gambar atau ilustrasi** pertanian\n\nSebutkan lahan, komoditas, periode, atau tujuan Anda agar jawabannya lebih tepat.',
             requestMode === 'voice' ? 'voice' : 'text',
             'negative',
             startedAt,
@@ -569,7 +569,7 @@ onUnmounted(() => {
                 <Sparkles :size="34" stroke-width="1.4" />
             </div>
             <h1 class="mt-5 text-xl font-semibold tracking-tight">
-                Asisten Kebun Petani
+                Asisten Lahan Petani
             </h1>
             <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
                 Tanyakan kondisi tanaman, diagnosis visual dari foto, atau

@@ -14,6 +14,7 @@ class TaskActivityFields
 
         return match (self::activityCode($task)) {
             'maintenance' => [$area],
+            'growth_observation' => [['key' => 'growth_phase', 'label' => 'Fase pertumbuhan', 'type' => 'text']],
             'harvest' => [$area, ['key' => 'weight_ton', 'label' => 'Berat panen (ton)', 'type' => 'number', 'max' => 99999999999.999, 'step' => '0.001']],
             default => [],
         };
@@ -23,14 +24,26 @@ class TaskActivityFields
     {
         return match ($task->activity_category) {
             'maintenance' => 'maintenance',
+            'growth_observation' => 'growth_observation',
             'harvest' => 'harvest',
             default => null,
         };
     }
 
+    public static function activityTypeCode(PlantingCycleTask $task): ?string
+    {
+        return self::activityCode($task);
+    }
+
+    public static function requiresWorkerCount(PlantingCycleTask $task): bool
+    {
+        return $task->activity_category !== 'growth_observation';
+    }
+
     public static function detailKey(PlantingCycleTask $task): ?string
     {
         return match (self::activityCode($task)) {
+            'growth_observation' => 'growth_check',
             'harvest' => 'harvest',
             default => null,
         };

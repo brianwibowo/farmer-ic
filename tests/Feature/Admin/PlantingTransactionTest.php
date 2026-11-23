@@ -69,7 +69,7 @@ class PlantingTransactionTest extends TestCase
     private function block(Farm $farm, Team $team, User $actor, string $code): FarmBlock
     {
         return app(FarmBlockService::class)->create($farm, $actor, $team, [
-            'code' => $code, 'name' => 'Blok '.$code, 'area_ha' => '5.0000',
+            'name' => 'Blok '.$code, 'area_ha' => '5.0000',
         ]);
     }
 
@@ -97,9 +97,6 @@ class PlantingTransactionTest extends TestCase
             'farm_id' => $farm->id,
             'recorded_by' => $actor->id,
             'work_date' => $date,
-            'start_time' => '07:00',
-            'end_time' => '11:00',
-            'notes' => 'Laporan penanaman '.$date,
         ]);
         $activity = FarmActivity::create([
             'farm_id' => $farm->id,
@@ -107,7 +104,7 @@ class PlantingTransactionTest extends TestCase
             'activity_type_id' => $type->id,
             'performed_by' => $actor->id,
             'activity_date' => CarbonImmutable::parse($date.' 09:00', 'Asia/Jakarta'),
-            'description' => 'Penanaman '.$block->code.' '.$date,
+            'description' => 'Penanaman '.$block->name.' '.$date,
             'status' => 'completed',
             'daily_activity_log_id' => $log->id,
             'position' => 1,
@@ -125,7 +122,7 @@ class PlantingTransactionTest extends TestCase
             'activity_id' => $activity->id,
             'label' => 'Bukti tanam',
             'caption' => 'Foto penanaman '.$date,
-            'image_url' => '/images/kebun-placeholder.svg',
+            'image_url' => \Database\Seeders\Support\DemoUpload::image('activity', 'farms/'.$farm->id.'/'.$activity->id.'/evidence.jpg'),
             'uploaded_at' => now(),
         ]);
 
@@ -156,7 +153,7 @@ class PlantingTransactionTest extends TestCase
             ->has('summary', 4)
             ->where('transactions.total', 2)->has('transactions.data', 2)
             ->where('transactions.data.0.farm.name', 'Kebun Penanaman B')
-            ->where('transactions.data.0.block.code', 'B02')
+            ->where('transactions.data.0.block.name', 'Blok B02')
             ->where('transactions.data.0.variety.name', 'Bisi 18')
             ->where('transactions.data.0.area_ha', '0.5000')
             ->where('transactions.data.0.seed_kg', '5.000')

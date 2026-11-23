@@ -246,14 +246,14 @@ function clearTransactionFilters(): void {
                 <!-- Kebun Filter Selector -->
                 <div class="relative">
                     <label for="kebun-filter-select" class="sr-only">
-                        Filter Kebun
+                        Filter Lahan
                     </label>
                     <select
                         id="kebun-filter-select"
                         v-model="selectedKebunId"
                         class="h-10.5 w-full appearance-none rounded-xl border border-border bg-card px-3.5 pr-10 text-xs font-medium text-foreground shadow-xs transition-colors outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
-                        <option value="all">Semua Kebun (Konsolidasi)</option>
+                        <option value="all">Semua Lahan (Konsolidasi)</option>
                         <option
                             v-for="item in kebunList"
                             :key="item.id"
@@ -491,7 +491,7 @@ function clearTransactionFilters(): void {
                         <input
                             v-model="searchQuery"
                             type="search"
-                            placeholder="Cari transaksi, kebun, atau komoditas"
+                            placeholder="Cari transaksi, lahan, atau komoditas"
                             class="h-11 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                         />
                     </label>
@@ -529,13 +529,13 @@ function clearTransactionFilters(): void {
                             <span
                                 class="mb-1 block truncate text-xs font-medium text-muted-foreground"
                             >
-                                Kebun
+                                Lahan
                             </span>
                             <select
                                 v-model="selectedKebunId"
                                 class="h-9.5 w-full rounded-lg border border-border bg-card px-2 text-xs text-foreground outline-none focus:border-primary"
                             >
-                                <option value="all">Semua kebun</option>
+                                <option value="all">Semua lahan</option>
                                 <option
                                     v-for="item in kebunList"
                                     :key="item.id"

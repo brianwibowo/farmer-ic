@@ -87,7 +87,7 @@ export function useTransactionFilters(options: {
             const farmName =
                 options.farms().find((farm) => farm.id === current.farm_id)
                     ?.name ?? 'Tidak tersedia';
-            chips.push({ key: 'farm_id', label: `Kebun: ${farmName}` });
+            chips.push({ key: 'farm_id', label: `Lahan: ${farmName}` });
         }
 
         if (current.block_id) {
@@ -97,7 +97,7 @@ export function useTransactionFilters(options: {
             chips.push({
                 key: 'block_id',
                 label: block
-                    ? `Blok: ${block.code} · ${block.name}`
+                    ? `Blok: ${block.name}`
                     : 'Blok: Tidak tersedia',
             });
         }

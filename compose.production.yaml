@@ -228,9 +228,12 @@ services:
         ports:
             - '80:80'
             - '443:443'
+            - '9000:9000'
+            - '9001:9001'
         restart: always
         volumes:
             - https-portal-data:/var/lib/https-portal
+            - ./docker/rustfs/rustfs-ssl.conf:/etc/nginx/rustfs/rustfs-ssl.conf:ro
         healthcheck:
             test: ['CMD', 'service', 'nginx', 'status']
             interval: 30s
@@ -242,6 +245,8 @@ services:
             WEBSOCKET: 'true'
             CLIENT_MAX_BODY_SIZE: '0'
             DYNAMIC_UPSTREAM: 'true'
+            CUSTOM_NGINX_GLOBAL_HTTP_CONFIG_BLOCK: |
+                include /etc/nginx/rustfs/rustfs-ssl.conf;
             CUSTOM_NGINX_SERVER_CONFIG_BLOCK: |
                 resolver 127.0.0.11 valid=10s ipv6=off;
                 proxy_buffer_size 128k;

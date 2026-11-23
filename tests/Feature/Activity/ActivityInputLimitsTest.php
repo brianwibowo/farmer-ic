@@ -40,7 +40,7 @@ class ActivityInputLimitsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('local');
+        Storage::fake('activity');
         $this->team = Team::factory()->create(['is_personal' => false]);
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->petugas = User::factory()->create(['role' => 'petugas']);
@@ -54,7 +54,7 @@ class ActivityInputLimitsTest extends TestCase
         $this->farm->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
         $this->petugas->forceFill(['assigned_farm_id' => $this->farm->id])->save();
         $blocks = app(FarmBlockService::class);
-        $this->block = $blocks->create($this->farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5', 'commodity_id' => $commodity->id]);
+        $this->block = $blocks->create($this->farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '5', 'commodity_id' => $commodity->id]);
         $this->cycle = $blocks->createBatch($this->block, $this->admin, $this->team);
         $this->cycle->forceFill(['planted_at' => today()->subDays(21), 'reserved_area_ha' => '2', 'planted_area_ha' => '2', 'variety_id' => $variety->id, 'status' => 'active'])->save();
         ActivityType::firstOrCreate(['code' => 'harvest'], ['name' => 'Panen']);
@@ -73,7 +73,7 @@ class ActivityInputLimitsTest extends TestCase
         $second = User::factory()->create(['role' => 'petugas']);
         $this->team->members()->attach($second, ['role' => 'member']);
         $second->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $this->farm->id])->save();
-        $payload = ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'worker_count' => 2,
+        $payload = ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'worker_count' => 2,
             'details' => ['area' => '0.5', 'area_unit' => 'Ha', 'weight' => '100', 'weight_unit' => 'kg'],
             'photos' => [UploadedFile::fake()->image('panen.jpg')]];
         $this->actingAs($second)->post($url, $payload)->assertSessionHasNoErrors();
@@ -91,7 +91,7 @@ class ActivityInputLimitsTest extends TestCase
         $task = $this->task('maintenance', null);
         $url = '/petugas/tasks/'.$task->id.'/aktivitas';
         $this->actingAs($this->petugas)->get($url.'/buat')->assertInertia(fn (Assert $page) => $page->where('areaLimitM2', 12500));
-        $this->post($url, ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'start_time' => '07:00', 'worker_count' => 2,
+        $this->post($url, ['schema' => 'taxonomy', 'work_date' => now('Asia/Jakarta')->toDateString(), 'worker_count' => 2,
             'details' => ['area' => 12501, 'area_unit' => 'm²'],
             'photos' => [UploadedFile::fake()->image('irigasi.jpg')]])->assertSessionHasErrors('details.area');
     }
@@ -100,12 +100,12 @@ class ActivityInputLimitsTest extends TestCase
     {
         $other = new Farm(['name' => 'Kebun Lain', 'land_tenure' => 'owned', 'total_area_ha' => '3']);
         $other->forceFill(['team_id' => $this->team->id, 'created_by' => $this->admin->id])->save();
-        $foreignBlock = app(FarmBlockService::class)->create($other, $this->admin, $this->team, ['code' => 'B02', 'name' => 'Blok Lain', 'area_ha' => '3']);
+        $foreignBlock = app(FarmBlockService::class)->create($other, $this->admin, $this->team, ['name' => 'Blok Lain', 'area_ha' => '3']);
         $this->actingAs($this->petugas)->get('/petugas/aktivitas/mandiri/incident')->assertInertia(fn (Assert $page) => $page
             ->component('petugas/VoluntaryCreate')
             ->where('blocks', fn ($blocks) => collect($blocks)->contains(fn ($block) => $block['id'] === $this->block->id && $block['area_limit_m2'] === 50000)
                 && ! collect($blocks)->contains('id', $foreignBlock->id))
-            ->where('cycles', fn ($cycles) => collect($cycles)->contains(fn ($cycle) => $cycle['id'] === $this->cycle->id && $cycle['area_limit_m2'] === 20000)));
+            ->where('cycles', fn ($cycles) => collect($cycles)->contains(fn ($cycle) => $cycle['id'] === $this->cycle->id && $cycle['block']['id'] === $this->block->id && $cycle['area_limit_m2'] === 20000)));
 
         $this->cycle->forceFill(['planted_area_ha' => '1.2500'])->save();
         $plantingUrl = '/petugas/subbloks/'.$this->cycle->id.'/penanaman';
@@ -132,13 +132,20 @@ class ActivityInputLimitsTest extends TestCase
         $this->actingAs($this->admin)->get('/admin/sops/'.$sop->id)
             ->assertInertia(fn (Assert $page) => $page->component('sops/Show')
                 ->where('numericLimits.offsetDays', ActivityInputLimits::SOP_OFFSET)
-                ->where('numericLimits.toleranceDays', ActivityInputLimits::SOP_TOLERANCE));
+                ->where('numericLimits.toleranceDays', ActivityInputLimits::SOP_TOLERANCE)
+                ->where('numericLimits.hok', ActivityInputLimits::SOP_HOK));
         $url = '/admin/sops/'.$sop->id.'/versions/'.$version->id.'/tasks';
-        $payload = ['activity_category' => 'maintenance', 'name' => 'Perawatan rutin',
-            'offset_days' => ActivityInputLimits::SOP_OFFSET + 1, 'tolerance_days' => ActivityInputLimits::SOP_TOLERANCE + 1];
-        $this->post($url, $payload)->assertSessionHasErrors(['offset_days', 'tolerance_days']);
+        $payload = [
+            'activity_category' => 'maintenance',
+            'name' => 'Perawatan rutin',
+            'offset_days' => ActivityInputLimits::SOP_OFFSET + 1,
+            'tolerance_days' => ActivityInputLimits::SOP_TOLERANCE + 1,
+            'hok' => ActivityInputLimits::SOP_HOK + 1,
+        ];
+        $this->post($url, $payload)->assertSessionHasErrors(['offset_days', 'tolerance_days', 'hok']);
         $payload['offset_days'] = ActivityInputLimits::SOP_OFFSET;
         $payload['tolerance_days'] = ActivityInputLimits::SOP_TOLERANCE;
+        $payload['hok'] = ActivityInputLimits::SOP_HOK;
         $this->post($url, $payload)->assertSessionHasNoErrors();
     }
 

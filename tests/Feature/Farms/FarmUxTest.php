@@ -109,9 +109,9 @@ class FarmUxTest extends TestCase
         $this->getJson('/admin/farm-management/'.$foreign->id.'/deletion-check')->assertForbidden();
         $this->put('/admin/farm-management/'.$foreign->id, ['district_code' => '99.99.99'])->assertForbidden();
         $this->getJson('/admin/farm-management/'.$farm->id.'/deletion-check')->assertOk()->assertJsonPath('blockers', []);
-        $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '10']);
+        $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '10']);
         $this->get('/admin/farm-management/'.$farm->id.'/edit')->assertInertia(fn (Assert $page) => $page->where('farm.capacity.minimum_area_ha', '10.0000'));
-        $this->getJson('/admin/farm-management/'.$farm->id.'/deletion-check')->assertJsonPath('blockers', ['blok kebun']);
+        $this->getJson('/admin/farm-management/'.$farm->id.'/deletion-check')->assertJsonPath('blockers', ['blok lahan']);
         $this->get('/kebun/'.$farm->id.'/blocks/'.$block->id.'/edit')->assertInertia(fn (Assert $page) => $page->where('capacity.maximum_area_ha', '12.5000'));
     }
 
@@ -134,15 +134,15 @@ class FarmUxTest extends TestCase
     {
         $this->seed(\Database\Seeders\BlockMappingActivityTypeSeeder::class);
         $farm = app(FarmService::class)->create(['name' => 'Kebun Pemetaan', 'total_area_ha' => '2'], $this->admin, $this->team);
-        $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '1']);
-        app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['code' => 'B02', 'name' => 'Blok Nonaktif', 'area_ha' => '1', 'is_active' => false]);
+        $block = app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '1']);
+        app(FarmBlockService::class)->create($farm, $this->admin, $this->team, ['name' => 'Blok Nonaktif', 'area_ha' => '1', 'is_active' => false]);
         $petugas = User::factory()->create(['role' => 'petugas']);
         $this->team->members()->attach($petugas, ['role' => 'member']);
         $petugas->forceFill(['current_team_id' => $this->team->id, 'assigned_farm_id' => $farm->id])->save();
         $this->actingAs($petugas);
         $this->get('/kebun/'.$farm->id.'/daily-logs')->assertOk()->assertInertia(fn (Assert $page) => $page->has('blocks', 1)->where('blocks.0.id', $block->id));
         $this->post('/kebun/'.$farm->id.'/daily-logs', [
-            'work_date' => '2026-11-02', 'start_time' => '08:00', 'end_time' => '09:00', 'worker_count' => 2,
+            'work_date' => '2026-11-02', 'worker_count' => 2,
             'activities' => [['type' => 'block_mapping', 'obstacle_status' => 'none', 'block_mapping' => [
                 'block_id' => $block->id, 'block_name' => $block->name, 'length_m' => '10', 'width_m' => '10',
             ]]],

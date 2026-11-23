@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { createSSRApp } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import Dashboard from '@/pages/reference/Dashboard.vue';
@@ -55,7 +55,7 @@ describe('isolated historical mobile reference', () => {
         expect(html).toMatch(/<fieldset[^>]*disabled/);
         expect(html).toContain('Tidak ada panggilan AI maupun jawaban buatan.');
         expect(html).toContain('Halo, ada yang bisa saya bantu?');
-        expect(html).toContain('Pesan untuk asisten kebun');
+        expect(html).toContain('Pesan untuk asisten lahan');
     });
 
     it('URL helper confines historical paths and rejects unknown operations', () => {
@@ -69,10 +69,10 @@ describe('isolated historical mobile reference', () => {
         vi.stubGlobal('window', { setTimeout });
         try {
             const first = await loadFarmDemoState();
-            expect(first.kebun[0].name).toBe('Kebun Sumber Makmur');
+            expect(first.kebun[0].name).toBe('Lahan Sumber Makmur');
             first.kebun[0].name = 'changed only in this test';
             const second = await loadFarmDemoState();
-            expect(second.kebun[0].name).toBe('Kebun Sumber Makmur');
+            expect(second.kebun[0].name).toBe('Lahan Sumber Makmur');
             expect(second.kebun[0].image).not.toMatch(/^\/images\//);
         } finally {
             vi.unstubAllGlobals();

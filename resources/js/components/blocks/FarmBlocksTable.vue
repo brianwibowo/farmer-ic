@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import NumberPagination from '@/components/NumberPagination.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { LoaderCircle, Pencil, Plus, Search, Trash2 } from '@lucide/vue';
 import BlockDialog from './BlockDialog.vue';
 import BlockBatches from './BlockBatches.vue';
+import AppSelect from '@/components/selects/AppSelect.vue';
+import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -20,6 +23,7 @@ import type {
     BlockOptions,
 } from '@/types/blocks';
 import { hectares } from '@/types/farms';
+import { matchesSubblockView, type SubblockView } from '@/lib/subblockView';
 const props = withDefaults(
     defineProps<{
         farm: BlockFarm;
@@ -32,6 +36,7 @@ const props = withDefaults(
         harvestPermissions: Record<string, boolean>;
         clientPagination?: boolean;
         searchable?: boolean;
+        enableBatchFilter?: boolean;
         total?: number;
     }>(),
     { clientPagination: true, searchable: true },
@@ -42,9 +47,10 @@ const selected = ref<ManagedBlock | null>(null);
 const deleting = ref<ManagedBlock | null>(null);
 const search = ref('');
 const currentPage = ref(1);
+const batchView = ref<SubblockView>('running');
 const filtered = computed(() =>
     props.blocks.filter((block) =>
-        `${block.code} ${block.name}`
+        block.name
             .toLocaleLowerCase('id')
             .includes(search.value.trim().toLocaleLowerCase('id')),
     ),
@@ -61,6 +67,17 @@ const rows = computed(() =>
               currentPage.value * 10,
           )
         : filtered.value,
+);
+const displayedRows = computed(() =>
+    rows.value.map((block) => ({
+        ...block,
+        batches:
+            !props.enableBatchFilter || batchView.value === 'all'
+                ? block.batches
+                : block.batches.filter((batch) =>
+                      matchesSubblockView(batch.status, batchView.value),
+                  ),
+    })),
 );
 watch(search, () => (currentPage.value = 1));
 watch(
@@ -88,7 +105,7 @@ function remove(): void {
         >
             <div>
                 <h2 class="admin-section-title text-primary">
-                    Blok kebun
+                    Blok lahan
                     <span
                         class="ml-1 text-sm font-normal text-muted-foreground"
                         >{{ total ?? blocks.length }}</span
@@ -107,8 +124,31 @@ function remove(): void {
                     v-model="search"
                     class="admin-field block-field pl-10"
                     type="search"
-                    placeholder="Cari nama atau kode blok"
+                    placeholder="Cari nama blok"
             /></label>
+        </div>
+        <div
+            v-if="enableBatchFilter && blocks.length"
+            class="px-5 pb-4 sm:px-6"
+        >
+            <label
+                for="batch-status-filter"
+                class="mb-2 block text-sm font-medium"
+            >
+                Status subblok
+            </label>
+            <AppSelect
+                id="batch-status-filter"
+                v-model="batchView"
+                class="admin-field block-field max-w-xs"
+            >
+                <AppSelectOption value="running">Berjalan</AppSelectOption>
+                <AppSelectOption value="harvested"
+                    >Selesai panen</AppSelectOption
+                >
+                <AppSelectOption value="cancelled">Dibatalkan</AppSelectOption>
+                <AppSelectOption value="all">Semua</AppSelectOption>
+            </AppSelect>
         </div>
         <div v-if="blocks.length" class="overflow-x-auto">
             <table class="w-full text-left text-sm">
@@ -141,7 +181,7 @@ function remove(): void {
                     </tr>
                 </thead>
                 <tbody
-                    v-for="block in rows"
+                    v-for="block in displayedRows"
                     :key="block.id"
                     class="border-b-[12px] border-background last:border-b-0"
                 >
@@ -152,18 +192,24 @@ function remove(): void {
                             >
                                 {{ block.name }}
                             </h3>
-                            <p class="text-xs text-muted-foreground">
-                                {{ block.code
-                                }}<span class="sm:hidden">
-                                    ·
-                                    {{
-                                        block.is_active ? 'Aktif' : 'Nonaktif'
-                                    }}</span
-                                >
+                            <p class="text-xs text-muted-foreground sm:hidden">
+                                {{ block.is_active ? 'Aktif' : 'Nonaktif' }}
                             </p>
                             <p class="mt-1 text-xs text-muted-foreground">
-                                {{ options.commodities.find((item) => item.id === block.commodity_id)?.name ?? 'Komoditas belum diatur' }}
-                                · {{ options.sops.find((item) => item.id === block.default_sop_template_id)?.name ?? 'SOP belum diatur' }}
+                                {{
+                                    options.commodities.find(
+                                        (item) =>
+                                            item.id === block.commodity_id,
+                                    )?.name ?? 'Komoditas belum diatur'
+                                }}
+                                ·
+                                {{
+                                    options.sops.find(
+                                        (item) =>
+                                            item.id ===
+                                            block.default_sop_template_id,
+                                    )?.name ?? 'SOP belum diatur'
+                                }}
                             </p>
                         </td>
                         <td
@@ -215,6 +261,10 @@ function remove(): void {
                                 :harvest-permissions="harvestPermissions"
                                 :theme="theme ?? 'admin-dashboard-theme'"
                                 :return-to="returnTo ?? 'blocks'"
+                                :filtered="
+                                    enableBatchFilter && batchView !== 'all'
+                                "
+                                @created="batchView = 'running'"
                             />
                         </td>
                     </tr>
@@ -242,7 +292,7 @@ function remove(): void {
             <p class="mt-1 text-sm text-muted-foreground">
                 {{
                     canCreate
-                        ? 'Tambahkan blok untuk membagi lahan kebun.'
+                        ? 'Tambahkan blok untuk membagi lahan lahan.'
                         : 'Blok akan tampil setelah ditambahkan.'
                 }}
             </p>
@@ -251,22 +301,14 @@ function remove(): void {
             v-if="lastPage > 1"
             class="flex items-center justify-between gap-3 border-t border-border p-4 text-sm"
         >
-            <p class="text-muted-foreground">
-                {{ currentPage }} / {{ lastPage }} · {{ filtered.length }} blok
-            </p>
-            <div class="flex gap-2">
-                <Button
-                    variant="outline"
-                    :disabled="currentPage === 1"
-                    @click="currentPage--"
-                    >Sebelumnya</Button
-                ><Button
-                    variant="outline"
-                    :disabled="currentPage === lastPage"
-                    @click="currentPage++"
-                    >Berikutnya</Button
-                >
-            </div>
+            <p class="text-muted-foreground">{{ filtered.length }} blok</p>
+            <NumberPagination
+                :current-page="currentPage"
+                :total-pages="lastPage"
+                label="Pagination blok"
+                class="ml-auto justify-end"
+                @change="currentPage = $event"
+            />
         </footer>
     </section>
     <BlockDialog
@@ -274,6 +316,7 @@ function remove(): void {
         v-model:open="editing"
         :farm="farm"
         :block="selected"
+        :existing-blocks="blocks"
         :capacity="selected?.capacity ?? capacity!"
         :theme="theme ?? 'admin-dashboard-theme'"
         :return-to="returnTo"
@@ -301,7 +344,7 @@ function remove(): void {
                 ><DialogDescription>{{
                     deleting?.deletionBlocked
                         ? 'Blok memiliki histori. Gunakan Ubah blok untuk menonaktifkannya setelah seluruh sub blok selesai.'
-                        : 'Blok akan dihapus dari kebun. Pastikan blok ini sudah tidak diperlukan.'
+                        : 'Blok akan dihapus dari lahan. Pastikan blok ini sudah tidak diperlukan.'
                 }}</DialogDescription></DialogHeader
             >
             <p v-if="error" role="alert" class="text-sm text-error">

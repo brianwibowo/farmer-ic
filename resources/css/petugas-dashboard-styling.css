@@ -1,4 +1,12 @@
-/* Petugas shares the admin palette/font; only its mobile composition differs. */
+/* Petugas shares the admin palette and uses its own Poppins font. */
+.petugas-dashboard-theme,
+body:has(.petugas-home-content, .petugas-page-content),
+body:has(.petugas-home-content, .petugas-page-content) .admin-dashboard-theme {
+    --font-sans: 'Poppins', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
+}
+
+/* Keep teleported menus, dialogs and alerts on the active Petugas font too. */
 .petugas-dashboard-theme {
     --incident-heavy: #c2410c;
     --admin-panel-padding: 1rem;
@@ -26,11 +34,6 @@
 
 .petugas-home-content {
     flex: 1;
-}
-
-.petugas-incident-heavy {
-    color: var(--incident-heavy);
-    background: color-mix(in srgb, var(--incident-heavy) 10%, transparent);
 }
 
 .petugas-home {
@@ -132,6 +135,46 @@
     font-size: 0.875rem;
     line-height: 1.25rem;
     font-weight: 500;
+}
+
+.petugas-dashboard-theme .petugas-activity-field {
+    min-height: 3rem;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+    padding: 0.75rem;
+    color: var(--foreground);
+    font-size: 1rem;
+}
+
+.petugas-dashboard-theme .petugas-activity-field:hover:not(:disabled) {
+    border-color: var(--ring);
+}
+
+.petugas-dashboard-theme .petugas-activity-field:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.petugas-dashboard-theme .petugas-activity-field[aria-invalid='true'] {
+    border-color: var(--error);
+}
+
+.petugas-dashboard-theme .petugas-activity-field:disabled {
+    background: var(--muted);
+    color: var(--muted-foreground);
+}
+
+.petugas-dashboard-theme #activity-worker-count {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.petugas-dashboard-theme #activity-worker-count::-webkit-inner-spin-button,
+.petugas-dashboard-theme #activity-worker-count::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
 }
 
 @media (min-width: 481px) {

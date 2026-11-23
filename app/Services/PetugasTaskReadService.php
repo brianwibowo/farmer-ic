@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ActivityPhoto;
+use App\Models\Commodity;
 use App\Models\CropVariety;
 use App\Models\DailyActivityLog;
 use App\Models\Farm;
@@ -10,18 +11,23 @@ use App\Models\FarmActivity;
 use App\Models\FarmBlock;
 use App\Models\PlantingCycle;
 use App\Models\PlantingCycleTask;
+use App\Models\PlantObservation;
 use App\Models\User;
 use App\Services\Activity\TaskReportingWindow;
+use App\Support\ActivityPhotoFile;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Gate;
 
 class PetugasTaskReadService
 {
     /** @return array<string, mixed> */
-    public function listing(User $actor, Farm $farm, string $status): array
+    public function listing(User $actor, Farm $farm, string $status, string $view = 'running'): array
     {
         $team = $farm->team;
         $tasks = PlantingCycleTask::visibleTo($actor, $team)
-            ->whereHas('plantingCycle', fn ($query) => $query->where('farm_id', $farm->id))
+            ->whereHas('plantingCycle', fn ($query) => $query->visibleTo($actor, $team)
+                ->where('farm_id', $farm->id)->whereIn('status', SubblockLifecycle::statuses($view)))
             ->get()->map(fn (PlantingCycleTask $task): array => $this->detail($actor, $task));
         $summary = collect(['overdue', 'today', 'upcoming', 'completed'])->mapWithKeys(fn ($key) => [$key => $tasks->where('urgency', $key)->count()])->all();
 
@@ -41,6 +47,8 @@ class PetugasTaskReadService
         $farm = Farm::visibleTo($actor, $team)->findOrFail($cycle->farm_id);
         $block = FarmBlock::visibleTo($actor, $team)->findOrFail($cycle->block_id);
         $variety = CropVariety::visibleTo($actor, $team)->find($cycle->variety_id);
+        $commodityId = $variety === null ? $block->commodity_id : $variety->commodity_id;
+        $commodity = $commodityId !== null ? Commodity::visibleTo($actor, $team)->find($commodityId) : null;
         $today = CarbonImmutable::today('Asia/Jakarta');
         $window = app(TaskReportingWindow::class)->range($task, $cycle);
         $effective = $window['start'] ?? null;
@@ -53,7 +61,7 @@ class PetugasTaskReadService
         };
 
         return [
-            ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'offset_days', 'is_required']),
+            ...$task->only(['id', 'name', 'instructions', 'status', 'activity_category', 'offset_days', 'hok', 'is_required']),
             'scheduled_date' => $effective,
             'reporting_window' => $window,
             'due_date' => $window['end'] ?? null, 'urgency' => $urgency,
@@ -64,9 +72,13 @@ class PetugasTaskReadService
             'can' => ['record' => false, 'complete' => false],
             'subblok' => [
                 'id' => $cycle->id, 'number' => $cycle->getAttribute('batch_number'), 'label' => $cycle->getAttribute('subblock_label'),
+                'status' => $cycle->status,
                 'planned_planting_at' => $cycle->planned_planting_at?->toDateString(), 'planted_at' => $cycle->planted_at?->toDateString(),
-                'hst' => $cycle->planted_at ? (int) $cycle->planted_at->startOfDay()->diffInDays($today, false) : null,
+                'hst' => $cycle->planted_at !== null && $cycle->planted_at->toDateString() <= $today->toDateString()
+                    ? (int) CarbonImmutable::parse($cycle->planted_at->toDateString(), 'Asia/Jakarta')->diffInDays($today)
+                    : null,
                 'farm' => $farm->only(['id', 'name']), 'block' => $block->only(['id', 'name']),
+                'commodity' => $commodity?->only(['id', 'name']),
                 'variety' => $variety?->only(['id', 'name']) ?? ['id' => '', 'name' => 'Belum ditentukan'],
             ],
         ];
@@ -76,18 +88,33 @@ class PetugasTaskReadService
     public function reports(User $actor, PlantingCycleTask $task): array
     {
         $team = $task->plantingCycle->farm->team;
+        $canViewObservations = Gate::forUser($actor)->allows('viewAny', [PlantObservation::class, $team]);
 
-        return array_values(FarmActivity::visibleTo($actor, $team)->where('planting_cycle_task_id', $task->id)->with('performer:id,name')->orderByDesc('activity_date')->get()
-            ->map(function (FarmActivity $activity) use ($actor, $team): array {
+        return array_values(FarmActivity::visibleTo($actor, $team)->where('planting_cycle_task_id', $task->id)
+            ->with([
+                'performer:id,name',
+                ...($canViewObservations ? ['observation' => fn ($q) => $q->visibleTo($actor, $team)] : []),
+            ])
+            ->orderByDesc('activity_date')->get()
+            ->map(function (FarmActivity $activity) use ($actor, $team, $task, $canViewObservations): array {
                 $log = DailyActivityLog::visibleTo($actor, $team)->find($activity->daily_activity_log_id);
+                $decoded = $task->activity_category === 'growth_observation' && ! $canViewObservations
+                    ? null
+                    : json_decode((string) $activity->getAttribute('task_details'), true);
+                $details = is_array($decoded) ? $decoded : [];
+                $observation = $canViewObservations ? $activity->observation : null;
+                if ($observation instanceof PlantObservation && $observation->growth_phase !== null) {
+                    $details = ['growth_phase' => $observation->growth_phase] + $details;
+                }
 
                 return [
                     'id' => $activity->id, 'work_date' => $log?->work_date->toDateString(),
                     'performer_name' => $activity->performer?->name,
-                    'start_time' => $log?->start_time, 'end_time' => $log?->end_time, 'worker_count' => $activity->worker_count,
-                    'notes' => $activity->description, 'details' => json_decode((string) $activity->getAttribute('task_details'), true),
+                    'worker_count' => $activity->worker_count,
+                    'notes' => $activity->description, 'details' => $details === [] ? null : $details,
                     'photos' => ActivityPhoto::visibleTo($actor, $team)->where('activity_id', $activity->id)->get()->map(fn ($photo) => [
                         'id' => $photo->id, 'url' => route('petugas.aktivitas.photos', ['activity' => $activity->id, 'photo' => $photo->id]),
+                        'available' => ActivityPhotoFile::available($photo),
                     ])->all(),
                 ];
             })->all());

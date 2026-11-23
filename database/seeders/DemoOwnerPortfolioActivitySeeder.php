@@ -131,7 +131,8 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $this->record(ActivityPhoto::class, DemoOwnerPortfolioData::id($team, 'photo:'.$key), [
             'activity_id' => $observation->id, 'label' => 'Ilustrasi lahan',
             'caption' => 'Ilustrasi lokal untuk contoh portofolio '.$site['name'].'; bukan foto lapangan aktual.',
-            'image_url' => '/images/kebun-placeholder.svg', 'uploaded_at' => $this->at($observed),
+            'image_url' => \Database\Seeders\Support\DemoUpload::image('activity', 'farms/'.$farm->id.'/'.$observation->id.'/demo.jpg'),
+            'uploaded_at' => $this->at($observed),
         ], $observation, $actor, $team);
         if ($batch['status'] === 'harvested') {
             $this->activity($farm, $cycle, $key, 'harvest', 'harvest', $batch['harvested_at'],
@@ -153,9 +154,9 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         if (! is_array($site['batches'] ?? null)) {
             throw new LogicException('Data batch portofolio tidak valid.');
         }
-        $byBlock = collect($site['batches'])->groupBy('block_code');
-        foreach ($byBlock as $blockCode => $batches) {
-            $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('code', $blockCode)->firstOrFail();
+        $byBlock = collect($site['batches'])->groupBy('block_name');
+        foreach ($byBlock as $blockName => $batches) {
+            $block = FarmBlock::visibleTo($actor, $team)->where('farm_id', $farm->id)->where('name', $blockName)->firstOrFail();
             $reference = $batches->sortBy('planned_planting_at')->first();
             $date = CarbonImmutable::parse($reference['planned_planting_at'], 'Asia/Jakarta');
             $reports = [
@@ -180,12 +181,12 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $attributes = [
             'farm_id' => $farm->id, 'block_id' => $block->id, 'activity_type_id' => $type->id,
             'performed_by' => $performer->id, 'activity_date' => $this->at($when->toDateString()),
-            'description' => $type->name.' '.$block->code, 'status' => 'completed',
+            'description' => $type->name.' '.$block->name, 'status' => 'completed',
         ];
         if ($relation === null) {
             $attributes['task_details'] = json_encode($detail, JSON_THROW_ON_ERROR);
         }
-        $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'block-activity:'.$siteKey.':'.$block->code.':'.$code), $attributes, $farm, $actor, $team);
+        $activity = $this->record(FarmActivity::class, DemoOwnerPortfolioData::id($team, 'block-activity:'.$siteKey.':'.$block->name.':'.$code), $attributes, $farm, $actor, $team);
         $created = $activity->wasRecentlyCreated;
         $this->linkDailyLog($activity, $farm, $actor, $team, $created);
         if ($created) {
@@ -273,14 +274,10 @@ class DemoOwnerPortfolioActivitySeeder extends Seeder
         $headers = app(DailyActivityHeaderService::class);
         $date = $activity->activity_date->setTimezone('Asia/Jakarta')->toDateString();
         if (! $created && $headers->forDate($farm, $actor, $date) === null) {
-            // Existing reports have unknown daily hours; never invent a header for them.
+            // Existing unlinked reports stay unlinked instead of inventing a daily log.
             return;
         }
-        $log = $headers->resolve($farm, $actor, [
-            'work_date' => $date,
-            'start_time' => '08:00', 'end_time' => '16:00',
-            'daily_notes' => 'Jam kerja ini merupakan ilustrasi untuk skenario portofolio demo.',
-        ]);
+        $log = $headers->resolve($farm, $actor, $date);
         $activity->forceFill([
             'daily_activity_log_id' => $log->id,
             'position' => $headers->nextPosition($log, $actor),

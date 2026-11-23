@@ -10,7 +10,6 @@ const page = usePage();
 defineProps<{
     farm: { id: string; name: string };
     log: DailyReport;
-    canUpdate: boolean;
     canRecord: boolean;
 }>();
 </script>
@@ -46,7 +45,6 @@ defineProps<{
                 :farm="farm"
                 :date="log.work_date"
                 :log="log"
-                :can-update="canUpdate"
                 :can-record="canRecord"
             />
         </div>

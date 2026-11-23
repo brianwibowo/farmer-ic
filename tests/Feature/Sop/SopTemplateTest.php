@@ -308,4 +308,79 @@ class SopTemplateTest extends TestCase
 
         $this->actingAs($petugas)->get('/admin/sops/'.$template->id)->assertForbidden();
     }
+
+    public function test_task_hok_is_validated_persisted_updated_cloned_and_returned(): void
+    {
+        $template = $this->createTemplate();
+        $version = $template->versions()->firstOrFail();
+        $url = '/admin/sops/'.$template->id.'/versions/'.$version->id.'/tasks';
+
+        $this->post($url, [...$this->taskPayload(), 'hok' => 0])->assertSessionHasErrors('hok');
+        $this->post($url, [...$this->taskPayload(), 'hok' => -1])->assertSessionHasErrors('hok');
+        $this->post($url, [...$this->taskPayload(), 'hok' => 1.5])->assertSessionHasErrors('hok');
+
+        $this->post($url, [
+            ...$this->taskPayload(),
+            'name' => 'Pemeliharaan HOK',
+            'hok' => '4',
+        ])->assertRedirect();
+
+        $task = $version->tasks()->firstOrFail();
+        $this->assertSame(4, $task->hok);
+
+        $this->put($url.'/'.$task->id, [
+            ...$this->taskPayload(),
+            'name' => 'Pemeliharaan HOK',
+            'hok' => '',
+        ])->assertRedirect();
+        $this->assertNull($task->refresh()->hok);
+
+        $this->put($url.'/'.$task->id, [
+            ...$this->taskPayload(),
+            'name' => 'Pemeliharaan HOK',
+            'hok' => 6,
+        ])->assertRedirect();
+        $this->assertSame(6, $task->refresh()->hok);
+
+        $this->post('/admin/sops/'.$template->id.'/versions/'.$version->id.'/publish')->assertRedirect();
+        $this->post('/admin/sops/'.$template->id.'/versions', ['notes' => 'Salin HOK.'])->assertRedirect();
+
+        $cloned = $template->versions()->where('version', 2)->firstOrFail();
+        $this->assertSame(6, $cloned->tasks()->firstOrFail()->hok);
+
+        $this->get('/admin/sops/'.$template->id)
+            ->assertOk()
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+                ->component('sops/Show')
+                ->where('template.versions', fn ($versions) => collect($versions)->contains(
+                    fn ($v) => $v['version'] === 2
+                        && collect($v['tasks'])->contains(fn ($t) => $t['name'] === 'Pemeliharaan HOK' && $t['hok'] === 6),
+                )));
+    }
+
+    public function test_sop_steps_are_always_required_and_optional_values_are_rejected(): void
+    {
+        $template = $this->createTemplate();
+        $version = $template->versions()->firstOrFail();
+        $url = '/admin/sops/'.$template->id.'/versions/'.$version->id.'/tasks';
+
+        foreach ([false, 0, '0', 'false', null, 'optional'] as $rejected) {
+            $this->post($url, [...$this->taskPayload(), 'is_required' => $rejected])
+                ->assertSessionHasErrors('is_required');
+        }
+
+        $payloadWithoutFlag = $this->taskPayload();
+        unset($payloadWithoutFlag['is_required']);
+        $this->post($url, $payloadWithoutFlag)->assertRedirect();
+
+        $task = $version->tasks()->firstOrFail();
+        $this->assertTrue($task->is_required);
+
+        $this->put($url.'/'.$task->id, [...$payloadWithoutFlag, 'is_required' => false])
+            ->assertSessionHasErrors('is_required');
+        $this->assertTrue($task->refresh()->is_required);
+
+        app(SopTemplateService::class)->createTask($version, [...$payloadWithoutFlag, 'is_required' => false]);
+        $this->assertTrue($version->tasks()->latest('created_at')->firstOrFail()->is_required);
+    }
 }

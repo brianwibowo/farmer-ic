@@ -39,6 +39,11 @@ class PetugasGardenController extends Controller
             abort_if($request->validated('block') !== null, 403);
         }
 
-        return Inertia::render('petugas/Kebun', ['garden' => $gardens->overview($actor, $farm, $team, $selected, (int) $request->validated('page', 1))]);
+        return Inertia::render('petugas/Kebun', [
+            'garden' => $gardens->overview($actor, $farm, $team, $selected, (int) $request->validated('page', 1), $request->validated('view', 'running')),
+            'farmCycleOptions' => $farm !== null ? app(\App\Services\FarmCycleService::class)->options($farm, $actor, $team) : [],
+            'farmCyclesUrl' => $farm !== null && Gate::allows('viewAny', [\App\Models\FarmCycle::class, $team]) ? route('petugas.farm-cycles.index', [], false) : null,
+            'canCreateFarmCycle' => $farm !== null && Gate::allows('create', [\App\Models\FarmCycle::class, $farm]),
+        ]);
     }
 }

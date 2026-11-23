@@ -257,7 +257,7 @@ export function useAiChat(endpoints: AiChatEndpoints = {}) {
                 ) {
                     assistantMessage.progress = isInfographic
                         ? 'Masih menyiapkan gambar…'
-                        : 'Membaca konteks kebun…';
+                        : 'Membaca konteks lahan…';
                 }
             }, 1_800),
             window.setTimeout(() => {

@@ -1,24 +1,31 @@
 <script setup lang="ts">
+import InertiaPagination from '@/components/InertiaPagination.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { LandPlot, Layers, Plus, Sprout } from '@lucide/vue';
 import { ref } from 'vue';
 import GardenFarmCard from '@/components/petugas/GardenFarmCard.vue';
 import GardenBatchCard from '@/components/petugas/GardenBatchCard.vue';
+import GardenBlockCapacity from '@/components/petugas/GardenBlockCapacity.vue';
 import SubblokCreateDialog from '@/components/petugas/SubblokCreateDialog.vue';
+import FarmCycleSummary from '@/components/blocks/FarmCycleSummary.vue';
 import { Button } from '@/components/ui/button';
 import type { PetugasGarden } from '@/types/petugas-garden';
-import { gardenArea, gardenDate } from '@/types/petugas-garden';
 
 defineOptions({ inheritAttrs: false });
 defineProps<{ garden: PetugasGarden }>();
 const createOpen = ref(false);
+function gardenHref(view: PetugasGarden['view'], blockId?: string): string {
+    const params = new URLSearchParams({ view });
+    if (blockId) params.set('block', blockId);
+    return `/petugas/kebun?${params.toString()}`;
+}
 </script>
 
 <template>
-    <Head title="Kebun · Petugas" />
+    <Head title="Lahan · Petugas" />
     <div class="space-y-[var(--admin-content-gap)]">
         <h1 class="text-2xl leading-8 font-semibold tracking-tight">
-            Kebun saya
+            Lahan saya
         </h1>
         <section
             v-if="!garden.farm"
@@ -29,18 +36,22 @@ const createOpen = ref(false);
                 aria-hidden="true"
             />
             <h2 class="mt-3 text-base font-semibold">
-                Belum ada kebun penugasan
+                Belum ada lahan penugasan
             </h2>
             <p class="mt-2 text-sm text-muted-foreground">
-                Hubungi admin untuk penugasan kebun.
+                Hubungi admin untuk penugasan lahan.
             </p>
         </section>
         <template v-else>
-            <GardenFarmCard :farm="garden.farm" :summary="garden.summary" />
+            <FarmCycleSummary :limit="2" />
+            <GardenFarmCard
+                :farm="garden.farm"
+                :summary="garden.summary"
+                :blocks="garden.blocks"
+                :selected-block-id="garden.selected_block?.id ?? null"
+            />
             <section aria-labelledby="garden-blocks" class="space-y-4">
-                <h2 id="garden-blocks" class="admin-section-title">
-                    Blok & subblok
-                </h2>
+                <h2 id="garden-blocks" class="admin-section-title">Blok</h2>
                 <div
                     v-if="!garden.blocks.length"
                     class="petugas-card petugas-empty px-5 py-8 text-center"
@@ -50,97 +61,74 @@ const createOpen = ref(false);
                         aria-hidden="true"
                     />
                     <p class="mt-3 text-sm font-medium">
-                        Belum ada blok pada kebun ini
+                        Belum ada blok pada lahan ini
                     </p>
                 </div>
                 <template v-else>
                     <nav
-                        aria-label="Pilih blok kebun"
+                        aria-label="Pilih blok lahan"
                         class="flex gap-2 overflow-x-auto pb-1"
                     >
                         <Link
                             v-for="block in garden.blocks"
                             :key="block.id"
-                            :href="`/petugas/kebun?block=${encodeURIComponent(block.id)}`"
+                            :href="gardenHref(garden.view, block.id)"
                             preserve-scroll
                             class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
                             :class="
                                 block.id === garden.selected_block?.id
-                                    ? 'border-primary/40 bg-primary/10 text-secondary dark:text-primary'
-                                    : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                                    ? 'border-secondary bg-secondary text-secondary-foreground hover:bg-secondary/90'
+                                    : 'border-border bg-card text-foreground hover:bg-muted'
                             "
                             :aria-current="
                                 block.id === garden.selected_block?.id
                                     ? 'page'
                                     : undefined
                             "
-                            :aria-label="`${block.code}, ${block.name}, ${block.batches_count} subblok${block.is_active ? '' : ', nonaktif'}`"
-                            >{{ block.code
-                            }}<span
-                                class="rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-foreground"
-                                >{{ block.batches_count }}</span
-                            ></Link
+                            :aria-label="`${block.name}, ${block.batches_count} subblok${block.is_active ? '' : ', nonaktif'}`"
+                            >{{ block.name }}</Link
                         >
                     </nav>
                     <template v-if="garden.selected_block">
-                        <div class="petugas-card space-y-3 p-4">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <h3
-                                        class="text-base leading-6 font-semibold break-words"
-                                    >
-                                        {{ garden.selected_block.name }}
-                                    </h3>
-                                    <span
-                                        v-if="!garden.selected_block.is_active"
-                                        class="mt-1 inline-block text-xs text-muted-foreground"
-                                        >Nonaktif</span
-                                    >
-                                </div>
-                                <p
-                                    class="shrink-0 text-xl font-bold tabular-nums"
-                                >
-                                    {{
-                                        gardenArea(
-                                            garden.selected_block.area_ha,
-                                        )
-                                    }}
-                                    <span
-                                        class="text-xs font-normal text-muted-foreground"
-                                        >ha</span
-                                    >
-                                </p>
-                            </div>
-                            <p
-                                v-if="garden.selected_block.description"
-                                class="text-xs leading-5 text-muted-foreground"
+                        <GardenBlockCapacity :block="garden.selected_block" />
+                        <nav
+                            aria-label="Tampilan subblok"
+                            class="flex gap-2 overflow-x-auto"
+                        >
+                            <Link
+                                v-for="view in [
+                                    { value: 'running', label: 'Berjalan' },
+                                    { value: 'history', label: 'Riwayat' },
+                                ] as const"
+                                :key="view.value"
+                                :href="
+                                    gardenHref(
+                                        view.value,
+                                        garden.selected_block.id,
+                                    )
+                                "
+                                preserve-scroll
+                                :aria-current="
+                                    garden.view === view.value
+                                        ? 'page'
+                                        : undefined
+                                "
+                                class="inline-flex min-h-11 shrink-0 items-center rounded-xl border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                                :class="
+                                    garden.view === view.value
+                                        ? 'border-secondary bg-secondary text-secondary-foreground'
+                                        : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                                "
+                                >{{ view.label }}</Link
                             >
-                                {{ garden.selected_block.description }}
-                            </p>
-                            <p
-                                class="text-xs leading-5 text-secondary dark:text-primary"
-                            >
-                                Land clearing ·
-                                {{
-                                    garden.selected_block
-                                        .land_clearing_completed_at
-                                        ? `Laporan terakhir ${gardenDate(garden.selected_block.land_clearing_completed_at)}`
-                                        : 'Belum ada laporan'
-                                }}
-                            </p>
-                        </div>
-                        <div class="flex flex-wrap items-center justify-between gap-3">
+                        </nav>
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-3"
+                        >
                             <div>
                                 <h3 class="text-base font-semibold">Subblok</h3>
                                 <p class="text-xs text-muted-foreground">
-                                    {{ garden.batches.total }} batch · Sisa
-                                    lahan
-                                    {{
-                                        gardenArea(
-                                            garden.selected_block.available_ha,
-                                        )
-                                    }}
-                                    ha
+                                    {{ garden.batches.total }} batch
                                 </p>
                             </div>
                             <Button
@@ -149,12 +137,13 @@ const createOpen = ref(false);
                                     garden.selected_block.is_active
                                 "
                                 type="button"
-                                variant="outline"
+                                variant="default"
                                 size="sm"
                                 class="min-h-11 rounded-xl"
                                 :disabled="
-                                    Number(garden.selected_block.available_ha) <=
-                                    0
+                                    Number(
+                                        garden.selected_block.available_ha,
+                                    ) <= 0
                                 "
                                 :aria-label="`Tambah subblok di ${garden.selected_block.name}`"
                                 @click="createOpen = true"
@@ -188,7 +177,11 @@ const createOpen = ref(false);
                                 aria-hidden="true"
                             />
                             <p class="mt-3 text-sm font-medium">
-                                Belum ada subblok pada blok ini
+                                {{
+                                    garden.view === 'history'
+                                        ? 'Belum ada riwayat subblok pada blok ini'
+                                        : 'Belum ada subblok berjalan pada blok ini'
+                                }}
                             </p>
                         </div>
                         <ul
@@ -203,42 +196,12 @@ const createOpen = ref(false);
                                 <GardenBatchCard :batch="batch" />
                             </li>
                         </ul>
-                        <nav
+                        <InertiaPagination
                             v-if="garden.batches.last_page > 1"
-                            aria-label="Halaman subblok"
-                            class="flex flex-wrap items-center justify-between gap-2 [&_a]:h-11 [&_a]:rounded-xl [&_button]:h-11 [&_button]:rounded-xl"
-                        >
-                            <Button
-                                v-if="garden.batches.prev_page_url"
-                                as-child
-                                variant="outline"
-                                size="sm"
-                                ><Link
-                                    :href="garden.batches.prev_page_url"
-                                    preserve-scroll
-                                    >Sebelumnya</Link
-                                ></Button
-                            ><Button v-else variant="outline" size="sm" disabled
-                                >Sebelumnya</Button
-                            ><span
-                                class="text-xs text-muted-foreground"
-                                aria-current="page"
-                                >{{ garden.batches.current_page }} /
-                                {{ garden.batches.last_page }}</span
-                            ><Button
-                                v-if="garden.batches.next_page_url"
-                                as-child
-                                variant="outline"
-                                size="sm"
-                                ><Link
-                                    :href="garden.batches.next_page_url"
-                                    preserve-scroll
-                                    >Berikutnya</Link
-                                ></Button
-                            ><Button v-else variant="outline" size="sm" disabled
-                                >Berikutnya</Button
-                            >
-                        </nav>
+                            :paginator="garden.batches"
+                            label="Pagination subblok"
+                            class="ml-auto justify-end"
+                        />
                         <SubblokCreateDialog
                             v-model:open="createOpen"
                             :blocks="[garden.selected_block]"

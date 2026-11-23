@@ -118,7 +118,7 @@ Table planting_cycles {
   reserved_area_ha decimal(12,4) [note: 'Kolom alokasi legacy (>= 0 dan disinkronkan dengan planted_area_ha pada subblok; null bila block_id null); bukan batas pra-tanam > 0']
   planted_area_ha decimal(12,4) [not null, default: 0, note: 'Luas realisasi tanam dinamis (>= 0; 0 saat persiapan); mendefinisikan luas subblok dalam sisa kapasitas blok dan kebun']
   planned_planting_at date
-  planted_at date [note: 'Tanggal realisasi tanam pertama; nullable selama persiapan']
+  planted_at date [note: 'Acuan H+0 HST (selalu ditetapkan satu hari setelah tanggal penanaman pertama subblok); nullable selama persiapan']
   estimated_harvest_at date
   estimated_weight_ton decimal(14,3)
   closed_at timestamptz
@@ -174,15 +174,12 @@ Table daily_activity_logs {
   farm_id uuid [not null, ref: > farms.id]
   recorded_by uuid [not null, ref: > users.id]
   work_date date [not null]
-  start_time time [not null]
-  end_time time [not null]
-  worker_count int [not null]
-  notes text
   created_at timestamptz [not null]
   updated_at timestamptz
 
   indexes {
     (id, farm_id) [unique]
+    (farm_id, work_date) [unique]
   }
 }
 

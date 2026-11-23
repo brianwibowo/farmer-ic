@@ -13,6 +13,7 @@ use App\Models\PlantingCycleTask;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\PlantingCycleTaskManagementService;
+use App\Support\SubblockLifecycle;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -39,8 +40,8 @@ class TaskManagementController extends Controller
         ], $request->validated());
 
         $base = $this->baseQuery($user, $team, $filters);
-        $summary = $this->summary($base);
-        $query = $this->filteredQuery(clone $base, $filters);
+        $summary = $this->summary($base, $user, $team);
+        $query = $this->filteredQuery(clone $base, $filters, $user, $team);
 
         return Inertia::render('tasks/Index', [
             'tasks' => $query->paginate((int) $filters['per_page'])->withQueryString()
@@ -53,12 +54,11 @@ class TaskManagementController extends Controller
                 ->get(['id', 'name']),
             'blocks' => FarmBlock::query()
                 ->visibleTo($user, $team)
-                ->orderBy('code')
-                ->get(['id', 'farm_id', 'code', 'name'])
+                ->orderBy('name')
+                ->get(['id', 'farm_id', 'name'])
                 ->map(fn (FarmBlock $block): array => [
                     'id' => $block->id,
                     'farm_id' => $block->farm_id,
-                    'code' => $block->code,
                     'name' => $block->name,
                 ])->all(),
             'subbloks' => PlantingCycle::query()
@@ -141,7 +141,7 @@ class TaskManagementController extends Controller
      * @param  array<string, mixed>  $filters
      * @return Builder<PlantingCycleTask>
      */
-    private function filteredQuery(Builder $query, array $filters): Builder
+    private function filteredQuery(Builder $query, array $filters, User $user, Team $team): Builder
     {
         if (($filters['search'] ?? '') !== '') {
             $search = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $filters['search']).'%';
@@ -151,8 +151,7 @@ class TaskManagementController extends Controller
                         ->where('subblock_label', 'ilike', $search)
                         ->orWhereHas('farm', fn (Builder $farm) => $farm->where('name', 'ilike', $search))
                         ->orWhereHas('block', fn (Builder $block) => $block
-                            ->where('name', 'ilike', $search)
-                            ->orWhere('code', 'ilike', $search)));
+                            ->where('name', 'ilike', $search)));
             });
         }
 
@@ -163,16 +162,20 @@ class TaskManagementController extends Controller
             $view = 'all';
         } else {
             $view = (string) ($filters['view'] ?? 'actionable');
-            $this->applyView($query, $view);
+            $this->applyView($query, $view, $user, $team);
         }
 
         return $this->order($query, $view);
     }
 
     /** @param Builder<PlantingCycleTask> $query */
-    private function applyView(Builder $query, string $view): void
+    private function applyView(Builder $query, string $view, User $user, Team $team): void
     {
         $today = CarbonImmutable::today()->toDateString();
+
+        if (in_array($view, ['actionable', 'overdue', 'today', 'upcoming'], true)) {
+            $query->whereHas('plantingCycle', fn (Builder $cycle) => $cycle->visibleTo($user, $team)->whereIn('status', SubblockLifecycle::RUNNING));
+        }
 
         switch ($view) {
             case 'completed':
@@ -238,7 +241,7 @@ class TaskManagementController extends Controller
             )
             ->orderByRaw('COALESCE(rescheduled_date, scheduled_date) ASC NULLS LAST')
             ->orderBy('offset_days')
-            ->orderByRaw("CASE activity_category WHEN 'planting' THEN 1 WHEN 'maintenance' THEN 2 WHEN 'harvest' THEN 3 ELSE 4 END")
+            ->orderByRaw(PlantingCycleTask::CATEGORY_ORDER_SQL)
             ->orderBy('created_at')
             ->orderBy('id');
     }
@@ -247,18 +250,21 @@ class TaskManagementController extends Controller
      * @param  Builder<PlantingCycleTask>  $query
      * @return array{total: int, open: int, overdue: int, today: int, completed: int}
      */
-    private function summary(Builder $query): array
+    private function summary(Builder $query, User $user, Team $team): array
     {
         $today = CarbonImmutable::today()->toDateString();
 
         return [
             'total' => (clone $query)->count(),
-            'open' => (clone $query)->whereIn('status', ['pending', 'in_progress'])->count(),
-            'overdue' => (clone $query)->whereNotIn('status', self::TERMINAL_STATUSES)
+            'open' => (clone $query)->whereHas('plantingCycle', fn (Builder $cycle) => $cycle->visibleTo($user, $team)->whereIn('status', SubblockLifecycle::RUNNING))
+                ->whereIn('status', ['pending', 'in_progress'])->count(),
+            'overdue' => (clone $query)->whereHas('plantingCycle', fn (Builder $cycle) => $cycle->visibleTo($user, $team)->whereIn('status', SubblockLifecycle::RUNNING))
+                ->whereNotIn('status', self::TERMINAL_STATUSES)
                 ->whereNotNull('due_date')
                 ->whereRaw('COALESCE(rescheduled_date, scheduled_date) IS NOT NULL')
                 ->where('due_date', '<', $today)->count(),
-            'today' => (clone $query)->whereNotIn('status', self::TERMINAL_STATUSES)
+            'today' => (clone $query)->whereHas('plantingCycle', fn (Builder $cycle) => $cycle->visibleTo($user, $team)->whereIn('status', SubblockLifecycle::RUNNING))
+                ->whereNotIn('status', self::TERMINAL_STATUSES)
                 ->whereNotNull('due_date')
                 ->whereRaw('COALESCE(rescheduled_date, scheduled_date) IS NOT NULL')
                 ->whereRaw('COALESCE(rescheduled_date, scheduled_date) <= ?', [$today])
@@ -272,6 +278,7 @@ class TaskManagementController extends Controller
     {
         $cycle = $task->plantingCycle;
         $block = $cycle?->block;
+        $canViewCycle = $cycle !== null && Gate::allows('view', $cycle);
         $effective = $task->effectiveScheduledDate();
         $overdueDays = null;
         if ($task->due_date !== null && $this->urgency($task) === 'overdue') {
@@ -288,6 +295,7 @@ class TaskManagementController extends Controller
             'overdue_days' => $overdueDays,
             'activity_category' => $task->activity_category,
             'offset_days' => $task->offset_days,
+            'hok' => $task->hok,
             'scheduled_date' => $task->scheduled_date?->toDateString(),
             'due_date' => $task->due_date?->toDateString(),
             'effective_scheduled_date' => $effective?->toDateString(),
@@ -301,17 +309,20 @@ class TaskManagementController extends Controller
             'completion_note' => $task->getAttribute('completion_note'),
             'created_at' => $task->created_at?->toISOString(),
             'farm' => $cycle?->farm?->only(['id', 'name']),
-            'block' => $block?->only(['id', 'code', 'name']),
-            'subblok' => $cycle === null ? null : [
+            'block' => $block?->only(['id', 'name']),
+            'subblok' => ! $canViewCycle ? null : [
                 'id' => $cycle->id,
                 'number' => $cycle->batch_number,
                 'label' => $cycle->subblock_label,
-                'planted_at' => Gate::allows('view', $cycle) ? $cycle->planted_at?->toDateString() : null,
+                'status' => $cycle->status,
+                'planted_at' => $cycle->planted_at?->toDateString(),
             ],
             'stage' => $task->stage?->only(['code']),
             'sop_version' => $cycle?->sopTemplateVersion?->only(['id', 'version']),
             'can' => [
-                'update' => Gate::allows('update', $task) && in_array($task->status, ['pending', 'in_progress'], true),
+                'update' => Gate::allows('update', $task) && $canViewCycle
+                    && in_array($cycle->status, SubblockLifecycle::RUNNING, true)
+                    && in_array($task->status, ['pending', 'in_progress'], true),
             ],
         ];
     }
@@ -344,7 +355,7 @@ class TaskManagementController extends Controller
     {
         return [
             'plantingCycle.farm:id,name,team_id',
-            'plantingCycle.block:id,code,name',
+            'plantingCycle.block:id,name',
             'plantingCycle.variety:id,name',
             'plantingCycle.sopTemplateVersion:id,version',
             'stage:id,code',

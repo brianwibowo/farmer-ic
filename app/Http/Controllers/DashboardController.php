@@ -49,7 +49,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'pendingInvitations' => $pendingInvitations,
-            'dashboard' => $this->dashboard->summary($request->user(), $team, $filters, includeMapPreviews: true),
+            'dashboard' => $this->dashboard->summary($request->user(), $team, $filters, includeMapPreviews: true, paginateActivities: true),
         ]);
     }
 }

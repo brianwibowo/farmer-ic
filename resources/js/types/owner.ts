@@ -1,3 +1,4 @@
+import type { GeoJsonPolygon } from '@/lib/geoPolygon';
 import type { BatchStage } from '@/types/blocks';
 
 export type OwnerPaginator<T> = {
@@ -20,7 +21,6 @@ export type OwnerFarmRow = {
 };
 export type OwnerBlock = {
     id: string;
-    code: string;
     name: string;
     area_ha: string;
     description: string | null;
@@ -28,6 +28,8 @@ export type OwnerBlock = {
     cycles_count: number;
     land_clearing_started_at?: string | null;
     land_clearing_completed_at?: string | null;
+    boundary_geojson?: GeoJsonPolygon | null;
+    mapped_area_ha?: string | null;
 };
 export type OwnerCycle = {
     id: string;

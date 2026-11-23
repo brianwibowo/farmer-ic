@@ -6,5 +6,11 @@
 export const ESRI_WORLD_IMAGERY_URL =
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
+export const ESRI_REFERENCE_TRANSPORTATION_URL =
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}';
+
+export const ESRI_REFERENCE_PLACES_URL =
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
+
 export const ESRI_WORLD_IMAGERY_ATTRIBUTION =
     'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';

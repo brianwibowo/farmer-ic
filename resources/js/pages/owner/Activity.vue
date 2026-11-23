@@ -49,7 +49,7 @@ function photoFailed(id: string): void {
                         :href="`/kebun/${activity.farm.id}`"
                         class="rounded text-secondary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-primary"
                         >{{ activity.farm.name }}</Link
-                    ><span v-else>Kebun tidak tersedia</span>
+                    ><span v-else>Lahan tidak tersedia</span>
                 </p>
                 <p class="flex items-start gap-2">
                     <UserRound
@@ -68,11 +68,20 @@ function photoFailed(id: string): void {
                 v-if="activity.cycle || activity.block_name"
                 class="mt-3 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"
             >
-                {{ [activity.block_name, activity.cycle?.label].filter(Boolean).join(' · ') }}
+                {{
+                    [activity.block_name, activity.cycle?.label]
+                        .filter(Boolean)
+                        .join(' · ')
+                }}
             </p>
         </section>
 
-        <p v-if="activity.worker_count !== null" class="text-sm text-muted-foreground">Jumlah pekerja aktivitas: {{ activity.worker_count }} orang</p>
+        <p
+            v-if="activity.worker_count !== null"
+            class="text-sm text-muted-foreground"
+        >
+            Jumlah pekerja aktivitas: {{ activity.worker_count }} orang
+        </p>
         <section
             v-if="activity.details.length"
             class="rounded-xl border border-border bg-card p-4"
@@ -140,23 +149,6 @@ function photoFailed(id: string): void {
                         {{ ownerReadDate(activity.log.work_date) }}
                     </dd>
                 </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">Jam kerja</dt>
-                    <dd class="mt-1 text-sm">
-                        {{ activity.log.start_time.slice(0, 5) }}–{{
-                            activity.log.end_time?.slice(0, 5) ?? 'Belum diisi'
-                        }}
-                        WIB
-                    </dd>
-                </div>
-                <div v-if="activity.log.notes" class="col-span-2">
-                    <dt class="text-xs text-muted-foreground">
-                        Catatan harian
-                    </dt>
-                    <dd class="mt-1 text-sm leading-6 whitespace-pre-line">
-                        {{ activity.log.notes }}
-                    </dd>
-                </div>
             </dl>
         </section>
 
@@ -181,7 +173,7 @@ function photoFailed(id: string): void {
                             :alt="
                                 photo.caption ||
                                 photo.label ||
-                                'Dokumentasi aktivitas kebun'
+                                'Dokumentasi aktivitas lahan'
                             "
                             loading="lazy"
                             decoding="async"

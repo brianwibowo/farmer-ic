@@ -98,13 +98,13 @@ class FarmSnapshotService
 
         foreach ($gardens as $garden) {
             $name = $this->normalise((string) $garden['name']);
-            $aliases = [$name, $this->normalise((string) $garden['id']), (string) preg_replace('/^kebun\s+/u', '', $name)];
+            $aliases = [$name, $this->normalise((string) $garden['id']), (string) preg_replace('/^(?:kebun|lahan)\s+/u', '', $name)];
             $positions = [];
             foreach ($aliases as $alias) {
                 if (preg_match_all('/(?<![\pL\pN])'.preg_quote($alias, '/').'(?=$|[^\pL\pN])/u', $text, $found, PREG_OFFSET_CAPTURE)) {
                     foreach ($found[0] as [$phrase, $position]) {
                         $prefix = substr($text, max(0, $position - 100), min(100, $position));
-                        if (preg_match('/(?:tanpa|kecuali|exclude|jangan\s+(?:sertakan|tampilkan|masukkan))\s+(?:kebun\s+)?$/u', $prefix)) {
+                        if (preg_match('/(?:tanpa|kecuali|exclude|jangan\s+(?:sertakan|tampilkan|masukkan))\s+(?:(?:kebun|lahan)\s+)?$/u', $prefix)) {
                             $excluded[(string) $garden['id']] = true;
                         } else {
                             $positions[] = $position;
@@ -117,7 +117,7 @@ class FarmSnapshotService
             }
         }
 
-        $hasGardenWord = (bool) preg_match('/\b(kebun|perkebunan|farm|farms|farmdemodata(?:\.json)?)\b/u', $text);
+        $hasGardenWord = (bool) preg_match('/\b(kebun|lahan|perkebunan|farm|farms|farmdemodata(?:\.json)?)\b/u', $text);
         $hasDataRequest = (bool) preg_match('/\b(ringkasan|rekap|data|dashboard|kondisi|komparasi|bandingkan|perbandingan|luas|lahan|status|risiko|resiko|pertumbuhan|panen|seluruh|semua|all)\b/u', $text);
         $newEducationalTopic = (bool) preg_match('/\b(pemupukan|pupuk|cara\s+(?:menanam|merawat)|tutorial|panduan\s+(?:tanam|menanam|pemeliharaan)|edukasi|edukatif)\b/u', $text)
             || (bool) preg_match('/\b(?:ilustrasi|gambar)\b.*\btanaman\b.*\btanpa\s+(?:teks|angka)\b/u', $text);
@@ -139,7 +139,7 @@ class FarmSnapshotService
             'fields' => [],
             'layout' => 'summary',
             'orientation' => 'portrait',
-            'title' => 'Ringkasan Kebun',
+            'title' => 'Ringkasan Lahan',
             'theme' => 'green',
             'facts' => [],
             'warnings' => [],
@@ -148,12 +148,12 @@ class FarmSnapshotService
             return array_replace($base, ['message' => 'Data farmDemoData.json belum dapat dibaca. Infografis tidak dibuat agar tidak menampilkan data rekaan.']);
         }
         if ($unknownFarm) {
-            return array_replace($base, ['message' => 'Ada nama kebun yang tidak tercatat di farmDemoData.json. Pilih nama kebun yang tersedia atau minta seluruh kebun.']);
+            return array_replace($base, ['message' => 'Ada nama lahan yang tidak tercatat di farmDemoData.json. Pilih nama lahan yang tersedia atau minta seluruh lahan.']);
         }
 
         uasort($matches, fn (array $a, array $b): int => $a['position'] <=> $b['position']);
         $selected = array_column(array_values($matches), 'garden');
-        $all = (bool) preg_match('/\b(semua|seluruh|all)\s+(?:(?:data|ringkasan|daftar|lima|5)\s+)?(?:kebun|perkebunan|farm|farms)\b|\b(?:kebun|farm)\s+(?:semuanya|seluruhnya)\b/u', $text);
+        $all = (bool) preg_match('/\b(semua|seluruh|all)\s+(?:(?:data|ringkasan|daftar|lima|5)\s+)?(?:kebun|lahan|perkebunan|farm|farms)\b|\b(?:kebun|lahan|farm)\s+(?:semuanya|seluruhnya)\b/u', $text);
         $fromCorpus = (bool) preg_match('/\bfarmdemodata(?:\.json)?\b/u', $text);
         $filter = $this->farmFilters($text);
         if ($all || ($selected === [] && ($filter !== [] || $fromCorpus))) {
@@ -180,16 +180,16 @@ class FarmSnapshotService
             return true;
         }));
         if ($selected === []) {
-            return array_replace($base, ['message' => $filter !== [] ? 'Tidak ada kebun dalam farmDemoData.json yang cocok dengan filter tersebut.' : 'Kebun mana yang ingin ditampilkan? Sebutkan nama kebun atau pilih seluruh kebun dari farmDemoData.json.']);
+            return array_replace($base, ['message' => $filter !== [] ? 'Tidak ada lahan dalam farmDemoData.json yang cocok dengan filter tersebut.' : 'Lahan mana yang ingin ditampilkan? Sebutkan nama lahan atau pilih seluruh lahan dari farmDemoData.json.']);
         }
         if (preg_match('/\b(bandingkan|perbandingan|komparasi|compare|versus|vs)\b/u', $text) && count($selected) < 2) {
-            return array_replace($base, ['message' => 'Perbandingan memerlukan minimal dua kebun yang tercatat. Sebutkan kedua nama kebun.']);
+            return array_replace($base, ['message' => 'Perbandingan memerlukan minimal dua lahan yang tercatat. Sebutkan kedua nama lahan.']);
         }
 
         $farms = array_map(fn (array $garden): array => $this->snapshot($garden, $root), $selected);
         $fields = $this->selectedFields($text);
         if ($fields === null) {
-            return array_replace($base, ['message' => 'Semua informasi yang dipilih juga dikecualikan dalam prompt. Pilih informasi kebun yang ingin ditampilkan.']);
+            return array_replace($base, ['message' => 'Semua informasi yang dipilih juga dikecualikan dalam prompt. Pilih informasi lahan yang ingin ditampilkan.']);
         }
         if ($fields === [] && $this->hasUnsupportedOnlySelection($text, $gardens)) {
             return array_replace($base, ['message' => 'Informasi yang diminta belum tersedia dalam farmDemoData.json. Pilih luas lahan, komoditas, status, pertumbuhan, risiko, tindak lanjut, bobot panen, kondisi tanaman, cuaca, tanggal, lokasi, atau alamat.']);
@@ -223,9 +223,9 @@ class FarmSnapshotService
         } elseif (preg_match('/\b(hijau|green)\b/u', $text)) {
             $theme = 'green';
         }
-        $title = count($farms) === 1 ? 'Ringkasan '.$farms[0]['name'] : (count($farms) === count($gardens) ? 'Ringkasan Seluruh Kebun' : 'Perbandingan Kebun');
+        $title = count($farms) === 1 ? 'Ringkasan '.$farms[0]['name'] : (count($farms) === count($gardens) ? 'Ringkasan Seluruh Lahan' : 'Perbandingan Lahan');
         if ($layout === 'risk') {
-            $title = count($farms) === 1 ? 'Risiko '.$farms[0]['name'] : 'Risiko Kebun';
+            $title = count($farms) === 1 ? 'Risiko '.$farms[0]['name'] : 'Risiko Lahan';
         }
         if (preg_match('/(?:judul|title)\s*(?::|=)?\s*["“\']([^"”\'\r\n]{1,100})["”\']/iu', $prompt, $titleMatch)) {
             $title = trim(strip_tags($titleMatch[1]));
@@ -287,7 +287,7 @@ class FarmSnapshotService
             'insight' => $snapshot['insight'] ?? [],
         ];
 
-        return 'Data kebun terverifikasi dari farmDemoData.json. Gunakan hanya fakta JSON berikut; jangan menambah atau menebak atribut yang tidak tercantum. Jika atribut tidak tercantum, jangan tampilkan. '
+        return 'Data lahan terverifikasi dari farmDemoData.json. Gunakan hanya fakta JSON berikut; jangan menambah atau menebak atribut yang tidak tercantum. Jika atribut tidak tercantum, jangan tampilkan. '
             .json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)
             .' Jangan mengubah angka, nama, komoditas, lokasi, status, atau satuan.';
     }
@@ -363,12 +363,12 @@ class FarmSnapshotService
         if (preg_match('/\bkebun-\d+\b/u', $knownText)) {
             return true;
         }
-        if (! preg_match_all('/\bkebun\s+([\pL][\pL\s-]*)/u', $knownText, $mentions)) {
+        if (! preg_match_all('/\b(?:kebun|lahan)\s+([\pL][\pL\s-]*)/u', $knownText, $mentions)) {
             return false;
         }
         foreach ($mentions[1] as $mention) {
             $firstWord = explode(' ', trim($mention))[0];
-            if (! in_array($firstWord, ['yang', 'berstatus', 'dengan', 'untuk', 'dari', 'pada', 'di', 'dan', 'atau', 'ini', 'itu', 'tersebut', 'saya', 'kami', 'saja', 'hanya', 'jagung', 'kedelai', 'rumput', 'sehat', 'kritis', 'seluruhnya', 'semuanya', 'berikut', 'secara', 'tanpa', 'kecuali', 'dalam'], true)) {
+            if (! in_array($firstWord, ['yang', 'berstatus', 'dengan', 'untuk', 'dari', 'pada', 'di', 'dan', 'atau', 'ini', 'itu', 'tersebut', 'saya', 'kami', 'saja', 'hanya', 'jagung', 'kedelai', 'rumput', 'sehat', 'kritis', 'seluruhnya', 'semuanya', 'berikut', 'secara', 'tanpa', 'kecuali', 'dalam', 'tersedia', 'terpakai', 'tanam', 'total'], true)) {
                 return true;
             }
         }
@@ -381,12 +381,12 @@ class FarmSnapshotService
     {
         $filters = [];
         foreach (['jagung', 'kedelai', 'rumput'] as $crop) {
-            if (preg_match('/\b(?:kebun|komoditas|tanaman|jenis)\s+'.preg_quote($crop, '/').'\b/u', $text)) {
+            if (preg_match('/\b(?:kebun|lahan|komoditas|tanaman|jenis)\s+'.preg_quote($crop, '/').'\b/u', $text)) {
                 $filters['seedType'] = $crop;
             }
         }
         foreach (['perlu perhatian', 'kritis', 'sehat'] as $status) {
-            if (preg_match('/\b(?:berstatus|status|kebun|kondisi)\s+'.preg_quote($status, '/').'\b/u', $text)) {
+            if (preg_match('/\b(?:berstatus|status|kebun|lahan|kondisi)\s+'.preg_quote($status, '/').'\b/u', $text)) {
                 $filters['healthStatus'] = $status;
                 break;
             }
@@ -418,7 +418,8 @@ class FarmSnapshotService
         $fields = $allFields ? $this->fieldKeys() : [];
         $used = (bool) preg_match('/\b(?:terpakai|ditanami|tertanam|luas\s+tanam|lahan\s+tanam)\b/u', $text);
         $available = (bool) preg_match('/\b(?:total\s+(?:lahan|luas)|luas\s+total|kapasitas|(?:lahan|luas)\s+tersedia)\b/u', $text);
-        if ($used || $available || preg_match('/\b(luas|lahan|area)\b/u', $text)) {
+        // "Lahan" alone names the resource; only an explicit area request selects hectares.
+        if ($used || $available || preg_match('/\b(luas|area)\b/u', $text)) {
             if ($used || ! $available) {
                 $fields[] = 'used_hectare';
             }
@@ -465,14 +466,14 @@ class FarmSnapshotService
         $selectionText = $selection[1];
         foreach ($gardens as $garden) {
             $name = $this->normalise((string) $garden['name']);
-            foreach ([$name, (string) preg_replace('/^kebun\s+/u', '', $name), (string) $garden['id']] as $known) {
+            foreach ([$name, (string) preg_replace('/^(?:kebun|lahan)\s+/u', '', $name), (string) $garden['id']] as $known) {
                 $selectionText = (string) preg_replace('/(?<![\pL\pN])'.preg_quote($known, '/').'(?=$|[^\pL\pN])/u', '', $selectionText);
             }
         }
         // Restricting which farms appear is valid without selecting a metric.
         // Anything beyond these identity/filter/presentation words requires a
         // supported field, rather than silently restoring the full summary.
-        $selectionText = (string) preg_replace('/\b(kebun|perkebunan|farm|farms|ringkasan|rekap|data|infografis|infographic|grafik|gambar|buat|buatkan|tampilkan|sertakan|pilih|untuk|yang|berstatus|berkomoditas|dan|atau|ini|itu|tersebut|saja|seluruh|semua|dari|dengan|ke|di|sehat|kritis|perlu\s+perhatian|jagung|kedelai|rumput|portrait|potrait|landscape|horizontal|vertikal|bar|batang|pie|donut|donat|tema|warna|hijau|biru|monokrom|monochrome)\b/u', '', $selectionText);
+        $selectionText = (string) preg_replace('/\b(kebun|lahan|perkebunan|farm|farms|ringkasan|rekap|data|infografis|infographic|grafik|gambar|buat|buatkan|tampilkan|sertakan|pilih|untuk|yang|berstatus|berkomoditas|dan|atau|ini|itu|tersebut|saja|seluruh|semua|dari|dengan|ke|di|sehat|kritis|perlu\s+perhatian|jagung|kedelai|rumput|portrait|potrait|landscape|horizontal|vertikal|bar|batang|pie|donut|donat|tema|warna|hijau|biru|monokrom|monochrome)\b/u', '', $selectionText);
 
         return (bool) preg_match('/[\pL\pN]/u', $selectionText);
     }
@@ -487,7 +488,7 @@ class FarmSnapshotService
     {
         return [
             'used_hectare' => 'Luas terpakai', 'available_hectare' => 'Total lahan',
-            'crop' => 'Komoditas dan varietas', 'status' => 'Status kebun',
+            'crop' => 'Komoditas dan varietas', 'status' => 'Status lahan',
             'growth' => 'Pertumbuhan', 'risk' => 'Risiko', 'next_step' => 'Tindak lanjut',
             'weight_ton' => 'Bobot panen', 'plant_condition' => 'Kondisi tanaman',
             'weather' => 'Cuaca', 'planted_at' => 'Tanggal tanam', 'harvest_at' => 'Tanggal panen',
@@ -543,6 +544,7 @@ class FarmSnapshotService
     private function normalise(string $value): string
     {
         $value = trim(mb_strtolower($value, 'UTF-8'));
+        $value = (string) preg_replace('/\bkebun(?=\s|$)/u', 'lahan', $value);
         $value = (string) preg_replace('/\s+/u', ' ', $value);
 
         return trim($value);

@@ -74,14 +74,6 @@ onUnmounted(() => stop.forEach((unsubscribe) => unsubscribe()));
         :icon="section.icon"
     >
         <div class="min-w-0 space-y-5" :aria-busy="loading">
-            <p
-                v-if="loading || feedback"
-                :role="failed ? 'alert' : 'status'"
-                class="text-xs leading-5"
-                :class="failed ? 'text-error' : 'text-muted-foreground'"
-            >
-                {{ loading ? 'Memuat data…' : feedback }}
-            </p>
             <slot />
         </div>
     </AdminWorkspaceLayout>

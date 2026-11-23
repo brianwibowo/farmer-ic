@@ -20,8 +20,16 @@ const props = withDefaults(
         error?: string;
         focus?: FarmMapFocus | null;
         geocoding?: boolean;
+        initialZoom?: number;
+        showHint?: boolean;
     }>(),
-    { editable: false, disabled: false, error: '' },
+    {
+        editable: false,
+        disabled: false,
+        error: '',
+        initialZoom: 15,
+        showHint: true,
+    },
 );
 const emit = defineEmits<{
     'update:modelValue': [value: [number, number] | null];
@@ -84,8 +92,8 @@ function syncMarker(): void {
     if (!marker) {
         marker = leaflet
             .marker(props.modelValue, {
-                title: 'Pin lokasi kebun',
-                alt: 'Pin lokasi kebun',
+                title: 'Pin lokasi lahan',
+                alt: 'Pin lokasi lahan',
                 keyboard: true,
                 draggable: props.editable && !props.disabled,
                 icon: leaflet.divIcon({
@@ -132,16 +140,15 @@ async function initialize(): Promise<void> {
             })
             .setView(
                 props.modelValue ?? [-2.5, 118],
-                props.modelValue ? 15 : 5,
+                props.modelValue ? props.initialZoom : 5,
             );
         map.zoomControl.setPosition('bottomright');
         mapElement.value.setAttribute(
             'aria-label',
             props.editable
-                ? 'Pilih titik lokasi kebun di peta'
-                : 'Peta lokasi kebun',
+                ? 'Pilih titik lokasi lahan di peta'
+                : 'Peta lokasi lahan',
         );
-        mapElement.value.setAttribute('aria-describedby', hintId);
         map.on('click', (event) => {
             const point = event.latlng.wrap();
             selectPoint(point.lat, point.lng);
@@ -202,11 +209,15 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="min-w-0 space-y-3">
-        <p :id="hintId" class="text-xs leading-5 text-muted-foreground">
+        <p
+            v-if="showHint"
+            :id="hintId"
+            class="text-xs leading-5 text-muted-foreground"
+        >
             {{
                 editable
                     ? 'Klik peta untuk menaruh pin, lalu geser pin untuk memperbaiki posisi. Dengan keyboard, geser peta menggunakan tombol panah lalu pilih Gunakan titik tengah peta.'
-                    : 'Pin menunjukkan titik lokasi kebun, bukan batas atau luas lahan.'
+                    : 'Pin menunjukkan titik lokasi lahan, bukan batas atau luas lahan.'
             }}
         </p>
         <div
@@ -221,6 +232,7 @@ onBeforeUnmount(() => {
                 ref="mapElement"
                 class="absolute inset-0"
                 :aria-busy="loading"
+                :aria-describedby="showHint ? hintId : undefined"
             />
             <div
                 v-if="loading"
@@ -234,7 +246,7 @@ onBeforeUnmount(() => {
             v-else
             class="rounded-xl border border-dashed border-border bg-muted/40 p-5 text-sm text-muted-foreground"
         >
-            Lokasi kebun belum dipilih. Lengkapi pada halaman ubah kebun.
+            Lokasi lahan belum dipilih. Lengkapi pada halaman ubah lahan.
         </div>
         <div
             v-if="mapError"
@@ -278,7 +290,7 @@ onBeforeUnmount(() => {
         >
             {{
                 modelValue
-                    ? 'Pin lokasi sudah dipilih. Perubahan tersimpan setelah Simpan kebun.'
+                    ? 'Pin lokasi sudah dipilih. Perubahan tersimpan setelah Simpan lahan.'
                     : 'Belum ada pin. Lokasi boleh dikosongkan.'
             }}
         </p>

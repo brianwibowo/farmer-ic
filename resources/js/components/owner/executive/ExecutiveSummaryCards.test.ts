@@ -1,68 +1,47 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { createSSRApp } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import ExecutiveSummaryCards from './ExecutiveSummaryCards.vue';
-import data from '@/data/ownerExecutiveDemo.json';
-import {
-    executiveCommodities,
-    executiveRows,
-    executiveTotals,
-} from '@/services/ownerExecutiveDemoService';
+import { executiveTotals } from '@/services/ownerExecutiveSummary';
 
-const filters = {
-    year: data.defaultYear,
-    cycle: 'all' as const,
-    partner: '',
-    region: '',
-    farm: '',
-    commodity: '',
+const props = {
+    totals: {
+        ...executiveTotals([]),
+        area: 64.5,
+        planted: 16,
+        unused: 48.5,
+        utilization: 24.8,
+        harvested: 34.8,
+    },
+    commodities: [
+        { id: 'jagung', name: 'Jagung', harvested: 0 },
+        { id: 'rumput', name: 'Rumput', harvested: 34.8 },
+    ],
+    period: '1 Januari–31 Desember 2026',
+    partnerCount: 0,
+    month: 'November 2026',
+    showCommercialCard: false,
 };
-
-describe('Executive summary cards', () => {
-    it('shows consolidated land and partnership metrics and commodity stock from the same snapshot', async () => {
-        const rows = executiveRows(data, filters);
+describe('Executive summary database cards', () => {
+    it('shows current land use and actual harvest together with its reporting period', async () => {
         const html = await renderToString(
-            createSSRApp(ExecutiveSummaryCards, {
-                totals: executiveTotals(rows),
-                commodities: executiveCommodities(rows),
-                partnerCount: new Set(rows.map((row) => row.partner.id)).size,
-                month: 'November 2026',
-            }),
-        );
-        expect((html.match(/<article/g) ?? []).length).toBe(3);
-        for (const text of [
-            'Ringkasan lahan',
-            'Kerja sama aktif',
-            'Kontrak penjualan',
-            'ton/bulan',
-            'November 2026',
-            'Stok panen tersedia',
-            'Jagung',
-            'Rumput',
-            'Sorgum',
-        ])
-            expect(html).toContain(text);
-        expect(html).toContain('role="progressbar"');
-        expect(html).not.toContain('Proyeksi omzet');
-        expect(html).not.toContain('Proyeksi laba kotor');
-    });
-
-    it('keeps the three-card loading and empty states readable without invalid totals', async () => {
-        const props = {
-            totals: executiveTotals([]),
-            commodities: [],
-            partnerCount: 0,
-            month: 'November 2026',
-        };
-        const empty = await renderToString(
             createSSRApp(ExecutiveSummaryCards, props),
         );
-        expect(empty).toContain('Belum ada stok untuk filter ini.');
-        expect(empty).not.toMatch(/NaN|Infinity/);
-        const loading = await renderToString(
+        expect((html.match(/<article/g) ?? []).length).toBe(2);
+        expect(html).toContain('Stok panen per komoditas');
+        expect(html).toMatch(/Rumput<\/span><\/dt><dd[^>]*>34,8\s+<span/);
+        expect(html).toMatch(/Jagung<\/span><\/dt><dd[^>]*>0\s+<span/);
+        expect(html).toContain('1 Januari–31 Desember 2026');
+        expect(html).toContain('34,8');
+        expect(html).toContain('24,8%');
+        expect(html).toContain('tanam aktif');
+        expect(html).not.toMatch(/NaN|Infinity|Data contoh/);
+    });
+    it('preserves loading feedback', async () => {
+        const html = await renderToString(
             createSSRApp(ExecutiveSummaryCards, { ...props, loading: true }),
         );
-        expect(loading).toContain('Memuat ringkasan eksekutif');
-        expect(loading).not.toContain('<article');
+        expect(html).toContain('Memuat ringkasan eksekutif');
+        expect(html).not.toContain('<article');
     });
 });

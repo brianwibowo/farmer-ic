@@ -16,7 +16,10 @@ export type AdminTaskView =
     | 'completed'
     | 'all';
 
-export type AdminTaskCategory = 'maintenance' | 'harvest';
+export type AdminTaskCategory =
+    | 'maintenance'
+    | 'growth_observation'
+    | 'harvest';
 
 export type AdminTask = {
     id: string;
@@ -27,6 +30,7 @@ export type AdminTask = {
     overdue_days: number | null;
     activity_category: AdminTaskCategory;
     offset_days: number;
+    hok?: number | null;
     scheduled_date: string | null;
     due_date: string | null;
     effective_scheduled_date: string | null;
@@ -40,17 +44,22 @@ export type AdminTask = {
     completion_note: string | null;
     created_at: string | null;
     farm: { id: string; name: string } | null;
-    block: { id: string; code: string; name: string } | null;
+    block: { id: string; name: string } | null;
     subblok: {
         id: string;
         number: number;
         label: string | null;
         planted_at: string | null;
+        status?: 'planned' | 'active' | 'harvested' | 'cancelled';
     } | null;
     stage: { code: string } | null;
     sop_version: { id: string; version: number } | null;
     can: { update: boolean };
 };
+
+export function taskSubblockClosed(task: AdminTask): boolean {
+    return ['harvested', 'cancelled'].includes(task.subblok?.status ?? '');
+}
 
 export type AdminTaskPage = {
     data: AdminTask[];
@@ -82,7 +91,6 @@ export type AdminTaskFarmOption = {
 export type AdminTaskBlockOption = {
     id: string;
     farm_id: string;
-    code: string;
     name: string;
 };
 
@@ -132,6 +140,7 @@ export const adminTaskViewOptions: [AdminTaskView, string][] = [
 
 export const adminTaskCategoryOptions: [AdminTaskCategory, string][] = [
     ['maintenance', sopActivityCategoryLabels.maintenance],
+    ['growth_observation', sopActivityCategoryLabels.growth_observation],
     ['harvest', sopActivityCategoryLabels.harvest],
 ];
 

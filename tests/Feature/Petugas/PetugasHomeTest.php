@@ -69,7 +69,7 @@ class PetugasHomeTest extends TestCase
         $team = $farm->team;
         $block = FarmBlock::where('farm_id', $farm->id)->first()
             ?? app(FarmBlockService::class)->create($farm, $actor, $team, [
-                'code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '10.0000',
+                'name' => 'Blok Utara', 'area_ha' => '10.0000',
             ]);
         $batch = app(FarmBlockService::class)->createBatch($block, $actor, $team, [
             'reserved_area_ha' => '1.0000', 'planned_planting_at' => '2026-10-28',
@@ -127,8 +127,8 @@ class PetugasHomeTest extends TestCase
             ->component('petugas/Home')
             ->where('home.date', '2026-11-04')->where('home.farm.id', $this->farm->id)
             ->where('home.summary', ['pre_planting' => 1, 'planting' => 1, 'harvest' => 1])
-            ->where('home.task_summary', ['total' => 4, 'completed' => 1])
-            ->where('home.tasks.total', 4)->has('home.tasks.data', 4)
+            ->where('home.task_summary', ['total' => 3, 'completed' => 0])
+            ->where('home.tasks.total', 3)->has('home.tasks.data', 3)
             ->where('home.tasks.data.0.id', $running->id)
             ->where('home.tasks.data.1.id', $pending->id)
             ->where('home.tasks.data.1.hst', 7)
@@ -137,7 +137,6 @@ class PetugasHomeTest extends TestCase
             ->where('home.tasks.data.1.stage', 'maintenance')
             ->where('home.tasks.data.1.instructions', $pending->instructions)
             ->where('home.tasks.data.2.hst', null)
-            ->where('home.tasks.data.3.status', 'completed')
             ->where('categories', fn ($categories) => collect($categories)->pluck('code')->contains('incident')));
     }
 
@@ -203,7 +202,7 @@ class PetugasHomeTest extends TestCase
         return $activity;
     }
 
-    public function test_home_incident_alerts_follow_four_levels_and_prioritize_emergencies(): void
+    public function test_home_incident_alerts_follow_three_levels_and_prioritize_emergencies(): void
     {
         $this->incident('light');
         $this->incident('medium', 'progress');
@@ -218,10 +217,17 @@ class PetugasHomeTest extends TestCase
 
         $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('home.incidents.total', 4)->has('home.incidents.data', 4)
-            ->where('home.incidents.data.0.id', $emergency->id)->where('home.incidents.data.0.severity', 'emergency')
+            ->where('home.incidents.data.0.severity', 'emergency')
             ->where('home.incidents.data.0.severity_label', 'Darurat')
-            ->where('home.incidents.data.1.severity', 'heavy')->where('home.incidents.data.2.severity', 'medium')
-            ->where('home.incidents.data.2.status', 'in_progress')->where('home.incidents.data.3.severity', 'light'));
+            ->where('home.incidents.data.1.severity', 'emergency')
+            ->where('home.incidents.data.1.severity_label', 'Darurat')
+            ->where('home.incidents.data.2.severity', 'medium')
+            ->where('home.incidents.data.2.status', 'in_progress')
+            ->where('home.incidents.data.3.severity', 'light'));
+        $this->assertContains($emergency->id, [
+            $this->actingAs($this->petugas)->get('/petugas')->viewData('page')['props']['home']['incidents']['data'][0]['id'],
+            $this->actingAs($this->petugas)->get('/petugas')->viewData('page')['props']['home']['incidents']['data'][1]['id'],
+        ]);
     }
 
     public function test_incident_totals_and_alerts_exclude_other_farms_and_tenants(): void
@@ -248,7 +254,8 @@ class PetugasHomeTest extends TestCase
         }
         $this->actingAs($this->petugas)->get('/petugas')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('home.incidents.total', 6)->has('home.incidents.data', 4)
-            ->where('home.incidents.data.0.severity', 'emergency')->where('home.incidents.data.1.severity', 'heavy'));
+            ->where('home.incidents.data.0.severity', 'emergency')->where('home.incidents.data.1.severity', 'emergency')
+            ->where('home.incidents.data.2.severity', 'medium'));
     }
 
     #[DataProvider('requiredPermissions')]

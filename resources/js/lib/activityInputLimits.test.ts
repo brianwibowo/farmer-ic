@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import {
     activityDetailMaximumErrors,
     areaMaximum,
     maximumError,
+    stepWorkerCount,
 } from './activityInputLimits';
 
 const fields = [
@@ -18,6 +19,14 @@ const fields = [
 ];
 
 describe('activity numeric maximums', () => {
+    it('adjusts the worker count within its allowed bounds', () => {
+        expect(stepWorkerCount(1, 1, 25)).toBe(2);
+        expect(stepWorkerCount(1, -1, 25)).toBe(1);
+        expect(stepWorkerCount(25, 1, 25)).toBe(25);
+        expect(stepWorkerCount(30, -1, 25)).toBe(25);
+        expect(stepWorkerCount('', 1, 25)).toBe(1);
+    });
+
     it('accepts the exact limit and reports higher values immediately', () => {
         expect(maximumError('7', 7, 'Luas', 'ha')).toBeUndefined();
         expect(maximumError('7.0001', 7, 'Luas', 'ha')).toBe(

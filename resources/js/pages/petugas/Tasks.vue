@@ -104,10 +104,10 @@ function statusClass(status: PetugasTask['status']): string {
             </h1>
             <p class="mt-2 text-sm leading-6 text-muted-foreground">
                 Daftar pekerjaan dari SOP subblok yang menjadi tanggung jawab
-                kebun Anda.
+                lahan Anda.
             </p>
             <p class="mt-2 text-sm font-medium">
-                {{ farm?.name ?? 'Belum ada penugasan kebun. Hubungi Admin.' }}
+                {{ farm?.name ?? 'Belum ada penugasan lahan. Hubungi Admin.' }}
             </p>
             <Link
                 v-if="farm"
@@ -180,7 +180,7 @@ function statusClass(status: PetugasTask['status']): string {
             <p
                 class="mx-auto mt-2 max-w-xs text-sm leading-6 text-muted-foreground"
             >
-                Tugas akan muncul setelah SOP diterapkan ke subblok kebun Anda.
+                Tugas akan muncul setelah SOP diterapkan ke subblok lahan Anda.
             </p>
         </div>
 
@@ -224,9 +224,7 @@ function statusClass(status: PetugasTask['status']): string {
                             >
                                 {{ categoryLabel(task) }}
                             </span>
-                            <span
-                                v-if="task.is_required"
-                                class="text-[11px] font-medium text-warning"
+                            <span class="text-[11px] font-medium text-warning"
                                 >Wajib</span
                             >
                         </div>

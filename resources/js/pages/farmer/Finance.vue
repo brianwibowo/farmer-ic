@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NumberPagination from '@/components/NumberPagination.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, router } from '@inertiajs/vue3';
@@ -295,7 +296,7 @@ function clearTransactionFilters(): void {
                 <!-- Kebun Filter Selector -->
                 <div class="relative">
                     <label for="kebun-filter-select" class="sr-only">
-                        Filter Kebun
+                        Filter Lahan
                     </label>
                     <AppSelect
                         id="kebun-filter-select"
@@ -303,7 +304,7 @@ function clearTransactionFilters(): void {
                         class="h-10.5 w-full appearance-none rounded-xl border border-border bg-card px-3.5 pr-10 text-xs font-medium text-foreground shadow-xs transition-colors outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
                         <AppSelectOption value="all"
-                            >Semua Kebun (Konsolidasi)</AppSelectOption
+                            >Semua Lahan (Konsolidasi)</AppSelectOption
                         >
                         <AppSelectOption
                             v-for="item in kebunList"
@@ -537,7 +538,7 @@ function clearTransactionFilters(): void {
                         <input
                             v-model="searchQuery"
                             type="search"
-                            placeholder="Cari transaksi, kebun, atau komoditas"
+                            placeholder="Cari transaksi, lahan, atau komoditas"
                             class="h-11 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                         />
                     </label>
@@ -575,14 +576,14 @@ function clearTransactionFilters(): void {
                             <span
                                 class="mb-1 block truncate text-xs font-medium text-muted-foreground"
                             >
-                                Kebun
+                                Lahan
                             </span>
                             <AppSelect
                                 v-model="selectedKebunId"
                                 class="h-9.5 w-full rounded-lg border border-border bg-card px-2 text-xs text-foreground outline-none focus:border-primary"
                             >
                                 <AppSelectOption value="all"
-                                    >Semua kebun</AppSelectOption
+                                    >Semua lahan</AppSelectOption
                                 >
                                 <AppSelectOption
                                     v-for="item in kebunList"
@@ -757,35 +758,15 @@ function clearTransactionFilters(): void {
                         Transaksi tidak ditemukan untuk filter ini.
                     </li>
                 </ul>
-                <nav
+                <NumberPagination
                     v-if="transactions.last_page > 1"
-                    aria-label="Halaman transaksi"
-                    class="mt-4 flex items-center justify-between gap-2 text-xs"
-                >
-                    <button
-                        type="button"
-                        :disabled="transactions.current_page === 1 || isLoading"
-                        class="rounded-xl border border-border px-3 py-2 disabled:opacity-50"
-                        @click="visitFilters(transactions.current_page - 1)"
-                    >
-                        Sebelumnya
-                    </button>
-                    <span aria-current="page"
-                        >Halaman {{ transactions.current_page }} /
-                        {{ transactions.last_page }}</span
-                    >
-                    <button
-                        type="button"
-                        :disabled="
-                            transactions.current_page ===
-                                transactions.last_page || isLoading
-                        "
-                        class="rounded-xl border border-border px-3 py-2 disabled:opacity-50"
-                        @click="visitFilters(transactions.current_page + 1)"
-                    >
-                        Berikutnya
-                    </button>
-                </nav>
+                    :current-page="transactions.current_page"
+                    :total-pages="transactions.last_page"
+                    :disabled="isLoading"
+                    label="Pagination transaksi"
+                    class="mt-4 ml-auto justify-end"
+                    @change="visitFilters"
+                />
             </section>
         </div>
     </FarmerMobileShell>

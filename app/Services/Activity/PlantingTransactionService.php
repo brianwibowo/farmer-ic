@@ -28,7 +28,7 @@ class PlantingTransactionService
     public function blocks(User $actor, Team $team): Collection
     {
         return FarmBlock::visibleTo($actor, $team)->with('farm:id,name')
-            ->orderBy('code')->orderBy('id')->get(['id', 'farm_id', 'code', 'name']);
+            ->orderBy('name')->orderBy('id')->get(['id', 'farm_id', 'name']);
     }
 
     /** @return Collection<int, CropVariety> */
@@ -108,7 +108,6 @@ class PlantingTransactionService
             ->selectRaw('farm_activities.farm_id AS farm_id')
             ->selectRaw('farm_activities.block_id AS block_id')
             ->selectRaw('MAX(farms.name) AS farm_name')
-            ->selectRaw('MAX(farm_blocks.code) AS block_code')
             ->selectRaw('MAX(farm_blocks.name) AS block_name')
             ->selectRaw('MAX(crop_varieties.id::text) AS variety_id')
             ->selectRaw('MAX(crop_varieties.name) AS variety_name')
@@ -206,7 +205,7 @@ class PlantingTransactionService
                         ->orWhereHas('farm', fn (Builder $farm) => $farm->where('name', 'ilike', $pattern))
                         ->orWhereHas('plantingCycle', fn (Builder $cycle) => $cycle->where('subblock_label', 'ilike', $pattern))
                         ->orWhereHas('plantingCycle.block', fn (Builder $block) => $block
-                            ->where('code', 'ilike', $pattern)->orWhere('name', 'ilike', $pattern))
+                            ->where('name', 'ilike', $pattern))
                         ->orWhereHas('plantingCycle.variety', fn (Builder $variety) => $variety->where('name', 'ilike', $pattern))
                         ->orWhereHas('plantingDetail', fn (Builder $detail) => $detail->where('seed_name', 'ilike', $pattern))
                         ->orWhereHas('performer', fn (Builder $performer) => $performer->where('name', 'ilike', $pattern));
@@ -240,7 +239,6 @@ class PlantingTransactionService
             ],
             'block' => $blockId === null ? null : [
                 'id' => $blockId,
-                'code' => (string) ($attributes['block_code'] ?? ''),
                 'name' => (string) ($attributes['block_name'] ?? ''),
             ],
             'cycle' => $cycleId === null ? null : [

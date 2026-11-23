@@ -156,9 +156,9 @@ class FarmManagementInertiaTest extends TestCase
         $other = app(FarmService::class)->create($this->payload(['name' => 'Kebun Lain']), $this->admin, $this->team);
         $base = '/kebun/'.$farm->id.'/blocks';
         $detail = '/admin/farm-management/'.$farm->id;
-        $this->post($base, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '2', 'return_to' => 'farm'])->assertRedirect($detail);
+        $this->post($base, ['name' => 'Blok Utara', 'area_ha' => '2', 'return_to' => 'farm'])->assertRedirect($detail);
         $block = \App\Models\FarmBlock::firstOrFail();
-        app(\App\Services\FarmBlockService::class)->create($other, $this->admin, $this->team, ['code' => 'B99', 'name' => 'Blok Kebun Lain', 'area_ha' => '1']);
+        app(\App\Services\FarmBlockService::class)->create($other, $this->admin, $this->team, ['name' => 'Blok Kebun Lain', 'area_ha' => '1']);
         $this->get($detail)->assertInertia(fn (Assert $page) => $page->has('blocks', 1)->where('blocks.0.id', $block->id)
             ->where('blocks.0.can.update', true)->where('can.createBlock', true)->where('blocks.0.deletionBlocked', false));
         $this->patch($base.'/'.$block->id, ['name' => 'Blok Barat', 'return_to' => 'farm'])->assertRedirect($detail);
@@ -172,11 +172,11 @@ class FarmManagementInertiaTest extends TestCase
         $this->post('/admin/farm-management', $this->payload(['target_volume_ton' => '80.125']))->assertSessionHasNoErrors();
         $farm = Farm::firstOrFail();
         $blocks = app(\App\Services\FarmBlockService::class);
-        $block = $blocks->create($farm, $this->admin, $this->team, ['code' => 'B01', 'name' => 'Blok Utara', 'area_ha' => '5']);
+        $block = $blocks->create($farm, $this->admin, $this->team, ['name' => 'Blok Utara', 'area_ha' => '5']);
         $first = $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
         $blocks->createBatch($block, $this->admin, $this->team, ['reserved_area_ha' => '1']);
         $otherFarm = app(FarmService::class)->create($this->payload(['name' => 'Kebun Lain']), $this->admin, $this->team);
-        $otherBlock = $blocks->create($otherFarm, $this->admin, $this->team, ['code' => 'B99', 'name' => 'Blok Lain', 'area_ha' => '2']);
+        $otherBlock = $blocks->create($otherFarm, $this->admin, $this->team, ['name' => 'Blok Lain', 'area_ha' => '2']);
         $blocks->createBatch($otherBlock, $this->admin, $this->team, ['reserved_area_ha' => '1']);
         $url = '/admin/farm-management/'.$farm->id;
         $this->get($url)->assertInertia(fn (Assert $page) => $page->where('farm.target_volume_ton', '80.125')
@@ -386,7 +386,7 @@ class FarmManagementInertiaTest extends TestCase
         $farm = $this->farm();
         DB::table('daily_activity_logs')->insert([
             'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $this->admin->id,
-            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
+            'work_date' => '2026-10-28', 'created_at' => now(),
         ]);
         $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors('delete');
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
@@ -405,7 +405,7 @@ class FarmManagementInertiaTest extends TestCase
             $workers[] = $worker->id;
             $this->from('/admin/farm-management')->delete('/admin/farm-management/'.$farm->id)
                 ->assertRedirect('/admin/farm-management')->assertSessionHasErrors([
-                    'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.',
+                    'delete' => 'Lahan tidak dapat dihapus karena masih memiliki: penugasan Petugas. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu.',
                 ]);
             $this->assertDatabaseHas('farms', ['id' => $farm->id]);
             $this->assertSame($farm->id, DB::table('users')->where('id', $worker->id)->value('assigned_farm_id'));
@@ -434,17 +434,17 @@ class FarmManagementInertiaTest extends TestCase
         ]);
         DB::table('daily_activity_logs')->insert([
             'id' => (string) Str::uuid(), 'farm_id' => $farm->id, 'recorded_by' => $worker->id,
-            'work_date' => '2026-10-28', 'start_time' => '08:00', 'end_time' => '16:00', 'created_at' => now(),
+            'work_date' => '2026-10-28', 'created_at' => now(),
         ]);
         $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
-            'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',
+            'delete' => 'Lahan tidak dapat dihapus karena masih memiliki: penugasan Petugas, siklus tanam, logbook harian. Pindahkan atau lepaskan penugasan Petugas terlebih dahulu. Histori operasional tetap dipertahankan.',
         ]);
         $this->assertDatabaseHas('farms', ['id' => $farm->id]);
         $this->assertDatabaseHas('planting_cycles', ['farm_id' => $farm->id, 'status' => 'harvested']);
         $this->assertDatabaseHas('daily_activity_logs', ['farm_id' => $farm->id]);
         $worker->forceFill(['assigned_farm_id' => null])->save();
         $this->delete('/admin/farm-management/'.$farm->id)->assertSessionHasErrors([
-            'delete' => 'Kebun tidak dapat dihapus karena masih memiliki: siklus tanam, logbook harian. Histori operasional tetap dipertahankan.',
+            'delete' => 'Lahan tidak dapat dihapus karena masih memiliki: siklus tanam, logbook harian. Histori operasional tetap dipertahankan.',
         ]);
     }
 

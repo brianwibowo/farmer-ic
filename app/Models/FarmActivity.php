@@ -126,6 +126,18 @@ class FarmActivity extends FarmerModel
         return $this->hasOne(IncidentDetail::class, 'activity_id');
     }
 
+    /** @return HasOne<IncidentTicket, $this> */
+    public function incidentTicket(): HasOne
+    {
+        return $this->hasOne(IncidentTicket::class, 'activity_id');
+    }
+
+    /** @return HasOne<IncidentTicket, $this> */
+    public function resolvedIncidentTicket(): HasOne
+    {
+        return $this->hasOne(IncidentTicket::class, 'resolved_activity_id');
+    }
+
     /** @return HasOne<HarvestDetail, $this> */
     public function harvestDetail(): HasOne
     {
