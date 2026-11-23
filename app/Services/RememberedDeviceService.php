@@ -49,7 +49,7 @@ class RememberedDeviceService
         if (! $device || ! hash_equals($device->token_hash, hash('sha256', $parts[2]))) {
             return null;
         }
-        $user = User::query()->find($device->user_id);
+        $user = User::query()->where('id', $device->user_id)->first();
         if (! $user || ! $user->is_active || ! app(RolePermissions::class)->isKnownRole((string) app(RolePermissions::class)->roleName($user))
             || $device->role_id !== $user->role_id
             || ! hash_equals($device->password_hash, hash('sha256', $user->password))) {

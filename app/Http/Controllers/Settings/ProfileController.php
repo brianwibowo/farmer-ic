@@ -9,7 +9,6 @@ use App\Support\RolePermissions;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -65,26 +64,5 @@ class ProfileController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Profil berhasil diperbarui.']);
 
         return to_route('profile.edit');
-    }
-
-    /**
-     * Delete the user's profile.
-     */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
-    {
-        $user = $request->user();
-
-        Auth::logout();
-
-        \Illuminate\Support\Facades\DB::transaction(function () use ($user): void {
-            \App\Models\Farm::query()->where('pic_user_id', $user->id)->update(['pic_user_id' => null]);
-            app(\App\Services\RememberedDeviceService::class)->revokeAll($user);
-            $user->delete();
-        });
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/');
     }
 }

@@ -23,6 +23,7 @@ class AuthenticateRememberedDevice
             $user = null;
         }
         $deviceUser = $devices->resolve($request);
+        $deviceCookie = $request->cookie(RememberedDeviceService::COOKIE);
         $boundId = $request->session()->get(RememberedDeviceService::SESSION);
         if ($user && $boundId && (! is_string($boundId) || ! $devices->sessionDeviceIsValid($boundId, $user))) {
             $guard->logoutCurrentDevice();
@@ -30,14 +31,14 @@ class AuthenticateRememberedDevice
             $user = null;
             $deviceUser = null;
         }
-        if (! $user && $deviceUser) {
+        if (! $user && $deviceUser && is_string($deviceCookie)) {
             $guard->login($deviceUser);
-            $request->session()->put(RememberedDeviceService::SESSION, explode('|', $request->cookie(RememberedDeviceService::COOKIE), 2)[0]);
+            $request->session()->put(RememberedDeviceService::SESSION, explode('|', $deviceCookie, 2)[0]);
             $user = $deviceUser;
         }
-        if ($user && $deviceUser && $deviceUser->is($user)) {
+        if ($user && $deviceUser && is_string($deviceCookie) && $deviceUser->is($user)) {
             if (! $request->session()->has(RememberedDeviceService::SESSION)) {
-                $request->session()->put(RememberedDeviceService::SESSION, explode('|', $request->cookie(RememberedDeviceService::COOKIE), 2)[0]);
+                $request->session()->put(RememberedDeviceService::SESSION, explode('|', $deviceCookie, 2)[0]);
             }
             $devices->refresh($request, $user);
         }
