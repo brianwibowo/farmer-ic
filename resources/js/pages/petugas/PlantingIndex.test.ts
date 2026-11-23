@@ -1,7 +1,9 @@
 import { renderToString } from '@vue/server-renderer';
 import { h } from 'vue';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PlantingIndex from './PlantingIndex.vue';
+
+const pageState = vi.hoisted(() => ({ url: '/petugas/penanaman' }));
 
 vi.mock('@inertiajs/vue3', async () => {
     const { defineComponent, h, reactive } = await import('vue');
@@ -15,7 +17,7 @@ vi.mock('@inertiajs/vue3', async () => {
                     h('a', { href: props.href }, slots.default?.()),
         }),
         usePage: () => ({
-            url: '/petugas/penanaman',
+            url: pageState.url,
             props: {
                 farmCycleOptions: [],
                 canCreateFarmCycle: false,
@@ -32,6 +34,10 @@ vi.mock('@inertiajs/vue3', async () => {
                 post: () => undefined,
             }),
     };
+});
+
+beforeEach(() => {
+    pageState.url = '/petugas/penanaman';
 });
 
 describe('planting subblock index cards', () => {
@@ -143,6 +149,44 @@ describe('planting subblock index cards', () => {
         expect(expiredCard).not.toContain('Siapkan tugas');
         expect(expiredCard).toContain(
             'Lewat 3 hari sejak tanam pertama · Tambahan hanya untuk tanggal 1 Okt 2026 – 3 Okt 2026.',
+        );
+        expect(html).toContain('href="/petugas/laporan"');
+        expect(html).toContain('Kembali ke laporan');
+        expect(html).not.toContain('Kembali ke aktivitas');
+    });
+
+    it('respects a valid back origin from Beranda and forwards it to subblock links', async () => {
+        pageState.url = '/petugas/penanaman?back=%2Fpetugas';
+        const html = await renderToString(
+            h(PlantingIndex, {
+                farm: { id: 'farm-a', name: 'Kebun Cileuksa' },
+                blocks: [],
+                selectedBlockId: null,
+                cycles: [
+                    {
+                        id: 'cycle-planned',
+                        batch_number: 3,
+                        subblock_label: 'C',
+                        status: 'planned',
+                        reserved_area_ha: '1.0000',
+                        planted_area_ha: '0.0000',
+                        planned_planting_at: '2026-11-20',
+                        planted_at: null,
+                        block: { id: 'block-a', name: 'Blok Selatan' },
+                        variety: null,
+                        canRecord: true,
+                        canSync: false,
+                        blockedReason: null,
+                        plantingWindow: null,
+                    },
+                ],
+            }),
+        );
+
+        expect(html).toContain('href="/petugas"');
+        expect(html).toContain('Kembali ke beranda');
+        expect(html).toContain(
+            'href="/petugas/subbloks/cycle-planned/penanaman?back=%2Fpetugas"',
         );
     });
 });

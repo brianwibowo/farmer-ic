@@ -135,6 +135,11 @@ describe('incident ticketing pages', () => {
         );
 
         expect(listHtml).toContain('Tiket insiden');
+        expect(listHtml).toContain('href="/petugas"');
+        expect(listHtml).toContain('Kembali ke beranda');
+        expect(listHtml).toContain(
+            '/petugas/aktivitas/mandiri/incident?back=%2Fpetugas%2Fincidents',
+        );
         expect(listHtml).toContain('/petugas/incidents/ticket-1');
         expect(listHtml).toContain('Arahan Admin:');
         expect(listHtml).toContain('Segera semprot insektisida terarah.');

@@ -6,6 +6,7 @@ import PlantingCreate from './PlantingCreate.vue';
 const formState = vi.hoisted(() => ({
     initial: {} as Record<string, unknown>,
     errors: {} as Record<string, string>,
+    url: '/petugas/subbloks/cycle-a/penanaman',
 }));
 
 vi.mock('@inertiajs/vue3', async () => {
@@ -19,6 +20,7 @@ vi.mock('@inertiajs/vue3', async () => {
                 () =>
                     h('a', { href: props.href }, slots.default?.()),
         }),
+        usePage: () => ({ url: formState.url }),
         useForm: (data: Record<string, unknown>) =>
             reactive({
                 ...data,
@@ -77,6 +79,7 @@ const props = {
 beforeEach(() => {
     formState.initial = {};
     formState.errors = {};
+    formState.url = '/petugas/subbloks/cycle-a/penanaman';
 });
 
 describe('planting activity form presentation', () => {

@@ -8,6 +8,7 @@ import {
     FileCheck2,
     MapPin,
 } from '@lucide/vue';
+import { withPetugasBack } from '@/lib/petugasBackLink';
 import type { PetugasHomeTask } from '@/types/petugas-home';
 
 defineProps<{ task: PetugasHomeTask }>();
@@ -47,7 +48,12 @@ const status = {
 
 <template>
     <Link
-        :href="`/petugas/tasks/${encodeURIComponent(task.id)}`"
+        :href="
+            withPetugasBack(
+                `/petugas/tasks/${encodeURIComponent(task.id)}`,
+                '/petugas',
+            )
+        "
         :aria-label="`Lihat aktivitas untuk ${task.name}`"
         class="petugas-card group flex min-h-20 items-start gap-3 p-4 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
     >

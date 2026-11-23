@@ -158,6 +158,11 @@ function reset(): void {
         <PetugasListHeader
             title="Tugas"
             :show-incidents="!!farm"
+            :incidents-back-href="
+                isHistory
+                    ? '/petugas/aktivitas?view=history'
+                    : '/petugas/aktivitas'
+            "
             summary-label="Ringkasan tugas"
             :metrics="
                 isHistory

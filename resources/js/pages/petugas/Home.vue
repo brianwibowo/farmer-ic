@@ -151,6 +151,6 @@ const cards = computed(() => [
                 />
             </template>
         </section>
-        <ActivityAddButton :categories="categories" />
+        <ActivityAddButton :categories="categories" back-href="/petugas" />
     </div>
 </template>

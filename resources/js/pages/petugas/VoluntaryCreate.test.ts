@@ -6,6 +6,7 @@ import VoluntaryCreate from './VoluntaryCreate.vue';
 const formState = vi.hoisted(() => ({
     initial: {} as Record<string, unknown>,
     errors: {} as Record<string, string>,
+    url: '/petugas/aktivitas/mandiri/land_cleaning',
 }));
 
 vi.mock('@inertiajs/vue3', async () => {
@@ -19,6 +20,7 @@ vi.mock('@inertiajs/vue3', async () => {
                 () =>
                     h('a', { href: props.href }, slots.default?.()),
         }),
+        usePage: () => ({ url: formState.url }),
         useForm: (data: Record<string, unknown>) =>
             reactive({
                 ...data,
@@ -83,6 +85,7 @@ const props = {
 beforeEach(() => {
     formState.initial = {};
     formState.errors = {};
+    formState.url = '/petugas/aktivitas/mandiri/land_cleaning';
 });
 
 describe('voluntary activity form presentation', () => {
@@ -292,5 +295,20 @@ describe('voluntary activity form presentation', () => {
         )?.[0];
         expect(workerInput).toBeDefined();
         expect(workerInput).not.toContain('required');
+    });
+
+    it('returns to the originating Petugas page when back is provided', async () => {
+        formState.url =
+            '/petugas/aktivitas/mandiri/incident?back=%2Fpetugas%2Fincidents';
+        const html = await renderToString(
+            h(VoluntaryCreate, {
+                ...props,
+                fields: [],
+                type: { id: '3', code: 'incident', name: 'Pelaporan Insiden' },
+            }),
+        );
+
+        expect(html).toContain('href="/petugas/incidents"');
+        expect(html).toContain('Kembali ke daftar tiket insiden');
     });
 });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     CalendarDays,
@@ -22,6 +22,10 @@ import ActivityDetailFields, {
     type ActivityField,
 } from '@/components/petugas/ActivityDetailFields.vue';
 import { getGrowthStageAtHst, resolveGrowthProfile } from '@/data/growthStages';
+import {
+    extractPetugasBackParam,
+    withPetugasBack,
+} from '@/lib/petugasBackLink';
 import type { PetugasTask } from '@/types/petugas-task';
 import {
     activityDetailMaximumErrors,
@@ -41,6 +45,13 @@ const props = withDefaults(
         workDate: string;
     }>(),
     { requiresWorkerCount: true },
+);
+const page = usePage();
+const backHref = computed(() =>
+    withPetugasBack(
+        `/petugas/tasks/${props.task.id}`,
+        extractPetugasBackParam(page.url),
+    ),
 );
 const showWorkerCount = computed(
     () =>
@@ -237,7 +248,7 @@ function submit(): void {
     <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
             <Link
-                :href="`/petugas/tasks/${task.id}`"
+                :href="backHref"
                 class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
                 tugas</Link

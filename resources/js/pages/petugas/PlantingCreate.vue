@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     CalendarDays,
@@ -19,6 +19,10 @@ import ActivityWorkerCount from '@/components/petugas/ActivityWorkerCount.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { useErrorDisclosure } from '@/composables/useErrorDisclosure';
+import {
+    extractPetugasBackParam,
+    withPetugasBack,
+} from '@/lib/petugasBackLink';
 import type { PlantingCycleContext, PlantingReport } from '@/types/planting';
 import { gardenArea } from '@/types/petugas-garden';
 import {
@@ -66,6 +70,10 @@ const form = useForm({
     notes: '',
     photos: [] as File[],
 });
+const page = usePage();
+const backHref = computed(() =>
+    withPetugasBack('/petugas/penanaman', extractPetugasBackParam(page.url)),
+);
 const varietyLocked = computed(() =>
     Boolean(props.cycle.planted_at && props.cycle.variety?.id),
 );
@@ -297,8 +305,8 @@ function submit(): void {
     <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
             <Link
-                href="/petugas/penanaman"
-                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                :href="backHref"
+                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 ><ArrowLeft class="size-4" aria-hidden="true" />Daftar
                 subblok</Link
             >
@@ -885,7 +893,7 @@ function submit(): void {
             </article>
         </section>
         <Button as-child variant="outline" class="min-h-11 w-full rounded-xl"
-            ><Link href="/petugas/tasks"
+            ><Link href="/petugas/aktivitas"
                 >Lihat to-do pekerjaan lanjutan</Link
             ></Button
         >
