@@ -10,7 +10,6 @@ import {
 } from '@lucide/vue';
 import { ref } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
-import DeleteUser from '@/components/DeleteUser.vue';
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -190,8 +189,6 @@ const isEditing = ref(false);
                 <ChevronRight class="size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
             </Link>
         </section>
-
-        <DeleteUser mobile />
     </div>
 </template>
 
