@@ -103,16 +103,14 @@
   skip=6pt
 }
 
-% Running headers and footers
+% Running footer (no running header)
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small\sffamily\color{MutedGray}\GuideTitle}
-\fancyhead[R]{\small\sffamily\color{MutedGray}\GuideOrg\ (\GuideVersion)}
-\fancyfoot[L]{\small\sffamily\color{MutedGray}\GuideDate}
+\fancyfoot[L]{\small\sffamily\color{MutedGray}\GuideOrg\ (\GuideVersion)}
 \fancyfoot[R]{\small\sffamily\color{MutedGray}Halaman \thepage}
-\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0.2pt}
-\renewcommand{\headrule}{\hbox to\headwidth{\color{FarmBorder}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\headrule}{}
 \renewcommand{\footrule}{\hbox to\headwidth{\color{FarmBorder}\leaders\hrule height \footrulewidth\hfill}}
 
 % Reusable callout boxes
