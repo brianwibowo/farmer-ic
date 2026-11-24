@@ -1495,8 +1495,10 @@ combobox pattern. Later controls stay disabled until their parent is chosen;
 changing a parent clears all descendants. Result lists float above page content
 without taking layout space, stay above the map, and flip upward when space below
 is limited. Load choices from the database by parent code and filter names within
-that list. Existing unmatched addresses are explicitly marked as legacy and
-preserved until changed.
+that list. Farm Management requires province, city/regency, district, full address and a map
+point, in that order. Mark required fields and use short contextual guidance.
+Existing unmatched addresses are marked as legacy and must be selected again
+from the region list before saving; incomplete old locations must be completed.
 
 Block pages reuse `FarmManagementLayout` when the backend shared navigation
 permits Farm Management, including the Admin sidebar, header, typography,

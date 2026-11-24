@@ -25,6 +25,7 @@ const emit = defineEmits<{
     <FarmField
         :id="id"
         :label="label"
+        required
         :hint="hint"
         :error="error"
         v-slot="field"
@@ -44,6 +45,7 @@ const emit = defineEmits<{
             :placeholder="
                 disabled ? hint : `Cari ${label.toLocaleLowerCase('id-ID')}`
             "
+            aria-required="true"
             :aria-invalid="field.invalid"
             :aria-describedby="
                 [field.description, failure ? `${id}-failure` : null]

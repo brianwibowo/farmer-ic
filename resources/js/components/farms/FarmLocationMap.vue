@@ -16,6 +16,7 @@ const props = withDefaults(
         modelValue: [number, number] | null;
         prominent?: boolean;
         editable?: boolean;
+        required?: boolean;
         disabled?: boolean;
         error?: string;
         focus?: FarmMapFocus | null;
@@ -216,7 +217,7 @@ onBeforeUnmount(() => {
         >
             {{
                 editable
-                    ? 'Klik peta untuk menaruh pin, lalu geser pin untuk memperbaiki posisi. Dengan keyboard, geser peta menggunakan tombol panah lalu pilih Gunakan titik tengah peta.'
+                    ? 'Klik peta untuk menaruh pin, lalu geser pin untuk memperbaiki posisi.'
                     : 'Pin menunjukkan titik lokasi lahan, bukan batas atau luas lahan.'
             }}
         </p>
@@ -282,18 +283,6 @@ onBeforeUnmount(() => {
                 ><X />Hapus pin</Button
             >
         </div>
-        <p
-            v-if="editable"
-            role="status"
-            aria-live="polite"
-            class="text-xs text-muted-foreground"
-        >
-            {{
-                modelValue
-                    ? 'Pin lokasi sudah dipilih. Perubahan tersimpan setelah Simpan lahan.'
-                    : 'Belum ada pin. Lokasi boleh dikosongkan.'
-            }}
-        </p>
         <p v-if="error" role="alert" class="text-sm text-error">{{ error }}</p>
         <a
             v-if="mapsUrl"
