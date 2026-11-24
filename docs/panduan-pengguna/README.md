@@ -23,6 +23,58 @@ docs/panduan-pengguna/
 └── .gitignore                        # Mengabaikan file sementara kompilasi
 ```
 
+## Persiapan & Instalasi Dependensi
+
+Panduan ini dikompilasi menggunakan **XeLaTeX** (lihat `.latexmkrc`) dengan font **Latin Modern** serta paket tata letak seperti `geometry`, `fontspec`, `xcolor`, `colortbl`, `booktabs`, `longtable`, `enumitem`, `caption`, `tikz`, `fancyhdr`, `titlesec`, `tcolorbox`, dan `hyperref`.
+
+> **Catatan:** Pembaca maupun editor yang hanya mengubah teks di `sections/*.tex` dan mengirimkannya lewat Git **tidak wajib** membangun PDF sendiri. Instalasi di bawah hanya diperlukan jika Anda ingin mengompilasi PDF secara lokal. (Alternatif tanpa instalasi lokal: unggah isi folder `docs/panduan-pengguna/` ke **Overleaf** lalu pilih compiler **XeLaTeX** di menu pengaturan.)
+
+### Windows
+
+1. **Pasang MiKTeX** *(wajib untuk engine `xelatex` dan pengelola paket LaTeX)*:
+
+   ```powershell
+   winget install --id MiKTeX.MiKTeX -e
+   ```
+
+   Atau unduh installer resmi dari situs MiKTeX. Setelah selesai, buka aplikasi **MiKTeX Console** sekali untuk menyelesaikan setup awal, jalankan **Updates** bila diminta, dan pastikan opsi instalasi paket otomatis (**Always install missing packages on-the-fly**) aktif agar MiKTeX mengunduh paket seperti `tcolorbox`, `titlesec`, atau `pgf`/`tikz` secara otomatis saat kompilasi pertama.
+
+2. **Pasang Strawberry Perl** *(opsional, diperlukan hanya jika ingin menjalankan `latexmk`)*:
+
+   ```powershell
+   winget install --id StrawberryPerl.StrawberryPerl -e
+   ```
+
+   Jika Perl tidak dipasang, Anda tetap dapat membangun PDF langsung menggunakan perintah `xelatex` dua kali (lihat bagian **Cara Build PDF** di bawah).
+
+3. **Buka ulang terminal (PowerShell)** agar `PATH` terbarui, lalu pastikan perintah terbaca:
+
+   ```powershell
+   xelatex --version
+   latexmk --version   # lewati jika tidak memasang Perl
+   ```
+
+### Linux (Ubuntu / Debian)
+
+```bash
+sudo apt update
+sudo apt install texlive-xetex texlive-latex-recommended texlive-latex-extra texlive-pictures texlive-fonts-recommended lmodern latexmk
+```
+
+### macOS (Homebrew)
+
+```bash
+brew install --cask mactex-no-gui
+```
+
+- Gunakan `brew install --cask mactex` jika ingin menyertakan aplikasi GUI bawaan MacTeX (seperti TeXShop).
+- Jika memilih `brew install --cask basictex` yang lebih ringkas, instal `latexmk` serta paket yang dibutuhkan secara terpisah melalui `sudo tlmgr install`.
+- Setelah instalasi, buka ulang terminal agar binary TeX terbaca di `PATH`.
+
+### Editor yang Disarankan (Opsional)
+
+- **VS Code** dengan ekstensi **LaTeX Workshop** untuk melihat pratinjau PDF secara langsung (ekstensi ini otomatis mengikuti `.latexmkrc` di folder ini).
+
 ## Cara Build PDF
 
 Dari direktori `farmer-ic/docs/panduan-pengguna/`:
