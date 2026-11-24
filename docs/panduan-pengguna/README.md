@@ -61,13 +61,8 @@ xelatex -output-directory=build main.tex
 4. **Update versi:** Ubah `\GuideVersion` dan `\GuideDate` di `main.tex` sebelum merilis PDF baru.
 5. **Jangan commit folder `build/`:** Folder `build/` sudah diabaikan oleh `.gitignore`.
 
-## Daftar Tangkapan Layar Lama yang Perlu Diperbarui
+## Catatan Aset Tangkapan Layar
 
-Teks panduan sudah diselaraskan dengan pembaruan dari cabang `dev`, namun aset gambar berikut di `gambar/` masih menampilkan versi UI sebelumnya dan perlu diperbarui pada rilis dokumentasi berikutnya:
+Seluruh tangkapan layar utama telah disesuaikan dengan tampilan terbaru. Catatan untuk pembaruan berikutnya:
 
-- `05-form-login-desktop.png` & `06-form-login-mobile.png`: halaman masuk kini berbahasa Indonesia (**Masuk**).
-- `01-form-tambah-lahan.png` & `02-detail-lahan.png`: label *Manajemen Kebun* / *Tautan foto* berubah menjadi **Manajemen Lahan** dan unggah foto dokumentasi.
-- `03-form-tambah-blok.png` & `04-form-tambah-subblok.png`: *Kode blok* dihapus + ada pemetaan **Batas blok di peta**; form subblok kini memiliki pilihan **Siklus lahan**.
-- `Gambar5SOP.png`: label *Offset HST (hari)* berubah menjadi **Jadwal setelah tanam (hari)**.
-- `Gambar7SOP.png`: masih menampilkan status *Draft* alih-alih *Published*.
-- `GambarPetugas1.png` & `GambarPetugas10.png`: bagian *To-do hari ini* kini berjudul **Tugas perlu tindakan** dengan tautan **Lihat semua**.
+- `GambarPetugas10.png` saat ini identik dengan `GambarPetugas1.png` (tampilan *Beranda* dengan kartu tugas berstatus *Dikerjakan*); bila diperlukan, dapat diganti dengan tangkapan layar halaman **Tugas** penuh untuk variasi visual.
