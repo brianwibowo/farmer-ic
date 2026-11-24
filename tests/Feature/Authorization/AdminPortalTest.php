@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class AdminPortalTest extends TestCase
@@ -159,15 +160,18 @@ class AdminPortalTest extends TestCase
         $this->get('/'.$admin->currentTeam->slug.'/dashboard')->assertOk();
     }
 
-    public function test_login_and_authenticated_guest_routes_use_the_correct_landing_page(): void
+    public static function loginRoles(): array
     {
-        foreach (['owner', 'petugas', 'admin', 'superadmin'] as $role) {
-            auth()->logout();
-            $user = $this->actor($role);
-            $destination = in_array($role, ['admin', 'superadmin'], true) ? '/admin/dashboard' : ($role === 'petugas' ? '/petugas' : '/ringkasan-eksekutif');
-            $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect($destination);
-            $this->get('/login')->assertRedirect($destination);
-        }
+        return [['owner'], ['petugas'], ['admin'], ['superadmin']];
+    }
+
+    #[DataProvider('loginRoles')]
+    public function test_login_and_authenticated_guest_routes_use_the_correct_landing_page(string $role): void
+    {
+        $user = $this->actor($role);
+        $destination = in_array($role, ['admin', 'superadmin'], true) ? '/admin/dashboard' : ($role === 'petugas' ? '/petugas' : '/ringkasan-eksekutif');
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect($destination);
+        $this->get('/login')->assertRedirect($destination);
     }
 
     public function test_owner_login_discards_an_intended_admin_url_but_preserves_other_intended_pages(): void

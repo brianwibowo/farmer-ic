@@ -18,6 +18,12 @@ class MigrationLayoutTest extends TestCase
             $up = preg_split('/public function down\(\): void/', $contents)[0] ?? $contents;
             preg_match_all("/Schema::create\('([^']+)'/", $up, $matches);
             array_push($tables, ...$matches[1]);
+            preg_match_all("/Schema::rename\('([^']+)',\s*'([^']+)'\)/", $up, $renames, PREG_SET_ORDER);
+            foreach ($renames as $rename) {
+                $index = array_search($rename[1], $tables, true);
+                $this->assertNotFalse($index, 'A renamed table must have been created first.');
+                $tables[$index] = $rename[2];
+            }
             preg_match_all("/Schema::drop(?:IfExists)?\('([^']+)'/", $up, $matches);
             array_push($dropped, ...$matches[1]);
         }
@@ -27,7 +33,7 @@ class MigrationLayoutTest extends TestCase
         $this->assertStringContainsString("\$table->string('phone_number', 15)->nullable()", $phoneMigration);
         $this->assertStringNotContainsString('notification_deliveries', $phoneMigration);
         preg_match_all('/^Table\s+(\w+)\s*\{/m', file_get_contents(database_path('schema.dbml')), $erd);
-        $expected = [...$erd[1], 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'sessions', 'password_reset_tokens'];
+        $expected = [...$erd[1], 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'sessions', 'password_reset_tokens', 'remembered_devices'];
         sort($expected);
         sort($tables);
         $this->assertSame($expected, $tables);

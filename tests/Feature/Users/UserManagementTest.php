@@ -230,7 +230,7 @@ class UserManagementTest extends TestCase
         $this->post('/admin/user-management', $this->payload(['email' => $target->email]))->assertSessionHasErrors('email');
         auth()->logout();
         $this->post(route('login.store'), ['email' => $target->email, 'password' => 'password'])
-            ->assertSessionHasErrors('email');
+            ->assertSessionHasErrors(['login' => 'Email atau kata sandi salah. Periksa kembali dan coba lagi.']);
         $this->assertGuest();
     }
 

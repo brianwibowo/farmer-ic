@@ -2,8 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
   pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
@@ -94,9 +96,6 @@ jobs:
     name: Docker build and isolated PostgreSQL smoke test
     runs-on: ubuntu-latest
     needs: quality
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -174,49 +173,6 @@ jobs:
           docker compose --env-file .env.production -f compose.production.yaml --profile rag up -d --wait --no-build --no-deps app worker notifications scheduler
           docker compose --env-file .env.production -f compose.production.yaml exec -T app php -r 'exit(extension_loaded("pcntl") && extension_loaded("redis") && extension_loaded("pdo_pgsql") ? 0 : 1);'
           curl --fail --silent --show-error http://127.0.0.1:8080/up
-
-      - name: Log in to GitHub Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish the tested image and record its digest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          set -eu
-          image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          docker tag farmer-ic:latest "$image:$GITHUB_SHA"
-          docker push "$image:$GITHUB_SHA"
-          docker image inspect --format '{{json .RepoDigests}}' "$image:$GITHUB_SHA" > "$RUNNER_TEMP/repo-digests.json"
-          python3 docker/release-image-metadata.py create \
-            --repository "$GITHUB_REPOSITORY" --revision "$GITHUB_SHA" \
-            --repo-digests "$RUNNER_TEMP/repo-digests.json" --output "$RUNNER_TEMP/release-image.json"
-
-      - name: Store the tested image reference
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-image-${{ github.sha }}
-          path: ${{ runner.temp }}/release-image.json
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Tag the tested main image as latest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          set -eu
-          # Do not promote a completed run if main has already advanced.
-          main_sha=$(git ls-remote origin refs/heads/main | cut -f1)
-          if [ "$main_sha" != "$GITHUB_SHA" ]; then
-            echo 'A newer main commit exists; skipping the latest tag.'
-            exit 0
-          fi
-          image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          docker tag "$image:$GITHUB_SHA" "$image:latest"
-          docker push "$image:latest"
 
       - name: Show container logs on failure
         if: failure()

@@ -8,6 +8,7 @@ import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import MobileProfileForm from '@/components/settings/MobileProfileForm.vue';
+import LogoutAllDevices from '@/components/settings/LogoutAllDevices.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ import { edit } from '@/routes/profile';
 
 const props = defineProps<{
     passwordRules?: string;
+    canLogoutAllDevices: boolean;
 }>();
 
 defineOptions({
@@ -62,6 +64,7 @@ const breadcrumbs = [{ title: 'Pengaturan profil', href: edit() }];
         <MobileProfileForm
             :return-url="presentation.returnUrl"
             :profile="profile"
+            :can-logout-all-devices="props.canLogoutAllDevices"
         />
     </FarmerMobileShell>
 
@@ -238,6 +241,7 @@ const breadcrumbs = [{ title: 'Pengaturan profil', href: edit() }];
                     </Form>
                 </section>
             </div>
+            <LogoutAllDevices v-if="props.canLogoutAllDevices" />
         </SettingsLayout>
     </AppLayout>
 </template>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateRememberedDevice;
 use App\Http\Middleware\EnsureLocalFarmApi;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -28,11 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(MeasurePetugasActivity::class);
         $middleware->redirectUsersTo(fn (Request $request) => route(
             Gate::forUser($request->user())->allows('admin.access') ? 'admin.dashboard'
-                : (Gate::forUser($request->user())->allows('petugas.access') ? 'petugas.home'
-                    : (Gate::forUser($request->user())->allows('owner.access') ? 'owner.executive-summary' : 'home')),
+            : (Gate::forUser($request->user())->allows('petugas.access') ? 'petugas.home'
+                : (Gate::forUser($request->user())->allows('owner.access') ? 'owner.executive-summary' : 'home')),
         ));
         $middleware->trustProxies(at: '*');
         $middleware->api(prepend: [EnsureLocalFarmApi::class]);
+        $middleware->prependToPriorityList(\Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class, AuthenticateRememberedDevice::class);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
@@ -40,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             MeasurePetugasWebReady::class,
+            AuthenticateRememberedDevice::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

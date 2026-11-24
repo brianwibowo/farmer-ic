@@ -3,13 +3,21 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Responses\LoginResponse;
 use App\Models\TeamInvitation;
+use App\Models\User;
+use App\Services\RememberedDeviceService;
+use App\Support\RolePermissions;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -25,7 +33,10 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(\Laravel\Fortify\Actions\AttemptToAuthenticate::class, \App\Actions\Fortify\AttemptToAuthenticate::class);
+        $this->app->bind(\Laravel\Fortify\Http\Requests\LoginRequest::class, \App\Http\Requests\Auth\LoginRequest::class);
         $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
+        $this->app->bind(\Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class, AuthenticatedSessionController::class);
     }
 
     /**
@@ -37,6 +48,19 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureEmails();
         $this->configureViews();
         $this->configureRateLimiting();
+        Event::listen(Login::class, function (Login $event): void {
+            $request = request();
+            if (! $request->routeIs('login.store') || ! $event->user instanceof User) {
+                return;
+            }
+            $guard = Auth::guard('web');
+            Cookie::unqueue($guard->getRecallerName());
+            Cookie::queue(Cookie::forget($guard->getRecallerName()));
+            $event->user->forceFill(['remember_token' => Str::random(60)])->save();
+            if (app(RolePermissions::class)->roleName($event->user) === 'owner' || $event->remember) {
+                app(RememberedDeviceService::class)->issue($event->user, $request);
+            }
+        });
     }
 
     private function configureEmails(): void
@@ -101,7 +125,21 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 
-            return Limit::perMinute(5)->by($throttleKey);
+            return Limit::perMinute(5)->by($throttleKey)->response(function (Request $request, array $headers) {
+                $seconds = (int) $headers['Retry-After'];
+                $message = "Terlalu banyak percobaan masuk. Coba lagi dalam {$seconds} detik.";
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $message,
+                        'errors' => ['login' => [$message]],
+                    ], 429, $headers);
+                }
+
+                return redirect()->route('login')
+                    ->withErrors(['login' => $message])
+                    ->withInput($request->only('email', 'remember'));
+            });
         });
 
     }

@@ -15,7 +15,7 @@ class SecurityTest extends TestCase
     public function test_security_page_is_displayed()
     {
         // The implemented screen is password settings; 2FA being disabled must not skip it.
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'petugas']);
 
         $this->actingAs($user)
             ->get(route('security.edit'))
@@ -32,7 +32,7 @@ class SecurityTest extends TestCase
     {
         config(['fortify.features' => []]);
 
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'petugas']);
 
         $this->actingAs($user)
             ->get(route('security.edit'))
@@ -46,19 +46,21 @@ class SecurityTest extends TestCase
             );
     }
 
-    public function test_owner_receives_sidebar_security_and_petugas_keeps_mobile_security(): void
+    public function test_only_petugas_uses_security_page_and_other_roles_redirect_to_profile(): void
     {
-        foreach (['owner', 'petugas'] as $role) {
+        foreach (['owner', 'admin', 'superadmin', 'petugas'] as $role) {
             $user = User::factory()->create(['role' => $role]);
-
-            $this->actingAs($user)
-                ->get(route('security.edit'))
-                ->assertOk()
-                ->assertInertia(fn (Assert $page) => $page
-                    ->where('securityPresentation', [
-                        'surface' => $role === 'owner' ? 'desktop' : 'mobile',
-                        'returnUrl' => '/settings/profile',
-                    ]));
+            $response = $this->actingAs($user)->get(route('security.edit'));
+            if ($role === 'petugas') {
+                $response->assertOk()->assertInertia(fn (Assert $page) => $page
+                    ->component('settings/Security')
+                    ->where('securityPresentation.surface', 'mobile')
+                    ->where('securityPresentation.returnUrl', '/settings/profile'));
+            } else {
+                $response->assertRedirect(route('profile.edit'));
+            }
+            $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->component('settings/Profile')->where('canLogoutAllDevices', true));
         }
     }
 

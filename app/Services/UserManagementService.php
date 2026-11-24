@@ -208,6 +208,9 @@ class UserManagementService
                     : ($ids[0] ?? $personalIds[0] ?? null);
                 $user->forceFill(['assigned_farm_id' => $farmId ?: null, 'current_team_id' => $currentId]);
                 $user->save();
+                if (! empty($data['password']) || ($previousRole !== null && $previousRole !== $role->name)) {
+                    app(RememberedDeviceService::class)->revokeAll($user);
+                }
                 $user->teams()->sync($memberships);
                 Farm::query()->where('pic_user_id', $user->id)
                     ->when($role->name === 'petugas' && $user->is_active && $farmId, fn ($q) => $q->whereKeyNot($farmId))
@@ -241,6 +244,7 @@ class UserManagementService
                 $this->ensureAnotherDeveloper($user);
             }
             $user->forceFill(['remember_token' => Str::random(60)])->save();
+            app(RememberedDeviceService::class)->revokeAll($user);
             Farm::query()->where('pic_user_id', $user->id)->update(['pic_user_id' => null]);
             $user->delete();
             DB::table('sessions')->where('user_id', $user->id)->delete();
