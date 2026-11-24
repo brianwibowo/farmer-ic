@@ -33,7 +33,7 @@ class ActivityTimingServiceProvider extends ServiceProvider
             $metrics = MeasurePetugasActivity::metrics($this->app->make('request'));
             if ($metrics !== null) {
                 $metrics->queries++;
-                $metrics->query_ms += $query->time ?? 0;
+                $metrics->query_ms += $query->time;
             }
         });
         $currentMetrics = function (HttpClientRequest $httpRequest): ?ActivityTimingMetrics {

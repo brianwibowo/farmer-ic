@@ -6,6 +6,7 @@ use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
 
 class LoginRequest extends FortifyLoginRequest
 {
+    /** @return array<string, string|list<string>> */
     public function rules(): array
     {
         return array_replace(parent::rules(), ['email' => ['required', 'string', 'email']]);
