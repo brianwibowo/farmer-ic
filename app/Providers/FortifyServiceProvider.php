@@ -33,6 +33,8 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(\Laravel\Fortify\Actions\AttemptToAuthenticate::class, \App\Actions\Fortify\AttemptToAuthenticate::class);
+        $this->app->bind(\Laravel\Fortify\Http\Requests\LoginRequest::class, \App\Http\Requests\Auth\LoginRequest::class);
         $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
         $this->app->bind(\Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class, AuthenticatedSessionController::class);
     }
@@ -123,7 +125,21 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 
-            return Limit::perMinute(5)->by($throttleKey);
+            return Limit::perMinute(5)->by($throttleKey)->response(function (Request $request, array $headers) {
+                $seconds = (int) $headers['Retry-After'];
+                $message = "Terlalu banyak percobaan masuk. Coba lagi dalam {$seconds} detik.";
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $message,
+                        'errors' => ['login' => [$message]],
+                    ], 429, $headers);
+                }
+
+                return redirect()->route('login')
+                    ->withErrors(['login' => $message])
+                    ->withInput($request->only('email', 'remember'));
+            });
         });
 
     }

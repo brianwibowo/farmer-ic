@@ -114,6 +114,71 @@ class AuthenticationTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
-        $response->assertTooManyRequests();
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors(['login' => 'Terlalu banyak percobaan masuk. Coba lagi dalam 60 detik.']);
+        $this->assertGuest();
+    }
+
+    public function test_login_requires_email_and_password_with_clear_messages(): void
+    {
+        $this->from(route('login'))->post(route('login.store'), [])
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors([
+                'email' => 'Masukkan alamat email Anda.',
+                'password' => 'Masukkan kata sandi Anda.',
+            ]);
+        $this->assertGuest();
+    }
+
+    public function test_login_rejects_invalid_email_format(): void
+    {
+        $this->post(route('login.store'), ['email' => 'invalid-email', 'password' => 'secret'])
+            ->assertSessionHasErrors(['email' => 'Masukkan alamat email yang valid.'])
+            ->assertSessionDoesntHaveErrors('login');
+        $this->assertGuest();
+    }
+
+    public function test_wrong_password_and_unknown_email_have_the_same_form_error(): void
+    {
+        $user = User::factory()->create();
+        foreach ([$user->email, 'missing@example.com'] as $email) {
+            $this->from(route('login'))->post(route('login.store'), [
+                'email' => $email, 'password' => 'wrong-password',
+            ])->assertRedirect(route('login'))
+                ->assertSessionHasErrors(['login' => 'Email atau kata sandi salah. Periksa kembali dan coba lagi.'])
+                ->assertSessionDoesntHaveErrors(['email', 'password'])
+                ->assertSessionHasInput('email', $email)
+                ->assertSessionMissing('_old_input.password');
+            $this->assertGuest();
+        }
+    }
+
+    public function test_rate_limit_preserves_email_without_flashing_password_and_expires(): void
+    {
+        $user = User::factory()->create();
+        $key = md5('login'.implode('|', [$user->email, '127.0.0.1']));
+        RateLimiter::increment($key, amount: 5);
+        $this->travel(10)->seconds();
+        $this->from(route('login'))->post(route('login.store'), [
+            'email' => $user->email, 'password' => 'password',
+        ])->assertRedirect(route('login'))
+            ->assertSessionHasErrors(['login' => 'Terlalu banyak percobaan masuk. Coba lagi dalam 50 detik.'])
+            ->assertSessionHasInput('email', $user->email)
+            ->assertSessionMissing('_old_input.password');
+        $this->assertGuest();
+        $this->travel(51)->seconds();
+        $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
+            ->assertRedirect(route('owner.executive-summary'));
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_rate_limit_json_response_keeps_429_and_retry_header(): void
+    {
+        $email = 'limited@example.com';
+        RateLimiter::increment(md5('login'.$email.'|127.0.0.1'), amount: 5);
+        $this->postJson(route('login.store'), ['email' => $email, 'password' => 'secret'])
+            ->assertStatus(429)->assertHeader('Retry-After', '60')
+            ->assertJsonPath('errors.login.0', 'Terlalu banyak percobaan masuk. Coba lagi dalam 60 detik.');
+        $this->assertGuest();
     }
 }

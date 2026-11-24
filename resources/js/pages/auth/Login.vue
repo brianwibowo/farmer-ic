@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
-import { LockKeyhole, Mail } from '@lucide/vue';
-import InputError from '@/components/InputError.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { nextTick, ref } from 'vue';
+import { CircleAlert, LockKeyhole, Mail } from '@lucide/vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TeamInvitationAlert from '@/components/TeamInvitationAlert.vue';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,51 @@ defineProps<{
     canResetPassword: boolean;
     teamInvitation?: TeamInvitationContext | null;
 }>();
+const formElement = ref<HTMLFormElement>();
+const form = useForm<{
+    email: string;
+    password: string;
+    remember: boolean;
+    login?: string;
+}>({ email: '', password: '', remember: false });
+
+async function focusError() {
+    await nextTick();
+    formElement.value
+        ?.querySelector<HTMLElement>(
+            '[role="alert"], input[aria-invalid="true"]',
+        )
+        ?.focus();
+}
+
+function clearError(field: 'email' | 'password') {
+    form.clearErrors(field, 'login');
+}
+
+function submit() {
+    if (form.processing) return;
+    form.clearErrors();
+    form.email = form.email.trim();
+    const emailInput =
+        formElement.value?.querySelector<HTMLInputElement>('#email');
+
+    if (!form.email) {
+        form.setError('email', 'Masukkan alamat email Anda.');
+    } else if (emailInput?.validity.typeMismatch) {
+        form.setError('email', 'Masukkan alamat email yang valid.');
+    }
+    if (!form.password.trim()) {
+        form.setError('password', 'Masukkan kata sandi Anda.');
+    }
+    if (form.hasErrors) {
+        void focusError();
+        return;
+    }
+    form.submit(store(), {
+        onError: () => void focusError(),
+        onSuccess: () => form.reset('password'),
+    });
+}
 </script>
 
 <template>
@@ -46,13 +91,22 @@ defineProps<{
         class="mb-6"
     />
 
-    <Form
-        v-bind="store.form()"
-        :reset-on-success="['password']"
-        v-slot="{ errors, processing }"
-        class="space-y-6"
+    <form
+        ref="formElement"
+        novalidate
+        class="auth-login-form space-y-6"
+        @submit.prevent="submit"
     >
-        <div class="space-y-5" :aria-busy="processing">
+        <div
+            v-if="form.errors.login"
+            role="alert"
+            tabindex="-1"
+            class="flex gap-3 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm leading-5 text-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error"
+        >
+            <CircleAlert aria-hidden="true" class="mt-0.5 size-4 shrink-0" />
+            <p>{{ form.errors.login }}</p>
+        </div>
+        <div class="space-y-5" :aria-busy="form.processing">
             <div class="space-y-2">
                 <Label for="email" class="text-sm font-medium">Email</Label>
                 <div class="relative">
@@ -62,6 +116,8 @@ defineProps<{
                     />
                     <Input
                         id="email"
+                        v-model="form.email"
+                        @input="clearError('email')"
                         type="email"
                         name="email"
                         required
@@ -71,18 +127,19 @@ defineProps<{
                         :spellcheck="false"
                         placeholder="Masukkan email Anda"
                         class="h-12 rounded-xl bg-background pl-10 text-base shadow-none md:text-sm"
-                        :aria-invalid="Boolean(errors.email)"
+                        :aria-invalid="Boolean(form.errors.email)"
                         :aria-describedby="
-                            errors.email ? 'email-error' : undefined
+                            form.errors.email ? 'email-error' : undefined
                         "
                     />
                 </div>
-                <InputError
+                <p
+                    v-if="form.errors.email"
                     id="email-error"
-                    :message="errors.email"
-                    role="alert"
-                    class="[&_p]:text-error"
-                />
+                    class="text-sm text-error"
+                >
+                    {{ form.errors.email }}
+                </p>
             </div>
 
             <div class="space-y-2">
@@ -96,24 +153,27 @@ defineProps<{
                     />
                     <PasswordInput
                         id="password"
+                        v-model="form.password"
+                        @input="clearError('password')"
                         name="password"
                         required
                         autocomplete="current-password"
                         :toggle-tabindex="0"
                         placeholder="Masukkan kata sandi Anda"
                         class="h-12 rounded-xl bg-background pl-10 text-base shadow-none md:text-sm"
-                        :aria-invalid="Boolean(errors.password)"
+                        :aria-invalid="Boolean(form.errors.password)"
                         :aria-describedby="
-                            errors.password ? 'password-error' : undefined
+                            form.errors.password ? 'password-error' : undefined
                         "
                     />
                 </div>
-                <InputError
+                <p
+                    v-if="form.errors.password"
                     id="password-error"
-                    :message="errors.password"
-                    role="alert"
-                    class="[&_p]:text-error"
-                />
+                    class="text-sm text-error"
+                >
+                    {{ form.errors.password }}
+                </p>
             </div>
 
             <div
@@ -123,7 +183,11 @@ defineProps<{
                     for="remember"
                     class="flex cursor-pointer items-center gap-2.5"
                 >
-                    <Checkbox id="remember" name="remember" />
+                    <Checkbox
+                        id="remember"
+                        v-model="form.remember"
+                        name="remember"
+                    />
                     <span class="text-sm font-normal text-muted-foreground"
                         >Ingat login saya</span
                     >
@@ -140,11 +204,11 @@ defineProps<{
         <Button
             type="submit"
             class="h-12 w-full rounded-xl bg-secondary text-base font-semibold text-secondary-foreground hover:bg-secondary/90 active:bg-secondary/80"
-            :disabled="processing"
+            :disabled="form.processing"
             data-test="login-button"
         >
-            <Spinner v-if="processing" aria-hidden="true" />
-            {{ processing ? 'Sedang masuk…' : 'Masuk' }}
+            <Spinner v-if="form.processing" aria-hidden="true" />
+            {{ form.processing ? 'Sedang masuk…' : 'Masuk' }}
         </Button>
-    </Form>
+    </form>
 </template>
