@@ -274,6 +274,10 @@ finish body/ARIA cleanup without waiting for a closing animation.
 Give the confirmation FocusScope its own wrapper instead of `as-child` around
 the target ref. Verify repeated cancel/reopen and Escape cycles leave no empty
 full-screen target behind and keep unsaved fields editable.
+Mark the whole confirmation focus scope with `data-app-confirmation-scope`.
+Shared DialogContent must ignore outside focus/pointer events from that scope
+instead of forwarding them to the underlying editor's discard handler. This
+includes the scope wrapper when SweetAlert restores focus during cleanup.
 Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
 installed npm package, never a CDN. Keep the native `beforeunload`
 warning for refresh/tab closure, where browsers do not allow a custom dialog.
