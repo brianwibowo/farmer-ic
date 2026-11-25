@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Info, LoaderCircle, Save, UserRound } from '@lucide/vue';
+import { Info, LoaderCircle, Save, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import UserAssignments from '@/components/users/UserAssignments.vue';
@@ -80,28 +81,26 @@ function submit(): void {
 <template>
     <Head :title="managedUser ? 'Ubah pengguna' : 'Tambah pengguna'" />
     <div class="mx-auto max-w-4xl space-y-[18px]">
-        <Link
-            :href="backUrl"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-            ><ArrowLeft class="size-4" />Kembali</Link
-        >
-        <header>
-            <p
-                class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase"
-            >
-                Manajemen Pengguna
-            </p>
-            <h1 class="admin-page-title text-primary">
-                {{ managedUser ? 'Ubah pengguna' : 'Tambah pengguna baru' }}
-            </h1>
-            <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                {{
-                    userManagementScope.global
-                        ? 'Kelola identitas, role aplikasi, dan asosiasi tenant dalam satu tempat.'
-                        : 'Kelola identitas akun dan penugasan farm petugas di tenant Anda.'
-                }}
-            </p>
-        </header>
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton :href="backUrl" label="Kembali" />
+            <header class="min-w-0 flex-1">
+                <p
+                    class="mb-2 text-xs font-semibold tracking-widest text-primary uppercase"
+                >
+                    Manajemen Pengguna
+                </p>
+                <h1 class="admin-page-title text-primary">
+                    {{ managedUser ? 'Ubah pengguna' : 'Tambah pengguna baru' }}
+                </h1>
+                <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                    {{
+                        userManagementScope.global
+                            ? 'Kelola identitas, role aplikasi, dan asosiasi tenant dalam satu tempat.'
+                            : 'Kelola identitas akun dan penugasan farm petugas di tenant Anda.'
+                    }}
+                </p>
+            </header>
+        </div>
         <form
             :aria-busy="form.processing"
             class="space-y-[18px]"

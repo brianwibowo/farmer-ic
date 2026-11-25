@@ -1,13 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import {
-    ArrowLeft,
-    ArrowUpRight,
-    BookOpen,
-    LandPlot,
-    MapPin,
-    X,
-} from '@lucide/vue';
+import { ArrowUpRight, BookOpen, LandPlot, MapPin, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import LogbookFiltersPopover from '@/components/logbook/LogbookFiltersPopover.vue';
 import LogbookPagination from '@/components/logbook/LogbookPagination.vue';
@@ -131,38 +125,36 @@ function reset(): void {
 <template>
     <Head :title="'Logbook - ' + farm.name" />
     <div class="space-y-[18px]" :aria-busy="filters.processing">
-        <Link
-            href="/admin/logbook"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-        >
-            <ArrowLeft class="size-4" />Kembali ke logbook
-        </Link>
-
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div class="flex min-w-0 items-start gap-4">
-                <div
-                    class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"
-                >
-                    <LandPlot class="size-7" aria-hidden="true" />
-                </div>
-                <div class="min-w-0">
-                    <h1
-                        class="admin-page-title tracking-tight break-words text-primary"
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton href="/admin/logbook" label="Kembali ke logbook" />
+            <header
+                class="min-w-0 flex-1 flex flex-wrap items-start justify-between gap-4"
+            >
+                <div class="flex min-w-0 items-start gap-4">
+                    <div
+                        class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"
                     >
-                        {{ farm.name }}
-                    </h1>
-                    <p
-                        class="mt-1.5 flex items-start gap-1.5 text-sm leading-6 text-muted-foreground"
-                    >
-                        <MapPin
-                            class="mt-1 size-4 shrink-0 text-primary"
-                            aria-hidden="true"
-                        />
-                        <span>{{ farmLocation(farm) }}</span>
-                    </p>
+                        <LandPlot class="size-7" aria-hidden="true" />
+                    </div>
+                    <div class="min-w-0">
+                        <h1
+                            class="admin-page-title tracking-tight break-words text-primary"
+                        >
+                            {{ farm.name }}
+                        </h1>
+                        <p
+                            class="mt-1.5 flex items-start gap-1.5 text-sm leading-6 text-muted-foreground"
+                        >
+                            <MapPin
+                                class="mt-1 size-4 shrink-0 text-primary"
+                                aria-hidden="true"
+                            />
+                            <span>{{ farmLocation(farm) }}</span>
+                        </p>
+                    </div>
                 </div>
-            </div>
-        </header>
+            </header>
+        </div>
 
         <LogbookStats :summary="summary" />
 

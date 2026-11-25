@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Clock, Search, SquareActivity, User } from '@lucide/vue';
+import { Clock, Search, SquareActivity, User } from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
 import ActivityTypeFilterDropdown from '@/components/farmer/ActivityTypeFilterDropdown.vue';
@@ -177,13 +178,10 @@ onMounted(async () => {
             <!-- Header Row: Back Button + Title/Subtitle -->
             <div class="flex items-start justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2.5">
-                    <Link
+                    <PageBackButton
                         :href="backHref"
-                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        aria-label="Kembali ke Detail Lahan"
-                    >
-                        <ArrowLeft :size="18" :stroke-width="1.8" />
-                    </Link>
+                        label="Kembali ke Detail Lahan"
+                    />
                     <div class="min-w-0">
                         <h1
                             class="truncate text-[20px] leading-6 font-semibold text-foreground"

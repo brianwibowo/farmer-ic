@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import PageBackButton from '@/components/PageBackButton.vue';
+import { Head, useForm } from '@inertiajs/vue3';
 import {
     AlertTriangle,
-    ArrowLeft,
     CalendarClock,
     CalendarDays,
     CheckCircle2,
@@ -116,79 +116,83 @@ function submitReschedule(): void {
 <template>
     <Head :title="task.name" />
     <div class="space-y-[18px]">
-        <Link
-            href="/admin/tasks"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-        >
-            <ArrowLeft class="size-4" />Kembali ke daftar tugas
-        </Link>
-
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div class="flex min-w-0 items-start gap-4">
-                <div
-                    class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"
-                >
-                    <ClipboardList class="size-7" aria-hidden="true" />
-                </div>
-                <div class="min-w-0">
-                    <h1
-                        class="admin-page-title tracking-tight break-words text-primary"
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton
+                href="/admin/tasks"
+                label="Kembali ke daftar tugas"
+            />
+            <header
+                class="min-w-0 flex-1 flex flex-wrap items-start justify-between gap-4"
+            >
+                <div class="flex min-w-0 items-start gap-4">
+                    <div
+                        class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"
                     >
-                        {{ task.name }}
-                    </h1>
-                    <p class="mt-1.5 text-sm text-muted-foreground">
-                        {{ adminTaskCategoryLabel(task) }} ·
-                        {{ adminTaskHst(task.offset_days) }} ·
-                        {{ locationSummary }}
-                    </p>
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
-                        <span
-                            class="rounded-full px-2.5 py-1 text-xs font-medium"
-                            :class="adminTaskStatusClass(task.status)"
+                        <ClipboardList class="size-7" aria-hidden="true" />
+                    </div>
+                    <div class="min-w-0">
+                        <h1
+                            class="admin-page-title tracking-tight break-words text-primary"
                         >
-                            {{ adminTaskStatusLabels[task.status] }}
-                        </span>
-                        <span
-                            v-if="!taskSubblockClosed(task)"
-                            class="rounded-full px-2.5 py-1 text-xs font-medium"
-                            :class="adminTaskUrgencyClass(task.urgency)"
-                        >
-                            {{ adminTaskUrgencyLabels[task.urgency] }}
-                        </span>
-                        <span
-                            v-if="
-                                !taskSubblockClosed(task) &&
-                                task.urgency === 'overdue' &&
-                                task.overdue_days
-                            "
-                            class="inline-flex items-center gap-1 rounded-full bg-error/10 px-2.5 py-1 text-xs font-medium text-error"
-                        >
-                            <AlertTriangle class="size-3" aria-hidden="true" />
-                            Terlambat {{ task.overdue_days }} hari
-                        </span>
-                        <span
-                            v-if="taskSubblockClosed(task)"
-                            class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
-                        >
-                            Subblok ditutup · hanya dapat dilihat
-                        </span>
+                            {{ task.name }}
+                        </h1>
+                        <p class="mt-1.5 text-sm text-muted-foreground">
+                            {{ adminTaskCategoryLabel(task) }} ·
+                            {{ adminTaskHst(task.offset_days) }} ·
+                            {{ locationSummary }}
+                        </p>
+                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                            <span
+                                class="rounded-full px-2.5 py-1 text-xs font-medium"
+                                :class="adminTaskStatusClass(task.status)"
+                            >
+                                {{ adminTaskStatusLabels[task.status] }}
+                            </span>
+                            <span
+                                v-if="!taskSubblockClosed(task)"
+                                class="rounded-full px-2.5 py-1 text-xs font-medium"
+                                :class="adminTaskUrgencyClass(task.urgency)"
+                            >
+                                {{ adminTaskUrgencyLabels[task.urgency] }}
+                            </span>
+                            <span
+                                v-if="
+                                    !taskSubblockClosed(task) &&
+                                    task.urgency === 'overdue' &&
+                                    task.overdue_days
+                                "
+                                class="inline-flex items-center gap-1 rounded-full bg-error/10 px-2.5 py-1 text-xs font-medium text-error"
+                            >
+                                <AlertTriangle
+                                    class="size-3"
+                                    aria-hidden="true"
+                                />
+                                Terlambat {{ task.overdue_days }} hari
+                            </span>
+                            <span
+                                v-if="taskSubblockClosed(task)"
+                                class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                            >
+                                Subblok ditutup · hanya dapat dilihat
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div v-if="task.can.update" class="flex flex-wrap gap-2">
-                <Button class="h-10 rounded-xl" @click="openReschedule">
-                    <CalendarClock />Jadwalkan ulang
-                </Button>
-                <Button
-                    variant="outline"
-                    class="h-10 rounded-xl"
-                    @click="openSkip"
-                >
-                    <SkipForward />Tidak dikerjakan
-                </Button>
-            </div>
-        </header>
+                <div v-if="task.can.update" class="flex flex-wrap gap-2">
+                    <Button class="h-10 rounded-xl" @click="openReschedule">
+                        <CalendarClock />Jadwalkan ulang
+                    </Button>
+                    <Button
+                        variant="outline"
+                        class="h-10 rounded-xl"
+                        @click="openSkip"
+                    >
+                        <SkipForward />Tidak dikerjakan
+                    </Button>
+                </div>
+            </header>
+        </div>
 
         <div
             class="grid items-start gap-[18px] xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]"

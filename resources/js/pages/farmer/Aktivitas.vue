@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     Activity,
@@ -15,7 +16,6 @@ import {
     SlidersHorizontal,
     SquareActivity,
     X,
-    ArrowLeft,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ActivityPeriodFilter from '@/components/farmer/ActivityPeriodFilter.vue';
@@ -425,14 +425,11 @@ onBeforeUnmount(() => {
                 :class="currentKebunName ? 'items-start' : 'items-center'"
             >
                 <div class="flex min-w-0 items-center gap-2.5">
-                    <Link
+                    <PageBackButton
                         v-if="kebunParam"
                         :href="backHref"
-                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        aria-label="Kembali ke Detail Lahan"
-                    >
-                        <ArrowLeft :size="18" :stroke-width="1.8" />
-                    </Link>
+                        label="Kembali ke Detail Lahan"
+                    />
                     <div class="min-w-0">
                         <h1
                             class="truncate text-[20px] leading-7 font-semibold text-foreground"

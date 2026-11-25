@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import DailyReportContent from '@/components/petugas/DailyReportContent.vue';
@@ -38,14 +39,15 @@ function changeDate(event: Event): void {
     <Head title="Aktivitas Harian" />
     <div class="min-w-0 space-y-5 text-foreground" :aria-busy="pending">
         <header>
-            <Link
-                href="/petugas/laporan"
-                class="inline-flex min-h-11 items-center text-sm text-secondary"
-                >← Kembali ke laporan</Link
-            >
-            <h1 class="mt-2 text-2xl leading-8 font-semibold">
-                Aktivitas harian
-            </h1>
+            <div class="flex min-w-0 items-start gap-2">
+                <PageBackButton
+                    href="/petugas/laporan"
+                    label="Kembali ke laporan"
+                />
+                <h1 class="text-2xl leading-8 font-semibold">
+                    Aktivitas harian
+                </h1>
+            </div>
             <p class="mt-2 text-sm text-muted-foreground">
                 {{ farm?.name ?? 'Belum ada penugasan lahan' }} · Satu laporan
                 bersama per hari.

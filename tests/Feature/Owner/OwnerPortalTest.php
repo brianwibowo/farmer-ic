@@ -14,6 +14,7 @@ use App\Models\SopTemplate;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\RolePermissions;
+use Database\Seeders\AdministrativeRegionSeeder;
 use Database\Seeders\DemoActivitySeeder;
 use Database\Seeders\DemoFarmSeeder;
 use Database\Seeders\DemoIdentitySeeder;
@@ -216,9 +217,14 @@ class OwnerPortalTest extends TestCase
 
     public function test_admin_updates_are_visible_on_the_next_owner_read(): void
     {
+        $this->seed(AdministrativeRegionSeeder::class);
         $this->actingAs($this->admin)->patch('/admin/farm-management/'.$this->farm->id, [
             'name' => 'Kebun Cileuksa Utara',
-        ])->assertRedirect();
+            'district_code' => '32.01.35',
+            'district' => 'Sukajaya',
+            'city' => 'Kabupaten Bogor',
+            'province' => 'Jawa Barat',
+        ])->assertSessionHasNoErrors()->assertRedirectToRoute('farm-management.show', $this->farm);
 
         $this->actingAs($this->owner)->get('/kebun/'.$this->farm->id)
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('farm.name', 'Kebun Cileuksa Utara'));

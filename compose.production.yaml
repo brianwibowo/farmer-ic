@@ -108,6 +108,8 @@ services:
         <<: *app-service
         command: php artisan queue:work ${QUEUE_CONNECTION:-redis} --queue=ai-index,default --sleep=2 --tries=3 --timeout=180
         profiles: ['rag']
+        # Laravel queue workers handle SIGTERM. The Apache image defaults to SIGWINCH.
+        stop_signal: SIGTERM
         stop_grace_period: 190s
         healthcheck:
             test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "queue:work"']
@@ -125,6 +127,7 @@ services:
         <<: *app-service
         command: php artisan queue:work ${NOTIFICATION_QUEUE_CONNECTION:-database} --queue=notifications,whatsapp --sleep=1 --tries=3 --timeout=30 --max-time=3600
         profiles: ['rag']
+        stop_signal: SIGTERM
         stop_grace_period: 40s
         healthcheck:
             test: ['CMD-SHELL', 'tr "\0" " " < /proc/1/cmdline | grep -q "queue:work"']
