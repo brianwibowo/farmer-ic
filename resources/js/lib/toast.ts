@@ -1,5 +1,7 @@
 import Swal from 'sweetalert2';
 import type { SweetAlertIcon, SweetAlertResult } from 'sweetalert2';
+import { nextTick, watch } from 'vue';
+import { confirmationState } from '@/composables/useConfirmation';
 
 type ToastKind = 'success' | 'info' | 'warning' | 'error';
 
@@ -65,13 +67,29 @@ const baseToast = Swal.mixin({
     },
 });
 
-function fire(icon: ToastKind, message: string): Promise<SweetAlertResult> {
+let dismissVersion = 0;
+
+async function fire(icon: ToastKind, message: string): Promise<SweetAlertResult> {
+    const version = dismissVersion;
+    // SweetAlert has one active popup, including toasts. Never replace a decision.
+    while (confirmationState.open) {
+        await new Promise<void>((resolve) => {
+            const stop = watch(() => confirmationState.open, (open) => {
+                if (!open) { stop(); resolve(); }
+            }, { flush: 'sync' });
+        });
+        // Let the confirmation host finish closing and remove its focus scope.
+        await nextTick();
+    }
+    if (version !== dismissVersion) {
+        return { isConfirmed: false, isDenied: false, isDismissed: true };
+    }
     const admin = isAdminSurface();
 
     return baseToast.fire({
         icon: icon as SweetAlertIcon,
         iconHtml: ICONS[icon],
-        title: message,
+        titleText: message,
         customClass: {
             container: admin
                 ? 'swal-toast-container admin-dashboard-theme'
@@ -92,7 +110,8 @@ export const toast = {
     warning: (message: string) => fire('warning', message),
     error: (message: string) => fire('error', message),
     dismiss: () => {
-        if (Swal.isVisible()) {
+        ++dismissVersion;
+        if (Swal.getPopup()?.classList.contains('swal2-toast')) {
             Swal.close();
         }
     },

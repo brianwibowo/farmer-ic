@@ -258,7 +258,8 @@ Pop-ups support both horizontal and vertical button layouts. Content patterns in
 Use a real dialog or modal pattern, keep the action order predictable, and make the close and primary actions keyboard accessible.
 
 Unsaved-change confirmations use SweetAlert2 through the shared
-`ConfirmationDialog` mounted in `AppShell`, with admin tokens, a 20px card,
+`ConfirmationDialog` mounted in `AppShell` or the standalone `FarmerMobileShell`,
+with the Petugas font in the mobile shell, admin tokens, a 20px card,
 warning icon, concise title/message,
 and 44px-or-larger actions. Keep its overlay/content above an already-open
 editor. Focus the safe cancel action first. Cancel and Escape preserve typed
@@ -270,9 +271,16 @@ Reka focus stack and uses its own elevated overlay above editors.
 Render the body Teleport only after client mount so SSR hydration never walks
 unrelated body elements. Close SweetAlert before Vue removes its target and
 finish body/ARIA cleanup without waiting for a closing animation.
+Give the confirmation FocusScope its own wrapper instead of `as-child` around
+the target ref. Verify repeated cancel/reopen and Escape cycles leave no empty
+full-screen target behind and keep unsaved fields editable.
 Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
 installed npm package, never a CDN. Keep the native `beforeunload`
 warning for refresh/tab closure, where browsers do not allow a custom dialog.
+Toast messages wait until a pending confirmation finishes; navigating or
+dismissing toasts must never close a confirmation. Discard queued toasts on
+navigation so messages from the previous page do not appear later. Render toast
+messages as text, including server flash messages.
 
 ## Manual land cycles
 
