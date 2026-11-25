@@ -2,7 +2,7 @@ name: Release image
 
 on:
   push:
-    branches: [main]
+    branches: [staging, main]
 
 permissions:
   contents: read
@@ -14,6 +14,7 @@ concurrency:
 jobs:
   docker:
     name: Docker build and isolated PostgreSQL smoke test
+    if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,7 +98,6 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:8080/up
 
       - name: Log in to GitHub Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -105,7 +105,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish the tested image and record its digest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           set -eu
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
@@ -117,7 +116,6 @@ jobs:
             --repo-digests "$RUNNER_TEMP/repo-digests.json" --output "$RUNNER_TEMP/release-image.json"
 
       - name: Store the tested image reference
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: release-image-${{ github.sha }}
@@ -125,20 +123,68 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Tag the tested main image as latest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Tag the tested image as staging
         run: |
           set -eu
-          # Do not promote a completed run if main has already advanced.
-          main_sha=$(git ls-remote origin refs/heads/main | cut -f1)
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          image_ref=$(python3 docker/release-image-metadata.py verify \
+            --repository "$GITHUB_REPOSITORY" --revision "$GITHUB_SHA" \
+            --metadata "$RUNNER_TEMP/release-image.json")
+          docker buildx imagetools create --prefer-index=false --tag "$image:staging" "$image_ref"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --env-file .env.production -f compose.production.yaml --profile rag logs --tail=100
+
+  promote:
+    name: Promote the staging image to latest
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Record the staging image digest for this main release
+        run: |
+          set -eu
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          # Release operators keep staging unchanged until the main release run completes.
+          digest=$(docker buildx imagetools inspect --format '{{.Manifest.Digest}}' "$image:staging")
+          printf '["%s@%s"]\n' "$image" "$digest" > "$RUNNER_TEMP/repo-digests.json"
+          python3 docker/release-image-metadata.py create \
+            --repository "$GITHUB_REPOSITORY" --revision "$GITHUB_SHA" \
+            --repo-digests "$RUNNER_TEMP/repo-digests.json" --output "$RUNNER_TEMP/release-image.json"
+
+      - name: Store the promoted image reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-image-${{ github.sha }}
+          path: ${{ runner.temp }}/release-image.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Tag the selected staging image as latest
+        shell: bash
+        run: |
+          set -eu
+          # Do not promote an older release if main has already advanced.
+          main_sha=$(git ls-remote --exit-code origin refs/heads/main | cut -f1)
           if [ "$main_sha" != "$GITHUB_SHA" ]; then
             echo 'A newer main commit exists; skipping the latest tag.'
             exit 0
           fi
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          docker tag "$image:$GITHUB_SHA" "$image:latest"
-          docker push "$image:latest"
-
-      - name: Show container logs on failure
-        if: failure()
-        run: docker compose --env-file .env.production -f compose.production.yaml --profile rag logs --tail=100
+          image_ref=$(python3 docker/release-image-metadata.py verify \
+            --repository "$GITHUB_REPOSITORY" --revision "$GITHUB_SHA" \
+            --metadata "$RUNNER_TEMP/release-image.json")
+          docker buildx imagetools create --prefer-index=false --tag "$image:latest" "$image_ref"

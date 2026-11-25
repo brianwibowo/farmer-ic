@@ -32,6 +32,11 @@ class FarmManagementInertiaTest extends TestCase
         $this->team = Team::query()->create(['name' => 'Tim Farm Management', 'is_personal' => false]);
         $this->admin = $this->actor('admin', $this->team);
         $this->actingAs($this->admin);
+        DB::table('administrative_regions')->insert([
+            ['code' => '32', 'name' => 'Jawa Barat', 'level' => 1, 'parent_code' => null],
+            ['code' => '32.01', 'name' => 'Bogor', 'level' => 2, 'parent_code' => '32'],
+            ['code' => '32.01.09', 'name' => 'Sukamakmur', 'level' => 3, 'parent_code' => '32.01'],
+        ]);
     }
 
     public function test_pic_assignment_is_optional_scoped_and_assigns_the_worker(): void
@@ -352,7 +357,7 @@ class FarmManagementInertiaTest extends TestCase
     public function test_web_validation_uses_session_errors_and_preserves_records(): void
     {
         $this->from('/admin/farm-management/create')->post('/admin/farm-management', $this->payload([
-            'total_area_ha' => 0, 'latitude' => '-6.25',
+            'total_area_ha' => 0, 'latitude' => 91,
         ]))->assertRedirect('/admin/farm-management/create')->assertSessionHasErrors(['total_area_ha', 'latitude']);
         $this->assertDatabaseCount('farms', 0);
         $farm = $this->farm();
@@ -541,10 +546,10 @@ class FarmManagementInertiaTest extends TestCase
             ->where('farms.data.0.land_tenure', 'owned')->where('farms.data.1.land_tenure', 'partnership')->where('farms.data.2.land_tenure', 'rented'));
         $this->put('/admin/farm-management/'.$farm->id, $this->payload([
             'land_tenure' => 'owned', 'latitude' => null, 'longitude' => null,
-        ]))->assertRedirect();
-        $this->assertSame('owned', $farm->fresh()->land_tenure);
-        $this->assertNull($farm->fresh()->latitude);
-        $this->assertNull($farm->fresh()->longitude);
+        ]))->assertSessionHasErrors(['latitude', 'longitude']);
+        $this->assertSame('partnership', $farm->fresh()->land_tenure);
+        $this->assertSame('-6.5965123', $farm->fresh()->latitude);
+        $this->assertSame('106.9502123', $farm->fresh()->longitude);
     }
 
     public function test_new_farms_require_a_recognized_tenure_and_invalid_changes_preserve_data(): void
@@ -562,7 +567,7 @@ class FarmManagementInertiaTest extends TestCase
             'land_tenure' => 'invalid', 'latitude' => 91, 'longitude' => 181,
         ]))->assertSessionHasErrors(['land_tenure', 'latitude', 'longitude']);
         $this->assertSame('owned', $farm->fresh()->land_tenure);
-        $this->assertNull($farm->fresh()->latitude);
+        $this->assertSame('-6.5791234', $farm->fresh()->latitude);
     }
 
     public function test_legacy_tenure_is_not_guessed_and_can_be_completed_later(): void
@@ -654,6 +659,6 @@ class FarmManagementInertiaTest extends TestCase
     /** @param array<string, mixed> $overrides @return array<string, mixed> */
     private function payload(array $overrides = []): array
     {
-        return array_replace(['name' => 'Kebun Pertiwi', 'land_tenure' => 'owned', 'total_area_ha' => '12.5000', 'city' => 'Bogor', 'province' => 'Jawa Barat'], $overrides);
+        return array_replace(['name' => 'Kebun Pertiwi', 'land_tenure' => 'owned', 'total_area_ha' => '12.5000', 'district_code' => '32.01.09', 'district' => 'Sukamakmur', 'address' => 'Jalan Desa Sukamakmur', 'latitude' => '-6.5791234', 'longitude' => '107.0023456', 'city' => 'Bogor', 'province' => 'Jawa Barat'], $overrides);
     }
 }
