@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, Plus, Sprout } from '@lucide/vue';
+import { Plus, Sprout } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import SubblokCreateDialog, {
     type SubblokBlockOption,
@@ -85,35 +86,33 @@ function formatWindowRange(window: PlantingWindow): string {
     <Head title="Penanaman Subblok" />
     <div class="min-w-0 space-y-5 text-foreground">
         <header>
-            <Link
-                :href="backHref"
-                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                ><ArrowLeft class="size-4" aria-hidden="true" />{{
-                    backLabel
-                }}</Link
-            >
-            <div class="mt-3 flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h1 class="text-xl leading-7 font-semibold">
-                        Catat penanaman
-                    </h1>
-                    <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                        {{ farm.name }} · Catat tanggal tanam yang benar-benar
-                        terjadi, bukan tanggal rencana.
-                    </p>
-                </div>
-                <Button
-                    v-if="canCreateSubblok"
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    class="min-h-11 rounded-xl"
-                    :disabled="!hasAvailableBlock"
-                    @click="createOpen = true"
+            <div class="flex min-w-0 items-start gap-2">
+                <PageBackButton :href="backHref" :label="backLabel" />
+                <div
+                    class="min-w-0 flex-1 flex flex-wrap items-start justify-between gap-3"
                 >
-                    <Plus class="size-4" aria-hidden="true" />
-                    Tambah subblok
-                </Button>
+                    <div>
+                        <h1 class="text-xl leading-7 font-semibold">
+                            Catat penanaman
+                        </h1>
+                        <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                            {{ farm.name }} · Catat tanggal tanam yang
+                            benar-benar terjadi, bukan tanggal rencana.
+                        </p>
+                    </div>
+                    <Button
+                        v-if="canCreateSubblok"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        class="min-h-11 rounded-xl"
+                        :disabled="!hasAvailableBlock"
+                        @click="createOpen = true"
+                    >
+                        <Plus class="size-4" aria-hidden="true" />
+                        Tambah subblok
+                    </Button>
+                </div>
             </div>
         </header>
         <!-- <p

@@ -92,6 +92,7 @@ onBeforeUnmount(() => {
              child ref on reopening, leaving an empty overlay without a popup. -->
         <FocusScope
             v-if="confirmationState.open"
+            data-app-confirmation-scope
             trapped
             loop
             @mount-auto-focus.prevent

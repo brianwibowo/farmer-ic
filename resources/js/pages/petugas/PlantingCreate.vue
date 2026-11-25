@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     CalendarDays,
     ChevronDown,
     FileText,
@@ -304,17 +304,16 @@ function submit(): void {
     <Head title="Realisasi Penanaman" />
     <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
-            <Link
-                :href="backHref"
-                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                ><ArrowLeft class="size-4" aria-hidden="true" />Daftar
-                subblok</Link
-            >
-            <h1 class="mt-3 text-xl leading-7 font-semibold">
-                {{
-                    canRecord ? 'Catat penanaman aktual' : 'Realisasi penanaman'
-                }}
-            </h1>
+            <div class="flex min-w-0 items-start gap-2">
+                <PageBackButton :href="backHref" label="Daftar subblok" />
+                <h1 class="text-xl leading-7 font-semibold">
+                    {{
+                        canRecord
+                            ? 'Catat penanaman aktual'
+                            : 'Realisasi penanaman'
+                    }}
+                </h1>
+            </div>
         </header>
         <section class="petugas-card overflow-hidden">
             <div class="flex items-center gap-3 bg-primary/5 p-4">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Form, Link } from '@inertiajs/vue3';
-import { ArrowLeft, LoaderCircle, Save } from '@lucide/vue';
+import PageBackButton from '@/components/PageBackButton.vue';
+import { Form } from '@inertiajs/vue3';
+import { LoaderCircle, Save } from '@lucide/vue';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
@@ -14,22 +15,17 @@ const props = defineProps<{
 
 <template>
     <div class="mx-auto flex w-full max-w-md flex-col gap-5 px-4 py-5">
-        <Link
-            :href="props.returnUrl"
-            class="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-1 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-            <ArrowLeft class="size-4" aria-hidden="true" />
-            Kembali ke profil
-        </Link>
-
-        <header class="px-1 pt-1">
-            <h1 class="text-xl leading-7 font-bold text-foreground">
-                Keamanan akun
-            </h1>
-            <p class="mt-1 text-sm leading-5 text-muted-foreground/70">
-                Perbarui kata sandi untuk menjaga akun Anda.
-            </p>
-        </header>
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton :href="props.returnUrl" label="Kembali ke profil" />
+            <header class="min-w-0 flex-1 px-1 pt-1">
+                <h1 class="text-xl leading-7 font-bold text-foreground">
+                    Keamanan akun
+                </h1>
+                <p class="mt-1 text-sm leading-5 text-muted-foreground/70">
+                    Perbarui kata sandi untuk menjaga akun Anda.
+                </p>
+            </header>
+        </div>
 
         <section class="rounded-xl border border-border bg-card p-4 shadow-sm">
             <Form
@@ -37,7 +33,11 @@ const props = defineProps<{
                 v-slot="{ errors, processing }"
                 :options="{ preserveScroll: true }"
                 reset-on-success
-                :reset-on-error="['password', 'password_confirmation', 'current_password']"
+                :reset-on-error="[
+                    'password',
+                    'password_confirmation',
+                    'current_password',
+                ]"
                 class="space-y-4"
             >
                 <div class="grid gap-1.5">
@@ -66,7 +66,9 @@ const props = defineProps<{
                 </div>
 
                 <div class="grid gap-1.5">
-                    <Label for="password_confirmation">Konfirmasi kata sandi baru</Label>
+                    <Label for="password_confirmation"
+                        >Konfirmasi kata sandi baru</Label
+                    >
                     <PasswordInput
                         id="password_confirmation"
                         name="password_confirmation"
@@ -84,7 +86,10 @@ const props = defineProps<{
                     class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:bg-disable disabled:text-disable-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     data-test="update-password-button"
                 >
-                    <LoaderCircle v-if="processing" class="size-4 animate-spin" />
+                    <LoaderCircle
+                        v-if="processing"
+                        class="size-4 animate-spin"
+                    />
                     <Save v-else class="size-4" aria-hidden="true" />
                     {{ processing ? 'Menyimpan...' : 'Simpan kata sandi' }}
                 </button>

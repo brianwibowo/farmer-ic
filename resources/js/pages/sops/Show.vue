@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import SummaryStatCard from '@/components/SummaryStatCard.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     AlertTriangle,
-    ArrowLeft,
     CheckCircle2,
     ClipboardList,
     LoaderCircle,
@@ -160,77 +160,79 @@ function statusClass(status: SopVersion['status']): string {
 <template>
     <Head :title="template.name" />
     <div class="space-y-[18px]">
-        <Link
-            href="/admin/sops"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-        >
-            <ArrowLeft class="size-4" />Daftar SOP
-        </Link>
-
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="admin-page-title tracking-tight">
-                    {{ template.name }}
-                </h1>
-                <div
-                    class="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
-                >
-                    <span class="inline-flex items-center gap-1.5">
-                        <Sprout class="size-4 shrink-0 text-primary" />
-                        {{
-                            template.commodity?.name ?? 'Komoditas belum diisi'
-                        }}
-                    </span>
-                    <span aria-hidden="true">·</span>
-                    <span>{{ template.team?.name }}</span>
-                    <span
-                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
-                        :class="
-                            template.is_active
-                                ? 'bg-success/10 text-success'
-                                : 'bg-muted text-muted-foreground'
-                        "
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton href="/admin/sops" label="Daftar SOP" />
+            <header
+                class="min-w-0 flex-1 flex flex-wrap items-start justify-between gap-4"
+            >
+                <div>
+                    <h1 class="admin-page-title tracking-tight">
+                        {{ template.name }}
+                    </h1>
+                    <div
+                        class="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
                     >
-                        {{ template.is_active ? 'Aktif' : 'Nonaktif' }}
-                    </span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <Sprout class="size-4 shrink-0 text-primary" />
+                            {{
+                                template.commodity?.name ??
+                                'Komoditas belum diisi'
+                            }}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>{{ template.team?.name }}</span>
+                        <span
+                            class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            :class="
+                                template.is_active
+                                    ? 'bg-success/10 text-success'
+                                    : 'bg-muted text-muted-foreground'
+                            "
+                        >
+                            {{ template.is_active ? 'Aktif' : 'Nonaktif' }}
+                        </span>
+                    </div>
+                    <p
+                        v-if="template.description"
+                        class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground"
+                    >
+                        {{ template.description }}
+                    </p>
                 </div>
-                <p
-                    v-if="template.description"
-                    class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground"
-                >
-                    {{ template.description }}
-                </p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <Button
-                    v-if="can.delete"
-                    variant="destructive-outline"
-                    class="h-10 rounded-xl"
-                    @click="deletingTemplate = true"
-                >
-                    <Trash2 />Hapus
-                </Button>
-                <Button
-                    v-if="can.update"
-                    as-child
-                    variant="outline"
-                    class="h-10 rounded-xl"
-                >
-                    <Link :href="`/admin/sops/${template.id}/edit`">
-                        <Pencil />Ubah SOP
-                    </Link>
-                </Button>
-                <Button
-                    v-if="can.manageVersions && !draftVersion"
-                    class="h-10 rounded-xl"
-                    :disabled="creatingVersion"
-                    @click="createVersion"
-                >
-                    <LoaderCircle v-if="creatingVersion" class="animate-spin" />
-                    <Plus v-else />Versi baru
-                </Button>
-            </div>
-        </header>
+                <div class="flex flex-wrap gap-2">
+                    <Button
+                        v-if="can.delete"
+                        variant="destructive-outline"
+                        class="h-10 rounded-xl"
+                        @click="deletingTemplate = true"
+                    >
+                        <Trash2 />Hapus
+                    </Button>
+                    <Button
+                        v-if="can.update"
+                        as-child
+                        variant="outline"
+                        class="h-10 rounded-xl"
+                    >
+                        <Link :href="`/admin/sops/${template.id}/edit`">
+                            <Pencil />Ubah SOP
+                        </Link>
+                    </Button>
+                    <Button
+                        v-if="can.manageVersions && !draftVersion"
+                        class="h-10 rounded-xl"
+                        :disabled="creatingVersion"
+                        @click="createVersion"
+                    >
+                        <LoaderCircle
+                            v-if="creatingVersion"
+                            class="animate-spin"
+                        />
+                        <Plus v-else />Versi baru
+                    </Button>
+                </div>
+            </header>
+        </div>
 
         <section
             class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"

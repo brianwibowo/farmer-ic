@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, CalendarDays, LandPlot, UserRound } from '@lucide/vue';
+import { CalendarDays, LandPlot, UserRound } from '@lucide/vue';
 import LogbookActivities from '@/components/logbook/LogbookActivities.vue';
 import {
     logbookDate,
@@ -14,24 +15,25 @@ defineProps<{ farm: LogbookFarm; log: LogbookDetail }>();
 <template>
     <Head :title="'Detail Logbook - ' + farm.name" />
     <div class="space-y-[18px]">
-        <Link
-            :href="'/admin/logbook/' + farm.id"
-            class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
-            ><ArrowLeft class="size-4" />Kembali ke logbook lahan</Link
-        >
-        <header>
-            <p
-                class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
-                Laporan harian
-            </p>
-            <h1 class="admin-page-title mt-1 text-primary">
-                Logbook {{ logbookDate(log.work_date) }}
-            </h1>
-            <p class="mt-2 text-sm text-muted-foreground">
-                {{ farm.name }} · {{ farmLocation(farm) }}
-            </p>
-        </header>
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton
+                :href="'/admin/logbook/' + farm.id"
+                label="Kembali ke logbook lahan"
+            />
+            <header class="min-w-0 flex-1">
+                <p
+                    class="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    Laporan harian
+                </p>
+                <h1 class="admin-page-title mt-1 text-primary">
+                    Logbook {{ logbookDate(log.work_date) }}
+                </h1>
+                <p class="mt-2 text-sm text-muted-foreground">
+                    {{ farm.name }} · {{ farmLocation(farm) }}
+                </p>
+            </header>
+        </div>
         <div
             class="grid items-start gap-[18px] xl:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]"
         >

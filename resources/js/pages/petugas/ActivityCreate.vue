@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import PageBackButton from '@/components/PageBackButton.vue';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     CalendarDays,
     ChevronDown,
     ClipboardCheck,
@@ -247,15 +247,10 @@ function submit(): void {
     <Head title="Catat Aktivitas Tugas" />
     <div class="min-w-0 space-y-[18px] text-foreground">
         <header>
-            <Link
-                :href="backHref"
-                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                ><ArrowLeft class="size-4" aria-hidden="true" />Kembali ke
-                tugas</Link
-            >
-            <h1 class="mt-2 text-xl leading-7 font-semibold">
-                Catat aktivitas
-            </h1>
+            <div class="flex min-w-0 items-start gap-2">
+                <PageBackButton :href="backHref" label="Kembali ke tugas" />
+                <h1 class="text-xl leading-7 font-semibold">Catat aktivitas</h1>
+            </div>
             <p class="mt-1 text-sm leading-5 text-muted-foreground">
                 Laporkan hasil pekerjaan untuk tugas ini.
             </p>

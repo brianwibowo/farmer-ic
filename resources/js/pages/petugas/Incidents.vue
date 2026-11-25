@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     CheckCircle2,
     ChevronRight,
     Clock,
@@ -87,36 +87,35 @@ function reset(): void {
     <Head title="Tiket Insiden" />
     <div class="min-w-0 space-y-4 pb-20 text-foreground">
         <header class="space-y-2">
-            <Link
-                :href="backHref"
-                class="inline-flex min-h-11 items-center gap-2 rounded-xl text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-                <ArrowLeft class="size-4" aria-hidden="true" />{{ backLabel }}
-            </Link>
-            <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <h1>Tiket insiden</h1>
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        {{
-                            farm
-                                ? `Laporan & tindak lanjut insiden · ${farm.name}`
-                                : 'Belum ada penugasan lahan'
-                        }}
-                    </p>
-                </div>
-                <Link
-                    v-if="farm"
-                    :href="
-                        withPetugasBack(
-                            '/petugas/aktivitas/mandiri/incident',
-                            listUrl,
-                        )
-                    "
-                    class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            <div class="flex min-w-0 items-start gap-2">
+                <PageBackButton :href="backHref" :label="backLabel" />
+                <div
+                    class="min-w-0 flex-1 flex items-start justify-between gap-3"
                 >
-                    <Plus class="size-4" aria-hidden="true" />
-                    Laporkan
-                </Link>
+                    <div class="min-w-0">
+                        <h1>Tiket insiden</h1>
+                        <p class="mt-1 text-sm text-muted-foreground">
+                            {{
+                                farm
+                                    ? `Laporan & tindak lanjut insiden · ${farm.name}`
+                                    : 'Belum ada penugasan lahan'
+                            }}
+                        </p>
+                    </div>
+                    <Link
+                        v-if="farm"
+                        :href="
+                            withPetugasBack(
+                                '/petugas/aktivitas/mandiri/incident',
+                                listUrl,
+                            )
+                        "
+                        class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                        <Plus class="size-4" aria-hidden="true" />
+                        Laporkan
+                    </Link>
+                </div>
             </div>
         </header>
 

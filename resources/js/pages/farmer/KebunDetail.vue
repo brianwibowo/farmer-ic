@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     Activity,
-    ArrowLeft,
     CalendarDays,
     CircleAlert,
     CircleCheck,
@@ -216,17 +216,7 @@ watch(kebunId, () => void loadDetail());
         </div>
         <div v-else class="space-y-6 px-5 pt-4 pb-6">
             <header class="flex items-center gap-3">
-                <Link
-                    href="/kebun"
-                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-secondary transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    aria-label="Kembali ke daftar lahan"
-                >
-                    <ArrowLeft
-                        :size="20"
-                        :stroke-width="1.8"
-                        aria-hidden="true"
-                    />
-                </Link>
+                <PageBackButton href="/kebun" label="Kembali ke daftar lahan" />
                 <div>
                     <p class="text-sm font-medium text-muted-foreground">
                         Detail Lahan
@@ -448,7 +438,9 @@ watch(kebunId, () => void loadDetail());
                     </div>
                 </div>
                 <div class="rounded-2xl bg-muted p-4">
-                    <div class="flex items-start justify-between gap-3">
+                    <div
+                        class="flex items-start justify-between gap-3"
+                    >
                         <div>
                             <h3
                                 class="text-base font-semibold text-card-foreground"
