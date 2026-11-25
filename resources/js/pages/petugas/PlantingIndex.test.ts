@@ -9,6 +9,7 @@ vi.mock('@inertiajs/vue3', async () => {
     const { defineComponent, h, reactive } = await import('vue');
     return {
         Head: defineComponent({ setup: () => () => null }),
+        router: { on: () => () => undefined },
         Link: defineComponent({
             props: { href: String },
             setup:
