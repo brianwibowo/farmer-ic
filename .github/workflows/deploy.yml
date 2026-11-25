@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
     deploy:
-        name: Deploy tested commit on VPS
+        name: Deploy promoted image on VPS
         if: >-
             vars.PRODUCTION_DEPLOY_ENABLED == 'true' &&
             github.event.workflow_run.conclusion == 'success' &&
@@ -25,12 +25,12 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Check out the tested commit
+            - name: Check out the release commit
               uses: actions/checkout@v4
               with:
                   ref: ${{ github.event.workflow_run.head_sha }}
 
-            - name: Download the tested image reference
+            - name: Download the promoted image reference
               uses: actions/download-artifact@v4
               with:
                   name: release-image-${{ github.event.workflow_run.head_sha }}
@@ -41,15 +41,15 @@ jobs:
             - name: Verify the image reference
               id: image
               env:
-                  TESTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
+                  RELEASE_COMMIT: ${{ github.event.workflow_run.head_sha }}
               run: |
                   set -eu
                   image_ref=$(python3 docker/release-image-metadata.py verify \
-                    --repository "$GITHUB_REPOSITORY" --revision "$TESTED_COMMIT" \
+                    --repository "$GITHUB_REPOSITORY" --revision "$RELEASE_COMMIT" \
                     --metadata "$RUNNER_TEMP/release-image/release-image.json")
                   printf 'image_ref=%s\n' "$image_ref" >> "$GITHUB_OUTPUT"
 
-            - name: Pull tested image, check schema and deploy
+            - name: Pull promoted image, check schema and deploy
               uses: appleboy/ssh-action@v1.2.2
               env:
                   VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH || '/home/clouduser/farmer-ic' }}

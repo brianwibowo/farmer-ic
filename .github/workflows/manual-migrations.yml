@@ -4,7 +4,7 @@ on:
     workflow_dispatch:
         inputs:
             ci_run_id:
-                description: 'ID successful release image push run for the current main commit'
+                description: 'Successful Release image workflow run ID for the current main commit'
                 required: true
                 type: string
             operation:
@@ -64,12 +64,12 @@ jobs:
                   [ "$sha" = "$main_sha" ] || { echo 'Release run is not for the current main commit.' >&2; exit 1; }
                   printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
 
-            - name: Check out tested commit
+            - name: Check out the release commit
               uses: actions/checkout@v4
               with:
                   ref: ${{ steps.release.outputs.sha }}
 
-            - name: Download tested image reference
+            - name: Download the promoted image reference
               uses: actions/download-artifact@v4
               with:
                   name: release-image-${{ steps.release.outputs.sha }}
@@ -80,11 +80,11 @@ jobs:
             - name: Verify image reference
               id: image
               env:
-                  TESTED_COMMIT: ${{ steps.release.outputs.sha }}
+                  RELEASE_COMMIT: ${{ steps.release.outputs.sha }}
               run: |
                   set -eu
                   image_ref=$(python3 docker/release-image-metadata.py verify \
-                    --repository "$GITHUB_REPOSITORY" --revision "$TESTED_COMMIT" \
+                    --repository "$GITHUB_REPOSITORY" --revision "$RELEASE_COMMIT" \
                     --metadata "$RUNNER_TEMP/release-image/release-image.json")
                   printf 'image_ref=%s\n' "$image_ref" >> "$GITHUB_OUTPUT"
 
@@ -116,7 +116,7 @@ jobs:
                       # Do not update the working tree or overwrite server changes.
                       git fetch --depth 1 origin main
                       [ "$(git rev-parse FETCH_HEAD)" = "$COMMIT_SHA" ] || { echo 'main has changed; choose a new successful release run.' >&2; exit 1; }
-                      [ "$(git rev-parse HEAD)" = "$COMMIT_SHA" ] || { echo 'VPS checkout differs from tested commit; review and update it before migrating.' >&2; exit 1; }
+                      [ "$(git rev-parse HEAD)" = "$COMMIT_SHA" ] || { echo 'VPS checkout differs from the release commit; review and update it before migrating.' >&2; exit 1; }
                       git diff --quiet HEAD -- compose.production.yaml docker/registry-retry.sh || { echo 'VPS migration configuration has local modifications.' >&2; exit 1; }
                       [ -f .env.production ] || { echo 'Missing .env.production.' >&2; exit 1; }
                       if grep -q '^APP_KEY=.' .env.production; then unset APP_KEY; elif [ -z "${APP_KEY:-}" ]; then echo 'APP_KEY is required.' >&2; exit 1; fi
