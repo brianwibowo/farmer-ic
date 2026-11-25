@@ -1,0 +1,24 @@
+name: PR source policy
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+jobs:
+  validate-source:
+    name: PR source must be staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the source branch and repository
+        shell: bash
+        env:
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          SOURCE_REPOSITORY_ID: ${{ github.event.pull_request.head.repo.id }}
+        run: |
+          if [[ "$SOURCE_BRANCH" != staging || "$SOURCE_REPOSITORY_ID" != "$GITHUB_REPOSITORY_ID" ]]; then
+            echo '::error::Pull requests to main must come from the staging branch of this repository.'
+            exit 1
+          fi
