@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import PageBackButton from '@/components/PageBackButton.vue';
+import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import FarmerMobileShell from '@/components/farmer/FarmerMobileShell.vue';
 import FinanceNavigation from '@/components/farmer/FinanceNavigation.vue';
@@ -57,12 +58,15 @@ const rows = computed(() =>
     <Head :title="title" />
     <FarmerMobileShell active-key="finance"
         ><div class="space-y-5 px-4 py-4">
-            <Link
-                :href="`/finance/${resource}`"
-                class="text-sm text-primary underline"
-                >Kembali ke {{ financeLabels[resource].toLowerCase() }}</Link
-            >
-            <h1 class="text-2xl font-semibold text-foreground">{{ title }}</h1>
+            <header class="flex items-center gap-2">
+                <PageBackButton
+                    :href="`/finance/${resource}`"
+                    :label="`Kembali ke ${financeLabels[resource].toLowerCase()}`"
+                />
+                <h1 class="min-w-0 text-2xl font-semibold text-foreground">
+                    {{ title }}
+                </h1>
+            </header>
             <FinanceNavigation :active="resource" />
             <dl
                 class="divide-y divide-border rounded-xl border border-border bg-card px-4"

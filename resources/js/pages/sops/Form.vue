@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     Building2,
     CheckCircle2,
     ClipboardList,
@@ -72,38 +72,46 @@ function submit(): void {
 <template>
     <Head :title="template ? `Ubah ${template.name}` : 'Tambah SOP'" />
     <div class="space-y-[18px]">
-        <Link
-            :href="backUrl"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-        >
-            <ArrowLeft class="size-4" />{{
-                template ? 'Kembali ke detail SOP' : 'Kembali ke daftar SOP'
-            }}
-        </Link>
-
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div class="flex min-w-0 items-start gap-4">
-                <div
-                    class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"
-                >
-                    <ClipboardList class="size-7" aria-hidden="true" />
-                </div>
-                <div class="min-w-0">
-                    <h1
-                        class="admin-page-title tracking-tight break-words text-primary"
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton
+                :href="backUrl"
+                :label="
+                    template ? 'Kembali ke detail SOP' : 'Kembali ke daftar SOP'
+                "
+            />
+            <header
+                class="min-w-0 flex-1 flex flex-wrap items-start justify-between gap-4"
+            >
+                <div class="flex min-w-0 items-start gap-4">
+                    <div
+                        class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"
                     >
-                        {{ template ? 'Ubah template SOP' : 'Tambah template SOP' }}
-                    </h1>
-                    <p class="mt-1.5 text-sm leading-6 text-muted-foreground">
-                        Simpan template SOP untuk tim
-                        <strong class="font-semibold text-foreground">{{
-                            team.name
-                        }}</strong
-                        >. Berlaku untuk semua lahan dengan komoditas yang sama.
-                    </p>
+                        <ClipboardList class="size-7" aria-hidden="true" />
+                    </div>
+                    <div class="min-w-0">
+                        <h1
+                            class="admin-page-title tracking-tight break-words text-primary"
+                        >
+                            {{
+                                template
+                                    ? 'Ubah template SOP'
+                                    : 'Tambah template SOP'
+                            }}
+                        </h1>
+                        <p
+                            class="mt-1.5 text-sm leading-6 text-muted-foreground"
+                        >
+                            Simpan template SOP untuk tim
+                            <strong class="font-semibold text-foreground">{{
+                                team.name
+                            }}</strong
+                            >. Berlaku untuk semua lahan dengan komoditas yang
+                            sama.
+                        </p>
+                    </div>
                 </div>
-            </div>
-        </header>
+            </header>
+        </div>
 
         <form class="space-y-[18px]" @submit.prevent="submit">
             <FormErrorSummary :errors="form.errors" :fields="errorFields" />
@@ -116,7 +124,9 @@ function submit(): void {
                     class="min-w-0 space-y-[18px] disabled:opacity-75"
                 >
                     <section class="admin-panel space-y-6 rounded-xl bg-card">
-                        <div class="flex items-start justify-between gap-3">
+                        <div
+                            class="flex items-start justify-between gap-3"
+                        >
                             <div>
                                 <h2
                                     class="admin-section-title flex items-center gap-2"
@@ -217,7 +227,11 @@ function submit(): void {
                                                 : 'bg-muted text-muted-foreground'
                                         "
                                     >
-                                        {{ form.is_active ? 'Aktif' : 'Nonaktif' }}
+                                        {{
+                                            form.is_active
+                                                ? 'Aktif'
+                                                : 'Nonaktif'
+                                        }}
                                     </span>
                                 </label>
                             </FarmField>
@@ -289,7 +303,9 @@ function submit(): void {
                                 <dt
                                     class="flex items-center gap-2 text-xs text-muted-foreground"
                                 >
-                                    <Building2 class="size-3.5 text-primary" />Tim
+                                    <Building2
+                                        class="size-3.5 text-primary"
+                                    />Tim
                                 </dt>
                                 <dd class="font-medium">{{ team.name }}</dd>
                             </div>
@@ -300,7 +316,9 @@ function submit(): void {
                                 <dt
                                     class="flex items-center gap-2 text-xs text-muted-foreground"
                                 >
-                                    <Sprout class="size-3.5 text-primary" />Komoditas
+                                    <Sprout
+                                        class="size-3.5 text-primary"
+                                    />Komoditas
                                 </dt>
                                 <dd class="font-medium">
                                     {{
@@ -344,9 +362,9 @@ function submit(): void {
                             class="border-t border-border pt-3 text-xs leading-6 text-muted-foreground"
                         >
                             Setelah template tersimpan, Anda dapat membuat versi
-                            SOP, menyusun langkah perawatan/panen berdasarkan HST,
-                            lalu menerbitkannya agar otomatis dipakai subblok
-                            baru.
+                            SOP, menyusun langkah perawatan/panen berdasarkan
+                            HST, lalu menerbitkannya agar otomatis dipakai
+                            subblok baru.
                         </p>
                     </section>
                 </aside>

@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, LandPlot, LoaderCircle, Save } from '@lucide/vue';
+import { LandPlot, LoaderCircle, Save } from '@lucide/vue';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -203,20 +204,18 @@ async function submit(): Promise<void> {
 <template>
     <Head :title="farm ? `Ubah ${farm.name}` : 'Tambah lahan'" />
     <div class="mx-auto max-w-4xl space-y-[18px]">
-        <Link
-            :href="backUrl"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-            ><ArrowLeft class="size-4" />Kembali</Link
-        >
-        <header>
-            <h1 class="admin-page-title">
-                {{ farm ? 'Ubah lahan' : 'Tambah lahan' }}
-            </h1>
-            <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                Simpan informasi lahan untuk tim {{ team.name }}. Field bertanda
-                * wajib diisi.
-            </p>
-        </header>
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton :href="backUrl" label="Kembali" />
+            <header class="min-w-0 flex-1">
+                <h1 class="admin-page-title">
+                    {{ farm ? 'Ubah lahan' : 'Tambah lahan' }}
+                </h1>
+                <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                    Simpan informasi lahan untuk tim {{ team.name }}. Field
+                    bertanda * wajib diisi.
+                </p>
+            </header>
+        </div>
         <form class="space-y-5" @submit.prevent="submit">
             <FormErrorSummary :errors="form.errors" :fields="errorFields" />
             <fieldset

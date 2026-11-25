@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     Building2,
     LandPlot,
     Pencil,
@@ -32,50 +32,55 @@ const deleting = ref(false);
 <template>
     <Head :title="managedUser.name" />
     <div class="space-y-[18px]">
-        <Link
-            href="/admin/user-management"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-            ><ArrowLeft class="size-4" />Kembali ke daftar pengguna</Link
-        >
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div class="flex min-w-0 items-start gap-4">
-                <div
-                    class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"
-                >
-                    <UserRound class="size-7" />
-                </div>
-                <div class="min-w-0">
-                    <h1
-                        class="admin-page-title tracking-tight break-words text-primary"
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton
+                href="/admin/user-management"
+                label="Kembali ke daftar pengguna"
+            />
+            <header
+                class="min-w-0 flex-1 flex flex-wrap items-start justify-between gap-4"
+            >
+                <div class="flex min-w-0 items-start gap-4">
+                    <div
+                        class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"
                     >
-                        {{ managedUser.name }}
-                    </h1>
-                    <p class="mt-2 text-sm break-all text-muted-foreground">
-                        {{ managedUser.email }}
-                    </p>
-                    <span
-                        class="mt-3 inline-flex rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground"
-                        >{{ roleLabel(managedUser.role) }}</span
+                        <UserRound class="size-7" />
+                    </div>
+                    <div class="min-w-0">
+                        <h1
+                            class="admin-page-title tracking-tight break-words text-primary"
+                        >
+                            {{ managedUser.name }}
+                        </h1>
+                        <p class="mt-2 text-sm break-all text-muted-foreground">
+                            {{ managedUser.email }}
+                        </p>
+                        <span
+                            class="mt-3 inline-flex rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground"
+                            >{{ roleLabel(managedUser.role) }}</span
+                        >
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <Button v-if="can.update" as-child class="h-10 rounded-xl"
+                        ><Link
+                            :href="
+                                '/admin/user-management/' +
+                                managedUser.id +
+                                '/edit'
+                            "
+                            ><Pencil />Ubah pengguna</Link
+                        ></Button
+                    ><Button
+                        v-if="can.delete"
+                        variant="destructive-outline"
+                        class="h-10 rounded-xl"
+                        @click="deleting = true"
+                        ><Trash2 />Hapus</Button
                     >
                 </div>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <Button v-if="can.update" as-child class="h-10 rounded-xl"
-                    ><Link
-                        :href="
-                            '/admin/user-management/' + managedUser.id + '/edit'
-                        "
-                        ><Pencil />Ubah pengguna</Link
-                    ></Button
-                ><Button
-                    v-if="can.delete"
-                    variant="destructive-outline"
-                    class="h-10 rounded-xl"
-                    @click="deleting = true"
-                    ><Trash2 />Hapus</Button
-                >
-            </div>
-        </header>
+            </header>
+        </div>
         <div class="grid items-start gap-5 lg:grid-cols-3">
             <section class="admin-panel space-y-5 lg:col-span-2">
                 <h2 class="admin-section-title flex items-center gap-2">

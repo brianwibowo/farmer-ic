@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import InertiaPagination from '@/components/InertiaPagination.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     AlertTriangle,
-    ArrowLeft,
     CalendarDays,
     ChevronRight,
     ClipboardList,
@@ -259,21 +259,20 @@ function detailUrl(log: DailyLog): string {
         "
         v-bind="page.props.navigation?.owner ? {} : { activeKey: 'garden' }"
     >
-        <Link
-            v-if="page.props.navigation?.farms"
-            :href="`${indexUrl}/${farm.id}`"
-            class="mx-4 mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
-            ><ArrowLeft :size="16" />Kembali ke detail lahan</Link
-        >
         <div class="space-y-5 px-4 pt-4 pb-6">
             <header class="flex items-start gap-3">
-                <Link
-                    href="/kebun"
-                    class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-secondary transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    aria-label="Kembali ke daftar lahan"
-                >
-                    <ArrowLeft :size="18" />
-                </Link>
+                <PageBackButton
+                    :href="
+                        page.props.navigation?.farms
+                            ? `${indexUrl}/${farm.id}`
+                            : '/kebun'
+                    "
+                    :label="
+                        page.props.navigation?.farms
+                            ? 'Kembali ke detail lahan'
+                            : 'Kembali ke daftar lahan'
+                    "
+                />
                 <div class="min-w-0">
                     <h1
                         class="truncate text-[21px] leading-7 font-semibold text-foreground"

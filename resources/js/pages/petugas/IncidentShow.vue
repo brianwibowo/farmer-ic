@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     CalendarDays,
     Camera,
     CheckCircle2,
@@ -69,13 +69,7 @@ function submitReopen(): void {
     />
     <div class="min-w-0 space-y-4 pb-12 text-foreground">
         <header class="flex items-center gap-2.5">
-            <Link
-                :href="backHref"
-                :aria-label="backLabel"
-                class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-                <ArrowLeft class="size-5" aria-hidden="true" />
-            </Link>
+            <PageBackButton :href="backHref" :label="backLabel" />
             <h1>Detail tiket insiden</h1>
         </header>
 

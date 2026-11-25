@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { useFarmManagementNavigation } from '@/composables/useFarmManagementNavigation';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { ownerFarmOrigin } from '@/lib/ownerFarmNavigation';
-import { ArrowLeft, LandPlot, MapPin, Pencil, Target, Sprout } from '@lucide/vue';
+import { LandPlot, MapPin, Pencil, Target, Sprout } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import FarmBlocksTable from '@/components/blocks/FarmBlocksTable.vue';
 import FarmCycleSummary from '@/components/blocks/FarmCycleSummary.vue';
@@ -108,22 +109,12 @@ onBeforeUnmount(() => {
             class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3"
         >
             <div class="flex min-w-0 items-center gap-2">
-                <Button as-child variant="ghost" size="icon" class="shrink-0"
-                    ><Link
-                        :href="backUrl"
-                        :aria-label="backLabel"
-                        :title="backLabel"
-                        ><ArrowLeft class="size-5" /></Link
-                ></Button>
+                <PageBackButton :href="backUrl" :label="backLabel" />
                 <h1 class="admin-page-title min-w-0 break-words">
                     {{ farm.name }}
                 </h1>
             </div>
-            <Button
-                v-if="can.update"
-                as-child
-                class="shadow-xs font-semibold"
-            >
+            <Button v-if="can.update" as-child class="shadow-xs font-semibold">
                 <Link
                     :href="`/admin/farm-management/${farm.id}/edit`"
                     :aria-label="`Ubah lahan ${farm.name}`"
@@ -282,11 +273,7 @@ onBeforeUnmount(() => {
                 <h2 class="mb-4 text-base font-bold text-primary">
                     Peta lokasi
                 </h2>
-                <FarmBlockBoundaryMap
-                    :farm="farm"
-                    :blocks="blocks"
-                    prominent
-                />
+                <FarmBlockBoundaryMap :farm="farm" :blocks="blocks" prominent />
                 <p
                     v-if="farm.address"
                     class="mt-3 text-xs text-muted-foreground"

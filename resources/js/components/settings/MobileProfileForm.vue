@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { Form, Link } from "@inertiajs/vue3";
+import PageBackButton from '@/components/PageBackButton.vue';
+import { Form, Link } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     ChevronRight,
     LoaderCircle,
     LockKeyhole,
     Pencil,
     Save,
-} from "@lucide/vue";
-import { ref } from "vue";
-import ProfileController from "@/actions/App/Http/Controllers/Settings/ProfileController";
-import LogoutAllDevices from "@/components/settings/LogoutAllDevices.vue";
-import InputError from "@/components/InputError.vue";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { getInitials } from "@/composables/useInitials";
-import { edit as editSecurity } from "@/routes/security";
+} from '@lucide/vue';
+import { ref } from 'vue';
+import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import LogoutAllDevices from '@/components/settings/LogoutAllDevices.vue';
+import InputError from '@/components/InputError.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { getInitials } from '@/composables/useInitials';
+import { edit as editSecurity } from '@/routes/security';
 
 const props = defineProps<{
     returnUrl: string;
@@ -34,13 +34,7 @@ const isEditing = ref(false);
 
 <template>
     <div class="mx-auto flex w-full max-w-md flex-col gap-5 px-4 py-5">
-        <Link
-            :href="props.returnUrl"
-            class="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-1 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-            <ArrowLeft class="size-4" aria-hidden="true" />
-            Kembali ke beranda
-        </Link>
+        <PageBackButton :href="props.returnUrl" label="Kembali ke beranda" />
 
         <header class="flex flex-col items-center px-4 pt-2 pb-1 text-center">
             <Avatar
@@ -122,7 +116,7 @@ const isEditing = ref(false);
                                 : 'text-muted-foreground/70'
                         "
                     >
-                        {{ props.profile.phone_number || "Belum ditambahkan" }}
+                        {{ props.profile.phone_number || 'Belum ditambahkan' }}
                     </dd>
                 </div>
             </dl>
@@ -199,7 +193,7 @@ const isEditing = ref(false);
                         class="size-4 animate-spin"
                     />
                     <Save v-else class="size-4" aria-hidden="true" />
-                    {{ processing ? "Menyimpan..." : "Simpan perubahan" }}
+                    {{ processing ? 'Menyimpan...' : 'Simpan perubahan' }}
                 </button>
             </Form>
         </section>

@@ -54,6 +54,20 @@ styles, and allow the configured name to fit on narrow screens.
 
 ## Foundations
 
+### Page back navigation
+
+Dashboard pages for Admin, Owner and Petugas, including shared detail/forms and
+mobile profile/security, use `resources/js/components/PageBackButton.vue`.
+Use an icon-only green circle (36px), a 16px `ArrowLeft`, and a 44px touch target.
+Place it beside the existing page heading with an 8px gap. Keep long headings
+wrapping within the available space. The accessible label and tooltip describe
+the destination; omit a visible "Kembali" caption. Preserve the caller's Inertia
+URL, query context, click handlers, and unsaved-change confirmation flow. Do not
+implement browser history as a substitute for an existing explicit back URL.
+Use semantic primary/foreground colors in both themes. Pagination, gallery
+arrows, scroll-to-top controls and secondary empty-state actions retain their
+own component patterns.
+
 ### Corner radius
 
 - Default rounded corner: **12px**
