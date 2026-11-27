@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, Recycle } from '@lucide/vue';
+import { Recycle } from '@lucide/vue';
 import FarmCycleCard from './FarmCycleCard.vue';
 import InertiaPagination from '@/components/InertiaPagination.vue';
 import type { FarmCyclesPageProps } from '@/types/farm-cycles';
@@ -13,17 +14,7 @@ const page = usePage();
 <template>
     <div class="farm-cycles-page space-y-5">
         <header class="flex items-center gap-2">
-            <Link
-                :href="backUrl"
-                class="group inline-flex size-11 shrink-0 items-center justify-center rounded-full text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                aria-label="Kembali ke lahan"
-            >
-                <span
-                    class="inline-flex size-9 items-center justify-center rounded-full bg-primary transition-colors group-hover:bg-primary/90"
-                >
-                    <ArrowLeft class="size-4" aria-hidden="true" />
-                </span>
-            </Link>
+            <PageBackButton :href="backUrl" label="Kembali ke lahan" />
             <h1 class="text-lg! leading-7! font-medium!">Detail cycle</h1>
         </header>
         <div

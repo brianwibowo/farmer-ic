@@ -97,6 +97,10 @@ const otherMappedBlocks = computed(() =>
 );
 
 const selfIntersecting = computed(() => hasSelfIntersection(points.value));
+const draftColors = computed(() => ({
+    color: selfIntersecting.value ? '#ef4444' : '#facc15',
+    fillColor: selfIntersecting.value ? '#fca5a5' : '#fef08a',
+}));
 
 const localError = computed<string | null>(() => {
     if (points.value.length > 0 && points.value.length < 3) {
@@ -218,9 +222,6 @@ function renderDraft(): void {
     draftLayer.clearLayers();
 
     const current = points.value;
-    const strokeColor = selfIntersecting.value ? '#ef4444' : '#facc15';
-    const fillColor = selfIntersecting.value ? '#fca5a5' : '#fef08a';
-
     let previewShape:
         | ReturnType<typeof leaflet.polygon>
         | ReturnType<typeof leaflet.polyline>
@@ -229,9 +230,8 @@ function renderDraft(): void {
     if (current.length >= 3) {
         previewShape = leaflet
             .polygon(current, {
-                color: strokeColor,
+                ...draftColors.value,
                 weight: 3,
-                fillColor,
                 fillOpacity: 0.34,
                 interactive: false,
             })
@@ -239,7 +239,7 @@ function renderDraft(): void {
     } else if (current.length === 2) {
         previewShape = leaflet
             .polyline(current, {
-                color: strokeColor,
+                color: draftColors.value.color,
                 weight: 3,
                 dashArray: '6 4',
                 interactive: false,
@@ -263,6 +263,8 @@ function renderDraft(): void {
             })
             .addTo(draftLayer);
 
+        vertexMarker.on('click', leaflet.DomEvent.stopPropagation);
+
         vertexMarker.on('drag', () => {
             const moved = vertexMarker.getLatLng().wrap();
             const next = [...points.value];
@@ -270,9 +272,11 @@ function renderDraft(): void {
                 Number(moved.lat.toFixed(7)),
                 Number(moved.lng.toFixed(7)),
             ];
+            const wasSelfIntersecting = selfIntersecting.value;
             points.value = next;
-            if (previewShape && 'setLatLngs' in previewShape) {
-                previewShape.setLatLngs(next);
+            previewShape?.setLatLngs(next);
+            if (wasSelfIntersecting !== selfIntersecting.value) {
+                previewShape?.setStyle(draftColors.value);
             }
         });
 
@@ -439,14 +443,9 @@ function retry(): void {
     }
 }
 
-watch(
-    () => points.value,
-    () => {
-        renderDraft();
-        syncFarmMarker();
-    },
-    { deep: true },
-);
+// Drag updates the preview in place. Keep the active marker mounted until dragend.
+watch(() => points.value.length, renderDraft);
+watch(points, syncFarmMarker);
 
 watch(otherMappedBlocks, () => {
     renderContextBlocks();

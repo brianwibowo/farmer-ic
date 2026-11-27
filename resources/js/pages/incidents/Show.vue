@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     ArrowUpRight,
     BookOpen,
     CalendarDays,
@@ -138,85 +138,86 @@ function submitReopen(): void {
         :title="`Tiket Insiden · ${ticket.incident_category || 'Insiden Kebun'}`"
     />
     <div class="space-y-[18px]">
-        <Link
-            href="/admin/incidents"
-            class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
-        >
-            <ArrowLeft class="size-4" />Kembali ke daftar insiden
-        </Link>
-
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div class="space-y-2">
-                <div class="flex flex-wrap items-center gap-2">
-                    <span
-                        class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-                        :class="incidentSeverityClasses[ticket.severity]"
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton
+                href="/admin/incidents"
+                label="Kembali ke daftar insiden"
+            />
+            <header
+                class="min-w-0 flex-1 flex flex-wrap items-start justify-between gap-4"
+            >
+                <div class="space-y-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span
+                            class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+                            :class="incidentSeverityClasses[ticket.severity]"
+                        >
+                            {{ ticket.severity_label }}
+                        </span>
+                        <span
+                            class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+                            :class="incidentStatusClasses[ticket.status]"
+                        >
+                            {{ ticket.status_label }}
+                        </span>
+                    </div>
+                    <h1 class="admin-page-title">
+                        {{ ticket.incident_category || 'Laporan Insiden' }}
+                    </h1>
+                    <p
+                        class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"
                     >
-                        {{ ticket.severity_label }}
-                    </span>
-                    <span
-                        class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-                        :class="incidentStatusClasses[ticket.status]"
-                    >
-                        {{ ticket.status_label }}
-                    </span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <MapPin class="size-4 text-primary" />
+                            {{ ticket.location_label }}
+                        </span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <CalendarDays class="size-4 text-primary" />
+                            {{
+                                formatIncidentDate(
+                                    ticket.work_date || ticket.reported_at,
+                                )
+                            }}
+                        </span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <UserRound class="size-4 text-primary" />
+                            {{ ticket.reporter_name ?? 'Petugas' }}
+                        </span>
+                    </p>
                 </div>
-                <h1 class="admin-page-title">
-                    {{ ticket.incident_category || 'Laporan Insiden' }}
-                </h1>
-                <p
-                    class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"
-                >
-                    <span class="inline-flex items-center gap-1.5">
-                        <MapPin class="size-4 text-primary" />
-                        {{ ticket.location_label }}
-                    </span>
-                    <span class="inline-flex items-center gap-1.5">
-                        <CalendarDays class="size-4 text-primary" />
-                        {{
-                            formatIncidentDate(
-                                ticket.work_date || ticket.reported_at,
-                            )
-                        }}
-                    </span>
-                    <span class="inline-flex items-center gap-1.5">
-                        <UserRound class="size-4 text-primary" />
-                        {{ ticket.reporter_name ?? 'Petugas' }}
-                    </span>
-                </p>
-            </div>
 
-            <div class="flex flex-wrap items-center gap-2">
-                <Button
-                    v-if="ticket.can.cancel_subblock"
-                    type="button"
-                    variant="destructive-outline"
-                    class="min-h-11"
-                    @click="openCancel"
-                >
-                    <ShieldAlert class="size-4" />
-                    Tutup Subblok
-                </Button>
-                <Button
-                    v-if="ticket.can.resolve_directly"
-                    type="button"
-                    variant="outline"
-                    @click="openResolve"
-                >
-                    <CheckCircle2 class="size-4" />
-                    Tutup &amp; Selesaikan Langsung
-                </Button>
-                <Button
-                    v-if="ticket.can.reopen"
-                    type="button"
-                    variant="outline"
-                    @click="openReopen"
-                >
-                    <RotateCcw class="size-4" />
-                    Buka Kembali Tiket
-                </Button>
-            </div>
-        </header>
+                <div class="flex flex-wrap items-center gap-2">
+                    <Button
+                        v-if="ticket.can.cancel_subblock"
+                        type="button"
+                        variant="destructive-outline"
+                        class="min-h-11"
+                        @click="openCancel"
+                    >
+                        <ShieldAlert class="size-4" />
+                        Tutup Subblok
+                    </Button>
+                    <Button
+                        v-if="ticket.can.resolve_directly"
+                        type="button"
+                        variant="outline"
+                        @click="openResolve"
+                    >
+                        <CheckCircle2 class="size-4" />
+                        Tutup &amp; Selesaikan Langsung
+                    </Button>
+                    <Button
+                        v-if="ticket.can.reopen"
+                        type="button"
+                        variant="outline"
+                        @click="openReopen"
+                    >
+                        <RotateCcw class="size-4" />
+                        Buka Kembali Tiket
+                    </Button>
+                </div>
+            </header>
+        </div>
 
         <div
             v-if="ticket.cancellation"
@@ -260,7 +261,9 @@ function submitReopen(): void {
         >
             <div class="min-w-0 space-y-[18px]">
                 <section class="admin-panel space-y-4">
-                    <div class="flex items-start justify-between gap-3">
+                    <div
+                        class="flex items-start justify-between gap-3"
+                    >
                         <h2 class="admin-section-title flex items-center gap-2">
                             <ShieldAlert class="size-4 text-warning" />
                             Laporan insiden awal
@@ -366,7 +369,9 @@ function submitReopen(): void {
                     v-if="ticket.status === 'resolved'"
                     class="admin-panel space-y-4"
                 >
-                    <div class="flex items-start justify-between gap-3">
+                    <div
+                        class="flex items-start justify-between gap-3"
+                    >
                         <h2 class="admin-section-title flex items-center gap-2">
                             <ClipboardCheck class="size-4 text-success" />
                             Penyelesaian tiket

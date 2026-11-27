@@ -64,6 +64,25 @@ describe('unsaved form navigation', () => {
         expect(harness.visit).toHaveBeenCalledExactlyOnceWith(event.detail.visit.url, event.detail.visit);
     });
 
+    it('allows Batal again after choosing to stay, then leaves only after explicit confirmation', async () => {
+        useUnsavedChanges(() => true);
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const event = navigation();
+            expect(harness.before?.(event)).toBe(false);
+            expect(confirmationState.open).toBe(true);
+            resolveConfirmation(false);
+            await Promise.resolve();
+            expect(confirmationState.open).toBe(false);
+            expect(harness.visit).not.toHaveBeenCalled();
+        }
+        const lastAttempt = navigation();
+        harness.before?.(lastAttempt);
+        expect(confirmationState.open).toBe(true);
+        resolveConfirmation(true);
+        await Promise.resolve();
+        expect(harness.visit).toHaveBeenCalledExactlyOnceWith(lastAttempt.detail.visit.url, lastAttempt.detail.visit);
+    });
+
     it('leaves clean navigation and form submissions untouched', () => {
         let dirty = false;
         useUnsavedChanges(() => dirty);

@@ -14,6 +14,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\FarmBlockService;
 use App\Support\RolePermissions;
+use Database\Seeders\AdministrativeRegionSeeder;
 use Database\Seeders\BlockMappingActivityTypeSeeder;
 use Database\Seeders\DemoFarmBlockSeeder;
 use Database\Seeders\DemoFarmSeeder;
@@ -621,7 +622,17 @@ class FarmBlockTest extends TestCase
         $this->patch($this->url($block), ['area_ha' => '10'])->assertRedirect();
         $this->patch($this->url($other), ['is_active' => true])->assertSessionHasErrors('area_ha');
         $this->post($this->url($other).'/batches', [])->assertSessionHasErrors('subblock_label');
-        $this->patch('/admin/farm-management/'.$this->farm->id, ['total_area_ha' => '9.9999'])->assertSessionHasErrors('total_area_ha');
+        $this->seed(AdministrativeRegionSeeder::class);
+        $this->patch('/admin/farm-management/'.$this->farm->id, [
+            'total_area_ha' => '9.9999',
+            'district_code' => '32.01.09',
+            'district' => 'Sukamakmur',
+            'city' => 'Kabupaten Bogor',
+            'province' => 'Jawa Barat',
+            'address' => 'Jalan Desa Sukamakmur',
+            'latitude' => '-6.5791234',
+            'longitude' => '107.0023456',
+        ])->assertSessionHasErrors('total_area_ha');
         $this->post($this->url($block).'/batches', [])->assertRedirect();
         $batch = PlantingCycle::firstOrFail();
         $commodity = Commodity::create(['name' => 'Jagung Kapasitas']);

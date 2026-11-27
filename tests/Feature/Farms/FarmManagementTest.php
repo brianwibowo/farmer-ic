@@ -42,6 +42,11 @@ class FarmManagementTest extends TestCase
         $this->database = DB::connection();
         $this->database->beginTransaction();
         $this->transactionStarted = true;
+        DB::table('administrative_regions')->insert([
+            ['code' => '33', 'name' => 'Jawa Tengah', 'level' => 1, 'parent_code' => null],
+            ['code' => '33.07', 'name' => 'Wonosobo', 'level' => 2, 'parent_code' => '33'],
+            ['code' => '33.07.15', 'name' => 'Kejajar', 'level' => 3, 'parent_code' => '33.07'],
+        ]);
         $this->creatorId = $this->createUser('petugas');
         $this->ownerId = $this->createUser('owner');
         $this->adminId = $this->createUser('admin');
@@ -79,7 +84,7 @@ class FarmManagementTest extends TestCase
         $this->patchJson('/api/kebun/'.$id, ['name' => 'Kebun Baru'])->assertOk()
             ->assertJsonPath('data.total_area_ha', '12.5000');
         $this->putJson('/api/kebun/'.$id, ['name' => 'Kebun Baru'])->assertUnprocessable()->assertJsonValidationErrors('total_area_ha');
-        $this->putJson('/api/kebun/'.$id, ['name' => 'Kebun Pengganti', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Koperasi Tani Makmur', 'total_area_ha' => '20.0000'])->assertOk()->assertJsonPath('data.land_tenure', 'partnership')->assertJsonPath('data.land_tenure_party', 'Koperasi Tani Makmur');
+        $this->putJson('/api/kebun/'.$id, $this->payload(['name' => 'Kebun Pengganti', 'land_tenure' => 'partnership', 'land_tenure_party' => 'Koperasi Tani Makmur', 'total_area_ha' => '20.0000']))->assertOk()->assertJsonPath('data.land_tenure', 'partnership')->assertJsonPath('data.land_tenure_party', 'Koperasi Tani Makmur');
         $this->deleteJson('/api/kebun/'.$id)->assertNoContent();
         $this->getJson('/api/kebun/'.$id)->assertNotFound();
         $this->assertDatabaseMissing('farms', ['id' => $id]);
@@ -112,7 +117,7 @@ class FarmManagementTest extends TestCase
 
     public function test_creator_is_server_owned_and_forged_metadata_is_rejected(): void
     {
-        $this->postJson('/api/kebun', ['name' => 'Kebun Baru', 'land_tenure' => 'owned', 'total_area_ha' => '1', 'owner_id' => $this->ownerId])
+        $this->postJson('/api/kebun', $this->payload(['name' => 'Kebun Baru']))
             ->assertCreated()->assertJsonPath('data.created_by', $this->adminId);
         $this->postJson('/api/kebun', $this->payload(['created_by' => 'not-a-uuid']))->assertUnprocessable()->assertJsonValidationErrors('created_by');
         $this->postJson('/api/kebun', $this->payload(['created_by' => Str::uuid()->toString()]))->assertUnprocessable()->assertJsonValidationErrors('created_by');
@@ -133,7 +138,7 @@ class FarmManagementTest extends TestCase
         $farm = $this->farm();
         $this->patchJson('/api/kebun/'.$farm->id, ['latitude' => null])->assertUnprocessable();
         $this->patchJson('/api/kebun/'.$farm->id, ['latitude' => '-7.1'])->assertOk()->assertJsonPath('data.longitude', '109.9000000');
-        $this->patchJson('/api/kebun/'.$farm->id, ['latitude' => null, 'longitude' => null])->assertOk();
+        $this->patchJson('/api/kebun/'.$farm->id, ['latitude' => null, 'longitude' => null])->assertUnprocessable()->assertJsonValidationErrors(['latitude', 'longitude']);
     }
 
     public function test_area_cannot_be_reduced_below_active_planting_and_history_blocks_delete(): void
@@ -214,7 +219,7 @@ class FarmManagementTest extends TestCase
     {
         return array_replace([
             'name' => 'Kebun Sumber Makmur', 'land_tenure' => 'owned', 'owner_id' => $this->ownerId,
-            'address' => 'Desa Kejajar', 'city' => 'Wonosobo', 'district' => 'Kejajar', 'province' => 'Jawa Tengah',
+            'district_code' => '33.07.15', 'address' => 'Desa Kejajar', 'city' => 'Wonosobo', 'district' => 'Kejajar', 'province' => 'Jawa Tengah',
             'total_area_ha' => '12.5000', 'latitude' => '-7.2000000', 'longitude' => '109.9000000',
         ], $overrides);
     }

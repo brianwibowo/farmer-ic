@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, MapPin } from '@lucide/vue';
+import PageBackButton from '@/components/PageBackButton.vue';
+import { Head } from '@inertiajs/vue3';
+import { MapPin } from '@lucide/vue';
 import { computed } from 'vue';
 import FarmLegalityPanel from '@/components/farms/FarmLegalityPanel.vue';
-import { Button } from '@/components/ui/button';
 import type {
     FarmLegalityDetail,
     FarmLegalityLimits,
@@ -42,20 +42,10 @@ const location = computed(() =>
     <div class="min-w-0 space-y-[18px]">
         <header class="flex flex-wrap items-start justify-between gap-3">
             <div class="flex min-w-0 flex-1 items-start gap-2">
-                <Button
-                    as-child
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="size-11 shrink-0"
-                >
-                    <Link
-                        :href="backUrl"
-                        aria-label="Kembali ke detail lahan"
-                        title="Kembali ke detail lahan"
-                        ><ArrowLeft class="size-5" aria-hidden="true"
-                    /></Link>
-                </Button>
+                <PageBackButton
+                    :href="backUrl"
+                    label="Kembali ke detail lahan"
+                />
                 <div class="min-w-0">
                     <h1 class="admin-page-title">Detail legalitas</h1>
                     <p

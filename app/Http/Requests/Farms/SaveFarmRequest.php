@@ -13,18 +13,13 @@ class SaveFarmRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Region lookup validation must not turn a forbidden mutation into 422.
-        // Reject these payloads early through the same Policy; the controller
+        // Reject forbidden mutations before location validation; the controller
         // remains the explicit authorization boundary before invoking services.
-        if ($this->exists('district_code')) {
-            $farm = $this->route('farm');
+        $farm = $this->route('farm');
 
-            return $farm instanceof Farm
-                ? Gate::allows('update', $farm)
-                : Gate::allows('create', [Farm::class, $this->user()?->currentTeam]);
-        }
-
-        return true; // The controller is the HTTP authorization boundary.
+        return $farm instanceof Farm
+            ? Gate::allows('update', $farm)
+            : Gate::allows('create', [Farm::class, $this->user()?->currentTeam]);
     }
 
     /** @return array<string, array<mixed>> */
@@ -33,6 +28,8 @@ class SaveFarmRequest extends FormRequest
         $farm = $this->route('farm');
         $teamId = $farm instanceof Farm ? $farm->team_id : $this->user()?->current_team_id;
         $presence = $this->isMethod('patch') ? ['sometimes', 'required'] : ['required'];
+        $locationPresence = fn (string $field): array => $this->isMethod('patch') && $farm instanceof Farm && filled($farm->getAttribute($field))
+            ? ['sometimes', 'required'] : ['required'];
 
         return [
             'name' => [...$presence, 'string', 'max:150'],
@@ -50,13 +47,13 @@ class SaveFarmRequest extends FormRequest
             'created_by' => ['prohibited'],
             'team_id' => ['prohibited'],
             'assigned_farm_id' => ['prohibited'],
-            'address' => ['sometimes', 'nullable', 'string', 'max:5000'],
-            'city' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'district' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'district_code' => ['sometimes', 'nullable', 'string', 'regex:/^\d{2}\.\d{2}\.\d{2}$/'],
-            'province' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'latitude' => ['sometimes', 'nullable', 'numeric', 'decimal:0,7', 'between:-90,90'],
-            'longitude' => ['sometimes', 'nullable', 'numeric', 'decimal:0,7', 'between:-180,180'],
+            'address' => [...$locationPresence('address'), 'string', 'max:5000'],
+            'city' => [...$locationPresence('city'), 'string', 'max:100'],
+            'district' => [...$locationPresence('district'), 'string', 'max:100'],
+            'district_code' => [...$locationPresence('district_code'), 'string', 'regex:/^\d{2}\.\d{2}\.\d{2}$/'],
+            'province' => [...$locationPresence('province'), 'string', 'max:100'],
+            'latitude' => [...$locationPresence('latitude'), 'numeric', 'decimal:0,7', 'between:-90,90'],
+            'longitude' => [...$locationPresence('longitude'), 'numeric', 'decimal:0,7', 'between:-180,180'],
             'image_url' => ['prohibited'],
             'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:15360', Rule::prohibitedIf($this->boolean('remove_image'))],
             'remove_image' => ['sometimes', 'boolean'],
@@ -80,15 +77,13 @@ class SaveFarmRequest extends FormRequest
                     ? 'Isi nama pemilik lahan yang disewa.'
                     : 'Isi nama pihak mitra kerja sama.');
             }
-            if ($this->exists('district_code')) {
-                $code = $this->input('district_code');
+            if (collect(['district_code', 'district', 'city', 'province'])->contains(fn ($key) => $this->exists($key))) {
+                $code = $this->input('district_code', $this->isMethod('patch') ? $farm?->getAttribute('district_code') : null);
                 $team = $farm instanceof Farm ? $farm->team : $this->user()?->currentTeam;
                 $region = is_string($code) && $team ? app(AdministrativeRegionService::class)->district($code, $this->user(), $team) : null;
                 $hasNames = collect(['district', 'city', 'province'])->contains(fn ($key) => filled($this->input($key)));
-                $unchangedLegacy = $farm && $farm->getAttribute('district_code') === null && ! $code
-                    && collect(['district', 'city', 'province'])->every(fn ($key) => ($this->input($key) ?: null) === $farm->getAttribute($key));
-                if ((! $region && ($code || $hasNames) && ! $unchangedLegacy)
-                    || ($region && collect(['district', 'city', 'province'])->contains(fn ($key) => $this->input($key) !== $region[$key]))) {
+                if ((! $region && ($code || $hasNames))
+                    || ($region && collect(['district', 'city', 'province'])->contains(fn ($key) => $this->input($key, $this->isMethod('patch') ? $farm?->getAttribute($key) : null) !== $region[$key]))) {
                     $validator->errors()->add('district_code', 'Pilih kecamatan, kota/kabupaten, dan provinsi yang sesuai dari daftar wilayah.');
                 }
             }
@@ -104,6 +99,13 @@ class SaveFarmRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'province.required' => 'Pilih provinsi lokasi lahan.',
+            'city.required' => 'Pilih kota/kabupaten setelah provinsi.',
+            'district.required' => 'Pilih kecamatan setelah kota/kabupaten.',
+            'district_code.required' => 'Lengkapi pilihan provinsi, kota/kabupaten, dan kecamatan dari daftar.',
+            'address.required' => 'Isi alamat lengkap lokasi lahan.',
+            'latitude.required' => 'Tentukan titik lokasi lahan di peta.',
+            'longitude.required' => 'Tentukan titik lokasi lahan di peta.',
             'land_tenure.required' => 'Pilih status penguasaan lahan.',
             'land_tenure.in' => 'Status lahan harus Milik sendiri, Sewa, atau Kerja sama.',
             'land_tenure_party.string' => 'Nama pihak terkait harus berupa teks.',

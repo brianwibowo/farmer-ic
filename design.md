@@ -54,6 +54,20 @@ styles, and allow the configured name to fit on narrow screens.
 
 ## Foundations
 
+### Page back navigation
+
+Dashboard pages for Admin, Owner and Petugas, including shared detail/forms and
+mobile profile/security, use `resources/js/components/PageBackButton.vue`.
+Use an icon-only green circle (36px), a 16px `ArrowLeft`, and a 44px touch target.
+Place it beside the existing page heading with an 8px gap. Keep long headings
+wrapping within the available space. The accessible label and tooltip describe
+the destination; omit a visible "Kembali" caption. Preserve the caller's Inertia
+URL, query context, click handlers, and unsaved-change confirmation flow. Do not
+implement browser history as a substitute for an existing explicit back URL.
+Use semantic primary/foreground colors in both themes. Pagination, gallery
+arrows, scroll-to-top controls and secondary empty-state actions retain their
+own component patterns.
+
 ### Corner radius
 
 - Default rounded corner: **12px**
@@ -258,7 +272,8 @@ Pop-ups support both horizontal and vertical button layouts. Content patterns in
 Use a real dialog or modal pattern, keep the action order predictable, and make the close and primary actions keyboard accessible.
 
 Unsaved-change confirmations use SweetAlert2 through the shared
-`ConfirmationDialog` mounted in `AppShell`, with admin tokens, a 20px card,
+`ConfirmationDialog` mounted in `AppShell` or the standalone `FarmerMobileShell`,
+with the Petugas font in the mobile shell, admin tokens, a 20px card,
 warning icon, concise title/message,
 and 44px-or-larger actions. Keep its overlay/content above an already-open
 editor. Focus the safe cancel action first. Cancel and Escape preserve typed
@@ -270,9 +285,20 @@ Reka focus stack and uses its own elevated overlay above editors.
 Render the body Teleport only after client mount so SSR hydration never walks
 unrelated body elements. Close SweetAlert before Vue removes its target and
 finish body/ARIA cleanup without waiting for a closing animation.
+Give the confirmation FocusScope its own wrapper instead of `as-child` around
+the target ref. Verify repeated cancel/reopen and Escape cycles leave no empty
+full-screen target behind and keep unsaved fields editable.
+Mark the whole confirmation focus scope with `data-app-confirmation-scope`.
+Shared DialogContent must ignore outside focus/pointer events from that scope
+instead of forwarding them to the underlying editor's discard handler. This
+includes the scope wrapper when SweetAlert restores focus during cleanup.
 Keep its theme overrides in `resources/css/sweetalert-styling.css` and use the
 installed npm package, never a CDN. Keep the native `beforeunload`
 warning for refresh/tab closure, where browsers do not allow a custom dialog.
+Toast messages wait until a pending confirmation finishes; navigating or
+dismissing toasts must never close a confirmation. Discard queued toasts on
+navigation so messages from the previous page do not appear later. Render toast
+messages as text, including server flash messages.
 
 ## Manual land cycles
 
@@ -1495,8 +1521,10 @@ combobox pattern. Later controls stay disabled until their parent is chosen;
 changing a parent clears all descendants. Result lists float above page content
 without taking layout space, stay above the map, and flip upward when space below
 is limited. Load choices from the database by parent code and filter names within
-that list. Existing unmatched addresses are explicitly marked as legacy and
-preserved until changed.
+that list. Farm Management requires province, city/regency, district, full address and a map
+point, in that order. Mark required fields and use short contextual guidance.
+Existing unmatched addresses are marked as legacy and must be selected again
+from the region list before saving; incomplete old locations must be completed.
 
 Block pages reuse `FarmManagementLayout` when the backend shared navigation
 permits Farm Management, including the Admin sidebar, header, typography,

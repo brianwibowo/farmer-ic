@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     // CheckCircle2, — NOTE (merge resolution 2026-10-19): kept for the commented-out status banner below.
     // Clock3, — NOTE (merge resolution 2026-10-19): kept for the commented-out status banner below.
     MapPin,
@@ -121,17 +121,10 @@ onMounted(() => void loadActivityDetail());
         <div data-rincian-aktivitas class="px-4 pt-4 pb-6">
             <header class="flex items-center justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2.5">
-                    <Link
+                    <PageBackButton
                         :href="backHref"
-                        class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        aria-label="Kembali ke daftar aktivitas"
-                    >
-                        <ArrowLeft
-                            :size="19"
-                            :stroke-width="1.8"
-                            aria-hidden="true"
-                        />
-                    </Link>
+                        label="Kembali ke daftar aktivitas"
+                    />
                     <div class="min-w-0">
                         <!-- <p
                             class="text-xs font-medium tracking-wide text-muted-foreground uppercase"

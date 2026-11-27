@@ -81,8 +81,8 @@ class FarmTenantSelectionTest extends TestCase
 
         $this->get('/admin/farm-management')->assertInertia(fn (Assert $page) => $page->where('farms.total', 0));
         $this->get('/admin/farm-management/'.$foreign->id)->assertOk()->assertInertia(fn (Assert $page) => $page->where('farm.id', $foreign->id));
-        $this->patch('/admin/farm-management/'.$foreign->id, ['name' => 'Kebun Global Diperbarui'])->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertSame('Kebun Global Diperbarui', $foreign->fresh()->name);
+        $this->patch('/admin/farm-management/'.$foreign->id, ['name' => 'Kebun Global Diperbarui'])->assertSessionHasErrors(['address', 'district_code', 'latitude', 'longitude']);
+        $this->assertSame('Kebun Global', $foreign->fresh()->name);
         $this->assertSame($this->teamA->id, $this->superadmin->fresh()->current_team_id);
         $this->post(route('teams.switch', $foreignTeam))->assertForbidden();
     }

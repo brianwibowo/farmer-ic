@@ -51,7 +51,7 @@ class FarmUxTest extends TestCase
 
     public function test_dropdown_address_persists_and_forged_parent_or_unknown_code_cannot_be_saved(): void
     {
-        $payload = ['name' => 'Kebun Wilayah', 'land_tenure' => 'owned', 'total_area_ha' => '12.5', 'district_code' => '32.01.09',
+        $payload = ['address' => 'Jalan Desa Sukamakmur', 'latitude' => '-6.5791234', 'longitude' => '107.0023456', 'name' => 'Kebun Wilayah', 'land_tenure' => 'owned', 'total_area_ha' => '12.5', 'district_code' => '32.01.09',
             'district' => 'Sukamakmur', 'city' => 'Kabupaten Bogor', 'province' => 'Jawa Barat'];
         $this->post('/admin/farm-management', $payload)->assertSessionHasNoErrors()->assertRedirect();
         $farm = Farm::query()->firstOrFail();
@@ -89,14 +89,29 @@ class FarmUxTest extends TestCase
         $this->getJson('/admin/farm-regions?level=1')->assertForbidden();
     }
 
-    public function test_unmatched_legacy_address_is_preserved_when_unchanged_but_cannot_be_changed_in_dropdown_contract(): void
+    public function test_location_is_required_on_create_and_incomplete_legacy_edits(): void
     {
-        $farm = app(FarmService::class)->create(['name' => 'Kebun Legacy', 'land_tenure' => 'owned', 'total_area_ha' => '1', 'district' => 'Ejaan lama', 'city' => 'Bogor', 'province' => 'Jawa Barat'], $this->admin, $this->team);
-        $data = ['name' => 'Kebun Legacy Baru', 'land_tenure' => 'owned', 'total_area_ha' => '1', 'district_code' => null,
-            'district' => 'Ejaan lama', 'city' => 'Bogor', 'province' => 'Jawa Barat'];
-        $this->put('/admin/farm-management/'.$farm->id, $data)->assertSessionHasNoErrors();
-        $this->put('/admin/farm-management/'.$farm->id, array_replace($data, ['province' => 'Bali']))->assertSessionHasErrors('district_code');
-        $this->assertSame('Jawa Barat', $farm->fresh()->province);
+        $data = ['name' => 'Kebun Lokasi Wajib', 'land_tenure' => 'owned', 'total_area_ha' => '1'];
+        $required = ['province', 'city', 'district', 'district_code', 'address', 'latitude', 'longitude'];
+        $this->post('/admin/farm-management', $data)->assertSessionHasErrors($required);
+        $this->assertDatabaseMissing('farms', ['name' => $data['name']]);
+        $farm = app(FarmService::class)->create($data, $this->admin, $this->team);
+        $this->patch('/admin/farm-management/'.$farm->id, ['name' => 'Nama baru'])->assertSessionHasErrors($required);
+        $this->assertSame($data['name'], $farm->fresh()->name);
+        $complete = [...$data, 'district_code' => '32.01.09', 'district' => 'Sukamakmur',
+            'city' => 'Kabupaten Bogor', 'province' => 'Jawa Barat', 'address' => 'Jalan Desa Sukamakmur',
+            'latitude' => '-6.5791234', 'longitude' => '107.0023456'];
+        $this->patch('/admin/farm-management/'.$farm->id, $complete)->assertSessionHasNoErrors();
+        $this->patch('/admin/farm-management/'.$farm->id, ['name' => 'Nama baru'])->assertSessionHasNoErrors();
+        foreach ($required as $field) {
+            $this->put('/admin/farm-management/'.$farm->id, array_replace($complete, [$field => null]))->assertSessionHasErrors($field);
+        }
+        $this->patch('/admin/farm-management/'.$farm->id, ['address' => '   '])->assertSessionHasErrors('address');
+        $this->patch('/admin/farm-management/'.$farm->id, ['province' => 'Bali'])->assertSessionHasErrors('district_code');
+        $this->patch('/admin/farm-management/'.$farm->id, ['district_code' => '32.01.09'])->assertSessionHasNoErrors();
+        $this->patch('/admin/farm-management/'.$farm->id, ['latitude' => null, 'longitude' => null])->assertSessionHasErrors(['latitude', 'longitude']);
+        $this->assertSame('-6.5791234', $farm->fresh()->latitude);
+        $this->assertSame('Jalan Desa Sukamakmur', $farm->fresh()->address);
     }
 
     public function test_filter_options_and_capacity_and_deletion_preview_respect_the_farm_boundary(): void

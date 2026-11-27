@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Plus, Sprout } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import FormErrorSummary from '@/components/farms/FormErrorSummary.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
@@ -14,7 +14,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { focusFormErrors } from '@/composables/useFormRecovery';
+import { focusFormErrors, useUnsavedChanges } from '@/composables/useFormRecovery';
+import { requestConfirmation } from '@/composables/useConfirmation';
 import { gardenArea } from '@/types/petugas-garden';
 import FarmCycleField from '@/components/blocks/FarmCycleField.vue';
 import { useFarmCycles } from '@/composables/useFarmCycles';
@@ -102,16 +103,24 @@ watch(chosenBlockId, () => {
     form.clearErrors();
 });
 
-function close(nextOpen: boolean): void {
+const lifetime = new AbortController();
+onBeforeUnmount(() => lifetime.abort());
+useUnsavedChanges(() => props.open && form.isDirty && !form.processing);
+
+async function close(nextOpen: boolean): Promise<void> {
     if (!nextOpen && form.processing) return;
     if (
         !nextOpen &&
         form.isDirty &&
-        !window.confirm('Tutup dan buang perubahan yang belum disimpan?')
+        !(await requestConfirmation({
+            description: 'Perubahan subblok belum disimpan. Tutup editor dan buang perubahan ini?',
+            confirmLabel: 'Buang perubahan',
+            cancelLabel: 'Lanjut mengedit',
+        }, lifetime.signal))
     ) {
         return;
     }
-    emit('update:open', nextOpen);
+    if (!lifetime.signal.aborted && !form.processing) emit('update:open', nextOpen);
 }
 
 function submit(): void {

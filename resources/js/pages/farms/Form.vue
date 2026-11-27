@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import PageBackButton from '@/components/PageBackButton.vue';
 import AppSelect from '@/components/selects/AppSelect.vue';
 import AppSelectOption from '@/components/selects/AppSelectOption.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, LandPlot, LoaderCircle, Save } from '@lucide/vue';
+import { LandPlot, LoaderCircle, Save } from '@lucide/vue';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,11 @@ const errorFields = computed<Record<string, { id: string; label: string }>>(
             id: regionFields.value?.firstIncompleteId() ?? 'farm-province',
             label: 'Wilayah',
         },
+        latitude: { id: 'farm-location', label: 'Titik lokasi' },
+        longitude: { id: 'farm-location', label: 'Titik lokasi' },
+        province: { id: 'farm-province', label: 'Provinsi' },
+        city: { id: 'farm-city', label: 'Kota/kabupaten' },
+        district: { id: 'farm-district', label: 'Kecamatan' },
         address: { id: 'farm-address', label: 'Alamat' },
         image: { id: 'farm-image', label: 'Foto lahan' },
         remove_image: { id: 'farm-image', label: 'Foto lahan' },
@@ -144,7 +150,7 @@ async function submit(): Promise<void> {
     if (regionFields.value && !regionFields.value.valid()) {
         form.setError(
             'district_code',
-            'Lengkapi pilihan provinsi, kota/kabupaten, dan kecamatan dari daftar atau kosongkan seluruh wilayah.',
+            'Lengkapi pilihan provinsi, kota/kabupaten, dan kecamatan dari daftar.',
         );
         void focusFormErrors();
         return;
@@ -157,11 +163,24 @@ async function submit(): Promise<void> {
         void focusFormErrors();
         return;
     }
+    if (!form.address.trim()) {
+        form.setError('address', 'Isi alamat lengkap lokasi lahan.');
+        void focusFormErrors();
+        return;
+    }
     waitingForLocation.value = true;
     try {
         await finishAddress();
     } finally {
         waitingForLocation.value = false;
+    }
+    if (!location.value) {
+        form.setError(
+            'latitude',
+            'Tentukan titik lokasi: klik peta atau gunakan titik tengah peta.',
+        );
+        void focusFormErrors();
+        return;
     }
     const options = {
         preserveScroll: true,
@@ -185,20 +204,18 @@ async function submit(): Promise<void> {
 <template>
     <Head :title="farm ? `Ubah ${farm.name}` : 'Tambah lahan'" />
     <div class="mx-auto max-w-4xl space-y-[18px]">
-        <Link
-            :href="backUrl"
-            class="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
-            ><ArrowLeft class="size-4" />Kembali</Link
-        >
-        <header>
-            <h1 class="admin-page-title">
-                {{ farm ? 'Ubah lahan' : 'Tambah lahan' }}
-            </h1>
-            <p class="mt-2 text-sm leading-6 text-muted-foreground">
-                Simpan informasi lahan untuk tim {{ team.name }}. Field bertanda
-                * wajib diisi.
-            </p>
-        </header>
+        <div class="flex min-w-0 items-start gap-2">
+            <PageBackButton :href="backUrl" label="Kembali" />
+            <header class="min-w-0 flex-1">
+                <h1 class="admin-page-title">
+                    {{ farm ? 'Ubah lahan' : 'Tambah lahan' }}
+                </h1>
+                <p class="mt-2 text-sm leading-6 text-muted-foreground">
+                    Simpan informasi lahan untuk tim {{ team.name }}. Field
+                    bertanda * wajib diisi.
+                </p>
+            </header>
+        </div>
         <form class="space-y-5" @submit.prevent="submit">
             <FormErrorSummary :errors="form.errors" :fields="errorFields" />
             <fieldset
@@ -212,9 +229,6 @@ async function submit(): Promise<void> {
                         </div>
                         <div>
                             <h2 class="admin-section-title">Informasi lahan</h2>
-                            <p class="mt-1 text-xs text-muted-foreground">
-                                Identitas dan luas resmi lahan.
-                            </p>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -368,29 +382,10 @@ async function submit(): Promise<void> {
                 <section class="admin-card rounded-xl bg-card p-5 md:p-6">
                     <h2 class="admin-section-title">Lokasi lahan</h2>
                     <p class="mt-1 mb-6 text-xs text-muted-foreground">
-                        Detail alamat membantu petugas mengenali lokasi lahan.
+                        Wajib diisi: pilih wilayah → isi alamat lengkap →
+                        pastikan pin lokasi.
                     </p>
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                        <FarmField
-                            id="farm-address"
-                            label="Alamat lengkap"
-                            hint="Gunakan alamat lokasi lahan. Hindari nama pribadi, nomor telepon, atau informasi rahasia karena alamat dikirim ke layanan pencarian peta."
-                            :error="form.errors.address"
-                            class="sm:col-span-2"
-                            v-slot="field"
-                        >
-                            <textarea
-                                :id="field.id"
-                                v-model="form.address"
-                                class="admin-field resize-y"
-                                rows="3"
-                                maxlength="5000"
-                                placeholder="Desa, jalan, atau petunjuk menuju lahan"
-                                :aria-invalid="field.invalid"
-                                :aria-describedby="field.description"
-                                @blur="finishAddress"
-                            />
-                        </FarmField>
                         <FarmRegionFields
                             ref="regionFields"
                             v-model:district-code="form.district_code"
@@ -408,13 +403,43 @@ async function submit(): Promise<void> {
                             :disabled="form.processing"
                             @complete="finishAddress"
                         />
+                        <FarmField
+                            id="farm-address"
+                            label="Alamat lengkap"
+                            required
+                            :error="form.errors.address"
+                            class="sm:col-span-2"
+                            v-slot="field"
+                        >
+                            <textarea
+                                :id="field.id"
+                                v-model="form.address"
+                                class="admin-field resize-y"
+                                rows="3"
+                                required
+                                :disabled="
+                                    form.processing || !form.district_code
+                                "
+                                maxlength="5000"
+                                :placeholder="
+                                    form.district_code
+                                        ? 'Contoh: Jl. Desa Sukamakmur, dekat balai desa'
+                                        : 'Pilih kecamatan terlebih dahulu'
+                                "
+                                :aria-invalid="field.invalid"
+                                :aria-describedby="field.description"
+                                @blur="finishAddress"
+                            />
+                        </FarmField>
                     </div>
-                    <div class="mt-6 space-y-3">
+                    <div
+                        id="farm-location"
+                        tabindex="-1"
+                        class="mt-6 space-y-3 rounded-lg focus-visible:outline-2 focus-visible:outline-ring"
+                    >
                         <h3 class="text-sm font-medium">
                             Titik lokasi lahan
-                            <span class="font-normal text-muted-foreground"
-                                >(opsional)</span
-                            >
+                            <span class="text-error" aria-hidden="true">*</span>
                         </h3>
                         <FarmGeocodingFeedback
                             :loading="geocodingLoading"
@@ -430,6 +455,7 @@ async function submit(): Promise<void> {
                             :model-value="location"
                             :focus="geocodingFocus"
                             geocoding
+                            required
                             @update:model-value="setManualLocation"
                             @manual-start="beginManualLocation"
                             editable
@@ -438,10 +464,6 @@ async function submit(): Promise<void> {
                                 form.errors.latitude || form.errors.longitude
                             "
                         />
-                        <p class="text-xs text-muted-foreground">
-                            Pin menandai satu titik lokasi. Luas lahan tetap
-                            diisi pada informasi lahan.
-                        </p>
                     </div>
                 </section>
                 <section class="admin-card rounded-xl bg-card p-5 md:p-6">

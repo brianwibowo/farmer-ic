@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind a pushed GHCR digest to the repository and commit that CI tested."""
+"""Bind a tested or promoted GHCR image digest to a release commit."""
 
 import argparse
 import json
@@ -45,10 +45,10 @@ def main():
     if args.command == "create":
         references = json.loads(args.repo_digests.read_text(encoding="utf-8"))
         if not isinstance(references, list) or any(not isinstance(ref, str) for ref in references):
-            raise ValueError("Image inspect did not return repository digests.")
+            raise ValueError("Invalid list of repository digests.")
         matches = {ref[len(image) + 1:] for ref in references if ref.startswith(image + "@")}
         if len(matches) != 1:
-            raise ValueError("The pushed image does not have exactly one matching GHCR digest.")
+            raise ValueError("Expected exactly one matching GHCR digest.")
         digest = digest_value(matches.pop())
         args.output.write_text(json.dumps({
             "schema": 1, "image": image, "revision": revision, "digest": digest,
@@ -61,7 +61,7 @@ def main():
     if type(metadata["schema"]) is not int or metadata["schema"] != 1:
         raise ValueError("Unsupported release metadata.")
     if metadata["image"] != image or metadata["revision"] != revision:
-        raise ValueError("Release metadata does not match the tested repository and commit.")
+        raise ValueError("Release metadata does not match the repository and release commit.")
     print(image + "@" + digest_value(metadata["digest"]))
 
 

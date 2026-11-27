@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\FarmImageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use RuntimeException;
@@ -28,6 +29,11 @@ class FarmImageUploadTest extends TestCase
         $this->team = Team::factory()->create(['is_personal' => false]);
         $this->admin = $this->actor('admin', $this->team);
         $this->actingAs($this->admin);
+        DB::table('administrative_regions')->insert([
+            ['code' => '32', 'name' => 'Jawa Barat', 'level' => 1, 'parent_code' => null],
+            ['code' => '32.01', 'name' => 'Kabupaten Bogor', 'level' => 2, 'parent_code' => '32'],
+            ['code' => '32.01.09', 'name' => 'Sukamakmur', 'level' => 3, 'parent_code' => '32.01'],
+        ]);
     }
 
     public function test_create_stores_a_private_image_under_its_persisted_farm_and_serves_an_authorized_url(): void
@@ -166,6 +172,6 @@ class FarmImageUploadTest extends TestCase
     /** @return array<string, string> */
     private function payload(): array
     {
-        return ['name' => 'Lahan Dokumentasi', 'land_tenure' => 'owned', 'total_area_ha' => '2'];
+        return ['name' => 'Lahan Dokumentasi', 'land_tenure' => 'owned', 'total_area_ha' => '2', 'district_code' => '32.01.09', 'district' => 'Sukamakmur', 'city' => 'Kabupaten Bogor', 'province' => 'Jawa Barat', 'address' => 'Jalan Desa Sukamakmur', 'latitude' => '-6.5791234', 'longitude' => '107.0023456'];
     }
 }

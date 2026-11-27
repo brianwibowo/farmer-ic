@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import PageBackButton from '@/components/PageBackButton.vue';
+import { Head, router } from '@inertiajs/vue3';
 import BlockForm from '@/components/blocks/BlockForm.vue';
 import type { BoundaryMapBlock } from '@/components/farms/FarmBlockBoundaryMap.vue';
 import BlockLayout from '@/layouts/BlockLayout.vue';
@@ -19,14 +19,12 @@ const back = props.block
 <template>
     <Head :title="block ? 'Ubah blok' : 'Tambah blok'" />
     <div class="mx-auto w-full max-w-4xl space-y-6">
-        <Link
-            :href="back"
-            class="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground"
-            ><ArrowLeft class="size-4" />Kembali ke blok</Link
-        >
-        <h1 class="admin-page-title">
-            {{ block ? 'Ubah blok' : 'Tambah blok' }}
-        </h1>
+        <header class="flex min-w-0 items-center gap-2">
+            <PageBackButton :href="back" label="Kembali ke blok" />
+            <h1 class="admin-page-title min-w-0">
+                {{ block ? 'Ubah blok' : 'Tambah blok' }}
+            </h1>
+        </header>
         <section class="rounded-xl border border-border bg-card p-5 sm:p-6">
             <BlockForm
                 :farm="farm"

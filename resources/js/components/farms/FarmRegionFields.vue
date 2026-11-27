@@ -75,7 +75,6 @@ const state = reactive<
 });
 const drafts = reactive({ province: false, city: false, district: false });
 const touched = ref(false);
-const resetVersion = ref(0);
 const requests: Partial<Record<Level, AbortController>> = {};
 const generations = { province: 0, city: 0, district: 0 };
 const hasAddress = computed(() =>
@@ -94,12 +93,8 @@ const incomplete = computed(
 );
 defineExpose({
     valid: () =>
-        unchangedLegacy.value ||
-        (!Object.values(drafts).some(Boolean) &&
-            (!hasAddress.value ||
-                fields.every(
-                    (field) => codes[field.key] && names[field.key].value,
-                ))),
+        !Object.values(drafts).some(Boolean) &&
+        fields.every((field) => codes[field.key] && names[field.key].value),
     firstIncompleteId: () => 'farm-' + incomplete.value,
 });
 function parentCode(level: Level): string {
@@ -113,8 +108,7 @@ function disabled(level: Level): boolean {
     return !!props.disabled || (level !== 'province' && !parentCode(level));
 }
 function hint(level: Level): string {
-    if (level === 'province')
-        return 'Pilih provinsi terlebih dahulu. Wilayah boleh dikosongkan seluruhnya.';
+    if (level === 'province') return 'Ketik nama, lalu pilih dari daftar.';
     if (!parentCode(level))
         return level === 'city'
             ? 'Pilih provinsi terlebih dahulu.'
@@ -174,17 +168,6 @@ function choose(level: Level, code: string): void {
     if (code && next) void load(next.key);
     if (code && level === 'district') emit('complete');
 }
-function clear(): void {
-    touched.value = true;
-    resetVersion.value++;
-    for (const field of fields) {
-        codes[field.key] = '';
-        names[field.key].value = '';
-        drafts[field.key] = false;
-        if (field.key !== 'province') invalidate(field.key);
-    }
-    districtCode.value = '';
-}
 onMounted(() => {
     void load('province');
     if (codes.province) void load('city');
@@ -205,26 +188,15 @@ onBeforeUnmount(() => {
             role="status"
             class="rounded-xl bg-muted p-3 text-sm leading-6 text-muted-foreground"
         >
-            Alamat lama dipertahankan:
+            Wilayah lama:
             {{ [province, city, district].filter(Boolean).join(' · ') }}. Pilih
-            provinsi untuk menggantinya.
+            provinsi, kota/kabupaten, dan kecamatan dari daftar sebelum
+            menyimpan.
         </p>
-        <div class="flex items-center justify-end">
-            <button
-                type="button"
-                class="min-h-11 rounded-lg text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="disabled('province') || !hasAddress"
-                @click="clear"
-            >
-                Kosongkan wilayah
-            </button>
-        </div>
         <div class="grid items-start gap-5 sm:grid-cols-3">
             <RegionCombobox
                 v-for="field in fields"
-                :key="
-                    field.key + ':' + parentCode(field.key) + ':' + resetVersion
-                "
+                :key="field.key + ':' + parentCode(field.key)"
                 :id="field.id"
                 :label="field.label"
                 :model-value="codes[field.key]"

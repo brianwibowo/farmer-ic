@@ -303,7 +303,7 @@ class FarmGeocodingTest extends TestCase
         $this->patch('/admin/farm-management/'.$farm->id, ['latitude' => '-6.5792000', 'longitude' => '107.0024000'])->assertSessionHasNoErrors();
         $this->assertSame('-6.5792000', $farm->fresh()->latitude);
         $this->assertSame('107.0024000', $farm->fresh()->longitude);
-        $this->patch('/admin/farm-management/'.$farm->id, ['latitude' => null, 'longitude' => null])->assertSessionHasNoErrors();
-        $this->assertNull($farm->fresh()->latitude);
+        $this->patch('/admin/farm-management/'.$farm->id, ['latitude' => null, 'longitude' => null])->assertSessionHasErrors(['latitude', 'longitude']);
+        $this->assertSame('-6.5792000', $farm->fresh()->latitude);
     }
 }

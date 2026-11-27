@@ -13,6 +13,7 @@ use App\Models\PlantingCycleStage;
 use App\Models\Team;
 use App\Models\User;
 use App\Support\RolePermissions;
+use Database\Seeders\AdministrativeRegionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -132,10 +133,18 @@ class OwnerDashboardTableTest extends TestCase
             ->where('landTable.rows.0.name', 'Kebun Awal')
             ->where('landTable.total_area_ha', '10.0000'));
 
+        $this->seed(AdministrativeRegionSeeder::class);
         $this->actingAs($this->admin)->patch('/admin/farm-management/'.$farm->id, [
             'name' => 'Kebun Diperbarui Admin', 'total_area_ha' => '12.3750', 'land_tenure' => 'rented',
             'land_tenure_party' => 'PT Lahan Sejahtera',
-        ])->assertRedirect();
+            'district_code' => '32.01.09',
+            'district' => 'Sukamakmur',
+            'city' => 'Kabupaten Bogor',
+            'province' => 'Jawa Barat',
+            'address' => 'Jalan Desa Sukamakmur',
+            'latitude' => '-6.5791234',
+            'longitude' => '107.0023456',
+        ])->assertSessionHasNoErrors()->assertRedirectToRoute('farm-management.show', $farm);
         $report = $this->activity($farm, 'Resume baru dari database', '2026-11-05 10:15:00+07');
         $this->actingAs($this->owner)->get('/monitoring-lahan')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('landTable.rows.0.name', 'Kebun Diperbarui Admin')

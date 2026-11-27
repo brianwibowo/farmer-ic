@@ -213,6 +213,10 @@
     --sidebar: #ffffff;
 }
 
+.dark .auth-login-form {
+    --error: #fca5a5;
+}
+
 .dark {
     --background: #0d140e;
     --foreground: #f9faf9;
