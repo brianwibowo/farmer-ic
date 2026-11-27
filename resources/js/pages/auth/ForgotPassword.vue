@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, CircleCheck, Mail } from '@lucide/vue';
+import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import TurnstileWidget from '@/components/TurnstileWidget.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +22,10 @@ defineOptions({
 
 defineProps<{
     status?: string;
+    turnstileSiteKey: string;
 }>();
+const token = ref('');
+const turnstile = ref<InstanceType<typeof TurnstileWidget>>();
 </script>
 
 <template>
@@ -46,6 +51,8 @@ defineProps<{
     <Form
         v-bind="email.form()"
         v-slot="{ errors, processing }"
+        :transform="(data) => ({ ...data, 'cf-turnstile-response': token })"
+        @finish="turnstile?.reset()"
         class="space-y-6"
     >
         <div class="space-y-2" :aria-busy="processing">
@@ -78,10 +85,11 @@ defineProps<{
             />
         </div>
 
+        <TurnstileWidget ref="turnstile" v-model="token" :site-key="turnstileSiteKey" action="forgot_password" />
         <Button
             type="submit"
             class="h-12 w-full rounded-xl bg-secondary text-base font-semibold text-secondary-foreground hover:bg-secondary/90 active:bg-secondary/80"
-            :disabled="processing"
+            :disabled="processing || !token"
             data-test="email-password-reset-link-button"
         >
             <Spinner v-if="processing" aria-hidden="true" />

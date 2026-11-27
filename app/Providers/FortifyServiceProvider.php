@@ -100,6 +100,7 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureViews(): void
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/Login', [
+            'turnstileSiteKey' => config('services.turnstile.site_key'),
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
             'status' => $request->session()->get('status'),
             'teamInvitation' => $this->teamInvitation($request),
@@ -111,6 +112,7 @@ class FortifyServiceProvider extends ServiceProvider
         ]));
 
         Fortify::requestPasswordResetLinkView(fn (Request $request) => Inertia::render('auth/ForgotPassword', [
+            'turnstileSiteKey' => config('services.turnstile.site_key'),
             'status' => $request->session()->get('status'),
         ]));
 

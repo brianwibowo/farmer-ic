@@ -4,6 +4,7 @@ import { nextTick, ref } from 'vue';
 import { CircleAlert, LockKeyhole, Mail } from '@lucide/vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TeamInvitationAlert from '@/components/TeamInvitationAlert.vue';
+import TurnstileWidget from '@/components/TurnstileWidget.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -25,14 +26,17 @@ defineProps<{
     status?: string;
     canResetPassword: boolean;
     teamInvitation?: TeamInvitationContext | null;
+    turnstileSiteKey: string;
 }>();
+const turnstile = ref<InstanceType<typeof TurnstileWidget>>();
 const formElement = ref<HTMLFormElement>();
 const form = useForm<{
     email: string;
     password: string;
     remember: boolean;
     login?: string;
-}>({ email: '', password: '', remember: false });
+    'cf-turnstile-response': string;
+}>({ email: '', password: '', remember: false, 'cf-turnstile-response': '' });
 
 async function focusError() {
     await nextTick();
@@ -49,6 +53,7 @@ function clearError(field: 'email' | 'password') {
 
 function submit() {
     if (form.processing) return;
+    if (!form['cf-turnstile-response']) return;
     form.clearErrors();
     form.email = form.email.trim();
     const emailInput =
@@ -69,6 +74,7 @@ function submit() {
     form.submit(store(), {
         onError: () => void focusError(),
         onSuccess: () => form.reset('password'),
+        onFinish: () => turnstile.value?.reset(),
     });
 }
 </script>
@@ -201,10 +207,11 @@ function submit() {
                 </Link>
             </div>
         </div>
+        <TurnstileWidget ref="turnstile" v-model="form['cf-turnstile-response']" :site-key="turnstileSiteKey" action="login" />
         <Button
             type="submit"
             class="h-12 w-full rounded-xl bg-secondary text-base font-semibold text-secondary-foreground hover:bg-secondary/90 active:bg-secondary/80"
-            :disabled="form.processing"
+            :disabled="form.processing || !form['cf-turnstile-response']"
             data-test="login-button"
         >
             <Spinner v-if="form.processing" aria-hidden="true" />

@@ -9,6 +9,25 @@ if [ -z "${APP_KEY:-}" ]; then
     exit 1
 fi
 
+# Refuse to mark a production release healthy when both public auth forms
+# would otherwise be unavailable because Turnstile was not configured.
+if [ "${APP_ENV:-}" = 'production' ]; then
+    for value in "${TURNSTILE_SITE_KEY:-}" "${TURNSTILE_SECRET:-}" "${TURNSTILE_HOSTNAMES:-}"; do
+        case "$value" in
+            *[![:space:]]*) ;;
+            *) echo 'TURNSTILE_SITE_KEY, TURNSTILE_SECRET, and TURNSTILE_HOSTNAMES must be configured for production.' >&2; exit 1 ;;
+        esac
+    done
+    unset value
+    if ! php -r '
+        $hosts = array_filter(array_map(static fn ($host) => strtolower(trim($host)), explode(",", getenv("TURNSTILE_HOSTNAMES"))));
+        exit($hosts && ! array_intersect($hosts, ["localhost", "127.0.0.1", "::1"]) ? 0 : 1);
+    '; then
+        echo 'TURNSTILE_HOSTNAMES must contain production hostnames and no local hostnames.' >&2
+        exit 1
+    fi
+fi
+
 if [ "${DB_CONNECTION:-}" != 'pgsql' ]; then
     echo 'The current schema requires DB_CONNECTION=pgsql; no database was changed.' >&2
     exit 1

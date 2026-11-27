@@ -2,6 +2,12 @@
 
 return [
 
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY', '0x4AAAAAAGVMcSuhJ_SFt5M8'),
+        'secret' => env('TURNSTILE_SECRET'),
+        'hostnames' => env('TURNSTILE_HOSTNAMES', ''),
+    ],
+
     'nominatim' => [
         'url' => env('NOMINATIM_URL', 'https://nominatim.openstreetmap.org'),
         'user_agent' => env('NOMINATIM_USER_AGENT', env('APP_NAME', 'Bumi Hijauan').'/1.0 ('.env('APP_URL', 'http://localhost').')'),

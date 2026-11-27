@@ -9,6 +9,7 @@ use App\Http\Middleware\MeasurePetugasRoute;
 use App\Http\Middleware\MeasurePetugasWebReady;
 use App\Http\Middleware\MeasurePetugasWebStart;
 use App\Http\Middleware\SetTeamUrlDefaults;
+use App\Http\Middleware\VerifyTurnstile;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->api(prepend: [EnsureLocalFarmApi::class]);
         $middleware->prependToPriorityList(\Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class, AuthenticateRememberedDevice::class);
+        $middleware->appendToPriorityList([\Illuminate\Routing\Middleware\ThrottleRequests::class, \Illuminate\Routing\Middleware\ThrottleRequestsWithRedis::class], VerifyTurnstile::class);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
@@ -45,12 +47,14 @@ return Application::configure(basePath: dirname(__DIR__))
             AuthenticateRememberedDevice::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
+            VerifyTurnstile::class,
             AddLinkHeadersForPreloadedAssets::class,
             SetTeamUrlDefaults::class,
             MeasurePetugasRoute::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash('cf-turnstile-response');
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
@@ -61,6 +65,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return Inertia::render('errors/Forbidden', [
                 'status' => 403,
+                'turnstileFailed' => $request->attributes->get('turnstile_failed', false),
+                'retryUrl' => $request->attributes->get('turnstile_retry_url'),
                 'canLogout' => $request->user() !== null,
                 // The error screen does not need to resolve team navigation after an access denial.
                 'currentTeam' => null,

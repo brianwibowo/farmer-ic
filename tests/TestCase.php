@@ -22,6 +22,9 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->withoutVite();
+        // Most feature tests exercise domain behavior, not the external challenge.
+        // TurnstileTest explicitly re-enables this middleware and fakes Siteverify.
+        $this->withoutMiddleware(\App\Http\Middleware\VerifyTurnstile::class);
         foreach (['activity', 'legality', 'farm'] as $disk) {
             \Illuminate\Support\Facades\Storage::fake($disk);
         }

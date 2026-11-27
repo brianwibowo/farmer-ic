@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useLogout } from '@/composables/useLogout';
 import { home, login } from '@/routes';
 
-defineProps<{ status: number; canLogout: boolean }>();
+defineProps<{ status: number; canLogout: boolean; turnstileFailed?: boolean; retryUrl?: string | null }>();
 const { signOut, processing, error } = useLogout();
 </script>
 
@@ -19,15 +19,17 @@ const { signOut, processing, error } = useLogout();
                 <ShieldAlert class="size-8" aria-hidden="true" />
             </div>
             <p class="mt-6 text-xs font-semibold tracking-widest text-muted-foreground">{{ status }} · AKSES DITOLAK</p>
-            <h1 id="forbidden-heading" class="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Akses tidak diizinkan</h1>
-            <p class="mt-4 text-sm leading-6 text-muted-foreground">Akun kamu belum memiliki izin untuk membuka halaman ini. Hubungi admin tim jika kamu memerlukan akses.</p>
+            <h1 id="forbidden-heading" class="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{{ turnstileFailed ? 'Verifikasi keamanan gagal' : 'Akses tidak diizinkan' }}</h1>
+            <p v-if="turnstileFailed" class="mt-4 text-sm leading-6 text-muted-foreground">Verifikasi keamanan tidak berhasil atau telah kedaluwarsa. Kembali dan coba lagi.</p>
+            <p v-else class="mt-4 text-sm leading-6 text-muted-foreground">Akun kamu belum memiliki izin untuk membuka halaman ini. Hubungi admin tim jika kamu memerlukan akses.</p>
             <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                <Button as-child variant="secondary" class="min-h-11 rounded-xl"><Link :href="home()"><ArrowLeft class="size-4" />Ke beranda</Link></Button>
+                <Button v-if="turnstileFailed && retryUrl" as-child variant="secondary" class="min-h-11 rounded-xl"><Link :href="retryUrl"><ArrowLeft class="size-4" />Coba lagi</Link></Button>
+                <Button v-else as-child variant="secondary" class="min-h-11 rounded-xl"><Link :href="home()"><ArrowLeft class="size-4" />Ke beranda</Link></Button>
                 <Button v-if="canLogout" variant="outline" class="min-h-11 rounded-xl" :disabled="processing" @click="signOut">
                     <LoaderCircle v-if="processing" class="size-4 animate-spin" aria-hidden="true" /><LogOut v-else class="size-4" aria-hidden="true" />
                     {{ processing ? 'Sedang keluar…' : 'Keluar' }}
                 </Button>
-                <Button v-else as-child variant="outline" class="min-h-11 rounded-xl"><Link :href="login()">Masuk ke akun</Link></Button>
+                <Button v-else-if="!turnstileFailed" as-child variant="outline" class="min-h-11 rounded-xl"><Link :href="login()">Masuk ke akun</Link></Button>
             </div>
             <p v-if="error" role="alert" class="mt-4 text-sm leading-6 text-error">{{ error }}</p>
         </section>
